@@ -1,0 +1,21 @@
+{
+  "name": "Kingdom Telemetry HUD",
+  "short_name": "Kingdom PWA",
+  "description": "Sovereign Heuristic Alignment Dashboard for 3D Royal Administrators.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#f4f4f9",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
