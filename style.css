@@ -1,39 +1,153 @@
 body {
-    background-color: #f4f4f9;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem;
+    background-color: #111827;
+    color: #f9fafb;
+    font-family: 'Courier New', Courier, monospace;
+    padding: 20px;
     margin: 0;
 }
 
-.firmware-reminder {
-    background-color: #e0e7ff;
-    border-left: 5px solid #4f46e5;
-    padding: 1rem;
-    margin-bottom: 2rem;
-    max-width: 800px;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    color: #333;
-}
-
-.kingdom-matrix-container {
-    display: flex;
-    gap: 2rem;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.tdc-node {
-    background: white;
+.card {
+    background-color: #1f2937;
+    border: 1px solid #374151;
     border-radius: 8px;
-    padding: 2rem;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    position: relative;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+h2 {
+    color: #fbbf24;
+    margin-top: 0;
+}
+
+p {
+    line-height: 1.5;
+}
+
+/* Master Telemetry HUD Styles */
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #9ca3af;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px;
+    background-color: #111827;
+    color: #10b981;
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.btn-primary {
+    background-color: #fbbf24;
+    color: #111827;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
     cursor: pointer;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: #f59e0b;
+}
+
+#faith-output {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 4px;
+    font-weight: bold;
+    text-align: center;
+    font-size: 1.2em;
+}
+
+/* Color-Coded Statuses */
+.status-optimal { background-color: #064e3b; color: #34d399; border: 1px solid #059669; }
+.status-friction { background-color: #78350f; color: #fbbf24; border: 1px solid #d97706; }
+.status-critical { background-color: #7f1d1d; color: #f87171; border: 1px solid #dc2626; }
+
+/* Kingdom Progression Matrix Styles */
+.matrix-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.matrix-level {
+    background-color: #111827;
+    border: 1px solid #4b5563;
+    border-radius: 6px;
+    padding: 15px;
+    text-align: center;
+    cursor: help;
+}
+
+.matrix-level h3 {
+    margin-top: 0;
+    color: #a78bfa;
+}
+
+/* Quad-Node Telemetry Router Styles */
+textarea {
+    width: 100%;
+    background-color: #111827;
+    color: #10b981;
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+    font-family: 'Courier New', Courier, monospace;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.node-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.node-buttons button {
+    padding: 12px 10px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.node-buttons button:hover {
+    opacity: 0.8;
+}
+
+.btn-kingdom { background-color: #fbbf24; color: #111827; grid-column: span 2; }
+.btn-therapy { background-color: #3b82f6; color: #ffffff; }
+.btn-tech { background-color: #8b5cf6; color: #ffffff; }
+.btn-mvp { background-color: #ef4444; color: #ffffff; }
+
+.btn-copy {
+    background-color: #10b981;
+    color: #111827;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 5px;
+}
+
+.btn-copy:hover {
+    background-color: #059669;
+}
     transition: transform 0.2s ease;
     width: 150px;
 }
