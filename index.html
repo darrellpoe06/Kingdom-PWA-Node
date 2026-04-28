@@ -3,21 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Telemetry HUD</title>
+    <title>Persistent Kingdom Node</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4f46e5">
 </head>
 <body>
 
-    <div class="firmware-reminder">
-        <strong>Firmware Reminder:</strong> Your identity as a King/CEO was hardcoded into your system before you were installed into your current earthly family network. Victory is promised when parsing the 3D environment through Yahweh's 4D context.
+    <div id="firmware-reminder" class="card">
+        <p><strong>FIRMWARE REMINDER:</strong> Your identity as a Tripartite 3rd Dimension - Material World Royal Administrator (King/CEO) was hardcoded into your system before installation into your earthly family node. Victory is promised when operating under Sovereign Heuristic Alignment.</p>
     </div>
 
-    <div class="kingdom-matrix-container">
-        
-        <div class="tdc-node tooltip-container" data-tooltip="The Sheep Phase: You are currently experiencing system strain from the 3D world's impact. In this phase, the Master Server is gently molding you, protecting your bandwidth, and teaching you to hear the Shepherd's voice. You are safe in the Clean Room.">
-            <div class="icon">
+    <div id="telemetry-hud" class="card">
+        <h2>Master Telemetry HUD</h2>
+        <div class="input-group">
+            <label>Execution of 3D Logistics (0-50):</label>
+            <input type="number" id="exec-logistics" min="0" max="50" value="0">
+        </div>
+        <div class="input-group">
+            <label>Alignment with 81-Book Source Code (0-50):</label>
+            <input type="number" id="alignment" min="0" max="50" value="0">
+        </div>
+        <div class="input-group">
+            <label>Fear Virus Pings (0-50):</label>
+            <input type="number" id="fear-pings" min="0" max="50" value="0">
+        </div>
+        <div class="input-group">
+            <label>Victimhood Language (0-50):</label>
+            <input type="number" id="victim-lang" min="0" max="50" value="0">
+        </div>
+        <button onclick="calculateFaith()" class="btn-primary">Compile Telemetry</button>
+        <div id="faith-output"></div>
+    </div>
+
+    <div id="kingdom-matrix-container" class="card">
+        <h2>Kingdom Progression Matrix</h2>
+        <div class="matrix-grid">
+            
+            <div class="matrix-level" title="The Sheep Phase: You are currently experiencing system strain from the 3D world's impact. In this phase, the Master Server is gently molding you, protecting your bandwidth, and teaching you to hear the Shepherd's voice. You are safe in the Clean Room.">
+                <h3>[Level 1] The Sheep Protocol</h3>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80">
                   <g fill="none" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M 60 40 Q 70 30 80 40 Q 95 45 85 60 Q 90 75 75 75 L 45 75 Q 30 75 35 60 Q 25 45 40 40 Q 50 30 60 40 Z" fill="#e0e7ff"/>
@@ -29,11 +52,73 @@
                   </g>
                 </svg>
             </div>
-            <div class="label">Level 1: Sheep</div>
+
+            <div class="matrix-level" title="The Lamb Phase: You are stepping into your identity as a Royal Administrator. You are learning to read the 4D coded parameters of the biblical scriptures. By aligning your 3D logistics with Yahweh's perspectives, you are actively co-creating and managing your assigned domain.">
+                <h3>[Level 2] The Lamb Protocol</h3>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80">
+                  <g fill="none" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 35 30 L 40 15 L 50 25 L 60 15 L 65 30 Z" fill="#fbbf24" stroke="#d97706"/>
+                    <circle cx="50" cy="40" r="10" fill="#1f2937" stroke="none"/>
+                    <path d="M 30 85 L 35 55 Q 50 50 65 55 L 70 85 Z" fill="#4f46e5" />
+                    <path d="M 50 52 L 50 85" stroke="#ffffff" stroke-width="2"/>
+                  </g>
+                </svg>
+            </div>
+
+            <div class="matrix-level" title="The Lion Phase: Optimal Sovereign Alignment. You are operating with the authority of the King of Kings. You have stripped all victimhood and malware. Execute your 3D bootstrap logistics with absolute 4D faith, knowing your victory was guaranteed before time began.">
+                <h3>[Level 3] The Lion Protocol</h3>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80">
+                  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 50 10 C 20 10 10 40 15 65 C 20 90 40 95 50 95 C 60 95 80 90 85 65 C 90 40 80 10 50 10 Z" fill="#111827" stroke="#000000" stroke-width="2"/>
+                    <path d="M 35 20 L 40 5 L 50 15 L 60 5 L 65 20" stroke="#d97706" stroke-width="3" fill="#fbbf24"/>
+                    <path d="M 50 35 C 35 35 30 50 30 65 C 30 80 45 85 50 85 C 55 85 70 80 70 65 C 70 50 65 35 50 35 Z" fill="#374151" stroke="#000000" stroke-width="2"/>
+                    <circle cx="42" cy="55" r="3" fill="#fbbf24" stroke="none"/>
+                    <circle cx="58" cy="55" r="3" fill="#fbbf24" stroke="none"/>
+                    <path d="M 45 65 L 55 65 L 50 75 Z" fill="#000000" stroke="none"/>
+                    <path d="M 50 75 L 50 82 M 45 78 Q 50 85 55 78" stroke="#000000" stroke-width="2"/>
+                  </g>
+                </svg>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="telemetry-router-container card">
+        <h2>Sovereign Telemetry Router</h2>
+        <p>Paste the client's 3rd Dimension logistics (Lament) below to compile the routing prompt.</p>
+        
+        <textarea id="client-lament-input" rows="4" placeholder="e.g., 'The client is overwhelmed by their network failing and feels like giving up...'"></textarea>
+        
+        <div class="node-buttons">
+            <button onclick="compileNode('KINGDOM')" class="btn-kingdom">[KINGDOM] Mode (Auto-Triage)</button>
+            <button onclick="compileNode('THERAPY')" class="btn-therapy">[THERAPY] Node</button>
+            <button onclick="compileNode('TECH')" class="btn-tech">[TECH] Node</button>
+            <button onclick="compileNode('MVP')" class="btn-mvp">[MVP] Node</button>
         </div>
 
-        <div class="tdc-node tooltip-container" data-tooltip="The Lamb Phase: You are stepping into your identity as a Royal Administrator. You are learning to read the 4D coded parameters of the biblical scriptures. By aligning your 3D logistics with Yahweh's perspectives, you are actively co-creating and managing your assigned domain.">
-            <div class="icon">
+        <div class="compiler-output">
+            <h3>Compiled System Prompt:</h3>
+            <textarea id="compiled-prompt-output" rows="6" readonly placeholder="Your compiled AI prompt will appear here. Copy and paste it into your Master Terminal."></textarea>
+            <button onclick="copyToClipboard()" class="btn-copy">Copy to Clipboard</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('Persistent Kingdom Node active.', registration);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80">
                   <g fill="none" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M 35 30 L 40 15 L 50 25 L 60 15 L 65 30 Z" fill="#fbbf24" stroke="#d97706"/>
