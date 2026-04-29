@@ -1,6 +1,8 @@
-// utilizing absolute CDN paths to resolve browser module errors
-import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+import { pipeline, env } from 'https://esm.run/@xenova/transformers';
 import { CreateWebWorkerMLCEngine } from 'https://esm.run/@mlc-ai/web-llm';
+
+// Security Protocol: Force strict CDN resolution for NLP models to prevent local CORS bottlenecks
+env.allowLocalModels = false;
 
 class TelemetryRoutingMatrix {
     constructor() {
@@ -22,14 +24,20 @@ class TelemetryRoutingMatrix {
     }
 
     async initializeBaseline() {
-        this.updateStatus("Initializing Baseline Telemetry...");
-        this.logToHUD("Downloading/Loading lightweight classification matrix...");
-        
-        this.lightweightClassifier = await pipeline(
-            'text-classification', 
-            'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
-        );
-        this.logToHUD("Baseline Telemetry Synced.");
+        try {
+            this.updateStatus("Initializing Baseline Telemetry...");
+            this.logToHUD("Downloading/Loading lightweight classification matrix via secure CDN...");
+            
+            this.lightweightClassifier = await pipeline(
+                'text-classification', 
+                'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
+            );
+            this.logToHUD("Baseline Telemetry Synced.");
+            return true;
+        } catch (error) {
+            this.logToHUD(`Baseline Initialization Failure: ${error.message}`);
+            return false;
+        }
     }
 
     async initializeEscalation() {
@@ -55,41 +63,49 @@ class TelemetryRoutingMatrix {
     }
 
     async processIntake(userInput) {
-        this.uiLog.textContent = "> Processing payload...";
-        this.updateStatus("Analyzing...");
+        try {
+            this.uiLog.textContent = "> Processing payload...";
+            this.updateStatus("Analyzing...");
 
-        if (!this.lightweightClassifier) await this.initializeBaseline();
-
-        const baselineResult = await this.lightweightClassifier(userInput);
-        const classification = baselineResult[0];
-
-        this.logToHUD(`Baseline Deduction: ${classification.label} (Confidence: ${(classification.score * 100).toFixed(2)}%)`);
-
-        if (classification.score >= this.escalationThreshold && classification.label === "POSITIVE") {
-            this.updateStatus("Optimal Alignment Confirmed.");
-            this.logToHUD("Routing to: [Execution Node]");
-            this.logToHUD("Action: Generating standard MVP mapping based on high operational confidence.");
-        } else {
-            this.updateStatus("Escalating to Advanced Analysis...");
-            this.logToHUD("Low confidence or high systemic friction detected. Requesting advanced context...");
-            
-            const canEscalate = await this.initializeEscalation();
-            
-            if (canEscalate) {
-                const advancedContext = await this.robustEngine.chat.completions.create({
-                    messages: [
-                        { role: "system", content: "You are an elite enterprise architect. Deduce the deep operational friction in the following client request. Output a brief, professional response." },
-                        { role: "user", content: userInput }
-                    ]
-                });
-
-                this.updateStatus("Strategic Synthesis Complete.");
-                this.logToHUD("Routing to: [Empathy / Architecture Node]");
-                this.logToHUD(`Action Output:\n${advancedContext.choices[0].message.content}`);
-            } else {
-                this.updateStatus("Execution Halted.");
-                this.logToHUD("Hardware constraints prevented escalation. Manual intervention required.");
+            if (!this.lightweightClassifier) {
+                const initialized = await this.initializeBaseline();
+                if (!initialized) throw new Error("Failed to construct semantic architecture.");
             }
+
+            const baselineResult = await this.lightweightClassifier(userInput);
+            const classification = baselineResult[0];
+
+            this.logToHUD(`Baseline Deduction: ${classification.label} (Confidence: ${(classification.score * 100).toFixed(2)}%)`);
+
+            if (classification.score >= this.escalationThreshold && classification.label === "POSITIVE") {
+                this.updateStatus("Optimal Alignment Confirmed.");
+                this.logToHUD("Routing to: [Execution Node]");
+                this.logToHUD("Action: Generating standard MVP mapping based on high operational confidence.");
+            } else {
+                this.updateStatus("Escalating to Advanced Analysis...");
+                this.logToHUD("Low confidence or high systemic friction detected. Requesting advanced context...");
+                
+                const canEscalate = await this.initializeEscalation();
+                
+                if (canEscalate) {
+                    const advancedContext = await this.robustEngine.chat.completions.create({
+                        messages: [
+                            { role: "system", content: "You are an elite enterprise architect. Deduce the deep operational friction in the following client request. Output a brief, professional response." },
+                            { role: "user", content: userInput }
+                        ]
+                    });
+
+                    this.updateStatus("Strategic Synthesis Complete.");
+                    this.logToHUD("Routing to: [Empathy / Architecture Node]");
+                    this.logToHUD(`Action Output:\n${advancedContext.choices[0].message.content}`);
+                } else {
+                    this.updateStatus("Execution Halted.");
+                    this.logToHUD("Hardware constraints prevented escalation. Manual intervention required.");
+                }
+            }
+        } catch (error) {
+            this.updateStatus("Systemic Failure.");
+            this.logToHUD(`Critical Exception Encountered: ${error.message}`);
         }
     }
 }
@@ -99,7 +115,8 @@ const systemHUD = new TelemetryRoutingMatrix();
 const intakeInput = document.getElementById('intakeInput');
 
 // 1. Telemetry Scan Event Listener
-document.getElementById('processBtn').addEventListener('click', async () => {
+document.getElementById('processBtn').addEventListener('click', async (e) => {
+    e.preventDefault(); // Prevents silent form submissions or DOM resets
     const input = intakeInput.value;
     if (!input.trim()) {
         alert("Please provide operational requirements before executing.");
@@ -110,16 +127,19 @@ document.getElementById('processBtn').addEventListener('click', async () => {
     document.getElementById('processBtn').disabled = false;
 });
 
-// 2. Visual Architecture Toggle Logic
+// 2. Visual Architecture Toggle Logic (Remediated)
 const themeBtn = document.getElementById('themeToggleBtn');
-themeBtn.addEventListener('click', () => {
-    const body = document.body;
-    body.classList.toggle('light-mode');
+themeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const root = document.documentElement;
     
-    if (body.classList.contains('light-mode')) {
-        themeBtn.textContent = "Revert to Tactical Mode";
-    } else {
+    // Explicit structural attribute checking prevents synchronization friction
+    if (root.hasAttribute('data-theme')) {
+        root.removeAttribute('data-theme');
         themeBtn.textContent = "Engage High-Legibility Mode";
+    } else {
+        root.setAttribute('data-theme', 'light');
+        themeBtn.textContent = "Revert to Tactical Mode";
     }
 });
 
@@ -133,12 +153,18 @@ if (SpeechRecognition) {
     recognition.interimResults = false;
     recognition.lang = 'en-US';
 
-    voiceBtn.addEventListener('click', () => {
-        recognition.start();
-        systemHUD.updateStatus("Listening for Auditory Telemetry...");
-        voiceBtn.textContent = "🔴 Recording...";
-        voiceBtn.style.color = "#ff5555";
-        voiceBtn.style.borderColor = "#ff5555";
+    voiceBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        try {
+            recognition.start();
+            systemHUD.updateStatus("Listening for Auditory Telemetry...");
+            voiceBtn.textContent = "🔴 Recording...";
+            voiceBtn.style.color = "#ff5555";
+            voiceBtn.style.borderColor = "#ff5555";
+        } catch (error) {
+            systemHUD.logToHUD(`Microphone Exception: ${error.message}. Please ensure the server runs on HTTPS or strict localhost.`);
+            resetVoiceBtn();
+        }
     });
 
     recognition.onresult = (event) => {
@@ -149,13 +175,11 @@ if (SpeechRecognition) {
     };
 
     recognition.onerror = (event) => {
-        systemHUD.logToHUD(`Auditory Intake Error: ${event.error}. Please ensure microphone permissions are granted.`);
+        systemHUD.logToHUD(`Auditory Intake Error: ${event.error}. Verify browser permission matrices.`);
         resetVoiceBtn();
     };
 
-    recognition.onend = () => {
-        resetVoiceBtn();
-    };
+    recognition.onend = () => resetVoiceBtn();
 
     function resetVoiceBtn() {
         voiceBtn.textContent = "🎤 Engage Voice Intake";
@@ -164,6 +188,6 @@ if (SpeechRecognition) {
     }
 } else {
     voiceBtn.disabled = true;
-    voiceBtn.textContent = "🎤 Voice (Unsupported Browser)";
-    systemHUD.logToHUD("Warning: Web Speech API is not supported on this browser architecture.");
+    voiceBtn.textContent = "🎤 Voice (Unsupported)";
+    systemHUD.logToHUD("Warning: Web Speech API is structurally unsupported on this browser.");
 }
