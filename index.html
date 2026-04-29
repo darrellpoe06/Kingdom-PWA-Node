@@ -5,28 +5,206 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enterprise Telemetry Matrix - PWA</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; color: #333; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { font-size: 1.5rem; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
-        textarea { width: 100%; height: 120px; padding: 10px; margin-top: 15px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; }
-        button { background: #0056b3; color: #fff; border: none; padding: 10px 20px; margin-top: 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #004494; }
-        .hud { margin-top: 25px; padding: 15px; background: #e9ecef; border-left: 4px solid #0056b3; border-radius: 4px; }
-        .log { font-family: monospace; font-size: 0.9rem; background: #2b2b2b; color: #50fa7b; padding: 10px; border-radius: 4px; margin-top: 10px; white-space: pre-wrap; }
+        /* Core System Reset & Dynamic State Variables */
+        * { box-sizing: border-box; }
+        
+        :root {
+            /* Default Tactical Dark Mode Baseline */
+            --bg-primary: #090a0f;
+            --bg-panel: #12161f;
+            --bg-hud: #0b0c10;
+            --text-main: #c5c6c7;
+            --text-muted: #8b929a;
+            --accent-primary: #66fcf1;
+            --accent-secondary: #45a29e;
+            --border-color: #1f2833;
+            --log-bg: #000000;
+            --log-text: #50fa7b;
+            --btn-bg: linear-gradient(135deg, #1f2833 0%, #0b0c10 100%);
+            --btn-hover: rgba(69, 162, 158, 0.1);
+            --shadow: 0 0 25px rgba(102, 252, 241, 0.05), inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .light-mode {
+            /* High-Legibility Corporate Baseline */
+            --bg-primary: #f4f7f6;
+            --bg-panel: #ffffff;
+            --bg-hud: #e9ecef;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --accent-primary: #0056b3;
+            --accent-secondary: #004494;
+            --border-color: #cccccc;
+            --log-bg: #2b2b2b;
+            --log-text: #50fa7b;
+            --btn-bg: #0056b3;
+            --btn-hover: #004494;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg-primary); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Top Control Bar */
+        .system-controls {
+            width: 100%;
+            max-width: 850px;
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .theme-toggle {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 5px 15px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: auto;
+            margin: 0;
+            transition: all 0.3s ease;
+        }
+        .theme-toggle:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+
+        /* Primary Command Container */
+        .container { 
+            width: 100%; 
+            max-width: 850px; 
+            background: var(--bg-panel); 
+            padding: 35px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow); 
+            transition: all 0.3s ease;
+        }
+
+        /* Header & Typography */
+        h1 { 
+            font-size: 1.8rem; 
+            color: var(--accent-primary); 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 15px; 
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+        }
+        h1::before { content: '■'; margin-right: 10px; color: var(--accent-secondary); font-size: 1.2rem; }
+        p { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* Input Matrix */
+        textarea { 
+            width: 100%; 
+            height: 140px; 
+            padding: 15px; 
+            margin-top: 15px; 
+            background: var(--bg-primary); 
+            color: var(--accent-primary); 
+            border: 1px solid var(--border-color); 
+            border-radius: 6px; 
+            resize: vertical; 
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        textarea:focus { outline: none; border-color: var(--accent-secondary); box-shadow: 0 0 10px rgba(69, 162, 158, 0.2); }
+        textarea::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+        /* Execution Button */
+        .primary-btn { 
+            background: var(--btn-bg); 
+            color: #ffffff; 
+            border: 1px solid var(--accent-secondary); 
+            padding: 12px 25px; 
+            margin-top: 20px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s ease; 
+            width: 100%;
+        }
+        .primary-btn:hover { background: var(--btn-hover); box-shadow: 0 0 15px rgba(102, 252, 241, 0.3); }
+        .primary-btn:disabled { border-color: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+
+        /* Master Telemetry HUD */
+        .hud { 
+            margin-top: 30px; 
+            padding: 20px; 
+            background: var(--bg-hud); 
+            border-left: 4px solid var(--accent-secondary); 
+            border-radius: 0 6px 6px 0; 
+            position: relative;
+        }
+        .hud::before {
+            content: 'SYS_STAT';
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg-panel);
+            padding: 0 5px;
+            font-size: 0.75rem;
+            color: var(--accent-secondary);
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        #statusIndicator { color: var(--accent-primary); font-weight: bold; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 1px; }
+
+        /* Log Output Matrix */
+        .log { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 0.85rem; 
+            background: var(--log-bg); 
+            color: var(--log-text); 
+            padding: 15px; 
+            border: 1px solid var(--border-color);
+            border-radius: 4px; 
+            margin-top: 15px; 
+            white-space: pre-wrap; 
+            height: 200px;
+            overflow-y: auto;
+        }
+        
+        /* Custom Scrollbar for Terminal */
+        .log::-webkit-scrollbar { width: 8px; }
+        .log::-webkit-scrollbar-track { background: var(--bg-hud); }
+        .log::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        .log::-webkit-scrollbar-thumb:hover { background: var(--accent-secondary); }
     </style>
 </head>
 <body>
 
+<div class="system-controls">
+    <button id="themeToggleBtn" class="theme-toggle">Engage High-Legibility Mode</button>
+</div>
+
 <div class="container">
     <h1>Operational Requirement Intake</h1>
-    <p>Detail your current operational friction, project goal, or requested system requirements.</p>
+    <p>Detail your current operational friction, project goal, or requested system requirements below. The telemetry routing matrix will automatically deduce your parameters.</p>
     
-    <textarea id="intakeInput" placeholder="Enter your project requirements or systemic issues here..."></textarea>
-    <button id="processBtn">Execute Telemetry Scan</button>
+    <textarea id="intakeInput" placeholder="> Awaiting user operational parameters..."></textarea>
+    <button id="processBtn" class="primary-btn">Execute Telemetry Scan</button>
 
     <div class="hud" id="telemetryHUD">
-        <strong>System Status:</strong> <span id="statusIndicator">Awaiting Input...</span>
-        <div class="log" id="systemLog">Baseline initialization pending.</div>
+        <strong style="color: var(--text-muted);">System Status:</strong> <span id="statusIndicator">Awaiting Input...</span>
+        <div class="log" id="systemLog">Baseline initialization pending...
+System standing by.</div>
     </div>
 </div>
 
