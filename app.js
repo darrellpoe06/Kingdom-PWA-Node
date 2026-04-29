@@ -13,6 +13,8 @@ class TelemetryRoutingMatrix {
     logToHUD(message) {
         console.log(message);
         this.uiLog.textContent += `\n> ${message}`;
+        // Auto-scroll to the bottom of the log
+        this.uiLog.scrollTop = this.uiLog.scrollHeight;
     }
 
     updateStatus(status) {
@@ -98,9 +100,10 @@ class TelemetryRoutingMatrix {
     }
 }
 
-// Event Listener Bindings for the PWA
+// System Execution Bindings
 const systemHUD = new TelemetryRoutingMatrix();
 
+// Execute Payload Event
 document.getElementById('processBtn').addEventListener('click', async () => {
     const input = document.getElementById('intakeInput').value;
     if (!input.trim()) {
@@ -111,4 +114,17 @@ document.getElementById('processBtn').addEventListener('click', async () => {
     document.getElementById('processBtn').disabled = true;
     await systemHUD.processIntake(input);
     document.getElementById('processBtn').disabled = false;
+});
+
+// Visual Architecture Toggle Logic
+const themeBtn = document.getElementById('themeToggleBtn');
+themeBtn.addEventListener('click', () => {
+    const body = document.body;
+    body.classList.toggle('light-mode');
+    
+    if (body.classList.contains('light-mode')) {
+        themeBtn.textContent = "Revert to Tactical Mode";
+    } else {
+        themeBtn.textContent = "Engage High-Legibility Mode";
+    }
 });
