@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Enterprise Telemetry Matrix - PWA</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * { box-sizing: border-box; }
         
@@ -26,7 +27,7 @@
             --shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-primary); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; transition: all 0.3s ease; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-primary); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; transition: all 0.3s ease; }
         .system-controls { width: 100%; max-width: 850px; display: flex; justify-content: flex-end; margin-bottom: 10px; }
         .theme-toggle { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 8px 15px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
         .theme-toggle:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
@@ -47,6 +48,13 @@
         .hud::before { content: 'SYS_STAT'; position: absolute; top: -10px; left: 15px; background: var(--bg-panel); padding: 0 5px; font-size: 0.75rem; color: var(--accent-secondary); font-weight: bold; letter-spacing: 1px; }
         #statusIndicator { color: var(--accent-primary); font-weight: bold; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
         .log { font-family: 'Courier New', monospace; font-size: 0.8rem; background: var(--log-bg); color: var(--log-text); padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; margin-top: 10px; white-space: pre-wrap; height: 180px; overflow-y: auto; }
+        
+        /* New Output Canvas Styles */
+        .output-canvas { display: none; margin-top: 25px; padding: 25px; background: var(--bg-panel); border: 1px solid var(--accent-secondary); border-radius: 6px; line-height: 1.6; font-size: 0.95rem; box-shadow: 0 0 15px rgba(69, 162, 158, 0.1); }
+        .output-canvas h1, .output-canvas h2, .output-canvas h3 { color: var(--accent-primary); border-bottom: none; margin-top: 20px; }
+        .output-canvas h1::before, .output-canvas h2::before, .output-canvas h3::before { content: ''; margin: 0; }
+        .output-canvas pre { background: var(--bg-primary); padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); overflow-x: auto; font-family: 'Courier New', Courier, monospace; }
+        .output-canvas code { color: var(--log-text); }
     </style>
 </head>
 <body>
@@ -68,9 +76,11 @@
 
     <div class="hud" id="telemetryHUD">
         <strong style="color: var(--text-muted);">Status:</strong> <span id="statusIndicator">Awaiting Input...</span>
-        <div class="log" id="systemLog">Decoupled Diagnostic Logger Initialized...
+        <div class="log" id="systemLog">Artifact Generation Engine Initialized...
 System standing by.</div>
     </div>
+    
+    <div id="outputCanvas" class="output-canvas"></div>
 </div>
 
 <script>
