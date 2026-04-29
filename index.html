@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Enterprise Telemetry Matrix - PWA</title>
     <style>
-        /* Core System Reset & Dynamic State Variables */
         * { box-sizing: border-box; }
         
         :root {
-            /* Default Tactical Dark Mode Baseline */
             --bg-primary: #090a0f;
             --bg-panel: #12161f;
             --bg-hud: #0b0c10;
@@ -25,7 +23,6 @@
             --shadow: 0 0 25px rgba(102, 252, 241, 0.05), inset 0 0 10px rgba(0,0,0,0.5);
         }
 
-        /* Explicit Data-Theme Assignment for Absolute Stability */
         :root[data-theme="light"] {
             --bg-primary: #f4f7f6;
             --bg-panel: #ffffff;
@@ -47,7 +44,7 @@
             background-color: var(--bg-primary); 
             color: var(--text-main); 
             margin: 0; 
-            padding: 20px; 
+            padding: 15px; 
             display: flex; 
             flex-direction: column;
             justify-content: center; 
@@ -57,33 +54,34 @@
         }
 
         .system-controls { width: 100%; max-width: 850px; display: flex; justify-content: flex-end; margin-bottom: 10px; }
-        .theme-toggle { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 5px 15px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
+        .theme-toggle { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 8px 15px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
         .theme-toggle:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
 
-        .container { width: 100%; max-width: 850px; background: var(--bg-panel); padding: 35px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow); transition: all 0.3s ease; }
+        .container { width: 100%; max-width: 850px; background: var(--bg-panel); padding: 25px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow); transition: all 0.3s ease; }
 
-        h1 { font-size: 1.8rem; color: var(--accent-primary); text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-top: 0; display: flex; align-items: center; }
+        h1 { font-size: 1.5rem; color: var(--accent-primary); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; display: flex; align-items: center; }
         h1::before { content: '■'; margin-right: 10px; color: var(--accent-secondary); font-size: 1.2rem; }
-        p { color: var(--text-muted); font-size: 0.95rem; }
+        p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; }
 
-        textarea { width: 100%; height: 140px; padding: 15px; margin-top: 15px; background: var(--bg-primary); color: var(--accent-primary); border: 1px solid var(--border-color); border-radius: 6px; resize: vertical; font-family: 'Courier New', Courier, monospace; font-size: 1rem; transition: all 0.3s ease; }
+        textarea { width: 100%; height: 120px; padding: 15px; margin-top: 10px; background: var(--bg-primary); color: var(--accent-primary); border: 1px solid var(--border-color); border-radius: 6px; resize: vertical; font-family: 'Courier New', Courier, monospace; font-size: 1rem; transition: all 0.3s ease; }
         textarea:focus { outline: none; border-color: var(--accent-secondary); box-shadow: 0 0 10px rgba(69, 162, 158, 0.2); }
         
-        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .action-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; }
+        @media(min-width: 600px) { .action-grid { grid-template-columns: 1fr 1fr; } }
 
-        .primary-btn { background: var(--btn-bg); color: #ffffff; border: 1px solid var(--accent-secondary); padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s ease; }
+        .primary-btn { background: var(--btn-bg); color: #ffffff; border: 1px solid var(--accent-secondary); padding: 15px; border-radius: 6px; cursor: pointer; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s ease; font-size: 0.9rem;}
         .primary-btn:hover { background: var(--btn-hover); box-shadow: 0 0 15px rgba(102, 252, 241, 0.3); }
         .primary-btn:disabled { border-color: #555; color: #888; cursor: not-allowed; box-shadow: none; }
         
         .voice-btn { background: transparent; color: var(--accent-primary); border: 1px solid var(--accent-primary); }
         .voice-btn:hover { background: rgba(102, 252, 241, 0.1); }
 
-        .hud { margin-top: 30px; padding: 20px; background: var(--bg-hud); border-left: 4px solid var(--accent-secondary); border-radius: 0 6px 6px 0; position: relative; }
+        .hud { margin-top: 25px; padding: 15px; background: var(--bg-hud); border-left: 4px solid var(--accent-secondary); border-radius: 0 6px 6px 0; position: relative; }
         .hud::before { content: 'SYS_STAT'; position: absolute; top: -10px; left: 15px; background: var(--bg-panel); padding: 0 5px; font-size: 0.75rem; color: var(--accent-secondary); font-weight: bold; letter-spacing: 1px; }
         
-        #statusIndicator { color: var(--accent-primary); font-weight: bold; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 1px; }
+        #statusIndicator { color: var(--accent-primary); font-weight: bold; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
 
-        .log { font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; background: var(--log-bg); color: var(--log-text); padding: 15px; border: 1px solid var(--border-color); border-radius: 4px; margin-top: 15px; white-space: pre-wrap; height: 200px; overflow-y: auto; }
+        .log { font-family: 'Courier New', Courier, monospace; font-size: 0.8rem; background: var(--log-bg); color: var(--log-text); padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; margin-top: 10px; white-space: pre-wrap; height: 180px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -93,19 +91,19 @@
 </div>
 
 <div class="container">
-    <h1>Operational Requirement Intake</h1>
-    <p>Detail your current operational friction, project goal, or requested system requirements below via text or auditory telemetry.</p>
+    <h1>Operational Intake</h1>
+    <p>Detail your operational friction or system requirements via text or auditory telemetry.</p>
     
-    <textarea id="intakeInput" placeholder="> Awaiting user operational parameters..."></textarea>
+    <textarea id="intakeInput" placeholder="> Awaiting parameters..."></textarea>
     
     <div class="action-grid">
-        <button id="voiceBtn" class="primary-btn voice-btn">🎤 Engage Voice Intake</button>
-        <button id="processBtn" class="primary-btn">Execute Telemetry Scan</button>
+        <button id="voiceBtn" class="primary-btn voice-btn">🎤 Engage Voice</button>
+        <button id="processBtn" class="primary-btn">Execute Telemetry</button>
     </div>
 
     <div class="hud" id="telemetryHUD">
-        <strong style="color: var(--text-muted);">System Status:</strong> <span id="statusIndicator">Awaiting Input...</span>
-        <div class="log" id="systemLog">Baseline initialization pending...
+        <strong style="color: var(--text-muted);">Status:</strong> <span id="statusIndicator">Awaiting Input...</span>
+        <div class="log" id="systemLog">Monolithic Deployment Initialized...
 System standing by.</div>
     </div>
 </div>
