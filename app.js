@@ -1,32 +1,9 @@
-import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-import { CreateWebWorkerMLCEngine } from 'https://esm.run/@mlc-ai/web-llm';
-
-// Security Protocol: Force strict CDN resolution to prevent local CORS bottlenecks
-env.allowLocalModels = false;
-
 const uiLog = document.getElementById('systemLog');
 const uiStatus = document.getElementById('statusIndicator');
 const intakeInput = document.getElementById('intakeInput');
 
 // ==========================================
-// MOBILE DIAGNOSTIC ERROR CATCHER
-// ==========================================
-window.onerror = function(message, source, lineno, colno, error) {
-    const errorMsg = `[CRITICAL EXCEPTION] ${message} at line ${lineno}`;
-    console.error(errorMsg);
-    uiLog.textContent += `\n> ${errorMsg}`;
-    uiLog.scrollTop = uiLog.scrollHeight;
-    return true; 
-};
-
-window.addEventListener('unhandledrejection', function(event) {
-    const errorMsg = `[PROMISE REJECTION] ${event.reason}`;
-    uiLog.textContent += `\n> ${errorMsg}`;
-    uiLog.scrollTop = uiLog.scrollHeight;
-});
-
-// ==========================================
-// CORE TELEMETRY MATRIX
+// CORE TELEMETRY MATRIX (DYNAMIC IMPORTS)
 // ==========================================
 class TelemetryRoutingMatrix {
     constructor() {
@@ -48,8 +25,12 @@ class TelemetryRoutingMatrix {
     async initializeBaseline() {
         try {
             this.updateStatus("Initializing Baseline Telemetry...");
-            this.logToHUD("Downloading/Loading lightweight classification matrix via secure CDN...");
+            this.logToHUD("Fetching lightweight NLP matrix via dynamic CDN import...");
             
+            // LAZY LOADING: Only imports when called, preventing mobile load crashes
+            const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+            env.allowLocalModels = false; // Security Protocol
+
             this.lightweightClassifier = await pipeline(
                 'text-classification', 
                 'Xenova/distilbert-base-uncased-finetuned-sst-2-english'
@@ -68,7 +49,10 @@ class TelemetryRoutingMatrix {
             this.logToHUD("Systemic Complexity Detected. Engaging WebGPU...");
             
             try {
-                if (!navigator.gpu) throw new Error("WebGPU not supported on this mobile/hardware architecture.");
+                if (!navigator.gpu) throw new Error("WebGPU not supported on this mobile architecture.");
+
+                // LAZY LOADING: Robust Engine
+                const { CreateWebWorkerMLCEngine } = await import('https://esm.run/@mlc-ai/web-llm');
 
                 this.robustEngine = await CreateWebWorkerMLCEngine(
                     new Worker(new URL('./llm-worker.js', import.meta.url), { type: 'module' }),
@@ -77,7 +61,7 @@ class TelemetryRoutingMatrix {
                 );
                 this.logToHUD("Robust Architecture Synced.");
             } catch (error) {
-                this.logToHUD(`Hardware Fallback Triggered: ${error.message}. Downgrading to Baseline Protocol.`);
+                this.logToHUD(`Hardware Fallback Triggered: ${error.message}.`);
                 return false;
             }
         }
@@ -86,7 +70,7 @@ class TelemetryRoutingMatrix {
 
     async processIntake(userInput) {
         try {
-            uiLog.textContent = "> Processing payload...";
+            this.logToHUD("Processing payload...");
             this.updateStatus("Analyzing...");
 
             if (!this.lightweightClassifier) {
@@ -102,23 +86,19 @@ class TelemetryRoutingMatrix {
             if (classification.score >= this.escalationThreshold && classification.label === "POSITIVE") {
                 this.updateStatus("Optimal Alignment Confirmed.");
                 this.logToHUD("Routing to: [Execution Node]");
-                this.logToHUD("Action: Generating standard MVP mapping based on high operational confidence.");
             } else {
                 this.updateStatus("Escalating to Advanced Analysis...");
-                this.logToHUD("Low confidence or high systemic friction detected. Requesting advanced context...");
+                this.logToHUD("Systemic friction detected. Requesting advanced context...");
                 
                 const canEscalate = await this.initializeEscalation();
-                
                 if (canEscalate) {
                     const advancedContext = await this.robustEngine.chat.completions.create({
                         messages: [
-                            { role: "system", content: "You are an elite enterprise architect. Deduce the deep operational friction in the following client request. Output a brief, professional response." },
+                            { role: "system", content: "You are an elite enterprise architect. Deduce the operational friction." },
                             { role: "user", content: userInput }
                         ]
                     });
-
                     this.updateStatus("Strategic Synthesis Complete.");
-                    this.logToHUD("Routing to: [Empathy / Architecture Node]");
                     this.logToHUD(`Action Output:\n${advancedContext.choices[0].message.content}`);
                 } else {
                     this.updateStatus("Execution Halted.");
@@ -142,7 +122,7 @@ document.getElementById('processBtn').addEventListener('click', async (e) => {
     e.preventDefault(); 
     const input = intakeInput.value;
     if (!input.trim()) {
-        alert("Please provide operational requirements before executing.");
+        systemHUD.logToHUD("Error: Please provide operational requirements before executing.");
         return;
     }
     document.getElementById('processBtn').disabled = true;
@@ -151,10 +131,10 @@ document.getElementById('processBtn').addEventListener('click', async (e) => {
 });
 
 // 2. Visual Architecture Toggle Logic
-const themeBtn = document.getElementById('themeToggleBtn');
-themeBtn.addEventListener('click', (e) => {
+document.getElementById('themeToggleBtn').addEventListener('click', (e) => {
     e.preventDefault();
     const root = document.documentElement;
+    const themeBtn = document.getElementById('themeToggleBtn');
     
     if (root.hasAttribute('data-theme')) {
         root.removeAttribute('data-theme');
@@ -186,7 +166,7 @@ if (SpeechRecognition) {
             voiceBtn.style.color = "#ff5555";
             voiceBtn.style.borderColor = "#ff5555";
         } catch (error) {
-            systemHUD.logToHUD(`Microphone Exception: ${error.message}. Please ensure the server runs on HTTPS or strict localhost.`);
+            systemHUD.logToHUD(`Microphone Exception: ${error.message}. Server must run on HTTPS or pure localhost.`);
             resetVoiceBtn();
         }
     });
@@ -215,3 +195,6 @@ if (SpeechRecognition) {
     voiceBtn.textContent = "🎤 Voice (Unsupported)";
     systemHUD.logToHUD("Warning: Web Speech API is structurally unsupported on this mobile browser.");
 }
+
+// Initial binding confirmation
+systemHUD.logToHUD("Execution Nodes successfully bound to interface.");
