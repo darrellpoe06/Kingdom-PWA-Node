@@ -1,9 +1,10 @@
 const uiLog = document.getElementById('systemLog');
 const uiStatus = document.getElementById('statusIndicator');
 const intakeInput = document.getElementById('intakeInput');
+const outputCanvas = document.getElementById('outputCanvas');
 
 // ==========================================
-// CORE TELEMETRY MATRIX (DYNAMIC IMPORTS)
+// CORE TELEMETRY & GENERATION MATRIX 
 // ==========================================
 class TelemetryRoutingMatrix {
     constructor() {
@@ -22,14 +23,19 @@ class TelemetryRoutingMatrix {
         uiStatus.textContent = status;
     }
 
+    renderOutput(markdownData) {
+        // Render generated artifacts using marked.js
+        outputCanvas.innerHTML = marked.parse(markdownData);
+        outputCanvas.style.display = 'block';
+    }
+
     async initializeBaseline() {
         try {
             this.updateStatus("Initializing Baseline Telemetry...");
             this.logToHUD("Fetching lightweight NLP matrix via dynamic CDN import...");
             
-            // LAZY LOADING: Only imports when called, preventing mobile load crashes
             const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
-            env.allowLocalModels = false; // Security Protocol
+            env.allowLocalModels = false; 
 
             this.lightweightClassifier = await pipeline(
                 'text-classification', 
@@ -45,13 +51,12 @@ class TelemetryRoutingMatrix {
 
     async initializeEscalation() {
         if (!this.robustEngine) {
-            this.updateStatus("Booting Robust Architecture...");
-            this.logToHUD("Systemic Complexity Detected. Engaging WebGPU...");
+            this.updateStatus("Booting Generative Architecture...");
+            this.logToHUD("Engaging WebGPU and initializing LLM for artifact generation...");
             
             try {
-                if (!navigator.gpu) throw new Error("WebGPU not supported on this mobile architecture.");
+                if (!navigator.gpu) throw new Error("WebGPU not supported on this architecture.");
 
-                // LAZY LOADING: Robust Engine
                 const { CreateWebWorkerMLCEngine } = await import('https://esm.run/@mlc-ai/web-llm');
 
                 this.robustEngine = await CreateWebWorkerMLCEngine(
@@ -59,7 +64,7 @@ class TelemetryRoutingMatrix {
                     'Llama-3-8B-Instruct-q4f32_1-MLC',
                     { initProgressCallback: (progress) => this.logToHUD(progress.text) }
                 );
-                this.logToHUD("Robust Architecture Synced.");
+                this.logToHUD("Generative Architecture Synced.");
             } catch (error) {
                 this.logToHUD(`Hardware Fallback Triggered: ${error.message}.`);
                 return false;
@@ -70,8 +75,9 @@ class TelemetryRoutingMatrix {
 
     async processIntake(userInput) {
         try {
+            outputCanvas.style.display = 'none'; // Reset canvas
             this.logToHUD("Processing payload...");
-            this.updateStatus("Analyzing...");
+            this.updateStatus("Analyzing Requirements...");
 
             if (!this.lightweightClassifier) {
                 const initialized = await this.initializeBaseline();
@@ -83,27 +89,38 @@ class TelemetryRoutingMatrix {
 
             this.logToHUD(`Baseline Deduction: ${classification.label} (Confidence: ${(classification.score * 100).toFixed(2)}%)`);
 
-            if (classification.score >= this.escalationThreshold && classification.label === "POSITIVE") {
-                this.updateStatus("Optimal Alignment Confirmed.");
-                this.logToHUD("Routing to: [Execution Node]");
-            } else {
-                this.updateStatus("Escalating to Advanced Analysis...");
-                this.logToHUD("Systemic friction detected. Requesting advanced context...");
+            // Always escalate to the generator for this phase to produce tangible systems
+            this.updateStatus("Generating Artifacts...");
+            this.logToHUD("Routing payload to [Execution Node]. Compiling business logic...");
+            
+            const canEscalate = await this.initializeEscalation();
+            if (canEscalate) {
+                const systemPrompt = `You are an elite enterprise ITIL/PMP Project Manager and Systems Architect. 
+                Based on the user's input, automatically deduce their operational requirements and generate a scalable business system or MVP blueprint.
                 
-                const canEscalate = await this.initializeEscalation();
-                if (canEscalate) {
-                    const advancedContext = await this.robustEngine.chat.completions.create({
-                        messages: [
-                            { role: "system", content: "You are an elite enterprise architect. Deduce the operational friction." },
-                            { role: "user", content: userInput }
-                        ]
-                    });
-                    this.updateStatus("Strategic Synthesis Complete.");
-                    this.logToHUD(`Action Output:\n${advancedContext.choices[0].message.content}`);
-                } else {
-                    this.updateStatus("Execution Halted.");
-                    this.logToHUD("Hardware constraints prevented escalation. Manual intervention required.");
-                }
+                You must format your response strictly using Markdown. Include the following sections:
+                1. **Executive Briefing**: Summarize the current state, strategic implications, and the required decisions.
+                2. **Step-by-Step Deployment Roadmap**: Actionable logistics to deploy the requested system.
+                3. **Core Architecture / Code Artifacts**: Provide raw database schemas (JSON/SQL), structural layouts, or workflow mapping required to execute the vision.
+                
+                Maintain strict, professional, corporate IT terminology.`;
+
+                const advancedContext = await this.robustEngine.chat.completions.create({
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userInput }
+                    ]
+                });
+                
+                this.updateStatus("Artifact Compilation Complete.");
+                this.logToHUD("Blueprint successfully compiled. Rendering to Output Canvas...");
+                
+                // Render the payload visually for the client
+                this.renderOutput(advancedContext.choices[0].message.content);
+                
+            } else {
+                this.updateStatus("Execution Halted.");
+                this.logToHUD("Hardware constraints prevented artifact generation. Manual intervention required.");
             }
         } catch (error) {
             this.updateStatus("Systemic Failure.");
@@ -117,7 +134,6 @@ class TelemetryRoutingMatrix {
 // ==========================================
 const systemHUD = new TelemetryRoutingMatrix();
 
-// 1. Primary Execution Node (Text)
 document.getElementById('processBtn').addEventListener('click', async (e) => {
     e.preventDefault(); 
     const input = intakeInput.value;
@@ -130,7 +146,6 @@ document.getElementById('processBtn').addEventListener('click', async (e) => {
     document.getElementById('processBtn').disabled = false;
 });
 
-// 2. Visual Architecture Toggle Logic
 document.getElementById('themeToggleBtn').addEventListener('click', (e) => {
     e.preventDefault();
     const root = document.documentElement;
@@ -147,7 +162,6 @@ document.getElementById('themeToggleBtn').addEventListener('click', (e) => {
     }
 });
 
-// 3. Auditory Telemetry Capture (Web Speech API)
 const voiceBtn = document.getElementById('voiceBtn');
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -166,7 +180,7 @@ if (SpeechRecognition) {
             voiceBtn.style.color = "#ff5555";
             voiceBtn.style.borderColor = "#ff5555";
         } catch (error) {
-            systemHUD.logToHUD(`Microphone Exception: ${error.message}. Server must run on HTTPS or pure localhost.`);
+            systemHUD.logToHUD(`Microphone Exception: ${error.message}.`);
             resetVoiceBtn();
         }
     });
@@ -179,7 +193,7 @@ if (SpeechRecognition) {
     };
 
     recognition.onerror = (event) => {
-        systemHUD.logToHUD(`Auditory Intake Error: ${event.error}. Verify browser permission matrices.`);
+        systemHUD.logToHUD(`Auditory Intake Error: ${event.error}. Verify browser permissions.`);
         resetVoiceBtn();
     };
 
@@ -193,8 +207,7 @@ if (SpeechRecognition) {
 } else {
     voiceBtn.disabled = true;
     voiceBtn.textContent = "🎤 Voice (Unsupported)";
-    systemHUD.logToHUD("Warning: Web Speech API is structurally unsupported on this mobile browser.");
+    systemHUD.logToHUD("Warning: Web Speech API unsupported on this browser.");
 }
 
-// Initial binding confirmation
 systemHUD.logToHUD("Execution Nodes successfully bound to interface.");
