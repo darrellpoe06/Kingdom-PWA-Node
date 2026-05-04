@@ -2,7 +2,6 @@
 const sysLog = document.getElementById('sysLog');
 const executeBtn = document.getElementById('executeBtn');
 const voiceBtn = document.getElementById('voiceBtn');
-const toggleThemeBtn = document.getElementById('toggleThemeBtn');
 const telemetryInput = document.getElementById('telemetryInput');
 const outputCanvas = document.getElementById('outputCanvas');
 
@@ -13,21 +12,12 @@ function logToHUD(message) {
     }
 }
 
-// 1. Dynamic Visual Architecture Toggle
-toggleThemeBtn.addEventListener('click', () => {
-    const htmlEl = document.documentElement;
-    const currentTheme = htmlEl.getAttribute('data-theme');
-    const newTheme = currentTheme === 'tactical' ? 'corporate' : 'tactical';
-    htmlEl.setAttribute('data-theme', newTheme);
-    logToHUD(`Visual architecture shifted to [${newTheme.toUpperCase()}]`);
-});
-
-// 2. Auditory Telemetry Capture (Web Speech API)
+// 1. Auditory Telemetry Capture (Web Speech API)
 voiceBtn.addEventListener('click', () => {
     try {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            logToHUD('<span class="error-log">Auditory API restricted by current browser environment. Ensure HTTPS.</span>');
+            logToHUD('<span class="text-danger">Auditory API restricted by current browser environment.</span>');
             return;
         }
         const recognition = new SpeechRecognition();
@@ -37,63 +27,64 @@ voiceBtn.addEventListener('click', () => {
             telemetryInput.value = transcript;
             logToHUD(`Auditory Payload Transcribed: "${transcript}"`);
         };
-        recognition.onerror = (e) => logToHUD(`<span class="error-log">Voice capture halted: ${e.error}</span>`);
+        recognition.onerror = (e) => logToHUD(`<span class="text-danger">Voice capture halted: ${e.error}</span>`);
         recognition.start();
     } catch (error) {
-        logToHUD(`<span class="error-log">Hardware Sandbox Restriction: ${error.message}</span>`);
+        logToHUD(`<span class="text-danger">Hardware Sandbox Restriction: ${error.message}</span>`);
     }
 });
 
-// 3. Artifact Generation Engine (Execution Loop)
+// 2. Artifact Generation Engine & Logic Routing
 executeBtn.addEventListener('click', async () => {
     const payload = telemetryInput.value.trim();
     if (!payload) {
-        logToHUD('<span class="error-log">Execution halted: Payload empty.</span>');
+        logToHUD('<span class="text-danger">Execution halted: Payload empty.</span>');
         return;
     }
 
     logToHUD('Fetching lightweight NLP matrix via dynamic CDN import...');
     
     try {
-        // Dynamic Import of Transformers.js to prevent load-time crashing
+        // Dynamic Import of Transformers.js 
         const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0');
         logToHUD('Baseline Telemetry Synced. Assessing requirements...');
         
-        // Simulating the AI deduction and Artifact Generation routing
         logToHUD(`Analyzing input: "${payload.substring(0, 20)}..."`);
         logToHUD('POSITIVE baseline deduction. Routing to [Execution Node]...');
         
-        // MVP Blueprint Generation
+        // MVP Blueprint / Yield Protocol Generation
         const generatedMarkdown = `
-### Executive Briefing: System Generated MVP
-* **Current State:** Baseline requirements deduced successfully.
-* **Strategic Implications:** The requested architecture has been mapped to your specifications.
-* **Required Logistics:** Review the schema below and initiate Phase 2 Collaboration Matrix integration.
+### ⚡ TACTICAL COUNTERMEASURE DEPLOYED
+* **Systemic Diagnostic:** Operational friction detected based on telemetry payload.
+* **Yield Protocol:** Suspend reliance on 3rd-dimensional human "might".
+* **Required Action:** Await full n8n and Supabase API integration to process live solutions.
 
-#### Structural Schema
+#### Architectural Schema
 \`\`\`json
 {
-  "project_status": "Active",
-  "deployment_vector": "Edge AI",
-  "data_sovereignty": "Absolute"
+  "client_state": "Analyzing",
+  "recommended_module": "Rest & Yield Protocol",
+  "backend_status": "Pending n8n Connection"
 }
 \`\`\`
         `;
         
-        // Parse markdown and render to canvas
+        // Parse markdown and render to Tactical Countermeasures Canvas
         if (typeof marked !== 'undefined') {
             outputCanvas.innerHTML = marked.parse(generatedMarkdown);
-            logToHUD('Artifact successfully rendered to Output Canvas.');
+            // Add a little tailwind styling to the parsed markdown dynamically
+            outputCanvas.classList.add('prose', 'prose-invert', 'prose-sm', 'prose-a:text-accent', 'max-w-none');
+            logToHUD('<span class="text-white">Artifact successfully rendered to Command Center.</span>');
         } else {
-            logToHUD('<span class="error-log">Markdown parser failed to load.</span>');
+            logToHUD('<span class="text-danger">Markdown parser failed to load.</span>');
         }
 
     } catch (error) {
-        logToHUD(`<span class="error-log">Module Resolution Failure: ${error.message}</span>`);
+        logToHUD(`<span class="text-danger">Module Resolution Failure: ${error.message}</span>`);
     }
 });
 
 // Initialize Environment Confirmation
 window.addEventListener('DOMContentLoaded', () => {
-    logToHUD('Execution Nodes successfully bound to interface.');
+    logToHUD('Command Center Widgets Bound. System Active.');
 });
