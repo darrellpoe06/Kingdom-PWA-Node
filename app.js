@@ -1,4 +1,3 @@
-// --- Core UI Variables ---
 const sysLog = document.getElementById('sysLog');
 const executeBtn = document.getElementById('executeBtn');
 const voiceBtn = document.getElementById('voiceBtn');
@@ -6,7 +5,6 @@ const themeToggleBtn = document.getElementById('themeToggleBtn');
 const telemetryInput = document.getElementById('telemetryInput');
 const outputCanvas = document.getElementById('outputCanvas');
 
-// Chart Instances
 let alignmentChart;
 let flowChart;
 
@@ -17,86 +15,99 @@ function logToHUD(message) {
     }
 }
 
-// --- Light / Dark Mode Global Toggle ---
-// This checks the HTML class and flips it, then forcefully re-renders the ECharts to match the new color scheme.
 themeToggleBtn.addEventListener('click', () => {
     const htmlEl = document.documentElement;
     htmlEl.classList.toggle('dark');
-    
-    const isDark = htmlEl.classList.contains('dark');
-    logToHUD(`Global UI shifted to [${isDark ? 'TACTICAL DARK' : 'CORPORATE LIGHT'}]`);
-    
-    // Re-initialize charts to match the new theme
     initCharts();
 });
 
-// --- ECharts Data Visualization Engine ---
 function initCharts() {
     const isDark = document.documentElement.classList.contains('dark');
     const themeStr = isDark ? 'dark' : 'light';
     
-    // Dispose old instances if they exist to prevent memory leaks on toggle
     if(alignmentChart) alignmentChart.dispose();
     if(flowChart) flowChart.dispose();
 
     alignmentChart = echarts.init(document.getElementById('alignmentChart'), themeStr);
     flowChart = echarts.init(document.getElementById('flowChart'), themeStr);
 
-    // Widget 2: Concentric Radial Donut (Alignment vs Friction)
+    // Graphic Design Enhancement: Linear Gradients for the Donut Chart
+    const outerGradient = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: isDark ? '#00f2fe' : '#0052cc' },
+        { offset: 1, color: isDark ? '#4facfe' : '#003d99' }
+    ]);
+    
+    const innerGradient = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: isDark ? '#10b981' : '#16a34a' },
+        { offset: 1, color: isDark ? '#047857' : '#15803d' }
+    ]);
+
     const alignmentOption = {
         backgroundColor: 'transparent',
         tooltip: { trigger: 'item' },
         series: [
             {
-                name: 'Operational Uptime (Spirit)',
+                name: 'Liquid Capital (Spirit)',
                 type: 'pie',
-                radius: ['55%', '70%'],
-                itemStyle: { borderColor: isDark ? '#111827' : '#fff', borderWidth: 2 },
+                radius: ['60%', '75%'], // Thicker rings like the mockup
+                itemStyle: { borderColor: isDark ? '#050810' : '#fff', borderWidth: 4 },
                 label: { show: false },
                 data: [
-                    { value: 85, name: 'Active Yield', itemStyle: { color: isDark ? '#00f2fe' : '#0052cc' } },
-                    { value: 15, name: 'System Noise', itemStyle: { color: isDark ? '#374151' : '#e5e7eb' } }
+                    { value: 85, name: 'Active Yield', itemStyle: { color: outerGradient } },
+                    { value: 15, name: 'System Noise', itemStyle: { color: isDark ? '#1f2937' : '#e5e7eb' } }
                 ]
             },
             {
-                name: 'Systemic Friction (Might/Power)',
+                name: 'Property Equity (Might)',
                 type: 'pie',
-                radius: ['35%', '50%'],
-                itemStyle: { borderColor: isDark ? '#111827' : '#fff', borderWidth: 2 },
+                radius: ['40%', '55%'],
+                itemStyle: { borderColor: isDark ? '#050810' : '#fff', borderWidth: 4 },
                 label: { show: false },
                 data: [
-                    { value: 30, name: 'Flesh Operations', itemStyle: { color: isDark ? '#ef4444' : '#dc2626' } },
-                    { value: 70, name: 'Mitigated Risk', itemStyle: { color: isDark ? '#374151' : '#e5e7eb' } }
+                    { value: 65, name: 'Mitigated Risk', itemStyle: { color: innerGradient } },
+                    { value: 35, name: 'Flesh Operations', itemStyle: { color: isDark ? '#ef4444' : '#dc2626' } }
                 ]
             }
         ]
     };
 
-    // Widget 4: Flow Line Graph (Interventions over time)
+    // Graphic Design Enhancement: Glowing Line Charts with Area Fills
     const flowOption = {
         backgroundColor: 'transparent',
-        tooltip: { trigger: 'axis' },
+        tooltip: { trigger: 'axis', backgroundColor: isDark ? 'rgba(17,24,39,0.9)' : '#fff', borderColor: '#00f2fe' },
         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
         xAxis: { 
             type: 'category', 
             boundaryGap: false, 
-            data: ['Week 1', 'Week 2', 'Week 3', 'Week 4'] 
+            data: ['2020', '2021', '2022', '2023', '2024', '2025', '2026'],
+            axisLine: { lineStyle: { color: isDark ? '#4b5563' : '#d1d5db' } }
         },
-        yAxis: { type: 'value' },
+        yAxis: { 
+            type: 'value',
+            splitLine: { lineStyle: { color: isDark ? '#1f2937' : '#e5e7eb', type: 'dashed' } }
+        },
         series: [
             {
-                name: 'Tactical Interventions',
+                name: 'Project Bids Cash Velocity',
                 type: 'line',
                 smooth: true,
-                lineStyle: { width: 3, color: '#10b981' },
-                data: [12, 18, 14, 25]
+                symbol: 'none',
+                lineStyle: { width: 3, color: '#00f2fe', shadowColor: 'rgba(0,242,254,0.5)', shadowBlur: 10 },
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(0,242,254,0.4)' },
+                        { offset: 1, color: 'rgba(0,242,254,0.0)' }
+                    ])
+                },
+                data: [100, 250, 400, 550, 700, 850, 1000]
             },
             {
-                name: 'Operational Stress',
+                name: 'High-Stakes Contract',
                 type: 'line',
                 smooth: true,
-                lineStyle: { width: 3, color: '#ef4444' },
-                data: [20, 15, 22, 10]
+                symbol: 'none',
+                lineStyle: { width: 3, color: '#10b981', shadowColor: 'rgba(16,185,129,0.5)', shadowBlur: 10 },
+                data: [100, 200, 250, 400, 450, 600, 750]
             }
         ]
     };
@@ -105,61 +116,52 @@ function initCharts() {
     flowChart.setOption(flowOption);
 }
 
-// Window resize handler to keep charts responsive on mobile
 window.addEventListener('resize', () => {
     if(alignmentChart) alignmentChart.resize();
     if(flowChart) flowChart.resize();
 });
 
-// --- Multimodal Intake & Artifact Execution ---
 voiceBtn.addEventListener('click', () => {
     try {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            logToHUD('<span class="text-red-500">Auditory API restricted by current browser environment.</span>');
-            return;
-        }
+        if (!SpeechRecognition) return logToHUD('<span class="text-red-500">API Restricted.</span>');
         const recognition = new SpeechRecognition();
         recognition.onstart = () => logToHUD('Listening for auditory payload...');
-        recognition.onresult = (event) => {
-            telemetryInput.value = event.results[0][0].transcript;
+        recognition.onresult = (e) => {
+            telemetryInput.value = e.results[0][0].transcript;
             logToHUD('Auditory Payload Transcribed.');
         };
         recognition.start();
-    } catch (error) {
-        logToHUD(`<span class="text-red-500">Hardware Sandbox Restriction: ${error.message}</span>`);
+    } catch (err) {
+        logToHUD(`<span class="text-red-500">Error: ${err.message}</span>`);
     }
 });
 
-executeBtn.addEventListener('click', async () => {
+executeBtn.addEventListener('click', () => {
     const payload = telemetryInput.value.trim();
-    if (!payload) {
-        logToHUD('<span class="text-red-500">Execution halted: Payload empty.</span>');
-        return;
-    }
+    if (!payload) return logToHUD('<span class="text-red-500">Execution halted: Payload empty.</span>');
 
-    logToHUD('Baseline Telemetry Synced. Assessing requirements...');
+    logToHUD('Evaluating Operational Parameters...');
+    executeBtn.innerHTML = "PROCESSING...";
     
-    // Simulate n8n / Backend Processing
     setTimeout(() => {
         const generatedMarkdown = `
-### ⚡ TACTICAL COUNTERMEASURE: YIELD PROTOCOL
+### ⚡ YIELD PROTOCOL DEPLOYED
 * **Diagnostic:** 3rd-Dimensional operational friction detected.
 * **Target Action:** Suspend reliance on human "might" or capital striving.
 * **Documentation:** Zechariah 4:6 | "Not by might, nor by power, but by my spirit."
 * **Status:** Awaiting integration of Supabase ledger to log lifecycle receipt.
         `;
-        
         if (typeof marked !== 'undefined') {
             outputCanvas.innerHTML = marked.parse(generatedMarkdown);
             outputCanvas.classList.add('prose', 'prose-sm', 'dark:prose-invert', 'max-w-none');
-            logToHUD('<span class="text-green-500">Artifact successfully rendered to Tactical Countermeasures.</span>');
+            logToHUD('<span class="text-[#00f2fe]">Artifact successfully rendered.</span>');
+            executeBtn.innerHTML = "EXECUTE";
         }
-    }, 800); // Simulated execution delay
+    }, 800);
 });
 
-// Initialize Environment on Load
 window.addEventListener('DOMContentLoaded', () => {
     logToHUD('Command Center Widgets Bound. System Active.');
-    initCharts(); // Boot up the ECharts Engine
+    initCharts();
 });
