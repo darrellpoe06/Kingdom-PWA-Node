@@ -9,83 +9,83 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class', // Enables manual toggling via JavaScript
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        darkBg: '#0b0f19',
-                        darkPanel: '#111827',
+                        darkBg: '#050810',
+                        darkPanel: 'rgba(17, 24, 39, 0.65)', // Translucent for glassmorphism
                         accentCyan: '#00f2fe',
                         accentGreen: '#10b981',
                         accentRed: '#ef4444',
-                        lightBg: '#f4f5f7',
-                        lightPanel: '#ffffff',
-                        lightAccent: '#0052cc'
+                        lightBg: '#f0f2f5',
+                        lightPanel: 'rgba(255, 255, 255, 0.85)'
                     },
-                    fontFamily: { mono: ['"Courier New"', 'Courier', 'monospace'] }
+                    fontFamily: { 
+                        hud: ['"Rajdhani"', 'sans-serif'],
+                        mono: ['"Courier New"', 'Courier', 'monospace'] 
+                    }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-lightBg dark:bg-darkBg text-gray-900 dark:text-gray-100 font-mono min-h-screen p-2 md:p-6 transition-colors duration-300">
+<body class="bg-lightBg dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-[#0f172a] dark:via-[#050810] dark:to-black text-gray-900 dark:text-gray-100 font-hud min-h-screen p-2 md:p-6 transition-colors duration-300">
 
-    <script>
-        window.onerror = function(msg, url, lineNo) {
-            const log = document.getElementById('sysLog');
-            if(log) log.innerHTML += `<span class="text-red-600 dark:text-accentRed">> [SYS_FAILURE] ${msg} at line ${lineNo}</span><br>`;
-            return false;
-        };
-    </script>
-
-    <header class="flex flex-col md:flex-row justify-between items-center border-b border-gray-300 dark:border-gray-800 pb-4 mb-4">
+    <header class="flex flex-col md:flex-row justify-between items-center border-b border-gray-300 dark:border-[#00f2fe]/30 pb-4 mb-4 shadow-[0_4px_20px_rgba(0,242,254,0.05)]">
         <div class="text-center md:text-left mb-4 md:mb-0">
-            <h1 class="text-xl md:text-2xl font-bold tracking-widest text-lightAccent dark:text-white">SHALOM // COMMAND CENTER</h1>
-            <p class="text-gray-600 dark:text-gray-400 text-xs md:text-sm mt-1">Sovereign Heuristic Alignment & Operations Matrix</p>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-[0.2em] text-lightAccent dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-[#00f2fe] dark:to-[#4facfe] uppercase drop-shadow-[0_0_10px_rgba(0,242,254,0.3)]">Global Command Center</h1>
+            <p class="text-gray-600 dark:text-[#00f2fe]/70 text-xs md:text-sm mt-1 tracking-widest uppercase">Project Shalom // Sovereign Operations Matrix</p>
         </div>
         <div class="flex items-center gap-3">
-            <span class="text-xs border border-accentGreen px-2 py-1 rounded bg-accentGreen/10 text-accentGreen">STATUS: ACTIVE</span>
-            <button id="themeToggleBtn" class="px-4 py-2 border border-gray-400 dark:border-gray-600 rounded bg-white dark:bg-darkPanel text-xs font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all shadow-sm">
-                🌓 TOGGLE THEME
+            <span class="text-xs border border-accentGreen px-3 py-1.5 rounded bg-accentGreen/10 text-accentGreen tracking-widest font-bold shadow-[0_0_10px_rgba(16,185,129,0.2)]">SYSTEM OPTIMAL</span>
+            <button id="themeToggleBtn" class="px-4 py-1.5 border border-gray-400 dark:border-[#00f2fe]/50 rounded bg-white/50 dark:bg-[#00f2fe]/10 text-xs font-bold hover:bg-gray-100 dark:hover:bg-[#00f2fe]/20 transition-all dark:shadow-[0_0_15px_rgba(0,242,254,0.2)] tracking-widest text-[#00f2fe]">
+                MODE TOGGLE
             </button>
         </div>
     </header>
 
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-        <section class="border border-gray-300 dark:border-gray-800 bg-lightPanel dark:bg-darkPanel rounded p-3 shadow-md flex flex-col">
-            <h2 class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 font-bold text-sm">1. MULTIMODAL INTAKE</h2>
+        <section class="backdrop-blur-md border border-gray-300 dark:border-[#00f2fe]/20 bg-lightPanel dark:bg-darkPanel rounded-xl p-4 dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] flex flex-col relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00f2fe] to-transparent opacity-50"></div>
+            <h2 class="border-b border-gray-200 dark:border-gray-700/50 pb-2 mb-3 font-bold text-sm tracking-widest uppercase text-gray-500 dark:text-gray-400">1. Multimodal Intake</h2>
             
-            <div id="sysLog" class="flex-1 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 p-2 text-xs text-green-700 dark:text-green-400 overflow-y-auto mb-3 h-32 rounded">
-                > Edge AI standing by...<br>
+            <div id="sysLog" class="flex-1 bg-white/50 dark:bg-[#030508]/80 border border-gray-200 dark:border-[#00f2fe]/10 p-3 text-xs text-green-700 dark:text-[#00f2fe] overflow-y-auto mb-3 h-32 rounded font-mono shadow-inner">
+                > Initializing secure telemetry channel...<br>
             </div>
             
-            <textarea id="telemetryInput" placeholder="Enter operational parameters..." class="w-full bg-white dark:bg-[#0b0f19] border border-gray-300 dark:border-gray-700 p-2 text-sm outline-none focus:border-lightAccent dark:focus:border-accentCyan mb-2 h-20 rounded transition-colors"></textarea>
+            <textarea id="telemetryInput" placeholder="ENTER OPERATIONAL PARAMETERS..." class="w-full bg-white dark:bg-[#030508]/50 border border-gray-300 dark:border-[#00f2fe]/30 p-3 text-sm outline-none focus:border-lightAccent dark:focus:border-[#00f2fe] dark:focus:shadow-[0_0_15px_rgba(0,242,254,0.2)] mb-3 h-20 rounded transition-all font-mono"></textarea>
             
-            <div class="flex gap-2">
-                <button id="voiceBtn" class="flex-1 px-2 py-2 bg-gray-100 dark:bg-accentCyan/10 border border-gray-300 dark:border-accentCyan/50 hover:bg-gray-200 dark:hover:bg-accentCyan/30 text-xs font-bold transition-all rounded">🎤 VOICE</button>
-                <button id="executeBtn" class="flex-1 px-2 py-2 bg-lightAccent text-white dark:bg-accentGreen/10 dark:text-accentGreen border border-lightAccent dark:border-accentGreen hover:opacity-80 text-xs font-bold transition-all rounded">EXECUTE</button>
-            </div>
-        </section>
-
-        <section class="border border-gray-300 dark:border-gray-800 bg-lightPanel dark:bg-darkPanel rounded p-3 shadow-md flex flex-col">
-            <h2 class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 font-bold text-sm">2. ALIGNMENT MATRIX</h2>
-            <div id="alignmentChart" class="flex-1 w-full min-h-[250px]"></div>
-        </section>
-
-        <section class="border border-gray-300 dark:border-gray-800 bg-lightPanel dark:bg-darkPanel rounded p-3 shadow-md flex flex-col">
-            <h2 class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 font-bold text-sm">3. TACTICAL COUNTERMEASURES</h2>
-            <div id="outputCanvas" class="flex-1 bg-gray-50 dark:bg-[#0b0f19] border border-dashed border-gray-300 dark:border-gray-700 p-3 text-sm overflow-y-auto min-h-[250px] rounded">
-                <em class="text-gray-500">System Yield Protocols will render here upon execution...</em>
+            <div class="flex gap-3">
+                <button id="voiceBtn" class="flex-1 px-3 py-2 bg-gray-100 dark:bg-transparent border border-gray-300 dark:border-[#00f2fe]/50 hover:bg-gray-200 dark:hover:bg-[#00f2fe]/20 text-xs font-bold transition-all rounded tracking-widest text-gray-700 dark:text-[#00f2fe]">🎤 VOICE UPLINK</button>
+                <button id="executeBtn" class="flex-1 px-3 py-2 bg-lightAccent text-white dark:bg-[#00f2fe]/20 border border-lightAccent dark:border-[#00f2fe] hover:opacity-80 text-xs font-bold transition-all rounded tracking-widest dark:shadow-[0_0_15px_rgba(0,242,254,0.4)] dark:text-[#00f2fe]">EXECUTE</button>
             </div>
         </section>
 
-        <section class="border border-gray-300 dark:border-gray-800 bg-lightPanel dark:bg-darkPanel rounded p-3 shadow-md flex flex-col">
-            <h2 class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 font-bold text-sm">4. OPERATIONAL FLOW</h2>
-             <div id="flowChart" class="flex-1 w-full min-h-[250px]"></div>
+        <section class="backdrop-blur-md border border-gray-300 dark:border-[#00f2fe]/20 bg-lightPanel dark:bg-darkPanel rounded-xl p-4 dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] flex flex-col relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#10b981] to-transparent opacity-50"></div>
+            <h2 class="border-b border-gray-200 dark:border-gray-700/50 pb-2 mb-3 font-bold text-sm tracking-widest uppercase text-gray-500 dark:text-gray-400">2. Global Power Rollup (Alignment)</h2>
+            <div id="alignmentChart" class="flex-1 w-full min-h-[280px]"></div>
+        </section>
+
+        <section class="backdrop-blur-md border border-gray-300 dark:border-[#00f2fe]/20 bg-lightPanel dark:bg-darkPanel rounded-xl p-4 dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] flex flex-col relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00f2fe] to-transparent opacity-50"></div>
+            <h2 class="border-b border-gray-200 dark:border-gray-700/50 pb-2 mb-3 font-bold text-sm tracking-widest uppercase text-gray-500 dark:text-gray-400">3. Tactical Yield Protocols</h2>
+            <div id="outputCanvas" class="flex-1 bg-gray-50 dark:bg-[#030508]/50 border border-gray-300 dark:border-gray-800 p-4 text-sm overflow-y-auto min-h-[280px] rounded shadow-inner font-mono">
+                <em class="text-gray-500 dark:text-gray-600">Awaiting execution matrix...</em>
+            </div>
+        </section>
+
+        <section class="backdrop-blur-md border border-gray-300 dark:border-[#00f2fe]/20 bg-lightPanel dark:bg-darkPanel rounded-xl p-4 dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] flex flex-col relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#10b981] to-transparent opacity-50"></div>
+            <h2 class="border-b border-gray-200 dark:border-gray-700/50 pb-2 mb-3 font-bold text-sm tracking-widest uppercase text-gray-500 dark:text-gray-400">4. Cash Velocity & Interventions</h2>
+            <div id="flowChart" class="flex-1 w-full min-h-[280px]"></div>
         </section>
 
     </div>
