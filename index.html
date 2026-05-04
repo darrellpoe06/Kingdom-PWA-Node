@@ -1,131 +1,92 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="tactical">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Project SHALOM | Telemetry HUD</title>
+    <title>SHALOM | Command Center</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        :root[data-theme="tactical"] {
-            --bg-primary: #090a0f;
-            --bg-secondary: #12141d;
-            --text-primary: #00ffcc;
-            --text-secondary: #00b38f;
-            --border-accent: #00ffcc;
-            --btn-bg: rgba(0, 255, 204, 0.1);
-            --error-color: #ff3366;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        base: '#090a0f',
+                        panel: '#12141d',
+                        accent: '#00ffcc',
+                        muted: '#00b38f',
+                        danger: '#ff3366'
+                    },
+                    fontFamily: { mono: ['"Courier New"', 'Courier', 'monospace'] }
+                }
+            }
         }
-        :root[data-theme="corporate"] {
-            --bg-primary: #f4f5f7;
-            --bg-secondary: #ffffff;
-            --text-primary: #172b4d;
-            --text-secondary: #5e6c84;
-            --border-accent: #0052cc;
-            --btn-bg: #e9f2ff;
-            --error-color: #de350b;
-        }
-        body {
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: 'Courier New', Courier, monospace;
-            margin: 0;
-            padding: 1rem;
-            transition: all 0.3s ease;
-        }
-        .hud-container {
-            max-width: 800px;
-            margin: 0 auto;
-            border: 1px solid var(--border-accent);
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 4px;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.1);
-        }
-        .header-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            border-bottom: 1px solid var(--border-accent);
-            padding-bottom: 0.5rem;
-        }
-        .btn {
-            background: var(--btn-bg);
-            color: var(--text-primary);
-            border: 1px solid var(--border-accent);
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-        .btn:active { transform: scale(0.98); }
-        textarea {
-            width: 100%;
-            height: 100px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-accent);
-            padding: 0.5rem;
-            box-sizing: border-box;
-            font-family: inherit;
-            margin-bottom: 1rem;
-        }
-        .terminal-log {
-            background: #000;
-            color: #0f0;
-            padding: 1rem;
-            height: 150px;
-            overflow-y: auto;
-            font-size: 0.85rem;
-            border: 1px solid #333;
-            margin-bottom: 1rem;
-        }
-        .error-log { color: var(--error-color); }
-        .canvas-area {
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            padding: 1rem;
-            border: 1px dashed var(--text-secondary);
-            min-height: 100px;
-            margin-top: 1rem;
-            overflow-x: auto;
-        }
-    </style>
+    </script>
 </head>
-<body>
+<body class="bg-base text-accent font-mono p-2 md:p-6 min-h-screen">
 
-<script>
-    window.onerror = function(msg, url, lineNo, columnNo, error) {
-        const log = document.getElementById('sysLog');
-        if(log) log.innerHTML += `<span class="error-log">> [SYS_FAILURE] ${msg} at line ${lineNo}</span><br>`;
-        return false;
-    };
-</script>
+    <script>
+        window.onerror = function(msg, url, lineNo) {
+            const log = document.getElementById('sysLog');
+            if(log) log.innerHTML += `<span class="text-danger">> [SYS_FAILURE] ${msg} at line ${lineNo}</span><br>`;
+            return false;
+        };
+    </script>
 
-<div class="hud-container">
-    <div class="header-controls">
-        <h2>SHALOM // MASTER TELEMETRY</h2>
-        <button id="toggleThemeBtn" class="btn">Toggle Environment</button>
+    <header class="flex flex-col md:flex-row justify-between items-center border-b border-accent/50 pb-4 mb-4">
+        <div class="text-center md:text-left mb-4 md:mb-0">
+            <h1 class="text-xl md:text-2xl font-bold tracking-widest text-white">SHALOM // COMMAND CENTER</h1>
+            <p class="text-muted text-xs md:text-sm mt-1">Sovereign Heuristic Alignment & Operations Matrix</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-xs border border-accent px-2 py-1 rounded bg-accent/10">STATUS: ACTIVE</span>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <section class="border border-accent/50 bg-panel rounded p-3 shadow-[0_0_10px_rgba(0,255,204,0.05)] flex flex-col">
+            <h2 class="border-b border-accent/30 pb-2 mb-3 font-bold text-sm text-white">1. MULTIMODAL INTAKE</h2>
+            
+            <div id="sysLog" class="flex-1 bg-black border border-gray-800 p-2 text-xs text-green-400 overflow-y-auto mb-3 h-32">
+                > Edge AI standing by...<br>
+            </div>
+            
+            <textarea id="telemetryInput" placeholder="Enter operational parameters..." class="w-full bg-black border border-accent/50 p-2 text-accent text-sm outline-none focus:border-accent mb-2 h-20"></textarea>
+            
+            <div class="flex gap-2">
+                <button id="voiceBtn" class="flex-1 px-2 py-2 bg-accent/10 border border-accent hover:bg-accent/30 text-xs font-bold transition-all">🎤 VOICE</button>
+                <button id="executeBtn" class="flex-1 px-2 py-2 bg-accent/10 border border-accent hover:bg-accent/30 text-xs font-bold transition-all">EXECUTE</button>
+            </div>
+        </section>
+
+        <section class="border border-accent/50 bg-panel rounded p-3 shadow-[0_0_10px_rgba(0,255,204,0.05)] flex flex-col">
+            <h2 class="border-b border-accent/30 pb-2 mb-3 font-bold text-sm text-white">3. TACTICAL COUNTERMEASURES</h2>
+            <div id="outputCanvas" class="flex-1 bg-base border border-dashed border-muted/50 p-3 text-sm overflow-y-auto min-h-[150px]">
+                <em class="text-muted/50">Artifacts and Yield Protocols will render here...</em>
+            </div>
+        </section>
+
+        <section class="border border-accent/50 bg-panel rounded p-3 shadow-[0_0_10px_rgba(0,255,204,0.05)] flex flex-col">
+            <h2 class="border-b border-accent/30 pb-2 mb-3 font-bold text-sm text-white">2. ALIGNMENT MATRIX</h2>
+            <div class="flex-1 flex flex-col items-center justify-center border border-dashed border-muted/50 p-4 min-h-[120px]">
+                <div class="w-16 h-16 rounded-full border-4 border-accent border-t-danger animate-pulse mb-2"></div>
+                <span class="text-xs text-muted">Awaiting Telemetry Sync...</span>
+            </div>
+        </section>
+
+        <section class="border border-accent/50 bg-panel rounded p-3 shadow-[0_0_10px_rgba(0,255,204,0.05)] flex flex-col">
+            <h2 class="border-b border-accent/30 pb-2 mb-3 font-bold text-sm text-white">4. UPTIME LEDGER</h2>
+            <div class="flex-1 bg-base border border-dashed border-muted/50 p-3 text-xs overflow-y-auto min-h-[120px]">
+                <div class="border-b border-gray-800 pb-1 mb-1"><span class="text-white">STATUS:</span> System Initialized</div>
+                <div class="border-b border-gray-800 pb-1 mb-1"><span class="text-white">DB LINK:</span> Pending Supabase Sync</div>
+                <div class="border-b border-gray-800 pb-1 mb-1"><span class="text-white">n8n LINK:</span> Pending Webhook Sync</div>
+            </div>
+        </section>
+
     </div>
 
-    <div class="terminal-log" id="sysLog">
-        > System standing by...<br>
-    </div>
-
-    <textarea id="telemetryInput" placeholder="Enter operational requirements or friction points..."></textarea>
-    
-    <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
-        <button id="executeBtn" class="btn" style="flex: 1;">Execute Telemetry Scan</button>
-        <button id="voiceBtn" class="btn">🎤 Voice Intake</button>
-    </div>
-
-    <div class="canvas-area" id="outputCanvas">
-        <em>Generated artifacts will render here...</em>
-    </div>
-</div>
-
-<script src="./app.js" type="module"></script>
+    <script type="module" src="./app.js"></script>
 </body>
 </html>
