@@ -1,22 +1,3 @@
-// --- Track Alpha: Offline Resilience & Environment Hardening ---
-
-// 1. Request OS Persistent Storage
-async function enforcePersistence() {
-    if (navigator.storage && navigator.storage.persist) {
-        const isPersisted = await navigator.storage.persist();
-        logToHUD(`[Architecture Node] Persistent storage granted: ${isPersisted ? 'TRUE' : 'FALSE'}`);
-    }
-}
-
-// 2. Register Service Worker for Edge Caching
-function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => logToHUD(`[Architecture Node] SW Matrix engaged. Scope: ${reg.scope}`))
-            .catch(err => logToHUD(`<span class="error-log">[SYS_FAILURE] SW Registration blocked: ${err.message}</span>`));
-    }
-}
-
 // --- Core UI & Event Binding ---
 const sysLog = document.getElementById('sysLog');
 const executeBtn = document.getElementById('executeBtn');
@@ -26,11 +7,13 @@ const telemetryInput = document.getElementById('telemetryInput');
 const outputCanvas = document.getElementById('outputCanvas');
 
 function logToHUD(message) {
-    sysLog.innerHTML += `> ${message}<br>`;
-    sysLog.scrollTop = sysLog.scrollHeight;
+    if(sysLog) {
+        sysLog.innerHTML += `> ${message}<br>`;
+        sysLog.scrollTop = sysLog.scrollHeight;
+    }
 }
 
-// Visual Architecture Toggle
+// 1. Dynamic Visual Architecture Toggle
 toggleThemeBtn.addEventListener('click', () => {
     const htmlEl = document.documentElement;
     const currentTheme = htmlEl.getAttribute('data-theme');
@@ -39,12 +22,12 @@ toggleThemeBtn.addEventListener('click', () => {
     logToHUD(`Visual architecture shifted to [${newTheme.toUpperCase()}]`);
 });
 
-// Auditory Telemetry Capture (Web Speech API)
+// 2. Auditory Telemetry Capture (Web Speech API)
 voiceBtn.addEventListener('click', () => {
     try {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            logToHUD('<span class="error-log">Auditory API restricted by current browser environment.</span>');
+            logToHUD('<span class="error-log">Auditory API restricted by current browser environment. Ensure HTTPS.</span>');
             return;
         }
         const recognition = new SpeechRecognition();
@@ -61,7 +44,7 @@ voiceBtn.addEventListener('click', () => {
     }
 });
 
-// Primary Execution Loop (Lazy Loading Edge AI)
+// 3. Artifact Generation Engine (Execution Loop)
 executeBtn.addEventListener('click', async () => {
     const payload = telemetryInput.value.trim();
     if (!payload) {
@@ -74,31 +57,43 @@ executeBtn.addEventListener('click', async () => {
     try {
         // Dynamic Import of Transformers.js to prevent load-time crashing
         const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0');
-        logToHUD('Baseline Telemetry Synced.');
+        logToHUD('Baseline Telemetry Synced. Assessing requirements...');
         
-        // Simulating the escalation logic for the MVP mapping
+        // Simulating the AI deduction and Artifact Generation routing
         logToHUD(`Analyzing input: "${payload.substring(0, 20)}..."`);
         logToHUD('POSITIVE baseline deduction. Routing to [Execution Node]...');
         
-        // Artifact Generation Output (Leveraging Marked.js mapped in index.html)
+        // MVP Blueprint Generation
         const generatedMarkdown = `
 ### Executive Briefing: System Generated MVP
 * **Current State:** Baseline requirements deduced successfully.
-* **Strategic Implications:** The requested architecture has been compiled securely.
-* **Required Logistics:** Proceed to Phase 2 Collaboration Matrix integration.
+* **Strategic Implications:** The requested architecture has been mapped to your specifications.
+* **Required Logistics:** Review the schema below and initiate Phase 2 Collaboration Matrix integration.
+
+#### Structural Schema
+\`\`\`json
+{
+  "project_status": "Active",
+  "deployment_vector": "Edge AI",
+  "data_sovereignty": "Absolute"
+}
+\`\`\`
         `;
         
-        outputCanvas.innerHTML = marked.parse(generatedMarkdown);
-        logToHUD('Artifact successfully rendered to Output Canvas.');
+        // Parse markdown and render to canvas
+        if (typeof marked !== 'undefined') {
+            outputCanvas.innerHTML = marked.parse(generatedMarkdown);
+            logToHUD('Artifact successfully rendered to Output Canvas.');
+        } else {
+            logToHUD('<span class="error-log">Markdown parser failed to load.</span>');
+        }
 
     } catch (error) {
         logToHUD(`<span class="error-log">Module Resolution Failure: ${error.message}</span>`);
     }
 });
 
-// Initialize Offline Environment
+// Initialize Environment Confirmation
 window.addEventListener('DOMContentLoaded', () => {
-    enforcePersistence();
-    registerServiceWorker();
     logToHUD('Execution Nodes successfully bound to interface.');
 });
