@@ -1,106 +1,128 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="tactical">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Enterprise Telemetry Matrix - PWA</title>
+    <title>Project SHALOM | Telemetry HUD</title>
+    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        
-        :root {
-            --bg-primary: #090a0f; --bg-panel: #12161f; --bg-hud: #0b0c10;
-            --text-main: #c5c6c7; --text-muted: #8b929a;
-            --accent-primary: #66fcf1; --accent-secondary: #45a29e;
-            --border-color: #1f2833; --log-bg: #000000; --log-text: #50fa7b;
-            --btn-bg: linear-gradient(135deg, #1f2833 0%, #0b0c10 100%);
-            --btn-hover: rgba(69, 162, 158, 0.1);
-            --shadow: 0 0 25px rgba(102, 252, 241, 0.05), inset 0 0 10px rgba(0,0,0,0.5);
+        :root[data-theme="tactical"] {
+            --bg-primary: #090a0f;
+            --bg-secondary: #12141d;
+            --text-primary: #00ffcc;
+            --text-secondary: #00b38f;
+            --border-accent: #00ffcc;
+            --btn-bg: rgba(0, 255, 204, 0.1);
+            --error-color: #ff3366;
         }
-
-        :root[data-theme="light"] {
-            --bg-primary: #f4f7f6; --bg-panel: #ffffff; --bg-hud: #e9ecef;
-            --text-main: #333333; --text-muted: #666666;
-            --accent-primary: #0056b3; --accent-secondary: #004494;
-            --border-color: #cccccc; --log-bg: #2b2b2b; --log-text: #50fa7b;
-            --btn-bg: #0056b3; --btn-hover: #004494;
-            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        :root[data-theme="corporate"] {
+            --bg-primary: #f4f5f7;
+            --bg-secondary: #ffffff;
+            --text-primary: #172b4d;
+            --text-secondary: #5e6c84;
+            --border-accent: #0052cc;
+            --btn-bg: #e9f2ff;
+            --error-color: #de350b;
         }
-
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-primary); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; transition: all 0.3s ease; }
-        .system-controls { width: 100%; max-width: 850px; display: flex; justify-content: flex-end; margin-bottom: 10px; }
-        .theme-toggle { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 8px 15px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
-        .theme-toggle:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
-        .container { width: 100%; max-width: 850px; background: var(--bg-panel); padding: 25px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow); transition: all 0.3s ease; }
-        h1 { font-size: 1.5rem; color: var(--accent-primary); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; display: flex; align-items: center; }
-        h1::before { content: '■'; margin-right: 10px; color: var(--accent-secondary); font-size: 1.2rem; }
-        p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; }
-        textarea { width: 100%; height: 120px; padding: 15px; margin-top: 10px; background: var(--bg-primary); color: var(--accent-primary); border: 1px solid var(--border-color); border-radius: 6px; resize: vertical; font-family: 'Courier New', monospace; font-size: 1rem; transition: all 0.3s ease; }
-        textarea:focus { outline: none; border-color: var(--accent-secondary); box-shadow: 0 0 10px rgba(69, 162, 158, 0.2); }
-        .action-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; }
-        @media(min-width: 600px) { .action-grid { grid-template-columns: 1fr 1fr; } }
-        .primary-btn { background: var(--btn-bg); color: #ffffff; border: 1px solid var(--accent-secondary); padding: 15px; border-radius: 6px; cursor: pointer; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; transition: all 0.3s ease; font-size: 0.9rem;}
-        .primary-btn:hover { background: var(--btn-hover); box-shadow: 0 0 15px rgba(102, 252, 241, 0.3); }
-        .primary-btn:disabled { border-color: #555; color: #888; cursor: not-allowed; box-shadow: none; }
-        .voice-btn { background: transparent; color: var(--accent-primary); border: 1px solid var(--accent-primary); }
-        .voice-btn:hover { background: rgba(102, 252, 241, 0.1); }
-        .hud { margin-top: 25px; padding: 15px; background: var(--bg-hud); border-left: 4px solid var(--accent-secondary); border-radius: 0 6px 6px 0; position: relative; }
-        .hud::before { content: 'SYS_STAT'; position: absolute; top: -10px; left: 15px; background: var(--bg-panel); padding: 0 5px; font-size: 0.75rem; color: var(--accent-secondary); font-weight: bold; letter-spacing: 1px; }
-        #statusIndicator { color: var(--accent-primary); font-weight: bold; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
-        .log { font-family: 'Courier New', monospace; font-size: 0.8rem; background: var(--log-bg); color: var(--log-text); padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; margin-top: 10px; white-space: pre-wrap; height: 180px; overflow-y: auto; }
-        
-        /* New Output Canvas Styles */
-        .output-canvas { display: none; margin-top: 25px; padding: 25px; background: var(--bg-panel); border: 1px solid var(--accent-secondary); border-radius: 6px; line-height: 1.6; font-size: 0.95rem; box-shadow: 0 0 15px rgba(69, 162, 158, 0.1); }
-        .output-canvas h1, .output-canvas h2, .output-canvas h3 { color: var(--accent-primary); border-bottom: none; margin-top: 20px; }
-        .output-canvas h1::before, .output-canvas h2::before, .output-canvas h3::before { content: ''; margin: 0; }
-        .output-canvas pre { background: var(--bg-primary); padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); overflow-x: auto; font-family: 'Courier New', Courier, monospace; }
-        .output-canvas code { color: var(--log-text); }
-    </style>
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+        .hud-container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid var(--border-accent);
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 4px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.1);
+        }
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-accent);
+            padding-bottom: 0.5rem;
+        }
+        .btn {
+            background: var(--btn-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-accent);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn:active { transform: scale(0.98); }
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-accent);
+            padding: 0.5rem;
+            box-sizing: border-box;
+            font-family: inherit;
+            margin-bottom: 1rem;
+        }
+        .terminal-log {
+            background: #000;
+            color: #0f0;
+            padding: 1rem;
+            height: 150px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            border: 1px solid #333;
+            margin-bottom: 1rem;
+        }
+        .error-log { color: var(--error-color); }
+        .canvas-area {
+            background: var(--bg-primary);
+            padding: 1rem;
+            border: 1px dashed var(--text-secondary);
+            min-height: 100px;
+        }
+    </script>
 </head>
 <body>
 
-<div class="system-controls">
-    <button id="themeToggleBtn" class="theme-toggle">Engage High-Legibility Mode</button>
-</div>
-
-<div class="container">
-    <h1>Operational Intake</h1>
-    <p>Detail your operational friction or system requirements via text or auditory telemetry.</p>
-    
-    <textarea id="intakeInput" placeholder="> Awaiting parameters..."></textarea>
-    
-    <div class="action-grid">
-        <button id="voiceBtn" class="primary-btn voice-btn">🎤 Engage Voice</button>
-        <button id="processBtn" class="primary-btn">Execute Telemetry</button>
+<div class="hud-container">
+    <div class="header-controls">
+        <h2>SHALOM // MASTER TELEMETRY</h2>
+        <button id="toggleThemeBtn" class="btn">Toggle Environment</button>
     </div>
 
-    <div class="hud" id="telemetryHUD">
-        <strong style="color: var(--text-muted);">Status:</strong> <span id="statusIndicator">Awaiting Input...</span>
-        <div class="log" id="systemLog">Artifact Generation Engine Initialized...
-System standing by.</div>
+    <div class="terminal-log" id="sysLog">
+        > System standing by...<br>
     </div>
+
+    <textarea id="telemetryInput" placeholder="Enter operational requirements or friction points..."></textarea>
     
-    <div id="outputCanvas" class="output-canvas"></div>
+    <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+        <button id="executeBtn" class="btn" style="flex: 1;">Execute Telemetry Scan</button>
+        <button id="voiceBtn" class="btn">🎤 Voice Intake</button>
+    </div>
+
+    <div class="canvas-area" id="outputCanvas">
+        <em>Generated artifacts will render here...</em>
+    </div>
 </div>
 
 <script>
-    window.onerror = function(message, source, lineno, colno, error) {
-        const log = document.getElementById('systemLog');
-        if(log) {
-            log.textContent += `\n> [CRITICAL BROWSER EXCEPTION] ${message} at line ${lineno}`;
-            log.scrollTop = log.scrollHeight;
-        }
-        return true; 
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+        const log = document.getElementById('sysLog');
+        if(log) log.innerHTML += `<span class="error-log">> [SYS_FAILURE] ${msg} at line ${lineNo}</span><br>`;
+        return false;
     };
-    window.addEventListener('unhandledrejection', function(event) {
-        const log = document.getElementById('systemLog');
-        if(log) {
-            log.textContent += `\n> [PROMISE REJECTION] ${event.reason}`;
-            log.scrollTop = log.scrollHeight;
-        }
-    });
 </script>
 
-<script type="module" src="./app.js"></script>
+<script src="./app.js" type="module"></script>
 </body>
 </html>
