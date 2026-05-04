@@ -85,13 +85,24 @@
         .error-log { color: var(--error-color); }
         .canvas-area {
             background: var(--bg-primary);
+            color: var(--text-primary);
             padding: 1rem;
             border: 1px dashed var(--text-secondary);
             min-height: 100px;
+            margin-top: 1rem;
+            overflow-x: auto;
         }
-    </script>
+    </style>
 </head>
 <body>
+
+<script>
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+        const log = document.getElementById('sysLog');
+        if(log) log.innerHTML += `<span class="error-log">> [SYS_FAILURE] ${msg} at line ${lineNo}</span><br>`;
+        return false;
+    };
+</script>
 
 <div class="hud-container">
     <div class="header-controls">
@@ -114,14 +125,6 @@
         <em>Generated artifacts will render here...</em>
     </div>
 </div>
-
-<script>
-    window.onerror = function(msg, url, lineNo, columnNo, error) {
-        const log = document.getElementById('sysLog');
-        if(log) log.innerHTML += `<span class="error-log">> [SYS_FAILURE] ${msg} at line ${lineNo}</span><br>`;
-        return false;
-    };
-</script>
 
 <script src="./app.js" type="module"></script>
 </body>
