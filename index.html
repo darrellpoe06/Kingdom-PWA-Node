@@ -1,22 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SHALOM | Command Center</title>
     <link rel="manifest" href="manifest.json">
+    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class', // Enables manual toggling via JavaScript
             theme: {
                 extend: {
                     colors: {
-                        base: '#090a0f',
-                        panel: '#12141d',
-                        accent: '#00ffcc',
-                        muted: '#00b38f',
-                        danger: '#ff3366'
+                        darkBg: '#0b0f19',
+                        darkPanel: '#111827',
+                        accentCyan: '#00f2fe',
+                        accentGreen: '#10b981',
+                        accentRed: '#ef4444',
+                        lightBg: '#f4f5f7',
+                        lightPanel: '#ffffff',
+                        lightAccent: '#0052cc'
                     },
                     fontFamily: { mono: ['"Courier New"', 'Courier', 'monospace'] }
                 }
@@ -24,65 +31,61 @@
         }
     </script>
 </head>
-<body class="bg-base text-accent font-mono p-2 md:p-6 min-h-screen">
+<body class="bg-lightBg dark:bg-darkBg text-gray-900 dark:text-gray-100 font-mono min-h-screen p-2 md:p-6 transition-colors duration-300">
 
     <script>
         window.onerror = function(msg, url, lineNo) {
             const log = document.getElementById('sysLog');
-            if(log) log.innerHTML += `<span class="text-danger">> [SYS_FAILURE] ${msg} at line ${lineNo}</span><br>`;
+            if(log) log.innerHTML += `<span class="text-red-600 dark:text-accentRed">> [SYS_FAILURE] ${msg} at line ${lineNo}</span><br>`;
             return false;
         };
     </script>
 
-    <header class="flex flex-col md:flex-row justify-between items-center border-b border-accent/50 pb-4 mb-4">
+    <header class="flex flex-col md:flex-row justify-between items-center border-b border-gray-300 dark:border-gray-800 pb-4 mb-4">
         <div class="text-center md:text-left mb-4 md:mb-0">
-            <h1 class="text-xl md:text-2xl font-bold tracking-widest text-white">SHALOM // COMMAND CENTER</h1>
-            <p class="text-muted text-xs md:text-sm mt-1">Sovereign Heuristic Alignment & Operations Matrix</p>
+            <h1 class="text-xl md:text-2xl font-bold tracking-widest text-lightAccent dark:text-white">SHALOM // COMMAND CENTER</h1>
+            <p class="text-gray-600 dark:text-gray-400 text-xs md:text-sm mt-1">Sovereign Heuristic Alignment & Operations Matrix</p>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="text-xs border border-accent px-2 py-1 rounded bg-accent/10">STATUS: ACTIVE</span>
+        <div class="flex items-center gap-3">
+            <span class="text-xs border border-accentGreen px-2 py-1 rounded bg-accentGreen/10 text-accentGreen">STATUS: ACTIVE</span>
+            <button id="themeToggleBtn" class="px-4 py-2 border border-gray-400 dark:border-gray-600 rounded bg-white dark:bg-darkPanel text-xs font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all shadow-sm">
+                🌓 TOGGLE THEME
+            </button>
         </div>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
 
-        <section class="border border-accent/50 bg-panel rounded p-3 shadow-[0_0_10px_rgba(0,255,204,0.05)] flex flex-col">
-            <h2 class="border-b border-accent/30 pb-2 mb-3 font-bold text-sm text-white">1. MULTIMODAL INTAKE</h2>
+        <section class="border border-gray-300 dark:border-gray-800 bg-lightPanel dark:bg-darkPanel rounded p-3 shadow-md flex flex-col">
+            <h2 class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 font-bold text-sm">1. MULTIMODAL INTAKE</h2>
             
-            <div id="sysLog" class="flex-1 bg-black border border-gray-800 p-2 text-xs text-green-400 overflow-y-auto mb-3 h-32">
+            <div id="sysLog" class="flex-1 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 p-2 text-xs text-green-700 dark:text-green-400 overflow-y-auto mb-3 h-32 rounded">
                 > Edge AI standing by...<br>
             </div>
             
-            <textarea id="telemetryInput" placeholder="Enter operational parameters..." class="w-full bg-black border border-accent/50 p-2 text-accent text-sm outline-none focus:border-accent mb-2 h-20"></textarea>
+            <textarea id="telemetryInput" placeholder="Enter operational parameters..." class="w-full bg-white dark:bg-[#0b0f19] border border-gray-300 dark:border-gray-700 p-2 text-sm outline-none focus:border-lightAccent dark:focus:border-accentCyan mb-2 h-20 rounded transition-colors"></textarea>
             
             <div class="flex gap-2">
-                <button id="voiceBtn" class="flex-1 px-2 py-2 bg-accent/10 border border-accent hover:bg-accent/30 text-xs font-bold transition-all">🎤 VOICE</button>
-                <button id="executeBtn" class="flex-1 px-2 py-2 bg-accent/10 border border-accent hover:bg-accent/30 text-xs font-bold transition-all">EXECUTE</button>
+                <button id="voiceBtn" class="flex-1 px-2 py-2 bg-gray-100 dark:bg-accentCyan/10 border border-gray-300 dark:border-accentCyan/50 hover:bg-gray-200 dark:hover:bg-accentCyan/30 text-xs font-bold transition-all rounded">🎤 VOICE</button>
+                <button id="executeBtn" class="flex-1 px-2 py-2 bg-lightAccent text-white dark:bg-accentGreen/10 dark:text-accentGreen border border-lightAccent dark:border-accentGreen hover:opacity-80 text-xs font-bold transition-all rounded">EXECUTE</button>
             </div>
         </section>
 
-        <section class="border border-accent/50 bg-panel rounded p-3 shadow-[0_0_10px_rgba(0,255,204,0.05)] flex flex-col">
-            <h2 class="border-b border-accent/30 pb-2 mb-3 font-bold text-sm text-white">3. TACTICAL COUNTERMEASURES</h2>
-            <div id="outputCanvas" class="flex-1 bg-base border border-dashed border-muted/50 p-3 text-sm overflow-y-auto min-h-[150px]">
-                <em class="text-muted/50">Artifacts and Yield Protocols will render here...</em>
+        <section class="border border-gray-300 dark:border-gray-800 bg-lightPanel dark:bg-darkPanel rounded p-3 shadow-md flex flex-col">
+            <h2 class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 font-bold text-sm">2. ALIGNMENT MATRIX</h2>
+            <div id="alignmentChart" class="flex-1 w-full min-h-[250px]"></div>
+        </section>
+
+        <section class="border border-gray-300 dark:border-gray-800 bg-lightPanel dark:bg-darkPanel rounded p-3 shadow-md flex flex-col">
+            <h2 class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 font-bold text-sm">3. TACTICAL COUNTERMEASURES</h2>
+            <div id="outputCanvas" class="flex-1 bg-gray-50 dark:bg-[#0b0f19] border border-dashed border-gray-300 dark:border-gray-700 p-3 text-sm overflow-y-auto min-h-[250px] rounded">
+                <em class="text-gray-500">System Yield Protocols will render here upon execution...</em>
             </div>
         </section>
 
-        <section class="border border-accent/50 bg-panel rounded p-3 shadow-[0_0_10px_rgba(0,255,204,0.05)] flex flex-col">
-            <h2 class="border-b border-accent/30 pb-2 mb-3 font-bold text-sm text-white">2. ALIGNMENT MATRIX</h2>
-            <div class="flex-1 flex flex-col items-center justify-center border border-dashed border-muted/50 p-4 min-h-[120px]">
-                <div class="w-16 h-16 rounded-full border-4 border-accent border-t-danger animate-pulse mb-2"></div>
-                <span class="text-xs text-muted">Awaiting Telemetry Sync...</span>
-            </div>
-        </section>
-
-        <section class="border border-accent/50 bg-panel rounded p-3 shadow-[0_0_10px_rgba(0,255,204,0.05)] flex flex-col">
-            <h2 class="border-b border-accent/30 pb-2 mb-3 font-bold text-sm text-white">4. UPTIME LEDGER</h2>
-            <div class="flex-1 bg-base border border-dashed border-muted/50 p-3 text-xs overflow-y-auto min-h-[120px]">
-                <div class="border-b border-gray-800 pb-1 mb-1"><span class="text-white">STATUS:</span> System Initialized</div>
-                <div class="border-b border-gray-800 pb-1 mb-1"><span class="text-white">DB LINK:</span> Pending Supabase Sync</div>
-                <div class="border-b border-gray-800 pb-1 mb-1"><span class="text-white">n8n LINK:</span> Pending Webhook Sync</div>
-            </div>
+        <section class="border border-gray-300 dark:border-gray-800 bg-lightPanel dark:bg-darkPanel rounded p-3 shadow-md flex flex-col">
+            <h2 class="border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 font-bold text-sm">4. OPERATIONAL FLOW</h2>
+             <div id="flowChart" class="flex-1 w-full min-h-[250px]"></div>
         </section>
 
     </div>
