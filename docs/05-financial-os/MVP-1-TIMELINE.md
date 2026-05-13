@@ -95,7 +95,7 @@ Documented honestly so they're visible and can be mitigated:
 
 1. **Life disruption.** Sick twin, church emergency, rental incident, HIPAA crisis. Buffer is built into the 7-day post-Tier 1 window but a multi-day disruption mid-build will push the date.
 2. **Scope expansion temptation.** Every architectural insight that surfaces during the build wants to be in Tier 1. It cannot be. Insights go to `06-research-log/` and wait for Tier 2 or later.
-3. **SOP fatigue.** Following the procedure for 80+ sessions requires discipline. The Lucifer signature in a builder is "I know better than the procedure" mid-build. Watch for it.
+3. **SOP fatigue.** Following the procedure for 80+ sessions requires discipline. The lucifer signature in a builder is "I know better than the procedure" mid-build. Watch for it.
 4. **Christina's availability.** Her practice is HIPAA-scoped and her time is limited. Her testing slots must be scheduled and protected.
 5. **Synology deployment friction.** Docker on Synology has its own learning curve. Allocate 1-2 sessions for deployment alone if needed.
 
