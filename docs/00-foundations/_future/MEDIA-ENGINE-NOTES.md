@@ -1,14 +1,14 @@
 # Media Engine — Vision Notes (FUTURE / UNRATIFIED)
-> **STATUS: PARKING LOT.** This document captures ideas for later evaluation. It is NOT a ratified foundation. It is NOT a committed plan. It is a structured holding place for vision so nothing is lost. Revisit when SKOS reaches the maturity to evaluate it seriously — likely after MVP-1 ships and the narrative content pipeline (`NARRATIVE-VISION.md`) begins.
+> **STATUS: PARKING LOT.** This document captures ideas for later evaluation. It is NOT a ratified foundation. It is NOT a committed plan. It is a structured holding place for vision so nothing is lost. Revisit when SKOS reaches the maturity to evaluate it seriously — likely after MVP-1 ships and the narrative content pipeline (`../_root/NARRATIVE-VISION.md`) begins.
 > *"The plans of the diligent lead surely to abundance, but everyone who is hasty comes only to poverty."* — Proverbs 21:5 (ESV)
 ## What This Document Is
-`NARRATIVE-VISION.md` defines the *content* — Rendered Lives, books, films, the cloud of witnesses made navigable. This document captures the *engine that produces and distributes that content* — the business and operational model.
+`../_root/NARRATIVE-VISION.md` defines the *content* — Rendered Lives, books, films, the cloud of witnesses made navigable. This document captures the *engine that produces and distributes that content* — the business and operational model.
 The user's stated vision: build media through technology instead of through Hollywood. An **incubator → curator → distribution** pipeline with **ownership of the full stack**.
 This is a serious long-horizon idea. It is captured here honestly — including the hard parts — so it can be evaluated soberly later, not chased prematurely.
 ## The Thesis: Why Not Hollywood
 The traditional path for faith-aligned media is to pitch to existing studios, streamers, and distributors — and accept their gatekeeping, their creative compromises, their ownership terms, and their economics.
 The alternative thesis: **technology has lowered the cost of production and opened direct distribution channels to the point that a values-aligned organization can own its own pipeline end to end.** No gatekeeper deciding the message can be told. No studio owning the IP. No distributor taking the majority economics.
-This is not anti-excellence or anti-professionalism — `EXCELLENCE-STANDARD.md` still governs everything. It is anti-*dependency on systems that do not share the mission.*
+This is not anti-excellence or anti-professionalism — `../_root/EXCELLENCE-STANDARD.md` still governs everything. It is anti-*dependency on systems that do not share the mission.*
 **The honest counterweight:** Hollywood's gatekeeping also functions as quality control, capital aggregation, and audience aggregation. Replacing it means SKOS must replace all three functions itself. That is hard. This document does not pretend otherwise.
 ## The Three-Stage Model
 ### Stage 1 — Incubator
@@ -24,9 +24,9 @@ This is not anti-excellence or anti-professionalism — `EXCELLENCE-STANDARD.md`
 - What is the relationship between incubated creators and IP ownership?
 ### Stage 2 — Curator
 **Purpose:** Select, shape, and quality-gate what gets produced and published.
-- Apply the Test (`MIND-OF-CHRIST.md`) and Excellence Standard (`EXCELLENCE-STANDARD.md`) to every project
+- Apply the Test (`../_root/MIND-OF-CHRIST.md`) and Excellence Standard (`../_root/EXCELLENCE-STANDARD.md`) to every project
 - Ensure doctrinal fidelity — content does not bend scripture for engagement
-- Ensure the Yahshua Standard (`VISUAL-IDENTITY.md`) governs any depiction of Christ
+- Ensure the Yahshua Standard (`../_root/VISUAL-IDENTITY.md`) governs any depiction of Christ
 - Editorial judgment — what stories, in what order, for what audience
 - The curator function protects the mission from drift as the engine scales
 **Open questions for later:**
@@ -72,17 +72,17 @@ Existing streamers and retailers used as *amplifiers* — additional reach — w
 ## Connection to Existing Foundations
 | This Document | Connects To |
 |---------------|-------------|
-| The content the engine produces | `NARRATIVE-VISION.md` |
-| The quality bar for all output | `EXCELLENCE-STANDARD.md` |
-| The Test applied to every project | `MIND-OF-CHRIST.md` |
-| Visual identity for all media | `VISUAL-IDENTITY.md` |
-| The meta-frame everything serves | `THE-WAY.md` |
-| Scripture citation in all content | `SCRIPTURE-REFERENCE-STANDARD.md` |
+| The content the engine produces | `../_root/NARRATIVE-VISION.md` |
+| The quality bar for all output | `../_root/EXCELLENCE-STANDARD.md` |
+| The Test applied to every project | `../_root/MIND-OF-CHRIST.md` |
+| Visual identity for all media | `../_root/VISUAL-IDENTITY.md` |
+| The meta-frame everything serves | `../_root/THE-WAY.md` |
+| Scripture citation in all content | `../_root/SCRIPTURE-REFERENCE-STANDARD.md` |
 ## Sequencing — When To Revisit This
 This document should NOT be acted on now. Premature pursuit of a media empire while MVP-1 is unbuilt would violate Proverbs 21:5 (the diligent plan, the hasty fall into poverty).
 **Suggested revisit triggers:**
 1. MVP-1 (Sovereign Family Financial OS) has shipped and has real users
-2. The narrative content pipeline (`NARRATIVE-VISION.md` Tier 1 — database entries) has begun
+2. The narrative content pipeline (`../_root/NARRATIVE-VISION.md` Tier 1 — database entries) has begun
 3. There is an actual audience to distribute to
 4. There is patient capital or sustainable revenue to fund production
 5. The family and any SKOS team have bandwidth this does not currently have
@@ -95,7 +95,7 @@ Until then: **this vision is parked here, safe, and waiting.** Nothing is lost. 
 5. How is owned audience built ahead of content?
 6. Which partnerships extend reach vs. compromise ownership?
 7. What capital model funds capital-intensive production?
-8. What is the minimum viable first media product? (Likely a single short film or the children's book named in `NARRATIVE-VISION.md`.)
+8. What is the minimum viable first media product? (Likely a single short film or the children's book named in `../_root/NARRATIVE-VISION.md`.)
 9. Legal structure — does this live under PoeTech LLC, a new entity, or a non-profit arm?
 10. How does this relate to the church (The Church of The Living God) and its mission?
 ## Religion AND Relationship in This Vision
@@ -103,4 +103,4 @@ Until then: **this vision is parked here, safe, and waiting.** Nothing is lost. 
 **Relationship-side:** A creative home that develops people, not just products. Generosity as strategy. Community-first. Content that serves an audience genuinely loved, not an audience merely monetized.
 Both.
 ---
-*See also:* `NARRATIVE-VISION.md` (the content this engine produces), `EXCELLENCE-STANDARD.md` (the quality bar), `THE-WAY.md` (the meta-frame). **This document is UNRATIFIED and FUTURE. Do not act on it without deliberate evaluation at the revisit triggers above.**
+*See also:* `../_root/NARRATIVE-VISION.md` (the content this engine produces), `../_root/EXCELLENCE-STANDARD.md` (the quality bar), `../_root/THE-WAY.md` (the meta-frame). **This document is UNRATIFIED and FUTURE. Do not act on it without deliberate evaluation at the revisit triggers above.**

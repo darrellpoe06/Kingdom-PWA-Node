@@ -37,7 +37,7 @@ If the user pastes source text that capitalizes any of the lowercase-only terms,
 The canonical statement of these rules lives in [`docs/00-foundations/14-naming-conventions.md`](docs/00-foundations/14-naming-conventions.md). If that document and this one drift, the binding rules in this file govern until the foundation doc is updated.
 
 ## SKOS Foundations (Added 2026-05-13)
-The following foundation documents in `docs/00-foundations/` are authoritative and govern all SKOS-generated content. Read them before generating substantive content for this project:
+The following foundation documents in `docs/00-foundations/_root/` are authoritative and govern all SKOS-generated content. Read them before generating substantive content for this project:
 - `THE-WAY.md` — Meta-frame. SKOS IS The Way. Every module and foundation operates within this frame.
 - `MIND-OF-CHRIST.md` — Mental stewardship foundation. NOTICE → TEST → CAPTURE → REDIRECT.
 - `SCRIPTURE-REFERENCE-STANDARD.md` — Translation citation rubric (ESV primary, KJV secondary, NIV/AMP/Strong's for clarification).
