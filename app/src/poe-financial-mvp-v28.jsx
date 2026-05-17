@@ -769,6 +769,7 @@ html{scroll-padding-bottom:280px}
         </footer>
       </main>
       <TTSControls />
+      <InstallPrompt />
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} />}
     </div>
   );
@@ -939,6 +940,99 @@ function AdvisementBanner() {
 
 // Floating button bottom-right · reads the visible view · speed options
 // =============================================================================
+// InstallPrompt — PWA install nudge for iOS + Android visitors
+// - Android Chrome / Edge: catches the beforeinstallprompt event and shows
+//   a single-button "Install PoeTech" banner that fires the native prompt.
+// - iOS Safari: detects iOS + non-standalone and shows a small banner with
+//   manual "Tap Share, then Add to Home Screen" instructions.
+// - Dismissible. Dismissal is stored in localStorage for 30 days so we don't
+//   nag returning visitors. Auto-hides once installed.
+function InstallPrompt() {
+  const [deferredEvt, setDeferredEvt] = useState(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [dismissed, setDismissed] = useState(true); // assume dismissed until we check storage
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // Check whether already running in standalone (installed) mode
+    const standalone =
+      window.matchMedia && window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
+    if (standalone) { setInstalled(true); return; }
+
+    // iOS detection - Safari doesn't fire beforeinstallprompt
+    const ua = window.navigator.userAgent || '';
+    const ios = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    setIsIOS(ios);
+
+    // Read dismissal flag
+    try {
+      const stamp = window.localStorage.getItem('pwa-install-dismissed');
+      if (stamp) {
+        const days = (Date.now() - parseInt(stamp, 10)) / 86400000;
+        if (days < 30) { setDismissed(true); return; }
+      }
+      setDismissed(false);
+    } catch (e) {
+      setDismissed(false);
+    }
+
+    const onPrompt = (e) => {
+      e.preventDefault();
+      setDeferredEvt(e);
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    window.addEventListener('appinstalled', () => { setInstalled(true); setDeferredEvt(null); });
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
+  }, []);
+
+  const dismiss = () => {
+    try { window.localStorage.setItem('pwa-install-dismissed', String(Date.now())); } catch (e) {}
+    setDismissed(true);
+  };
+
+  const installAndroid = async () => {
+    if (!deferredEvt) return;
+    deferredEvt.prompt();
+    try { await deferredEvt.userChoice; } catch (e) {}
+    setDeferredEvt(null);
+  };
+
+  if (installed || dismissed) return null;
+  if (!deferredEvt && !isIOS) return null;
+
+  return (
+    <div className="install-prompt fixed bottom-4 left-4 z-40 max-w-xs print:hidden">
+      <div className="bg-white border-2 border-[#1A1815] shadow-lg p-3">
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📲 Install PoeTech</div>
+          <button onClick={dismiss} aria-label="Dismiss install prompt" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
+        </div>
+        {deferredEvt ? (
+          <>
+            <p className="text-xs leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              Add PoeTech to your home screen so you can open it like a regular app — works offline, no browser bar, faster launch.
+            </p>
+            <button onClick={installAndroid} className="w-full bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
+              Install on this device
+            </button>
+          </>
+        ) : isIOS ? (
+          <>
+            <p className="text-xs leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              On iPhone or iPad: tap the <strong>Share</strong> button at the bottom of Safari, then choose <strong>Add to Home Screen</strong>.
+            </p>
+            <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              Once added, PoeTech opens like a regular app — works offline, no browser bar.
+            </p>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function TTSControls() {
   const [isOpen, setIsOpen] = useState(false);
   const [isReading, setIsReading] = useState(false);
