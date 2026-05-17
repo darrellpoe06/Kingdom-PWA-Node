@@ -1,0 +1,50 @@
+# =============================================================================
+# Line-ending normalization
+# =============================================================================
+# Repo storage is LF for all text files. Windows working trees can keep CRLF
+# locally (controlled by core.autocrlf), but git always stores LF. Eliminates
+# the perpetual "phantom diff" churn when files are saved by Windows editors.
+
+* text=auto eol=lf
+
+# -----------------------------------------------------------------------------
+# Explicit text — always LF in repo regardless of detection
+# -----------------------------------------------------------------------------
+*.md         text eol=lf
+*.txt        text eol=lf
+*.json       text eol=lf
+*.js         text eol=lf
+*.jsx        text eol=lf
+*.ts         text eol=lf
+*.tsx        text eol=lf
+*.css        text eol=lf
+*.scss       text eol=lf
+*.html       text eol=lf
+*.svg        text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.toml       text eol=lf
+*.gitignore  text eol=lf
+.gitattributes text eol=lf
+
+# -----------------------------------------------------------------------------
+# Binary — never touch, never diff as text
+# -----------------------------------------------------------------------------
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.docx  binary
+*.xlsx  binary
+*.xls   binary
+*.pptx  binary
+*.zip   binary
+*.gz    binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.mp3   binary
+*.mp4   binary
