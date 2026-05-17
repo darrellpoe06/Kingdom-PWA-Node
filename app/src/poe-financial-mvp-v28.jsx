@@ -2833,11 +2833,11 @@ const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'loan', 'investment', 'c
 function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const blank = { name: '', institution: '', type: 'checking', fragment: '', balance: 0, entityId: entities[0]?.id || 'e-personal', notes: '' };
+  const blank = { name: '', institution: '', type: 'checking', fragment: '', balance: 0, entityId: entities[0]?.id || 'e-personal', notes: '', isPrimary: false };
   const [form, setForm] = useState(blank);
 
   const startAdd = () => { setForm(blank); setEditingId(null); setShowForm(true); };
-  const startEdit = (a) => { setForm({ name: a.name, institution: a.institution, type: a.type, fragment: a.fragment || '', balance: a.balance, entityId: a.entityId, notes: a.notes || '' }); setEditingId(a.id); setShowForm(true); };
+  const startEdit = (a) => { setForm({ name: a.name, institution: a.institution, type: a.type, fragment: a.fragment || '', balance: a.balance, entityId: a.entityId, notes: a.notes || '', isPrimary: !!a.isPrimary }); setEditingId(a.id); setShowForm(true); };
   const cancel = () => { setShowForm(false); setEditingId(null); setForm(blank); };
   const submit = () => {
     if (!form.name || !form.institution) { alert('Account name and institution are required.'); return; }
@@ -2899,6 +2899,10 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
               </div>
             </div>
             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+            <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ fontFamily: '"Fraunces", serif' }}>
+              <input type="checkbox" checked={!!form.isPrimary} onChange={e => setForm({ ...form, isPrimary: e.target.checked })} className="accent-[#B85838]" />
+              <span><strong>Primary bill-pay account</strong> — shown prominently at the top of Transactions so the family can see at a glance what's available to pay bills.</span>
+            </label>
             <button onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Account'}</button>
           </div>
         )}
@@ -2918,6 +2922,7 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
                       <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{a.name}</span>
                       <span className="text-xs text-[#5A5751] ml-2">{a.institution} {a.fragment}</span>
                       <span className="text-[9px] uppercase tracking-wider text-[#5A5751] ml-2">{a.type}</span>
+                      {a.isPrimary && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold ml-2">★ primary</span>}
                     </div>
                     <div className={`text-right ${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div>
                   </div>
@@ -2940,6 +2945,9 @@ const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel
 
 function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction }) {
   const [txView, setTxView] = useState('history');
+  const [page, setPage] = useState(0);
+  const pageSize = 25;
+  useEffect(() => { setPage(0); }, [txView, entityFilter]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const todayISO = currentDate.toISOString().slice(0, 10);
@@ -3054,22 +3062,37 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
         </p>
       </section>
 
-      {(data.accounts || []).length > 0 && (
-        <section>
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Current Balances</div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            {(data.accounts || []).map(a => (
-              <div key={a.id} className="bg-white p-3">
-                <div className="text-[10px] text-[#5A5751] truncate" style={{ fontFamily: '"Fraunces", serif' }}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</div>
-                <div className={`text-base ${a.balance < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(a.balance)}</div>
+      {(() => {
+        const primary = (data.accounts || []).find(a => a.isPrimary) || (data.accounts || []).find(a => a.type === 'checking') || (data.accounts || [])[0];
+        if (!primary) return null;
+        // Project after all upcoming charges that hit this account
+        const futureImpact = upcoming.filter(t => t.accountId === primary.id).reduce((s, t) => s + (t.amount || 0), 0);
+        const projected = primary.balance + futureImpact;
+        return (
+          <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+            <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">★ Primary Bill-Pay Account</div>
+                <div className="text-sm text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{primary.name}{primary.fragment ? ' ' + primary.fragment : ''}</div>
               </div>
-            ))}
-          </div>
-          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-            Each transaction row below shows the source account's current balance. Upcoming rows also show the projected balance after the charge posts — red if it would go negative.
-          </p>
-        </section>
-      )}
+              {!primary.isPrimary && <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Mark one account as primary in Accounts to lock this</span>}
+            </div>
+            <div className="grid grid-cols-2 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+              <div className="bg-white p-3">
+                <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Right now</div>
+                <div className={`text-2xl ${primary.balance < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(primary.balance)}</div>
+              </div>
+              <div className="bg-white p-3">
+                <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">After upcoming charges clear</div>
+                <div className={`text-2xl ${projected < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(projected)}</div>
+              </div>
+            </div>
+            <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              Full balances for every account live at the bottom of this tab. Each row also shows that account's current balance inline.
+            </p>
+          </section>
+        );
+      })()}
 
       <section>
         <div className="border-b border-[#E8E4DC] mb-3">
@@ -3137,22 +3160,63 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
                 : 'No history yet. Use + Add transaction above, or add recurring obligations in the Calendar tab.'}
             </p>
           </div>
-        ) : (
-          <section className="bg-white border border-[#1A1815] p-3 sm:p-5 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1A1815]">
-                  <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Date</th>
-                  <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
-                  <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Amount</th>
-                  <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Actions</th>
-                </tr>
-              </thead>
-              <tbody>{list.map(renderRow)}</tbody>
-            </table>
-          </section>
-        )}
+        ) : (() => {
+          const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+          const safePage = Math.min(page, totalPages - 1);
+          const startIdx = safePage * pageSize;
+          const pageItems = list.slice(startIdx, startIdx + pageSize);
+          return (
+            <>
+              <section className="bg-white border border-[#1A1815] p-3 sm:p-5 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#1A1815]">
+                      <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Date</th>
+                      <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
+                      <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                      <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>{pageItems.map(renderRow)}</tbody>
+                </table>
+              </section>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-3 gap-2 flex-wrap">
+                  <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={safePage === 0} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">« Previous</button>
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-[#5A5751]">
+                    <span>Page</span>
+                    <select value={safePage} onChange={e => setPage(parseInt(e.target.value, 10))} className="p-1 border border-[#E8E4DC] text-xs bg-[#FAF8F4]">
+                      {Array.from({ length: totalPages }).map((_, i) => <option key={i} value={i}>{i + 1}</option>)}
+                    </select>
+                    <span>of {totalPages} · showing {startIdx + 1}–{Math.min(startIdx + pageSize, list.length)} of {list.length}</span>
+                  </div>
+                  <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">Next »</button>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </section>
+
+      {(data.accounts || []).length > 0 && (
+        <section>
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">All Account Balances</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+            {(data.accounts || []).map(a => (
+              <div key={a.id} className="bg-white p-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="text-[10px] text-[#5A5751] truncate flex-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</div>
+                  {a.isPrimary && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold shrink-0">★</span>}
+                </div>
+                <div className={`text-base ${a.balance < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(a.balance)}</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Full balance sweep across every entity. The primary bill-pay account (★) is shown prominently at the top of this tab. Edit any account in Books · Accounts to mark it primary.
+          </p>
+        </section>
+      )}
     </div>
   );
 }
