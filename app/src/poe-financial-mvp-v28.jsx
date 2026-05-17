@@ -96,6 +96,7 @@ const SEED_DATA = {
   feedback: [], // v24: tester feedback collection · MVP
   welcomeDismissed: false, // v24: first-run welcome panel
   checkoutIntents: [], // v28+ Session C: cart intents (tier selected, action taken)
+  userTier: 'foundation', // v28+ free entry tier; flips when a paid subscription is processed
   inquiries: [
     { id: 'inq-ex1', firstName: 'Maya R.', contactMethod: 'phone', phone: '(217) 555-0142', interestArea: 'individual', hasInsurance: 'Y', preferredProvider: 'Christina Poe', bestTimeToCall: 'Weekday evenings', source: 'church', sourceDetail: 'COLG referral', notes: 'Seeking faith-integrated therapy, recommended by pastor.', status: 'new', receivedAt: '2026-05-14T14:30:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-14T14:30:00.000Z' }] },
     { id: 'inq-ex2', firstName: 'James T.', contactMethod: 'email', email: 'jt****@example.com', interestArea: 'couples', hasInsurance: 'unsure', preferredProvider: 'any', bestTimeToCall: 'Lunch hour', source: 'google', sourceDetail: 'Searched faith-based therapy Champaign', notes: 'Wife and I both want to try counseling.', status: 'attempting-contact', receivedAt: '2026-05-13T09:15:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-13T09:15:00.000Z' }, { status: 'attempting-contact', at: '2026-05-14T10:00:00.000Z' }] },
@@ -456,6 +457,7 @@ export default function PoeFinancialSystem() {
             practiceInquiries: Array.isArray(parsed.data.practiceInquiries) ? parsed.data.practiceInquiries : (d.practiceInquiries || []),
             inquiries: Array.isArray(parsed.data.inquiries) ? parsed.data.inquiries : (d.inquiries || []),
             checkoutIntents: Array.isArray(parsed.data.checkoutIntents) ? parsed.data.checkoutIntents : (d.checkoutIntents || []),
+            userTier: typeof parsed.data.userTier === 'string' ? parsed.data.userTier : (d.userTier || 'foundation'),
           }));
           if (parsed.pressure != null) setPressure(parsed.pressure);
           if (parsed.snowballSort) setSnowballSort(parsed.snowballSort);
@@ -748,6 +750,11 @@ html{scroll-padding-bottom:280px}
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-24">
+        {view !== 'debts' && (data.userTier === 'foundation' || !data.userTier) && (
+          <div className="mb-6">
+            <AdvisementBanner />
+          </div>
+        )}
         {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} />}
         {view === 'books' && (
           <>
@@ -1331,9 +1338,6 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
           </div>
         </section>
       )}
-
-      {/* ADVISEMENT BANNER — Foundation tier · COLG + TLC + family businesses */}
-      <AdvisementBanner />
 
       {/* HERO ROW — FORCED HORIZONTAL ON MOBILE */}
       <section className="grid grid-cols-3 gap-2 sm:gap-4">
