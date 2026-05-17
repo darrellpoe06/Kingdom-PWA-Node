@@ -512,6 +512,10 @@ export default function PoeFinancialSystem() {
   const addTransaction = (item) => setData(d => ({ ...d, transactions: [...(d.transactions || []), { ...item, id: `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 }] }));
   const updateTransaction = (id, updates) => setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
   const deleteTransaction = (id) => setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
+  // v28+ Rentals expansion: Rental property CRUD
+  const addRental = (item) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), { ...item, id: `r-${Date.now()}` }] } }));
+  const updateRental = (id, updates) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
+  const deleteRental = (id) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).filter(r => r.id !== id) } }));
   const addScope = (scope) => setData(d => ({ ...d, scopes: [...d.scopes, { ...scope, id: `sc-${Date.now()}`, createdAt: new Date().toISOString(), status: 'draft' }] }));
   const deleteScope = (id) => setData(d => ({ ...d, scopes: d.scopes.filter(s => s.id !== id) }));
   const addInquiry = (item) => setData(d => ({ ...d, inquiries: [...(d.inquiries || []), { ...item, id: `inq-${Date.now()}`, receivedAt: new Date().toISOString(), status: 'new', statusHistory: [{ status: 'new', at: new Date().toISOString() }] }] }));
@@ -723,7 +727,7 @@ html{scroll-padding-bottom:280px}
           </>
         )}
         {view === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} />}
-        {view === 'rentals' && <Rentals rentals={data.inflows.rentals} totals={totals} snowballSort={snowballSort} setSnowballSort={setSnowballSort} snowballExtra={snowballExtra} setSnowballExtra={setSnowballExtra} rentalSnowball={rentalSnowball} sevenYearTarget={sevenYearTarget} currentDate={currentDate} />}
+        {view === 'rentals' && <Rentals rentals={data.inflows.rentals} entities={data.entities} totals={totals} snowballSort={snowballSort} setSnowballSort={setSnowballSort} snowballExtra={snowballExtra} setSnowballExtra={setSnowballExtra} rentalSnowball={rentalSnowball} sevenYearTarget={sevenYearTarget} currentDate={currentDate} addRental={addRental} updateRental={updateRental} deleteRental={deleteRental} />}
         {view === 'projects' && <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} />}
         {view === 'practice' && <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} />}
         {view === 'opportunities' && <Opportunities opportunities={data.opportunities} totals={totals} />}
@@ -2116,11 +2120,147 @@ function FormField({ label, children }) { return (<div><label className="text-[1
 // =============================================================================
 // RENTALS
 // =============================================================================
-function Rentals({ rentals, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate }) {
+function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental }) {
   const rentalsWithCleared = rentals.map(r => { const cleared = rentalSnowball.activeProperties.find(p => p.id === r.id); return { ...r, clearedAtMonth: cleared?.clearedAtMonth }; });
   const orderedByPayoff = rentalsWithCleared.filter(r => r.clearedAtMonth).sort((a, b) => a.clearedAtMonth - b.clearedAtMonth);
   const sevenYrFeasible = rentalSnowball.allClearedYears <= 7;
   const gapMonthly = sevenYearTarget - snowballExtra;
+  // v28+ Rentals expansion: add/edit property + autocomplete + map + evaluator
+  const [showPropForm, setShowPropForm] = useState(false);
+  const [editingPropId, setEditingPropId] = useState(null);
+  const blankProp = () => ({ name: '', address: '', city: '', state: '', zip: '', lat: null, lon: null, propertyType: 'single-family', rent: 0, status: 'paying', entityId: 'e-poeprops', purchasePrice: 0, purchaseDate: '', estimatedValue: 0, mortgageBalance: 0, mortgageRate: 6.5, monthlyPI: 0, escrow: 0, notes: '' });
+  const [propForm, setPropForm] = useState(blankProp());
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const suggestTimer = useRef(null);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersRef = useRef([]);
+
+  // Nominatim autocomplete - debounced 400ms, US-only, max 5 suggestions
+  const fetchSuggestions = (q) => {
+    clearTimeout(suggestTimer.current);
+    if (!q || q.length < 3) { setSuggestions([]); return; }
+    suggestTimer.current = setTimeout(async () => {
+      setSuggestLoading(true);
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&countrycodes=us&limit=5`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const json = await res.json();
+        setSuggestions(Array.isArray(json) ? json : []);
+      } catch (e) {
+        console.warn('Nominatim error', e);
+        setSuggestions([]);
+      }
+      setSuggestLoading(false);
+    }, 400);
+  };
+
+  const pickSuggestion = (s) => {
+    const a = s.address || {};
+    const street = [a.house_number, a.road].filter(Boolean).join(' ');
+    setPropForm(f => ({
+      ...f,
+      address: street || s.display_name.split(',')[0],
+      city: a.city || a.town || a.village || a.hamlet || '',
+      state: a.state || '',
+      zip: a.postcode || '',
+      lat: parseFloat(s.lat),
+      lon: parseFloat(s.lon),
+    }));
+    setSuggestions([]);
+  };
+
+  // Leaflet map - lazy init when CDN loaded, refresh markers on rentals change
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.L || !mapRef.current) return;
+    if (!mapInstanceRef.current) {
+      const map = window.L.map(mapRef.current, { scrollWheelZoom: false }).setView([40.1164, -88.2434], 12);
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(map);
+      mapInstanceRef.current = map;
+    }
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+    const withCoords = rentals.filter(r => typeof r.lat === 'number' && typeof r.lon === 'number');
+    withCoords.forEach(r => {
+      const marker = window.L.marker([r.lat, r.lon]).addTo(mapInstanceRef.current);
+      marker.bindPopup(`<strong>${r.name}</strong><br/>${r.address || ''}${r.city ? ', ' + r.city : ''}<br/>Rent: $${r.rent}/mo · ${r.status}<br/>${r.mortgage?.balance ? 'Mortgage: $' + r.mortgage.balance.toLocaleString() : 'Paid off'}`);
+      markersRef.current.push(marker);
+    });
+    if (withCoords.length > 0) {
+      try { mapInstanceRef.current.fitBounds(window.L.featureGroup(markersRef.current).getBounds().pad(0.2)); } catch (e) {}
+    }
+  }, [rentals]);
+
+  // Clean up map on unmount
+  useEffect(() => () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } }, []);
+
+  // Auto-evaluator - runs continuously off form inputs
+  const evaluator = useMemo(() => {
+    const price = parseFloat(propForm.purchasePrice) || 0;
+    const rent = parseFloat(propForm.rent) || 0;
+    const escrow = parseFloat(propForm.escrow) || 0;
+    const monthlyPI = parseFloat(propForm.monthlyPI) || 0;
+    const annualRent = rent * 12;
+    const opex = (escrow * 12) + (annualRent * 0.10); // 10% maintenance/vacancy buffer
+    const noi = annualRent - opex;
+    const annualDS = monthlyPI * 12;
+    const annualCF = noi - annualDS;
+    const downPayment = price * 0.20; // assume 20% down
+    return {
+      annualRent, opex, noi, annualDS, annualCF, downPayment,
+      capRate: price > 0 ? (noi / price) * 100 : 0,
+      cashOnCash: downPayment > 0 ? (annualCF / downPayment) * 100 : 0,
+      onePct: price > 0 ? (rent / price) * 100 : 0,
+      grm: annualRent > 0 ? price / annualRent : 0,
+      dscr: annualDS > 0 ? noi / annualDS : 0,
+    };
+  }, [propForm.purchasePrice, propForm.rent, propForm.escrow, propForm.monthlyPI]);
+
+  const startAddProp = () => { setPropForm(blankProp()); setEditingPropId(null); setShowPropForm(true); setSuggestions([]); };
+  const startEditProp = (r) => {
+    setPropForm({
+      name: r.name || '', address: r.address || '', city: r.city || '', state: r.state || '', zip: r.zip || '',
+      lat: r.lat ?? null, lon: r.lon ?? null,
+      propertyType: r.propertyType || 'single-family',
+      rent: r.rent || 0, status: r.status || 'paying', entityId: r.entityId || 'e-poeprops',
+      purchasePrice: r.purchasePrice || 0, purchaseDate: r.purchaseDate || '', estimatedValue: r.estimatedValue || 0,
+      mortgageBalance: r.mortgage?.balance || 0, mortgageRate: r.mortgage?.rate || 6.5,
+      monthlyPI: r.mortgage?.monthlyPI || 0, escrow: r.mortgage?.escrow || 0,
+      notes: r.notes || '',
+    });
+    setEditingPropId(r.id); setShowPropForm(true); setSuggestions([]);
+  };
+  const cancelPropForm = () => { setShowPropForm(false); setEditingPropId(null); setSuggestions([]); };
+
+  const submitProp = () => {
+    if (!propForm.name || !propForm.address) { alert('Property name and address are required.'); return; }
+    const payload = {
+      name: propForm.name,
+      address: propForm.address, city: propForm.city, state: propForm.state, zip: propForm.zip,
+      lat: propForm.lat, lon: propForm.lon,
+      propertyType: propForm.propertyType,
+      rent: parseFloat(propForm.rent) || 0,
+      actual: parseFloat(propForm.rent) || 0,
+      status: propForm.status,
+      entityId: propForm.entityId,
+      purchasePrice: parseFloat(propForm.purchasePrice) || 0,
+      purchaseDate: propForm.purchaseDate,
+      estimatedValue: parseFloat(propForm.estimatedValue) || 0,
+      mortgage: {
+        balance: parseFloat(propForm.mortgageBalance) || 0,
+        rate: parseFloat(propForm.mortgageRate) || 0,
+        monthlyPI: parseFloat(propForm.monthlyPI) || 0,
+        escrow: parseFloat(propForm.escrow) || 0,
+        estimated: false,
+      },
+      notes: propForm.notes,
+    };
+    if (editingPropId) updateRental(editingPropId, payload);
+    else addRental(payload);
+    cancelPropForm();
+  };
+  const confirmDeleteProp = (r) => { if (confirm(`Delete property "${r.name}"? Snowball math will recompute without it.`)) deleteRental(r.id); };
   // v28+ Bug fix: side-by-side strategy comparison so user can see the delta even when small
   const strategyOptions = [
     { id: 'smallest-balance', label: 'Smallest balance', sub: 'Momentum' },
@@ -2151,6 +2291,203 @@ function Rentals({ rentals, totals, snowballSort, setSnowballSort, snowballExtra
           <MetricCell label="Monthly rent" value={fmt(totals.rentalExpected)} sub={`${totals.collectionRate.toFixed(0)}%`} small accent="green" />
           <MetricCell label="Rent gap" value={fmt(totals.rentGap)} small accent={totals.rentGap > 0 ? 'rust' : 'green'} />
         </div>
+      </section>
+      <section>
+        <SectionTitle>Property Map · Champaign-Urbana</SectionTitle>
+        <div className="bg-white border border-[#1A1815] p-3">
+          <div ref={mapRef} style={{ height: '360px', width: '100%' }} aria-label="Map of rental properties" />
+          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Pins appear for properties with saved coordinates. Use Edit on a property to add an address — the autocomplete fills coordinates automatically.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
+          <button onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
+        </div>
+
+        {showPropForm && (
+          <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingPropId ? 'Edit property' : 'New property · address autocomplete via OpenStreetMap'}</div>
+
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
+              <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="123 Main St, Champaign" value={propForm.address} onChange={e => { setPropForm({ ...propForm, address: e.target.value }); fetchSuggestions(e.target.value); }} />
+              {suggestLoading && <div className="text-[10px] text-[#5A5751] italic mt-1">Searching...</div>}
+              {suggestions.length > 0 && (
+                <div className="border border-[#E8E4DC] bg-white mt-1 max-h-48 overflow-y-auto">
+                  {suggestions.map((s, i) => (
+                    <button key={i} type="button" onClick={() => pickSuggestion(s)} className="block w-full text-left p-2 text-xs hover:bg-[#FAF8F4] border-b border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {s.display_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property name</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 Apt 1" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">City</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.city} onChange={e => setPropForm({ ...propForm, city: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">State</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.state} onChange={e => setPropForm({ ...propForm, state: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Zip</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.zip} onChange={e => setPropForm({ ...propForm, zip: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property type</label>
+                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.propertyType} onChange={e => setPropForm({ ...propForm, propertyType: e.target.value })}>
+                  {['single-family','multi-family','commercial','condo','townhouse','duplex','other'].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly rent</label>
+                <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label>
+                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>
+                  {['paying','late','vacant','rehab','for-sale','sold'].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label>
+                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.entityId} onChange={e => setPropForm({ ...propForm, entityId: e.target.value })}>
+                  {entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Purchase price</label>
+                <input type="number" step="100" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.purchasePrice} onChange={e => setPropForm({ ...propForm, purchasePrice: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Purchase date</label>
+                <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.purchaseDate} onChange={e => setPropForm({ ...propForm, purchaseDate: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Est. value (today)</label>
+                <input type="number" step="100" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.estimatedValue} onChange={e => setPropForm({ ...propForm, estimatedValue: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label>
+                <input type="number" step="100" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.mortgageBalance} onChange={e => setPropForm({ ...propForm, mortgageBalance: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage rate %</label>
+                <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.mortgageRate} onChange={e => setPropForm({ ...propForm, mortgageRate: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly P&I</label>
+                <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.monthlyPI} onChange={e => setPropForm({ ...propForm, monthlyPI: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Escrow / mo</label>
+                <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.escrow} onChange={e => setPropForm({ ...propForm, escrow: e.target.value })} />
+              </div>
+            </div>
+
+            <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes (tenant, history, repairs needed, etc.)" value={propForm.notes} onChange={e => setPropForm({ ...propForm, notes: e.target.value })} />
+
+            {/* Auto-evaluator */}
+            <div className="bg-[#FAF8F4] border border-[#1A1815] p-3">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Auto-Evaluator · Live as you type</div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+                <div className="bg-white p-2">
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cap rate</div>
+                  <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.capRate.toFixed(2)}%</div>
+                  <div className={`text-[9px] ${evaluator.capRate >= 8 ? 'text-[#5A6E3D]' : evaluator.capRate >= 5 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.capRate >= 8 ? 'Strong' : evaluator.capRate >= 5 ? 'OK' : 'Weak'}</div>
+                </div>
+                <div className="bg-white p-2">
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cash-on-cash</div>
+                  <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.cashOnCash.toFixed(2)}%</div>
+                  <div className={`text-[9px] ${evaluator.cashOnCash >= 10 ? 'text-[#5A6E3D]' : evaluator.cashOnCash >= 6 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.cashOnCash >= 10 ? 'Strong' : evaluator.cashOnCash >= 6 ? 'OK' : 'Weak'}</div>
+                </div>
+                <div className="bg-white p-2">
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">1% rule</div>
+                  <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.onePct.toFixed(2)}%</div>
+                  <div className={`text-[9px] ${evaluator.onePct >= 1 ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{evaluator.onePct >= 1 ? '✓ pass' : '✗ below 1%'}</div>
+                </div>
+                <div className="bg-white p-2">
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">DSCR</div>
+                  <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.dscr.toFixed(2)}</div>
+                  <div className={`text-[9px] ${evaluator.dscr >= 1.25 ? 'text-[#5A6E3D]' : evaluator.dscr >= 1 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.dscr >= 1.25 ? 'Lender OK' : evaluator.dscr >= 1 ? 'Tight' : 'Below 1'}</div>
+                </div>
+                <div className="bg-white p-2">
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">GRM</div>
+                  <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.grm.toFixed(1)}</div>
+                  <div className="text-[9px] text-[#5A5751]">lower = better</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mt-2">
+                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Annual rent</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualRent)}</div></div>
+                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">NOI</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.noi)}</div></div>
+                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Annual debt service</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualDS)}</div></div>
+                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Annual cash flow</div><div className={`text-sm ${evaluator.annualCF < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualCF)}</div></div>
+              </div>
+              <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                Cap rate = NOI ÷ purchase price. Cash-on-cash assumes 20% down. 1% rule = monthly rent ÷ purchase price. DSCR = NOI ÷ annual debt service (lenders want ≥ 1.25). GRM = price ÷ annual rent. NOI uses your escrow plus a 10% maintenance/vacancy buffer; refine the buffer in your head for the property type.
+              </p>
+            </div>
+
+            <button onClick={submitProp} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingPropId ? 'Save Changes' : 'Save Property'}</button>
+          </div>
+        )}
+
+        {rentals.length === 0 ? (
+          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+            <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No properties yet. Use + Add property above.</p>
+          </div>
+        ) : (
+          <div className="bg-white border border-[#1A1815]">
+            {rentals.map((r, i) => (
+              <div key={r.id} className={`p-4 ${i < rentals.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
+                    <div className="text-xs text-[#5A5751]">
+                      {[r.address, r.city, r.state, r.zip].filter(Boolean).join(', ') || 'no address yet'}
+                      {r.propertyType && <span className="ml-2 uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.rent)}<span className="text-xs text-[#5A5751]">/mo</span></div>
+                    <div className={`text-[10px] uppercase tracking-wider ${r.status === 'late' ? 'text-[#B85838]' : r.status === 'vacant' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{r.status}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-xs">
+                  <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : 'paid off'}</span></div>
+                  <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
+                  <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
+                  <div><span className="text-[#5A5751]">Coords:</span> <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{typeof r.lat === 'number' ? `${r.lat.toFixed(3)}, ${r.lon.toFixed(3)}` : 'unmapped'}</span></div>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
+                  <button onClick={() => confirmDeleteProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Delete</button>
+                </div>
+                {r.notes && <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
       <section>
         <SectionTitle>7-Year Goal · Feasibility</SectionTitle>
