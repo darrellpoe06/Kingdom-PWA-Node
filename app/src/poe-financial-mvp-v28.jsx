@@ -1088,7 +1088,7 @@ function TTSControls() {
   const [isOpen, setIsOpen] = useState(false);
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [rate, setRate] = useState(1.0);
+  const [rate, setRate] = useState(1.5);
   const [supported] = useState(typeof window !== 'undefined' && 'speechSynthesis' in window);
 
   const stopReading = () => {
@@ -1158,12 +1158,13 @@ function TTSControls() {
           </div>
           <div className="mb-2">
             <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Speed: {rate.toFixed(1)}x</div>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-5 gap-1">
               {[
-                { label: 'Slow', value: 0.7 },
-                { label: 'Normal', value: 1.0 },
-                { label: 'Fast', value: 1.3 },
-                { label: 'Faster', value: 1.5 },
+                { label: '1.0x', value: 1.0 },
+                { label: '1.5x', value: 1.5 },
+                { label: '2.0x', value: 2.0 },
+                { label: '2.5x', value: 2.5 },
+                { label: '3.0x', value: 3.0 },
               ].map(s => (
                 <button key={s.label} onClick={() => { setRate(s.value); if (isReading) { stopReading(); setTimeout(startReading, 100); } }} className={`px-2 py-1.5 text-[10px] uppercase tracking-wider border ${rate === s.value ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{s.label}</button>
               ))}
