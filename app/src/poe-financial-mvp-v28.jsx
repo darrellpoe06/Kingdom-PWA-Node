@@ -3007,6 +3007,12 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
   const [page, setPage] = useState(0);
   const pageSize = 25;
   useEffect(() => { setPage(0); }, [txView, entityFilter]);
+
+  // v28+ Session B: funds-verify trigger + transfer popup
+  const FUNDS_BUFFER = 200; // dollars - any projected balance below this triggers the cover prompt
+  const [transferContext, setTransferContext] = useState(null); // { targetAccountId, shortfall, occasion }
+  const [transferAmount, setTransferAmount] = useState(0);
+  const [transferSourceId, setTransferSourceId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const todayISO = currentDate.toISOString().slice(0, 10);
@@ -3074,6 +3080,63 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
     return map;
   })();
 
+  // 30/60/90 forecast: projected balance per account at each milestone, including
+  // user-entered future-dated transactions + the next instance of each enabled
+  // recurring obligation. Salaries are NOT included here because data.inflows.salaries
+  // doesn't carry an accountId yet - simplifying for now.
+  const forecast = (() => {
+    const today = currentDate;
+    const horizon = (days) => {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + days);
+      return d.toISOString().slice(0, 10);
+    };
+    const windows = { '30': horizon(30), '60': horizon(60), '90': horizon(90) };
+    const perAccount = {};
+    (data.accounts || []).forEach(a => {
+      perAccount[a.id] = { name: a.name, fragment: a.fragment, balance: a.balance, isPrimary: !!a.isPrimary, w30: a.balance, w60: a.balance, w90: a.balance };
+    });
+    upcoming.forEach(t => {
+      if (!t.accountId || !(t.accountId in perAccount)) return;
+      if (t.date <= windows['30']) perAccount[t.accountId].w30 += (t.amount || 0);
+      if (t.date <= windows['60']) perAccount[t.accountId].w60 += (t.amount || 0);
+      if (t.date <= windows['90']) perAccount[t.accountId].w90 += (t.amount || 0);
+    });
+    return Object.entries(perAccount).map(([id, v]) => ({ id, ...v }));
+  })();
+
+  // Per-row shortfall: if projected balance after this charge drops below FUNDS_BUFFER,
+  // record how much short we'd be (using the buffer as the floor).
+  const shortfallFor = (t) => {
+    if (txView !== 'upcoming') return 0;
+    const proj = projectedAfter[t.id];
+    if (proj === undefined || proj >= FUNDS_BUFFER) return 0;
+    return FUNDS_BUFFER - proj;
+  };
+
+  const openTransfer = (t) => {
+    const short = shortfallFor(t);
+    if (short <= 0) return;
+    const otherAccounts = (data.accounts || []).filter(a => a.id !== t.accountId && a.balance > 0);
+    const best = otherAccounts.sort((a, b) => b.balance - a.balance)[0];
+    setTransferContext({ targetAccountId: t.accountId, shortfall: short, txDescription: t.description, txAmount: t.amount });
+    setTransferAmount(Math.ceil(short));
+    setTransferSourceId(best ? best.id : '');
+  };
+  const closeTransfer = () => { setTransferContext(null); setTransferSourceId(''); setTransferAmount(0); };
+  const executeTransfer = () => {
+    if (!transferContext || !transferSourceId) return;
+    const amt = parseFloat(transferAmount) || 0;
+    if (amt <= 0) { alert('Transfer amount must be positive.'); return; }
+    const src = (data.accounts || []).find(a => a.id === transferSourceId);
+    const tgt = (data.accounts || []).find(a => a.id === transferContext.targetAccountId);
+    if (!src || !tgt) { alert('Source or target account missing.'); return; }
+    const today = currentDate.toISOString().slice(0, 10);
+    // Two paired transactions, both marked as transfers so they don't muddy expense math
+    addTransaction({ date: today, accountId: src.id, amount: -amt, description: `Transfer to ${tgt.name}${tgt.fragment ? ' ' + tgt.fragment : ''}`, category: 'transfer' });
+    addTransaction({ date: today, accountId: tgt.id, amount: amt, description: `Transfer from ${src.name}${src.fragment ? ' ' + src.fragment : ''}`, category: 'transfer' });
+    closeTransfer();
+  };
+
   const renderRow = (t) => {
     const acc = data.accounts.find(a => a.id === t.accountId);
     const accLabel = acc ? `${acc.name}${acc.fragment ? ' ' + acc.fragment : ''}` : (t._source === 'recurring' ? 'Recurring obligation' : '—');
@@ -3090,11 +3153,22 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
             {t.category && <span className="ml-2 uppercase tracking-wider">· {t.category}</span>}
             {t._source === 'recurring' && <span className="ml-2 text-[#B85838] uppercase tracking-wider">· recurring · {t._frequency}</span>}
           </div>
-          {afterBal !== null && (
-            <div className={`text-[10px] mt-0.5 ${afterBal < 0 ? 'text-[#B85838] font-semibold' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-              {afterBal < 0 ? '⚠ ' : '→ '}After this hits: {fmt(afterBal)}
-            </div>
-          )}
+          {afterBal !== null && (() => {
+            const short = shortfallFor(t);
+            return (
+              <>
+                <div className={`text-[10px] mt-0.5 ${afterBal < 0 ? 'text-[#B85838] font-semibold' : short > 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  {afterBal < 0 ? '⚠ ' : short > 0 ? '⚐ ' : '→ '}After this hits: {fmt(afterBal)}
+                  {short > 0 && afterBal >= 0 && <span className="ml-1">(below {fmt(FUNDS_BUFFER)} buffer)</span>}
+                </div>
+                {short > 0 && (
+                  <button onClick={() => openTransfer(t)} className="mt-1 text-[10px] uppercase tracking-wider px-2 py-0.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+                    ⚐ Cover with transfer
+                  </button>
+                )}
+              </>
+            );
+          })()}
         </td>
         <td className={`p-2 text-right whitespace-nowrap ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.amount > 0 ? '+' : ''}{fmt(t.amount)}</td>
         <td className="p-2 text-right whitespace-nowrap">
@@ -3152,6 +3226,40 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
           </section>
         );
       })()}
+
+      <section>
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">30 / 60 / 90-Day Forecast · Per Account</div>
+        <div className="bg-white border border-[#1A1815] overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#1A1815]">
+                <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Account</th>
+                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Now</th>
+                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+30 days</th>
+                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+60 days</th>
+                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+90 days</th>
+              </tr>
+            </thead>
+            <tbody>
+              {forecast.map(f => (
+                <tr key={f.id} className="border-b border-[#E8E4DC]">
+                  <td className="p-2">
+                    <span style={{ fontFamily: '"Fraunces", serif' }}>{f.name}{f.fragment ? ' ' + f.fragment : ''}</span>
+                    {f.isPrimary && <span className="ml-2 text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">★</span>}
+                  </td>
+                  <td className={`p-2 text-right ${f.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.balance)}</td>
+                  <td className={`p-2 text-right ${f.w30 < 0 ? 'text-[#B85838] font-semibold' : f.w30 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w30)}</td>
+                  <td className={`p-2 text-right ${f.w60 < 0 ? 'text-[#B85838] font-semibold' : f.w60 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w60)}</td>
+                  <td className={`p-2 text-right ${f.w90 < 0 ? 'text-[#B85838] font-semibold' : f.w90 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w90)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Rolling projection from today: current balance plus all upcoming charges and recurring obligations falling within each window. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion. Tap any upcoming row's <strong>⚐ Cover with transfer</strong> button to move money preemptively.
+        </p>
+      </section>
 
       <section>
         <div className="border-b border-[#E8E4DC] mb-3">
@@ -3256,6 +3364,82 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
           );
         })()}
       </section>
+
+      {transferContext && (() => {
+        const tgt = (data.accounts || []).find(a => a.id === transferContext.targetAccountId);
+        const candidates = (data.accounts || []).filter(a => a.id !== transferContext.targetAccountId);
+        const src = candidates.find(a => a.id === transferSourceId);
+        const srcProjected = src ? (projectedAfter[transferContext.txId] !== undefined ? src.balance : src.balance) : 0; // simplified - just use current
+        const wouldDrainSource = src && (src.balance - (parseFloat(transferAmount) || 0)) < 0;
+        return (
+          <div className="fixed inset-0 z-50 bg-[#1A1815]/60 flex items-center justify-center p-4" onClick={closeTransfer}>
+            <div className="bg-white border-2 border-[#1A1815] max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="p-5 border-b border-[#1A1815] flex items-baseline justify-between gap-3 flex-wrap">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⚐ Too close to call</div>
+                  <h2 className="text-2xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Cover the gap with a transfer</h2>
+                  <div className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Upcoming: {transferContext.txDescription} ({fmt(transferContext.txAmount)}) on {tgt?.name}
+                  </div>
+                </div>
+                <button onClick={closeTransfer} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="bg-[#FAF8F4] border border-[#B85838] p-3">
+                  <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold mb-1">Projected shortfall</div>
+                  <div className="text-xl" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(transferContext.shortfall)}</div>
+                  <p className="text-[10px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Amount needed to keep <strong>{tgt?.name}</strong> at or above the {fmt(FUNDS_BUFFER)} cushion after this charge.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] block mb-2">Transfer from</label>
+                  <div className="space-y-1 max-h-56 overflow-y-auto border border-[#E8E4DC]">
+                    {candidates.length === 0 && <p className="p-3 text-xs text-[#5A5751] italic">No other accounts available.</p>}
+                    {candidates.map(a => {
+                      const selected = a.id === transferSourceId;
+                      const after = a.balance - (parseFloat(transferAmount) || 0);
+                      return (
+                        <button key={a.id} type="button" onClick={() => setTransferSourceId(a.id)} className={`w-full text-left p-3 border-b border-[#E8E4DC] last:border-b-0 ${selected ? 'bg-[#1A1815] text-white' : 'bg-white hover:bg-[#FAF8F4]'}`}>
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span style={{ fontFamily: '"Fraunces", serif', fontWeight: selected ? 600 : 500 }}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</span>
+                            <span className={`text-sm ${!selected && a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</span>
+                          </div>
+                          {selected && (
+                            <div className={`text-[10px] mt-1 ${after < 0 ? 'text-[#B85838]' : 'opacity-75'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                              After transfer: {fmt(after)} {after < 0 && '(would go negative)'}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Transfer amount (defaults to shortfall + cushion)</label>
+                  <input type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} />
+                </div>
+
+                {wouldDrainSource && (
+                  <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>
+                    This transfer would push the source account below zero. Either pick a different source or reduce the amount.
+                  </div>
+                )}
+
+                <button onClick={executeTransfer} disabled={!transferSourceId || (parseFloat(transferAmount) || 0) <= 0} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
+                  Move {fmt(parseFloat(transferAmount) || 0)} · {src ? `${src.name} → ${tgt?.name}` : 'pick a source'}
+                </button>
+                <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Creates two paired transactions dated today, both marked as <em>transfer</em> so they don't double-count in expense math.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {(data.accounts || []).length > 0 && (
         <section>
