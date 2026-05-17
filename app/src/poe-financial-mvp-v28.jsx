@@ -789,6 +789,7 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
+        {view !== 'debts' && view !== 'practice' && <TherapyReminder />}
       </main>
       <TTSControls />
       <InstallPrompt />
@@ -867,6 +868,33 @@ function SalesFooterBanner({ currentView, setView }) {
 // Shows COLG + TLC + family businesses on Foundation (free) tier
 // Paid tiers won't see this (per sponsorship ethics policy)
 // =============================================================================
+// TherapyReminder — always-visible mental-health support footer.
+// Shown to every tier (free + paid) at the bottom of every page except Debts
+// and Practice. The reasoning: family-stress is real, talking to someone
+// matters, and this is too important to gate behind a subscription. Distinct
+// from the editorial AdvisementBanner rotation — single message, single
+// purpose: "help is here when you need it."
+function TherapyReminder() {
+  return (
+    <section className="bg-white border-l-4 border border-[#E8E4DC] mt-6 print:hidden" style={{ borderLeftColor: '#5A6E3D' }}>
+      <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="block p-4 hover:bg-[#FAF8F4] transition-colors">
+        <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🌿 Need someone to talk to?</div>
+          <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">For every family · every tier</div>
+        </div>
+        <h3 className="text-base sm:text-lg mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.01em' }}>TLC Therapy Solutions · Real solutions for real life</h3>
+        <p className="text-sm mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Money stress. Family stress. Marriage stress. Grief. Parenting hard seasons. You don't have to carry it alone — and you don't have to wait until it's a crisis to reach out.
+        </p>
+        <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Faith-integrated therapy · 7-clinician team · accepts BCBS, Aetna, UHC, VA, Cigna · online and in-person.
+        </p>
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-[#5A6E3D]">Book a session →</div>
+      </a>
+    </section>
+  );
+}
+
 function AdvisementBanner() {
   const [index, setIndex] = useState(0);
   const advisements = [
