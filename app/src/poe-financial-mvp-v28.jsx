@@ -3342,39 +3342,6 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
         );
       })()}
 
-      <section>
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">30 / 60 / 90-Day Forecast · Per Account</div>
-        <div className="bg-white border border-[#1A1815] overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1A1815]">
-                <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Account</th>
-                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Now</th>
-                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+30 days</th>
-                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+60 days</th>
-                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+90 days</th>
-              </tr>
-            </thead>
-            <tbody>
-              {forecast.map(f => (
-                <tr key={f.id} className="border-b border-[#E8E4DC]">
-                  <td className="p-2">
-                    <span style={{ fontFamily: '"Fraunces", serif' }}>{f.name}{f.fragment ? ' ' + f.fragment : ''}</span>
-                    {f.isPrimary && <span className="ml-2 text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">★</span>}
-                  </td>
-                  <td className={`p-2 text-right ${f.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.balance)}</td>
-                  <td className={`p-2 text-right ${f.w30 < 0 ? 'text-[#B85838] font-semibold' : f.w30 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w30)}</td>
-                  <td className={`p-2 text-right ${f.w60 < 0 ? 'text-[#B85838] font-semibold' : f.w60 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w60)}</td>
-                  <td className={`p-2 text-right ${f.w90 < 0 ? 'text-[#B85838] font-semibold' : f.w90 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w90)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Rolling projection from today: current balance plus all upcoming charges and recurring obligations falling within each window. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion. Tap any upcoming row's <strong>⚐ Cover with transfer</strong> button to move money preemptively.
-        </p>
-      </section>
 
       <section>
         <div className="border-b border-[#E8E4DC] mb-3">
@@ -3641,6 +3608,40 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
           </div>
         );
       })()}
+
+      <section>
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">30 / 60 / 90-Day Forecast · Per Account</div>
+        <div className="bg-white border border-[#1A1815] overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#1A1815]">
+                <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Account</th>
+                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Now</th>
+                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+30 days</th>
+                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+60 days</th>
+                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+90 days</th>
+              </tr>
+            </thead>
+            <tbody>
+              {forecast.map(f => (
+                <tr key={f.id} className="border-b border-[#E8E4DC]">
+                  <td className="p-2">
+                    <span style={{ fontFamily: '"Fraunces", serif' }}>{f.name}{f.fragment ? ' ' + f.fragment : ''}</span>
+                    {f.isPrimary && <span className="ml-2 text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">★</span>}
+                  </td>
+                  <td className={`p-2 text-right ${f.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.balance)}</td>
+                  <td className={`p-2 text-right ${f.w30 < 0 ? 'text-[#B85838] font-semibold' : f.w30 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w30)}</td>
+                  <td className={`p-2 text-right ${f.w60 < 0 ? 'text-[#B85838] font-semibold' : f.w60 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w60)}</td>
+                  <td className={`p-2 text-right ${f.w90 < 0 ? 'text-[#B85838] font-semibold' : f.w90 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w90)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Rolling projection from today: current balance plus all upcoming charges and recurring obligations falling within each window. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion. Tap any upcoming row's <strong>⚐ Cover with transfer</strong> button to move money preemptively.
+        </p>
+      </section>
 
       {(data.accounts || []).length > 0 && (
         <section>
@@ -4867,7 +4868,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
         <p className="text-sm text-[#5A5751] leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           The Financial Control System is free for every family. Paid tiers reflect the real value being delivered — each one replaces multiple existing SaaS subscriptions. PoeTech is priced like the premium platform it is, not like a hobby app. <strong>Free access at two layers</strong> for the work of justice: families served by partner orgs, and the mission-aligned orgs themselves.
         </p>
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <PricingTier name="Foundation" tagline="Financial Control System · always free" monthly="0" annual="0" replaces="YNAB, basic budget apps, free tier of family planners — typically $50-$100/mo equivalent" features={['Full Financial module','Multi-entity bookkeeping','Debt avalanche & rental snowball','Tax calendar · recurring obligations · incidents','Scope-of-work agreements','Event reminders','Local-first · device-only storage']} highlight onChoose={openCart} />
           <PricingTier name="Loved Ones · Founding Family" tagline="Free PoeTech+ upgrade for life · First 100 families through Church of the Living God or by direct invitation" monthly="0" annual="0" replaces="Lifetime savings of ~$468/yr per family at current prices · more as prices rise" features={['Everything in Foundation','Cross-device sync (opt-in cloud)','Encrypted cloud backup','Multi-user household sharing','Locked in for life — even when prices change','First 100 families only · tier closes when filled','One month Family-tier credit per paying family you refer']} community onChoose={openCart} />
           <PricingTier name="Community · Families in Need" tagline="Free access for families · sponsored by paying subscribers" monthly="0" annual="0" features={['Available through partner Churches','And 501(c)(3) organizations serving the poor, elderly, fatherless','Verification through partner org · not the family','Full Foundation + PoeTech+ features','Designed to remove stigma — help comes from the community','Paying subscribers fund this tier transparently']} community onChoose={openCart} />
