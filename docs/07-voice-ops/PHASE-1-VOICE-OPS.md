@@ -470,7 +470,7 @@ Twilio Console → Studio → Create new Flow → "Start from scratch" → name 
        │
        ▼
 [Record Voicemail]
-   - max_length: 180 (3 min)
+   - max_length: 300 (5 min, per locked decision)
    - finish_on_key: any
    - transcribe: true
    - transcription_callback_url: https://api.poetech.us/webhook/twilio/transcription-complete
@@ -767,18 +767,13 @@ Phase 3 (TLC) is the bigger architectural shift — separate infrastructure enti
 
 ---
 
-## 14. Decision points before build start
+## 14. Locked decisions (2026-05-17)
 
-A few small decisions you'll want to lock in before opening Wrangler:
-
-1. **Custom domain or default `*.workers.dev`?** Recommend custom `api.poetech.us` for cleaner Twilio webhook URLs and brand consistency.
-2. **R2 audio archive on or off?** Default is on. Off saves ~$0/mo (Twilio holds the audio anyway) but loses long-term archive if Twilio rotates URLs. Recommend on.
-3. **PWA polling interval?** Default 30 sec. Lower (10 sec) feels snappier but uses more requests; higher (60-120 sec) is cheaper. 30 sec is well under any limit.
-4. **Voicemail max length?** Default 3 min. Long enough for a real message, short enough to avoid runaway transcription costs.
-5. **Greeting copy per line — what should callers hear?** Drafted above; revise per your voice.
-
-Make these choices, then start at Section 5.1. The whole Phase 1 build should land in 6-8 hours of focused work split across 1-2 sessions.
-
----
-
-*End of Phase 1 spec. Phase 2 (AI voice agent) and Phase 3 (TLC HIPAA architecture) get their own documents when their respective decision moments arrive.*
+1. ✅ **Custom domain:** `api.poetech.us` via Cloudflare custom-domain binding (step 6.1).
+2. ✅ **R2 audio archive:** ON. Voicemail audio is downloaded from Twilio and copied to our own R2 bucket immediately after the recording-complete webhook fires. Free tier covers ~10,000 voicemails before any charge. Protects against Twilio URL rotation / account changes.
+3. ✅ **PWA polling interval:** 30 seconds.
+4. ✅ **Voicemail max length:** 5 minutes. Cost impact: a maxed-out 5-min message costs ~$0.04 inbound + ~$0.25 transcription = ~$0.29. Stays well under monthly ceiling at realistic volume.
+5. ✅ **Greeting copy:**
+   - Poe Properties line: *"Thank you for calling Poe Properties. Please leave a brief message and we'll call you back."*
+   - PoeTech line: *"Thank you for calling PoeTech. Please leave a brief message and we'll call you back."*
+   - **TLC line: NOT in Phase 1** — see HIPAA boundary section 10. Christina's existing intake handles TLC. When Phase 3 TLC architecture lands, the greeting will read *"Thank you for call
