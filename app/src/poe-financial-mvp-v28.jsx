@@ -750,7 +750,7 @@ html{scroll-padding-bottom:280px}
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-24">
-        {view !== 'debts' && (data.userTier === 'foundation' || !data.userTier) && (
+        {view === 'overview' && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mb-6">
             <AdvisementBanner />
           </div>
@@ -777,6 +777,11 @@ html{scroll-padding-bottom:280px}
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
           <button onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
         </footer>
+        {view !== 'overview' && view !== 'debts' && (data.userTier === 'foundation' || !data.userTier) && (
+          <div className="mt-6">
+            <AdvisementBanner />
+          </div>
+        )}
       </main>
       <TTSControls />
       <InstallPrompt />
