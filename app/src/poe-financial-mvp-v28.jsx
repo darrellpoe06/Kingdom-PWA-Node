@@ -1751,6 +1751,37 @@ function Projects({ projects, entities, addProject, updateProject, deleteProject
   );
 }
 
+// DateField - input type="date" with explicit year nav (arrows + dropdown)
+// Browser native date picker keeps working; arrows step by 1 year, dropdown
+// jumps to any year in range (currentYear - 5 to currentYear + 25).
+function DateField({ value, onChange, className }) {
+  const todayY = new Date().getFullYear();
+  const currentYear = value && /^\d{4}-/.test(value) ? parseInt(value.slice(0, 4)) : todayY;
+  const years = [];
+  for (let y = currentYear - 10; y <= currentYear + 30; y++) years.push(y);
+  const setYear = (year) => {
+    if (!value) {
+      const t = new Date();
+      const m = String(t.getMonth() + 1).padStart(2, '0');
+      const d = String(t.getDate()).padStart(2, '0');
+      onChange(`${year}-${m}-${d}`);
+      return;
+    }
+    const [, mm, dd] = value.split('-');
+    onChange(`${year}-${mm || '01'}-${dd || '01'}`);
+  };
+  return (
+    <div className={`flex items-center gap-1 ${className || ''}`}>
+      <button type="button" onClick={() => setYear(currentYear - 1)} title="Previous year" aria-label="Previous year" className="px-2 py-1.5 text-xs border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] bg-[#FAF8F4]">«</button>
+      <input type="date" className="flex-1 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={value || ''} onChange={e => onChange(e.target.value)} />
+      <button type="button" onClick={() => setYear(currentYear + 1)} title="Next year" aria-label="Next year" className="px-2 py-1.5 text-xs border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] bg-[#FAF8F4]">»</button>
+      <select value={currentYear} onChange={e => setYear(parseInt(e.target.value))} className="p-2 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" title="Jump to year" aria-label="Jump to year">
+        {years.map(y => <option key={y} value={y}>{y}</option>)}
+      </select>
+    </div>
+  );
+}
+
 function Calendar({ data, reserves, addRecurring, addIncident, addEvent, completeEvent, deleteRecurring, deleteIncident, deleteEvent, notifPermission, requestNotif, upcomingEvents }) {
   const [showRecurForm, setShowRecurForm] = useState(false);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
@@ -1776,6 +1807,91 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
     <div className="space-y-6">
       {/* EVENTS — top of calendar */}
       <section>
+        <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815]">
+          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Recurring Obligations</h2>
+          <button onClick={() => setShowRecurForm(!showRecurForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showRecurForm ? '× Cancel' : '+ Add'}</button>
+        </div>
+        {showRecurForm && (
+          <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
+            <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Name" value={newRecur.name} onChange={e => setNewRecur({...newRecur, name: e.target.value})} />
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Amount" value={newRecur.amount} onChange={e => setNewRecur({...newRecur, amount: e.target.value})} />
+              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.frequency} onChange={e => setNewRecur({...newRecur, frequency: e.target.value})}>
+                <option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="semi-annual">Semi-annual</option><option value="annual">Annual</option><option value="biennial">Biennial</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.entityId} onChange={e => setNewRecur({...newRecur, entityId: e.target.value})}>
+                <option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option>
+              </select>
+              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.category} onChange={e => setNewRecur({...newRecur, category: e.target.value})}>
+                <option value="compliance">Compliance</option><option value="vehicle">Vehicle</option><option value="insurance">Insurance</option><option value="professional">Professional</option><option value="business">Business</option><option value="housing">Housing</option><option value="health">Health</option><option value="subscription">Subscription</option><option value="other">Other</option>
+              </select>
+            </div>
+            <DateField value={newRecur.nextDue} onChange={v => setNewRecur({...newRecur, nextDue: v})} className="w-full" />
+            <button onClick={submitRecur} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Add</button>
+          </div>
+        )}
+        <div className="bg-white border border-[#1A1815]">
+          {enabledRecur.map((r, i) => (
+            <div key={r.id} className={`p-3 ${i < enabledRecur.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+              <div className="flex justify-between items-baseline gap-2">
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{r.name}</div>
+                  <div className="text-xs text-[#5A5751]">{r.frequency} · {r.category}</div>
+                </div>
+                <div className="flex items-baseline gap-2 shrink-0">
+                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.amount)}</div>
+                  <button onClick={() => deleteRecurring(r.id)} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815]">
+          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Incident Log</h2>
+          <button onClick={() => setShowIncidentForm(!showIncidentForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showIncidentForm ? '× Cancel' : '+ Log'}</button>
+        </div>
+        {showIncidentForm && (
+          <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
+            <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="What happened?" value={newIncident.description} onChange={e => setNewIncident({...newIncident, description: e.target.value})} />
+            <div className="grid grid-cols-2 gap-2">
+              <DateField value={newIncident.date} onChange={v => setNewIncident({...newIncident, date: v})} />
+              <input type="number" className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Amount" value={newIncident.amount} onChange={e => setNewIncident({...newIncident, amount: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newIncident.entityId} onChange={e => setNewIncident({...newIncident, entityId: e.target.value})}>
+                <option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option>
+              </select>
+              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newIncident.category} onChange={e => setNewIncident({...newIncident, category: e.target.value})}>
+                <option value="vehicle">Vehicle</option><option value="medical">Medical</option><option value="property">Property repair</option><option value="travel">Travel</option><option value="legal">Legal</option><option value="other">Other</option>
+              </select>
+            </div>
+            <button onClick={submitIncident} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Log</button>
+          </div>
+        )}
+        <div className="bg-white border border-[#1A1815]">
+          {data.incidents.map((inc, i) => (
+            <div key={inc.id} className={`p-3 ${i < data.incidents.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+              <div className="flex justify-between items-baseline gap-2">
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{inc.description}</div>
+                  <div className="text-xs text-[#5A5751]">{inc.date.slice(5)} · {inc.category}</div>
+                </div>
+                <div className="flex items-baseline gap-2 shrink-0">
+                  <div className="text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(inc.amount)}</div>
+                  <button onClick={() => deleteIncident(inc.id)} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Events</h2>
           <div className="flex items-center gap-3">
@@ -1799,7 +1915,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
-                <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newEvent.date} onChange={e => setNewEvent({...newEvent, date: e.target.value})} />
+                <DateField value={newEvent.date} onChange={v => setNewEvent({...newEvent, date: v})} className="w-full" />
               </div>
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Time {newEvent.allDay && '(all-day)'}</label>
@@ -1884,91 +2000,6 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
                   <div className="text-xs text-[#5A5751]">{t.desc}</div>
                 </div>
                 <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{MONTHS_ABBR[t.month-1]} {t.day}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815]">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Recurring Obligations</h2>
-          <button onClick={() => setShowRecurForm(!showRecurForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showRecurForm ? '× Cancel' : '+ Add'}</button>
-        </div>
-        {showRecurForm && (
-          <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Name" value={newRecur.name} onChange={e => setNewRecur({...newRecur, name: e.target.value})} />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Amount" value={newRecur.amount} onChange={e => setNewRecur({...newRecur, amount: e.target.value})} />
-              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.frequency} onChange={e => setNewRecur({...newRecur, frequency: e.target.value})}>
-                <option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="semi-annual">Semi-annual</option><option value="annual">Annual</option><option value="biennial">Biennial</option>
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.entityId} onChange={e => setNewRecur({...newRecur, entityId: e.target.value})}>
-                <option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option>
-              </select>
-              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.category} onChange={e => setNewRecur({...newRecur, category: e.target.value})}>
-                <option value="compliance">Compliance</option><option value="vehicle">Vehicle</option><option value="insurance">Insurance</option><option value="professional">Professional</option><option value="business">Business</option><option value="housing">Housing</option><option value="health">Health</option><option value="subscription">Subscription</option><option value="other">Other</option>
-              </select>
-            </div>
-            <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.nextDue} onChange={e => setNewRecur({...newRecur, nextDue: e.target.value})} />
-            <button onClick={submitRecur} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Add</button>
-          </div>
-        )}
-        <div className="bg-white border border-[#1A1815]">
-          {enabledRecur.map((r, i) => (
-            <div key={r.id} className={`p-3 ${i < enabledRecur.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-              <div className="flex justify-between items-baseline gap-2">
-                <div className="flex-1 min-w-0">
-                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{r.name}</div>
-                  <div className="text-xs text-[#5A5751]">{r.frequency} · {r.category}</div>
-                </div>
-                <div className="flex items-baseline gap-2 shrink-0">
-                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.amount)}</div>
-                  <button onClick={() => deleteRecurring(r.id)} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815]">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Incident Log</h2>
-          <button onClick={() => setShowIncidentForm(!showIncidentForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showIncidentForm ? '× Cancel' : '+ Log'}</button>
-        </div>
-        {showIncidentForm && (
-          <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="What happened?" value={newIncident.description} onChange={e => setNewIncident({...newIncident, description: e.target.value})} />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="date" className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newIncident.date} onChange={e => setNewIncident({...newIncident, date: e.target.value})} />
-              <input type="number" className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Amount" value={newIncident.amount} onChange={e => setNewIncident({...newIncident, amount: e.target.value})} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newIncident.entityId} onChange={e => setNewIncident({...newIncident, entityId: e.target.value})}>
-                <option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option>
-              </select>
-              <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newIncident.category} onChange={e => setNewIncident({...newIncident, category: e.target.value})}>
-                <option value="vehicle">Vehicle</option><option value="medical">Medical</option><option value="property">Property repair</option><option value="travel">Travel</option><option value="legal">Legal</option><option value="other">Other</option>
-              </select>
-            </div>
-            <button onClick={submitIncident} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Log</button>
-          </div>
-        )}
-        <div className="bg-white border border-[#1A1815]">
-          {data.incidents.map((inc, i) => (
-            <div key={inc.id} className={`p-3 ${i < data.incidents.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-              <div className="flex justify-between items-baseline gap-2">
-                <div className="flex-1 min-w-0">
-                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{inc.description}</div>
-                  <div className="text-xs text-[#5A5751]">{inc.date.slice(5)} · {inc.category}</div>
-                </div>
-                <div className="flex items-baseline gap-2 shrink-0">
-                  <div className="text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(inc.amount)}</div>
-                  <button onClick={() => deleteIncident(inc.id)} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
-                </div>
               </div>
             </div>
           ))}
