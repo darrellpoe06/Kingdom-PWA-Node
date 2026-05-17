@@ -778,7 +778,7 @@ html{scroll-padding-bottom:280px}
         {view === 'projects' && <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} />}
         {view === 'practice' && <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} />}
         {view === 'opportunities' && <Opportunities opportunities={data.opportunities} totals={totals} />}
-        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={data.feedback || []} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} />}
+        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={data.feedback || []} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} />}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
@@ -1708,12 +1708,70 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   );
 }
 
+// ProjectConversationLog — per-project conversation thread (mirrors the
+// pattern used on property records and Practice inquiries). State lives
+// inside the component so each project keeps its own form / open-toggle.
+function ProjectConversationLog({ project, updateProject }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ date: new Date().toISOString().slice(0,10), person: '', summary: '', notes: '' });
+  const blank = () => ({ date: new Date().toISOString().slice(0,10), person: '', summary: '', notes: '' });
+  const addNote = () => {
+    if (!form.summary) { alert('Summary is required.'); return; }
+    const entry = { ...form, id: `cv-${Date.now()}` };
+    updateProject(project.id, { conversationLog: [...(project.conversationLog || []), entry] });
+    setForm(blank()); setShowForm(false);
+  };
+  const deleteNote = (entryId) => {
+    if (!confirm('Delete this conversation note?')) return;
+    updateProject(project.id, { conversationLog: (project.conversationLog || []).filter(e => e.id !== entryId) });
+  };
+  const log = project.conversationLog || [];
+  return (
+    <div className="mt-3 pt-2 border-t border-[#E8E4DC]">
+      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Conversations · {log.length}</div>
+        <button onClick={() => { setShowForm(!showForm); setForm(blank()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Log a touchpoint'}</button>
+      </div>
+      {showForm && (
+        <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1.5">
+          <div className="grid grid-cols-2 gap-1.5">
+            <input type="date" className="p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+            <input className="p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Who: client / contractor / stakeholder" value={form.person} onChange={e => setForm({ ...form, person: e.target.value })} />
+          </div>
+          <input className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Summary (required) — e.g., 'kickoff call, requirements confirmed'" value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} />
+          <textarea className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" rows="2" placeholder="Notes · decisions · next step · who owns what" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+          <button onClick={addNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
+        </div>
+      )}
+      {log.length === 0 && !showForm ? (
+        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
+      ) : (
+        <div className="space-y-1">
+          {[...log].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
+            <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-1.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
+                  <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
+                  {e.notes && <div className="text-[10px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                </div>
+                <button onClick={() => deleteNote(e.id)} className="text-[10px] text-[#5A5751] hover:text-[#B85838] shrink-0">×</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [filterDomain, setFilterDomain] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [projError, setProjError] = useState('');
+  const [openConvId, setOpenConvId] = useState(null);
   const [newProject, setNewProject] = useState({
     title: '', startDate: '', endDate: '', status: 'planning',
     domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal',
@@ -1998,6 +2056,12 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                     </div>
                   )}
                   {p.description && <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{p.description}</p>}
+                  <div className="mt-2">
+                    <button onClick={() => setOpenConvId(openConvId === p.id ? null : p.id)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">
+                      {openConvId === p.id ? '× Close conversations' : `💬 Conversations (${(p.conversationLog || []).length})`}
+                    </button>
+                  </div>
+                  {openConvId === p.id && <ProjectConversationLog project={p} updateProject={updateProject} />}
                 </div>
               );
             })}
@@ -5243,7 +5307,7 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
   );
 }
 
-function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent }) {
+function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject }) {
   // v28+ Session C: checkout cart drawer state
   const [cartTier, setCartTier] = useState(null);
   const [cartBilling, setCartBilling] = useState('monthly');
@@ -5253,6 +5317,39 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
   const [cartError, setCartError] = useState('');
   const openCart = (tier) => { setCartTier(tier); setCartBilling('monthly'); setCartName(''); setCartEmail(''); setCartNotes(''); setCartError(''); };
   const closeCart = () => setCartTier(null);
+  // v28+ Auto-create a Project when someone submits the cart. Each tier gets a
+  // sensible default onboarding timeline so the team knows what they're walking
+  // into before the discovery call. User can edit start/end/hours later.
+  const tierToProjectTemplate = (tier, customerName, customerEmail, action) => {
+    const today = new Date(); const isoToday = today.toISOString().slice(0, 10);
+    const tierName = tier.name || 'tier';
+    const monthly = tier.monthly;
+    const isSponsor = !!tier.isSponsor;
+    let weeks = 1, hpw = 1, domain = 'business-poetech';
+    if (isSponsor) { weeks = 3; hpw = 4; domain = 'business-poetech'; }
+    else if (monthly === '0' && /Loved Ones/i.test(tierName)) { weeks = 2; hpw = 2; }
+    else if (monthly === '0' && /Community/i.test(tierName))  { weeks = 2; hpw = 1; }
+    else if (monthly === '0')                                  { weeks = 1; hpw = 1; } // Foundation
+    else if (monthly === '39')                                 { weeks = 1; hpw = 1; } // PoeTech+
+    else if (monthly === '89')                                 { weeks = 2; hpw = 2; } // Family
+    else if (monthly === '149')                                { weeks = 3; hpw = 3; } // Premium
+    else if (monthly === '249')                                { weeks = 5; hpw = 5; } // Business
+    const end = new Date(today.getTime() + weeks * 7 * 86400000).toISOString().slice(0, 10);
+    const actionLabel = action === 'sponsor' ? 'Sponsor' : action === 'claim' ? 'Claim' : 'Subscribe';
+    return {
+      title: `${actionLabel} · ${customerName} · ${tierName}`,
+      startDate: isoToday,
+      endDate: end,
+      status: 'planning',
+      domain,
+      description: `Auto-created from About checkout. Customer email: ${customerEmail}. Tier: ${tierName}. ${isSponsor ? 'Sponsor flow - vetting runs in parallel; refund if vetting fails.' : monthly === '0' ? 'Free-tier onboarding - enable access and orient.' : `Paid tier onboarding (${weeks}-week target).`} Confirm timeline with customer on first call.`,
+      hoursPerWeek: hpw,
+      entityId: 'e-poetech',
+      contractorIds: [],
+      conversationLog: [],
+    };
+  };
+
   const submitCart = (action) => {
     if (!cartTier) return;
     if (!cartName || !cartEmail) { setCartError('Name and email are required so we can follow up.'); return; }
@@ -5274,6 +5371,10 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       action, // 'subscribe' | 'claim' | 'sponsor'
       status: 'new',
     });
+    // Mirror to Projects so the team has a tracked record + timeline before the call
+    if (typeof addProject === 'function') {
+      addProject(tierToProjectTemplate(cartTier, cartName, cartEmail, action));
+    }
     // Open mailto so user can complete the handshake via email until Stripe is wired in
     const subject = isSponsor ? `Sponsor: ${cartTier.name}`
                   : isFree ? `Claim: ${cartTier.name}`
