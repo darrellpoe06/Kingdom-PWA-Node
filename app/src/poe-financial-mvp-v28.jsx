@@ -4783,6 +4783,38 @@ const INQUIRY_STATUSES = [
 
 const TIMES_TO_CALL = ['morning','afternoon','evening','weekend','anytime'];
 
+// Health insurance carriers commonly used in US mental health billing.
+// `accepted: true` marks the carriers TLC Therapy Solutions has contracted
+// with per the homepage advisement (BCBS, Aetna, UHC, Cigna, VA). They
+// surface first in the dropdown with a checkmark.
+const INSURANCE_CARRIERS = [
+  { key: 'bcbs',      label: 'Blue Cross Blue Shield (BCBS)', accepted: true  },
+  { key: 'aetna',     label: 'Aetna',                          accepted: true  },
+  { key: 'uhc',       label: 'UnitedHealthcare (UHC)',         accepted: true  },
+  { key: 'cigna',     label: 'Cigna',                          accepted: true  },
+  { key: 'va',        label: 'VA / Veterans Affairs',          accepted: true  },
+  { key: 'tricare',   label: 'Tricare (military)',             accepted: false },
+  { key: 'medicare',  label: 'Medicare',                       accepted: false },
+  { key: 'medicaid',  label: 'Medicaid / IL HFS',              accepted: false },
+  { key: 'optum',     label: 'Optum (UHC behavioral)',         accepted: false },
+  { key: 'magellan',  label: 'Magellan Health',                accepted: false },
+  { key: 'beacon',    label: 'Beacon / Carelon Behavioral',    accepted: false },
+  { key: 'humana',    label: 'Humana',                         accepted: false },
+  { key: 'eap',       label: 'EAP (Employer Assistance)',      accepted: false },
+  { key: 'self-pay',  label: 'Self-pay / private',             accepted: false },
+  { key: 'unsure',    label: 'Unsure / need to verify',        accepted: false },
+  { key: 'other',     label: 'Other (specify in notes)',       accepted: false },
+];
+
+// Map legacy hasInsurance values (Y/N/unsure) -> structured keys for display.
+const insuranceLabel = (val) => {
+  if (!val) return 'Unsure';
+  if (val === 'Y' || val === 'yes') return 'Yes (carrier unspecified)';
+  if (val === 'N' || val === 'no')  return 'Self-pay / private';
+  const m = INSURANCE_CARRIERS.find(c => c.key === val);
+  return m ? m.label + (m.accepted ? ' ✓' : '') : val;
+};
+
 function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry }) {
   const [mode, setMode] = useState('list');
   const [activeId, setActiveId] = useState(null);
@@ -5016,7 +5048,12 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Has insurance?</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.hasInsurance} onChange={e => setForm({...form, hasInsurance: e.target.value})}>
-                  <option value="yes">Yes</option><option value="no">No / private pay</option><option value="unsure">Unsure</option>
+                  <optgroup label="✓ Accepted by TLC (in-network)">
+                    {INSURANCE_CARRIERS.filter(c => c.accepted).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                  </optgroup>
+                  <optgroup label="Other carriers / out-of-network">
+                    {INSURANCE_CARRIERS.filter(c => !c.accepted).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                  </optgroup>
                 </select>
               </div>
             </div>
@@ -5077,6 +5114,20 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
 function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) {
   const [expanded, setExpanded] = useState(false);
   const [statusNotes, setStatusNotes] = useState('');
+  // v28+ Conversation log per inquiry (mirrors property records)
+  const [showConvForm, setShowConvForm] = useState(false);
+  const [convForm, setConvForm] = useState({ date: new Date().toISOString().slice(0,10), person: '', summary: '', notes: '' });
+  const addConvNote = () => {
+    if (!convForm.summary) { alert('Summary is required.'); return; }
+    const entry = { ...convForm, id: `cv-${Date.now()}` };
+    updateInquiry(inq.id, { conversationLog: [...(inq.conversationLog || []), entry] });
+    setConvForm({ date: new Date().toISOString().slice(0,10), person: '', summary: '', notes: '' });
+    setShowConvForm(false);
+  };
+  const deleteConvNote = (entryId) => {
+    if (!confirm('Delete this conversation note?')) return;
+    updateInquiry(inq.id, { conversationLog: (inq.conversationLog || []).filter(e => e.id !== entryId) });
+  };
   const statusInfo = INQUIRY_STATUSES.find(s => s.key === inq.status) || INQUIRY_STATUSES[0];
   const sourceInfo = INQUIRY_SOURCES.find(s => s.key === inq.source);
   const interestInfo = INQUIRY_INTERESTS.find(i => i.key === inq.interestArea);
@@ -5120,7 +5171,7 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
             <div>
               <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Provider</div>
               <div style={{ fontFamily: '"Fraunces", serif' }}>{providerLabel}</div>
-              <div className="text-[10px] text-[#5A5751]">Insurance: {inq.hasInsurance}</div>
+              <div className="text-[10px] text-[#5A5751]">Insurance: {insuranceLabel(inq.hasInsurance)}</div>
             </div>
           </div>
 
@@ -5135,6 +5186,42 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
                 <button key={s.key} onClick={() => changeStatus(s.key)} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#E8E4DC] hover:border-[#B85838] hover:bg-[#FAF8F4]">{s.label}</button>
               ))}
             </div>
+          </div>
+
+          <div className="pt-2 border-t border-[#E8E4DC]">
+            <div className="flex items-baseline justify-between gap-2 mb-1.5">
+              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">💬 Conversation Log · {(inq.conversationLog || []).length}</div>
+              <button onClick={() => setShowConvForm(!showConvForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a call / message'}</button>
+            </div>
+            {showConvForm && (
+              <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1.5">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input type="date" className="p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" value={convForm.date} onChange={e => setConvForm({ ...convForm, date: e.target.value })} />
+                  <input className="p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Who: Christina / Maya / VM left" value={convForm.person} onChange={e => setConvForm({ ...convForm, person: e.target.value })} />
+                </div>
+                <input className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Summary (required) — e.g., 'verified BCBS, scheduled intake for 5/19 11am'" value={convForm.summary} onChange={e => setConvForm({ ...convForm, summary: e.target.value })} />
+                <textarea className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" rows="2" placeholder="Notes · tone · next step · what to send afterward" value={convForm.notes} onChange={e => setConvForm({ ...convForm, notes: e.target.value })} />
+                <button onClick={addConvNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
+              </div>
+            )}
+            {(inq.conversationLog || []).length === 0 && !showConvForm ? (
+              <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
+            ) : (
+              <div className="space-y-1">
+                {[...(inq.conversationLog || [])].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
+                  <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-1.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
+                        <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
+                        {e.notes && <div className="text-[10px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                      </div>
+                      <button onClick={() => deleteConvNote(e.id)} className="text-[10px] text-[#5A5751] hover:text-[#B85838] shrink-0">×</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {inq.statusHistory && inq.statusHistory.length > 1 && (
