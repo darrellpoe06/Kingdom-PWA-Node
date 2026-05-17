@@ -95,6 +95,7 @@ const SEED_DATA = {
   subscriptions: [], // v18: recurring monthly purchases · cart · subscription audit
   feedback: [], // v24: tester feedback collection · MVP
   welcomeDismissed: false, // v24: first-run welcome panel
+  checkoutIntents: [], // v28+ Session C: cart intents (tier selected, action taken)
   inquiries: [
     { id: 'inq-ex1', firstName: 'Maya R.', contactMethod: 'phone', phone: '(217) 555-0142', interestArea: 'individual', hasInsurance: 'Y', preferredProvider: 'Christina Poe', bestTimeToCall: 'Weekday evenings', source: 'church', sourceDetail: 'COLG referral', notes: 'Seeking faith-integrated therapy, recommended by pastor.', status: 'new', receivedAt: '2026-05-14T14:30:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-14T14:30:00.000Z' }] },
     { id: 'inq-ex2', firstName: 'James T.', contactMethod: 'email', email: 'jt****@example.com', interestArea: 'couples', hasInsurance: 'unsure', preferredProvider: 'any', bestTimeToCall: 'Lunch hour', source: 'google', sourceDetail: 'Searched faith-based therapy Champaign', notes: 'Wife and I both want to try counseling.', status: 'attempting-contact', receivedAt: '2026-05-13T09:15:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-13T09:15:00.000Z' }, { status: 'attempting-contact', at: '2026-05-14T10:00:00.000Z' }] },
@@ -454,6 +455,7 @@ export default function PoeFinancialSystem() {
             scopes: Array.isArray(parsed.data.scopes) ? parsed.data.scopes : (d.scopes || []),
             practiceInquiries: Array.isArray(parsed.data.practiceInquiries) ? parsed.data.practiceInquiries : (d.practiceInquiries || []),
             inquiries: Array.isArray(parsed.data.inquiries) ? parsed.data.inquiries : (d.inquiries || []),
+            checkoutIntents: Array.isArray(parsed.data.checkoutIntents) ? parsed.data.checkoutIntents : (d.checkoutIntents || []),
           }));
           if (parsed.pressure != null) setPressure(parsed.pressure);
           if (parsed.snowballSort) setSnowballSort(parsed.snowballSort);
@@ -544,6 +546,9 @@ export default function PoeFinancialSystem() {
   const addScope = (scope) => setData(d => ({ ...d, scopes: [...d.scopes, { ...scope, id: `sc-${Date.now()}`, createdAt: new Date().toISOString(), status: 'draft' }] }));
   const deleteScope = (id) => setData(d => ({ ...d, scopes: d.scopes.filter(s => s.id !== id) }));
   const addInquiry = (item) => setData(d => ({ ...d, inquiries: [...(d.inquiries || []), { ...item, id: `inq-${Date.now()}`, receivedAt: new Date().toISOString(), status: 'new', statusHistory: [{ status: 'new', at: new Date().toISOString() }] }] }));
+  // v28+ Session C: checkout intent logging
+  const addCheckoutIntent = (item) => setData(d => ({ ...d, checkoutIntents: [...(d.checkoutIntents || []), { ...item, id: `ci-${Date.now()}`, at: new Date().toISOString() }] }));
+  const deleteCheckoutIntent = (id) => setData(d => ({ ...d, checkoutIntents: (d.checkoutIntents || []).filter(i => i.id !== id) }));
   const updateInquiry = (id, updates) => setData(d => ({ ...d, inquiries: (d.inquiries || []).map(i => i.id === id ? { ...i, ...updates, statusHistory: updates.status && updates.status !== i.status ? [...(i.statusHistory || []), { status: updates.status, at: new Date().toISOString(), notes: updates.statusNotes }] : i.statusHistory } : i) }));
   const deleteInquiry = (id) => setData(d => ({ ...d, inquiries: (d.inquiries || []).filter(i => i.id !== id) }));
   const toggleModuleInterest = (moduleKey, priority) => setData(d => { const current = d.moduleInterest || {}; if (priority === null || priority === undefined) { const next = {...current}; delete next[moduleKey]; return { ...d, moduleInterest: next }; } return { ...d, moduleInterest: { ...current, [moduleKey]: { signedAt: new Date().toISOString(), priority } } }; });
@@ -756,7 +761,7 @@ html{scroll-padding-bottom:280px}
         {view === 'projects' && <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} />}
         {view === 'practice' && <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} />}
         {view === 'opportunities' && <Opportunities opportunities={data.opportunities} totals={totals} />}
-        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={data.feedback || []} deleteFeedback={deleteFeedback} />}
+        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={data.feedback || []} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} />}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
@@ -4167,7 +4172,38 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
   );
 }
 
-function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback }) {
+function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent }) {
+  // v28+ Session C: checkout cart drawer state
+  const [cartTier, setCartTier] = useState(null);
+  const [cartBilling, setCartBilling] = useState('monthly');
+  const [cartName, setCartName] = useState('');
+  const [cartEmail, setCartEmail] = useState('');
+  const [cartNotes, setCartNotes] = useState('');
+  const openCart = (tier) => { setCartTier(tier); setCartBilling('monthly'); setCartName(''); setCartEmail(''); setCartNotes(''); };
+  const closeCart = () => setCartTier(null);
+  const submitCart = (action) => {
+    if (!cartTier) return;
+    if (!cartName || !cartEmail) { alert('Name and email are required so we can follow up.'); return; }
+    const isFree = cartTier.monthly === '0';
+    const price = cartBilling === 'annual' ? cartTier.annual : cartTier.monthly;
+    addCheckoutIntent({
+      tierName: cartTier.name,
+      tierTagline: cartTier.tagline,
+      billing: isFree ? 'free' : cartBilling,
+      price: isFree ? 0 : parseFloat(price) || 0,
+      name: cartName,
+      email: cartEmail,
+      notes: cartNotes,
+      action, // 'subscribe' | 'claim'
+      status: 'new',
+    });
+    // Open mailto so user can complete the handshake via email until Stripe is wired in
+    const subject = isFree ? `Claim: ${cartTier.name}` : `Subscribe: ${cartTier.name} (${cartBilling})`;
+    const body = `Name: ${cartName}\nEmail: ${cartEmail}\nTier: ${cartTier.name}\n${isFree ? 'Free tier - claiming access' : `Billing: ${cartBilling} ($${price})`}\n\nNotes:\n${cartNotes || '(none)'}`;
+    const url = `mailto:darrellpoe06@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    try { window.location.href = url; } catch (e) {}
+    closeCart();
+  };
   return (
     <div className="space-y-10 max-w-prose">
       {feedback.length > 0 && (
@@ -4268,14 +4304,14 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
           The Financial Control System is free for every family. Paid tiers reflect the real value being delivered — each one replaces multiple existing SaaS subscriptions. PoeTech is priced like the premium platform it is, not like a hobby app. <strong>Free access at two layers</strong> for the work of justice: families served by partner orgs, and the mission-aligned orgs themselves.
         </p>
         <div className="space-y-3">
-          <PricingTier name="Foundation" tagline="Financial Control System · always free" monthly="0" annual="0" replaces="YNAB, basic budget apps, free tier of family planners — typically $50-$100/mo equivalent" features={['Full Financial module','Multi-entity bookkeeping','Debt avalanche & rental snowball','Tax calendar · recurring obligations · incidents','Scope-of-work agreements','Event reminders','Local-first · device-only storage']} highlight />
-          <PricingTier name="Loved Ones · Founding Family" tagline="Free PoeTech+ upgrade for life · First 100 families through Church of the Living God or by direct invitation" monthly="0" annual="0" replaces="Lifetime savings of ~$468/yr per family at current prices · more as prices rise" features={['Everything in Foundation','Cross-device sync (opt-in cloud)','Encrypted cloud backup','Multi-user household sharing','Locked in for life — even when prices change','First 100 families only · tier closes when filled','One month Family-tier credit per paying family you refer']} community />
-          <PricingTier name="PoeTech+" tagline="Data governance & sync" monthly="39" annual="390" replaces="$100-$150/mo equivalent in cloud-sync budgeting tools, paid YNAB tier, encrypted backup services" features={['Everything in Foundation','Cross-device sync (opt-in cloud)','Encrypted cloud backup','Multi-user household sharing','Historical data stability','Priority email support']} />
-          <PricingTier name="Family" tagline="+ Home Command Center" monthly="89" annual="890" replaces="$200-$300/mo equivalent: Ring/Nest subscriptions, home maintenance apps, HomeKit fees, basic property management tools" features={['Everything in PoeTech+','Home Command Center module','IoT sensor integration','Seasonal maintenance calendar','F&S-level alarms','Floor plan mapping']} />
-          <PricingTier name="Premium" tagline="Small-business stewardship · all modules" monthly="149" annual="1490" replaces="$400-$600/mo equivalent: QuickBooks Self-Employed, Acuity HIPAA, Calendly Pro, Buffer, ConvertKit, household + business apps stack" features={['Everything in Family','Health & Wellness module','Education & Children · Literacy Justice','PoeTech Tutors marketplace (when launched)','All future modules included','PoeTech Marketplace access','Practice Operations for small business','Note: Spiritual Life · Godhead Study Platform is FREE for every tier']} />
-          <PricingTier name="PoeTech Business" tagline="Multi-entity, multi-user, multi-purpose · for serious small businesses" monthly="249" annual="2490" replaces="$700-$1,000/mo equivalent: QuickBooks for multiple entities, full marketing stack, advanced CRM, payroll integrations, SimplePractice or equivalent EHR-adjacent tooling" features={['Everything in Premium','Up to 10 entities tracked','Up to 5 staff/team users','Advanced reporting & exports','API access for custom integrations','Priority phone + Slack support','Quarterly strategy review with PoeTech Services','Eligible for revenue-share consulting partnership']} business />
-          <PricingTier name="Community · Families in Need" tagline="Free access for families · sponsored by paying subscribers" monthly="0" annual="0" features={['Available through partner Churches','And 501(c)(3) organizations serving the poor, elderly, fatherless','Verification through partner org · not the family','Full Foundation + PoeTech+ features','Designed to remove stigma — help comes from the community','Paying subscribers fund this tier transparently']} community />
-          <PricingTier name="Community Partners · Organizations" tagline="Free PoeTech for mission-aligned orgs that serve the underserved" monthly="0" annual="0" features={['Free for verified 501(c)(3) nonprofits + faith-based ministries','Serving: poor · elderly · fatherless · incarcerated/reentry · unhoused · disabled · mental health · literacy','Full PoeTech platform for the organization itself','Practice Operations for case management (no PHI)','Aggregate community-trend data for advocacy and grant applications','Custom data exports for board meetings, funders, and community awareness','Listed in PoeTech Community Partners directory','Verified annually · service area documented · mission alignment confirmed']} community />
+          <PricingTier name="Foundation" tagline="Financial Control System · always free" monthly="0" annual="0" replaces="YNAB, basic budget apps, free tier of family planners — typically $50-$100/mo equivalent" features={['Full Financial module','Multi-entity bookkeeping','Debt avalanche & rental snowball','Tax calendar · recurring obligations · incidents','Scope-of-work agreements','Event reminders','Local-first · device-only storage']} highlight onChoose={openCart} />
+          <PricingTier name="Loved Ones · Founding Family" tagline="Free PoeTech+ upgrade for life · First 100 families through Church of the Living God or by direct invitation" monthly="0" annual="0" replaces="Lifetime savings of ~$468/yr per family at current prices · more as prices rise" features={['Everything in Foundation','Cross-device sync (opt-in cloud)','Encrypted cloud backup','Multi-user household sharing','Locked in for life — even when prices change','First 100 families only · tier closes when filled','One month Family-tier credit per paying family you refer']} community onChoose={openCart} />
+          <PricingTier name="PoeTech+" tagline="Data governance & sync" monthly="39" annual="390" replaces="$100-$150/mo equivalent in cloud-sync budgeting tools, paid YNAB tier, encrypted backup services" features={['Everything in Foundation','Cross-device sync (opt-in cloud)','Encrypted cloud backup','Multi-user household sharing','Historical data stability','Priority email support']} onChoose={openCart} />
+          <PricingTier name="Family" tagline="+ Home Command Center" monthly="89" annual="890" replaces="$200-$300/mo equivalent: Ring/Nest subscriptions, home maintenance apps, HomeKit fees, basic property management tools" features={['Everything in PoeTech+','Home Command Center module','IoT sensor integration','Seasonal maintenance calendar','F&S-level alarms','Floor plan mapping']} onChoose={openCart} />
+          <PricingTier name="Premium" tagline="Small-business stewardship · all modules" monthly="149" annual="1490" replaces="$400-$600/mo equivalent: QuickBooks Self-Employed, Acuity HIPAA, Calendly Pro, Buffer, ConvertKit, household + business apps stack" features={['Everything in Family','Health & Wellness module','Education & Children · Literacy Justice','PoeTech Tutors marketplace (when launched)','All future modules included','PoeTech Marketplace access','Practice Operations for small business','Note: Spiritual Life · Godhead Study Platform is FREE for every tier']} onChoose={openCart} />
+          <PricingTier name="PoeTech Business" tagline="Multi-entity, multi-user, multi-purpose · for serious small businesses" monthly="249" annual="2490" replaces="$700-$1,000/mo equivalent: QuickBooks for multiple entities, full marketing stack, advanced CRM, payroll integrations, SimplePractice or equivalent EHR-adjacent tooling" features={['Everything in Premium','Up to 10 entities tracked','Up to 5 staff/team users','Advanced reporting & exports','API access for custom integrations','Priority phone + Slack support','Quarterly strategy review with PoeTech Services','Eligible for revenue-share consulting partnership']} business onChoose={openCart} />
+          <PricingTier name="Community · Families in Need" tagline="Free access for families · sponsored by paying subscribers" monthly="0" annual="0" features={['Available through partner Churches','And 501(c)(3) organizations serving the poor, elderly, fatherless','Verification through partner org · not the family','Full Foundation + PoeTech+ features','Designed to remove stigma — help comes from the community','Paying subscribers fund this tier transparently']} community onChoose={openCart} />
+          <PricingTier name="Community Partners · Organizations" tagline="Free PoeTech for mission-aligned orgs that serve the underserved" monthly="0" annual="0" features={['Free for verified 501(c)(3) nonprofits + faith-based ministries','Serving: poor · elderly · fatherless · incarcerated/reentry · unhoused · disabled · mental health · literacy','Full PoeTech platform for the organization itself','Practice Operations for case management (no PHI)','Aggregate community-trend data for advocacy and grant applications','Custom data exports for board meetings, funders, and community awareness','Listed in PoeTech Community Partners directory','Verified annually · service area documented · mission alignment confirmed']} community onChoose={openCart} />
         </div>
         <p className="text-xs text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>
           Annual pricing reflects ~17% savings (2 months free). Foundation is free forever — to generate the experience and the data that improves the system for every family. Loved Ones tier honors the warm-market relationships that make PoeTech viable: people who already know us, trust us, and pray for us. Their early adoption is the foundation everything else stands on — and their pricing is locked even as the broader pricing reflects the platform's growing value.
@@ -4478,6 +4514,99 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
           One family. One picture. All the granular detail when you need it.
         </p>
       </section>
+
+      {checkoutIntents.length > 0 && (
+        <section className="bg-white border border-[#1A1815] p-5">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">🛒 Checkout Intents · {checkoutIntents.length}</div>
+          <h3 className="text-xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Who's clicked Subscribe or Claim</h3>
+          <div className="space-y-2">
+            {checkoutIntents.slice().reverse().map(ci => (
+              <div key={ci.id} className="border border-[#E8E4DC] p-3">
+                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{ci.name} <span className="text-xs text-[#5A5751]">· {ci.email}</span></div>
+                    <div className="text-xs text-[#5A5751] mt-0.5">
+                      {ci.action === 'subscribe' ? 'Subscribe' : 'Claim'} · <strong>{ci.tierName}</strong> · {ci.billing === 'free' ? 'free' : `${ci.billing} ($${ci.price})`}
+                    </div>
+                    {ci.notes && <div className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{ci.notes}</div>}
+                  </div>
+                  <div className="flex items-baseline gap-2 shrink-0">
+                    <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{new Date(ci.at).toLocaleDateString()}</div>
+                    <button onClick={() => { if (confirm('Delete this checkout intent?')) deleteCheckoutIntent(ci.id); }} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            Local-first capture. Email handshake is currently mailto - swap in a Stripe Payment Link in the cart drawer when ready.
+          </p>
+        </section>
+      )}
+
+      {cartTier && (
+        <div className="fixed inset-0 z-50 bg-[#1A1815]/60 flex items-center justify-center p-4" onClick={closeCart}>
+          <div className="bg-white border-2 border-[#1A1815] max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-[#1A1815] flex items-baseline justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🛒 Checkout</div>
+                <h2 className="text-2xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{cartTier.name}</h2>
+                <div className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{cartTier.tagline}</div>
+              </div>
+              <button onClick={closeCart} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {cartTier.monthly !== '0' ? (
+                <>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-[#5A5751] block mb-2">Billing cycle</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => setCartBilling('monthly')} className={`p-3 text-left border ${cartBilling === 'monthly' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
+                        <div className="text-[10px] uppercase tracking-wider opacity-75">Monthly</div>
+                        <div className="text-xl mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${cartTier.monthly}<span className="text-xs opacity-75">/mo</span></div>
+                      </button>
+                      <button onClick={() => setCartBilling('annual')} className={`p-3 text-left border ${cartBilling === 'annual' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
+                        <div className="text-[10px] uppercase tracking-wider opacity-75">Annual · save ~17%</div>
+                        <div className="text-xl mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${cartTier.annual}<span className="text-xs opacity-75">/yr</span></div>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-baseline justify-between pt-3 border-t border-[#E8E4DC]">
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Total today</div>
+                    <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${cartBilling === 'annual' ? cartTier.annual : cartTier.monthly}<span className="text-sm text-[#5A5751]">{cartBilling === 'annual' ? '/yr' : '/mo'}</span></div>
+                  </div>
+                </>
+              ) : (
+                <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-3">
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">Free tier · no payment required</div>
+                  <p className="text-xs mt-1" style={{ fontFamily: '"Fraunces", serif' }}>We'll confirm your eligibility and send access details. No card needed.</p>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Name *</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={cartName} onChange={e => setCartName(e.target.value)} placeholder="First Last" />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Email *</label>
+                <input type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={cartEmail} onChange={e => setCartEmail(e.target.value)} placeholder="you@example.com" />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes (optional)</label>
+                <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" value={cartNotes} onChange={e => setCartNotes(e.target.value)} placeholder="Anything you want us to know (referral, timing, family size, questions)" />
+              </div>
+
+              <button onClick={() => submitCart(cartTier.monthly === '0' ? 'claim' : 'subscribe')} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
+                {cartTier.monthly === '0' ? 'Claim it · Send confirmation email' : 'Subscribe · Send confirmation email'}
+              </button>
+              <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+                Opens your email client to finish the request. Logged locally in Checkout Intents below.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4494,8 +4623,11 @@ function MarketCard({ title, need, have }) {
   );
 }
 
-function PricingTier({ name, tagline, monthly, annual, features, replaces, highlight, community, business }) {
+function PricingTier({ name, tagline, monthly, annual, features, replaces, highlight, community, business, onChoose }) {
   const borderClass = highlight ? 'border-[#5A6E3D] border-2' : community ? 'border-[#B85838] border-2' : business ? 'border-[#1A1815] border-2' : 'border-[#1A1815]';
+  const isFree = monthly === '0';
+  const buttonLabel = isFree ? 'Claim it →' : 'Subscribe →';
+  const buttonColor = highlight ? 'bg-[#5A6E3D] hover:bg-[#1A1815]' : community ? 'bg-[#B85838] hover:bg-[#1A1815]' : business ? 'bg-[#1A1815] hover:bg-[#B85838]' : 'bg-[#1A1815] hover:bg-[#B85838]';
   return (
     <div className={`bg-white border ${borderClass} p-5`}>
       <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
@@ -4523,6 +4655,9 @@ function PricingTier({ name, tagline, monthly, annual, features, replaces, highl
       <ul className="text-xs text-[#1A1815] space-y-1 mt-3">
         {features.map((f, i) => <li key={i} className="flex gap-2"><span className={highlight ? 'text-[#5A6E3D]' : business ? 'text-[#1A1815]' : 'text-[#B85838]'}>·</span><span>{f}</span></li>)}
       </ul>
+      {onChoose && (
+        <button onClick={() => onChoose({ name, tagline, monthly, annual, features, replaces })} className={`mt-4 w-full text-white text-xs uppercase tracking-wider py-2.5 font-semibold ${buttonColor}`}>{buttonLabel}</button>
+      )}
     </div>
   );
 }
