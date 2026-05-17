@@ -4435,7 +4435,7 @@ function PoeTechServicesPortfolio() {
       pricing: '$50K–$500K projects · $25K–$75K/mo retainers · $400–$800/hr senior rate',
       best: 'For mid-large companies who need major build, integration, or transformation work — where compressed delivery and senior depth matter more than headcount. Premium pricing reflects compressed time AND saving you from a relationship with money-pit consulting firms.',
       includes: ['Senior architect on every call · no junior delegation','Compressed delivery — 6 months where BigCo quotes 18+','Modern stack expertise (not legacy Java/SOAP shops)','Direct executive relationship · no account-management layer','Outcome-based scoping — fixed milestones, not endless billable hours','Knowledge transfer · your team owns it after handoff'],
-      forWho: 'CTOs, CIOs, COOs frustrated with $5M consulting bills that ship $500K of value over five years. We do the inverse: deliver $5M of value for $500K in nine months. Pay us for the team of 45 we deliver — not the $5M over 5 years a BigCo would charge for less. Pricing is fair because it reflects what we actually save you, in time and in dollars.',
+      forWho: 'CTOs, CIOs, COOs frustrated with $5M consulting bills that ship $500K of value over five years. We do the inverse: deliver $5M of value for $500K in nine months. Pay us for the team we deliver — not the $5M over 5 years a BigCo would charge for less. Pricing is fair because it reflects what we actually save you, in time and in dollars.',
       color: 'border-[#1A1815]',
     },
   ];
@@ -4504,7 +4504,7 @@ function PoeTechServicesPortfolio() {
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[#1A1815] font-semibold mb-1">Enterprise · Big Business with Budget</div>
             <p className="text-sm mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              Premium pricing for compressed delivery. $50K–$500K projects. $25K–$75K/mo retainers. $400–$800/hr senior rates. Pay us for the team of 45 we deliver — not the $5M over 5 years a BigCo would charge for less.
+              Premium pricing for compressed delivery. $50K–$500K projects. $25K–$75K/mo retainers. $400–$800/hr senior rates. Pay us for the team we deliver — not the $5M over 5 years a BigCo would charge for less.
             </p>
             <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               We save you from a relationship with money pits.
