@@ -2895,19 +2895,45 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
 
   const upcoming = [...futureTx.map(t => ({ ...t, _source: 'transaction' })), ...recurringUpcoming].sort((a, b) => a.date.localeCompare(b.date));
 
+  // Per-account current balance lookup
+  const balanceByAccount = (data.accounts || []).reduce((acc, a) => { acc[a.id] = a.balance; return acc; }, {});
+
+  // For Upcoming: walk transactions chronologically per account, tracking
+  // projected running balance so each row can show what the account will
+  // become AFTER this charge posts.
+  const projectedAfter = (() => {
+    const running = { ...balanceByAccount };
+    const map = {};
+    [...upcoming].sort((a, b) => a.date.localeCompare(b.date)).forEach(t => {
+      if (t.accountId && t.accountId in running) {
+        running[t.accountId] = (running[t.accountId] || 0) + (t.amount || 0);
+        map[t.id] = running[t.accountId];
+      }
+    });
+    return map;
+  })();
+
   const renderRow = (t) => {
     const acc = data.accounts.find(a => a.id === t.accountId);
     const accLabel = acc ? `${acc.name}${acc.fragment ? ' ' + acc.fragment : ''}` : (t._source === 'recurring' ? 'Recurring obligation' : '—');
+    const currentBal = acc ? balanceByAccount[acc.id] : null;
+    const afterBal = txView === 'upcoming' && acc && projectedAfter[t.id] !== undefined ? projectedAfter[t.id] : null;
     return (
       <tr key={t.id} className="border-b border-[#E8E4DC] align-top">
         <td className="p-2 text-xs whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.date.slice(5)}</td>
         <td className="p-2">
           <div style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</div>
           <div className="text-[10px] text-[#5A5751] mt-0.5">
-            {accLabel}
+            <span>{accLabel}</span>
+            {currentBal !== null && <span className={`ml-1 ${currentBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>(now {fmt(currentBal)})</span>}
             {t.category && <span className="ml-2 uppercase tracking-wider">· {t.category}</span>}
             {t._source === 'recurring' && <span className="ml-2 text-[#B85838] uppercase tracking-wider">· recurring · {t._frequency}</span>}
           </div>
+          {afterBal !== null && (
+            <div className={`text-[10px] mt-0.5 ${afterBal < 0 ? 'text-[#B85838] font-semibold' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              {afterBal < 0 ? '⚠ ' : '→ '}After this hits: {fmt(afterBal)}
+            </div>
+          )}
         </td>
         <td className={`p-2 text-right whitespace-nowrap ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.amount > 0 ? '+' : ''}{fmt(t.amount)}</td>
         <td className="p-2 text-right whitespace-nowrap">
@@ -2933,6 +2959,23 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
           Add transactions as they happen. See what is already cleared (History) and what is expected to hit next (Upcoming, including the next instance of each enabled recurring obligation). Filters carry through from Entities. Projections, funds-available checks, and the transfer-from popup come in the next pass.
         </p>
       </section>
+
+      {(data.accounts || []).length > 0 && (
+        <section>
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Current Balances</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+            {(data.accounts || []).map(a => (
+              <div key={a.id} className="bg-white p-3">
+                <div className="text-[10px] text-[#5A5751] truncate" style={{ fontFamily: '"Fraunces", serif' }}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</div>
+                <div className={`text-base ${a.balance < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(a.balance)}</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Each transaction row below shows the source account's current balance. Upcoming rows also show the projected balance after the charge posts — red if it would go negative.
+          </p>
+        </section>
+      )}
 
       <section>
         <div className="border-b border-[#E8E4DC] mb-3">
