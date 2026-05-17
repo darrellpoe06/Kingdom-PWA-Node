@@ -5442,7 +5442,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       </section>
       <section>
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2">PoeTech LLC · poetech.us</div>
-        <h2 className="text-3xl sm:text-4xl mb-4 leading-tight" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>A stronghold for relationship with Yahweh.</h2>
+        <h2 className="text-3xl sm:text-4xl mb-4 leading-tight" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>A stronghold for relationships with Yahweh.</h2>
         <p className="text-base leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           PoeTech exists to help families be supported in their relationship with Yahweh — to make His voice easier to hear and easier to follow. The Family OS is the practical infrastructure: financial visibility, home stewardship, health awareness, scope-of-work fairness. Each module serves the larger mission.
         </p>
