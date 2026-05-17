@@ -753,7 +753,7 @@ html{scroll-padding-bottom:280px}
         )}
         {view === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} />}
         {view === 'rentals' && <Rentals rentals={data.inflows.rentals} entities={data.entities} totals={totals} snowballSort={snowballSort} setSnowballSort={setSnowballSort} snowballExtra={snowballExtra} setSnowballExtra={setSnowballExtra} rentalSnowball={rentalSnowball} sevenYearTarget={sevenYearTarget} currentDate={currentDate} addRental={addRental} updateRental={updateRental} deleteRental={deleteRental} />}
-        {view === 'projects' && <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} />}
+        {view === 'projects' && <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} />}
         {view === 'practice' && <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} />}
         {view === 'opportunities' && <Opportunities opportunities={data.opportunities} totals={totals} />}
         {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={data.feedback || []} deleteFeedback={deleteFeedback} />}
@@ -1491,7 +1491,7 @@ function Cart({ subscriptions, entities, addSubscription, updateSubscription, de
 // Multi-domain project tracking with start/end dates and workload visualization
 // =============================================================================
 // v21: ProjectsWrapper — sub-nav between Projects list and Scopes
-function ProjectsWrapper({ projects, scopes, entities, addProject, updateProject, deleteProject, addScope, deleteScope }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope }) {
   const [subView, setSubView] = useState('list');
   return (
     <div className="space-y-4">
@@ -1502,20 +1502,21 @@ function ProjectsWrapper({ projects, scopes, entities, addProject, updateProject
           ))}
         </div>
       </div>
-      {subView === 'list' && <Projects projects={projects} entities={entities} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />}
+      {subView === 'list' && <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
     </div>
   );
 }
 
-function Projects({ projects, entities, addProject, updateProject, deleteProject }) {
+function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [filterDomain, setFilterDomain] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [newProject, setNewProject] = useState({
     title: '', startDate: '', endDate: '', status: 'planning',
-    domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal'
+    domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal',
+    contractorIds: []
   });
 
   const submitProject = () => {
@@ -1529,7 +1530,7 @@ function Projects({ projects, entities, addProject, updateProject, deleteProject
     } else {
       addProject(newProject);
     }
-    setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal' });
+    setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] });
     setShowForm(false);
   };
 
@@ -1537,7 +1538,8 @@ function Projects({ projects, entities, addProject, updateProject, deleteProject
     setNewProject({
       title: p.title, startDate: p.startDate, endDate: p.endDate || '',
       status: p.status, domain: p.domain, description: p.description || '',
-      hoursPerWeek: p.hoursPerWeek || 0, entityId: p.entityId || 'e-personal'
+      hoursPerWeek: p.hoursPerWeek || 0, entityId: p.entityId || 'e-personal',
+      contractorIds: Array.isArray(p.contractorIds) ? p.contractorIds : []
     });
     setEditingId(p.id);
     setShowForm(true);
@@ -1659,7 +1661,7 @@ function Projects({ projects, entities, addProject, updateProject, deleteProject
               <option value="all">All statuses</option>
               {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <button onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal' }); setShowForm(!showForm); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
+            <button onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
           </div>
         </div>
 
@@ -1702,6 +1704,24 @@ function Projects({ projects, entities, addProject, updateProject, deleteProject
                   <option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option>
                 </select>
               </div>
+            </div>
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned (optional)</label>
+              {contractors.length === 0 ? (
+                <div className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s. They'll appear here as toggleable chips.</div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {contractors.map(k => {
+                    const assigned = (newProject.contractorIds || []).includes(k.id);
+                    return (
+                      <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[10px] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
+                        {assigned ? '✓ ' : ''}{k.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Optional — attach the 1099 workers helping with this project so YTD tracking and tax docs flow correctly.</p>
             </div>
             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Description · key milestones · who's involved" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
             <button onClick={submitProject} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Project'}</button>
@@ -1760,6 +1780,15 @@ function Projects({ projects, entities, addProject, updateProject, deleteProject
                     {end && <><span> → </span><span style={{ fontFamily: '"JetBrains Mono", monospace' }} className={isOverdue ? 'text-[#B85838] font-medium' : ''}>{end.toLocaleDateString()}{isOverdue ? ' (overdue)' : daysUntilEnd > 0 && daysUntilEnd < 30 ? ` (${daysUntilEnd}d left)` : ''}</span></>}
                     {p.hoursPerWeek > 0 && <> · {p.hoursPerWeek}h/wk</>}
                   </div>
+                  {Array.isArray(p.contractorIds) && p.contractorIds.length > 0 && (
+                    <div className="text-[10px] text-[#5A5751] mb-2 flex flex-wrap gap-1.5">
+                      <span className="uppercase tracking-wider">👤 1099:</span>
+                      {p.contractorIds.map(cid => {
+                        const k = contractors.find(c => c.id === cid);
+                        return k ? <span key={cid} className="px-1.5 py-0.5 border border-[#E8E4DC] bg-[#FAF8F4]" style={{ fontFamily: '"Fraunces", serif' }}>{k.name}</span> : null;
+                      })}
+                    </div>
+                  )}
                   {totalDays && p.status !== 'complete' && (
                     <div className="h-1 bg-[#E8E4DC] mb-2">
                       <div className="h-full" style={{ width: `${progressPct}%`, backgroundColor: domainColor(p.domain) }}></div>
@@ -1812,11 +1841,11 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
   const [newRecur, setNewRecur] = useState({ name: '', amount: '', frequency: 'annual', nextDue: '', entityId: 'e-personal', category: 'other' });
-  const [newIncident, setNewIncident] = useState({ date: new Date().toISOString().slice(0,10), amount: '', category: 'other', entityId: 'e-personal', description: '' });
+  const [newIncident, setNewIncident] = useState({ date: new Date().toISOString().slice(0,10), amount: '', category: 'other', entityId: 'e-personal', description: '', contractorIds: [] });
   const [newEvent, setNewEvent] = useState({ title: '', date: '', time: '', allDay: true, description: '', entityId: 'e-personal', category: 'appointment', reminders: ['1d-before', 'at-time'], repeat: 'none' });
 
   const submitRecur = () => { if (!newRecur.name || !newRecur.amount) return; addRecurring({ ...newRecur, amount: parseFloat(newRecur.amount) }); setNewRecur({ name: '', amount: '', frequency: 'annual', nextDue: '', entityId: 'e-personal', category: 'other' }); setShowRecurForm(false); };
-  const submitIncident = () => { if (!newIncident.description || !newIncident.amount) return; addIncident({ ...newIncident, amount: parseFloat(newIncident.amount) }); setNewIncident({ date: new Date().toISOString().slice(0,10), amount: '', category: 'other', entityId: 'e-personal', description: '' }); setShowIncidentForm(false); };
+  const submitIncident = () => { if (!newIncident.description || !newIncident.amount) return; addIncident({ ...newIncident, amount: parseFloat(newIncident.amount) }); setNewIncident({ date: new Date().toISOString().slice(0,10), amount: '', category: 'other', entityId: 'e-personal', description: '', contractorIds: [] }); setShowIncidentForm(false); };
   const submitEvent = () => {
     if (!newEvent.title || !newEvent.date) { alert('Title and date are required.'); return; }
     addEvent(newEvent);
@@ -1895,6 +1924,23 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
                 <option value="vehicle">Vehicle</option><option value="medical">Medical</option><option value="property">Property repair</option><option value="travel">Travel</option><option value="legal">Legal</option><option value="other">Other</option>
               </select>
             </div>
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors involved (optional)</label>
+              {(data.contractors1099 || []).length === 0 ? (
+                <div className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s.</div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {(data.contractors1099 || []).map(k => {
+                    const assigned = (newIncident.contractorIds || []).includes(k.id);
+                    return (
+                      <button type="button" key={k.id} onClick={() => setNewIncident({ ...newIncident, contractorIds: assigned ? (newIncident.contractorIds || []).filter(id => id !== k.id) : [...(newIncident.contractorIds || []), k.id] })} className={`text-[10px] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
+                        {assigned ? '✓ ' : ''}{k.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <button onClick={submitIncident} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Log</button>
           </div>
         )}
@@ -1905,6 +1951,15 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
                 <div className="flex-1 min-w-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{inc.description}</div>
                   <div className="text-xs text-[#5A5751]">{inc.date.slice(5)} · {inc.category}</div>
+                  {Array.isArray(inc.contractorIds) && inc.contractorIds.length > 0 && (
+                    <div className="text-[10px] text-[#5A5751] mt-1 flex flex-wrap gap-1.5">
+                      <span className="uppercase tracking-wider">👤 1099:</span>
+                      {inc.contractorIds.map(cid => {
+                        const k = (data.contractors1099 || []).find(c => c.id === cid);
+                        return k ? <span key={cid} className="px-1.5 py-0.5 border border-[#E8E4DC] bg-[#FAF8F4]" style={{ fontFamily: '"Fraunces", serif' }}>{k.name}</span> : null;
+                      })}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-baseline gap-2 shrink-0">
                   <div className="text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(inc.amount)}</div>
