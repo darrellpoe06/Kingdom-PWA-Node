@@ -4439,27 +4439,38 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
   const [cartName, setCartName] = useState('');
   const [cartEmail, setCartEmail] = useState('');
   const [cartNotes, setCartNotes] = useState('');
-  const openCart = (tier) => { setCartTier(tier); setCartBilling('monthly'); setCartName(''); setCartEmail(''); setCartNotes(''); };
+  const [cartError, setCartError] = useState('');
+  const openCart = (tier) => { setCartTier(tier); setCartBilling('monthly'); setCartName(''); setCartEmail(''); setCartNotes(''); setCartError(''); };
   const closeCart = () => setCartTier(null);
   const submitCart = (action) => {
     if (!cartTier) return;
-    if (!cartName || !cartEmail) { alert('Name and email are required so we can follow up.'); return; }
+    if (!cartName || !cartEmail) { setCartError('Name and email are required so we can follow up.'); return; }
+    setCartError('');
     const isFree = cartTier.monthly === '0';
-    const price = cartBilling === 'annual' ? cartTier.annual : cartTier.monthly;
+    const isSponsor = !!cartTier.isSponsor;
+    const billing = isSponsor ? 'annual' : (isFree ? 'free' : cartBilling);
+    const price = isSponsor ? parseFloat(cartTier.annual) || 0
+                : isFree ? 0
+                : parseFloat(cartBilling === 'annual' ? cartTier.annual : cartTier.monthly) || 0;
     addCheckoutIntent({
       tierName: cartTier.name,
       tierTagline: cartTier.tagline,
-      billing: isFree ? 'free' : cartBilling,
-      price: isFree ? 0 : parseFloat(price) || 0,
+      billing,
+      price,
       name: cartName,
       email: cartEmail,
       notes: cartNotes,
-      action, // 'subscribe' | 'claim'
+      action, // 'subscribe' | 'claim' | 'sponsor'
       status: 'new',
     });
     // Open mailto so user can complete the handshake via email until Stripe is wired in
-    const subject = isFree ? `Claim: ${cartTier.name}` : `Subscribe: ${cartTier.name} (${cartBilling})`;
-    const body = `Name: ${cartName}\nEmail: ${cartEmail}\nTier: ${cartTier.name}\n${isFree ? 'Free tier - claiming access' : `Billing: ${cartBilling} ($${price})`}\n\nNotes:\n${cartNotes || '(none)'}`;
+    const subject = isSponsor ? `Sponsor: ${cartTier.name}`
+                  : isFree ? `Claim: ${cartTier.name}`
+                  : `Subscribe: ${cartTier.name} (${cartBilling})`;
+    const billingLine = isSponsor ? `Sponsorship: annual ($${price.toLocaleString()})`
+                      : isFree ? 'Free tier - claiming access'
+                      : `Billing: ${cartBilling} ($${price})`;
+    const body = `Name: ${cartName}\nEmail: ${cartEmail}\nTier: ${cartTier.name}\n${billingLine}\n\nNotes:\n${cartNotes || '(none)'}`;
     const url = `mailto:contact@poetech.us?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     try { window.location.href = url; } catch (e) {}
     closeCart();
@@ -4685,6 +4696,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Quarterly newsletter co-branding</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 2 active Foundation Sponsors at any time</span></li>
             </ul>
+            <button onClick={() => openCart({ name: 'Foundation Sponsor', tagline: 'Featured placement · max 2 active', monthly: '25000', annual: '25000', features: ['Featured "Brought to you by..." placement on Foundation tier','Prominent "PoeTech Picks" directory listing','Sponsor of a specific module\'s free-tier content','Quarterly newsletter co-branding'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
           </div>
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
@@ -4697,6 +4709,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Annual co-branded educational content</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 3 active Module Sponsors at any time</span></li>
             </ul>
+            <button onClick={() => openCart({ name: 'Module Sponsor', tagline: 'Standard placement · max 3 active', monthly: '10000', annual: '10000', features: ['Standard placement on Foundation tier','Directory listing in "PoeTech Picks"','Annual co-branded educational content'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
           </div>
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
@@ -4708,6 +4721,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Annual mission-alignment review</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 5 active Directory Partners</span></li>
             </ul>
+            <button onClick={() => openCart({ name: 'Directory Partner', tagline: 'Directory listing · max 5 active', monthly: '3000', annual: '3000', features: ['"PoeTech Picks" directory listing','Annual mission-alignment review'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
           </div>
         </div>
         <div className="mt-4 p-3 bg-[#FAF8F4] border-l-2 border-[#5A6E3D]">
@@ -4757,12 +4771,15 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       </section>
 
       <section className="bg-white border-2 border-[#B85838] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Interested in Sponsoring PoeTech?</div>
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">How Sponsorship Works · Pay First, Vet in Parallel</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          We accept sponsor applications from mission-aligned organizations only. Before applying, read the 8-criterion framework above and the never-allowed list. If your organization fits, send a one-page introduction including: your mission, business model, ownership, regulatory status, customer reference contacts, and which tier you're applying for.
+          Pick a tier above and click <strong>Sponsor</strong>. Payment authorizes the slot reservation; vetting against the 8-criterion framework runs in parallel and typically completes in <strong>15 business days</strong>. If your sponsorship doesn't clear vetting, <strong>full refund within 5 business days</strong> — no questions, no friction. This protects both sides: you get a fast yes/no, and we keep the platform trustworthy.
+        </p>
+        <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          Read the 8-criterion framework above and the never-allowed list before sponsoring — if your business doesn't fit, the vetting will return your money. Saves everyone time.
         </p>
         <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Submit to <strong>sponsorship@poetech.us</strong> (to be set up). Expect 3-5 weeks for the vetting process. Limited slots — current opening status published quarterly.
+          Questions before paying? Email <strong>contact@poetech.us</strong> with your mission, business model, ownership, regulatory status, and which tier you're considering. We'll respond within 3 business days. Limited slots — current opening status published quarterly.
         </p>
       </section>
 
@@ -4818,7 +4835,19 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
             </div>
 
             <div className="p-5 space-y-4">
-              {cartTier.monthly !== '0' ? (
+              {cartTier.isSponsor ? (
+                <>
+                  <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3">
+                    <div className="flex items-baseline justify-between mb-2">
+                      <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold">Annual sponsorship</div>
+                      <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${(parseFloat(cartTier.annual) || 0).toLocaleString()}<span className="text-sm text-[#5A5751]">/yr</span></div>
+                    </div>
+                    <p className="text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
+                      <strong>Pay first, vet after.</strong> Vetting against the 8 PoeTech criteria runs in parallel — typically 15 business days. If your sponsorship doesn't pass vetting, <strong>full refund within 5 business days</strong>. Limited slots; placement begins after vetting clears.
+                    </p>
+                  </div>
+                </>
+              ) : cartTier.monthly !== '0' ? (
                 <>
                   <div>
                     <label className="text-[10px] uppercase tracking-wider text-[#5A5751] block mb-2">Billing cycle</label>
@@ -4858,8 +4887,9 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
                 <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" value={cartNotes} onChange={e => setCartNotes(e.target.value)} placeholder="Anything you want us to know (referral, timing, family size, questions)" />
               </div>
 
-              <button onClick={() => submitCart(cartTier.monthly === '0' ? 'claim' : 'subscribe')} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
-                {cartTier.monthly === '0' ? 'Claim it · Send confirmation email' : 'Subscribe · Send confirmation email'}
+              {cartError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{cartError}</div>}
+              <button onClick={() => submitCart(cartTier.isSponsor ? 'sponsor' : cartTier.monthly === '0' ? 'claim' : 'subscribe')} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
+                {cartTier.isSponsor ? 'Sponsor · Pay now, vet in parallel' : cartTier.monthly === '0' ? 'Claim it · Send confirmation email' : 'Subscribe · Send confirmation email'}
               </button>
               <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
                 Opens your email client to finish the request. Logged locally in Checkout Intents below.
