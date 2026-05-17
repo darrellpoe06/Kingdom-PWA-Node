@@ -1,0 +1,33 @@
+# ============================================================================
+# Repo-root .gitignore
+# ============================================================================
+# The app/ subproject has its own .gitignore for node_modules, dist, .vite.
+# This file covers the repo root.
+
+# ----------------------------------------------------------------------------
+# Sensitive / PII / PHI material — never commit
+# ----------------------------------------------------------------------------
+# Local Drive review folders. May contain onboarding forms with licenses,
+# NPI, DEA, bank routing/account, I-9, driver's license — keep out of repo.
+drive-download-*/
+drive-download-*.zip
+
+# Real bank/CSV exports, transaction dumps, scanned IDs, signed agreements.
+# Use the patterns below to add safety even when files are dropped ad hoc.
+*statements*.csv
+*statements*.xlsx
+*-real-*.csv
+/private/
+
+# ----------------------------------------------------------------------------
+# Editor / OS noise
+# ----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# ----------------------------------------------------------------------------
+# Logs
+# ----------------------------------------------------------------------------
+*.log
