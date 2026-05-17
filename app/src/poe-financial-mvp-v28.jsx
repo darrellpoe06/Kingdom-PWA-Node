@@ -504,6 +504,14 @@ export default function PoeFinancialSystem() {
   const deleteRecurring = (id) => setData(d => ({ ...d, recurringObligations: d.recurringObligations.filter(r => r.id !== id) }));
   const deleteIncident = (id) => setData(d => ({ ...d, incidents: d.incidents.filter(i => i.id !== id) }));
   const deleteEvent = (id) => setData(d => ({ ...d, events: (d.events || []).filter(e => e.id !== id) }));
+  // v28+ Session A: Accounts CRUD
+  const addAccount = (item) => setData(d => ({ ...d, accounts: [...(d.accounts || []), { ...item, id: `a-${Date.now()}`, balance: parseFloat(item.balance) || 0 }] }));
+  const updateAccount = (id, updates) => setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === id ? { ...a, ...updates, balance: updates.balance !== undefined ? parseFloat(updates.balance) || 0 : a.balance } : a) }));
+  const deleteAccount = (id) => setData(d => ({ ...d, accounts: (d.accounts || []).filter(a => a.id !== id) }));
+  // v28+ Session A: Transactions CRUD
+  const addTransaction = (item) => setData(d => ({ ...d, transactions: [...(d.transactions || []), { ...item, id: `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 }] }));
+  const updateTransaction = (id, updates) => setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
+  const deleteTransaction = (id) => setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
   const addScope = (scope) => setData(d => ({ ...d, scopes: [...d.scopes, { ...scope, id: `sc-${Date.now()}`, createdAt: new Date().toISOString(), status: 'draft' }] }));
   const deleteScope = (id) => setData(d => ({ ...d, scopes: d.scopes.filter(s => s.id !== id) }));
   const addInquiry = (item) => setData(d => ({ ...d, inquiries: [...(d.inquiries || []), { ...item, id: `inq-${Date.now()}`, receivedAt: new Date().toISOString(), status: 'new', statusHistory: [{ status: 'new', at: new Date().toISOString() }] }] }));
@@ -707,8 +715,8 @@ html{scroll-padding-bottom:280px}
         {view === 'books' && (
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} />}
-            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} />}
-            {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} />}
+            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} />}
+            {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} />}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <ThousandNinetyNine contractors={data.contractors1099} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
@@ -2274,11 +2282,290 @@ function BooksEntities({ entityRollups, entityFilter, setEntityFilter, data }) {
   );
 }
 
-function BooksAccounts({ entityRollups }) { return (<div className="space-y-6"><section><SectionTitle>Accounts</SectionTitle></section>{entityRollups.map(r => (<section key={r.entity.id}><h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">{r.entity.name.split('(')[0].trim()}</h3><div className="bg-white border border-[#1A1815]">{r.accounts.map((a, i) => (<div key={a.id} className={`flex justify-between p-3 ${i < r.accounts.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}><div><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{a.name}</span><span className="text-xs text-[#5A5751] ml-2">{a.institution} {a.fragment}</span></div><div className={a.balance < 0 ? 'text-[#B85838]' : ''} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div></div>))}</div></section>))}</div>); }
+const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'loan', 'investment', 'cash', 'other'];
 
-function BooksTransactions({ data, entityFilter, setEntityFilter }) {
-  const visible = entityFilter === 'all' ? data.transactions : data.transactions.filter(t => { if (t.entityOverride) return t.entityOverride === entityFilter; const acc = data.accounts.find(a => a.id === t.accountId); return acc && acc.entityId === entityFilter; });
-  return (<div className="space-y-6"><section><SectionTitle>Transactions</SectionTitle></section><section className="bg-white border border-[#1A1815] p-5"><table className="w-full text-sm"><thead><tr className="border-b border-[#1A1815]"><th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Date</th><th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Description</th><th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Amount</th></tr></thead><tbody>{visible.map(t => (<tr key={t.id} className="border-b border-[#E8E4DC]"><td className="p-2 text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.date.slice(5)}</td><td className="p-2" style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</td><td className={`p-2 text-right ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.amount > 0 ? '+' : ''}{fmt(t.amount)}</td></tr>))}</tbody></table></section></div>);
+function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount }) {
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const blank = { name: '', institution: '', type: 'checking', fragment: '', balance: 0, entityId: entities[0]?.id || 'e-personal', notes: '' };
+  const [form, setForm] = useState(blank);
+
+  const startAdd = () => { setForm(blank); setEditingId(null); setShowForm(true); };
+  const startEdit = (a) => { setForm({ name: a.name, institution: a.institution, type: a.type, fragment: a.fragment || '', balance: a.balance, entityId: a.entityId, notes: a.notes || '' }); setEditingId(a.id); setShowForm(true); };
+  const cancel = () => { setShowForm(false); setEditingId(null); setForm(blank); };
+  const submit = () => {
+    if (!form.name || !form.institution) { alert('Account name and institution are required.'); return; }
+    if (editingId) updateAccount(editingId, form);
+    else addAccount(form);
+    cancel();
+  };
+  const confirmDelete = (a) => { if (confirm(`Delete account "${a.name}"? Transactions referencing it will keep the original accountId reference but will no longer roll up to an entity.`)) deleteAccount(a.id); };
+
+  return (
+    <div className="space-y-6">
+      <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Accounts · Add · Edit · Delete</div>
+        <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Every account, every entity, every balance.</h2>
+        <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          Add the checking, savings, credit, and loan accounts that hold the household's cash flow. Each account belongs to an entity (Personal, Poe Properties, PoeTech, TLC). Balances feed every rollup, projection, and the funds-available check on upcoming transactions.
+        </p>
+      </section>
+
+      <section>
+        <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Accounts</h2>
+          <button onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add account'}</button>
+        </div>
+
+        {showForm && (
+          <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingId ? 'Edit account' : 'New account'}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account name</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Chase Personal Checking" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Institution</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Chase, AMEX, UIECU" value={form.institution} onChange={e => setForm({ ...form, institution: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Type</label>
+                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                  {ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Fragment</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="...8168" value={form.fragment} onChange={e => setForm({ ...form, fragment: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Balance</label>
+                <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.balance} onChange={e => setForm({ ...form, balance: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label>
+                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.entityId} onChange={e => setForm({ ...form, entityId: e.target.value })}>
+                  {entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}
+                </select>
+              </div>
+            </div>
+            <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+            <button onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Account'}</button>
+          </div>
+        )}
+      </section>
+
+      {entityRollups.map(r => (
+        <section key={r.entity.id}>
+          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">{r.entity.name.split('(')[0].trim()}</h3>
+          {r.accounts.length === 0 ? (
+            <div className="bg-white border border-[#E8E4DC] p-4 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No accounts yet for this entity. Use + Add account above.</div>
+          ) : (
+            <div className="bg-white border border-[#1A1815]">
+              {r.accounts.map((a, i) => (
+                <div key={a.id} className={`p-3 ${i < r.accounts.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                  <div className="flex justify-between items-baseline gap-3 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{a.name}</span>
+                      <span className="text-xs text-[#5A5751] ml-2">{a.institution} {a.fragment}</span>
+                      <span className="text-[9px] uppercase tracking-wider text-[#5A5751] ml-2">{a.type}</span>
+                    </div>
+                    <div className={`text-right ${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => startEdit(a)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
+                    <button onClick={() => confirmDelete(a)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Delete</button>
+                  </div>
+                  {a.notes && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.notes}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
+
+function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction }) {
+  const [txView, setTxView] = useState('history');
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const todayISO = currentDate.toISOString().slice(0, 10);
+  const blank = { date: todayISO, accountId: data.accounts[0]?.id || '', amount: 0, description: '', category: 'other', entityOverride: '' };
+  const [form, setForm] = useState(blank);
+
+  const startAdd = () => { setForm({ ...blank, accountId: data.accounts[0]?.id || '' }); setEditingId(null); setShowForm(true); };
+  const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setShowForm(true); };
+  const cancel = () => { setShowForm(false); setEditingId(null); setForm(blank); };
+  const submit = () => {
+    if (!form.date || !form.accountId || !form.description) { alert('Date, account, and description are required.'); return; }
+    const payload = { ...form, amount: parseFloat(form.amount) || 0 };
+    if (!payload.entityOverride) delete payload.entityOverride;
+    if (editingId) updateTransaction(editingId, payload);
+    else addTransaction(payload);
+    cancel();
+  };
+  const confirmDelete = (t) => { if (confirm(`Delete transaction "${t.description}"?`)) deleteTransaction(t.id); };
+
+  const matchesEntity = (t) => {
+    if (entityFilter === 'all') return true;
+    if (t.entityOverride) return t.entityOverride === entityFilter;
+    const acc = data.accounts.find(a => a.id === t.accountId);
+    return acc && acc.entityId === entityFilter;
+  };
+
+  const allTx = (data.transactions || []).filter(matchesEntity);
+  const history = allTx.filter(t => t.date <= todayISO).sort((a, b) => b.date.localeCompare(a.date));
+  const futureTx = allTx.filter(t => t.date > todayISO).sort((a, b) => a.date.localeCompare(b.date));
+
+  const recurringUpcoming = (data.recurringObligations || [])
+    .filter(r => r.enabled !== false && r.nextDue && r.nextDue > todayISO)
+    .map(r => {
+      const months = r.frequency === 'monthly' ? 1 : r.frequency === 'quarterly' ? 3 : r.frequency === 'semi-annual' ? 6 : r.frequency === 'annual' ? 12 : r.frequency === 'biennial' ? 24 : 1;
+      return {
+        id: `ro-preview-${r.id}`,
+        date: r.nextDue,
+        description: r.name,
+        amount: -Math.abs(r.amount),
+        category: r.category || 'subscription',
+        _source: 'recurring',
+        _frequency: r.frequency,
+        _entityId: r.entityId,
+      };
+    })
+    .filter(item => entityFilter === 'all' || item._entityId === entityFilter);
+
+  const upcoming = [...futureTx.map(t => ({ ...t, _source: 'transaction' })), ...recurringUpcoming].sort((a, b) => a.date.localeCompare(b.date));
+
+  const renderRow = (t) => {
+    const acc = data.accounts.find(a => a.id === t.accountId);
+    const accLabel = acc ? `${acc.name}${acc.fragment ? ' ' + acc.fragment : ''}` : (t._source === 'recurring' ? 'Recurring obligation' : '—');
+    return (
+      <tr key={t.id} className="border-b border-[#E8E4DC] align-top">
+        <td className="p-2 text-xs whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.date.slice(5)}</td>
+        <td className="p-2">
+          <div style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</div>
+          <div className="text-[10px] text-[#5A5751] mt-0.5">
+            {accLabel}
+            {t.category && <span className="ml-2 uppercase tracking-wider">· {t.category}</span>}
+            {t._source === 'recurring' && <span className="ml-2 text-[#B85838] uppercase tracking-wider">· recurring · {t._frequency}</span>}
+          </div>
+        </td>
+        <td className={`p-2 text-right whitespace-nowrap ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.amount > 0 ? '+' : ''}{fmt(t.amount)}</td>
+        <td className="p-2 text-right whitespace-nowrap">
+          {t._source !== 'recurring' && (
+            <>
+              <button onClick={() => startEdit(t)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] mr-2">Edit</button>
+              <button onClick={() => confirmDelete(t)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Delete</button>
+            </>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  const list = txView === 'upcoming' ? upcoming : history;
+
+  return (
+    <div className="space-y-6">
+      <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Transactions · Upcoming · History · Add</div>
+        <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Every dollar in. Every dollar out. Every dollar coming.</h2>
+        <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          Add transactions as they happen. See what is already cleared (History) and what is expected to hit next (Upcoming, including the next instance of each enabled recurring obligation). Filters carry through from Entities. Projections, funds-available checks, and the transfer-from popup come in the next pass.
+        </p>
+      </section>
+
+      <section>
+        <div className="border-b border-[#E8E4DC] mb-3">
+          <div className="flex gap-1 text-xs">
+            {[['upcoming', `Upcoming · ${upcoming.length}`], ['history', `History · ${history.length}`]].map(([id, label]) => (
+              <button key={id} onClick={() => setTxView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${txView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
+          <div className="flex gap-1 flex-wrap text-xs">
+            <button onClick={() => setEntityFilter('all')} className={`px-3 py-1.5 border ${entityFilter === 'all' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
+            {data.entities.map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{e.name.split('(')[0].trim()}</button>)}
+          </div>
+          <button onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
+        </div>
+
+        {showForm && (
+          <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingId ? 'Edit transaction' : 'New transaction'}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
+                <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label>
+                <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="-49.99" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account</label>
+                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>
+                  {data.accounts.length === 0 && <option value="">— Add an account first —</option>}
+                  {data.accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label>
+                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                  {TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Description</label>
+              <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Costco · groceries" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity override (optional — defaults to account entity)</label>
+              <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}>
+                <option value="">— No override —</option>
+                {data.entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}
+              </select>
+            </div>
+            <button onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Transaction'}</button>
+          </div>
+        )}
+
+        {list.length === 0 ? (
+          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+            <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              {txView === 'upcoming'
+                ? 'Nothing upcoming. Future-dated transactions and the next instance of each enabled recurring obligation will appear here.'
+                : 'No history yet. Use + Add transaction above, or add recurring obligations in the Calendar tab.'}
+            </p>
+          </div>
+        ) : (
+          <section className="bg-white border border-[#1A1815] p-3 sm:p-5 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#1A1815]">
+                  <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Date</th>
+                  <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
+                  <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                  <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Actions</th>
+                </tr>
+              </thead>
+              <tbody>{list.map(renderRow)}</tbody>
+            </table>
+          </section>
+        )}
+      </section>
+    </div>
+  );
 }
 
 function ThousandNinetyNine({ contractors }) {
