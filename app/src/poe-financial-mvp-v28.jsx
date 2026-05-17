@@ -128,6 +128,8 @@ const SEED_DATA = {
       { id: 'r9', name: '1003 Koehn', rent: 1250, actual: 1250, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 100000, rate: 6.50, monthlyPI: 632, escrow: 200, estimated: true } },
       { id: 'r10', name: '1213 Koehn', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 95000, rate: 6.50, monthlyPI: 600, escrow: 195, estimated: true } },
       { id: 'r11', name: '709 Commercial', rent: 1000, actual: 1000, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.50, monthlyPI: 506, escrow: 170, estimated: true } },
+      // v28+ Personal residence — Talans Way. Mortgage figures are placeholder PITI; edit in Real Estate.
+      { id: 'home-talans', name: '2111 Talans Way', address: '2111 Talans Way', city: 'Champaign', state: 'IL', zip: '', propertyType: 'primary-home', rent: 0, actual: 0, status: 'owner-occupied', entityId: 'e-personal', mortgage: { balance: 0, rate: 0, monthlyPI: 2400, escrow: 223, estimated: true }, notes: 'Primary residence. Fill in mortgage balance + rate from your latest statement; PITI is roughly $2,623/mo.' },
     ],
   },
   outflows: { rentalMortgages: 7595, propertyUtilities: 2638, household: 2176, debtService: 8155, charitableGiving: 2700 },
@@ -557,19 +559,24 @@ export default function PoeFinancialSystem() {
 
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
-    const rentalActual = data.inflows.rentals.reduce((s, x) => s + x.actual, 0);
-    const rentalExpected = data.inflows.rentals.reduce((s, x) => s + x.rent, 0);
+    // v28+ Real Estate restructure: only income-producing properties feed rental math.
+    // Personal / secondary / vacation homes are real estate but not rentals.
+    const incomeProducingRentals = data.inflows.rentals.filter(r => (r.rent || 0) > 0);
+    const rentalActual = incomeProducingRentals.reduce((s, x) => s + x.actual, 0);
+    const rentalExpected = incomeProducingRentals.reduce((s, x) => s + x.rent, 0);
     const rentGap = rentalExpected - rentalActual;
     const collectionRate = rentalExpected > 0 ? (rentalActual / rentalExpected) * 100 : 0;
     const totalInflow = salaryActual + rentalActual;
     const totalOutflow = Object.values(data.outflows).reduce((s, x) => s + x, 0);
     const netCashFlow = totalInflow - totalOutflow;
     const totalConsumerDebt = data.debts.filter(d => !d.leaveAlone).reduce((s, d) => s + d.balance, 0);
-    const totalRentalDebt = data.inflows.rentals.reduce((s, r) => s + r.mortgage.balance, 0);
-    const totalRentalPI = data.inflows.rentals.reduce((s, r) => s + r.mortgage.monthlyPI, 0);
+    const totalRentalDebt = incomeProducingRentals.reduce((s, r) => s + (r.mortgage?.balance || 0), 0);
+    const totalRentalPI = incomeProducingRentals.reduce((s, r) => s + (r.mortgage?.monthlyPI || 0), 0);
+    const totalPersonalRealEstateDebt = data.inflows.rentals.filter(r => (r.rent || 0) === 0).reduce((s, r) => s + (r.mortgage?.balance || 0), 0);
+    const totalPersonalRealEstatePI = data.inflows.rentals.filter(r => (r.rent || 0) === 0).reduce((s, r) => s + (r.mortgage?.monthlyPI || 0), 0);
     const totalOpportunity = data.opportunities.reduce((s, o) => s + o.monthly, 0);
     const totalOppHours = data.opportunities.reduce((s, o) => s + o.hours, 0);
-    return { salaryActual, rentalActual, rentalExpected, rentGap, collectionRate, totalInflow, totalOutflow, netCashFlow, totalConsumerDebt, totalRentalDebt, totalRentalPI, totalOpportunity, totalOppHours };
+    return { salaryActual, rentalActual, rentalExpected, rentGap, collectionRate, totalInflow, totalOutflow, netCashFlow, totalConsumerDebt, totalRentalDebt, totalRentalPI, totalPersonalRealEstateDebt, totalPersonalRealEstatePI, totalOpportunity, totalOppHours };
   }, [data]);
 
   const reserves = useMemo(() => {
@@ -589,8 +596,8 @@ export default function PoeFinancialSystem() {
   const projection = useMemo(() => projectDebt(data.debts, pressureCalc.extraAvailable, currentDate, 240), [data.debts, pressureCalc.extraAvailable, currentDate]);
   const debtSnowball = useMemo(() => projectDebtSnowball(data.debts, debtSnowballExtra, debtSnowballSort, currentDate, 360), [data.debts, debtSnowballExtra, debtSnowballSort, currentDate]);
   const debtMinOnly = useMemo(() => projectDebtMinimumOnly(data.debts, currentDate, 600), [data.debts, currentDate]);
-  const rentalSnowball = useMemo(() => projectRentalSnowball(data.inflows.rentals, snowballExtra, snowballSort, currentDate, 240), [data.inflows.rentals, snowballExtra, snowballSort, currentDate]);
-  const sevenYearTarget = useMemo(() => findExtraForTarget(data.inflows.rentals, 7, currentDate), [data.inflows.rentals, currentDate]);
+  const rentalSnowball = useMemo(() => projectRentalSnowball(data.inflows.rentals.filter(r => (r.rent || 0) > 0), snowballExtra, snowballSort, currentDate, 240), [data.inflows.rentals, snowballExtra, snowballSort, currentDate]);
+  const sevenYearTarget = useMemo(() => findExtraForTarget(data.inflows.rentals.filter(r => (r.rent || 0) > 0), 7, currentDate), [data.inflows.rentals, currentDate]);
 
   const entityRollups = useMemo(() => data.entities.map(entity => {
     const accounts = data.accounts.filter(a => a.entityId === entity.id);
@@ -601,7 +608,7 @@ export default function PoeFinancialSystem() {
     return { entity, accounts, balance, inflow, debts, debtBalance };
   }), [data]);
 
-  const flaggedRentals = data.inflows.rentals.filter((r) => r.status === 'late');
+  const flaggedRentals = data.inflows.rentals.filter((r) => r.status === 'late' && (r.rent || 0) > 0);
   const flaggedOpportunities = data.opportunities.filter((o) => o.flag);
   const upcomingEvents = useMemo(() => {
     const now = new Date();
@@ -730,7 +737,7 @@ html{scroll-padding-bottom:280px}
         <nav className="border-t border-[#E8E4DC]">
           <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
             <div className="flex gap-1 text-xs sm:text-sm">
-              {[['overview','Big Picture'],['books','Books'],['debts','Debts'],['rentals','Rentals'],['projects','Projects'],['practice','Practice'],['opportunities','Opp'],['about','About']].map(([id, label]) => (
+              {[['overview','Big Picture'],['books','Books'],['debts','Debts'],['rentals','Real Estate'],['projects','Projects'],['practice','Practice'],['opportunities','Opp'],['about','About']].map(([id, label]) => (
                 <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
               ))}
             </div>
@@ -2724,7 +2731,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property type</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.propertyType} onChange={e => setPropForm({ ...propForm, propertyType: e.target.value })}>
-                  {['single-family','multi-family','commercial','condo','townhouse','duplex','other'].map(t => <option key={t} value={t}>{t}</option>)}
+                  {['single-family','multi-family','commercial','condo','townhouse','duplex','primary-home','secondary-home','vacation','land','other'].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
@@ -2734,7 +2741,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>
-                  {['paying','late','vacant','rehab','for-sale','sold'].map(t => <option key={t} value={t}>{t}</option>)}
+                  {['paying','late','vacant','rehab','for-sale','sold','owner-occupied','seasonal','unrented'].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
@@ -2826,42 +2833,72 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           </div>
         )}
 
-        {rentals.length === 0 ? (
-          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
-            <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No properties yet. Use + Add property above.</p>
-          </div>
-        ) : (
-          <div className="bg-white border border-[#1A1815]">
-            {rentals.map((r, i) => (
-              <div key={r.id} className={`p-4 ${i < rentals.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-                <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                  <div className="flex-1 min-w-0">
-                    <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
-                    <div className="text-xs text-[#5A5751]">
-                      {[r.address, r.city, r.state, r.zip].filter(Boolean).join(', ') || 'no address yet'}
-                      {r.propertyType && <span className="ml-2 uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
+        {(() => {
+          const incomeProducing = rentals.filter(r => (r.rent || 0) > 0);
+          const personal = rentals.filter(r => (r.rent || 0) === 0);
+          const renderPropertyRow = (r, i, lastIdx) => (
+                <div key={r.id} className={`p-4 ${i < lastIdx ? 'border-b border-[#E8E4DC]' : ''}`}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
+                      <div className="text-xs text-[#5A5751]">
+                        {[r.address, r.city, r.state, r.zip].filter(Boolean).join(', ') || 'no address yet'}
+                        {r.propertyType && <span className="ml-2 uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {(r.rent || 0) > 0 ? (
+                        <>
+                          <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.rent)}<span className="text-xs text-[#5A5751]">/mo</span></div>
+                          <div className={`text-[10px] uppercase tracking-wider ${r.status === 'late' ? 'text-[#B85838]' : r.status === 'vacant' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{r.status}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{r.status || 'personal'}</div>
+                          {r.mortgage?.monthlyPI ? <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt((r.mortgage?.monthlyPI || 0) + (r.mortgage?.escrow || 0))}/mo PITI</div> : null}
+                        </>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.rent)}<span className="text-xs text-[#5A5751]">/mo</span></div>
-                    <div className={`text-[10px] uppercase tracking-wider ${r.status === 'late' ? 'text-[#B85838]' : r.status === 'vacant' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{r.status}</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-xs">
+                    <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : 'paid off'}</span></div>
+                    <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
+                    <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
+                    <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
+                    <button onClick={() => confirmDeleteProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Delete</button>
+                  </div>
+                  {r.notes && <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
+                </div>
+          );
+          return (
+            <div className="space-y-4">
+              {rentals.length === 0 && (
+                <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+                  <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No properties yet. Use + Add property above.</p>
+                </div>
+              )}
+              {incomeProducing.length > 0 && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}</div>
+                  <div className="bg-white border border-[#1A1815]">
+                    {incomeProducing.map((r, i) => renderPropertyRow(r, i, incomeProducing.length - 1))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-xs">
-                  <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : 'paid off'}</span></div>
-                  <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
-                  <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
-                  <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
+              )}
+              {personal.length > 0 && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Personal & Non-Rental · {personal.length}</div>
+                  <div className="bg-white border border-[#1A1815]">
+                    {personal.map((r, i) => renderPropertyRow(r, i, personal.length - 1))}
+                  </div>
                 </div>
-                <div className="flex gap-2 mt-2">
-                  <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
-                  <button onClick={() => confirmDeleteProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Delete</button>
-                </div>
-                {r.notes && <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+              )}
+            </div>
+          );
+        })()}
       </section>
       <section>
         <SectionTitle>Property Map · Champaign-Urbana</SectionTitle>
