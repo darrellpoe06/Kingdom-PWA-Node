@@ -737,7 +737,7 @@ html{scroll-padding-bottom:280px}
         <nav className="border-t border-[#E8E4DC]">
           <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
             <div className="flex gap-1 text-xs sm:text-sm">
-              {[['overview','Big Picture'],['books','Books'],['debts','Debts'],['rentals','Real Estate'],['projects','Projects'],['practice','Practice'],['opportunities','Opp'],['about','About']].map(([id, label]) => (
+              {[['overview','Big Picture'],['books','Books'],['debts','Debts'],['rentals','Real Estate'],['projects','Projects'],['practice','Practice'],['opportunities','Dev/Ops'],['about','About']].map(([id, label]) => (
                 <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
               ))}
             </div>
@@ -2579,111 +2579,6 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         </div>
       </section>
       <section>
-        <SectionTitle>Snowball Strategy</SectionTitle>
-        <div className="bg-white border border-[#1A1815] p-5 space-y-5">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
-            <div className="grid grid-cols-3 gap-1">
-              {[['smallest-balance','Smallest','Momentum'],['highest-rate','Highest rate','Math optimum'],['best-cashflow','Best cash flow','Strong earners']].map(([id, label, sub]) => (
-                <button key={id} onClick={() => setSnowballSort(id)} className={`px-2 py-2 text-left border ${snowballSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
-                  <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{label}</div>
-                  <div className="text-[9px] uppercase tracking-wider opacity-75">{sub}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball</div>
-                <div className="text-[10px] text-[#5A5751] mt-0.5">Total mortgage debt: <strong>{fmtCompact(rentals.reduce((s, r) => s + r.mortgage.balance, 0))}</strong> across {rentals.length} properties · P&I: <strong>{fmt(rentals.reduce((s, r) => s + r.mortgage.monthlyPI, 0))}/mo</strong></div>
-              </div>
-              <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(snowballExtra)}</div>
-            </div>
-            <input type="range" min="0" max="20000" step="250" value={snowballExtra} onChange={(e) => setSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" />
-            <details className="mt-2">
-              <summary className="text-[10px] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show individual property balances</summary>
-              <div className="mt-2 space-y-1 text-xs">
-                {[...rentals].sort((a, b) => b.mortgage.balance - a.mortgage.balance).slice(0, 11).map(r => (
-                  <div key={r.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
-                    <span style={{ fontFamily: '"Fraunces", serif' }}>{r.address} <span className="text-[#5A5751]">· {r.mortgage.rate}%</span></span>
-                    <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(r.mortgage.balance)}</span>
-                  </div>
-                ))}
-              </div>
-            </details>
-          </div>
-          <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            <MetricCell label="All paid in" value={yearsAndMonths(rentalSnowball.allClearedMonth)} small />
-            <MetricCell label="Interest" value={fmt(rentalSnowball.totalInterest)} small />
-            <MetricCell label="Final freed" value={fmt(rentalSnowball.finalFreedCashFlow)} small accent="green" />
-          </div>
-        </div>
-      </section>
-      <section>
-        <SectionTitle>7-Year Goal · Feasibility</SectionTitle>
-        <div className="bg-white border border-[#1A1815] p-5">
-          {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all 11 doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYearTarget)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p>}
-        </div>
-      </section>
-      <section>
-        <SectionTitle>Strategy Comparison</SectionTitle>
-        <div className="bg-white border border-[#1A1815] p-5">
-          <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            All three strategies side by side at your current ${'{'}fmt(snowballExtra){'}'}/mo snowball. Differences show up most in <em>payoff order</em> (which property clears first) and <em>cash flow timing</em>, less so in total interest when mortgage rates are similar.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            {strategyComparison.map(s => (
-              <div key={s.id} className={`p-4 ${s.id === snowballSort ? 'bg-[#FAF8F4]' : 'bg-white'}`}>
-                <div className="flex items-baseline justify-between gap-2 mb-2">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">{s.label}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-[#5A5751] opacity-75">{s.sub}</div>
-                  </div>
-                  {s.id === snowballSort && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">Selected</span>}
-                </div>
-                <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(s.totalInterest)}</div>
-                <div className="text-[10px] text-[#5A5751] mt-0.5">total interest</div>
-                <div className={`text-[10px] mt-1 ${s.isCheapest ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  {s.isCheapest ? '✓ cheapest' : `+${fmt(s.delta)}`}
-                </div>
-                <div className="text-[10px] text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  All clear: {s.allClearedYears.toFixed(1)} yrs
-                </div>
-              </div>
-            ))}
-          </div>
-          {allRatesEqual && (
-            <p className="text-[11px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
-              All 11 rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
-            </p>
-          )}
-        </div>
-      </section>
-      <section>
-        <SectionTitle>Payoff Cascade</SectionTitle>
-        <div className="bg-white border border-[#1A1815]">
-          {orderedByPayoff.map((r, i) => {
-            const freedSoFar = orderedByPayoff.slice(0, i + 1).reduce((s, x) => s + x.mortgage.monthlyPI, 0);
-            return (
-              <div key={r.id} className={`p-4 ${i < orderedByPayoff.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-                <div className="flex items-start gap-3">
-                  <div className="text-[#B85838] shrink-0 w-8 text-center" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{i + 1}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
-                      <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{monthLabel(currentDate, r.clearedAtMonth)}</div>
-                    </div>
-                    <div className="text-xs text-[#5A5751] mt-1">Paid in {yearsAndMonths(r.clearedAtMonth)} · {fmt(r.mortgage.balance)} · Frees {fmt(r.mortgage.monthlyPI)}/mo</div>
-                    <div className="text-xs text-[#5A6E3D] mt-1">Snowball after: <strong>{fmt(snowballExtra + freedSoFar)}/mo</strong></div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-      <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
           <button onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
@@ -2900,6 +2795,113 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           );
         })()}
       </section>
+
+      <section>
+        <SectionTitle>Snowball Strategy</SectionTitle>
+        <div className="bg-white border border-[#1A1815] p-5 space-y-5">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
+            <div className="grid grid-cols-3 gap-1">
+              {[['smallest-balance','Smallest','Momentum'],['highest-rate','Highest rate','Math optimum'],['best-cashflow','Best cash flow','Strong earners']].map(([id, label, sub]) => (
+                <button key={id} onClick={() => setSnowballSort(id)} className={`px-2 py-2 text-left border ${snowballSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
+                  <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{label}</div>
+                  <div className="text-[9px] uppercase tracking-wider opacity-75">{sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball</div>
+                <div className="text-[10px] text-[#5A5751] mt-0.5">Total mortgage debt: <strong>{fmtCompact(rentals.reduce((s, r) => s + r.mortgage.balance, 0))}</strong> across {rentals.length} properties · P&I: <strong>{fmt(rentals.reduce((s, r) => s + r.mortgage.monthlyPI, 0))}/mo</strong></div>
+              </div>
+              <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(snowballExtra)}</div>
+            </div>
+            <input type="range" min="0" max="20000" step="250" value={snowballExtra} onChange={(e) => setSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" />
+            <details className="mt-2">
+              <summary className="text-[10px] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show individual property balances</summary>
+              <div className="mt-2 space-y-1 text-xs">
+                {[...rentals].sort((a, b) => b.mortgage.balance - a.mortgage.balance).slice(0, 11).map(r => (
+                  <div key={r.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
+                    <span style={{ fontFamily: '"Fraunces", serif' }}>{r.address} <span className="text-[#5A5751]">· {r.mortgage.rate}%</span></span>
+                    <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(r.mortgage.balance)}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+          <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+            <MetricCell label="All paid in" value={yearsAndMonths(rentalSnowball.allClearedMonth)} small />
+            <MetricCell label="Interest" value={fmt(rentalSnowball.totalInterest)} small />
+            <MetricCell label="Final freed" value={fmt(rentalSnowball.finalFreedCashFlow)} small accent="green" />
+          </div>
+        </div>
+      </section>
+      <section>
+        <SectionTitle>7-Year Goal · Feasibility</SectionTitle>
+        <div className="bg-white border border-[#1A1815] p-5">
+          {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all 11 doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYearTarget)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p>}
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Strategy Comparison</SectionTitle>
+        <div className="bg-white border border-[#1A1815] p-5">
+          <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+            All three strategies side by side at your current ${'{'}fmt(snowballExtra){'}'}/mo snowball. Differences show up most in <em>payoff order</em> (which property clears first) and <em>cash flow timing</em>, less so in total interest when mortgage rates are similar.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+            {strategyComparison.map(s => (
+              <div key={s.id} className={`p-4 ${s.id === snowballSort ? 'bg-[#FAF8F4]' : 'bg-white'}`}>
+                <div className="flex items-baseline justify-between gap-2 mb-2">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">{s.label}</div>
+                    <div className="text-[9px] uppercase tracking-wider text-[#5A5751] opacity-75">{s.sub}</div>
+                  </div>
+                  {s.id === snowballSort && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">Selected</span>}
+                </div>
+                <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(s.totalInterest)}</div>
+                <div className="text-[10px] text-[#5A5751] mt-0.5">total interest</div>
+                <div className={`text-[10px] mt-1 ${s.isCheapest ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  {s.isCheapest ? '✓ cheapest' : `+${fmt(s.delta)}`}
+                </div>
+                <div className="text-[10px] text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  All clear: {s.allClearedYears.toFixed(1)} yrs
+                </div>
+              </div>
+            ))}
+          </div>
+          {allRatesEqual && (
+            <p className="text-[11px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+              All 11 rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
+            </p>
+          )}
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Payoff Cascade</SectionTitle>
+        <div className="bg-white border border-[#1A1815]">
+          {orderedByPayoff.map((r, i) => {
+            const freedSoFar = orderedByPayoff.slice(0, i + 1).reduce((s, x) => s + x.mortgage.monthlyPI, 0);
+            return (
+              <div key={r.id} className={`p-4 ${i < orderedByPayoff.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                <div className="flex items-start gap-3">
+                  <div className="text-[#B85838] shrink-0 w-8 text-center" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{i + 1}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
+                      <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{monthLabel(currentDate, r.clearedAtMonth)}</div>
+                    </div>
+                    <div className="text-xs text-[#5A5751] mt-1">Paid in {yearsAndMonths(r.clearedAtMonth)} · {fmt(r.mortgage.balance)} · Frees {fmt(r.mortgage.monthlyPI)}/mo</div>
+                    <div className="text-xs text-[#5A6E3D] mt-1">Snowball after: <strong>{fmt(snowballExtra + freedSoFar)}/mo</strong></div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       <section>
         <SectionTitle>Property Map · Champaign-Urbana</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-3">
@@ -3724,7 +3726,23 @@ function Pressure({ pressure, setPressure, totals, pressureCalc, reserves, proje
 }
 
 function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate }) {
-  const sorted = [...debts].sort((a, b) => { if (a.leaveAlone !== b.leaveAlone) return a.leaveAlone ? 1 : -1; return b.rate - a.rate; });
+  // v28+ All Debts table - excel-style sort by rate / balance / payoff date
+  const [allDebtsSort, setAllDebtsSort] = useState('rate');
+  const sorted = useMemo(() => {
+    const arr = [...debts];
+    arr.sort((a, b) => {
+      if (a.leaveAlone !== b.leaveAlone) return a.leaveAlone ? 1 : -1;
+      if (allDebtsSort === 'balance') return b.balance - a.balance;
+      if (allDebtsSort === 'payoff') {
+        const aClear = debtSnowball.activeDebts.find(p => p.id === a.id)?.clearedAtMonth ?? 999;
+        const bClear = debtSnowball.activeDebts.find(p => p.id === b.id)?.clearedAtMonth ?? 999;
+        return aClear - bClear;
+      }
+      // default: rate (highest first)
+      return b.rate - a.rate;
+    });
+    return arr;
+  }, [debts, allDebtsSort, debtSnowball.activeDebts]);
   const ent = (id) => entities.find(e => e.id === id);
   const debtsWithCleared = debts.filter(d => !d.leaveAlone).map(d => { const cleared = debtSnowball.activeDebts.find(p => p.id === d.id); return { ...d, clearedAtMonth: cleared?.clearedAtMonth, interestPaid: cleared?.interestPaid || 0 }; });
   const orderedByPayoff = debtsWithCleared.filter(d => d.clearedAtMonth).sort((a, b) => a.clearedAtMonth - b.clearedAtMonth);
@@ -3741,6 +3759,41 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           The same snowball that pays off 11 rental properties also clears consumer debt — and the math here is even more motivating because the interest rates are much higher. Watch what gets freed up at each payoff.
         </p>
+      </section>
+
+      {/* All Debts table — excel-style sort by rate / balance / payoff date */}
+      <section>
+        <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3 pb-2 border-b border-[#1A1815]">
+          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Debts · sorted by {allDebtsSort === 'rate' ? 'rate' : allDebtsSort === 'balance' ? 'balance' : 'payoff date'}</h2>
+          <div className="flex gap-1">
+            {[['rate','Rate'],['balance','Balance'],['payoff','Payoff date']].map(([id, label]) => (
+              <button key={id} onClick={() => setAllDebtsSort(id)} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${allDebtsSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="bg-white border border-[#1A1815] overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-[#1A1815]"><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Account</th><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Rate</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Min</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Balance</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Payoff</th></tr></thead>
+            <tbody>
+              {sorted.map((d) => {
+                const cleared = debtSnowball.activeDebts.find(p => p.id === d.id);
+                const payoff = cleared?.clearedAtMonth ? monthLabel(currentDate, cleared.clearedAtMonth) : (d.leaveAlone ? '—' : '?');
+                return (
+                  <tr key={d.id} className={`border-b border-[#E8E4DC] ${d.flag ? 'bg-[#FAF8F4]' : ''} ${d.leaveAlone ? 'opacity-60' : ''}`}>
+                    <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[10px] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
+                    <td className="p-3 text-xs text-[#5A5751] hidden sm:table-cell">{ent(d.entityId)?.name.split('(')[0].trim() || '—'}</td>
+                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{d.rate === 0 ? '0%' : `${d.rate.toFixed(2).replace(/\.00$/, '')}%`}</td>
+                    <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.minPayment)}</td>
+                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.balance)}</td>
+                    <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{payoff}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {/* Top metrics */}
@@ -3862,9 +3915,8 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         </div>
       </section>
 
-      {/* Original debt table */}
-      <section>
-        <SectionTitle>All Debts · By Rate</SectionTitle>
+      {/* MOVED-FROM-BOTTOM: lighter dead anchor for the future. The visible section is at the top now. */}
+      <section style={{ display: 'none' }} aria-hidden>
         <div className="bg-white border border-[#1A1815] overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-[#1A1815]"><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Account</th><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Rate</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Min</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Balance</th></tr></thead>
