@@ -3013,6 +3013,13 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
   const [transferContext, setTransferContext] = useState(null); // { targetAccountId, shortfall, occasion }
   const [transferAmount, setTransferAmount] = useState(0);
   const [transferSourceId, setTransferSourceId] = useState('');
+
+  // v28+ CSV import state
+  const [csvOpen, setCsvOpen] = useState(false);
+  const [csvRaw, setCsvRaw] = useState('');
+  const [csvAccountId, setCsvAccountId] = useState(data.accounts[0]?.id || '');
+  const [csvFlipSign, setCsvFlipSign] = useState(false);
+  const [csvError, setCsvError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const todayISO = currentDate.toISOString().slice(0, 10);
@@ -3135,6 +3142,114 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
     addTransaction({ date: today, accountId: src.id, amount: -amt, description: `Transfer to ${tgt.name}${tgt.fragment ? ' ' + tgt.fragment : ''}`, category: 'transfer' });
     addTransaction({ date: today, accountId: tgt.id, amount: amt, description: `Transfer from ${src.name}${src.fragment ? ' ' + src.fragment : ''}`, category: 'transfer' });
     closeTransfer();
+  };
+
+  // ---- CSV import helpers ----------------------------------------------------
+  // Minimal RFC 4180-ish CSV splitter (handles quoted commas + escaped quotes).
+  const parseCsvLine = (line) => {
+    const out = [];
+    let cur = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQ) {
+        if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (c === '"') inQ = false;
+        else cur += c;
+      } else {
+        if (c === ',') { out.push(cur); cur = ''; }
+        else if (c === '"') inQ = true;
+        else cur += c;
+      }
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  };
+  const normalizeDate = (s) => {
+    if (!s) return '';
+    // Try ISO YYYY-MM-DD first
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // MM/DD/YYYY
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (m) {
+      let [, mo, da, yr] = m;
+      if (yr.length === 2) yr = (parseInt(yr) > 50 ? '19' : '20') + yr;
+      return `${yr}-${mo.padStart(2,'0')}-${da.padStart(2,'0')}`;
+    }
+    // MM-DD-YYYY
+    m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
+    if (m) {
+      let [, mo, da, yr] = m;
+      if (yr.length === 2) yr = (parseInt(yr) > 50 ? '19' : '20') + yr;
+      return `${yr}-${mo.padStart(2,'0')}-${da.padStart(2,'0')}`;
+    }
+    return s; // give up, show raw
+  };
+  const csvParsed = (() => {
+    if (!csvRaw.trim()) return { rows: [], headers: [], idx: {}, errors: [] };
+    const lines = csvRaw.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length === 0) return { rows: [], headers: [], idx: {}, errors: ['File is empty.'] };
+    const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
+    const findCol = (...names) => {
+      for (const n of names) {
+        const i = headers.indexOf(n);
+        if (i !== -1) return i;
+      }
+      return -1;
+    };
+    const idx = {
+      date: findCol('transaction date', 'date', 'posted date', 'post date'),
+      desc: findCol('description', 'details', 'memo', 'name', 'payee'),
+      amount: findCol('amount', 'debit', 'transaction amount'),
+      credit: findCol('credit'),
+      category: findCol('category', 'type'),
+    };
+    const errors = [];
+    if (idx.date === -1) errors.push('No Date column found.');
+    if (idx.desc === -1) errors.push('No Description column found.');
+    if (idx.amount === -1 && idx.credit === -1) errors.push('No Amount column found.');
+    if (errors.length) return { rows: [], headers, idx, errors };
+    const rows = lines.slice(1).map((line, i) => {
+      const cells = parseCsvLine(line);
+      const rawDate = cells[idx.date] || '';
+      const date = normalizeDate(rawDate);
+      const desc = cells[idx.desc] || '';
+      let amt = 0;
+      if (idx.amount !== -1 && cells[idx.amount]) amt = parseFloat(cells[idx.amount].replace(/[$,]/g, '')) || 0;
+      else if (idx.credit !== -1 && cells[idx.credit]) amt = parseFloat(cells[idx.credit].replace(/[$,]/g, '')) || 0;
+      if (csvFlipSign) amt = -amt;
+      const category = idx.category !== -1 ? (cells[idx.category] || 'other').toLowerCase() : 'other';
+      const ok = !!date && !!desc && /^\d{4}-\d{2}-\d{2}$/.test(date);
+      return { lineNo: i + 2, rawDate, date, desc, amount: amt, category, ok };
+    });
+    return { rows, headers, idx, errors };
+  })();
+
+  const importCsv = () => {
+    if (!csvAccountId) { setCsvError('Pick a target account first.'); return; }
+    const valid = csvParsed.rows.filter(r => r.ok);
+    if (valid.length === 0) { setCsvError('No valid rows to import.'); return; }
+    if (!confirm(`Import ${valid.length} transaction(s) into ${(data.accounts.find(a => a.id === csvAccountId) || {}).name || 'this account'}?`)) return;
+    valid.forEach(r => {
+      addTransaction({
+        date: r.date,
+        accountId: csvAccountId,
+        amount: r.amount,
+        description: r.desc.slice(0, 200),
+        category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
+      });
+    });
+    setCsvOpen(false);
+    setCsvRaw('');
+    setCsvError('');
+    alert(`Imported ${valid.length} transaction(s).`);
+  };
+  const onCsvFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => { setCsvRaw(String(e.target.result || '')); setCsvError(''); };
+    reader.onerror = () => setCsvError('Could not read file.');
+    reader.readAsText(file);
   };
 
   const renderRow = (t) => {
@@ -3275,7 +3390,10 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
             <button onClick={() => setEntityFilter('all')} className={`px-3 py-1.5 border ${entityFilter === 'all' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
             {data.entities.map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{e.name.split('(')[0].trim()}</button>)}
           </div>
-          <button onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setCsvOpen(true)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">📤 Import CSV</button>
+            <button onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
+          </div>
         </div>
 
         {showForm && (
@@ -3364,6 +3482,89 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
           );
         })()}
       </section>
+
+      {csvOpen && (
+        <div className="fixed inset-0 z-50 bg-[#1A1815]/60 flex items-center justify-center p-4" onClick={() => setCsvOpen(false)}>
+          <div className="bg-white border-2 border-[#1A1815] max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-[#1A1815] flex items-baseline justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📤 Import CSV</div>
+                <h2 className="text-2xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Drop a bank export</h2>
+                <div className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Chase, AMEX, Discover, and most banks export a CSV with Date / Description / Amount columns. Other columns are ignored.
+                </div>
+              </div>
+              <button onClick={() => setCsvOpen(false)} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">1. Target account (all rows will be assigned to this account)</label>
+                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={csvAccountId} onChange={e => setCsvAccountId(e.target.value)}>
+                  {data.accounts.length === 0 && <option value="">— Add an account first —</option>}
+                  {data.accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">2. Pick CSV file</label>
+                <input type="file" accept=".csv,text/csv" onChange={e => onCsvFile(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[10px] file:hover:bg-[#B85838] file:cursor-pointer" />
+              </div>
+
+              <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ fontFamily: '"Fraunces", serif' }}>
+                <input type="checkbox" checked={csvFlipSign} onChange={e => setCsvFlipSign(e.target.checked)} className="accent-[#B85838]" />
+                <span>Flip the sign on every amount. <em>Tick this if your bank exports charges as positive (AMEX, some Discover exports). Chase usually doesn't need this.</em></span>
+              </label>
+
+              {csvParsed.errors.length > 0 && (
+                <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {csvParsed.errors.map((er, i) => <div key={i}>· {er}</div>)}
+                </div>
+              )}
+
+              {csvParsed.rows.length > 0 && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">3. Preview · {csvParsed.rows.filter(r => r.ok).length} valid / {csvParsed.rows.length} total</div>
+                  <div className="border border-[#1A1815] overflow-x-auto max-h-72 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-white">
+                        <tr className="border-b border-[#1A1815]">
+                          <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Date</th>
+                          <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Description</th>
+                          <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                          <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Cat</th>
+                          <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Ok?</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {csvParsed.rows.slice(0, 100).map((r, i) => (
+                          <tr key={i} className={`border-b border-[#E8E4DC] ${r.ok ? '' : 'bg-[#FAF8F4] opacity-60'}`}>
+                            <td className="p-2 whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.date || r.rawDate}</td>
+                            <td className="p-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.desc.slice(0, 60)}</td>
+                            <td className={`p-2 text-right whitespace-nowrap ${r.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.amount > 0 ? '+' : ''}{fmt(r.amount)}</td>
+                            <td className="p-2 text-[10px] uppercase tracking-wider">{r.category}</td>
+                            <td className="p-2 text-[10px] uppercase tracking-wider">{r.ok ? <span className="text-[#5A6E3D]">✓</span> : <span className="text-[#B85838]">skip</span>}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {csvParsed.rows.length > 100 && <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Showing first 100 rows in preview — all {csvParsed.rows.length} will import.</p>}
+                </div>
+              )}
+
+              {csvError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{csvError}</div>}
+
+              <button onClick={importCsv} disabled={csvParsed.rows.filter(r => r.ok).length === 0 || !csvAccountId} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
+                Import {csvParsed.rows.filter(r => r.ok).length} transaction{csvParsed.rows.filter(r => r.ok).length === 1 ? '' : 's'}
+              </button>
+              <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+                Rows without a parseable date are skipped automatically. Amounts with $ or commas are normalized. Unknown categories become 'other'.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {transferContext && (() => {
         const tgt = (data.accounts || []).find(a => a.id === transferContext.targetAccountId);
