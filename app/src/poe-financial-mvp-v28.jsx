@@ -117,19 +117,19 @@ const SEED_DATA = {
       { id: 'c-tlc', who: 'Christina', source: 'TLC Therapy Solutions', expected: 2200, actual: 4283, entityId: 'e-tlc' },
     ],
     rentals: [
-      { id: 'r1', name: '1508 Williamsburg', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.50, monthlyPI: 556, escrow: 180, estimated: true } },
-      { id: 'r2', name: '1513 Holly Hill', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.50, monthlyPI: 556, escrow: 180, estimated: true } },
-      { id: 'r3', name: '1508 Holly Hill', rent: 1400, actual: 550, status: 'late', entityId: 'e-poeprops', mortgage: { balance: 110000, rate: 6.50, monthlyPI: 695, escrow: 220, estimated: true } },
-      { id: 'r4', name: '805 Apt 1', rent: 850, actual: 850, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
-      { id: 'r5', name: '805 Apt 2', rent: 950, actual: 950, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
-      { id: 'r6', name: '805 Apt 3', rent: 900, actual: 900, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
-      { id: 'r7', name: '805 Apt 4', rent: 1000, actual: 1000, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
-      { id: 'r8', name: '440 South Street', rent: 950, actual: 950, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.50, monthlyPI: 506, escrow: 170, estimated: true } },
-      { id: 'r9', name: '1003 Koehn', rent: 1250, actual: 1250, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 100000, rate: 6.50, monthlyPI: 632, escrow: 200, estimated: true } },
-      { id: 'r10', name: '1213 Koehn', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 95000, rate: 6.50, monthlyPI: 600, escrow: 195, estimated: true } },
-      { id: 'r11', name: '709 Commercial', rent: 1000, actual: 1000, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.50, monthlyPI: 506, escrow: 170, estimated: true } },
+      { id: 'r1', name: '1508 Williamsburg', address: '1508 Williamsburg', city: 'Champaign', state: 'IL', tenantName: '', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.50, monthlyPI: 556, escrow: 180, estimated: true } },
+      { id: 'r2', name: '1513 Holly Hill', address: '1513 Holly Hill', city: 'Champaign', state: 'IL', tenantName: '', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.50, monthlyPI: 556, escrow: 180, estimated: true } },
+      { id: 'r3', name: '1508 Holly Hill', address: '1508 Holly Hill', city: 'Champaign', state: 'IL', tenantName: '', rent: 1400, actual: 550, status: 'late', entityId: 'e-poeprops', mortgage: { balance: 110000, rate: 6.50, monthlyPI: 695, escrow: 220, estimated: true } },
+      { id: 'r4', name: '805 Apt 1', address: '805 Apt 1', city: 'Champaign', state: 'IL', tenantName: '', rent: 850, actual: 850, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
+      { id: 'r5', name: '805 Apt 2', address: '805 Apt 2', city: 'Champaign', state: 'IL', tenantName: '', rent: 950, actual: 950, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
+      { id: 'r6', name: '805 Apt 3', address: '805 Apt 3', city: 'Champaign', state: 'IL', tenantName: '', rent: 900, actual: 900, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
+      { id: 'r7', name: '805 Apt 4', address: '805 Apt 4', city: 'Champaign', state: 'IL', tenantName: '', rent: 1000, actual: 1000, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
+      { id: 'r8', name: '440 South Street', address: '440 South Street', city: 'Champaign', state: 'IL', tenantName: '', rent: 950, actual: 950, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.50, monthlyPI: 506, escrow: 170, estimated: true } },
+      { id: 'r9', name: '1003 Koehn', address: '1003 Koehn', city: 'Champaign', state: 'IL', tenantName: '', rent: 1250, actual: 1250, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 100000, rate: 6.50, monthlyPI: 632, escrow: 200, estimated: true } },
+      { id: 'r10', name: '1213 Koehn', address: '1213 Koehn', city: 'Champaign', state: 'IL', tenantName: '', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 95000, rate: 6.50, monthlyPI: 600, escrow: 195, estimated: true } },
+      { id: 'r11', name: '709 Commercial', address: '709 Commercial', city: 'Champaign', state: 'IL', tenantName: '', rent: 1000, actual: 1000, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.50, monthlyPI: 506, escrow: 170, estimated: true } },
       // v28+ Personal residence — Talans Way. Mortgage figures are placeholder PITI; edit in Real Estate.
-      { id: 'home-talans', name: '2111 Talans Way', address: '2111 Talans Way', city: 'Champaign', state: 'IL', zip: '', propertyType: 'primary-home', rent: 0, actual: 0, status: 'owner-occupied', entityId: 'e-personal', mortgage: { balance: 0, rate: 0, monthlyPI: 2400, escrow: 223, estimated: true }, notes: 'Primary residence. Fill in mortgage balance + rate from your latest statement; PITI is roughly $2,623/mo.' },
+      { id: 'home-talans', name: '2111 Talans Way', address: '2111 Talans Way', city: 'Champaign', state: 'IL', zip: '', tenantName: '', propertyType: 'primary-home', rent: 0, actual: 0, status: 'owner-occupied', entityId: 'e-personal', mortgage: { balance: 0, rate: 0, monthlyPI: 2400, escrow: 223, estimated: true }, notes: 'Primary residence. Fill in mortgage balance + rate from your latest statement; PITI is roughly $2,623/mo.' },
     ],
   },
   outflows: { rentalMortgages: 7595, propertyUtilities: 2638, household: 2176, debtService: 8155, charitableGiving: 2700 },
@@ -2442,7 +2442,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // v28+ Rentals expansion: add/edit property + autocomplete + map + evaluator
   const [showPropForm, setShowPropForm] = useState(false);
   const [editingPropId, setEditingPropId] = useState(null);
-  const blankProp = () => ({ name: '', address: '', city: '', state: '', zip: '', lat: null, lon: null, propertyType: 'single-family', rent: 0, status: 'paying', entityId: 'e-poeprops', purchasePrice: 0, purchaseDate: '', estimatedValue: 0, mortgageBalance: 0, mortgageRate: 6.5, monthlyPI: 0, escrow: 0, notes: '' });
+  const blankProp = () => ({ name: '', address: '', city: '', state: '', zip: '', tenantName: '', lat: null, lon: null, propertyType: 'single-family', rent: 0, status: 'paying', entityId: 'e-poeprops', purchasePrice: 0, purchaseDate: '', estimatedValue: 0, mortgageBalance: 0, mortgageRate: 6.5, monthlyPI: 0, escrow: 0, notes: '' });
   const [propForm, setPropForm] = useState(blankProp());
   const [suggestions, setSuggestions] = useState([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
@@ -2535,6 +2535,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const startEditProp = (r) => {
     setPropForm({
       name: r.name || '', address: r.address || '', city: r.city || '', state: r.state || '', zip: r.zip || '',
+      tenantName: r.tenantName || '',
       lat: r.lat ?? null, lon: r.lon ?? null,
       propertyType: r.propertyType || 'single-family',
       rent: r.rent || 0, status: r.status || 'paying', entityId: r.entityId || 'e-poeprops',
@@ -2552,6 +2553,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     const payload = {
       name: propForm.name,
       address: propForm.address, city: propForm.city, state: propForm.state, zip: propForm.zip,
+      tenantName: propForm.tenantName,
       lat: propForm.lat, lon: propForm.lon,
       propertyType: propForm.propertyType,
       rent: parseFloat(propForm.rent) || 0,
@@ -2714,6 +2716,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               </div>
             </div>
 
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Current tenant name (optional)</label>
+              <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Tracy Williams — leave blank for personal or vacant" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} />
+              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>If set, the tenant name shows on the property card. Property name (address) stays the property's primary label.</p>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property type</label>
@@ -2832,6 +2839,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         {[r.address, r.city, r.state, r.zip].filter(Boolean).join(', ') || 'no address yet'}
                         {r.propertyType && <span className="ml-2 uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
                       </div>
+                      {r.tenantName && (
+                        <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                          👤 <strong>{r.tenantName}</strong>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       {(r.rent || 0) > 0 ? (
