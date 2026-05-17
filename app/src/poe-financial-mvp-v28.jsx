@@ -2318,7 +2318,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           <MetricCell label="Total debt" value={fmtCompact(totalDebt)} sub={`${debts.filter(d => !d.leaveAlone).length} accounts`} small accent="rust" />
           <MetricCell label="Min payments" value={fmt(totalMinPayment)} sub="/mo" small />
           <MetricCell label="Debt-free" value={debtSnowball.allClearedDate} sub={`${debtSnowball.allClearedYears.toFixed(1)}yr`} small accent="green" />
-          <MetricCell label="Interest paid" value={fmtCompact(debtSnowball.totalInterest)} sub="over journey" small accent="rust" />
+          <MetricCell label="Interest paid" value={fmt(debtSnowball.totalInterest)} sub="over journey" small accent="rust" />
         </div>
       </section>
 
@@ -2328,17 +2328,17 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
           <div>
             <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Minimums only</div>
-            <div className="text-lg sm:text-2xl text-[#B85838]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact(debtMinOnly.totalInterest)}</div>
+            <div className="text-lg sm:text-2xl text-[#B85838]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(debtMinOnly.totalInterest)}</div>
             <div className="text-[9px] sm:text-[10px] text-[#5A5751]">interest paid{stuckCount > 0 ? ` (${stuckCount} stuck)` : ''}</div>
           </div>
           <div>
             <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">With {fmt(debtSnowballExtra)}/mo</div>
-            <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact(debtSnowball.totalInterest)}</div>
+            <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(debtSnowball.totalInterest)}</div>
             <div className="text-[9px] sm:text-[10px] text-[#5A5751]">interest paid</div>
           </div>
           <div>
             <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">YOU SAVE</div>
-            <div className="text-xl sm:text-3xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtCompact(interestSaved)}</div>
+            <div className="text-xl sm:text-3xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmt(interestSaved)}</div>
             <div className="text-[9px] sm:text-[10px] text-[#5A5751]">never paid</div>
           </div>
         </div>
@@ -2389,7 +2389,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           </div>
           <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
             <MetricCell label="All paid in" value={yearsAndMonths(debtSnowball.allClearedMonth)} sub={debtSnowball.allClearedDate} small />
-            <MetricCell label="Interest paid" value={fmtCompact(debtSnowball.totalInterest)} small accent="rust" />
+            <MetricCell label="Interest paid" value={fmt(debtSnowball.totalInterest)} small accent="rust" />
             <MetricCell label="Final freed" value={fmt(debtSnowball.finalFreedCashFlow)} sub="/mo" small accent="green" />
           </div>
           <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
