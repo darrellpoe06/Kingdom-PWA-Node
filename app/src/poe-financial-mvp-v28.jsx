@@ -1051,7 +1051,7 @@ function InstallPrompt() {
   if (!deferredEvt && !isIOS) return null;
 
   return (
-    <div className="install-prompt fixed bottom-4 left-4 z-40 max-w-xs print:hidden">
+    <div className="install-prompt fixed bottom-4 left-4 right-20 sm:right-auto z-40 max-w-xs print:hidden">
       <div className="bg-white border-2 border-[#1A1815] shadow-lg p-3">
         <div className="flex items-baseline justify-between gap-2 mb-2">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📲 Install PoeTech</div>
@@ -1185,10 +1185,11 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
   const [whatsWorking, setWhatsWorking] = useState('');
   const [whatsNot, setWhatsNot] = useState('');
   const [whatsMissing, setWhatsMissing] = useState('');
+  const [formError, setFormError] = useState('');
 
   const handleSubmit = () => {
     if (!rating && !whatsWorking && !whatsNot && !whatsMissing) {
-      alert('Please share at least one note — anything is helpful.');
+      setFormError('Please share at least one note — anything is helpful.');
       return;
     }
     onSubmit({ rating, area, whatsWorking, whatsNot, whatsMissing });
@@ -1264,6 +1265,7 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
           </div>
 
           <div className="flex gap-2 mt-5 pt-4 border-t border-[#E8E4DC]">
+            {formError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838] w-full" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{formError}</div>}
             <button onClick={handleSubmit} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold">Submit Feedback</button>
             <button onClick={onClose} className="border border-[#E8E4DC] text-[#5A5751] px-6 py-2.5 text-xs uppercase tracking-wider hover:border-[#1A1815]">Cancel</button>
           </div>
@@ -1458,6 +1460,7 @@ function CompactHero({ label, value, sub, accent }) {
 function Cart({ subscriptions, entities, addSubscription, updateSubscription, deleteSubscription }) {
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [subError, setSubError] = useState('');
   const [newSub, setNewSub] = useState({
     name: '', category: 'software', monthly: 0, status: 'keep',
     entityId: 'e-personal', notes: '', billingCycle: 'monthly'
@@ -1467,9 +1470,10 @@ function Cart({ subscriptions, entities, addSubscription, updateSubscription, de
 
   const submitSub = () => {
     if (!newSub.name || !newSub.monthly) {
-      alert('Name and monthly amount are required.');
+      setSubError('Name and monthly amount are required.');
       return;
     }
+    setSubError('');
     addSubscription({ ...newSub, monthly: parseFloat(newSub.monthly) });
     setNewSub({ name: '', category: 'software', monthly: 0, status: 'keep', entityId: 'e-personal', notes: '', billingCycle: 'monthly' });
     setShowForm(false);
@@ -1584,6 +1588,7 @@ function Cart({ subscriptions, entities, addSubscription, updateSubscription, de
               </div>
             </div>
             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes (e.g., started Jan 2024, used weekly, kids use it)" value={newSub.notes} onChange={e => setNewSub({...newSub, notes: e.target.value})} />
+            {subError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{subError}</div>}
             <button onClick={submitSub} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Save Subscription</button>
           </div>
         )}
@@ -1660,6 +1665,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   const [editingId, setEditingId] = useState(null);
   const [filterDomain, setFilterDomain] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [projError, setProjError] = useState('');
   const [newProject, setNewProject] = useState({
     title: '', startDate: '', endDate: '', status: 'planning',
     domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal',
@@ -1668,9 +1674,10 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
 
   const submitProject = () => {
     if (!newProject.title || !newProject.startDate) {
-      alert('Title and start date are required.');
+      setProjError('Title and start date are required.');
       return;
     }
+    setProjError('');
     if (editingId) {
       updateProject(editingId, newProject);
       setEditingId(null);
@@ -1871,6 +1878,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
               <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Optional — attach the 1099 workers helping with this project so YTD tracking and tax docs flow correctly.</p>
             </div>
             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Description · key milestones · who's involved" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
+            {projError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{projError}</div>}
             <button onClick={submitProject} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Project'}</button>
           </div>
         )}
@@ -2830,7 +2838,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : 'paid off'}</span></div>
                   <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
                   <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
-                  <div><span className="text-[#5A5751]">Coords:</span> <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{typeof r.lat === 'number' ? `${r.lat.toFixed(3)}, ${r.lon.toFixed(3)}` : 'unmapped'}</span></div>
+                  <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
                 </div>
                 <div className="flex gap-2 mt-2">
                   <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
@@ -4449,7 +4457,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
     // Open mailto so user can complete the handshake via email until Stripe is wired in
     const subject = isFree ? `Claim: ${cartTier.name}` : `Subscribe: ${cartTier.name} (${cartBilling})`;
     const body = `Name: ${cartName}\nEmail: ${cartEmail}\nTier: ${cartTier.name}\n${isFree ? 'Free tier - claiming access' : `Billing: ${cartBilling} ($${price})`}\n\nNotes:\n${cartNotes || '(none)'}`;
-    const url = `mailto:darrellpoe06@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const url = `mailto:contact@poetech.us?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     try { window.location.href = url; } catch (e) {}
     closeCart();
   };
