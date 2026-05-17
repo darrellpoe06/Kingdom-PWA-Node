@@ -770,6 +770,7 @@ html{scroll-padding-bottom:280px}
       </main>
       <TTSControls />
       <InstallPrompt />
+      <UpdatePrompt />
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} />}
     </div>
   );
@@ -940,6 +941,53 @@ function AdvisementBanner() {
 
 // Floating button bottom-right · reads the visible view · speed options
 // =============================================================================
+// UpdatePrompt — fires when a new service worker version is waiting to take
+// over. Shows a polite "New version available · Reload to update" banner.
+// Reload posts SKIP_WAITING to the SW; main.jsx's controllerchange listener
+// then performs window.location.reload() exactly once when the new SW activates.
+function UpdatePrompt() {
+  const [reg, setReg] = useState(null);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onUpdate = (e) => {
+      if (e && e.detail && e.detail.reg) setReg(e.detail.reg);
+    };
+    window.addEventListener('poetech:update-available', onUpdate);
+    // Late-mount catch: if the event fired before we subscribed, the
+    // registration may still be on window.
+    if (window.__pwaReg && window.__pwaReg.waiting) setReg(window.__pwaReg);
+    return () => window.removeEventListener('poetech:update-available', onUpdate);
+  }, []);
+
+  if (!reg || dismissed) return null;
+
+  const reload = () => {
+    try {
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      else window.location.reload();
+    } catch (e) { window.location.reload(); }
+  };
+
+  return (
+    <div className="update-prompt fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-sm print:hidden">
+      <div className="bg-[#1A1815] text-white border-2 border-[#1A1815] shadow-xl p-3">
+        <div className="flex items-baseline justify-between gap-2 mb-1.5">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#FAF8F4] font-semibold opacity-90">✨ New version available</div>
+          <button onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-[10px] uppercase tracking-wider opacity-70 hover:opacity-100">×</button>
+        </div>
+        <p className="text-xs leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          A fresh version of PoeTech downloaded in the background. Reload to use it — your data stays put.
+        </p>
+        <button onClick={reload} className="w-full bg-[#B85838] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#FAF8F4] hover:text-[#1A1815]">
+          Reload to update
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // InstallPrompt — PWA install nudge for iOS + Android visitors
 // - Android Chrome / Edge: catches the beforeinstallprompt event and shows
 //   a single-button "Install PoeTech" banner that fires the native prompt.

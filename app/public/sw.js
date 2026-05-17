@@ -1,13 +1,11 @@
 // PoeTech Family OS — minimal service worker
-// Enables PWA installability. Does NOT aggressively cache the app shell yet
-// because Vite produces hashed assets — caching strategy needs refinement
-// once the deploy pipeline is locked in.
+// Enables PWA installability + offline shell + opt-in instant updates.
 const CACHE = 'poetech-v1';
 const PRECACHE = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting())
+    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE))
   );
 });
 
@@ -19,15 +17,21 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Page can post { type: 'SKIP_WAITING' } to ask the new SW to take over right
+// now (the user has clicked "Reload to update" in our update banner).
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
-  // Network-first for navigations; cache fallback so the app shell opens offline.
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => caches.match('/index.html'))
     );
     return;
   }
-  // Cache-first for everything else with network fallback
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
