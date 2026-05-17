@@ -1,0 +1,19 @@
+{
+  "name": "poetech-voice-ops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker for PoeTech voice ops Phase 1 (Twilio voicemail capture).",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "db:apply": "wrangler d1 execute poetech_voice --file=./schema.sql",
+    "db:apply:remote": "wrangler d1 execute poetech_voice --remote --file=./schema.sql",
+    "db:console": "wrangler d1 execute poetech_voice --remote --command=\"SELECT id, line, caller_number, received_at, status FROM inbound_calls ORDER BY received_at DESC LIMIT 20\"",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240924.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^3.78.0"
+  }
+}

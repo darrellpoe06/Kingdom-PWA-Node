@@ -1,0 +1,41 @@
+name = "poetech-voice-ops"
+main = "src/worker.ts"
+compatibility_date = "2026-05-01"
+
+# Custom domain (recommended). Set after first deploy via:
+#   Cloudflare dashboard → Workers & Pages → poetech-voice-ops →
+#   Settings → Triggers → Add Custom Domain → api.poetech.us
+#
+# Until that's set, your Worker URL is:
+#   https://poetech-voice-ops.<your-subdomain>.workers.dev
+
+# ----------------------------------------------------------------------------
+# D1 binding — fill database_id after running:
+#   wrangler d1 create poetech_voice
+# ----------------------------------------------------------------------------
+[[d1_databases]]
+binding = "DB"
+database_name = "poetech_voice"
+database_id = "REPLACE_ME_WITH_OUTPUT_OF_WRANGLER_D1_CREATE"
+
+# ----------------------------------------------------------------------------
+# R2 binding — created via:
+#   wrangler r2 bucket create poetech-voice-audio
+# ----------------------------------------------------------------------------
+[[r2_buckets]]
+binding = "AUDIO"
+bucket_name = "poetech-voice-audio"
+
+# ----------------------------------------------------------------------------
+# Secrets — set via:
+#   wrangler secret put TWILIO_AUTH_TOKEN      (Twilio Console → Account → API keys)
+#   wrangler secret put TWILIO_ACCOUNT_SID     (Twilio Console → Account)
+#   wrangler secret put PWA_API_TOKEN          (generate random 32-char string)
+#
+# These never appear in this file (they're stored encrypted by Cloudflare).
+# ----------------------------------------------------------------------------
+
+# Observability — enable workers logs so `wrangler tail` and the dashboard
+# Metrics page show full request/response details.
+[observability]
+enabled = true
