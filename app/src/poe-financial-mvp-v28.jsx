@@ -2575,6 +2575,70 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     cancelPropForm();
   };
   const confirmDeleteProp = (r) => { if (confirm(`Delete property "${r.name}"? Snowball math will recompute without it.`)) deleteRental(r.id); };
+
+  // v28+ Maintenance trio: per-property records (maintenance log + conversations)
+  // Stored on the rental record itself. All local, zero ongoing cost.
+  const MAINT_CATEGORIES = ['roof','plumbing','hvac','electrical','appliance','exterior','interior','lawn','pest','flooring','windows','general','other'];
+  const [openRecordsId, setOpenRecordsId] = useState(null); // which property's records are expanded
+  const [showMaintForm, setShowMaintForm] = useState(false);
+  const [showConvForm, setShowConvForm] = useState(false);
+  const blankMaint = () => ({ date: new Date().toISOString().slice(0,10), category: 'general', description: '', cost: 0, vendor: '', notes: '', photos: [] });
+  const blankConv = () => ({ date: new Date().toISOString().slice(0,10), person: '', summary: '', notes: '' });
+  const [maintForm, setMaintForm] = useState(blankMaint());
+  const [convForm, setConvForm] = useState(blankConv());
+
+  // Compress an image File to a JPEG data URL (max width 1200, quality 0.7).
+  // Returns a Promise<string>. Typical receipt photo lands at 80-200 KB.
+  const compressImageFile = (file, maxWidth = 1200, quality = 0.7) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const ratio = img.width > maxWidth ? maxWidth / img.width : 1;
+        const w = Math.round(img.width * ratio);
+        const h = Math.round(img.height * ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  const onMaintPhotoFiles = async (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    const compressed = [];
+    for (const file of Array.from(fileList)) {
+      try { compressed.push(await compressImageFile(file)); } catch (e) { console.warn('Image compress failed', e); }
+    }
+    setMaintForm(f => ({ ...f, photos: [...(f.photos || []), ...compressed] }));
+  };
+
+  const openRecords = (r) => { setOpenRecordsId(r.id === openRecordsId ? null : r.id); setShowMaintForm(false); setShowConvForm(false); setMaintForm(blankMaint()); setConvForm(blankConv()); };
+  const addMaintEntry = (r) => {
+    if (!maintForm.description) { alert('Description is required.'); return; }
+    const entry = { ...maintForm, id: `mt-${Date.now()}`, cost: parseFloat(maintForm.cost) || 0 };
+    updateRental(r.id, { maintenanceLog: [...(r.maintenanceLog || []), entry] });
+    setMaintForm(blankMaint()); setShowMaintForm(false);
+  };
+  const addConvEntry = (r) => {
+    if (!convForm.summary) { alert('Summary is required.'); return; }
+    const entry = { ...convForm, id: `cv-${Date.now()}` };
+    updateRental(r.id, { conversationLog: [...(r.conversationLog || []), entry] });
+    setConvForm(blankConv()); setShowConvForm(false);
+  };
+  const deleteMaintEntry = (r, entryId) => {
+    if (!confirm('Delete this maintenance entry? Photos and receipt info will be lost.')) return;
+    updateRental(r.id, { maintenanceLog: (r.maintenanceLog || []).filter(e => e.id !== entryId) });
+  };
+  const deleteConvEntry = (r, entryId) => {
+    if (!confirm('Delete this conversation note?')) return;
+    updateRental(r.id, { conversationLog: (r.conversationLog || []).filter(e => e.id !== entryId) });
+  };
   // v28+ Bug fix: side-by-side strategy comparison so user can see the delta even when small
   const strategyOptions = [
     { id: 'smallest-balance', label: 'Smallest balance', sub: 'Momentum' },
@@ -2789,11 +2853,146 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
                     <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
                   </div>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-2 mt-2 items-baseline flex-wrap">
                     <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
                     <button onClick={() => confirmDeleteProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Delete</button>
+                    <button onClick={() => openRecords(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">
+                      {openRecordsId === r.id ? '× Close records' : `📋 Records (${(r.maintenanceLog || []).length} maint · ${(r.conversationLog || []).length} notes)`}
+                    </button>
+                    {(r.maintenanceLog || []).length > 0 && (
+                      <span className="text-[10px] text-[#5A5751] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                        Lifetime maint: {fmt((r.maintenanceLog || []).reduce((s, e) => s + (e.cost || 0), 0))}
+                      </span>
+                    )}
                   </div>
                   {r.notes && <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
+
+                  {openRecordsId === r.id && (
+                    <div className="mt-3 pt-3 border-t border-[#E8E4DC] space-y-4">
+                      {/* MAINTENANCE LOG */}
+                      <div>
+                        <div className="flex items-baseline justify-between gap-2 mb-2">
+                          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔧 Maintenance Log · {(r.maintenanceLog || []).length}</div>
+                          <button onClick={() => { setShowMaintForm(!showMaintForm); setMaintForm(blankMaint()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showMaintForm ? '× Cancel' : '+ Add entry'}</button>
+                        </div>
+                        {showMaintForm && (
+                          <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              <div>
+                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
+                                <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={maintForm.date} onChange={e => setMaintForm({ ...maintForm, date: e.target.value })} />
+                              </div>
+                              <div>
+                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label>
+                                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={maintForm.category} onChange={e => setMaintForm({ ...maintForm, category: e.target.value })}>
+                                  {MAINT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cost</label>
+                                <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={maintForm.cost} onChange={e => setMaintForm({ ...maintForm, cost: e.target.value })} />
+                              </div>
+                              <div>
+                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Vendor</label>
+                                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Reyes Roofing" value={maintForm.vendor} onChange={e => setMaintForm({ ...maintForm, vendor: e.target.value })} />
+                              </div>
+                            </div>
+                            <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="What was done? (required)" value={maintForm.description} onChange={e => setMaintForm({ ...maintForm, description: e.target.value })} />
+                            <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes · warranty · parts numbers" value={maintForm.notes} onChange={e => setMaintForm({ ...maintForm, notes: e.target.value })} />
+                            <div>
+                              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">📷 Receipts / photos</label>
+                              <input type="file" accept="image/*" multiple capture="environment" onChange={e => onMaintPhotoFiles(e.target.files)} className="block w-full text-xs file:mr-2 file:px-2 file:py-1 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[10px] file:cursor-pointer" />
+                              {(maintForm.photos || []).length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {maintForm.photos.map((src, i) => (
+                                    <div key={i} className="relative">
+                                      <img src={src} alt={`Receipt ${i+1}`} className="w-20 h-20 object-cover border border-[#1A1815]" />
+                                      <button type="button" onClick={() => setMaintForm(f => ({ ...f, photos: f.photos.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[10px] w-4 h-4 leading-4 text-center rounded-full">×</button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Images are compressed to ~1200px JPEG before saving locally. No upload, no server.</p>
+                            </div>
+                            <button onClick={() => addMaintEntry(r)} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Maintenance Entry</button>
+                          </div>
+                        )}
+                        {(r.maintenanceLog || []).length === 0 && !showMaintForm ? (
+                          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No maintenance entries yet.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {[...(r.maintenanceLog || [])].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
+                              <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
+                                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[11px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date} · <span className="uppercase tracking-wider">{e.category}</span>{e.vendor ? ` · ${e.vendor}` : ''}</div>
+                                    <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.description}</div>
+                                    {e.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                                  </div>
+                                  <div className="flex items-baseline gap-2 shrink-0">
+                                    <div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(e.cost || 0)}</div>
+                                    <button onClick={() => deleteMaintEntry(r, e.id)} className="text-[10px] text-[#5A5751] hover:text-[#B85838]">×</button>
+                                  </div>
+                                </div>
+                                {(e.photos || []).length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {e.photos.map((src, i) => (
+                                      <a key={i} href={src} target="_blank" rel="noopener noreferrer" title="Open full size">
+                                        <img src={src} alt={`Photo ${i+1}`} className="w-16 h-16 object-cover border border-[#E8E4DC] hover:border-[#1A1815]" />
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* CONVERSATION LOG */}
+                      <div>
+                        <div className="flex items-baseline justify-between gap-2 mb-2">
+                          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Tenant & Vendor Conversations · {(r.conversationLog || []).length}</div>
+                          <button onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
+                        </div>
+                        {showConvForm && (
+                          <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
+                                <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={convForm.date} onChange={e => setConvForm({ ...convForm, date: e.target.value })} />
+                              </div>
+                              <div>
+                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Who</label>
+                                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., tenant Tracy, plumber Joe" value={convForm.person} onChange={e => setConvForm({ ...convForm, person: e.target.value })} />
+                              </div>
+                            </div>
+                            <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Summary (required) — e.g., 'agreed to $200/mo payment plan on rent gap'" value={convForm.summary} onChange={e => setConvForm({ ...convForm, summary: e.target.value })} />
+                            <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes · tone · next step · promises made" value={convForm.notes} onChange={e => setConvForm({ ...convForm, notes: e.target.value })} />
+                            <button onClick={() => addConvEntry(r)} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Conversation Note</button>
+                          </div>
+                        )}
+                        {(r.conversationLog || []).length === 0 && !showConvForm ? (
+                          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
+                        ) : (
+                          <div className="space-y-1">
+                            {[...(r.conversationLog || [])].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
+                              <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
+                                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[11px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
+                                    <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
+                                    {e.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                                  </div>
+                                  <button onClick={() => deleteConvEntry(r, e.id)} className="text-[10px] text-[#5A5751] hover:text-[#B85838] shrink-0">×</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
           );
           return (
