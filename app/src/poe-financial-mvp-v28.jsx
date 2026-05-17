@@ -2113,6 +2113,21 @@ function Rentals({ rentals, totals, snowballSort, setSnowballSort, snowballExtra
   const orderedByPayoff = rentalsWithCleared.filter(r => r.clearedAtMonth).sort((a, b) => a.clearedAtMonth - b.clearedAtMonth);
   const sevenYrFeasible = rentalSnowball.allClearedYears <= 7;
   const gapMonthly = sevenYearTarget - snowballExtra;
+  // v28+ Bug fix: side-by-side strategy comparison so user can see the delta even when small
+  const strategyOptions = [
+    { id: 'smallest-balance', label: 'Smallest balance', sub: 'Momentum' },
+    { id: 'highest-rate',     label: 'Highest rate',     sub: 'Math optimum' },
+    { id: 'best-cashflow',    label: 'Best cash flow',   sub: 'Strong earners' },
+  ];
+  const strategyComparison = useMemo(() => {
+    const runs = strategyOptions.map(s => {
+      const r = projectRentalSnowball(rentals, snowballExtra, s.id, currentDate, 240);
+      return { ...s, totalInterest: r.totalInterest, allClearedYears: r.allClearedYears, allClearedMonth: r.allClearedMonth };
+    });
+    const cheapest = Math.min(...runs.map(r => r.totalInterest));
+    return runs.map(r => ({ ...r, delta: r.totalInterest - cheapest, isCheapest: r.totalInterest === cheapest }));
+  }, [rentals, snowballExtra, currentDate]);
+  const allRatesEqual = rentals.length > 1 && rentals.every(r => r.mortgage.rate === rentals[0].mortgage.rate);
   return (
     <div className="space-y-8">
       <section className="bg-white border border-[#1A1815] p-5">
@@ -2172,9 +2187,43 @@ function Rentals({ rentals, totals, snowballSort, setSnowballSort, snowballExtra
           </div>
           <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
             <MetricCell label="All paid in" value={yearsAndMonths(rentalSnowball.allClearedMonth)} small />
-            <MetricCell label="Interest" value={fmtCompact(rentalSnowball.totalInterest)} small />
+            <MetricCell label="Interest" value={fmt(rentalSnowball.totalInterest)} small />
             <MetricCell label="Final freed" value={fmt(rentalSnowball.finalFreedCashFlow)} small accent="green" />
           </div>
+        </div>
+      </section>
+      <section>
+        <SectionTitle>Strategy Comparison</SectionTitle>
+        <div className="bg-white border border-[#1A1815] p-5">
+          <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+            All three strategies side by side at your current ${'{'}fmt(snowballExtra){'}'}/mo snowball. Differences show up most in <em>payoff order</em> (which property clears first) and <em>cash flow timing</em>, less so in total interest when mortgage rates are similar.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+            {strategyComparison.map(s => (
+              <div key={s.id} className={`p-4 ${s.id === snowballSort ? 'bg-[#FAF8F4]' : 'bg-white'}`}>
+                <div className="flex items-baseline justify-between gap-2 mb-2">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">{s.label}</div>
+                    <div className="text-[9px] uppercase tracking-wider text-[#5A5751] opacity-75">{s.sub}</div>
+                  </div>
+                  {s.id === snowballSort && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">Selected</span>}
+                </div>
+                <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(s.totalInterest)}</div>
+                <div className="text-[10px] text-[#5A5751] mt-0.5">total interest</div>
+                <div className={`text-[10px] mt-1 ${s.isCheapest ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  {s.isCheapest ? '✓ cheapest' : `+${fmt(s.delta)}`}
+                </div>
+                <div className="text-[10px] text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  All clear: {s.allClearedYears.toFixed(1)} yrs
+                </div>
+              </div>
+            ))}
+          </div>
+          {allRatesEqual && (
+            <p className="text-[11px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+              All 11 rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
+            </p>
+          )}
         </div>
       </section>
       <section>
