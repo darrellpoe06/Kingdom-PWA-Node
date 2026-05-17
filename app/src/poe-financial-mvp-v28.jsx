@@ -242,7 +242,7 @@ const PROJECT_STATUSES = ['planning', 'active', 'ending-soon', 'complete', 'on-h
 // HELPERS
 // =============================================================================
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
-const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); if (a >= 1000000) return `${n < 0 ? '-' : ''}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${n < 0 ? '-' : ''}$${Math.round(a/1000)}k`; return `${n < 0 ? '-' : ''}$${Math.round(a)}`; };
+const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
 const fmtPct = (n) => n == null ? '—' : `${n.toFixed(1)}%`;
 const MONTHS_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(d, offset) { const x = new Date(d.getFullYear(), d.getMonth() + offset, 1); return `${MONTHS_ABBR[x.getMonth()]} '${String(x.getFullYear()).slice(2)}`; }
