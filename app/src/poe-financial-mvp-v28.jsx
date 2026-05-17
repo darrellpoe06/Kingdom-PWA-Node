@@ -789,7 +789,7 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view !== 'debts' && view !== 'practice' && <TherapyReminder />}
+        {view === 'debts' && <TherapyReminder />}
       </main>
       <TTSControls />
       <InstallPrompt />
