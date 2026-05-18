@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, Bar, BarChart } from 'recharts';
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle, MetricCell } from './components/shared.jsx';
 import About from './components/About.jsx';
+import { LegalPlaceholder } from './components/Legal.jsx';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -1304,7 +1305,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['entities','Entities'],['accounts','Accounts'],['transactions','Tx'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar']].map(([id, label]) => (
+                {[['entities','Entities'],['accounts','Accounts'],['transactions','Tx'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal','🔒 Legal']].map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -1328,6 +1329,7 @@ html{scroll-padding-bottom:280px}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <ThousandNinetyNine contractors={data.contractors1099} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
+            {booksView === 'legal' && <LegalPlaceholder tier={tier} setView={setView} />}
           </>
         )}
         {view === 'inbound' && <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />}
@@ -9154,7 +9156,6 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
               <div className="space-y-0.5 text-[10px] text-[#5A5751]">
                 {[...inq.statusHistory].reverse().map((h, i) => (
                   <div key={i}>
-                    {new Date(h.at).toLocaleDateString()} — {INQUIRY_STATUSES.find(s => s.key === h.status)?.label || h.status}
                     {h.notes && <span className="italic"> · "{h.notes}"</span>}
                   </div>
                 ))}
