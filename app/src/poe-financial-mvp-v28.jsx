@@ -3517,10 +3517,13 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       contractorIds: Array.isArray(p.contractorIds) ? p.contractorIds : []
     });
     setEditingId(p.id);
-    setShowForm(true);
-    // Round 9: no scroll-to-top on edit. Eyes stay where you tapped. The form
-    // opens inline above the project list — see the panel banner that flags it.
+    setShowForm(false);
+    setProjError('');
+    // r19 — Inline edit per IN-PLACE-FIRST.md. The top "Add new" form stays
+    // closed during edit; the same form mounts inline under the edited row.
+    // Real Estate Quick-Edit pattern (shipped r7) — eyes stay where you tapped.
   };
+  const cancelEdit = () => { setEditingId(null); setProjError(''); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); };
 
   // Filter and sort
   const filtered = projects.filter(p => {
@@ -3642,9 +3645,11 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           </div>
         </div>
 
-        {showForm && (
+        {/* r19 — Top form panel ONLY for ADD NEW. Edit happens inline under
+            the edited row (see renderProjectForm + the row map below). */}
+        {showForm && !editingId && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingId ? 'Edit project' : 'New project'}</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New project</div>
             <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Project title (e.g., PoeTech v1 launch, kitchen renovation, mom's care plan)" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} />
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -3800,6 +3805,56 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                     </button>
                   </div>
                   {openConvId === p.id && <ProjectConversationLog project={p} updateProject={updateProject} />}
+                  {/* r19 — Inline edit form, mounted DIRECTLY under the row
+                      the user clicked Edit on. No jump-to-top, eyes stay put.
+                      Per IN-PLACE-FIRST.md + Real Estate Quick-Edit pattern. */}
+                  {editingId === p.id && (
+                    <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838] space-y-3">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {p.title}</div>
+                        <button type="button" onClick={cancelEdit} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Cancel</button>
+                      </div>
+                      <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="Project title" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Start date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.startDate} onChange={e => setNewProject({...newProject, startDate: e.target.value})} /></div>
+                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">End date (target)</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.endDate} onChange={e => setNewProject({...newProject, endDate: e.target.value})} /></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Domain</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.domain} onChange={e => setNewProject({...newProject, domain: e.target.value})}>{PROJECT_DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}</select></div>
+                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.status} onChange={e => setNewProject({...newProject, status: e.target.value})}>{PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Hours / week</label><input type="number" min="0" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.hoursPerWeek} onChange={e => setNewProject({...newProject, hoursPerWeek: parseInt(e.target.value) || 0})} /></div>
+                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}><option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option></select></div>
+                      </div>
+                      <div>
+                        <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned</label>
+                        {contractors.length === 0 ? (
+                          <div className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s.</div>
+                        ) : (
+                          <div className="flex flex-wrap gap-1.5">
+                            {contractors.map(k => {
+                              const assigned = (newProject.contractorIds || []).includes(k.id);
+                              return (
+                                <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[10px] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
+                                  {assigned ? '✓ ' : ''}{k.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label htmlFor={`proj-desc-edit-${p.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Description · milestones · context</label>
+                        <textarea id={`proj-desc-edit-${p.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" rows="6" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
+                      </div>
+                      {projError && <div className="text-xs text-[#B85838] px-3 py-2 bg-white border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{projError}</div>}
+                      <div className="flex gap-2">
+                        <button type="button" onClick={submitProject} className="flex-1 bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
+                        <button type="button" onClick={cancelEdit} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
