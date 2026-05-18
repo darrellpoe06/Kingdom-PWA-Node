@@ -5359,25 +5359,37 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
   const [inputError, setInputError] = useState('');
   const [globalError, setGlobalError] = useState('');
 
-  // Fetch one symbol from Stooq. Returns parsed quote or {error}.
+  // Round 13 fix — Stooq's CSV endpoint doesn't send CORS headers, so direct
+  // browser fetches silently fail. Routes through corsproxy.io (free, no API
+  // key, no signup, supports https). Falls back to a second public proxy if
+  // the first one is down. If both fail, the user gets a clear error message.
   const fetchQuote = async (sym) => {
-    const url = `https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcv&h&e=csv`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return { error: `HTTP ${res.status}` };
-      const text = await res.text();
-      const lines = text.trim().split(/\r?\n/);
-      if (lines.length < 2) return { error: 'empty response' };
-      const cols = lines[1].split(',');
-      // Stooq returns "N/D" for unknown symbols
-      if (cols.includes('N/D') || cols[3] === 'N/D') return { error: 'symbol not found' };
-      const [Symbol, Date_, Time_, Open, High, Low, Close, Volume] = cols;
-      const open = parseFloat(Open), close = parseFloat(Close);
-      const changePct = open > 0 ? ((close - open) / open) * 100 : 0;
-      return { sym: Symbol.toLowerCase(), date: Date_, time: Time_, open, high: parseFloat(High), low: parseFloat(Low), close, volume: parseFloat(Volume) || 0, changePct };
-    } catch (e) {
-      return { error: e.message || 'network error' };
+    const stooqUrl = `https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcv&h&e=csv`;
+    const proxies = [
+      `https://corsproxy.io/?${encodeURIComponent(stooqUrl)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(stooqUrl)}`,
+    ];
+    let lastErr = '';
+    for (const url of proxies) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) { lastErr = `HTTP ${res.status}`; continue; }
+        const text = await res.text();
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) { lastErr = 'empty response'; continue; }
+        const cols = lines[1].split(',');
+        // Stooq returns "N/D" for unknown symbols
+        if (cols.includes('N/D') || cols[3] === 'N/D') return { error: 'symbol not found' };
+        const [Symbol, Date_, Time_, Open, High, Low, Close, Volume] = cols;
+        const open = parseFloat(Open), close = parseFloat(Close);
+        if (!isFinite(open) || !isFinite(close)) { lastErr = 'unparseable response'; continue; }
+        const changePct = open > 0 ? ((close - open) / open) * 100 : 0;
+        return { sym: (Symbol || sym).toLowerCase(), date: Date_, time: Time_, open, high: parseFloat(High), low: parseFloat(Low), close, volume: parseFloat(Volume) || 0, changePct };
+      } catch (e) {
+        lastErr = e.message || 'network error';
+      }
     }
+    return { error: lastErr || 'network error' };
   };
 
   // Refresh all symbols in parallel.
@@ -5393,7 +5405,9 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
     setLastUpdated(new Date());
     setLoading(false);
     if (!anySuccess && watchlist.length > 0) {
-      setGlobalError('Could not reach the market data feed. This usually clears in a moment — try Refresh, or check your network. Data source: stooq.com (free, no signup).');
+      // Show the actual error from the first failed quote so user can diagnose.
+      const firstError = results.find(([, q]) => q.error)?.[1]?.error || 'unknown';
+      setGlobalError(`Couldn't reach the market data feed (${firstError}). The app routes Stooq quotes through a public CORS proxy (corsproxy.io → allorigins.win fallback). Common causes: (1) browser blocked by ad/script blocker, allow corsproxy.io; (2) the proxy is rate-limited — try Refresh in 30s; (3) offline. Watchlist still saves locally either way.`);
     }
   };
 
@@ -5428,7 +5442,7 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Markets · Watchlist</div>
         <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>One place for your financial data.</h2>
         <p className="text-sm leading-relaxed mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          Add the tickers you actually watch — indices, ETFs, individual stocks, crypto, FX. Quotes refresh automatically every minute. Free data source: <a href="https://stooq.com" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">stooq.com</a> (no API key, no signup, no cost to us or to you).
+          Add the tickers you actually watch — indices, ETFs, individual stocks, crypto, FX. Quotes refresh automatically every minute. Free data: <a href="https://stooq.com" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">stooq.com</a> · routed through <a href="https://corsproxy.io" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">corsproxy.io</a> (Stooq doesn't send browser CORS headers directly). No API key, no signup, no cost.
         </p>
       </section>
 
@@ -5476,7 +5490,12 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
             <button type="button" onClick={refresh} aria-busy={loading} className="text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" disabled={loading}>{loading ? 'Refreshing…' : '↻ Refresh'}</button>
           </div>
         </div>
-        {globalError && <p role="alert" className="text-xs text-[#B85838] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{globalError}</p>}
+        {globalError && (
+          <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 mb-2">
+            <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">⚠ Market data fetch failed</div>
+            <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{globalError}</p>
+          </div>
+        )}
         {watchlist.length === 0 ? (
           <div className="bg-white border border-[#E8E4DC] p-6 text-center">
             <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No tickers on your watchlist yet. Use the Quick add buttons above to start.</p>
