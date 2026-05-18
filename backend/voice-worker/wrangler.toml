@@ -1,0 +1,42 @@
+# =============================================================================
+# Cloudflare Worker — PoeTech Voice Ops (Phase 1)
+# Receives Twilio voicemail webhooks for Poe Properties + PoeTech lines,
+# stores into D1, serves the PWA's 📞 Inbound tab.
+#
+# Setup steps (full runbook in ./README.md):
+#   1. wrangler login
+#   2. wrangler d1 create poetech_voice_ops    # copy the database_id printed
+#   3. paste the database_id into the [[d1_databases]] block below
+#   4. wrangler d1 execute poetech_voice_ops --file=migrations/0001_init.sql
+#   5. wrangler secret put TWILIO_AUTH_TOKEN
+#   6. wrangler secret put PWA_API_TOKEN       # shared secret for PWA fetch
+#   7. wrangler deploy
+#   8. (optional) bind custom domain api.poetech.us in the CF dashboard
+# =============================================================================
+name = "poetech-voice-ops"
+main = "src/index.js"
+compatibility_date = "2025-05-01"
+
+# Logs viewable via `wrangler tail`
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "poetech_voice_ops"
+database_id = "REPLACE_WITH_ID_FROM_WRANGLER_D1_CREATE"
+
+# Optional R2 bucket for voicemail audio archive beyond Twilio's default retention.
+# Comment this out if you don't want to mirror audio to R2 yet.
+# [[r2_buckets]]
+# binding = "VOICEMAILS"
+# bucket_name = "poetech-voicemails"
+
+# Secrets (set via `wrangler secret put <NAME>`, never commit):
+#   TWILIO_AUTH_TOKEN   — used to verify incoming webhook signatures
+#   PWA_API_TOKEN       — bearer token the PWA presents to fetch/PATCH inbound rows
+
+# Vars (non-secret, edit here):
+[vars]
+ALLOWED_LINES = "poe-properties,poetech"          # comma-list of allowed line slugs
+PWA_ORIGIN = "https://app.poetech.us,http://localhost:5173" # CORS allow list

@@ -276,6 +276,22 @@ const SEED_DATA = {
     verse: { ref: 'Psalm 34:3', text: 'O magnify the LORD with me, and let us exalt His name together.' },
   },
   prayerRequests: [], // local prayer-request log; user controls send-out via mailto button
+  // Round 14 — Voice Ops (Phase 1) — config for the Cloudflare Worker backend.
+  // User fills in API endpoint + token on the 📞 Inbound tab; both saved locally
+  // (encrypted at rest via the browser's IndexedDB). NEVER committed to git.
+  voiceOps: {
+    apiUrl: '',   // e.g., https://api.poetech.us  OR  https://poetech-voice-ops.your-sub.workers.dev
+    apiToken: '', // PWA_API_TOKEN value from the Worker deploy
+    // Rate card — multiplied against /usage/this-month counters to compute the
+    // monthly cost panel. Edit if Twilio bumps prices.
+    rates: {
+      perCallMinute: 0.0085,
+      perTranscriptMinute: 0.05,
+      perNumberMonthly: 1.15,
+    },
+    numbersConfigured: 2, // Poe Properties + PoeTech in Phase 1
+    budgetAlertMonthly: 30, // dollars — surface a warning at this threshold
+  },
   // v28+ MVP v1.5 round 6 — Dev/Ops skill profiles. Each profile feeds the
   // opportunity matcher. Seeded from the existing `opportunities[]` so the
   // matcher renders something meaningful on first load.
@@ -445,6 +461,74 @@ const fmtPct = (n) => n == null ? '—' : `${n.toFixed(1)}%`;
 const MONTHS_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(d, offset) { const x = new Date(d.getFullYear(), d.getMonth() + offset, 1); return `${MONTHS_ABBR[x.getMonth()]} '${String(x.getFullYear()).slice(2)}`; }
 function yearsAndMonths(months) { const y = Math.floor(months / 12); const m = months % 12; if (y === 0) return `${m}mo`; if (m === 0) return `${y}yr`; return `${y}yr ${m}mo`; }
+
+// =============================================================================
+// Lifecycle & Handoff helpers — per /docs/00-foundations/_root/LIFECYCLE-AND-HANDOFF.md
+// Every status change on a trackable entity (incident / project / inquiry /
+// feedback / capex / inbound) writes a lifecycle log entry. Net effect: when a
+// new handler picks up an item, they see what was done, by whom, when, and why.
+// No verbal handoff required — the system IS the handoff.
+//
+// Data shape attached to each entity:
+//   item.lifecycle = {
+//     phase: 'in-progress',          // current state (mirrors item.status)
+//     openedAt: '2026-05-18T...',    // when this item was first created
+//     closedAt: null | '2026-...',   // set when item reaches a terminal phase
+//     log: [
+//       { at, fromPhase, toPhase, by, note },
+//       ...
+//     ]
+//   }
+// =============================================================================
+const LIFECYCLE_TERMINAL_PHASES = new Set([
+  'resolved', 'closed', 'complete', 'completed', 'shipped',
+  'declined', 'wont-fix', 'archived', 'converted', 'handled', 'discarded'
+]);
+
+// Pure function. Returns a NEW item with the lifecycle log appended, phase
+// updated, and openedAt/closedAt timestamps set. Safe to call repeatedly — if
+// the phase didn't actually change AND a log entry already exists, it's a no-op
+// so the log doesn't get polluted by save buttons that don't change status.
+function appendLifecycleLog(item, toPhase, by = 'user', note = '') {
+  const at = new Date().toISOString();
+  const fromPhase = item.status || (item.lifecycle && item.lifecycle.phase) || null;
+  const existingLog = (item.lifecycle && Array.isArray(item.lifecycle.log)) ? item.lifecycle.log : [];
+  if (fromPhase === toPhase && existingLog.length > 0) return item;
+  const openedAt = (item.lifecycle && item.lifecycle.openedAt) || item.createdAt || item.receivedAt || at;
+  const isTerminal = LIFECYCLE_TERMINAL_PHASES.has(toPhase);
+  return {
+    ...item,
+    status: toPhase,
+    lifecycle: {
+      phase: toPhase,
+      openedAt,
+      closedAt: isTerminal ? at : null,
+      log: [...existingLog, { at, fromPhase, toPhase, by, note }],
+    },
+  };
+}
+
+// For records that pre-date the lifecycle pattern: synthesize a one-entry log
+// from current status. Idempotent — returns the item unchanged if a lifecycle
+// already exists. Used inline at display time so we never bulk-rewrite stored
+// data on load (which would be risky).
+function ensureLifecycle(item, by = 'system') {
+  if (item && item.lifecycle && Array.isArray(item.lifecycle.log)) return item;
+  if (!item) return item;
+  const phase = item.status || 'new';
+  const at = item.createdAt || item.receivedAt || new Date().toISOString();
+  const isTerminal = LIFECYCLE_TERMINAL_PHASES.has(phase);
+  return {
+    ...item,
+    status: phase,
+    lifecycle: {
+      phase,
+      openedAt: at,
+      closedAt: isTerminal ? (item.resolvedAt || item.closedAt || at) : null,
+      log: [{ at, fromPhase: null, toPhase: phase, by, note: 'created' }],
+    },
+  };
+}
 function frequencyToMonthly(amount, frequency) { switch (frequency) { case 'monthly': return amount; case 'quarterly': return amount / 3; case 'semi-annual': return amount / 6; case 'annual': return amount / 12; case 'biennial': return amount / 24; default: return 0; } }
 function eventDateTime(event) {
   const time = event.time || (event.allDay ? '09:00' : '12:00');
@@ -642,10 +726,17 @@ function TierSwitcher({ userTier, setUserTier }) {
     setTimeout(() => setFlash(false), 1500);
   };
   const current = effectiveTier(userTier);
+  // Round 14 fix — compact label on narrow screens (e.g., "Premium") and full
+  // label with price on wide screens. Keeps the header from crowding the title.
+  const fullLabel = TIER_LABEL[current] || 'Foundation (free)';
+  const shortLabel = fullLabel.split(' (')[0]; // strip the "($X/mo)" suffix
   return (
     <div ref={wrapRef} className="relative">
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-haspopup="true" className={`text-[10px] uppercase tracking-wider px-2 py-1.5 border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors ${flash ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`} title="Tier preview · switch to see locked / unlocked views">
-        {flash ? '✓ Saved · ' : ''}{TIER_LABEL[current] || 'Foundation (free)'} {open ? '▴' : '▾'}
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-haspopup="true" className={`text-[10px] uppercase tracking-wider px-2 py-1.5 border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors ${flash ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`} title={`Tier preview · ${fullLabel} · switch to see locked / unlocked views`}>
+        {flash ? '✓ Saved · ' : ''}
+        <span className="hidden lg:inline">{fullLabel}</span>
+        <span className="lg:hidden">{shortLabel}</span>
+        {' '}{open ? '▴' : '▾'}
       </button>
       {open && (
         <div onMouseMove={armAutoClose} onTouchStart={armAutoClose} onFocus={armAutoClose} className="absolute right-0 mt-1 bg-white border border-[#1A1815] p-2 z-30 shadow-lg" style={{ minWidth: '220px' }}>
@@ -723,6 +814,7 @@ export default function PoeFinancialSystem() {
             church: (parsed.data.church && typeof parsed.data.church === 'object') ? { ...d.church, ...parsed.data.church } : d.church,
             prayerRequests: Array.isArray(parsed.data.prayerRequests) ? parsed.data.prayerRequests : (d.prayerRequests || []),
             skillProfiles: Array.isArray(parsed.data.skillProfiles) ? parsed.data.skillProfiles : (d.skillProfiles || []),
+            voiceOps: (parsed.data.voiceOps && typeof parsed.data.voiceOps === 'object') ? { ...d.voiceOps, ...parsed.data.voiceOps } : d.voiceOps,
           }));
           if (parsed.pressure != null) setPressure(parsed.pressure);
           if (parsed.snowballSort) setSnowballSort(parsed.snowballSort);
@@ -785,33 +877,94 @@ export default function PoeFinancialSystem() {
   const addRecurring = (item) => setData(d => ({ ...d, recurringObligations: [...d.recurringObligations, { ...item, id: `ro-${Date.now()}`, enabled: true }] }));
   // Round 10 — addIncident now fills in ITSM defaults if caller omits them.
   // status defaults to 'open', urgency to 'incident', dueDate computed from urgency.
-  const addIncident = (item) => setData(d => ({
-    ...d,
-    incidents: [
-      ...d.incidents,
-      {
-        urgency: 'incident',
-        status: 'open',
-        dueDate: dueDateFor(item.urgency || 'incident'),
-        ...item,
-        id: `in-${Date.now()}`,
+  // Incidents — every creation seeds a lifecycle log; every status change appends.
+  const addIncident = (item) => setData(d => {
+    const nowIso = new Date().toISOString();
+    const initialStatus = item.status || 'open';
+    const seeded = {
+      urgency: 'incident',
+      status: initialStatus,
+      dueDate: dueDateFor(item.urgency || 'incident'),
+      ...item,
+      id: `in-${Date.now()}`,
+      createdAt: item.createdAt || nowIso,
+      lifecycle: {
+        phase: initialStatus,
+        openedAt: item.createdAt || nowIso,
+        closedAt: LIFECYCLE_TERMINAL_PHASES.has(initialStatus) ? nowIso : null,
+        log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
       },
-    ],
-  }));
+    };
+    return { ...d, incidents: [...d.incidents, seeded] };
+  });
   const updateIncident = (id, updates) => setData(d => ({
     ...d,
-    incidents: d.incidents.map(i => i.id === id ? { ...i, ...updates } : i),
+    incidents: d.incidents.map(i => {
+      if (i.id !== id) return i;
+      const withLifecycle = ensureLifecycle(i);
+      const merged = { ...withLifecycle, ...updates };
+      // If status changed, route through appendLifecycleLog to write a log entry.
+      if (updates.status && updates.status !== withLifecycle.status) {
+        return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
+      }
+      return merged;
+    }),
   }));
-  const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10) });
+  const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10), _note: 'Marked resolved' });
   const addEvent = (item) => setData(d => ({ ...d, events: [...(d.events || []), { ...item, id: `ev-${Date.now()}`, createdAt: new Date().toISOString(), completedAt: null }] }));
   const completeEvent = (id) => setData(d => ({ ...d, events: (d.events || []).map(e => e.id === id ? { ...e, completedAt: new Date().toISOString() } : e) }));
-  const addProject = (item) => setData(d => ({ ...d, projects: [...(d.projects || []), { ...item, id: `pr-${Date.now()}`, createdAt: new Date().toISOString() }] }));
-  const updateProject = (id, updates) => setData(d => ({ ...d, projects: (d.projects || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
+  // Projects — same lifecycle pattern.
+  const addProject = (item) => setData(d => {
+    const nowIso = new Date().toISOString();
+    const initialStatus = item.status || 'planning';
+    const seeded = {
+      ...item,
+      id: `pr-${Date.now()}`,
+      createdAt: item.createdAt || nowIso,
+      status: initialStatus,
+      lifecycle: {
+        phase: initialStatus,
+        openedAt: item.createdAt || nowIso,
+        closedAt: LIFECYCLE_TERMINAL_PHASES.has(initialStatus) ? nowIso : null,
+        log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
+      },
+    };
+    return { ...d, projects: [...(d.projects || []), seeded] };
+  });
+  const updateProject = (id, updates) => setData(d => ({
+    ...d,
+    projects: (d.projects || []).map(p => {
+      if (p.id !== id) return p;
+      const withLifecycle = ensureLifecycle(p);
+      const merged = { ...withLifecycle, ...updates };
+      if (updates.status && updates.status !== withLifecycle.status) {
+        return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
+      }
+      return merged;
+    }),
+  }));
   const deleteProject = (id) => setData(d => ({ ...d, projects: (d.projects || []).filter(p => p.id !== id) }));
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
   const deleteSubscription = (id) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).filter(s => s.id !== id) }));
-  const addFeedback = (item) => setData(d => ({ ...d, feedback: [...(d.feedback || []), { ...item, id: `fb-${Date.now()}`, createdAt: new Date().toISOString() }] }));
+  // Feedback — seeded with lifecycle so the new → reviewed → planned → shipped flow has an audit trail.
+  const addFeedback = (item) => setData(d => {
+    const nowIso = new Date().toISOString();
+    const initialStatus = item.status || 'new';
+    const seeded = {
+      ...item,
+      id: `fb-${Date.now()}`,
+      createdAt: nowIso,
+      status: initialStatus,
+      lifecycle: {
+        phase: initialStatus,
+        openedAt: nowIso,
+        closedAt: LIFECYCLE_TERMINAL_PHASES.has(initialStatus) ? nowIso : null,
+        log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: 'feedback submitted' }],
+      },
+    };
+    return { ...d, feedback: [...(d.feedback || []), seeded] };
+  });
   const deleteFeedback = (id) => setData(d => ({ ...d, feedback: (d.feedback || []).filter(f => f.id !== id) }));
   const dismissWelcome = () => setData(d => ({ ...d, welcomeDismissed: true }));
   const deleteRecurring = (id) => setData(d => ({ ...d, recurringObligations: d.recurringObligations.filter(r => r.id !== id) }));
@@ -847,6 +1000,8 @@ export default function PoeFinancialSystem() {
   const setBufferTarget = (val) => setData(d => ({ ...d, meta: { ...d.meta, bufferTarget: parseFloat(val) || 0 } }));
   // v28+ MVP v1.5 round 5: tier switcher (also persists via setData)
   const setUserTier = (tier) => setData(d => ({ ...d, userTier: tier }));
+  // Round 14 — Voice Ops config setter (Phase 1 Cloudflare Worker integration)
+  const setVoiceOpsConfig = (patch) => setData(d => ({ ...d, voiceOps: { ...d.voiceOps, ...patch } }));
   // v28+ MVP v1.5 round 6: skill profile CRUD for Dev/Ops opportunity matcher
   const addSkillProfile = (item) => setData(d => ({ ...d, skillProfiles: [...(d.skillProfiles || []), { ...item, id: `sp-${Date.now()}` }] }));
   const updateSkillProfile = (id, updates) => setData(d => ({ ...d, skillProfiles: (d.skillProfiles || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
@@ -886,7 +1041,12 @@ export default function PoeFinancialSystem() {
     const totalPersonalRealEstatePI = data.inflows.rentals.filter(r => (r.rent || 0) === 0).reduce((s, r) => s + (r.mortgage?.monthlyPI || 0), 0);
     const totalOpportunity = data.opportunities.reduce((s, o) => s + o.monthly, 0);
     const totalOppHours = data.opportunities.reduce((s, o) => s + o.hours, 0);
-    return { salaryActual, rentalActual, rentalExpected, rentGap, collectionRate, totalInflow, totalOutflow, netCashFlow, totalConsumerDebt, totalRentalDebt, totalRentalPI, totalPersonalRealEstateDebt, totalPersonalRealEstatePI, totalOpportunity, totalOppHours };
+    // Cash on hand — spendable balances only (checking + savings + cash + investment).
+    // Excludes credit cards and loans (those are debts, not cash). Used by the
+    // Debt Snowball "Baseline" affordance to anchor the slider in reality.
+    const CASH_TYPES = ['checking','savings','cash','investment'];
+    const allAccountsCash = (data.accounts || []).filter(a => CASH_TYPES.includes(a.type)).reduce((s, a) => s + (a.balance || 0), 0);
+    return { salaryActual, rentalActual, rentalExpected, rentGap, collectionRate, totalInflow, totalOutflow, netCashFlow, totalConsumerDebt, totalRentalDebt, totalRentalPI, totalPersonalRealEstateDebt, totalPersonalRealEstatePI, totalOpportunity, totalOppHours, allAccountsCash };
   }, [data]);
 
   const reserves = useMemo(() => {
@@ -1061,12 +1221,16 @@ html{scroll-padding-bottom:280px}
 
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-baseline justify-between gap-3">
+          {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
+              screens so the tier-preview dropdown and Subscribe/Feedback buttons
+              can't crowd "Financial Control System." Side-by-side only on large
+              screens where there's actually room. */}
+          <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
               <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Family OS</div>
               <h1 className="text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Financial Control System</h1>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
               {/* Round 5 — Tier indicator + dev-only switcher. Round 7 fix:
                   Replaced native <details> (which doesn't auto-close on outside
                   click and felt broken) with a controlled dropdown that closes
@@ -1075,9 +1239,8 @@ html{scroll-padding-bottom:280px}
               <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
                 💳 Subscribe
               </button>
-              <button type="button" onClick={() => setFeedbackOpen(true)} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white font-semibold whitespace-nowrap">
-                💬 Feedback
-              </button>
+              {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
+                  Single entry point keeps the header roomy and the loop unambiguous. */}
               <div className="flex gap-1 items-center" role="group" aria-label="Theme selector">
                 {[
                   // White and Slate take design inspiration from the two phone
@@ -1109,6 +1272,7 @@ html{scroll-padding-bottom:280px}
               {[
                 ['overview','Big Picture'],
                 ['books','Books'],
+                ['inbound','📞 Inbound'],
                 ['debts','Debts'],
                 ['rentals','Real Estate'],
                 ['projects','Projects'],
@@ -1159,7 +1323,8 @@ html{scroll-padding-bottom:280px}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
           </>
         )}
-        {view === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} />}
+        {view === 'inbound' && <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />}
+        {view === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
         {view === 'rentals' && (() => {
           // Real Estate: Foundation tier = READ-ONLY PREVIEW of one seed property.
           // PoeTech+ and above = full editor over the user's actual rentals.
@@ -1241,6 +1406,21 @@ html{scroll-padding-bottom:280px}
       <TTSControls />
       <InstallPrompt />
       <UpdatePrompt />
+      {/* Round 15 — Persistent floating feedback button. Always reachable from
+          any tab; pre-fills the current view. Sits above TTS controls in the
+          stack. Hidden when the feedback modal is already open. */}
+      {!feedbackOpen && (
+        <button
+          type="button"
+          onClick={() => setFeedbackOpen(true)}
+          aria-label="Open feedback"
+          title="Tell us what's working / not working / missing"
+          className="fixed bottom-4 left-4 z-30 px-4 py-3 bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden"
+          style={{ borderRadius: '999px' }}
+        >
+          💬 Feedback
+        </button>
+      )}
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} />}
     </div>
   );
@@ -1885,6 +2065,14 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
 function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [] }) {
+  // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
+  // item (if any) is currently expanded. Tapping the row body opens the full
+  // details + lifecycle log + jump-link inline, so the user never loses
+  // context by navigating away. Per
+  // /docs/00-foundations/_root/LIFECYCLE-AND-HANDOFF.md Pattern 1 + the
+  // founder's UX feedback (r17): "clicking Open jumps to another page and I
+  // lose what I clicked — feels clunky."
+  const [expandedItemId, setExpandedItemId] = useState(null);
   // Round 12 — Manual Add Item form state for the Action Queue.
   const [showAddQueue, setShowAddQueue] = useState(false);
   const blankQueueItem = () => ({ urgency: 'incident', description: '', linkType: '', linkId: '', cost: 0, dueDate: '' });
@@ -2050,7 +2238,7 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
           </div>
           <div className="mt-4 pt-4 border-t border-[#E8E4DC]">
             <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-              <strong>When something works, doesn't work, or could be better — tap <button type="button" onClick={() => setFeedbackOpen(true)} className="text-[#B85838] underline font-semibold hover:text-[#1A1815]">💬 Feedback</button> in the header.</strong> We'll review your notes together. This is your home base — make it yours.
+              <strong>When something works, doesn't work, or could be better — tap the floating <button type="button" onClick={() => setFeedbackOpen(true)} className="text-[#B85838] underline font-semibold hover:text-[#1A1815]">💬 Feedback</button> button bottom-left of any page.</strong> We'll review your notes together. This is your home base — make it yours.
             </p>
             <div className="flex gap-2 mt-3 flex-wrap">
               <button type="button" onClick={dismissWelcome} className="bg-[#1A1815] text-[#FAF8F4] px-5 py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Got it · Let's go</button>
@@ -2159,25 +2347,102 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
             {queue.slice(0, 8).map((q, i, arr) => {
               const band = URGENCY_INDEX[q.urgency] || URGENCY_INDEX.incident;
               const age = ageInDays(q.date);
+              // Resolve the underlying source record to read its lifecycle log
+              // and full description. Incidents live in `incidents[]`; projects
+              // live in `projects[]`.
+              const sourceItem = q.kind === 'incident'
+                ? (incidents.find(it => it.id === q.id) || null)
+                : (projects.find(p => p.id === q.id) || null);
+              const lifecycleLog = (sourceItem && sourceItem.lifecycle && sourceItem.lifecycle.log) || [];
+              const fullDescription = sourceItem ? (sourceItem.description || '') : '';
+              const expanded = expandedItemId === q.id;
+              // Human-friendly destination tab labels for the "Open in X tab" link.
+              const jumpLabelMap = { 'real-estate': 'Real Estate', 'projects': 'Projects', 'practice': 'Practice', 'books': 'Books', 'inbound': 'Inbound', 'capex': 'Projects · Inventory' };
+              const jumpLabel = jumpLabelMap[q.jump] || (q.jump ? q.jump.replace(/-/g, ' ') : 'source');
               return (
-                <div key={q.id} className={`p-3 flex items-center gap-3 flex-wrap ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${q.overdue ? 'bg-[#FAF8F4]' : ''}`}>
-                  <span aria-hidden="true" className="inline-block w-6 text-center text-base font-bold" style={{ color: band.accent }} title={band.label}>{band.symbol}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: band.accent }}>{band.label}</span>
-                      <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{q.title}</span>
-                      {q.overdue && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold">⚠ overdue</span>}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}
+                <div key={q.id} className={`${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${q.overdue ? 'bg-[#FAF8F4]' : ''}`}>
+                  <div className="p-3 flex items-center gap-3 flex-wrap">
+                    <span aria-hidden="true" className="inline-block w-6 text-center text-base font-bold" style={{ color: band.accent }} title={band.label}>{band.symbol}</span>
+                    {/* The whole left side is one big button — tap anywhere on it
+                        to expand the row inline. No navigation, no context loss. */}
+                    <button
+                      type="button"
+                      onClick={() => setExpandedItemId(expanded ? null : q.id)}
+                      aria-expanded={expanded}
+                      aria-label={expanded ? `Collapse details for ${q.title}` : `Show details and history for ${q.title}`}
+                      className="flex-1 min-w-0 text-left hover:bg-[#FAF8F4] -mx-1 px-1 py-0.5 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    >
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: band.accent }}>{band.label}</span>
+                        <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{q.title}</span>
+                        {q.overdue && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold">⚠ overdue</span>}
+                        <span className="text-[10px] text-[#5A5751] ml-auto font-semibold" aria-hidden="true">{expanded ? '▲' : '▼'} details</span>
+                      </div>
+                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{lifecycleLog.length > 1 ? ` · 📜 ${lifecycleLog.length} log entries` : ''}
+                      </div>
+                    </button>
+                    {/* Primary action (Resolve for incidents) stays visible on the
+                        collapsed row — most-common action, one tap away. */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {q.kind === 'incident' && resolveIncident && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); resolveIncident(q.id); }}
+                          aria-label={`Mark "${q.title}" resolved`}
+                          className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        >
+                          ✓ Resolve
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {q.kind === 'incident' && resolveIncident && (
-                      <button type="button" onClick={() => resolveIncident(q.id)} aria-label={`Mark "${q.title}" resolved`} className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✓ Resolve</button>
-                    )}
-                    <button type="button" onClick={() => setView(q.jump)} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Open ↗</button>
-                  </div>
+                  {/* Inline expansion — full description + lifecycle log +
+                      explicit "Open in <tab>" jump link. The user sees
+                      everything in place; they only navigate away if they
+                      explicitly choose to. Per CONNECTED-CONTEXT.md + the
+                      r17 UX fix: "click Open and I lose what I clicked." */}
+                  {expanded && (
+                    <div className="px-3 pb-3 pt-2 bg-[#FAF8F4] border-t border-[#E8E4DC] space-y-3">
+                      {fullDescription && fullDescription !== q.title && (
+                        <p className="text-sm text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{fullDescription}</p>
+                      )}
+                      {lifecycleLog.length > 0 && (
+                        <div>
+                          <div className="text-[9px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">📜 Lifecycle history · {lifecycleLog.length} {lifecycleLog.length === 1 ? 'entry' : 'entries'}</div>
+                          <ol className="space-y-1.5">
+                            {lifecycleLog.map((entry, idx) => (
+                              <li key={idx} className="text-xs text-[#1A1815] flex flex-wrap items-baseline gap-x-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                                <span className="text-[10px] text-[#5A5751]">{(entry.at || '').slice(0, 16).replace('T', ' ')}</span>
+                                <span className="text-[10px]">
+                                  {entry.fromPhase ? <><span className="text-[#5A5751]">{entry.fromPhase}</span><span className="text-[#5A5751]"> → </span></> : null}
+                                  <span className="font-semibold" style={{ color: band.accent }}>{entry.toPhase}</span>
+                                </span>
+                                <span className="text-[10px] text-[#5A5751]">by {entry.by || 'user'}</span>
+                                {entry.note && <span className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>— {entry.note}</span>}
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
+                      <div className="flex gap-2 flex-wrap pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setView(q.jump)}
+                          className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        >
+                          Open in {jumpLabel} tab ↗
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedItemId(null)}
+                          className="text-xs uppercase tracking-wider px-3 py-1.5 text-[#5A5751] hover:text-[#1A1815] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        >
+                          Collapse
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -5813,6 +6078,287 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
   );
 }
 
+// =============================================================================
+// Round 14 — INBOUND TAB (Phase 1 Voice Ops)
+// Fetches voicemails from the Cloudflare Worker backend (see
+// /backend/voice-worker/). Per row: line · caller · transcript · audio link
+// + three conversion buttons (Incident / Practice Inquiry / Project). On
+// conversion, PATCHes the Worker row to status='handled' so it falls out of
+// the new-queue. Local PWA carries the converted record forward in normal
+// data.incidents / data.inquiries / data.projects collections.
+//
+// Auth: PWA holds the API token in data.voiceOps.apiToken. First load shows
+// a config form to capture the Worker URL + token. Token + URL are persisted
+// locally only (never committed). Setup runbook lives in backend/voice-worker/README.md.
+// =============================================================================
+function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, addProject, entities = [], setView }) {
+  const configured = !!(voiceOps.apiUrl && voiceOps.apiToken);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [lastFetched, setLastFetched] = useState(null);
+  const [filterLine, setFilterLine] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('new');
+  // Config form state (only shown when not configured yet, or via gear)
+  const [showConfig, setShowConfig] = useState(!configured);
+  const [cfgUrl, setCfgUrl] = useState(voiceOps.apiUrl || '');
+  const [cfgToken, setCfgToken] = useState(voiceOps.apiToken || '');
+  // Per-row "convert" form state (only one row open at a time)
+  const [convertOpen, setConvertOpen] = useState(null); // row.id
+  const [convertAs, setConvertAs] = useState('incident'); // 'incident' | 'inquiry' | 'project'
+  const [convertNote, setConvertNote] = useState('');
+  const [convertEntity, setConvertEntity] = useState(entities[0]?.id || 'e-personal');
+
+  const apiUrl = (voiceOps.apiUrl || '').replace(/\/$/, '');
+  const token = voiceOps.apiToken || '';
+
+  const fetchInbound = async () => {
+    if (!configured) return;
+    setLoading(true); setError('');
+    try {
+      const url = `${apiUrl}/inbound?status=${encodeURIComponent(filterStatus)}${filterLine !== 'all' ? `&line=${encodeURIComponent(filterLine)}` : ''}&limit=100`;
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status} — ${body.slice(0, 200) || 'no body'}`);
+      }
+      const data = await res.json();
+      setRows(Array.isArray(data.rows) ? data.rows : []);
+      setLastFetched(new Date());
+    } catch (e) {
+      setError(e.message || 'network error');
+    }
+    setLoading(false);
+  };
+  // Auto-fetch on mount + when filters change, refresh every 5 minutes.
+  useEffect(() => {
+    if (!configured) return;
+    fetchInbound();
+    const id = setInterval(fetchInbound, 5 * 60 * 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configured, filterLine, filterStatus, apiUrl, token]);
+
+  const saveConfig = () => {
+    if (!cfgUrl.trim() || !cfgToken.trim()) { alert('Both API endpoint and token are required.'); return; }
+    setVoiceOpsConfig({ apiUrl: cfgUrl.trim(), apiToken: cfgToken.trim() });
+    setShowConfig(false);
+  };
+
+  const markHandled = async (row, handledAs) => {
+    try {
+      await fetch(`${apiUrl}/inbound/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'handled', handled_as: handledAs, handled_note: convertNote }),
+      });
+    } catch (e) {
+      console.warn('mark-handled failed', e);
+    }
+    fetchInbound();
+  };
+
+  const submitConvert = (row) => {
+    const ent = convertEntity || (row.line === 'poe-properties' ? 'e-poeprops' : 'e-poetech');
+    const desc = (row.transcript || `Voicemail from ${row.caller || 'unknown'}`) + (convertNote ? `\n\n${convertNote}` : '');
+    if (convertAs === 'incident') {
+      addIncident && addIncident({
+        date: new Date().toISOString().slice(0, 10),
+        amount: 0,
+        category: row.line === 'poe-properties' ? 'tenant-or-property' : 'business',
+        entityId: ent,
+        description: `📞 ${row.caller || 'unknown'} — ${desc.slice(0, 200)}`,
+        urgency: 'incident',
+        status: 'open',
+        dueDate: '',
+      });
+    } else if (convertAs === 'inquiry') {
+      addInquiry && addInquiry({
+        firstName: '(from voicemail)',
+        lastName: row.caller || '',
+        phone: row.caller || '',
+        email: '',
+        source: 'inbound-voicemail',
+        interest: 'voicemail-intake',
+        bestTime: 'anytime',
+        notes: desc,
+      });
+    } else if (convertAs === 'project') {
+      const today = new Date().toISOString().slice(0, 10);
+      addProject && addProject({
+        title: `Inbound: ${(row.caller || 'unknown')} · ${row.line}`,
+        startDate: today,
+        endDate: '',
+        status: 'planning',
+        domain: row.line === 'poe-properties' ? 'real-estate' : 'business-poetech',
+        description: desc,
+        hoursPerWeek: 2,
+        entityId: ent,
+        contractorIds: [],
+        conversationLog: [{ id: `cv-${Date.now()}`, date: today, person: row.caller || 'inbound voicemail', summary: 'Origin voicemail', notes: row.transcript || '' }],
+      });
+    }
+    markHandled(row, convertAs);
+    setConvertOpen(null); setConvertNote(''); setConvertAs('incident');
+    if (setView) {
+      const target = convertAs === 'inquiry' ? 'practice' : convertAs === 'project' ? 'projects' : 'overview';
+      setView(target);
+    }
+  };
+
+  const lineLabel = (l) => l === 'poe-properties' ? 'Poe Properties' : l === 'poetech' ? 'PoeTech' : l || '—';
+
+  return (
+    <div className="space-y-6">
+      <section className="bg-white border border-[#1A1815] p-5">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Inbound · Voicemails &amp; Call Notes</div>
+        <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>What came in while you were busy.</h2>
+        <p className="text-sm leading-relaxed mt-2 text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
+          Phase 1 routing for Poe Properties + PoeTech business lines. Each voicemail is auto-transcribed by Twilio, stored in your own Cloudflare Worker (free tier), and shown here for triage. Convert each one into an Incident, Practice Inquiry, or Project — the original recording stays archived. <strong>TLC is not routed here</strong> — that line keeps its current setup until the Phase 3 HIPAA-clean stack ships. <a href="https://github.com/darrellpoe06/Kingdom-PWA-Node/blob/main/backend/voice-worker/README.md" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">Setup runbook →</a>
+        </p>
+      </section>
+
+      {/* CONFIG FORM */}
+      {(!configured || showConfig) && (
+        <section aria-labelledby="cfg-h" className="bg-[#FAF8F4] border-2 border-[#B85838] p-4">
+          <h3 id="cfg-h" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">{configured ? 'Edit endpoint &amp; token' : 'First-time setup'}</h3>
+          <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            Paste your Cloudflare Worker URL + the <code>PWA_API_TOKEN</code> you generated in the deploy runbook (steps 4b and 5). Both saved locally on this device — never sent anywhere except your own Worker.
+          </p>
+          <div className="space-y-2">
+            <div>
+              <label htmlFor="cfg-url" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">API endpoint URL</label>
+              <input id="cfg-url" type="url" placeholder="https://api.poetech.us  or  https://poetech-voice-ops.YOUR-SUB.workers.dev" className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={cfgUrl} onChange={e => setCfgUrl(e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="cfg-token" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">API token (PWA_API_TOKEN)</label>
+              <input id="cfg-token" type="password" placeholder="Paste the token you set in wrangler secret put PWA_API_TOKEN" className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={cfgToken} onChange={e => setCfgToken(e.target.value)} />
+            </div>
+            <div className="flex gap-2 flex-wrap pt-1">
+              <button type="button" onClick={saveConfig} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save &amp; connect</button>
+              {configured && <button type="button" onClick={() => setShowConfig(false)} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* INBOUND LIST */}
+      {configured && (
+        <section aria-labelledby="ib-list-h">
+          <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+            <h3 id="ib-list-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Inbox · {rows.length} {filterStatus === 'new' ? 'new' : filterStatus}</h3>
+            <div className="flex items-center gap-2 flex-wrap text-[10px] uppercase tracking-wider">
+              <div className="flex gap-1">
+                {[['all','All lines'],['poe-properties','Poe Properties'],['poetech','PoeTech']].map(([k, l]) => (
+                  <button key={k} type="button" onClick={() => setFilterLine(k)} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${filterLine === k ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{l}</button>
+                ))}
+              </div>
+              <span aria-hidden="true" className="h-4 w-px bg-[#E8E4DC]" />
+              <div className="flex gap-1">
+                {[['new','New'],['handled','Handled'],['all','All']].map(([k, l]) => (
+                  <button key={k} type="button" onClick={() => setFilterStatus(k)} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${filterStatus === k ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{l}</button>
+                ))}
+              </div>
+              <span aria-hidden="true" className="h-4 w-px bg-[#E8E4DC]" />
+              {lastFetched && <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>updated {lastFetched.toLocaleTimeString()}</span>}
+              <button type="button" onClick={fetchInbound} disabled={loading} aria-busy={loading} className="text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{loading ? 'Refreshing…' : '↻ Refresh'}</button>
+              <button type="button" onClick={() => setShowConfig(true)} className="text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" title="Edit endpoint">⚙ Config</button>
+            </div>
+          </div>
+
+          {error && (
+            <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 mb-3">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">⚠ Couldn't reach the Voice Ops backend</div>
+              <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{error}</p>
+              <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Common causes: wrong URL / token (⚙ Config), Worker not deployed, CORS blocked. Verify with <code>curl {apiUrl}/healthz</code>.</p>
+            </div>
+          )}
+
+          {rows.length === 0 && !loading && !error && (
+            <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+              <div className="text-2xl mb-1" aria-hidden="true">📭</div>
+              <p className="text-sm text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>No {filterStatus === 'new' ? 'new' : filterStatus} voicemails.</p>
+              <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Live calls auto-appear here within ~5 minutes of the voicemail ending.</p>
+            </div>
+          )}
+
+          {rows.length > 0 && (
+            <div className="bg-white border border-[#1A1815]">
+              {rows.map((r, i) => {
+                const isOpen = convertOpen === r.id;
+                const created = r.created_at ? new Date(r.created_at).toLocaleString() : '';
+                return (
+                  <div key={r.id} className={`p-4 ${i < rows.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: r.line === 'poe-properties' ? '#B85838' : '#1F6FEB' }}>{lineLabel(r.line)}</span>
+                        <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.caller || 'unknown caller'}</span>
+                        {r.caller_name && <span className="text-xs text-[#5A5751]">({r.caller_name})</span>}
+                        {r.status === 'handled' && <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D]">✓ {r.handled_as || 'handled'}{r.handled_at ? ` · ${new Date(r.handled_at).toLocaleDateString()}` : ''}</span>}
+                      </div>
+                      <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{created}{r.voicemail_dur_sec ? ` · ${r.voicemail_dur_sec}s` : ''}</div>
+                    </div>
+                    {r.transcript ? (
+                      <p className="text-sm bg-[#FAF8F4] border-l-2 border-[#B85838] p-2 my-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.transcript}</p>
+                    ) : (
+                      <p className="text-xs text-[#5A5751] italic my-2" style={{ fontFamily: '"Fraunces", serif' }}>No transcript available (audio only).</p>
+                    )}
+                    {r.voicemail_url && (
+                      <audio controls preload="none" src={r.voicemail_url} className="w-full mt-1" />
+                    )}
+                    {r.handled_note && (
+                      <p className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Handle note: {r.handled_note}</p>
+                    )}
+                    {r.status !== 'handled' && (
+                      <div className="mt-3">
+                        {!isOpen ? (
+                          <button type="button" onClick={() => { setConvertOpen(r.id); setConvertAs(r.line === 'poe-properties' ? 'incident' : 'inquiry'); }} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Convert this voicemail →</button>
+                        ) : (
+                          <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2">
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Convert into what?</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {[['incident','! Incident','3-day to-do · adds to Action Queue'],['inquiry','📋 Practice Inquiry','adds to Practice pipeline'],['project','◆ Project','multi-day · capacity-aware']].map(([k, label, hint]) => (
+                                <button key={k} type="button" onClick={() => setConvertAs(k)} className="text-left p-2 border min-h-[56px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={convertAs === k ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { borderColor: '#E8E4DC' }}>
+                                  <div className="text-xs uppercase tracking-wider font-semibold">{label}</div>
+                                  <div className="text-[10px] opacity-90 mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{hint}</div>
+                                </button>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label htmlFor={`ib-ent-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Entity</label>
+                                <select id={`ib-ent-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={convertEntity} onChange={e => setConvertEntity(e.target.value)}>
+                                  {entities.map(e => <option key={e.id} value={e.id}>{e.name.split('(')[0].trim()}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <label htmlFor={`ib-note-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Additional note (optional)</label>
+                                <input id={`ib-note-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="Context the transcript missed" value={convertNote} onChange={e => setConvertNote(e.target.value)} />
+                              </div>
+                            </div>
+                            <div className="flex gap-2 flex-wrap pt-1">
+                              <button type="button" onClick={() => submitConvert(r)} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Convert + mark handled</button>
+                              <button type="button" onClick={() => markHandled(r, 'discarded')} className="border border-[#5A5751] text-[#5A5751] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Discard (not actionable)</button>
+                              <button type="button" onClick={() => { setConvertOpen(null); setConvertNote(''); }} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] px-3 py-2 focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[10px] text-[#5A5751] italic mt-3 max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
+            Auto-refreshes every 5 minutes when this tab is open. Raw recording + transcript stay in your Cloudflare D1 database after conversion — searchable for audit. TLC voicemails are never routed through this Worker; the Studio flow on the TLC line should post to a separate HIPAA-clean endpoint when Phase 3 ships.
+          </p>
+        </section>
+      )}
+    </div>
+  );
+}
+
 function BooksEntities({ entityRollups, entityFilter, setEntityFilter, data }) {
   const visible = entityFilter === 'all' ? entityRollups : entityRollups.filter(r => r.entity.id === entityFilter);
   return (
@@ -6895,9 +7441,41 @@ function Pressure({ pressure, setPressure, totals, pressureCalc, reserves, proje
   return (<div className="space-y-8"><section><SectionTitle>Pressure Slider</SectionTitle><div className="bg-white border border-[#1A1815] p-5"><div className="flex items-baseline justify-between mb-2"><div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Current</div><div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{pressure}/10</div></div><input type="range" min="1" max="10" step="1" value={pressure} onChange={(e) => setPressure(parseInt(e.target.value))} className="w-full accent-[#B85838] mb-2" /><div className="flex justify-between text-[10px] uppercase tracking-wider text-[#5A5751]"><span>Loose</span><span>Moderate</span><span>Sprint</span></div><div className="mt-6 pt-6 border-t border-[#E8E4DC]"><div className="text-4xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 400 }}>{projection.debtFreeYears.toFixed(1)} years</div><div className="text-sm text-[#5A5751] mt-1">to consumer debt freedom</div></div><div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] mt-6 border border-[#E8E4DC]"><MetricCell label="Gross" value={fmt(pressureCalc.grossAvailable)} small /><MetricCell label="Reserves" value={fmt(pressureCalc.reservesDeducted)} small accent="rust" /><MetricCell label="To debt" value={fmt(pressureCalc.extraAvailable)} small /><MetricCell label="Rent capture" value={fmt(pressureCalc.rentCapture)} small /></div></div></section></div>);
 }
 
-function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate }) {
+function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0 }) {
   // v28+ All Debts table - excel-style sort by rate / balance / payoff date
   const [allDebtsSort, setAllDebtsSort] = useState('rate');
+  // r18 — editable snowball slider max. Default $5000; user can expand to
+  // explore what-if scenarios (extra income, war chest, forecasted boost) per
+  // founder feedback: "$5000 isn't the only amount; let them brainstorm with a
+  // larger pot, but always able to snap back to reality."
+  const baselineExtra = Math.max(0, Math.round(Math.max(0, netCashFlow) / 50) * 50);
+  const [snowballMax, setSnowballMax] = useState(() => Math.max(5000, baselineExtra * 2));
+  const [editingMax, setEditingMax] = useState(false);
+  const [maxInput, setMaxInput] = useState(String(snowballMax));
+  const applyMaxInput = () => {
+    const parsed = parseInt(maxInput, 10);
+    if (!isFinite(parsed) || parsed < 500) { setMaxInput(String(snowballMax)); setEditingMax(false); return; }
+    const clamped = Math.min(parsed, 1000000);
+    setSnowballMax(clamped);
+    if (debtSnowballExtra > clamped) setDebtSnowballExtra(clamped);
+    setEditingMax(false);
+  };
+  const snapToBaseline = () => {
+    // Auto-fit the max so the baseline lands near the middle of the slider.
+    const newMax = Math.max(5000, Math.ceil((baselineExtra * 2) / 1000) * 1000);
+    setSnowballMax(newMax);
+    setMaxInput(String(newMax));
+    setDebtSnowballExtra(baselineExtra);
+  };
+  const exploreScenario = (multiplier, label) => {
+    // What-if mode. Set the slider to baseline × multiplier; bump the max if
+    // needed so the slider still has headroom on either side.
+    const target = Math.round((baselineExtra * multiplier) / 50) * 50;
+    const newMax = Math.max(snowballMax, Math.ceil((target * 1.5) / 1000) * 1000);
+    setSnowballMax(newMax);
+    setMaxInput(String(newMax));
+    setDebtSnowballExtra(target);
+  };
   const sorted = useMemo(() => {
     const arr = [...debts];
     arr.sort((a, b) => {
@@ -7025,9 +7603,61 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
               </div>
               <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(debtSnowballExtra)}</div>
             </div>
-            <input type="range" min="0" max="5000" step="50" value={debtSnowballExtra} onChange={(e) => setDebtSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" />
+            <input type="range" min="0" max={snowballMax} step="50" value={Math.min(debtSnowballExtra, snowballMax)} onChange={(e) => setDebtSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" aria-label={`Monthly snowball extra, 0 to ${fmt(snowballMax)}`} />
             <div className="flex justify-between text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">
-              <span>$0</span><span>$2,500</span><span>$5,000</span>
+              <span>$0</span><span>{fmt(Math.round(snowballMax / 2))}</span><span>{fmt(snowballMax)}</span>
+            </div>
+            {/* r18 — Reality controls. Snap to what's actually possible at
+                current net cash flow ("Baseline"), or stretch into what-if
+                scenarios (1.5×, 2×, 3×) so the user can brainstorm with a
+                bigger pot from new income or a forecasted war chest. */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-3">
+              <button
+                type="button"
+                onClick={snapToBaseline}
+                title={`Set to ${fmt(baselineExtra)}/mo — what your current net cash flow supports`}
+                className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                ↺ Baseline · {fmt(baselineExtra)}
+              </button>
+              <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">Explore:</span>
+              <button type="button" onClick={() => exploreScenario(1.5, '1.5×')} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">+50% income</button>
+              <button type="button" onClick={() => exploreScenario(2, '2×')} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">2× pot</button>
+              <button type="button" onClick={() => exploreScenario(3, '3×')} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">War chest 3×</button>
+              <div className="ml-auto flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">Slider max:</span>
+                {editingMax ? (
+                  <>
+                    <input
+                      type="number"
+                      min="500"
+                      step="500"
+                      value={maxInput}
+                      onChange={(e) => setMaxInput(e.target.value)}
+                      onBlur={applyMaxInput}
+                      onKeyDown={(e) => { if (e.key === 'Enter') applyMaxInput(); if (e.key === 'Escape') { setMaxInput(String(snowballMax)); setEditingMax(false); } }}
+                      autoFocus
+                      className="w-24 text-xs px-2 py-1 border border-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      style={{ fontFamily: '"JetBrains Mono", monospace' }}
+                      aria-label="Slider maximum (in dollars)"
+                    />
+                    <button type="button" onClick={applyMaxInput} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold hover:text-[#1A1815]">✓ Apply</button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setMaxInput(String(snowballMax)); setEditingMax(true); }}
+                    title="Type any dollar amount as the slider max — explore scenarios beyond default"
+                    className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    style={{ fontFamily: '"JetBrains Mono", monospace' }}
+                  >
+                    {fmt(snowballMax)} ✎
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="mt-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <strong>Reality check:</strong> at current net cash flow of <strong>{fmt(netCashFlow)}/mo</strong>, you can sustainably commit up to <strong>{fmt(baselineExtra)}/mo</strong>. Cash on hand right now: <strong>{fmt(cashTotal)}</strong>. The Explore buttons show what's possible if you grow income or unlock a war chest.
             </div>
             <details className="mt-2">
               <summary className="text-[10px] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show top debts that add up to total</summary>

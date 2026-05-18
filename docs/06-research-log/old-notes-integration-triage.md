@@ -182,3 +182,50 @@ These are cross-cutting wins suggested by what other community apps offer — no
 ### Sustainability check on this addendum
 
 Net new paid dependencies if everything above ships: **zero**. Stooq is free. Tesseract.js is open source. CSV/print/export are native browser primitives. The only watch-out is rate-limiting on free public APIs — caching the watchlist response for 60s (which we already do) keeps us inside Stooq's polite-use envelope.
+
+---
+
+## Addendum (2026-05-18) — Voice Ops Phase 1 shipped
+
+### What landed
+
+**Backend** — new `/backend/voice-worker/` folder:
+- Cloudflare Worker (`src/index.js`) that handles Twilio voicemail webhooks, serves the PWA Inbound tab, and tracks monthly usage counters
+- D1 schema (`migrations/0001_init.sql`) with `inbound_calls` and `usage_monthly` tables
+- `wrangler.toml` config (user fills in `database_id` after `wrangler d1 create`)
+- `package.json` with `npm run deploy / tail / db:migrate:*` scripts
+- `README.md` runbook covering Cloudflare account setup, secrets, Twilio Studio flow per line, custom domain (api.poetech.us), and troubleshooting
+
+**PWA** — new **📞 Inbound** tab (between Books and Debts in nav):
+- First-time setup form captures Worker URL + `PWA_API_TOKEN`
+- Auto-fetches new voicemails every 5 minutes; manual refresh + filter by line + filter by status
+- Per row: line badge · caller · auto-transcript (Twilio) · audio playback · convert form
+- "Convert this voicemail" opens a 3-button picker: **Incident** (Action Queue) / **Practice Inquiry** (Practice pipeline) / **Project** (Projects tab) — each routes the transcript + caller into the right local collection AND PATCHes the Worker row to `status='handled'` so it falls out of the new queue
+- Discard option for non-actionable calls
+- Auto-jumps to the destination tab after conversion
+
+### Cost shape (Phase 1)
+
+| Item | Provider | Monthly |
+|---|---|---|
+| Worker requests + CPU | Cloudflare | **$0** (well inside free tier) |
+| D1 database | Cloudflare | **$0** (5 GB free; you'll use ~50 MB in years) |
+| 2 phone numbers (Poe Properties + PoeTech) | Twilio | $2.30 |
+| Inbound minutes | Twilio @ $0.0085/min | $1–3 light volume |
+| Auto-transcription | Twilio @ $0.05/min | $3–8 light volume |
+| **Phase 1 floor** | | **~$6–13/mo** |
+
+### HIPAA boundary
+
+**TLC is intentionally not in Phase 1.** Neither Twilio's standard tier nor Cloudflare's free tier has a BAA. The Worker has a hard guard: `ALLOWED_LINES = "poe-properties,poetech"` — any webhook claiming a different line is rejected with 403. TLC's Phase 3 will live on a separate Twilio sub-account with BAA + Synology Docker (Christina's own infrastructure, full data sovereignty).
+
+### Phase sequencing (from prior planning)
+
+- **Phase 1 (now):** voicemail capture + transcript + PWA triage for Poe Properties + PoeTech. SHIPPED.
+- **Phase 2:** AI conversational answering on the lowest-stakes line first (Poe Properties — maintenance intake script, no PHI). Vapi or Retell @ ~$15–30/mo at typical volume. Asks structured questions, writes back the same Worker endpoint.
+- **Phase 3:** TLC line with BAA chain. Separate Twilio sub-account, separate D1 — or Synology Docker for full sovereignty. Suicide-risk screening script, never make clinical promises.
+- **Phase 4:** PoeTech consulting auto-triage with calendar booking. Easiest scope (B2B, no PHI). Auto-creates a Project record.
+
+### Cross-device sync hook
+
+The same Worker + D1 stack is the architectural foundation for Tier 2 PWA cross-device sync (PoeTech+ feature). When that ships, additional D1 tables hold the synced rows; the PWA's existing local-first storage stays the working copy, with the Worker as the source of truth across devices. Same free tier, no new infrastructure.

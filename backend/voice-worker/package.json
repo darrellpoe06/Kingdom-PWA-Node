@@ -1,0 +1,17 @@
+{
+  "name": "poetech-voice-ops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker — receives Twilio voicemail webhooks, serves PoeTech PWA Inbound tab.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "db:create": "wrangler d1 create poetech_voice_ops",
+    "db:migrate:local": "wrangler d1 execute poetech_voice_ops --local --file=migrations/0001_init.sql",
+    "db:migrate:remote": "wrangler d1 execute poetech_voice_ops --remote --file=migrations/0001_init.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.86.0"
+  }
+}

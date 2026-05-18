@@ -28,6 +28,18 @@ Thumbs.db
 *~
 
 # ----------------------------------------------------------------------------
+# Environment / secrets — defense in depth (real secrets go in Cloudflare
+# Wrangler secrets or a local .dev.vars file, never in the repo)
+# ----------------------------------------------------------------------------
+.env
+.env.*
+.dev.vars
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# ----------------------------------------------------------------------------
 # Logs
 # ----------------------------------------------------------------------------
 *.log
