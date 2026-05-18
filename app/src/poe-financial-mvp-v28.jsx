@@ -1329,7 +1329,7 @@ html{scroll-padding-bottom:280px}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <ThousandNinetyNine contractors={data.contractors1099} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
-            {booksView === 'legal' && <LegalPlaceholder tier={tier} setView={setView} />}
+            {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} />}
           </>
         )}
         {view === 'inbound' && <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />}
@@ -9168,3 +9168,5 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
   );
 }
 
+  );
+}
