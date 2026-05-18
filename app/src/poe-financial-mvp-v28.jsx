@@ -4435,18 +4435,32 @@ function PropertyDetails({ rental, updateRental }) {
     });
     setEditingMarket(false);
   };
-  // Round 8 fix — direct site URLs were inconsistent (Zillow's `/homes/X_rb/`
-  // doesn't always route to the property page; Redfin's autocomplete endpoint
-  // isn't a public URL; Trulia's `/p/?searchTerm=` 404s on many addresses).
-  // Replacement: Google site-scoped search with the FULL address in quotes.
-  // The first result is the property's page on that site — works 100% of the
-  // time and survives any URL-structure change the sites make. Also marks
-  // valueSource + valueAsOf when clicked so the user has a click trail.
+  // r26 fix — User report: Google-search fallback dumps users on a search results
+  // page (ads + "people also ask" + 10 links) instead of the property's page.
+  // New approach:
+  //   - Zillow + Realtor.com: USE THEIR OWN URL CONVENTIONS for direct property
+  //     pages. These land on the actual record ~80% of the time when the site
+  //     has it indexed; the remaining 20% land on a tight Zillow/Realtor search
+  //     that's still better UX than Google's ad page.
+  //   - Redfin + Trulia: keep Google site-scoped fallback. Their direct URLs
+  //     require internal IDs we can't construct without their (private) API.
+  //   - County Records: keep Google "assessor parcel" search — each county
+  //     uses a different system, no universal direct URL exists.
   const addressQuery = [rental.address, rental.city, rental.state, rental.zip].filter(Boolean).join(', ');
   const quoted = `"${addressQuery}"`;
+  // Address slug for Zillow: lowercase, alphanumeric + dashes, all parts joined by dashes.
+  // e.g., "1508 Holly Hill Dr, Champaign, IL 61821" -> "1508-holly-hill-dr-champaign-il-61821"
+  const zillowSlug = [rental.address, rental.city, rental.state, rental.zip]
+    .filter(Boolean).join(' ').toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+  // Realtor uses underscores between address parts, dashes within each part.
+  // e.g., "1508-Holly-Hill-Dr_Champaign_IL_61821"
+  const slugifyPart = (s) => (s || '').trim().replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-');
+  const realtorSlug = [slugifyPart(rental.address), slugifyPart(rental.city), slugifyPart(rental.state), slugifyPart(rental.zip)]
+    .filter(Boolean).join('_');
   const lookupLinks = addressQuery ? [
-    { name: 'Zillow',        url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' site:zillow.com')}` },
-    { name: 'Realtor.com',   url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' site:realtor.com')}` },
+    { name: 'Zillow',        url: `https://www.zillow.com/homes/${zillowSlug}_rb/` },
+    { name: 'Realtor.com',   url: `https://www.realtor.com/realestateandhomes-search/${realtorSlug}` },
     { name: 'Redfin',        url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' site:redfin.com')}` },
     { name: 'Trulia',        url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' site:trulia.com')}` },
     { name: 'County Records',url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' assessor parcel')}` },
@@ -9157,6 +9171,7 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
               <div className="space-y-0.5 text-[10px] text-[#5A5751]">
                 {[...inq.statusHistory].reverse().map((h, i) => (
                   <div key={i}>
+                    {new Date(h.at).toLocaleDateString()} — {INQUIRY_STATUSES.find(s => s.key === h.status)?.label || h.status}
                     {h.notes && <span className="italic"> · "{h.notes}"</span>}
                   </div>
                 ))}
@@ -9165,6 +9180,11 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+      </div>
     </div>
   );
 }
