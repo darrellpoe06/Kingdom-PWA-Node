@@ -970,6 +970,11 @@ export default function PoeFinancialSystem() {
   const deleteFeedback = (id) => setData(d => ({ ...d, feedback: (d.feedback || []).filter(f => f.id !== id) }));
   const dismissWelcome = () => setData(d => ({ ...d, welcomeDismissed: true }));
   const deleteRecurring = (id) => setData(d => ({ ...d, recurringObligations: d.recurringObligations.filter(r => r.id !== id) }));
+  // r22 — Update affordances for Calendar rows (was delete-only). Per
+  // IDENTITY-ROLES-AUDIT.md, every state change is attributable; lifecycle log
+  // captures by/when. Recurring + event are sibling shapes; mirror the pattern.
+  const updateRecurring = (id, updates) => setData(d => ({ ...d, recurringObligations: d.recurringObligations.map(r => r.id === id ? { ...r, ...updates } : r) }));
+  const updateEvent = (id, updates) => setData(d => ({ ...d, events: (d.events || []).map(e => e.id === id ? { ...e, ...updates } : e) }));
   const deleteIncident = (id) => setData(d => ({ ...d, incidents: d.incidents.filter(i => i.id !== id) }));
   const deleteEvent = (id) => setData(d => ({ ...d, events: (d.events || []).filter(e => e.id !== id) }));
   // v28+ Session A: Accounts CRUD
@@ -1322,7 +1327,7 @@ html{scroll-padding-bottom:280px}
             {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} />}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <ThousandNinetyNine contractors={data.contractors1099} />}
-            {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
+            {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
           </>
         )}
         {view === 'inbound' && <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />}
@@ -3897,7 +3902,19 @@ function DateField({ value, onChange, className }) {
   );
 }
 
-function Calendar({ data, reserves, addRecurring, addIncident, addEvent, completeEvent, deleteRecurring, deleteIncident, deleteEvent, notifPermission, requestNotif, upcomingEvents }) {
+function Calendar({ data, reserves, addRecurring, addIncident, addEvent, completeEvent, deleteRecurring, deleteIncident, deleteEvent, updateRecurring, updateEvent, notifPermission, requestNotif, upcomingEvents }) {
+  // r22 — Per-row inline edit (was delete-only). Tracks which row of which
+  // collection is currently expanded. One target at a time keeps the UI quiet.
+  const [editingRecurId, setEditingRecurId] = useState(null);
+  const [editRecurForm, setEditRecurForm] = useState({ name: '', amount: 0, frequency: 'monthly', category: 'compliance', nextDue: '', entityId: 'e-personal' });
+  const [editingEventId, setEditingEventId] = useState(null);
+  const [editEventForm, setEditEventForm] = useState({ title: '', date: '', time: '', notes: '' });
+  const startEditRecur = (r) => { setEditRecurForm({ name: r.name || '', amount: r.amount || 0, frequency: r.frequency || 'monthly', category: r.category || 'other', nextDue: r.nextDue || '', entityId: r.entityId || 'e-personal' }); setEditingRecurId(r.id); setEditingEventId(null); };
+  const cancelEditRecur = () => { setEditingRecurId(null); };
+  const saveEditRecur = () => { if (!editingRecurId) return; updateRecurring(editingRecurId, editRecurForm); setEditingRecurId(null); };
+  const startEditEvent = (e) => { setEditEventForm({ title: e.title || '', date: e.date || '', time: e.time || '', notes: e.notes || '' }); setEditingEventId(e.id); setEditingRecurId(null); };
+  const cancelEditEvent = () => { setEditingEventId(null); };
+  const saveEditEvent = () => { if (!editingEventId) return; updateEvent(editingEventId, editEventForm); setEditingEventId(null); };
   const [showRecurForm, setShowRecurForm] = useState(false);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
@@ -3953,13 +3970,34 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
               <div className="flex justify-between items-baseline gap-2">
                 <div className="flex-1 min-w-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{r.name}</div>
-                  <div className="text-xs text-[#5A5751]">{r.frequency} · {r.category}</div>
+                  <div className="text-xs text-[#5A5751]">{r.frequency} · {r.category}{r.nextDue ? ` · next ${r.nextDue}` : ''}</div>
                 </div>
                 <div className="flex items-baseline gap-2 shrink-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.amount)}</div>
-                  <button type="button" onClick={() => deleteRecurring(r.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                  <button type="button" onClick={() => editingRecurId === r.id ? cancelEditRecur() : startEditRecur(r)} aria-expanded={editingRecurId === r.id} aria-label={editingRecurId === r.id ? `Cancel edit for ${r.name}` : `Edit ${r.name}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingRecurId === r.id ? '× Cancel' : '✎ Edit'}</button>
+                  <button type="button" onClick={() => deleteRecurring(r.id)} aria-label={`Delete ${r.name}`} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                 </div>
               </div>
+              {/* r22 — Inline quick-edit per IN-PLACE-FIRST.md + IDENTITY-ROLES-AUDIT.md. */}
+              {editingRecurId === r.id && (
+                <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838] space-y-2">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {r.name}</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Name</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.name} onChange={e => setEditRecurForm({ ...editRecurForm, name: e.target.value })} /></div>
+                    <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Amount</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.amount} onChange={e => setEditRecurForm({ ...editRecurForm, amount: parseFloat(e.target.value) || 0 })} /></div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Frequency</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.frequency} onChange={e => setEditRecurForm({ ...editRecurForm, frequency: e.target.value })}><option value="monthly">monthly</option><option value="quarterly">quarterly</option><option value="semi-annual">semi-annual</option><option value="annual">annual</option><option value="biennial">biennial</option></select></div>
+                    <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.category} onChange={e => setEditRecurForm({ ...editRecurForm, category: e.target.value })}><option value="compliance">compliance</option><option value="vehicle">vehicle</option><option value="insurance">insurance</option><option value="professional">professional</option><option value="business">business</option><option value="housing">housing</option><option value="health">health</option><option value="subscription">subscription</option><option value="other">other</option></select></div>
+                    <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.entityId} onChange={e => setEditRecurForm({ ...editRecurForm, entityId: e.target.value })}><option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option></select></div>
+                  </div>
+                  <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Next due date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.nextDue} onChange={e => setEditRecurForm({ ...editRecurForm, nextDue: e.target.value })} /></div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={saveEditRecur} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
+                    <button type="button" onClick={cancelEditRecur} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -4121,9 +4159,26 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
                   </div>
                   <div className="flex items-baseline gap-1.5 shrink-0">
                     <button type="button" onClick={() => completeEvent(e.id)} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">✓ Done</button>
-                    <button type="button" onClick={() => deleteEvent(e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                    <button type="button" onClick={() => editingEventId === e.id ? cancelEditEvent() : startEditEvent(e)} aria-expanded={editingEventId === e.id} aria-label={editingEventId === e.id ? `Cancel edit for ${e.title}` : `Edit ${e.title}`} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-2 py-1.5 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingEventId === e.id ? '× Cancel' : '✎ Edit'}</button>
+                    <button type="button" onClick={() => deleteEvent(e.id)} aria-label={`Delete ${e.title}`} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                   </div>
                 </div>
+                {/* r22 — Inline event quick-edit. */}
+                {editingEventId === e.id && (
+                  <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838] space-y-2">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {e.title}</div>
+                    <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Title</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editEventForm.title} onChange={ev => setEditEventForm({ ...editEventForm, title: ev.target.value })} /></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editEventForm.date} onChange={ev => setEditEventForm({ ...editEventForm, date: ev.target.value })} /></div>
+                      <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Time (optional)</label><input type="time" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editEventForm.time} onChange={ev => setEditEventForm({ ...editEventForm, time: ev.target.value })} /></div>
+                    </div>
+                    <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes</label><textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" rows="2" value={editEventForm.notes} onChange={ev => setEditEventForm({ ...editEventForm, notes: ev.target.value })} /></div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={saveEditEvent} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
+                      <button type="button" onClick={cancelEditEvent} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -9112,14 +9167,3 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
   );
 }
 
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-    </div>
-  );
-}
