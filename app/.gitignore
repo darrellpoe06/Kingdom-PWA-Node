@@ -1,6 +1,10 @@
 node_modules
 dist
+dist-check
+preview
+preview-r*
 .vite
+vite.config.js.timestamp-*.mjs
 *.local
 *.log
 .DS_Store

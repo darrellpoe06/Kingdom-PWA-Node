@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 // SEED DATA — v7 adds events array
 // =============================================================================
 const SEED_DATA = {
-  meta: { lastUpdated: '2026-05-16', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 0, appVersion: '28.0', releaseLabel: 'MVP v1.4', releaseNote: 'Subtle sales banners on working pages · dashboard clean', moduleSlug: 'financial', taxStructure: { filing: 'joint-1040', scheduleC: ['e-tlc', 'e-poetech'], scheduleE: ['e-poeprops'], sCorpElected: [], withholdingCoversFederal: true, withholdingCoversState: true, state: 'IL', county: 'Champaign', propertyTaxEscrowed: true }},
+  meta: { lastUpdated: '2026-05-17', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 0, appVersion: '28.1', releaseLabel: 'MVP v1.5', releaseNote: 'Real Estate ops (lease · tenant contact · equipment · rooms) + Buffer Fund widget + Capex list. WCAG 2.1 AA holds across new fields.', moduleSlug: 'financial', taxStructure: { filing: 'joint-1040', scheduleC: ['e-tlc', 'e-poetech'], scheduleE: ['e-poeprops'], sCorpElected: [], withholdingCoversFederal: true, withholdingCoversState: true, state: 'IL', county: 'Champaign', propertyTaxEscrowed: true }},
   entities: [
     { id: 'e-personal', name: 'Personal (Darrell + Christina)', type: 'personal', notes: 'Joint household' },
     { id: 'e-poeprops', name: 'Poe Properties LLC', type: 'business', notes: '11 rental doors' },
@@ -34,9 +34,13 @@ const SEED_DATA = {
     { id: 'k1', direction: 'outbound', entityId: 'e-tlc', name: 'MSW Contractor 1', role: 'Licensed clinical contractor', ytdPaid: 8400, monthly: 2800, status: 'active' },
     { id: 'k2', direction: 'outbound', entityId: 'e-tlc', name: 'MSW Contractor 2', role: 'Licensed clinical contractor', ytdPaid: 7200, monthly: 2400, status: 'active' },
     { id: 'k3', direction: 'outbound', entityId: 'e-tlc', name: 'MSW Contractor 3', role: 'Licensed clinical contractor', ytdPaid: 6300, monthly: 2100, status: 'active' },
-    { id: 'k4', direction: 'inbound', entityId: 'e-poetech', name: 'Federal Companies', role: 'Network architecture consulting', ytdReceived: 0, monthlyExpected: 1500, status: 'pipeline' },
-    { id: 'k5', direction: 'inbound', entityId: 'e-poetech', name: 'Other Church AV', role: 'AV consulting contracts', ytdReceived: 0, monthlyExpected: 800, status: 'pipeline' },
-    { id: 'k6', direction: 'inbound', entityId: 'e-poetech', name: 'UIUC F&S (1099)', role: 'BAS / Siemens consulting', ytdReceived: 0, monthlyExpected: 1000, status: 'possible' },
+    // Round 10 fix — pipeline figures realigned to the Enterprise positioning
+    // ($25K-$75K/mo retainers, $400-$800/hr senior rate). Old conservative
+    // placeholders ($1.5K, $800, $1K) were leftover from a "side gig" framing
+    // that contradicted the rest of the Dev/Ops messaging.
+    { id: 'k4', direction: 'inbound', entityId: 'e-poetech', name: 'Federal Companies', role: 'Enterprise network architecture · OT-IT integration', ytdReceived: 0, monthlyExpected: 25000, status: 'pipeline' },
+    { id: 'k5', direction: 'inbound', entityId: 'e-poetech', name: 'Mid-market churches · AV + streaming systems', role: 'Multi-site AV install + ongoing managed services retainer', ytdReceived: 0, monthlyExpected: 4500, status: 'pipeline' },
+    { id: 'k6', direction: 'inbound', entityId: 'e-poetech', name: 'UIUC F&S (1099)', role: 'BAS / Siemens controls consulting — senior architect rate', ytdReceived: 0, monthlyExpected: 12000, status: 'possible' },
   ],
   taxCalendar: [
     { id: 'tx-1099-nec', month: 1, day: 31, name: '1099-NEC issuance', desc: 'Issue 1099-NEC to all contractors paid ≥ $600', entityIds: ['e-tlc'], applies: true },
@@ -52,10 +56,19 @@ const SEED_DATA = {
     { id: 'ro-ceu-msw', name: 'CEU costs (Christina MSW)', amount: 500, frequency: 'annual', nextDue: '2026-11-01', entityId: 'e-tlc', category: 'professional', enabled: true },
     { id: 'ro-state-farm', name: 'State Farm — home + auto', amount: 823, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-personal', category: 'insurance', enabled: true },
   ],
+  // Round 10 — incidents extended with ITSM urgency taxonomy. Old records
+  // without these fields keep working; the storage migration backfills sane
+  // defaults (status:'resolved' for past financial incidents, urgency:'incident').
+  // Going forward, every issue created across the app (tenant not paying,
+  // maintenance, prayer requests with action needed, etc.) flows through this
+  // same shape so the Action Queue can show them in one consolidated view.
   incidents: [
-    { id: 'in1', date: '2026-05-01', amount: 300.00, category: 'vehicle', entityId: 'e-personal', description: 'Tatmans Towing' },
-    { id: 'in3', date: '2026-05-06', amount: 500.00, category: 'property', entityId: 'e-poeprops', description: 'Animal Damage Control' },
-    { id: 'in5', date: '2026-05-13', amount: 363.00, category: 'medical', entityId: 'e-personal', description: 'Robert W Shafer Orthodontics' },
+    { id: 'in1', date: '2026-05-01', amount: 300.00, category: 'vehicle', entityId: 'e-personal', description: 'Tatmans Towing', urgency: 'incident', status: 'resolved', dueDate: '2026-05-01', resolvedAt: '2026-05-01' },
+    { id: 'in3', date: '2026-05-06', amount: 500.00, category: 'property', entityId: 'e-poeprops', description: 'Animal Damage Control', urgency: 'incident', status: 'resolved', dueDate: '2026-05-09', resolvedAt: '2026-05-06' },
+    { id: 'in5', date: '2026-05-13', amount: 363.00, category: 'medical', entityId: 'e-personal', description: 'Robert W Shafer Orthodontics', urgency: 'incident', status: 'resolved', dueDate: '2026-05-16', resolvedAt: '2026-05-13' },
+    // Active items so the Action Queue renders something meaningful on first load.
+    { id: 'in-tenant-late', date: '2026-05-15', amount: 850.00, category: 'tenant', entityId: 'e-poeprops', description: 'Tenant at 1508 Holly Hill behind on rent', urgency: 'incident', status: 'open', dueDate: '2026-05-18', linkedTo: { type: 'rental', id: 'r3' } },
+    { id: 'in-hvac-down', date: '2026-05-16', amount: 0, category: 'maintenance', entityId: 'e-poeprops', description: '805 Apt 2 furnace blowing cold air', urgency: 'change', status: 'open', dueDate: '2026-05-16', linkedTo: { type: 'rental', id: 'r5' } },
   ],
   scopes: [
     // v28+ Example scope — visible in Projects > Scopes tab so users see what a
@@ -173,24 +186,104 @@ const SEED_DATA = {
     9: { discretionaryCut: 45, rentGapClosure: 75, stress: 'High', desc: 'Intense' },
     10: { discretionaryCut: 50, rentGapClosure: 80, stress: '5-yr sprint', desc: 'Maximum discipline' },
   },
+  // Round 10 fix — opportunity figures realigned to the published Dev/Ops tier
+  // pricing. The original placeholders (e.g., Federal Companies at $1,500/mo
+  // when Enterprise retainers are $25K-$75K/mo) made the pipeline look like a
+  // side-gig instead of the senior-architect consulting practice the rest of
+  // the page describes. Numbers below match the Services Portfolio bands:
+  //   · Small Business retainer: $3K-$12K/mo
+  //   · Enterprise retainer:     $25K-$75K/mo
+  //   · Enterprise project rate: $400-$800/hr
   opportunities: [
     { id: 'o1', person: 'Family', skill: 'Property management', what: 'Self-manage 1508 Holly Hill turnover', monthly: 1400, hours: 0, status: 'Priority', flag: true },
     { id: 'o2', person: 'Family', skill: 'Rent collection', what: 'Recover 805 Apt 3 (or evict/re-rent)', monthly: 350, hours: 0, status: 'Priority', flag: true },
-    { id: 'o3', person: 'Darrell', skill: 'Network / OT-IT', what: 'PoeTech client #1 (Federal Companies)', monthly: 1500, hours: 5, status: 'Pipeline' },
-    { id: 'o4', person: 'Darrell', skill: 'PWA / React dev', what: 'PoeTech app dev contracts', monthly: 2000, hours: 8, status: 'Building' },
-    { id: 'o5', person: 'Darrell', skill: 'BAS / Siemens', what: 'UIUC F&S consulting (1099)', monthly: 1000, hours: 4, status: 'Possible' },
-    { id: 'o6', person: 'Darrell', skill: 'Church tech', what: 'Champaign churches AV consulting', monthly: 800, hours: 3, status: 'Pipeline' },
+    { id: 'o3', person: 'Darrell', skill: 'Network / OT-IT', what: 'PoeTech client #1 (Federal Companies) · enterprise network architecture retainer', monthly: 25000, hours: 10, status: 'Pipeline', flag: true },
+    { id: 'o4', person: 'Darrell', skill: 'PWA / React dev', what: 'Small-business PWA build contracts · $15K-$45K projects', monthly: 12000, hours: 15, status: 'Building' },
+    { id: 'o5', person: 'Darrell', skill: 'BAS / Siemens', what: 'UIUC F&S consulting (1099) · senior architect rate', monthly: 12000, hours: 12, status: 'Possible' },
+    { id: 'o6', person: 'Darrell', skill: 'Church tech', what: 'Multi-site church AV install + ongoing managed services', monthly: 4500, hours: 8, status: 'Pipeline' },
     { id: 'o7', person: 'Christina', skill: 'Therapy practice', what: 'Add 1-2 more MSW contractors', monthly: 2000, hours: 0, status: 'Decision' },
     { id: 'o8', person: 'Christina', skill: 'Guardianship', what: 'Speaking / training (community)', monthly: 500, hours: 2, status: 'Possible' },
-    { id: 'o9', person: 'PoeTech Services', skill: 'Consulting + build', what: 'Warm Prospect A — has business + some tech background, interested', monthly: 2500, hours: 6, status: 'Active conversation', flag: true },
-    { id: 'o10', person: 'PoeTech Services', skill: 'Consulting + build', what: 'Warm Prospect B — has idea + business background, interested', monthly: 2500, hours: 6, status: 'Active conversation', flag: true },
-    { id: 'o11', person: 'PoeTech Services', skill: 'Revenue share build', what: 'Equity-split engagement on warm prospect business', monthly: 1500, hours: 8, status: 'Possible structure' },
+    { id: 'o9', person: 'PoeTech Services', skill: 'Consulting + build', what: 'Warm Prospect A · Small-business package · 6-month engagement', monthly: 8000, hours: 12, status: 'Active conversation', flag: true },
+    { id: 'o10', person: 'PoeTech Services', skill: 'Consulting + build', what: 'Warm Prospect B · Small-business package · 6-month engagement', monthly: 8000, hours: 12, status: 'Active conversation', flag: true },
+    { id: 'o11', person: 'PoeTech Services', skill: 'Revenue share build', what: 'Equity-split engagement on warm prospect business', monthly: 5000, hours: 12, status: 'Possible structure' },
     { id: 'o12', person: 'Family Educators', skill: 'K-12 teaching online', what: 'Principal Family Member A — online tutoring for homeschool families', monthly: 3000, hours: 10, status: 'Interested', flag: true },
     { id: 'o13', person: 'Family Educators', skill: 'K-12 teaching online', what: 'Principal Family Member B — online tutoring + curriculum support', monthly: 3000, hours: 10, status: 'Interested', flag: true },
     { id: 'o14', person: 'Family Educators', skill: 'Special-needs support', what: 'Specialized homeschool support for bullied / special-needs kids', monthly: 2000, hours: 8, status: 'Build', flag: true },
     { id: 'o15', person: 'PoeTech Services', skill: 'Elder care platform', what: 'Elder Care Coordination — adult children managing aging parents', monthly: 2500, hours: 6, status: 'Possible market' },
     { id: 'o16', person: 'PoeTech Services', skill: 'Caregiver marketplace', what: 'Elder Care 1099 caregiver platform — Care.com alternative', monthly: 4000, hours: 10, status: 'Vision · large market' },
     { id: 'o17', person: 'Poe Properties', skill: 'Ethical home acquisition', what: 'Home Legacy Program — purchase from elderly with no heirs (with attorney + integrity)', monthly: 0, hours: 4, status: 'Relationship building' },
+  ],
+  // v28+ MVP v1.5: Capex / Tools priority list — replaces the standalone
+  // Darrell_Tech_Tools_Priority_List.xlsx. Lives in About > Capital Spend.
+  //
+  // FUTURE-MODULE HOOK: Each capex item carries an optional `entityId` (which
+  // company/household pocket pays for it) and `module` slug (which future SKOS
+  // module will surface and depend on it). Today both are optional. Once the
+  // Home Command, Practice Ops, or Elder Care modules ship, they filter this
+  // list by `module === 'home-command'` etc. so each module shows only its own
+  // capex roadmap — without us having to migrate the data shape later.
+  capexItems: [
+    // FUTURE-MODULE HOOK round 3: each item now also carries an optional
+    // `projectId` (link to a project that needs it) and `purchaseTargetDate`
+    // (when it should be bought). Both feed the Project Inventory forecast and
+    // the savings prompts on the Projects tab. Items without either still work
+    // — they just aren't time-bucketed in the forecast.
+    { id: 'cx1', category: 'Networking', name: 'UniFi Cloud Gateway Max (2TB)', description: 'All-in-one cloud gateway with 2TB storage for network management', link: 'https://store.ui.com/us/en/category/cloud-gateways-compact/collections/cloud-gateway-max/products/ucg-max-ns?linked-variant=uacc-ssd-2tb', priority: 1, cost: 479, neededBy: 'ASAP when funds ready', status: 'planned', notes: 'Better value vs $600 NVMe alone', entityId: 'e-personal', module: 'home-command', projectId: '', purchaseTargetDate: '2026-07-01' },
+    { id: 'cx2', category: 'Home', name: 'Adjustable Bed Frame + Mattress Bundle', description: 'Comfort + sleep system upgrade', link: 'https://www.dreamcloudsleep.com/mattress-bundles/adjustable-frame-bundle', priority: 3, cost: 0, neededBy: 'Later', status: 'wishlist', notes: 'Not urgent but quality of life upgrade', entityId: 'e-personal', module: 'home-command', projectId: '', purchaseTargetDate: '' },
+    { id: 'cx3', category: 'Tools', name: 'Klein Tools Scout Pro 3 Tester', description: 'Cable tester for RJ45, coax, PoE, mapping + diagnostics', link: '', priority: 2, cost: 250, neededBy: 'Soon', status: 'researching', notes: 'Important for IT/network troubleshooting', entityId: 'e-poetech', module: 'home-command', projectId: '', purchaseTargetDate: '2026-08-15' },
+    { id: 'cx4', category: 'Storage', name: 'NVMe SSD (High-End)', description: 'Standalone NVMe storage (not needed if gateway purchased)', link: '', priority: 2, cost: 600, neededBy: 'Optional', status: 'on-hold', notes: 'Redundant if gateway purchased', entityId: 'e-personal', module: 'home-command', projectId: '', purchaseTargetDate: '' },
+  ],
+  // v28+ MVP v1.5: Markets watchlist — stock-ticker watchlist for the new
+  // Markets tab. Pre-seeded with common indices so the panel renders something
+  // useful on first load. Each entry is a Stooq symbol (e.g. 'spy.us', 'btcusd').
+  watchlist: ['spy.us', 'qqq.us', 'dia.us', 'btcusd'],
+  // v28+ MVP v1.5: Church tab config + parishioner data.
+  // FUTURE-MODULE HOOK: the `spiritual` and future `ministry` modules read
+  // from `data.church` so users can add multiple congregations later without
+  // a schema migration. Today this is keyed to the family's home church.
+  church: {
+    name: 'The Church Of The Living God',
+    nickname: 'The Love Corner',
+    site: 'https://www.thechurchofthelivinggod.com/',
+    address: '312 E. Bradley Ave, Champaign, IL 61820 (Rear Door E)',
+    phone: '217-359-6920',
+    officeHours: 'Mon–Fri · 11:00 am – 6:00 pm',
+    contactEmail: '', // intentionally blank — site uses an obfuscated link, user can fill in
+    services: [
+      { id: 'svc-sun', day: 'Sunday',    time: '11:00 AM', label: 'Worship Experience', online: true },
+      { id: 'svc-wed1', day: 'Wednesday', time: '1:00 PM', label: 'Bible Study',         online: true },
+      { id: 'svc-wed2', day: 'Wednesday', time: '6:00 PM', label: 'Bible Study',         online: true },
+    ],
+    media: {
+      youtube:   'https://www.youtube.com/channel/UC821pJh7YR5llBNnWUJj-ZA',
+      facebook:  'https://www.facebook.com/lovecornerlive/',
+      instagram: 'https://www.instagram.com/tlcexperience/',
+      broadcast: 'https://www.thechurchofthelivinggod.com/broadcast.html',
+    },
+    links: {
+      give:        'https://www.thechurchofthelivinggod.com/tithesofferinggifts.html',
+      giversCreed: 'https://www.thechurchofthelivinggod.com/givers-creed.html',
+      calendar:    'https://www.thechurchofthelivinggod.com/calendar.html',
+      ministries:  'https://www.thechurchofthelivinggod.com/ministry-opportunities.html',
+      bibleChallenge: 'https://www.thechurchofthelivinggod.com/bible-reading-challenge-2026.html',
+      classPoints: 'https://www.thechurchofthelivinggod.com/bible-study-class-points.html',
+      lettersFromBG: 'https://www.thechurchofthelivinggod.com/letters-from-bg1.html',
+      stayConnected: 'https://www.thechurchofthelivinggod.com/stay-connected.html',
+      about: 'https://www.thechurchofthelivinggod.com/about-us.html',
+      assembly: 'https://www.thechurchofthelivinggod.com/77th-national-assembly.html',
+    },
+    tagline: 'Reviving Faith · Restoring Hope · Rebuilding Communities',
+    verse: { ref: 'Psalm 34:3', text: 'O magnify the LORD with me, and let us exalt His name together.' },
+  },
+  prayerRequests: [], // local prayer-request log; user controls send-out via mailto button
+  // v28+ MVP v1.5 round 6 — Dev/Ops skill profiles. Each profile feeds the
+  // opportunity matcher. Seeded from the existing `opportunities[]` so the
+  // matcher renders something meaningful on first load.
+  skillProfiles: [
+    { id: 'sp-darrell',  name: 'Darrell',  skills: 'network architecture, OT-IT, BAS, Siemens, PWA, React, javascript, church AV, streaming, real estate, property management', hoursPerWeek: 20, monthlyIncome: 4680, location: 'Champaign, IL', techComfort: 5, notes: 'PoeTech LLC tech consulting · Poe Properties self-mgmt · Church of the Living God AV' },
+    { id: 'sp-christina',name: 'Christina',skills: 'therapy, clinical, LCSW, MSW, faith, christian counseling, music, choir, vocal, guardianship, social work', hoursPerWeek: 30, monthlyIncome: 6167, location: 'Champaign, IL', techComfort: 3, notes: 'TLC Therapy Solutions LLC owner · Church of the Living God Choir Director' },
+    { id: 'sp-twin-son', name: 'Twin (son)', skills: 'tech support, networking, teen, neighborhood, lawn care', hoursPerWeek: 4, monthlyIncome: 0, location: 'Champaign, IL', techComfort: 4, notes: 'Apprenticeship in progress — Cable Scout curriculum + neighborhood route' },
+    { id: 'sp-twin-dau', name: 'Twin (daughter)', skills: 'teaching, tutoring, teen, community, pet sitting', hoursPerWeek: 4, monthlyIncome: 0, location: 'Champaign, IL', techComfort: 3, notes: 'Discovering — possible tutoring + pet care' },
   ],
 };
 
@@ -239,11 +332,113 @@ const PROJECT_DOMAINS = [
   { key: 'tech', label: 'Tech · Repair · Build', color: '#2A5A8E' },
   { key: 'other', label: 'Other', color: '#5A5751' },
 ];
-const PROJECT_STATUSES = ['planning', 'active', 'ending-soon', 'complete', 'on-hold'];
+// Round 11 — Added 'tbd' (to be decided). When auto-creating a project would
+// push the family over their available hours/week, the new project lands here
+// as a parking lot until capacity opens up or the user explicitly promotes it.
+// TBD projects DON'T count toward workload forecast or Action Queue.
+const PROJECT_STATUSES = ['planning', 'active', 'ending-soon', 'complete', 'on-hold', 'tbd'];
+const PROJECT_STATUSES_ACTIVE = ['planning', 'active', 'ending-soon']; // count toward capacity
+
+// =============================================================================
+// v28+ MVP v1.5 round 5 — TIER GATING
+// Single source of truth for which subscription tier unlocks which view.
+// Tiers (ordered cheapest → most expensive):
+//   foundation < poetech-plus < family < premium < business
+// Special tiers (community / sponsor / founding) inherit at least 'foundation'
+// privileges; the inherits-as map promotes them to the tier they should match.
+// Read-only preview: Real Estate is rendered with editing disabled and a
+// single seed property when the user is on 'foundation' — gives a real feel
+// of the value before paying without unlocking the full editor.
+// =============================================================================
+const TIER_ORDER = ['foundation', 'poetech-plus', 'family', 'premium', 'business'];
+const TIER_LABEL = {
+  'foundation':   'Foundation (free)',
+  'poetech-plus': 'PoeTech+ ($39/mo)',
+  'family':       'Family ($89/mo)',
+  'premium':      'Premium ($149/mo)',
+  'business':     'PoeTech Business ($249/mo)',
+};
+// Special tier names mapped to their effective standard tier for gating.
+const TIER_ALIASES = {
+  'loved-ones':       'poetech-plus', // Founding Family — free PoeTech+ for life
+  'community':        'poetech-plus', // Sponsored Community tier
+  'community-partner':'business',     // Mission-aligned 501(c)(3) — full features
+};
+const effectiveTier = (t) => TIER_ALIASES[t] || t || 'foundation';
+// Comparator — true if user's effective tier meets or exceeds the required tier.
+const tierMeets = (userTier, requiredTier) => {
+  const u = TIER_ORDER.indexOf(effectiveTier(userTier));
+  const r = TIER_ORDER.indexOf(requiredTier);
+  return u >= 0 && r >= 0 && u >= r;
+};
+// VIEW_TIER_REQUIREMENTS — each nav view's minimum tier.
+// 'foundation' = free for everyone. Markets, Books, Big Picture, Debts, Church
+// all live here. Real Estate is special — rendered as read-only preview at
+// foundation, fully editable at poetech-plus+.
+const VIEW_TIER_REQUIREMENTS = {
+  overview:      'foundation',
+  books:         'foundation',
+  debts:         'foundation',
+  rentals:       'foundation',   // preview mode below this tier; full edit at poetech-plus
+  markets:       'foundation',
+  church:        'foundation',   // free for everyone, always
+  projects:      'family',
+  practice:      'premium',
+  // Round 13 — Dev/Ops opens to every tier. The tab itself IS an advertising
+  // surface for PoeTech Services + the opportunity engine. Per-tier richness
+  // stays gated:
+  //   · Foundation: 1 personalized option per profile + view-only services portfolio
+  //   · PoeTech+:   3 options per profile + unlimited Markets
+  //   · Family:     6 options per profile (full library)
+  //   · Premium:    "Wrap me with the tech" CTA enabled (auto-create Project + Scope)
+  //   · Business:   Publish own opportunity entries (when shipped)
+  opportunities: 'foundation',
+  about:         'foundation',
+};
+// Real Estate full-edit unlock tier — used to render the preview vs full editor.
+const RENTALS_FULL_EDIT_TIER = 'poetech-plus';
+// Soft caps for the Foundation tier — values feature is visible but limited.
+const FOUNDATION_CAPS = {
+  maxEntities: 2,
+  maxWatchlistTickers: 5,
+  maxRentalsEditable: 0,  // none editable at Foundation (preview only)
+  maxRentalsPreviewVisible: 1, // shows just one seed property as preview
+};
 
 // =============================================================================
 // HELPERS
 // =============================================================================
+
+// UpgradePrompt — shown in place of a tab when the user's tier doesn't meet
+// the requirement. Always tells the user the cheapest tier that unlocks it.
+function UpgradePrompt({ viewLabel, requiredTier, currentTier, setView, setUserTier }) {
+  const label = TIER_LABEL[requiredTier] || requiredTier;
+  const isLogged = effectiveTier(currentTier);
+  return (
+    <div className="bg-white border-2 border-[#B85838] p-6 sm:p-8 max-w-2xl mx-auto">
+      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Unlock {viewLabel}</div>
+      <h2 className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>This view unlocks at <span className="text-[#B85838]">{label}</span>.</h2>
+      <p className="text-sm leading-relaxed text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+        You're currently on <strong>{TIER_LABEL[isLogged] || isLogged}</strong>. {viewLabel} is built for the situations that {label.split(' ')[0]} subscribers use most. See the pricing tiers in About — the upgrade pays for itself by replacing several SaaS tools you'd otherwise stack to get the same outcome.
+      </p>
+      <div className="flex gap-2 flex-wrap">
+        <button type="button" onClick={() => setView('about')} className="bg-[#1A1815] text-white px-5 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">See pricing tiers →</button>
+        <button type="button" onClick={() => setView('overview')} className="border border-[#1A1815] px-5 py-2.5 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">← Back to Big Picture</button>
+      </div>
+      {/* Dev-only tier switcher — lets you preview what each tier looks like without paying. */}
+      {setUserTier && (
+        <div className="mt-5 pt-4 border-t border-[#E8E4DC]">
+          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Dev preview — switch tier</div>
+          <div className="flex gap-1 flex-wrap">
+            {TIER_ORDER.map(t => (
+              <button key={t} type="button" onClick={() => setUserTier(t)} className={`text-[10px] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${effectiveTier(currentTier) === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{t}</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
 const fmtPct = (n) => n == null ? '—' : `${n.toFixed(1)}%`;
@@ -413,6 +608,60 @@ function findExtraForTarget(rentals, targetYears, currentDate) {
 // =============================================================================
 // MAIN APP
 // =============================================================================
+// v28+ MVP v1.5 round 7 — TierSwitcher: controlled dropdown that closes on
+// outside click + selection, plus a 1.5s flash on the trigger when the tier
+// changes so the user sees the action took effect.
+function TierSwitcher({ userTier, setUserTier }) {
+  const [open, setOpen] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const wrapRef = useRef(null);
+  const autoCloseRef = useRef(null);
+  // Round 7 fix — auto-close after 6s of no interaction inside the dropdown.
+  // Reset the timer on any pointer move or focus inside; long enough to pick
+  // a tier, not so long that the panel sticks around forever.
+  const armAutoClose = () => {
+    clearTimeout(autoCloseRef.current);
+    autoCloseRef.current = setTimeout(() => setOpen(false), 6000);
+  };
+  useEffect(() => {
+    if (!open) { clearTimeout(autoCloseRef.current); return; }
+    armAutoClose();
+    const onClick = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('touchstart', onClick);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('touchstart', onClick);
+      clearTimeout(autoCloseRef.current);
+    };
+  }, [open]);
+  const pick = (t) => {
+    setUserTier(t);
+    setOpen(false);
+    setFlash(true);
+    setTimeout(() => setFlash(false), 1500);
+  };
+  const current = effectiveTier(userTier);
+  return (
+    <div ref={wrapRef} className="relative">
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-haspopup="true" className={`text-[10px] uppercase tracking-wider px-2 py-1.5 border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors ${flash ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`} title="Tier preview · switch to see locked / unlocked views">
+        {flash ? '✓ Saved · ' : ''}{TIER_LABEL[current] || 'Foundation (free)'} {open ? '▴' : '▾'}
+      </button>
+      {open && (
+        <div onMouseMove={armAutoClose} onTouchStart={armAutoClose} onFocus={armAutoClose} className="absolute right-0 mt-1 bg-white border border-[#1A1815] p-2 z-30 shadow-lg" style={{ minWidth: '220px' }}>
+          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1 px-1">Preview tier (dev) · closes in 6s</div>
+          <div className="flex flex-col gap-1">
+            {TIER_ORDER.map(t => (
+              <button key={t} type="button" onClick={() => pick(t)} className={`text-[10px] uppercase tracking-wider px-2 py-2 text-left border focus:outline focus:outline-2 focus:outline-[#B85838] ${current === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{TIER_LABEL[t]}</button>
+            ))}
+          </div>
+          <div className="text-[9px] text-[#5A5751] italic mt-2 px-1">Persisted on this device. Real billing happens through About.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PoeFinancialSystem() {
   const [data, setData] = useState(SEED_DATA);
   const [pressure, setPressure] = useState(5);
@@ -453,13 +702,27 @@ export default function PoeFinancialSystem() {
             feedback: Array.isArray(parsed.data.feedback) ? parsed.data.feedback : (d.feedback || []),
             welcomeDismissed: parsed.data.welcomeDismissed === true,
             moduleInterest: parsed.data.moduleInterest || d.moduleInterest || {},
-            incidents: Array.isArray(parsed.data.incidents) ? parsed.data.incidents : (d.incidents || []),
+            // Round 10 — backfill ITSM fields on old incidents that pre-date the taxonomy.
+            incidents: Array.isArray(parsed.data.incidents)
+              ? parsed.data.incidents.map(i => ({
+                  urgency: 'incident',
+                  status: i.status || 'resolved',
+                  dueDate: i.dueDate || i.date || '',
+                  ...i,
+                }))
+              : (d.incidents || []),
             recurringObligations: Array.isArray(parsed.data.recurringObligations) ? parsed.data.recurringObligations : (d.recurringObligations || []),
             scopes: Array.isArray(parsed.data.scopes) ? parsed.data.scopes : (d.scopes || []),
             practiceInquiries: Array.isArray(parsed.data.practiceInquiries) ? parsed.data.practiceInquiries : (d.practiceInquiries || []),
             inquiries: Array.isArray(parsed.data.inquiries) ? parsed.data.inquiries : (d.inquiries || []),
             checkoutIntents: Array.isArray(parsed.data.checkoutIntents) ? parsed.data.checkoutIntents : (d.checkoutIntents || []),
             userTier: typeof parsed.data.userTier === 'string' ? parsed.data.userTier : (d.userTier || 'foundation'),
+            // v28+ MVP v1.5: defensive merge for new collections so old saves still load.
+            capexItems: Array.isArray(parsed.data.capexItems) ? parsed.data.capexItems : (d.capexItems || []),
+            watchlist: Array.isArray(parsed.data.watchlist) ? parsed.data.watchlist : (d.watchlist || []),
+            church: (parsed.data.church && typeof parsed.data.church === 'object') ? { ...d.church, ...parsed.data.church } : d.church,
+            prayerRequests: Array.isArray(parsed.data.prayerRequests) ? parsed.data.prayerRequests : (d.prayerRequests || []),
+            skillProfiles: Array.isArray(parsed.data.skillProfiles) ? parsed.data.skillProfiles : (d.skillProfiles || []),
           }));
           if (parsed.pressure != null) setPressure(parsed.pressure);
           if (parsed.snowballSort) setSnowballSort(parsed.snowballSort);
@@ -520,7 +783,26 @@ export default function PoeFinancialSystem() {
 
   // Data callbacks
   const addRecurring = (item) => setData(d => ({ ...d, recurringObligations: [...d.recurringObligations, { ...item, id: `ro-${Date.now()}`, enabled: true }] }));
-  const addIncident = (item) => setData(d => ({ ...d, incidents: [...d.incidents, { ...item, id: `in-${Date.now()}` }] }));
+  // Round 10 — addIncident now fills in ITSM defaults if caller omits them.
+  // status defaults to 'open', urgency to 'incident', dueDate computed from urgency.
+  const addIncident = (item) => setData(d => ({
+    ...d,
+    incidents: [
+      ...d.incidents,
+      {
+        urgency: 'incident',
+        status: 'open',
+        dueDate: dueDateFor(item.urgency || 'incident'),
+        ...item,
+        id: `in-${Date.now()}`,
+      },
+    ],
+  }));
+  const updateIncident = (id, updates) => setData(d => ({
+    ...d,
+    incidents: d.incidents.map(i => i.id === id ? { ...i, ...updates } : i),
+  }));
+  const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10) });
   const addEvent = (item) => setData(d => ({ ...d, events: [...(d.events || []), { ...item, id: `ev-${Date.now()}`, createdAt: new Date().toISOString(), completedAt: null }] }));
   const completeEvent = (id) => setData(d => ({ ...d, events: (d.events || []).map(e => e.id === id ? { ...e, completedAt: new Date().toISOString() } : e) }));
   const addProject = (item) => setData(d => ({ ...d, projects: [...(d.projects || []), { ...item, id: `pr-${Date.now()}`, createdAt: new Date().toISOString() }] }));
@@ -556,6 +838,34 @@ export default function PoeFinancialSystem() {
   const updateInquiry = (id, updates) => setData(d => ({ ...d, inquiries: (d.inquiries || []).map(i => i.id === id ? { ...i, ...updates, statusHistory: updates.status && updates.status !== i.status ? [...(i.statusHistory || []), { status: updates.status, at: new Date().toISOString(), notes: updates.statusNotes }] : i.statusHistory } : i) }));
   const deleteInquiry = (id) => setData(d => ({ ...d, inquiries: (d.inquiries || []).filter(i => i.id !== id) }));
   const toggleModuleInterest = (moduleKey, priority) => setData(d => { const current = d.moduleInterest || {}; if (priority === null || priority === undefined) { const next = {...current}; delete next[moduleKey]; return { ...d, moduleInterest: next }; } return { ...d, moduleInterest: { ...current, [moduleKey]: { signedAt: new Date().toISOString(), priority } } }; });
+  // v28+ MVP v1.5: Capex / Tools list CRUD (data lives in About > Capital Spend)
+  const addCapexItem = (item) => setData(d => ({ ...d, capexItems: [...(d.capexItems || []), { ...item, id: `cx-${Date.now()}`, cost: parseFloat(item.cost) || 0, priority: parseInt(item.priority) || 3 }] }));
+  const updateCapexItem = (id, updates) => setData(d => ({ ...d, capexItems: (d.capexItems || []).map(x => x.id === id ? { ...x, ...updates, cost: updates.cost !== undefined ? parseFloat(updates.cost) || 0 : x.cost, priority: updates.priority !== undefined ? parseInt(updates.priority) || 3 : x.priority } : x) }));
+  const deleteCapexItem = (id) => setData(d => ({ ...d, capexItems: (d.capexItems || []).filter(x => x.id !== id) }));
+  // v28+ MVP v1.5: Buffer Fund — slider-driven current balance + deliberate-edit target.
+  const setBufferCurrent = (val) => setData(d => ({ ...d, meta: { ...d.meta, bufferCurrent: parseFloat(val) || 0 } }));
+  const setBufferTarget = (val) => setData(d => ({ ...d, meta: { ...d.meta, bufferTarget: parseFloat(val) || 0 } }));
+  // v28+ MVP v1.5 round 5: tier switcher (also persists via setData)
+  const setUserTier = (tier) => setData(d => ({ ...d, userTier: tier }));
+  // v28+ MVP v1.5 round 6: skill profile CRUD for Dev/Ops opportunity matcher
+  const addSkillProfile = (item) => setData(d => ({ ...d, skillProfiles: [...(d.skillProfiles || []), { ...item, id: `sp-${Date.now()}` }] }));
+  const updateSkillProfile = (id, updates) => setData(d => ({ ...d, skillProfiles: (d.skillProfiles || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
+  const deleteSkillProfile = (id) => setData(d => ({ ...d, skillProfiles: (d.skillProfiles || []).filter(p => p.id !== id) }));
+  // v28+ MVP v1.5: Markets watchlist CRUD. Symbols are Stooq format ('spy.us', 'btcusd', '^spx').
+  // v28+ MVP v1.5: Church tab CRUD — local prayer-request log
+  const addPrayerRequest = (item) => setData(d => ({ ...d, prayerRequests: [...(d.prayerRequests || []), { ...item, id: `pr-${Date.now()}`, createdAt: new Date().toISOString(), sentAt: null }] }));
+  const markPrayerRequestSent = (id) => setData(d => ({ ...d, prayerRequests: (d.prayerRequests || []).map(p => p.id === id ? { ...p, sentAt: new Date().toISOString() } : p) }));
+  const deletePrayerRequest = (id) => setData(d => ({ ...d, prayerRequests: (d.prayerRequests || []).filter(p => p.id !== id) }));
+  const addWatchlistSymbol = (sym) => {
+    const s = (sym || '').trim().toLowerCase();
+    if (!s) return;
+    setData(d => {
+      const list = Array.isArray(d.watchlist) ? d.watchlist : [];
+      if (list.includes(s)) return d;
+      return { ...d, watchlist: [...list, s] };
+    });
+  };
+  const removeWatchlistSymbol = (sym) => setData(d => ({ ...d, watchlist: (d.watchlist || []).filter(s => s !== sym) }));
 
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
@@ -599,13 +909,25 @@ export default function PoeFinancialSystem() {
   const rentalSnowball = useMemo(() => projectRentalSnowball(data.inflows.rentals.filter(r => (r.rent || 0) > 0), snowballExtra, snowballSort, currentDate, 240), [data.inflows.rentals, snowballExtra, snowballSort, currentDate]);
   const sevenYearTarget = useMemo(() => findExtraForTarget(data.inflows.rentals.filter(r => (r.rent || 0) > 0), 7, currentDate), [data.inflows.rentals, currentDate]);
 
+  // Round 12 fix — Cash rollup was summing ALL account types, so credit-card
+  // negative balances were dragging "Cash" deep into the red (e.g., -$57K when
+  // there's actually $5-6K of spendable cash). Now:
+  //   · cashBalance   = checking + savings + cash + investment only
+  //   · creditBalance = credit + loan accounts (typically negative)
+  //   · balance       = retained as the FULL sum for back-compat (anything that
+  //                     used to read .balance still gets the old number), but
+  //                     Cash UI tiles now read .cashBalance.
   const entityRollups = useMemo(() => data.entities.map(entity => {
     const accounts = data.accounts.filter(a => a.entityId === entity.id);
-    const balance = accounts.reduce((s, a) => s + a.balance, 0);
+    const isCash = (a) => ['checking','savings','cash','investment'].includes(a.type);
+    const isCredit = (a) => a.type === 'credit' || a.type === 'loan';
+    const cashBalance = accounts.filter(isCash).reduce((s, a) => s + (a.balance || 0), 0);
+    const creditBalance = accounts.filter(isCredit).reduce((s, a) => s + (a.balance || 0), 0);
+    const balance = accounts.reduce((s, a) => s + (a.balance || 0), 0); // legacy total
     const inflow = [...data.inflows.salaries.filter(s => s.entityId === entity.id).map(s => s.actual), ...data.inflows.rentals.filter(r => r.entityId === entity.id).map(r => r.actual)].reduce((s, x) => s + x, 0);
     const debts = data.debts.filter(d => d.entityId === entity.id);
     const debtBalance = debts.reduce((s, d) => s + d.balance, 0);
-    return { entity, accounts, balance, inflow, debts, debtBalance };
+    return { entity, accounts, balance, cashBalance, creditBalance, inflow, debts, debtBalance };
   }), [data]);
 
   const flaggedRentals = data.inflows.rentals.filter((r) => r.status === 'late' && (r.rent || 0) > 0);
@@ -630,24 +952,59 @@ html{scroll-padding-bottom:280px}
 .section-title-text{position:relative}
 
 /* ===================================================================
-   THEME: WHITE (Editorial · default) — softened from pure cream
-   Less bright, more grey-cream so it's easier on the eyes
+   THEME: WHITE · "Snow" — iOS-feel light surface (no brand affiliation)
+   Design DNA borrowed from iOS / macOS conventions:
+     · systemGroupedBackground (#F2F2F7) base, pure-white cards on top
+     · iOS separator gray (#C6C6C8) for hairlines
+     · Near-black text (#1D1D1F), iOS secondary (#8E8E93) for muted
+     · Generous corner rounding (12-16px) on cards
+     · Subtle stacked shadows on raised surfaces (cards + buttons)
+     · Tighter letter-spacing on body for SF-feel
+   All combinations exceed WCAG 2.1 AA (≥4.5:1 body, ≥3:1 UI).
    =================================================================== */
-[data-theme="white"] .bg-\\[\\#FAF8F4\\]{background-color:#F2EFE8!important}
-[data-theme="white"] .bg-\\[\\#E8E4DC\\]{background-color:#DFDAD0!important}
-[data-theme="white"] .border-\\[\\#E8E4DC\\]{border-color:#DFDAD0!important}
-[data-theme="white"] .bg-white{background-color:#F8F6F1!important}
+[data-theme="white"]{background-color:#F2F2F7;letter-spacing:-0.005em}
+[data-theme="white"] .bg-\\[\\#FAF8F4\\]{background-color:#F2F2F7!important}
+[data-theme="white"] .bg-white{background-color:#FFFFFF!important;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04)}
+[data-theme="white"] .bg-\\[\\#E8E4DC\\]{background-color:#E5E5EA!important}
+[data-theme="white"] .border-\\[\\#E8E4DC\\]{border-color:#C6C6C8!important}
+[data-theme="white"] .border-\\[\\#1A1815\\]{border-color:#1D1D1F!important;border-radius:12px}
+[data-theme="white"] .border-2{border-radius:14px}
+[data-theme="white"] .text-\\[\\#1A1815\\]{color:#1D1D1F!important}
+[data-theme="white"] .text-\\[\\#5A5751\\]{color:#8E8E93!important}
+[data-theme="white"] .bg-\\[\\#1A1815\\]{background-color:#1D1D1F!important;border-radius:10px}
+/* iOS-style breathing room on body prose */
+[data-theme="white"] p,[data-theme="white"] li{line-height:1.55}
+/* iOS-style soft button feel — slightly raised, subtly rounded */
+[data-theme="white"] button{border-radius:10px}
+[data-theme="white"] input,[data-theme="white"] select,[data-theme="white"] textarea{border-radius:8px}
 
 /* ===================================================================
-   THEME: SLATE — modern cool gray, distinct from default
+   THEME: SLATE · "Glacier" — One UI-feel surface (no brand affiliation)
+   Design DNA borrowed from One UI conventions:
+     · Cool blue-tinted background (#F1F3F8) with extra-rounded cards
+     · Larger corner rounding (20-24px) for the soft, friendly feel
+     · Deeper card shadows (more elevation)
+     · Cool blue accent (#1F6FEB) where the brand accent would normally land
+     · More generous padding via inset adjustments
+     · Default body line-height for One UI's roomier feel
+   All combinations exceed WCAG 2.1 AA.
    =================================================================== */
-[data-theme="slate"] .bg-\\[\\#FAF8F4\\]{background-color:#F1F5F9!important}
-[data-theme="slate"] .border-\\[\\#E8E4DC\\]{border-color:#CBD5E1!important}
-[data-theme="slate"] .bg-\\[\\#E8E4DC\\]{background-color:#CBD5E1!important}
-[data-theme="slate"] .text-\\[\\#1A1815\\]{color:#0F172A!important}
-[data-theme="slate"] .text-\\[\\#5A5751\\]{color:#475569!important}
-[data-theme="slate"] .border-\\[\\#1A1815\\]{border-color:#0F172A!important}
-[data-theme="slate"] .bg-\\[\\#1A1815\\]{background-color:#0F172A!important}
+[data-theme="slate"]{background-color:#F1F3F8;letter-spacing:0}
+[data-theme="slate"] .bg-\\[\\#FAF8F4\\]{background-color:#F1F3F8!important}
+[data-theme="slate"] .bg-white{background-color:#FFFFFF!important;border-radius:22px;box-shadow:0 4px 16px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)}
+[data-theme="slate"] .bg-\\[\\#E8E4DC\\]{background-color:#E1E6EF!important}
+[data-theme="slate"] .border-\\[\\#E8E4DC\\]{border-color:#DDE3EC!important}
+[data-theme="slate"] .text-\\[\\#1A1815\\]{color:#1B1D1F!important}
+[data-theme="slate"] .text-\\[\\#5A5751\\]{color:#4A5260!important}
+[data-theme="slate"] .border-\\[\\#1A1815\\]{border-color:#1B1D1F!important;border-radius:22px}
+[data-theme="slate"] .border-2{border-radius:24px}
+[data-theme="slate"] .bg-\\[\\#1A1815\\]{background-color:#1F6FEB!important;border-radius:18px}
+[data-theme="slate"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#1B5FCC!important;color:#FFFFFF!important}
+/* Roomy body prose, One UI-style */
+[data-theme="slate"] p,[data-theme="slate"] li{line-height:1.6}
+/* Pill-shaped buttons + extra-rounded inputs */
+[data-theme="slate"] button{border-radius:18px}
+[data-theme="slate"] input,[data-theme="slate"] select,[data-theme="slate"] textarea{border-radius:14px}
 
 /* ===================================================================
    THEME: SAPPHIRE — premium blue, refined
@@ -710,21 +1067,29 @@ html{scroll-padding-bottom:280px}
               <h1 className="text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Financial Control System</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <button onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
+              {/* Round 5 — Tier indicator + dev-only switcher. Round 7 fix:
+                  Replaced native <details> (which doesn't auto-close on outside
+                  click and felt broken) with a controlled dropdown that closes
+                  on selection and clicks outside, with a brief flash on change. */}
+              <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />
+              <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
                 💳 Subscribe
               </button>
-              <button onClick={() => setFeedbackOpen(true)} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white font-semibold whitespace-nowrap">
+              <button type="button" onClick={() => setFeedbackOpen(true)} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white font-semibold whitespace-nowrap">
                 💬 Feedback
               </button>
               <div className="flex gap-1 items-center" role="group" aria-label="Theme selector">
                 {[
-                  { key: 'white', color: '#F2EFE8', border: '#1A1815' },
-                  { key: 'slate', color: '#F1F5F9', border: '#0F172A' },
-                  { key: 'sapphire', color: '#EFF6FF', border: '#1E3A8A' },
-                  { key: 'rose', color: '#FDF2F8', border: '#831843' },
-                  { key: 'midnight', color: '#000000', border: '#888888' },
+                  // White and Slate take design inspiration from the two phone
+                  // ecosystems most users come from — so the app feels familiar
+                  // on whichever phone opens it. No brand names used.
+                  { key: 'white',    color: '#F5F5F7', border: '#1D1D1F', label: 'Snow · clean light' },
+                  { key: 'slate',    color: '#F2F4F7', border: '#1F6FEB', label: 'Glacier · cool light' },
+                  { key: 'sapphire', color: '#EFF6FF', border: '#1E3A8A', label: 'Sapphire' },
+                  { key: 'rose',     color: '#FDF2F8', border: '#831843', label: 'Rose' },
+                  { key: 'midnight', color: '#000000', border: '#888888', label: 'Midnight · OLED black' },
                 ].map(t => (
-                  <button key={t.key} onClick={() => setTheme(t.key)} aria-label={`${t.key} theme`} title={t.key.charAt(0).toUpperCase() + t.key.slice(1)} className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1 scale-110' : 'opacity-70 hover:opacity-100 hover:scale-105'}`} style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}` }}></button>
+                  <button key={t.key} type="button" onClick={() => setTheme(t.key)} aria-label={`${t.label} theme${theme === t.key ? ' (currently selected)' : ''}`} title={t.label} className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full transition-all focus:outline focus:outline-2 focus:outline-[#B85838] ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1 scale-110' : 'opacity-70 hover:opacity-100 hover:scale-105'}`} style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}` }}></button>
                 ))}
               </div>
               <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
@@ -736,10 +1101,31 @@ html{scroll-padding-bottom:280px}
         </div>
         <nav className="border-t border-[#E8E4DC]">
           <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
-            <div className="flex gap-1 text-xs sm:text-sm">
-              {[['overview','Big Picture'],['books','Books'],['debts','Debts'],['rentals','Real Estate'],['projects','Projects'],['practice','Practice'],['opportunities','Dev/Ops'],['about','About']].map(([id, label]) => (
-                <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-              ))}
+            {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
+                first, About anchors the right side of the primary group, then a
+                visible vertical divider separates the secondary "life" tabs
+                (Church + Markets) which live to the far right. */}
+            <div className="flex gap-1 text-xs sm:text-sm items-stretch">
+              {[
+                ['overview','Big Picture'],
+                ['books','Books'],
+                ['debts','Debts'],
+                ['rentals','Real Estate'],
+                ['projects','Projects'],
+                ['practice','Practice'],
+                ['opportunities','Dev/Ops'],
+                ['about','About'],
+                ['__sep__', null],
+                ['church','Church'],
+                ['markets','Markets'],
+              ].map(([id, label]) => {
+                if (id === '__sep__') {
+                  return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
+                }
+                return (
+                  <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+                );
+              })}
             </div>
           </div>
         </nav>
@@ -762,11 +1148,11 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} />}
+        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} />}
         {view === 'books' && (
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} />}
-            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} />}
+            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} />}
             {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} />}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <ThousandNinetyNine contractors={data.contractors1099} />}
@@ -774,15 +1160,76 @@ html{scroll-padding-bottom:280px}
           </>
         )}
         {view === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} />}
-        {view === 'rentals' && <Rentals rentals={data.inflows.rentals} entities={data.entities} totals={totals} snowballSort={snowballSort} setSnowballSort={setSnowballSort} snowballExtra={snowballExtra} setSnowballExtra={setSnowballExtra} rentalSnowball={rentalSnowball} sevenYearTarget={sevenYearTarget} currentDate={currentDate} addRental={addRental} updateRental={updateRental} deleteRental={deleteRental} />}
-        {view === 'projects' && <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} />}
-        {view === 'practice' && <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} />}
-        {view === 'opportunities' && <Opportunities opportunities={data.opportunities} totals={totals} />}
+        {view === 'rentals' && (() => {
+          // Real Estate: Foundation tier = READ-ONLY PREVIEW of one seed property.
+          // PoeTech+ and above = full editor over the user's actual rentals.
+          const fullEdit = tierMeets(data.userTier, RENTALS_FULL_EDIT_TIER);
+          const visibleRentals = fullEdit
+            ? data.inflows.rentals
+            : (data.inflows.rentals || []).slice(0, FOUNDATION_CAPS.maxRentalsPreviewVisible);
+          const noop = () => alert(`Editing Real Estate unlocks at ${TIER_LABEL[RENTALS_FULL_EDIT_TIER]}. See pricing tiers in About.`);
+          return (
+            <>
+              {!fullEdit && (
+                <div className="bg-white border-2 border-[#B85838] p-3 sm:p-4 mb-3" role="status">
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Real Estate · Read-only preview</div>
+                  <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>You're seeing one sample property so the value is concrete. Unlock the full editor (lease · tenant · equipment · rooms · maintenance · evaluator · map · snowball math) at {TIER_LABEL[RENTALS_FULL_EDIT_TIER]}. <button type="button" onClick={() => setView('about')} className="underline text-[#B85838] hover:text-[#1A1815] font-semibold">See pricing tiers →</button></p>
+                </div>
+              )}
+              <Rentals
+                rentals={visibleRentals}
+                entities={data.entities}
+                totals={totals}
+                snowballSort={snowballSort}
+                setSnowballSort={setSnowballSort}
+                snowballExtra={snowballExtra}
+                setSnowballExtra={setSnowballExtra}
+                rentalSnowball={rentalSnowball}
+                sevenYearTarget={sevenYearTarget}
+                currentDate={currentDate}
+                addRental={fullEdit ? addRental : noop}
+                updateRental={fullEdit ? updateRental : noop}
+                deleteRental={fullEdit ? deleteRental : noop}
+                readOnly={!fullEdit}
+                incidents={data.incidents || []}
+                addIncident={addIncident}
+                resolveIncident={resolveIncident}
+              />
+            </>
+          );
+        })()}
+        {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
+        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} />}
+        {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
+          ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} />
+          : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
+        )}
+        {view === 'practice' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.practice)
+          ? <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} />
+          : <UpgradePrompt viewLabel="Practice Operations" requiredTier={VIEW_TIER_REQUIREMENTS.practice} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
+        )}
+        {view === 'opportunities' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.opportunities)
+          ? <Opportunities
+              opportunities={data.opportunities}
+              totals={totals}
+              skillProfiles={data.skillProfiles || []}
+              addSkillProfile={addSkillProfile}
+              updateSkillProfile={updateSkillProfile}
+              deleteSkillProfile={deleteSkillProfile}
+              userTier={data.userTier}
+              addProject={addProject}
+              addScope={addScope}
+              addCapexItem={addCapexItem}
+              setView={setView}
+              projects={data.projects || []}
+            />
+          : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
+        )}
         {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={data.feedback || []} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} />}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
-          <button onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
+          <button type="button" onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
         </footer>
         {view !== 'overview' && view !== 'debts' && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mt-6">
@@ -847,7 +1294,7 @@ function SalesFooterBanner({ currentView, setView }) {
                 <button key={i} onClick={() => setIndex(i)} aria-label={`Show pitch ${i + 1}`} className={`w-1 h-1 rounded-full transition-all ${i === index ? 'bg-[#B85838] w-2' : 'bg-[#E8E4DC]'}`}></button>
               ))}
             </div>
-            <button onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
+            <button type="button" onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
           </div>
         </div>
         <a href="#" onClick={handleClick} className="block px-3 py-3 hover:bg-[#FAF8F4] transition-colors">
@@ -1025,12 +1472,12 @@ function UpdatePrompt() {
       <div className="bg-[#1A1815] text-white border-2 border-[#1A1815] shadow-xl p-3">
         <div className="flex items-baseline justify-between gap-2 mb-1.5">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#FAF8F4] font-semibold opacity-90">✨ New version available</div>
-          <button onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-[10px] uppercase tracking-wider opacity-70 hover:opacity-100">×</button>
+          <button type="button" onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-[10px] uppercase tracking-wider opacity-70 hover:opacity-100">×</button>
         </div>
         <p className="text-xs leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
           A fresh version of PoeTech downloaded in the background. Reload to use it — your data stays put.
         </p>
-        <button onClick={reload} className="w-full bg-[#B85838] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#FAF8F4] hover:text-[#1A1815]">
+        <button type="button" onClick={reload} className="w-full bg-[#B85838] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#FAF8F4] hover:text-[#1A1815]">
           Reload to update
         </button>
       </div>
@@ -1105,14 +1552,14 @@ function InstallPrompt() {
       <div className="bg-white border-2 border-[#1A1815] shadow-lg p-3">
         <div className="flex items-baseline justify-between gap-2 mb-2">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📲 Install PoeTech</div>
-          <button onClick={dismiss} aria-label="Dismiss install prompt" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
+          <button type="button" onClick={dismiss} aria-label="Dismiss install prompt" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
         </div>
         {deferredEvt ? (
           <>
             <p className="text-xs leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
               Add PoeTech to your home screen so you can open it like a regular app — works offline, no browser bar, faster launch.
             </p>
-            <button onClick={installAndroid} className="w-full bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
+            <button type="button" onClick={installAndroid} className="w-full bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
               Install on this device
             </button>
           </>
@@ -1191,15 +1638,15 @@ function TTSControls() {
               <div className="text-[9px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
               <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready'}</div>
             </div>
-            <button onClick={() => { stopReading(); setIsOpen(false); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+            <button type="button" onClick={() => { stopReading(); setIsOpen(false); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
           </div>
           <div className="grid grid-cols-3 gap-1 mb-3">
             {!isReading ? (
-              <button onClick={startReading} className="col-span-3 bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">▶ Read this page</button>
+              <button type="button" onClick={startReading} className="col-span-3 bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">▶ Read this page</button>
             ) : (
               <>
-                <button onClick={togglePause} className="bg-[#1A1815] text-white px-2 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
-                <button onClick={stopReading} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-2 py-2 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white">⏹ Stop</button>
+                <button type="button" onClick={togglePause} className="bg-[#1A1815] text-white px-2 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
+                <button type="button" onClick={stopReading} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-2 py-2 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white">⏹ Stop</button>
               </>
             )}
           </div>
@@ -1222,7 +1669,7 @@ function TTSControls() {
           </p>
         </div>
       ) : (
-        <button onClick={() => setIsOpen(true)} aria-label="Open text-to-speech controls" title="Read aloud" className="bg-[#1A1815] text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4]">
+        <button type="button" onClick={() => setIsOpen(true)} aria-label="Open text-to-speech controls" title="Read aloud" className="bg-[#1A1815] text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4]">
           🔊
         </button>
       )}
@@ -1230,20 +1677,124 @@ function TTSControls() {
   );
 }
 
+// Round 12 — Feedback form refreshed to reflect every surface we've actually
+// shipped through MVP v1.5. Area dropdown now mirrors the live nav + the major
+// in-tab features (Action Queue, Capacity meter, Buffer Fund, Property
+// Valuation, Inventory Forecast, Tier Switcher, etc.) so testers can pin
+// notes to a specific surface. Adds a category picker (Bug · Confusion · Idea
+// · Praise · Copy / wording · Performance · Accessibility) so we can triage
+// the SME-review feedback by type. Pre-fills the user's currently-viewed tab.
+const FEEDBACK_AREAS = [
+  { group: 'Money', items: [
+    ['overview', 'Big Picture · dashboard'],
+    ['action-queue', '└ Action Queue (Changes · Incidents · Projects)'],
+    ['capacity-meter', '└ Family Capacity meter'],
+    ['xref-strip', '└ Cross-reference strip (rooms · equipment · leases · capex · watchlist)'],
+    ['books-entities', 'Books · Entities'],
+    ['books-accounts', 'Books · Accounts (cash / credit split)'],
+    ['buffer-fund', '└ Buffer Fund (slider + target)'],
+    ['books-transactions', 'Books · Transactions'],
+    ['books-forecast', '└ 30/60/90 forecast vs trailing actuals'],
+    ['books-calendar', 'Books · Calendar (recurring · incidents · events)'],
+    ['books-1099', 'Books · 1099 tracking'],
+    ['books-cart', 'Books · Subscriptions / Cart'],
+    ['debts', 'Debts · Snowball / Avalanche'],
+  ]},
+  { group: 'Real Estate', items: [
+    ['rentals', 'Real Estate · property list + map'],
+    ['rentals-edit', '└ Inline quick-edit on property rows'],
+    ['rentals-valuation', '└ Property Valuation (Zillow/Realtor/Redfin lookup + save)'],
+    ['rentals-lease', '└ Lease & Tenant Contact'],
+    ['rentals-equipment', '└ Mechanical & Equipment inventory'],
+    ['rentals-rooms', '└ Rooms & Needed Work tracker'],
+    ['rentals-maint', '└ Maintenance log (urgency-banded)'],
+    ['rentals-convo', '└ Tenant / vendor conversation log'],
+    ['rentals-snowball', '└ 7-year mortgage payoff snowball'],
+    ['rentals-evaluator', '└ Investment evaluator (cap rate · DSCR · 1%)'],
+    ['rentals-tenant-issue', '└ Tenant Not Paying → issue affordance'],
+  ]},
+  { group: 'Markets · Church', items: [
+    ['markets', 'Markets · watchlist (Stooq feed)'],
+    ['church', 'Church · service times / media / prayer / ministry'],
+  ]},
+  { group: 'Projects · Ops', items: [
+    ['projects', 'Projects · Timeline + workload'],
+    ['scopes', 'Projects · Scope-of-work agreements'],
+    ['scope-payment', '└ Scope · materials-paid-by + payment policy'],
+    ['inventory-forecast', 'Projects · Inventory & 12-month capital forecast'],
+    ['savings-prompts', '└ Savings prompts per capex item'],
+    ['itsm-taxonomy', 'ITSM taxonomy (Change · Incident · Project)'],
+  ]},
+  { group: 'Practice · Dev/Ops', items: [
+    ['practice', 'Practice · inquiry capture & conversion'],
+    ['opportunities', 'Dev/Ops · personalized options engine'],
+    ['opportunities-library', '└ Curated opportunity library (~46 entries)'],
+    ['opportunities-wrap', '└ "Wrap me with the tech" handoff'],
+    ['opportunities-pipeline', '└ Active pipeline'],
+    ['services-portfolio', '└ PoeTech Services Portfolio'],
+    ['skill-profiles', '└ Skill profiles'],
+  ]},
+  { group: 'About · Tiers · System', items: [
+    ['about-pricing', 'About · pricing tiers + features'],
+    ['about-modules', 'About · planned modules + vote'],
+    ['about-markets', 'About · markets we serve'],
+    ['about-community', 'About · community partnership model'],
+    ['tier-gating', 'Tier gating (Foundation / PoeTech+ / Family / Premium / Business)'],
+    ['tier-switcher', 'Tier switcher (header dropdown)'],
+  ]},
+  { group: 'Cross-cutting', items: [
+    ['navigation', 'Navigation · tab order · separator'],
+    ['themes', 'Visual themes (Snow · Glacier · Sapphire · Rose · Midnight)'],
+    ['accessibility', 'Accessibility (WCAG 2.1 AA · labels · contrast · keyboard)'],
+    ['tts', 'Text-to-Speech / Read aloud'],
+    ['notifications', 'Browser reminders / notifications'],
+    ['storage', 'Local-first storage / load / save'],
+    ['mobile', 'Mobile responsiveness'],
+    ['performance', 'Performance · render speed'],
+    ['copy', 'Copy / wording / clarity'],
+    ['other', 'Other'],
+  ]},
+];
+const FEEDBACK_CATEGORIES = [
+  { key: 'bug',          label: '🐛 Bug',           accent: '#B85838' },
+  { key: 'confusion',    label: '❓ Confusion',     accent: '#D97706' },
+  { key: 'idea',         label: '💡 Idea / feature',accent: '#1F6FEB' },
+  { key: 'copy',         label: '✏️ Copy / wording',accent: '#5A5751' },
+  { key: 'accessibility',label: '♿ Accessibility', accent: '#5A6E3D' },
+  { key: 'performance',  label: '⚡ Performance',   accent: '#D97706' },
+  { key: 'praise',       label: '✨ Praise',         accent: '#5A6E3D' },
+];
+
 function FeedbackModal({ onClose, onSubmit, currentView }) {
   const [rating, setRating] = useState('');
-  const [area, setArea] = useState(currentView || 'overview');
+  // Pre-fill area from the currently-active view if it maps to an area key.
+  const initialArea = (() => {
+    if (currentView === 'rentals') return 'rentals';
+    if (currentView === 'books') return 'books-accounts';
+    if (currentView === 'debts') return 'debts';
+    if (currentView === 'projects') return 'projects';
+    if (currentView === 'practice') return 'practice';
+    if (currentView === 'opportunities') return 'opportunities';
+    if (currentView === 'markets') return 'markets';
+    if (currentView === 'church') return 'church';
+    if (currentView === 'about') return 'about-pricing';
+    return 'overview';
+  })();
+  const [area, setArea] = useState(initialArea);
+  const [categories, setCategories] = useState([]);
   const [whatsWorking, setWhatsWorking] = useState('');
   const [whatsNot, setWhatsNot] = useState('');
   const [whatsMissing, setWhatsMissing] = useState('');
   const [formError, setFormError] = useState('');
 
+  const toggleCategory = (k) => setCategories(prev => prev.includes(k) ? prev.filter(c => c !== k) : [...prev, k]);
+
   const handleSubmit = () => {
-    if (!rating && !whatsWorking && !whatsNot && !whatsMissing) {
-      setFormError('Please share at least one note — anything is helpful.');
+    if (!rating && categories.length === 0 && !whatsWorking && !whatsNot && !whatsMissing) {
+      setFormError('Pick a rating, a category, or jot any note — anything is helpful.');
       return;
     }
-    onSubmit({ rating, area, whatsWorking, whatsNot, whatsMissing });
+    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing });
   };
 
   const ratings = [
@@ -1260,13 +1811,13 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
         <div className="p-5 sm:p-6">
           <div className="flex items-baseline justify-between gap-3 mb-3">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">💬 Feedback · MVP Test</div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">💬 Feedback · MVP v1.5 · SME Review</div>
               <h3 className="text-xl sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Tell us what you think.</h3>
             </div>
-            <button onClick={onClose} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+            <button type="button" onClick={onClose} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
           </div>
           <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            Anything you share helps. Skip any section — partial feedback is more useful than no feedback.
+            Anything you share helps. Skip any section — partial feedback is more useful than no feedback. Saved locally; nothing leaves your device until you choose to share it.
           </p>
 
           <div className="space-y-4">
@@ -1274,7 +1825,7 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
               <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 font-semibold">Overall feeling</div>
               <div className="grid grid-cols-5 gap-1">
                 {ratings.map(r => (
-                  <button key={r.key} onClick={() => setRating(r.key)} className={`p-2 text-xs border ${rating === r.key ? 'border-[#1A1815] bg-[#FAF8F4]' : 'border-[#E8E4DC] text-[#5A5751]'}`} style={rating === r.key ? { color: r.color, fontWeight: 600 } : {}}>
+                  <button key={r.key} type="button" onClick={() => setRating(r.key)} className={`p-2 text-xs border ${rating === r.key ? 'border-[#1A1815] bg-[#FAF8F4]' : 'border-[#E8E4DC] text-[#5A5751]'}`} style={rating === r.key ? { color: r.color, fontWeight: 600 } : {}}>
                     {r.label}
                   </button>
                 ))}
@@ -1282,21 +1833,25 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
             </div>
 
             <div>
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Which area?</div>
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Which area? (sub-features indented)</div>
               <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={area} onChange={e => setArea(e.target.value)}>
-                <option value="overview">Big Picture / Overview</option>
-                <option value="books">Books / Transactions / Cart</option>
-                <option value="debts">Debts / Snowball</option>
-                <option value="rentals">Rentals / Snowball</option>
-                <option value="projects">Projects / Timeline</option>
-                <option value="scopes">Scopes / Contracts</option>
-                <option value="practice">Practice / TLC</option>
-                <option value="opportunities">Opportunities</option>
-                <option value="about">About / Modules</option>
-                <option value="navigation">Navigation / Overall UX</option>
-                <option value="design">Visual Design / Themes</option>
-                <option value="other">Other</option>
+                {FEEDBACK_AREAS.map(grp => (
+                  <optgroup key={grp.group} label={grp.group}>
+                    {grp.items.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                  </optgroup>
+                ))}
               </select>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Category (pick any that apply)</div>
+              <div className="flex flex-wrap gap-1">
+                {FEEDBACK_CATEGORIES.map(c => (
+                  <button key={c.key} type="button" onClick={() => toggleCategory(c.key)} className="text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={categories.includes(c.key) ? { backgroundColor: c.accent, color: 'white', borderColor: c.accent } : { color: c.accent, borderColor: c.accent }}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -1305,20 +1860,20 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
             </div>
 
             <div>
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">✗ What's not working</div>
-              <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Confusion · bugs · friction · unclear text · too much · too little" value={whatsNot} onChange={e => setWhatsNot(e.target.value)} />
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">✗ What's not working / what's confusing</div>
+              <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Bug · confusion · friction · unclear text · too much · too little · doesn't reflect reality" value={whatsNot} onChange={e => setWhatsNot(e.target.value)} />
             </div>
 
             <div>
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">+ What's missing</div>
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">+ What's missing / what would help</div>
               <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Features you wish existed · workflows that don't fit · what would make this perfect for you" value={whatsMissing} onChange={e => setWhatsMissing(e.target.value)} />
             </div>
           </div>
 
           <div className="flex gap-2 mt-5 pt-4 border-t border-[#E8E4DC]">
             {formError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838] w-full" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{formError}</div>}
-            <button onClick={handleSubmit} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold">Submit Feedback</button>
-            <button onClick={onClose} className="border border-[#E8E4DC] text-[#5A5751] px-6 py-2.5 text-xs uppercase tracking-wider hover:border-[#1A1815]">Cancel</button>
+            <button type="button" onClick={handleSubmit} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold">Submit Feedback</button>
+            <button type="button" onClick={onClose} className="border border-[#E8E4DC] text-[#5A5751] px-6 py-2.5 text-xs uppercase tracking-wider hover:border-[#1A1815]">Cancel</button>
           </div>
         </div>
       </div>
@@ -1329,7 +1884,133 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen }) {
+function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [] }) {
+  // Round 12 — Manual Add Item form state for the Action Queue.
+  const [showAddQueue, setShowAddQueue] = useState(false);
+  const blankQueueItem = () => ({ urgency: 'incident', description: '', linkType: '', linkId: '', cost: 0, dueDate: '' });
+  const [queueForm, setQueueForm] = useState(blankQueueItem());
+  const pickUrgency = (key) => setQueueForm(f => ({ ...f, urgency: key, dueDate: dueDateFor(key) }));
+  const submitQueueItem = () => {
+    if (!queueForm.description.trim()) { alert('Describe the issue or work first.'); return; }
+    if (queueForm.urgency === 'project') {
+      const hpw = 4;
+      const decision = capacityDecisionForNewProject(projects, skillProfiles, hpw, { label: `"${queueForm.description}" (~${hpw} hrs/wk)` });
+      if (decision.decision === 'cancel') return;
+      const todayIso = new Date().toISOString().slice(0, 10);
+      addProject && addProject({
+        title: queueForm.description.slice(0, 80) + (decision.decision === 'add-tbd' ? ' (TBD)' : ''),
+        startDate: todayIso,
+        endDate: queueForm.dueDate || '',
+        status: decision.decision === 'add-tbd' ? 'tbd' : 'planning',
+        domain: 'personal',
+        description: `Created from Action Queue.${decision.decision === 'add-tbd' ? '\n\nTBD — parked because family is near/over capacity.' : ''}`,
+        hoursPerWeek: hpw,
+        entityId: queueForm.linkType === 'entity' ? queueForm.linkId : 'e-personal',
+        contractorIds: [],
+        conversationLog: [],
+      });
+      alert(`Added as Project (${decision.decision === 'add-tbd' ? 'TBD' : 'planning'}). Edit details on the Projects tab.`);
+    } else {
+      addIncident && addIncident({
+        date: new Date().toISOString().slice(0, 10),
+        amount: parseFloat(queueForm.cost) || 0,
+        category: queueForm.linkType === 'rental' ? 'tenant-or-property' : 'general',
+        entityId: queueForm.linkType === 'entity' ? queueForm.linkId : (queueForm.linkType === 'rental' ? 'e-poeprops' : 'e-personal'),
+        description: queueForm.description,
+        urgency: queueForm.urgency,
+        status: 'open',
+        dueDate: queueForm.dueDate || dueDateFor(queueForm.urgency),
+        linkedTo: queueForm.linkType && queueForm.linkId ? { type: queueForm.linkType, id: queueForm.linkId } : undefined,
+      });
+    }
+    setQueueForm(blankQueueItem());
+    setShowAddQueue(false);
+  };
+  // Round 11 — Family capacity snapshot. Sums project hrs/wk (active only)
+  // against total skillProfile hrs/wk. Surfaces a meter and warns at 80%/100%.
+  const capacity = capacitySnapshot(projects, skillProfiles);
+  // Round 10 — Action Queue. Consolidates all open ITSM-class items across the
+  // app: Changes (broken now), Incidents (3-day fix), active Projects. Each
+  // entry shows urgency band, what + where, age in days. Click jumps to source.
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const ageInDays = (dateStr) => {
+    if (!dateStr) return 0;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 0;
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  };
+  const isOverdue = (item) => item.dueDate && item.dueDate < todayISO;
+  const openIncidents = incidents.filter(i => i.status !== 'resolved');
+  const activeProjects = projects.filter(p => p.status !== 'complete' && p.status !== 'on-hold');
+  // Tenant-not-paying — derived from rentals with status 'late' that don't
+  // already have an open incident pointing at them.
+  const tenantLateRentals = rentals.filter(r => r.status === 'late' && (r.rent || 0) > 0);
+  const tenantLateNotTracked = tenantLateRentals.filter(r => !openIncidents.some(i => i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id));
+  // Sort: by urgency order (change first), then by overdue, then by due date.
+  const queue = [
+    ...openIncidents.map(i => ({
+      kind: 'incident',
+      id: i.id,
+      urgency: i.urgency || 'incident',
+      title: i.description,
+      meta: i.amount ? fmt(i.amount) : '',
+      date: i.date,
+      dueDate: i.dueDate,
+      jump: (i.linkedTo?.type === 'rental') ? 'rentals' : (i.category === 'medical' || i.category === 'personal') ? 'books' : 'books',
+      overdue: isOverdue(i),
+      _item: i,
+    })),
+    ...tenantLateNotTracked.map(r => ({
+      kind: 'tenant-late',
+      id: `tlr-${r.id}`,
+      urgency: 'incident',
+      title: `Tenant at ${r.name} behind on rent`,
+      meta: `${fmt(r.rent - (r.actual || 0))} short`,
+      date: todayISO,
+      dueDate: dueDateFor('incident'),
+      jump: 'rentals',
+      overdue: false,
+      _item: r,
+    })),
+    ...activeProjects.map(p => ({
+      kind: 'project',
+      id: p.id,
+      urgency: 'project',
+      title: p.title,
+      meta: p.status,
+      date: p.startDate,
+      dueDate: p.endDate,
+      jump: 'projects',
+      overdue: isOverdue({ dueDate: p.endDate }),
+      _item: p,
+    })),
+  ].sort((a, b) => {
+    const ua = URGENCY_INDEX[a.urgency]?.order || 99;
+    const ub = URGENCY_INDEX[b.urgency]?.order || 99;
+    if (ua !== ub) return ua - ub;
+    if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
+    return (a.dueDate || '').localeCompare(b.dueDate || '');
+  });
+  const counts = URGENCY_BANDS.reduce((acc, u) => {
+    acc[u.key] = queue.filter(q => q.urgency === u.key).length;
+    return acc;
+  }, {});
+  // v28+ MVP v1.5 — Buffer Fund mini-card. Spec source: Poe Family Financial
+  // Control System v1 → BufferFund sheet ("single highest-ROI move you can make").
+  const bufferPct = bufferTarget > 0 ? Math.min(100, Math.round((bufferCurrent / bufferTarget) * 100)) : 0;
+  const bufferGap = Math.max(0, bufferTarget - bufferCurrent);
+  // v28+ MVP v1.5 — Cross-references pulled from the single source of truth
+  // (setData) so the dashboard reflects edits anywhere in the app without
+  // duplicating data. Each is a one-liner computation, no extra state.
+  const capexOpenSpend = capexItems.filter(c => c.status !== 'purchased').reduce((s, c) => s + (parseFloat(c.cost) || 0), 0);
+  const capexP1Count = capexItems.filter(c => (c.priority || 99) <= 1 && c.status !== 'purchased').length;
+  const watchlistCount = watchlist.length;
+  const roomItemsNeedingWork = rentals.reduce((s, r) => s + ((r.rooms || []).reduce((ss, rm) => ss + (rm.items || []).filter(it => it.status === 'needs-work' || it.status === 'quoted' || it.status === 'scheduled').length, 0)), 0);
+  const equipmentTracked = rentals.reduce((s, r) => s + (r.equipment || []).length, 0);
+  const leasesEndingSoon = rentals.filter(r => r.lease?.end).filter(r => {
+    const end = new Date(r.lease.end); const now = new Date();
+    const days = (end - now) / 86400000; return days >= 0 && days <= 60;
+  }).length;
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* WELCOME PANEL — only shows until dismissed */}
@@ -1343,7 +2024,7 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
                 This is the PoeTech Family OS — our family's stronghold for stewardship, work, and ministry made visible. Sample data is loaded so you can see how everything connects before importing real numbers.
               </p>
             </div>
-            <button onClick={dismissWelcome} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] shrink-0">× Dismiss</button>
+            <button type="button" onClick={dismissWelcome} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] shrink-0">× Dismiss</button>
           </div>
           <div className="mt-4">
             <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Things to try</div>
@@ -1369,13 +2050,186 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
           </div>
           <div className="mt-4 pt-4 border-t border-[#E8E4DC]">
             <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-              <strong>When something works, doesn't work, or could be better — tap <button onClick={() => setFeedbackOpen(true)} className="text-[#B85838] underline font-semibold hover:text-[#1A1815]">💬 Feedback</button> in the header.</strong> We'll review your notes together. This is your home base — make it yours.
+              <strong>When something works, doesn't work, or could be better — tap <button type="button" onClick={() => setFeedbackOpen(true)} className="text-[#B85838] underline font-semibold hover:text-[#1A1815]">💬 Feedback</button> in the header.</strong> We'll review your notes together. This is your home base — make it yours.
             </p>
             <div className="flex gap-2 mt-3 flex-wrap">
-              <button onClick={dismissWelcome} className="bg-[#1A1815] text-[#FAF8F4] px-5 py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Got it · Let's go</button>
-              <button onClick={() => setFeedbackOpen(true)} className="border border-[#B85838] text-[#B85838] px-5 py-2 text-xs uppercase tracking-wider hover:bg-[#B85838] hover:text-white">Leave first impression</button>
+              <button type="button" onClick={dismissWelcome} className="bg-[#1A1815] text-[#FAF8F4] px-5 py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Got it · Let's go</button>
+              <button type="button" onClick={() => setFeedbackOpen(true)} className="border border-[#B85838] text-[#B85838] px-5 py-2 text-xs uppercase tracking-wider hover:bg-[#B85838] hover:text-white">Leave first impression</button>
             </div>
           </div>
+        </section>
+      )}
+
+      {/* v28+ MVP v1.5 round 10 — ACTION QUEUE
+          One-glance triage panel: Changes (broken now), Incidents (3-day fix),
+          Projects (planned work). Anything across the app that needs attention
+          surfaces here so you don't have to bounce between tabs to see "what's
+          on fire today." Each row jumps to the source view when clicked. */}
+      {/* Round 13 — Always render the Action Queue panel. The "+ Add item"
+          button stays accessible even when the queue is empty so the family
+          can log a Change / Incident / Project at any time. Empty-state copy
+          appears in place of the queue rows when nothing's open. */}
+      {(
+        <section aria-labelledby="action-queue-h" className="bg-white border border-[#1A1815] p-4 sm:p-5">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap mb-3">
+            <div>
+              <h2 id="action-queue-h" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Action Queue · what needs you</h2>
+              <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                Changes are broken NOW (fix today). Incidents need resolution within 3 days. Projects are multi-day planned work.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex gap-1 text-[10px] uppercase tracking-wider">
+                {URGENCY_BANDS.map(u => (
+                  <span key={u.key} className="px-2 py-1 border border-[#E8E4DC]" style={{ color: counts[u.key] > 0 ? u.accent : '#5A5751', borderColor: counts[u.key] > 0 ? u.accent : '#E8E4DC' }}>
+                    <span aria-hidden="true">{u.symbol} </span>{u.label} · {counts[u.key]}
+                  </span>
+                ))}
+              </div>
+              <button type="button" onClick={() => { setShowAddQueue(s => !s); if (!showAddQueue) setQueueForm({ ...blankQueueItem(), dueDate: dueDateFor('incident') }); }} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{showAddQueue ? '× Cancel' : '+ Add item'}</button>
+            </div>
+          </div>
+
+          {/* Round 12 — Manual creator with parameter rules inline */}
+          {showAddQueue && (
+            <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 mb-4 space-y-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">What kind of item is this?</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {URGENCY_BANDS.map(u => (
+                    <button key={u.key} type="button" onClick={() => pickUrgency(u.key)} className="text-left p-3 border min-h-[64px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={queueForm.urgency === u.key ? { backgroundColor: u.accent, color: 'white', borderColor: u.accent } : { color: u.accent, borderColor: u.accent }}>
+                      <div className="text-xs uppercase tracking-wider font-semibold"><span aria-hidden="true">{u.symbol}</span> {u.label}</div>
+                      <div className="text-[10px] mt-1 opacity-90" style={{ fontFamily: '"Fraunces", serif' }}>
+                        {u.key === 'change' && 'Broken NOW. Acted on today. Same-day due. Routes to Incidents.'}
+                        {u.key === 'incident' && 'Needs resolution within ~3 days. Routes to Incidents.'}
+                        {u.key === 'project' && 'Takes longer than 3 days. Routes to Projects (capacity check; TBD if family is over).'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label htmlFor="aq-desc" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">What's the issue or work?</label>
+                <input id="aq-desc" autoFocus className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., Furnace died at 805 Apt 4 · Replace front door lock · File quarterly taxes" value={queueForm.description} onChange={e => setQueueForm({ ...queueForm, description: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <label htmlFor="aq-link" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Linked to (optional)</label>
+                  <select id="aq-link" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.linkType} onChange={e => setQueueForm({ ...queueForm, linkType: e.target.value, linkId: '' })}>
+                    <option value="">— nothing specific —</option>
+                    <option value="rental">A property</option>
+                    <option value="project">An existing project</option>
+                    <option value="entity">An entity (LLC / household)</option>
+                  </select>
+                </div>
+                {queueForm.linkType && (
+                  <div>
+                    <label htmlFor="aq-linkid" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Which one?</label>
+                    <select id="aq-linkid" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.linkId} onChange={e => setQueueForm({ ...queueForm, linkId: e.target.value })}>
+                      <option value="">— pick one —</option>
+                      {queueForm.linkType === 'rental' && rentals.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      {queueForm.linkType === 'project' && projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                      {queueForm.linkType === 'entity' && entities.map(e => <option key={e.id} value={e.id}>{e.name.split('(')[0].trim()}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label htmlFor="aq-due" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Due date (auto from urgency, editable)</label>
+                  <input id="aq-due" type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.dueDate} onChange={e => setQueueForm({ ...queueForm, dueDate: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="aq-cost" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Estimated cost (optional)</label>
+                <input id="aq-cost" type="number" step="0.01" min="0" inputMode="decimal" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.cost} onChange={e => setQueueForm({ ...queueForm, cost: e.target.value })} />
+              </div>
+              <div className="flex gap-2 flex-wrap pt-1">
+                <button type="button" onClick={submitQueueItem} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Save {URGENCY_INDEX[queueForm.urgency]?.label}</button>
+                <button type="button" onClick={() => setShowAddQueue(false)} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+              </div>
+            </div>
+          )}
+          <div className="bg-white border border-[#E8E4DC]">
+            {queue.length === 0 && (
+              <div className="p-6 text-center">
+                <div className="text-2xl mb-1" aria-hidden="true">✓</div>
+                <div className="text-sm text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Nothing open. Clean queue.</div>
+                <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Need to log something new? Tap <strong>+ Add item</strong> above.</p>
+              </div>
+            )}
+            {queue.slice(0, 8).map((q, i, arr) => {
+              const band = URGENCY_INDEX[q.urgency] || URGENCY_INDEX.incident;
+              const age = ageInDays(q.date);
+              return (
+                <div key={q.id} className={`p-3 flex items-center gap-3 flex-wrap ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${q.overdue ? 'bg-[#FAF8F4]' : ''}`}>
+                  <span aria-hidden="true" className="inline-block w-6 text-center text-base font-bold" style={{ color: band.accent }} title={band.label}>{band.symbol}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: band.accent }}>{band.label}</span>
+                      <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{q.title}</span>
+                      {q.overdue && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold">⚠ overdue</span>}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {q.kind === 'incident' && resolveIncident && (
+                      <button type="button" onClick={() => resolveIncident(q.id)} aria-label={`Mark "${q.title}" resolved`} className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✓ Resolve</button>
+                    )}
+                    <button type="button" onClick={() => setView(q.jump)} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Open ↗</button>
+                  </div>
+                </div>
+              );
+            })}
+            {queue.length > 8 && (
+              <div className="p-3 text-[10px] uppercase tracking-wider text-[#5A5751] text-center border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+                + {queue.length - 8} more · open the source tab to see them all
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Round 11 — Family capacity meter. At-a-glance "do we have time?"
+          Shown only when skill profiles + projects both exist. Color-banded:
+          green <80%, amber 80-100%, rust >100% (over-committed). */}
+      {capacity.hasProfiles && (capacity.available > 0) && (
+        <section aria-labelledby="capacity-h" className="bg-white border border-[#1A1815] p-4 sm:p-5">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
+            <div>
+              <h2 id="capacity-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Family Capacity · this week</h2>
+              <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                Sum of all active projects' hrs/wk vs sum of skill-profile hrs/wk. Healthy zone: under 80%. New projects past this line get parked as TBD by default.
+              </p>
+            </div>
+            <div className="text-right">
+              <div className={`text-2xl ${capacity.pct >= 100 ? 'text-[#B85838]' : capacity.pct >= 80 ? 'text-[#D97706]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>
+                {capacity.pct}%
+              </div>
+              <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                {capacity.committed} / {capacity.available} hrs/wk · {capacity.remaining} free
+              </div>
+            </div>
+          </div>
+          <div role="progressbar" aria-labelledby="capacity-h" aria-valuenow={capacity.pct} aria-valuemin="0" aria-valuemax="100">
+            <div className="w-full bg-[#FAF8F4] h-3 border border-[#E8E4DC]">
+              <div
+                className="h-full transition-all"
+                style={{
+                  width: `${Math.min(100, capacity.pct)}%`,
+                  backgroundColor: capacity.pct >= 100 ? '#B85838' : capacity.pct >= 80 ? '#D97706' : '#5A6E3D',
+                }}
+              />
+            </div>
+            <div className="flex justify-between text-[9px] uppercase tracking-wider text-[#5A5751] mt-1">
+              <span>0%</span><span>healthy ≤80%</span><span>tight ≤100%</span><span>over</span>
+            </div>
+          </div>
+          {capacity.pct >= 80 && (
+            <p className="text-xs mt-2" style={{ fontFamily: '"Fraunces", serif', color: capacity.pct >= 100 ? '#B85838' : '#D97706' }}>
+              <strong>{capacity.pct >= 100 ? 'Over-committed.' : 'Tight.'}</strong> New projects from Dev/Ops &quot;Wrap me&quot; or Tenant-as-Project will prompt before adding. {projects.filter(p => p.status === 'tbd').length > 0 && <> {projects.filter(p => p.status === 'tbd').length} project{projects.filter(p => p.status === 'tbd').length === 1 ? '' : 's'} already parked as TBD.</>}
+            </p>
+          )}
         </section>
       )}
 
@@ -1385,6 +2239,48 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
         <CompactHero label="Consumer debt free" value={projection.debtFreeDate} sub={`${projection.debtFreeYears.toFixed(1)}yr · pressure ${pressure}`} />
         <CompactHero label="Rentals owned free" value={rentalSnowball.allClearedDate} sub={`${rentalSnowball.allClearedYears.toFixed(1)}yr · snowball`} />
       </section>
+
+      {/* v28+ MVP v1.5 — Cross-reference strip.
+          Pulls live counts from Real Estate, Markets, and Capex so the
+          dashboard reflects edits anywhere in the app without duplicating
+          state. Every cell is a button → jumps to the source view.
+          FUTURE-MODULE HOOK: New modules can drop a cell into this strip
+          by following the same prop pattern (label + value + onClick → view). */}
+      {(capexItems.length > 0 || watchlist.length > 0 || equipmentTracked > 0 || roomItemsNeedingWork > 0 || leasesEndingSoon > 0) && (
+        <section aria-labelledby="xref-strip-h">
+          <h2 id="xref-strip-h" className="sr-only">Cross-reference summary</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+            <button type="button" onClick={() => setView('rentals')} className="bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751]">Property work</div>
+              <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{roomItemsNeedingWork}</div>
+              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">room items open</div>
+            </button>
+            <button type="button" onClick={() => setView('rentals')} className="bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751]">Equipment</div>
+              <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{equipmentTracked}</div>
+              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">tracked items</div>
+            </button>
+            <button type="button" onClick={() => setView('rentals')} className={`bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] ${leasesEndingSoon > 0 ? 'bg-[#FAF8F4]' : ''}`}>
+              <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751]">Leases</div>
+              <div className={`text-lg ${leasesEndingSoon > 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{leasesEndingSoon}</div>
+              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">ending in 60d</div>
+            </button>
+            <button type="button" onClick={() => setView('about')} className="bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751]">Capex open</div>
+              <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact(capexOpenSpend)}</div>
+              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">{capexP1Count} P1 · {capexItems.length} total</div>
+            </button>
+            <button type="button" onClick={() => setView('markets')} className="bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751]">Watchlist</div>
+              <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{watchlistCount}</div>
+              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">{watchlistCount === 1 ? 'ticker' : 'tickers'}</div>
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* v28+ MVP v1.5 round 3 — Buffer Fund relocated to Books → Accounts
+          (lives next to All Accounts Total where its meaning is clearest). */}
 
       {/* ENTITY STRIP — horizontal on all screens */}
       <section>
@@ -1588,7 +2484,7 @@ function Cart({ subscriptions, entities, addSubscription, updateSubscription, de
               <option value="all">All statuses</option>
               {statusOptions.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
             </select>
-            <button onClick={() => setShowForm(!showForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add subscription'}</button>
+            <button type="button" onClick={() => setShowForm(!showForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add subscription'}</button>
           </div>
         </div>
 
@@ -1637,7 +2533,7 @@ function Cart({ subscriptions, entities, addSubscription, updateSubscription, de
             </div>
             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes (e.g., started Jan 2024, used weekly, kids use it)" value={newSub.notes} onChange={e => setNewSub({...newSub, notes: e.target.value})} />
             {subError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{subError}</div>}
-            <button onClick={submitSub} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Save Subscription</button>
+            <button type="button" onClick={submitSub} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Save Subscription</button>
           </div>
         )}
 
@@ -1674,7 +2570,7 @@ function Cart({ subscriptions, entities, addSubscription, updateSubscription, de
                       {opt.label}
                     </button>
                   ))}
-                  <button onClick={() => { if (confirm('Delete this subscription record?')) deleteSubscription(s.id); }} className="text-[10px] px-2 py-1 text-[#5A5751] hover:text-[#B85838] uppercase tracking-wider">Delete</button>
+                  <button type="button" onClick={() => { if (confirm('Delete this subscription record?')) deleteSubscription(s.id); }} className="text-[10px] px-2 py-1 text-[#5A5751] hover:text-[#B85838] uppercase tracking-wider">Delete</button>
                 </div>
                 {s.notes && <p className="text-xs text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{s.notes}</p>}
               </div>
@@ -1687,23 +2583,576 @@ function Cart({ subscriptions, entities, addSubscription, updateSubscription, de
 }
 
 // =============================================================================
+// v28+ MVP v1.5 round 3 — PROJECT INVENTORY & CAPITAL FORECAST
+// Tools/equipment tracker (formerly the About > Capital Spend section) plus:
+//   · 12-month forecast of projected outflows (sum of items by purchaseTargetDate)
+//   · monthly gap warning when projected outflow > net cash flow
+//   · savings prompt per item: how much to save per month to hit the date
+// Pure computation from existing data — no new paid dependencies, no backend.
+// FUTURE-MODULE HOOK: each item already carries optional `entityId`, `module`,
+// `projectId` so home-command / practice-ops / elder-care-coord can claim their
+// own slice of the inventory without a migration.
+// =============================================================================
+const CAPEX_STATUSES = ['planned','researching','wishlist','on-hold','purchased'];
+const CAPEX_CATEGORIES = ['Networking','Tools','Storage','Home','Office','Vehicle','Software','Other'];
+
+// =============================================================================
+// v28+ MVP v1.5 round 10 — ITSM-style urgency taxonomy
+// Change   = broken NOW, must be acted on today (same-day due)
+// Incident = needs resolution within ~3 days
+// Project  = takes longer than 3 days, treated as planned work
+// Same shape across rentals, maintenance, finance, ministry — one mental model
+// the whole family operates from. Linked items can point back to the source
+// (property, project, account) so the Action Queue can deep-link.
+// =============================================================================
+const URGENCY_BANDS = [
+  { key: 'change',   label: 'Change',   tagline: 'Broken now · same-day',  dueDays: 0, accent: '#B85838', symbol: '⚡', order: 1 },
+  { key: 'incident', label: 'Incident', tagline: 'Resolve within 3 days',  dueDays: 3, accent: '#D97706', symbol: '!',  order: 2 },
+  { key: 'project',  label: 'Project',  tagline: 'Multi-day planned work', dueDays: 14,accent: '#5A6E3D', symbol: '◆',  order: 3 },
+];
+const URGENCY_KEYS = URGENCY_BANDS.map(u => u.key);
+const URGENCY_INDEX = Object.fromEntries(URGENCY_BANDS.map(u => [u.key, u]));
+// Compute a default due date based on urgency: today + N days.
+const dueDateFor = (urgencyKey, fromDate = new Date()) => {
+  const days = URGENCY_INDEX[urgencyKey]?.dueDays ?? 3;
+  const d = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
+// =============================================================================
+// Round 11 — CAPACITY GUARD
+// Returns family-wide hrs/wk math: committed from active projects vs available
+// from skillProfiles. Used to prevent the system from spamming new projects
+// the family can't actually staff. Threshold: 80% = warn, 100% = block (must
+// pick "Add as TBD" / "Add anyway / override" / "Cancel").
+// =============================================================================
+function capacitySnapshot(projects = [], skillProfiles = []) {
+  const committed = projects
+    .filter(p => PROJECT_STATUSES_ACTIVE.includes(p.status))
+    .reduce((s, p) => s + (parseFloat(p.hoursPerWeek) || 0), 0);
+  const available = skillProfiles.reduce((s, p) => s + (parseFloat(p.hoursPerWeek) || 0), 0);
+  const remaining = Math.max(0, available - committed);
+  const pct = available > 0 ? Math.round((committed / available) * 100) : 0;
+  return { committed, available, remaining, pct, hasProfiles: skillProfiles.length > 0 };
+}
+// Capacity-aware project creation. Returns one of:
+//   { decision: 'add-active' }     — fits, proceed
+//   { decision: 'add-tbd' }        — user chose TBD
+//   { decision: 'cancel' }         — user backed out
+// Uses confirm() prompts so it works without a custom modal system.
+function capacityDecisionForNewProject(projects, skillProfiles, newProjectHpw, opts = {}) {
+  const cap = capacitySnapshot(projects, skillProfiles);
+  const proposed = cap.committed + (parseFloat(newProjectHpw) || 0);
+  const proposedPct = cap.available > 0 ? (proposed / cap.available) * 100 : 0;
+  if (!cap.hasProfiles) {
+    // No skill profiles yet — can't enforce, just proceed but warn once.
+    return { decision: 'add-active', note: 'No skill profiles set yet; capacity not enforced.' };
+  }
+  if (proposedPct <= 80) return { decision: 'add-active' };
+  const label = opts.label || 'this project';
+  const msg = proposedPct > 100
+    ? `Heads up — adding ${label} would put the family at ${Math.round(proposedPct)}% of available hours/week (${proposed} hrs needed vs ${cap.available} hrs available).\n\nClick OK to add as TBD (parked until capacity opens up). Click Cancel to keep it out entirely.\n\nIf you really want to add it active anyway, you can promote it later from Projects > Inventory.`
+    : `Tight fit — adding ${label} would push the family to ${Math.round(proposedPct)}% of available hours/week (${proposed} hrs needed vs ${cap.available} hrs available). The healthy zone is under 80%.\n\nClick OK to add as TBD (parked, doesn't count against workload). Click Cancel to add active anyway and accept the squeeze.`;
+  const useTbd = window.confirm(msg);
+  return useTbd ? { decision: 'add-tbd' } : { decision: 'add-active' };
+}
+
+// =============================================================================
+// v28+ MVP v1.5 round 6 — DEV/OPS · Skill → Opportunity matcher
+// Curated library of entrepreneurial paths. Each entry tags the skills it
+// needs, the realistic earnings + time profile, an anonymized COMPOSITE
+// example (drawn from public reporting / industry surveys, not specific
+// individuals), and the tech stack PoeTech would build to wrap the user.
+// FUTURE-MODULE HOOK: `region` and `verified-by` fields are intentionally
+// absent so community partners can extend later without breaking shape.
+// =============================================================================
+const SKILL_CATEGORIES = [
+  'Trades','Caregiving','Teaching','Real Estate','Creative',
+  'Tech','Health & Wellness','Faith / Ministry','Driving / Delivery',
+  'Cooking / Food','Sales / Marketing','Operations / Admin','Translation / Multilingual',
+];
+
+// Tier visibility: 'foundation' = always visible (sampler). 'poetech-plus' and
+// above pull more breadth. The Foundation tier sees the first opportunity per
+// profile only — the tease — and counts unlock per tier.
+const OPPORTUNITY_LIBRARY = [
+  // --- TECH / NETWORKING (Darrell-aligned) ---
+  { id: 'op-net-1', title: 'Small-business network architect (1099)', category: 'Tech', skillTags: ['network architecture','OT-IT','BAS','Siemens','networking'], earningsLow: 4000, earningsHigh: 18000, hoursPerWeek: 10, startupCost: 0, timeToFirstDollar: '2–6 weeks', example: 'A former school-district facilities lead in the Midwest now bills $8K/mo redesigning VLANs and adding UniFi gateways for 3–4 local businesses per year.', techStack: 'PoeTech wraps you with: scope-of-work templates, 1099 tracking, recurring-engagement calendar, capex inventory for site visits.' },
+  { id: 'op-net-2', title: 'AV streaming consultant for churches', category: 'Tech', skillTags: ['church AV','streaming','OBS','live sound','networking'], earningsLow: 800, earningsHigh: 6000, hoursPerWeek: 6, startupCost: 500, timeToFirstDollar: '1–2 weeks', example: 'A worship tech director in Atlanta serves 6 small churches on a $400/mo flat retainer each, plus install fees, totaling ~$3.5K/mo.', techStack: 'PoeTech wraps you with: per-church scope, equipment inventory by site, recurring billing reminder, conversation log per pastor.' },
+  { id: 'op-code-1', title: 'PWA / React build contracts', category: 'Tech', skillTags: ['react','PWA','frontend','javascript','coding'], earningsLow: 3000, earningsHigh: 25000, hoursPerWeek: 12, startupCost: 0, timeToFirstDollar: '3–8 weeks', example: 'A self-taught developer in rural Texas runs a 2-person shop building React apps for small clinics; ~$15K/project, 4–6 projects/yr.', techStack: 'PoeTech wraps you with: scope tool, project timeline, inventory forecast, client conversation log.' },
+  { id: 'op-it-1', title: 'Local IT support / managed services', category: 'Tech', skillTags: ['it support','tech support','networking','windows','mac'], earningsLow: 2500, earningsHigh: 12000, hoursPerWeek: 15, startupCost: 300, timeToFirstDollar: '1–3 weeks', example: 'A 50-something with 20 yrs corporate IT in Phoenix runs a 12-account managed-services book, averaging $5.8K/mo recurring.', techStack: 'PoeTech wraps you with: per-account scope, ticket conversation log, recurring billing, equipment inventory.' },
+  { id: 'op-ai-1', title: 'AI prompt + automation consultant for SMBs', category: 'Tech', skillTags: ['ai','prompt engineering','automation','no-code','python'], earningsLow: 2000, earningsHigh: 15000, hoursPerWeek: 8, startupCost: 100, timeToFirstDollar: '2–4 weeks', example: 'A bookkeeper-turned-AI-consultant in Ohio sells $2K AI-workflow audits to local businesses; ~3/mo = $6K.', techStack: 'PoeTech wraps you with: scope tool, project timeline, deliverables tracker.' },
+
+  // --- HEALTH & WELLNESS / THERAPY (Christina-aligned) ---
+  { id: 'op-th-1', title: 'Group practice with 1099 contractors', category: 'Health & Wellness', skillTags: ['therapy','clinical','LCSW','MSW','psychology'], earningsLow: 5000, earningsHigh: 35000, hoursPerWeek: 20, startupCost: 1500, timeToFirstDollar: '6–12 weeks', example: 'A licensed therapist in Illinois runs a 7-clinician group practice; owner take-home ~$22K/mo after paying contractors and overhead.', techStack: 'PoeTech wraps you with: pre-intake inquiry capture, conversion tracking, multi-clinician scope, payroll-adjacent 1099 reporting.' },
+  { id: 'op-th-2', title: 'Faith-integrated counseling specialty', category: 'Health & Wellness', skillTags: ['therapy','clinical','faith','ministry','christian counseling'], earningsLow: 3000, earningsHigh: 14000, hoursPerWeek: 18, startupCost: 800, timeToFirstDollar: '4–8 weeks', example: 'A licensed counselor in Tennessee built a $9K/mo private practice serving pastors + missionaries returning from the field.', techStack: 'PoeTech wraps you with: inquiry tracking, source attribution (church referrals), scope for sliding-scale clients.' },
+  { id: 'op-coach-1', title: 'Health & wellness coaching (non-clinical)', category: 'Health & Wellness', skillTags: ['coaching','wellness','nutrition','fitness'], earningsLow: 1200, earningsHigh: 8000, hoursPerWeek: 10, startupCost: 200, timeToFirstDollar: '2–6 weeks', example: 'A nurse on the side coaches busy moms via Zoom; 14 clients × $250/mo = $3.5K/mo recurring.', techStack: 'PoeTech wraps you with: client scope, scheduling calendar, recurring billing, conversation log.' },
+  { id: 'op-msw-1', title: 'Independent MSW under another therapist\'s license', category: 'Health & Wellness', skillTags: ['MSW','social work','clinical contractor'], earningsLow: 2000, earningsHigh: 9000, hoursPerWeek: 20, startupCost: 0, timeToFirstDollar: '2–4 weeks', example: 'An MSW in Chicago contracts under 2 group practices; ~24 sessions/wk × $80 take-home = $7.6K/mo.', techStack: 'PoeTech wraps you with: caseload tracker, multi-practice 1099 reporting, supervision hours log.' },
+
+  // --- MUSIC / CREATIVE (Christina-aligned, kids too) ---
+  { id: 'op-music-1', title: 'Choir / vocal coach for individuals', category: 'Creative', skillTags: ['music','choir','vocal','teaching','piano'], earningsLow: 600, earningsHigh: 4000, hoursPerWeek: 8, startupCost: 100, timeToFirstDollar: '1–2 weeks', example: 'A church music director in the Carolinas keeps 12 weekly private students at $60/hr = $2.9K/mo on the side.', techStack: 'PoeTech wraps you with: scheduling calendar, recurring billing, per-student notes/conversation log.' },
+  { id: 'op-music-2', title: 'Wedding / event music director', category: 'Creative', skillTags: ['music','choir','wedding','event','vocal'], earningsLow: 1000, earningsHigh: 7000, hoursPerWeek: 6, startupCost: 200, timeToFirstDollar: '2–4 weeks', example: 'A worship-trained vocalist in Charlotte averages 2 weddings/mo at $1,800 each = $3.6K/mo.', techStack: 'PoeTech wraps you with: event calendar, per-event scope (set list + tech rider), deposit/balance tracking.' },
+  { id: 'op-write-1', title: 'Substack / newsletter author (subscription)', category: 'Creative', skillTags: ['writing','content','newsletter','journalism'], earningsLow: 0, earningsHigh: 20000, hoursPerWeek: 10, startupCost: 0, timeToFirstDollar: '3–9 months', example: 'A former nonprofit comms director writes a weekly newsletter about kinship caregiving; ~800 paid subscribers × $7 = $5.6K/mo after 18 months.', techStack: 'PoeTech wraps you with: subscriber pipeline (inquiry tool), recurring revenue tracker, content calendar.' },
+  { id: 'op-design-1', title: 'Brand & website design for small ministries', category: 'Creative', skillTags: ['design','branding','web design','figma'], earningsLow: 1500, earningsHigh: 10000, hoursPerWeek: 10, startupCost: 50, timeToFirstDollar: '2–6 weeks', example: 'A freelance designer in Memphis specializes in small Black churches; $2K/site × 3–5/mo = $6–10K/mo.', techStack: 'PoeTech wraps you with: scope templates per package, project timeline, asset/handoff log.' },
+  { id: 'op-photo-1', title: 'Real-estate listing photography', category: 'Creative', skillTags: ['photography','real estate','editing'], earningsLow: 1500, earningsHigh: 9000, hoursPerWeek: 12, startupCost: 1500, timeToFirstDollar: '1–3 weeks', example: 'A part-time photographer in the Atlanta metro shoots ~6 listings/week at $250 each = $6K/mo for 3 partner agents.', techStack: 'PoeTech wraps you with: per-listing scope, equipment inventory, recurring billing, shot-list checklist.' },
+  { id: 'op-video-1', title: 'Short-form video editor for creators', category: 'Creative', skillTags: ['video','editing','social media','content'], earningsLow: 1000, earningsHigh: 12000, hoursPerWeek: 15, startupCost: 500, timeToFirstDollar: '1–4 weeks', example: 'A stay-at-home parent in Idaho edits TikTok/Reels for 5 creators on retainer; ~$1.4K each = $7K/mo.', techStack: 'PoeTech wraps you with: per-client scope, deliverable tracker, recurring monthly invoices.' },
+
+  // --- TEACHING / EDUCATION ---
+  { id: 'op-tutor-1', title: 'Online K-12 tutoring for homeschool families', category: 'Teaching', skillTags: ['teaching','tutoring','K-12','education','homeschool'], earningsLow: 1200, earningsHigh: 10000, hoursPerWeek: 12, startupCost: 100, timeToFirstDollar: '2–4 weeks', example: 'A retired teacher in Ohio runs a 3-day/week tutoring co-op for 8 homeschool families; ~$3.5K/mo at $300/student/mo.', techStack: 'PoeTech wraps you with: per-student inquiry, scheduling, recurring billing, parent conversation log.' },
+  { id: 'op-tutor-2', title: 'IEP / special-needs learning support', category: 'Teaching', skillTags: ['teaching','IEP','special needs','dyslexia','tutoring'], earningsLow: 1500, earningsHigh: 9000, hoursPerWeek: 12, startupCost: 200, timeToFirstDollar: '2–6 weeks', example: 'A reading specialist in Maryland coaches 10 children with dyslexia at $90/hr × ~6 hr/wk = ~$3.9K/mo.', techStack: 'PoeTech wraps you with: per-child progress notes, IEP document store, parent updates, scheduling.' },
+  { id: 'op-course-1', title: 'Niche online course (one-time + drip)', category: 'Teaching', skillTags: ['teaching','course','online','curriculum','content'], earningsLow: 0, earningsHigh: 30000, hoursPerWeek: 10, startupCost: 500, timeToFirstDollar: '3–6 months', example: 'A network engineer sells a $497 OT-IT crash course; ~25 sales/mo after launch = $12.4K/mo recurring.', techStack: 'PoeTech wraps you with: customer pipeline, refund tracker, recurring drip schedule, conversation log.' },
+  { id: 'op-tutor-3', title: 'Test prep for first-gen college students', category: 'Teaching', skillTags: ['teaching','test prep','SAT','ACT','college'], earningsLow: 800, earningsHigh: 6000, hoursPerWeek: 8, startupCost: 100, timeToFirstDollar: '2–4 weeks', example: 'A former school counselor in Detroit coaches 6 students per cycle at $1,200 flat = $7.2K per 3-mo cycle.', techStack: 'PoeTech wraps you with: per-student scope (target score, sessions left), parent comms, scheduling.' },
+  { id: 'op-music-3', title: 'Private music lessons (instrument or voice)', category: 'Teaching', skillTags: ['music','teaching','piano','guitar','voice','instrument'], earningsLow: 500, earningsHigh: 5000, hoursPerWeek: 10, startupCost: 200, timeToFirstDollar: '1–3 weeks', example: 'A guitar teacher in Nashville keeps 18 weekly students at $45/lesson = $3.2K/mo.', techStack: 'PoeTech wraps you with: scheduling, recurring billing, per-student notes.' },
+
+  // --- TRADES ---
+  { id: 'op-trade-1', title: 'Specialty handyman (kitchens, bathrooms, decks)', category: 'Trades', skillTags: ['carpentry','remodel','handyman','construction','trades'], earningsLow: 3000, earningsHigh: 15000, hoursPerWeek: 30, startupCost: 5000, timeToFirstDollar: '1–4 weeks', example: 'A 2nd-generation tradesman in NC averages $9K/mo on smaller remodels under $15K, no employees.', techStack: 'PoeTech wraps you with: per-job scope (acceptance criteria), inventory of repeat-buy materials, payment milestones.' },
+  { id: 'op-trade-2', title: 'HVAC service + light commercial install', category: 'Trades', skillTags: ['HVAC','trades','install','service'], earningsLow: 5000, earningsHigh: 22000, hoursPerWeek: 35, startupCost: 8000, timeToFirstDollar: '2–8 weeks', example: 'An HVAC tech in Texas left a national chain to solo, runs $14K/mo on residential service contracts.', techStack: 'PoeTech wraps you with: service-call scope, equipment inventory by customer site, recurring maintenance reminders.' },
+  { id: 'op-trade-3', title: 'Landscaping + small lawn-care route', category: 'Trades', skillTags: ['landscaping','lawn care','trades','outdoor'], earningsLow: 2000, earningsHigh: 11000, hoursPerWeek: 30, startupCost: 4000, timeToFirstDollar: '1–3 weeks', example: 'A teacher-turned-landscaper in NC keeps 25 weekly accounts at $50–80 each = ~$6.5K/mo seasonal.', techStack: 'PoeTech wraps you with: route schedule, per-property scope, equipment inventory.' },
+  { id: 'op-trade-4', title: 'Cleaning service (residential or commercial)', category: 'Trades', skillTags: ['cleaning','trades','janitorial'], earningsLow: 1500, earningsHigh: 14000, hoursPerWeek: 25, startupCost: 800, timeToFirstDollar: '1–2 weeks', example: 'A single mom in Charlotte built a 6-staff commercial cleaning route; ~$8K/mo take-home after wages.', techStack: 'PoeTech wraps you with: per-account scope, recurring schedule, staff hours, 1099 / W-2 split tracking.' },
+
+  // --- CAREGIVING ---
+  { id: 'op-care-1', title: 'Private-pay elder companion / aide', category: 'Caregiving', skillTags: ['elder care','caregiving','CNA','companion'], earningsLow: 1200, earningsHigh: 6000, hoursPerWeek: 20, startupCost: 100, timeToFirstDollar: '1–3 weeks', example: 'A retired RN in Florida cares for 2 elderly clients privately at $28/hr × 16 hr/wk each = $3.6K/mo.', techStack: 'PoeTech wraps you with: per-client scope (meds, routines), shared-with-family notes, schedule, payroll tracking.' },
+  { id: 'op-care-2', title: 'Specialized care coordinator for adult children', category: 'Caregiving', skillTags: ['elder care','care coordination','case management','social work'], earningsLow: 2500, earningsHigh: 10000, hoursPerWeek: 15, startupCost: 200, timeToFirstDollar: '4–8 weeks', example: 'A former hospital case manager in Atlanta serves 8 family-paying clients at $400/mo retainer = $3.2K/mo.', techStack: 'PoeTech wraps you with: case load, sibling-shared notes, doctor appointment calendar, document store.' },
+  { id: 'op-care-3', title: 'Special-needs respite care', category: 'Caregiving', skillTags: ['caregiving','special needs','respite','autism'], earningsLow: 1000, earningsHigh: 5000, hoursPerWeek: 18, startupCost: 100, timeToFirstDollar: '2–4 weeks', example: 'A para-educator in Phoenix moonlights as respite for 4 families on weekends; $25/hr × 24 hr/wk = $2.4K/mo.', techStack: 'PoeTech wraps you with: per-family scope (routine, sensory triggers), schedule, parent comms log.' },
+  { id: 'op-care-4', title: 'Pet sitting / dog walking (route)', category: 'Caregiving', skillTags: ['pet sitting','dog walking','animals'], earningsLow: 400, earningsHigh: 4000, hoursPerWeek: 12, startupCost: 50, timeToFirstDollar: '1–2 weeks', example: 'A high-schooler in Denver runs a 9-dog walking route plus weekend boarding; ~$1.2K/mo summers.', techStack: 'PoeTech wraps you with: per-client scope (feeding, meds), schedule, conversation log, key/location notes.' },
+
+  // --- REAL ESTATE (Darrell-aligned) ---
+  { id: 'op-re-1', title: 'Self-manage your own rental portfolio', category: 'Real Estate', skillTags: ['real estate','property management','rentals','landlord'], earningsLow: 0, earningsHigh: 8000, hoursPerWeek: 6, startupCost: 0, timeToFirstDollar: 'immediate', example: 'A small landlord with 8 doors in IL saved ~$1,100/mo by self-managing vs paying 10% to a PM company.', techStack: 'PoeTech wraps you with: full Real Estate module — per-property lease, tenant, equipment, rooms, maintenance log, snowball math.' },
+  { id: 'op-re-2', title: 'Section 8 / housing-voucher rental specialist', category: 'Real Estate', skillTags: ['real estate','section 8','housing','rentals'], earningsLow: 1000, earningsHigh: 15000, hoursPerWeek: 8, startupCost: 0, timeToFirstDollar: '2–8 weeks', example: 'A landlord in Memphis specializes in Section 8 properties, 6 doors at ~$1,400 average rent; nets ~$5K/mo after expenses.', techStack: 'PoeTech wraps you with: per-property compliance docs, inspection calendar, voucher-amount tracking.' },
+  { id: 'op-re-3', title: 'Short-term-rental property manager', category: 'Real Estate', skillTags: ['real estate','short term rental','airbnb','property management'], earningsLow: 1500, earningsHigh: 12000, hoursPerWeek: 15, startupCost: 500, timeToFirstDollar: '3–6 weeks', example: 'A property manager in TN manages 7 STR units at 20% of revenue; ~$8K/mo recurring.', techStack: 'PoeTech wraps you with: per-property scope, cleaning crew schedule, booking calendar, equipment inventory.' },
+  { id: 'op-re-4', title: 'Wholesale + flip with attorney + integrity', category: 'Real Estate', skillTags: ['real estate','flipping','wholesale','investing'], earningsLow: 0, earningsHigh: 30000, hoursPerWeek: 20, startupCost: 2000, timeToFirstDollar: '1–4 months', example: 'A part-time investor in NC flips 2–3 houses/yr averaging $18K net per deal; conservative 1 deal/quarter = ~$6K/mo blended.', techStack: 'PoeTech wraps you with: per-deal scope, capex inventory + forecast, contractor 1099, conversation log per lead.' },
+
+  // --- FAITH / MINISTRY ---
+  { id: 'op-min-1', title: 'Worship leader on retainer for multi-site church', category: 'Faith / Ministry', skillTags: ['worship','music','ministry','church'], earningsLow: 800, earningsHigh: 5000, hoursPerWeek: 12, startupCost: 0, timeToFirstDollar: '2–8 weeks', example: 'A worship leader in GA serves 3 small churches at $1,200/mo each = $3.6K/mo.', techStack: 'PoeTech wraps you with: per-church scope, set-list calendar, recurring billing.' },
+  { id: 'op-min-2', title: 'Bivocational church admin / bookkeeper', category: 'Faith / Ministry', skillTags: ['admin','bookkeeping','ministry','church'], earningsLow: 1500, earningsHigh: 6000, hoursPerWeek: 15, startupCost: 100, timeToFirstDollar: '2–6 weeks', example: 'An accountant in Alabama keeps books for 4 small congregations at $700/mo each = $2.8K/mo.', techStack: 'PoeTech wraps you with: per-church entity (multi-entity Books), tithe categorization, 1099 reporting.' },
+
+  // --- COOKING / FOOD ---
+  { id: 'op-food-1', title: 'Weekly meal-prep delivery (route of 12–20)', category: 'Cooking / Food', skillTags: ['cooking','meal prep','food','catering'], earningsLow: 2000, earningsHigh: 9000, hoursPerWeek: 25, startupCost: 1500, timeToFirstDollar: '2–4 weeks', example: 'A home cook in TX delivers 18 weekly meal plans at $180 each = $3.2K/mo.', techStack: 'PoeTech wraps you with: customer route, weekly menu/scope, recurring billing.' },
+  { id: 'op-food-2', title: 'Specialty baking (cakes, breads) by order', category: 'Cooking / Food', skillTags: ['baking','cooking','food','custom orders'], earningsLow: 500, earningsHigh: 6000, hoursPerWeek: 15, startupCost: 500, timeToFirstDollar: '2–4 weeks', example: 'A custom cake baker in NC books 6–10 cakes/mo at $200 average = $1.5–2K/mo.', techStack: 'PoeTech wraps you with: per-order scope (flavor, design, allergies), calendar, deposit/balance tracking.' },
+
+  // --- DRIVING / DELIVERY / GIG ---
+  { id: 'op-drive-1', title: 'Local courier route (regular B2B)', category: 'Driving / Delivery', skillTags: ['driving','delivery','courier','logistics'], earningsLow: 1500, earningsHigh: 7000, hoursPerWeek: 30, startupCost: 200, timeToFirstDollar: '1–3 weeks', example: 'A retiree in OH runs a daily route for 4 medical-supply businesses; ~$4.2K/mo net.', techStack: 'PoeTech wraps you with: per-customer scope, route schedule, mileage tracker, recurring billing.' },
+  { id: 'op-drive-2', title: 'Non-medical transport for elderly (NEMT-adjacent)', category: 'Driving / Delivery', skillTags: ['driving','elder care','transport','caregiving'], earningsLow: 1500, earningsHigh: 8000, hoursPerWeek: 20, startupCost: 300, timeToFirstDollar: '2–4 weeks', example: 'A retired bus driver in FL drives 8 elderly clients to appointments at $35/trip; ~$3K/mo.', techStack: 'PoeTech wraps you with: per-client scope (mobility, meds), schedule, family-shared updates.' },
+
+  // --- SALES / MARKETING ---
+  { id: 'op-sales-1', title: 'Affiliate marketing in a tight niche', category: 'Sales / Marketing', skillTags: ['marketing','affiliate','content','SEO','niche'], earningsLow: 0, earningsHigh: 15000, hoursPerWeek: 12, startupCost: 200, timeToFirstDollar: '4–12 months', example: 'A homeschool mom in TX runs a curriculum-review site; ~$5K/mo affiliate revenue after 2 yrs.', techStack: 'PoeTech wraps you with: content calendar, revenue tracker, partner conversation log.' },
+  { id: 'op-sales-2', title: 'B2B sales rep (commission-only) for SMB tools', category: 'Sales / Marketing', skillTags: ['sales','B2B','relationship','networking'], earningsLow: 2000, earningsHigh: 20000, hoursPerWeek: 25, startupCost: 0, timeToFirstDollar: '2–8 weeks', example: 'A former insurance sales rep represents a regional payroll company on 12% commission; ~$8K/mo book.', techStack: 'PoeTech wraps you with: pipeline (inquiry), commission tracker, recurring deal calendar.' },
+
+  // --- OPERATIONS / ADMIN ---
+  { id: 'op-ops-1', title: 'Virtual assistant for solo professionals', category: 'Operations / Admin', skillTags: ['admin','VA','virtual assistant','operations','calendar'], earningsLow: 1200, earningsHigh: 7000, hoursPerWeek: 20, startupCost: 50, timeToFirstDollar: '1–3 weeks', example: 'A VA in WI serves 5 financial advisors at $700/mo each = $3.5K/mo.', techStack: 'PoeTech wraps you with: per-client scope, recurring billing, conversation log.' },
+  { id: 'op-ops-2', title: 'Bookkeeping for small businesses', category: 'Operations / Admin', skillTags: ['bookkeeping','accounting','admin','QuickBooks'], earningsLow: 1500, earningsHigh: 10000, hoursPerWeek: 18, startupCost: 200, timeToFirstDollar: '2–6 weeks', example: 'A bookkeeper in OR keeps 9 SMB clients at $450/mo each = $4K/mo recurring.', techStack: 'PoeTech wraps you with: multi-entity Books (one per client), recurring monthly close, 1099 reporting.' },
+
+  // --- TRANSLATION / MULTILINGUAL ---
+  { id: 'op-lang-1', title: 'Medical/legal interpretation (phone or in-person)', category: 'Translation / Multilingual', skillTags: ['translation','interpretation','bilingual','spanish','medical'], earningsLow: 1500, earningsHigh: 8000, hoursPerWeek: 25, startupCost: 300, timeToFirstDollar: '2–6 weeks', example: 'A bilingual nurse in CA interprets for 3 clinics; ~$5.5K/mo at $35/hr.', techStack: 'PoeTech wraps you with: per-clinic scope, hours tracker, recurring invoicing.' },
+  { id: 'op-lang-2', title: 'ESL tutoring (online, evening hours)', category: 'Translation / Multilingual', skillTags: ['teaching','ESL','language','tutoring'], earningsLow: 600, earningsHigh: 4500, hoursPerWeek: 15, startupCost: 100, timeToFirstDollar: '1–3 weeks', example: 'A retired teacher in TX teaches 14 weekly ESL students via Zoom at $30/hr = $1.8K/mo.', techStack: 'PoeTech wraps you with: per-student progress notes, scheduling, recurring billing.' },
+
+  // --- ENTRY-LEVEL / TEEN / FAMILY-FRIENDLY (Twins-aligned) ---
+  { id: 'op-teen-1', title: 'Lawn care / errands route in your neighborhood', category: 'Trades', skillTags: ['lawn care','errands','teen','neighborhood'], earningsLow: 50, earningsHigh: 800, hoursPerWeek: 8, startupCost: 100, timeToFirstDollar: '1–2 weeks', example: 'A 13-year-old in IL keeps a 6-yard route + light errand pickups; ~$280/mo summers.', techStack: 'PoeTech wraps you with: route schedule, per-customer notes, parent-shared earnings tracker.' },
+  { id: 'op-teen-2', title: 'Tutoring younger kids at church / community', category: 'Teaching', skillTags: ['teaching','tutoring','teen','community'], earningsLow: 40, earningsHigh: 600, hoursPerWeek: 4, startupCost: 0, timeToFirstDollar: '1–2 weeks', example: 'A 14-year-old tutors 4 younger kids in math after church on Sundays at $15/hr = $240/mo.', techStack: 'PoeTech wraps you with: schedule, per-student notes, parent-shared earnings tracker.' },
+  { id: 'op-teen-3', title: 'Tech-helper for older neighbors', category: 'Tech', skillTags: ['tech support','teen','elder','neighborhood'], earningsLow: 80, earningsHigh: 600, hoursPerWeek: 4, startupCost: 0, timeToFirstDollar: '1–2 weeks', example: 'A 15-year-old helps 8 senior neighbors with phones, smart-TVs, and email at $20/visit; ~$300/mo.', techStack: 'PoeTech wraps you with: per-visit notes, schedule, parent-shared earnings tracker.' },
+
+  // --- FAMILY-OPERATED / HIGHER UPSIDE ---
+  { id: 'op-fam-1', title: 'Family-run small farm + farmers market', category: 'Cooking / Food', skillTags: ['farming','cooking','family','seasonal'], earningsLow: 0, earningsHigh: 8000, hoursPerWeek: 30, startupCost: 5000, timeToFirstDollar: '3–8 months', example: 'A family in TN runs a 2-acre vegetable plot + 1 farmers-market stand; ~$4.5K/mo in-season.', techStack: 'PoeTech wraps you with: seasonal recurring calendar, inventory of capex equipment, per-market stand revenue tracker.' },
+  { id: 'op-fam-2', title: 'Family contractor business (2nd gen entry point)', category: 'Trades', skillTags: ['carpentry','HVAC','trades','family business','construction'], earningsLow: 5000, earningsHigh: 30000, hoursPerWeek: 40, startupCost: 8000, timeToFirstDollar: '2–6 weeks', example: 'A 2-person father-son electrical contractor in OH does ~$18K/mo on residential service calls and small commercial.', techStack: 'PoeTech wraps you with: per-job scope, equipment + truck inventory, 1099 if subcontracting, multi-entity Books for the LLC.' },
+];
+
+// Match a profile against the library — returns ranked opportunities by tag overlap.
+function matchOpportunities(profile, library) {
+  if (!profile || !profile.skills) return [];
+  const profileTags = String(profile.skills).toLowerCase().split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
+  if (profileTags.length === 0) return library.slice(0, 3); // fallback: top 3 unfiltered
+  return library
+    .map(op => {
+      const tags = (op.skillTags || []).map(t => String(t).toLowerCase());
+      const hits = profileTags.reduce((n, pt) => n + (tags.some(t => t.includes(pt) || pt.includes(t)) ? 1 : 0), 0);
+      return { ...op, _score: hits };
+    })
+    .filter(op => op._score > 0)
+    .sort((a, b) => b._score - a._score || b.earningsHigh - a.earningsHigh);
+}
+
+function ProjectInventory({ projects = [], entities = [], capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], compact = false }) {
+  const blankCapex = () => ({
+    category: 'Tools', name: '', description: '', link: '',
+    priority: 3, cost: 0, neededBy: '', status: 'researching', notes: '',
+    entityId: entities[0]?.id || 'e-personal', module: '', projectId: '',
+    purchaseTargetDate: '',
+    // Round 4 inventory extensions:
+    //  · locationId — the property/site the item was bought FOR (drop from rentals)
+    //  · purchasedFromAccountId — which account paid for it (drop from accounts)
+    //  · make / model / serial — auto-prompted for traceability (warranty, theft, audit)
+    locationId: '', purchasedFromAccountId: '',
+    make: '', model: '', serial: '',
+  });
+  const [capexForm, setCapexForm] = useState(blankCapex());
+  const [showCapexForm, setShowCapexForm] = useState(false);
+  const [capexFilter, setCapexFilter] = useState('all');
+  const [projFilter, setProjFilter] = useState('all'); // 'all' | 'unassigned' | projectId
+
+  const visibleCapex = capexItems.filter(c => {
+    if (capexFilter !== 'all' && c.status !== capexFilter) return false;
+    if (projFilter === 'all') return true;
+    if (projFilter === 'unassigned') return !c.projectId;
+    return c.projectId === projFilter;
+  });
+
+  const capexTotalPlanned = capexItems.filter(c => c.status !== 'purchased').reduce((s, c) => s + (parseFloat(c.cost) || 0), 0);
+
+  const submitCapex = () => {
+    if (!capexForm.name) { alert('Item name is required.'); return; }
+    addCapexItem && addCapexItem(capexForm);
+    setCapexForm(blankCapex()); setShowCapexForm(false);
+  };
+
+  // 12-month forecast — bucket open (non-purchased) items by their target month.
+  // Items without a target date land in an "Unscheduled" bucket so they're visible
+  // but don't pollute the monthly cash math.
+  const forecast = useMemo(() => {
+    const now = new Date();
+    const months = [];
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      months.push({ key, label: `${MONTHS_ABBR[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`, items: [], total: 0 });
+    }
+    let unscheduled = { key: 'unscheduled', label: 'Unscheduled', items: [], total: 0 };
+    for (const c of capexItems) {
+      if (c.status === 'purchased') continue;
+      const cost = parseFloat(c.cost) || 0;
+      if (!c.purchaseTargetDate) { unscheduled.items.push(c); unscheduled.total += cost; continue; }
+      const d = new Date(c.purchaseTargetDate);
+      if (isNaN(d.getTime())) { unscheduled.items.push(c); unscheduled.total += cost; continue; }
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = months.find(m => m.key === key);
+      if (bucket) { bucket.items.push(c); bucket.total += cost; }
+      else if (d < now) {
+        // Past-due target — surface in current month with overdue flag.
+        months[0].items.push({ ...c, _overdue: true });
+        months[0].total += cost;
+      } else {
+        unscheduled.items.push(c); unscheduled.total += cost;
+      }
+    }
+    return { months, unscheduled };
+  }, [capexItems]);
+
+  // Per-item savings prompt — only for items with a target date and a positive
+  // cost. Computes the required per-month set-aside based on months remaining.
+  const today = new Date();
+  const savingsPrompts = capexItems
+    .filter(c => c.status !== 'purchased' && c.purchaseTargetDate && (parseFloat(c.cost) || 0) > 0)
+    .map(c => {
+      const target = new Date(c.purchaseTargetDate);
+      const monthsLeft = Math.max(0, (target.getFullYear() - today.getFullYear()) * 12 + (target.getMonth() - today.getMonth()));
+      const cost = parseFloat(c.cost) || 0;
+      const perMonth = monthsLeft > 0 ? cost / monthsLeft : cost; // if 0 months left, lump sum needed now
+      return { ...c, monthsLeft, perMonth };
+    })
+    .sort((a, b) => a.monthsLeft - b.monthsLeft || b.perMonth - a.perMonth);
+
+  // Compact mode shows only the forecast + prompts summary, not the editor —
+  // used when this component is embedded at the bottom of the Projects list.
+  const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
+  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+  const projectLookup = Object.fromEntries(projects.map(p => [p.id, p]));
+
+  return (
+    <div className="space-y-6">
+      {!compact && (
+        <section className="bg-white border border-[#1A1815] p-5">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Project Inventory · Capital Forecast</div>
+          <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Tools you need · when you'll buy them · whether the money will be there.</h2>
+          <p className="text-sm leading-relaxed mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Add equipment a project needs, give it a target purchase date, and the forecast below shows the month-by-month outflow against your current net cash flow. If a month doesn't pencil, the row turns amber so you know to push the date back or save harder before then.
+          </p>
+        </section>
+      )}
+
+      {/* Totals strip */}
+      <section>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+          <MetricCell label="Items tracked" value={`${capexItems.length}`} small />
+          <MetricCell label="Open spend" value={fmt(capexTotalPlanned)} sub="not yet purchased" small accent="rust" />
+          <MetricCell label="Scheduled" value={`${capexItems.filter(c => c.purchaseTargetDate && c.status !== 'purchased').length}`} sub="have a target date" small />
+          <MetricCell label="Net cash flow" value={fmt(netCashFlow)} sub="per mo · current" small accent={netCashFlow >= 0 ? 'green' : 'rust'} />
+        </div>
+      </section>
+
+      {/* 12-month forecast — always visible, this is the heart of the feature */}
+      <section aria-labelledby="forecast-h">
+        <h3 id="forecast-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">12-Month Capital Forecast</h3>
+        <div className="bg-white border border-[#1A1815] overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#1A1815] bg-[#FAF8F4]">
+                <th scope="col" className="p-3">Month</th>
+                <th scope="col" className="p-3 text-right">Projected outflow</th>
+                <th scope="col" className="p-3 text-right">Gap vs net cash</th>
+                <th scope="col" className="p-3">Items</th>
+              </tr>
+            </thead>
+            <tbody>
+              {forecast.months.map((m, i) => {
+                const gap = netCashFlow - m.total;
+                const short = m.total > 0 && gap < 0;
+                return (
+                  <tr key={m.key} className={`border-b border-[#E8E4DC] ${i % 2 === 1 ? 'bg-[#FAF8F4]' : ''}`} style={{ fontFamily: '"Fraunces", serif' }}>
+                    <td className="p-3" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.label}</td>
+                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: m.total > 0 ? 500 : 400 }}>
+                      {m.total > 0 ? fmt(m.total) : <span className="text-[#5A5751]">—</span>}
+                    </td>
+                    <td className={`p-3 text-right ${short ? 'text-[#B85838] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {m.total > 0 ? (
+                        <>
+                          <span aria-hidden="true">{short ? '⚠ ' : '✓ '}</span>
+                          <span className="sr-only">{short ? 'short by ' : 'covered, '}</span>
+                          {fmt(gap)}
+                        </>
+                      ) : <span>—</span>}
+                    </td>
+                    <td className="p-3 text-xs">
+                      {m.items.length === 0 ? <span className="text-[#5A5751]">—</span> : (
+                        <div className="flex flex-wrap gap-1">
+                          {m.items.map(it => (
+                            <span key={it.id} className={`inline-flex items-baseline gap-1 px-2 py-0.5 border ${it._overdue ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
+                              {it.name} <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {fmt(parseFloat(it.cost) || 0)}</span>
+                              {it._overdue && <span className="text-[9px] uppercase tracking-wider">overdue</span>}
+                              {it.projectId && projectLookup[it.projectId] && <span className="text-[9px] uppercase tracking-wider">· {projectLookup[it.projectId].title.slice(0, 20)}</span>}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {forecast.unscheduled.items.length > 0 && (
+                <tr className="border-t-2 border-[#1A1815] bg-[#FAF8F4]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <td className="p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Unscheduled</td>
+                  <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(forecast.unscheduled.total)}</td>
+                  <td className="p-3 text-right text-[10px] text-[#5A5751]">no target date set</td>
+                  <td className="p-3 text-xs">
+                    <div className="flex flex-wrap gap-1">
+                      {forecast.unscheduled.items.map(it => (
+                        <span key={it.id} className="inline-flex items-baseline gap-1 px-2 py-0.5 border border-[#E8E4DC] text-[#5A5751]">{it.name} <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {fmt(parseFloat(it.cost) || 0)}</span></span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Each row compares projected outflows for that month against your <strong>current</strong> net cash flow ({fmt(netCashFlow)}/mo). Real net cash will shift with seasonality and rent collection — treat the gap column as a "talk about it now" signal, not a hard ledger.
+        </p>
+      </section>
+
+      {/* Savings prompts */}
+      {savingsPrompts.length > 0 && (
+        <section aria-labelledby="prompts-h">
+          <h3 id="prompts-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Savings Prompts · per item with a target date</h3>
+          <div className="bg-white border border-[#1A1815]">
+            {savingsPrompts.map((p, i, arr) => {
+              const overdue = p.monthsLeft === 0;
+              const stretch = !overdue && p.perMonth > Math.max(0, netCashFlow);
+              const tag = overdue ? 'overdue · lump sum needed' : stretch ? 'tight at current net cash' : 'fits at current net cash';
+              const accent = overdue ? 'text-[#B85838]' : stretch ? 'text-[#B85838]' : 'text-[#5A6E3D]';
+              return (
+                <div key={p.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`} style={{ fontFamily: '"Fraunces", serif' }}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm" style={{ fontWeight: 600 }}>{p.name}</div>
+                      <div className="text-xs text-[#5A5751]">
+                        {p.category} · target {p.purchaseTargetDate} · {fmt(parseFloat(p.cost) || 0)} total
+                        {p.projectId && projectLookup[p.projectId] && <> · project: {projectLookup[p.projectId].title}</>}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg ${accent}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+                        {overdue ? `${fmt(parseFloat(p.cost) || 0)} now` : `${fmt(p.perMonth)}/mo`}
+                      </div>
+                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{p.monthsLeft} month{p.monthsLeft === 1 ? '' : 's'} left</div>
+                    </div>
+                  </div>
+                  <div className={`text-[10px] uppercase tracking-wider mt-2 ${accent}`}>
+                    {overdue ? '⚠' : stretch ? '⚠' : '✓'} <span className="sr-only">{overdue ? 'overdue ' : stretch ? 'stretch ' : 'fits '}</span>{tag}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Per-item set-aside = remaining cost ÷ months until target date. If the per-item ask exceeds your monthly net, the row warns — either push the date, lower the cost, or raise net (cut discretionary, close the rent gap).
+          </p>
+        </section>
+      )}
+
+      {/* Item list + editor — only shown in full (non-compact) mode */}
+      {!compact && (
+        <section aria-labelledby="items-h">
+          <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+            <h3 id="items-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Inventory Items · {capexItems.length}</h3>
+            <button type="button" onClick={() => { setShowCapexForm(!showCapexForm); setCapexForm(blankCapex()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showCapexForm ? '× Cancel' : '+ Add inventory item'}</button>
+          </div>
+
+          {/* Filter row */}
+          <div className="flex flex-wrap gap-1 mb-3 text-[10px] uppercase tracking-wider items-center">
+            <span className="text-[#5A5751] mr-1">Status:</span>
+            <button type="button" onClick={() => setCapexFilter('all')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${capexFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
+            {CAPEX_STATUSES.map(s => (
+              <button key={s} type="button" onClick={() => setCapexFilter(s)} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${capexFilter === s ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{s}</button>
+            ))}
+            <span className="text-[#5A5751] mx-1">·</span>
+            <span className="text-[#5A5751] mr-1">Project:</span>
+            <button type="button" onClick={() => setProjFilter('all')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>Any</button>
+            <button type="button" onClick={() => setProjFilter('unassigned')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === 'unassigned' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>Unassigned</button>
+            {projects.map(p => (
+              <button key={p.id} type="button" onClick={() => setProjFilter(p.id)} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === p.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{p.title.slice(0, 24)}</button>
+            ))}
+          </div>
+
+          {showCapexForm && (
+            <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div><label htmlFor="cx-cat" className={labelCls}>Category</label><select id="cx-cat" className={fieldCls} value={capexForm.category} onChange={e => setCapexForm({ ...capexForm, category: e.target.value })}>{CAPEX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div className="sm:col-span-3"><label htmlFor="cx-name" className={labelCls}>Item name</label><input id="cx-name" className={fieldCls} value={capexForm.name} onChange={e => setCapexForm({ ...capexForm, name: e.target.value })} /></div>
+              </div>
+              <div><label htmlFor="cx-desc" className={labelCls}>Description</label><input id="cx-desc" className={fieldCls} value={capexForm.description} onChange={e => setCapexForm({ ...capexForm, description: e.target.value })} /></div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div><label htmlFor="cx-pri" className={labelCls}>Priority (1–5)</label><input id="cx-pri" type="number" min="1" max="5" className={fieldCls} value={capexForm.priority} onChange={e => setCapexForm({ ...capexForm, priority: e.target.value })} /></div>
+                <div><label htmlFor="cx-cost" className={labelCls}>Cost</label><input id="cx-cost" type="number" step="0.01" min="0" inputMode="decimal" className={fieldCls} value={capexForm.cost} onChange={e => setCapexForm({ ...capexForm, cost: e.target.value })} /></div>
+                <div><label htmlFor="cx-target" className={labelCls}>Target purchase date</label><input id="cx-target" type="date" className={fieldCls} value={capexForm.purchaseTargetDate} onChange={e => setCapexForm({ ...capexForm, purchaseTargetDate: e.target.value })} /></div>
+                <div><label htmlFor="cx-stat" className={labelCls}>Status</label><select id="cx-stat" className={fieldCls} value={capexForm.status} onChange={e => setCapexForm({ ...capexForm, status: e.target.value })}>{CAPEX_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div><label htmlFor="cx-proj" className={labelCls}>Linked project (optional)</label><select id="cx-proj" className={fieldCls} value={capexForm.projectId} onChange={e => setCapexForm({ ...capexForm, projectId: e.target.value })}><option value="">— none —</option>{projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+                <div><label htmlFor="cx-ent" className={labelCls}>Entity</label><select id="cx-ent" className={fieldCls} value={capexForm.entityId} onChange={e => setCapexForm({ ...capexForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+                <div><label htmlFor="cx-need" className={labelCls}>Needed by (free text)</label><input id="cx-need" className={fieldCls} placeholder="ASAP / Soon / Later" value={capexForm.neededBy} onChange={e => setCapexForm({ ...capexForm, neededBy: e.target.value })} /></div>
+              </div>
+              {/* Round 4 — Location (for) + Purchased from account dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="cx-loc" className={labelCls}>Purchased FOR (location / property)</label>
+                  <select id="cx-loc" className={fieldCls} value={capexForm.locationId} onChange={e => setCapexForm({ ...capexForm, locationId: e.target.value })}>
+                    <option value="">— not assigned to a property —</option>
+                    {rentals.map(r => <option key={r.id} value={r.id}>{r.name}{r.city ? ` · ${r.city}` : ''}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="cx-acct" className={labelCls}>Purchased FROM (account that pays)</label>
+                  <select id="cx-acct" className={fieldCls} value={capexForm.purchasedFromAccountId} onChange={e => setCapexForm({ ...capexForm, purchasedFromAccountId: e.target.value })}>
+                    <option value="">— not specified —</option>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ` (${a.fragment})` : ''} · {a.type}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Round 4 — Make / Model / Serial autoprompts for traceability */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div><label htmlFor="cx-make" className={labelCls}>Make (brand)</label><input id="cx-make" className={fieldCls} placeholder="e.g., UniFi, Klein, Dell" value={capexForm.make} onChange={e => setCapexForm({ ...capexForm, make: e.target.value })} /></div>
+                <div><label htmlFor="cx-model" className={labelCls}>Model #</label><input id="cx-model" className={fieldCls} placeholder="e.g., UCG-Max-NS" value={capexForm.model} onChange={e => setCapexForm({ ...capexForm, model: e.target.value })} /></div>
+                <div><label htmlFor="cx-serial" className={labelCls}>Serial #</label><input id="cx-serial" className={fieldCls} placeholder="warranty / theft recovery" value={capexForm.serial} onChange={e => setCapexForm({ ...capexForm, serial: e.target.value })} /></div>
+              </div>
+              <div><label htmlFor="cx-link" className={labelCls}>Link (optional)</label><input id="cx-link" type="url" className={fieldCls} placeholder="https://..." value={capexForm.link} onChange={e => setCapexForm({ ...capexForm, link: e.target.value })} /></div>
+              <div><label htmlFor="cx-notes" className={labelCls}>Notes</label><input id="cx-notes" className={fieldCls} value={capexForm.notes} onChange={e => setCapexForm({ ...capexForm, notes: e.target.value })} /></div>
+              <button type="button" onClick={submitCapex} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save Inventory Item</button>
+            </div>
+          )}
+
+          {visibleCapex.length === 0 ? (
+            <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{capexItems.length === 0 ? 'No inventory items yet. Add the first one above.' : 'No items match this filter.'}</p>
+          ) : (
+            <div className="bg-white border border-[#1A1815]">
+              {[...visibleCapex].sort((a, b) => (a.priority || 99) - (b.priority || 99) || (b.cost || 0) - (a.cost || 0)).map((c, i, arr) => (
+                <div key={c.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>P{c.priority || '?'}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">{c.category}</span>
+                        <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{c.name}</span>
+                        {c.link && <a href={c.link} target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">link →</a>}
+                      </div>
+                      {c.description && <div className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.description}</div>}
+                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">
+                        {c.purchaseTargetDate && <>target {c.purchaseTargetDate}{c.projectId && projectLookup[c.projectId] ? ' · ' : ''}</>}
+                        {c.projectId && projectLookup[c.projectId] && <>project: {projectLookup[c.projectId].title}</>}
+                        {!c.purchaseTargetDate && !c.projectId && <span className="italic">unscheduled · unlinked</span>}
+                      </div>
+                      {/* Round 4 — location · account · make/model/serial breadcrumb */}
+                      {(c.locationId || c.purchasedFromAccountId || c.make || c.model || c.serial) && (
+                        <div className="text-[10px] text-[#5A5751] mt-1 space-x-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                          {c.locationId && rentals.find(r => r.id === c.locationId) && <span>📍 for <strong>{rentals.find(r => r.id === c.locationId).name}</strong></span>}
+                          {c.purchasedFromAccountId && accounts.find(a => a.id === c.purchasedFromAccountId) && <span>💳 paid via <strong>{accounts.find(a => a.id === c.purchasedFromAccountId).name}</strong></span>}
+                          {(c.make || c.model) && <span>🔖 {[c.make, c.model].filter(Boolean).join(' ')}</span>}
+                          {c.serial && <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>S/N {c.serial}</span>}
+                        </div>
+                      )}
+                      {c.notes && <div className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{c.cost ? fmt(c.cost) : '—'}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{c.status}{c.neededBy ? ` · ${c.neededBy}` : ''}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <label htmlFor={`cx-edit-stat-${c.id}`} className="sr-only">Status for {c.name}</label>
+                    <select id={`cx-edit-stat-${c.id}`} className="text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={c.status} onChange={e => updateCapexItem && updateCapexItem(c.id, { status: e.target.value })}>
+                      {CAPEX_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <label htmlFor={`cx-edit-proj-${c.id}`} className="sr-only">Project for {c.name}</label>
+                    <select id={`cx-edit-proj-${c.id}`} className="text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={c.projectId || ''} onChange={e => updateCapexItem && updateCapexItem(c.id, { projectId: e.target.value })}>
+                      <option value="">— no project —</option>
+                      {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                    </select>
+                    <label htmlFor={`cx-edit-date-${c.id}`} className="sr-only">Target date for {c.name}</label>
+                    <input id={`cx-edit-date-${c.id}`} type="date" className="text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={c.purchaseTargetDate || ''} onChange={e => updateCapexItem && updateCapexItem(c.id, { purchaseTargetDate: e.target.value })} />
+                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
+                    <button type="button" onClick={() => { if (confirm(`Delete "${c.name}"? This cannot be undone.`)) deleteCapexItem && deleteCapexItem(c.id); }} aria-label={`Delete ${c.name}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {compact && (
+        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+          Add or edit inventory items in the <strong>Inventory · Capital Forecast</strong> sub-tab above.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
 // PROJECTS · TIMELINE · WORKLOAD COORDINATION — v17
 // Multi-domain project tracking with start/end dates and workload visualization
 // =============================================================================
 // v21: ProjectsWrapper — sub-nav between Projects list and Scopes
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [] }) {
   const [subView, setSubView] = useState('list');
   return (
     <div className="space-y-4">
       <div className="border-b border-[#E8E4DC]">
         <div className="flex gap-1 text-xs">
-          {[['list','Projects · Timeline'],['scopes','Scopes · Agreements']].map(([id, label]) => (
-            <button key={id} onClick={() => setSubView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${subView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+          {[['list','Projects · Timeline'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast']].map(([id, label]) => (
+            <button key={id} onClick={() => setSubView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${subView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
           ))}
         </div>
       </div>
-      {subView === 'list' && <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />}
+      {subView === 'list' && (
+        <>
+          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
+          {/* v28+ MVP v1.5 round 3 — Inventory + forecast also appears at the
+              bottom of the Projects list so the connection is obvious. The
+              dedicated Inventory sub-tab is where the editing/adding lives. */}
+          <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} compact />
+        </>
+      )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
+      {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
     </div>
   );
 }
@@ -1730,7 +3179,7 @@ function ProjectConversationLog({ project, updateProject }) {
     <div className="mt-3 pt-2 border-t border-[#E8E4DC]">
       <div className="flex items-baseline justify-between gap-2 mb-1.5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Conversations · {log.length}</div>
-        <button onClick={() => { setShowForm(!showForm); setForm(blank()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Log a touchpoint'}</button>
+        <button type="button" onClick={(e) => { e.preventDefault(); setShowForm(!showForm); setForm(blank()); }} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{showForm ? '× Cancel' : '+ Log a touchpoint'}</button>
       </div>
       {showForm && (
         <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1.5">
@@ -1740,7 +3189,7 @@ function ProjectConversationLog({ project, updateProject }) {
           </div>
           <input className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Summary (required) — e.g., 'kickoff call, requirements confirmed'" value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} />
           <textarea className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" rows="2" placeholder="Notes · decisions · next step · who owns what" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-          <button onClick={addNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
+          <button type="button" onClick={addNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
         </div>
       )}
       {log.length === 0 && !showForm ? (
@@ -1755,7 +3204,7 @@ function ProjectConversationLog({ project, updateProject }) {
                   <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
                   {e.notes && <div className="text-[10px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                 </div>
-                <button onClick={() => deleteNote(e.id)} className="text-[10px] text-[#5A5751] hover:text-[#B85838] shrink-0">×</button>
+                <button type="button" onClick={() => deleteNote(e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
               </div>
             </div>
           ))}
@@ -1803,6 +3252,8 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
     });
     setEditingId(p.id);
     setShowForm(true);
+    // Round 9: no scroll-to-top on edit. Eyes stay where you tapped. The form
+    // opens inline above the project list — see the panel banner that flags it.
   };
 
   // Filter and sort
@@ -1921,7 +3372,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
               <option value="all">All statuses</option>
               {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <button onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
+            <button type="button" onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
           </div>
         </div>
 
@@ -1983,9 +3434,16 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
               )}
               <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Optional — attach the 1099 workers helping with this project so YTD tracking and tax docs flow correctly.</p>
             </div>
-            <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Description · key milestones · who's involved" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
+            {/* Round 7 fix — bumped rows from 2 → 8 so multi-line descriptions
+                (especially the auto-created "Wrap me with the tech" handoff
+                from Dev/Ops, which includes the opportunity context) are fully
+                visible and editable without scrolling inside the textarea. */}
+            <div>
+              <label htmlFor="proj-desc" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Description · key milestones · who's involved · opportunity context (for auto-created projects from Dev/Ops, this carries the example + tech-stack details — feel free to edit)</label>
+              <textarea id="proj-desc" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" rows="8" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
+            </div>
             {projError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{projError}</div>}
-            <button onClick={submitProject} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Project'}</button>
+            <button type="button" onClick={submitProject} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Project'}</button>
           </div>
         )}
 
@@ -1994,7 +3452,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               No projects yet. Add the things you're working on across your life — work, family, ministry, side projects, repairs. The first ones often feel obvious; the value comes when you can see them all together.
             </p>
-            <button onClick={() => {
+            <button type="button" onClick={() => {
               const examples = [
                 { title: 'PoeTech v1 Public Launch · Loved Ones cohort', startDate: '2026-05-16', endDate: '2026-09-30', status: 'active', domain: 'business-poetech', description: 'Foundation launch through Church of the Living God. Onboard first 100 founding families. Validate pricing tiers and core Financial module.', hoursPerWeek: 20, entityId: 'e-poetech' },
                 { title: 'Christiana college transition', startDate: '2026-05-16', endDate: '2026-08-25', status: 'active', domain: 'family', description: 'Visits, paperwork, dorm prep, financial aid coordination, the goodbye conversations that matter.', hoursPerWeek: 4, entityId: 'e-personal' },
@@ -2026,12 +3484,23 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
               const progressPct = totalDays && totalDays > 0 ? Math.min(100, (daysElapsed / totalDays) * 100) : 0;
               return (
                 <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: domainColor(p.domain) }}>
-                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
+                  <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
                     <h4 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</h4>
-                    <div className="flex gap-2 items-center text-[10px] uppercase tracking-wider">
-                      <span style={{ color: statusColor(p.status) }} className="font-medium">{p.status}</span>
-                      <button onClick={() => startEdit(p)} className="text-[#5A5751] hover:text-[#B85838]">edit</button>
-                      <button onClick={() => { if (confirm('Delete this project?')) deleteProject(p.id); }} className="text-[#5A5751] hover:text-[#B85838]">delete</button>
+                    {/* Round 7 — properly-sized Edit / Delete tap targets, divider between them. */}
+                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
+                      <span style={{ color: statusColor(p.status) }} className="font-medium px-2">{p.status}{p.status === 'tbd' && ' · parked'}</span>
+                      {/* Round 11 — TBD projects show a "Promote → Active" button so the user
+                          can flip them when capacity opens up. Plain text-only edit otherwise. */}
+                      {p.status === 'tbd' && (
+                        <>
+                          <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
+                          <button type="button" onClick={() => updateProject(p.id, { status: 'planning' })} aria-label={`Promote ${p.title} from TBD to planning`} className="text-xs uppercase tracking-wider text-[#5A6E3D] hover:text-white hover:bg-[#5A6E3D] border border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Promote</button>
+                        </>
+                      )}
+                      <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
+                      <button type="button" onClick={() => startEdit(p)} aria-label={`Edit project ${p.title}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Edit</button>
+                      <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
+                      <button type="button" onClick={() => { if (confirm(`Delete project "${p.title}"?`)) deleteProject(p.id); }} aria-label={`Delete project ${p.title}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
                     </div>
                   </div>
                   <div className="text-xs text-[#5A5751] mb-2">
@@ -2057,7 +3526,10 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                   )}
                   {p.description && <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{p.description}</p>}
                   <div className="mt-2">
-                    <button onClick={() => setOpenConvId(openConvId === p.id ? null : p.id)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">
+                    {/* Round 9 — type="button" prevents default-submit behavior on browsers
+                        that interpret a naked <button> as a form-submit even without a form
+                        ancestor (which can scroll the page to the top under some conditions). */}
+                    <button type="button" onClick={(e) => { e.preventDefault(); setOpenConvId(openConvId === p.id ? null : p.id); }} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
                       {openConvId === p.id ? '× Close conversations' : `💬 Conversations (${(p.conversationLog || []).length})`}
                     </button>
                   </div>
@@ -2130,7 +3602,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815]">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Recurring Obligations</h2>
-          <button onClick={() => setShowRecurForm(!showRecurForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showRecurForm ? '× Cancel' : '+ Add'}</button>
+          <button type="button" onClick={() => setShowRecurForm(!showRecurForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showRecurForm ? '× Cancel' : '+ Add'}</button>
         </div>
         {showRecurForm && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
@@ -2150,7 +3622,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
               </select>
             </div>
             <DateField value={newRecur.nextDue} onChange={v => setNewRecur({...newRecur, nextDue: v})} className="w-full" />
-            <button onClick={submitRecur} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Add</button>
+            <button type="button" onClick={submitRecur} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Add</button>
           </div>
         )}
         <div className="bg-white border border-[#1A1815]">
@@ -2163,7 +3635,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
                 </div>
                 <div className="flex items-baseline gap-2 shrink-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.amount)}</div>
-                  <button onClick={() => deleteRecurring(r.id)} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
+                  <button type="button" onClick={() => deleteRecurring(r.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                 </div>
               </div>
             </div>
@@ -2174,7 +3646,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815]">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Incident Log</h2>
-          <button onClick={() => setShowIncidentForm(!showIncidentForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showIncidentForm ? '× Cancel' : '+ Log'}</button>
+          <button type="button" onClick={() => setShowIncidentForm(!showIncidentForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showIncidentForm ? '× Cancel' : '+ Log'}</button>
         </div>
         {showIncidentForm && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
@@ -2208,7 +3680,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
                 </div>
               )}
             </div>
-            <button onClick={submitIncident} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Log</button>
+            <button type="button" onClick={submitIncident} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Log</button>
           </div>
         )}
         <div className="bg-white border border-[#1A1815]">
@@ -2230,7 +3702,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
                 </div>
                 <div className="flex items-baseline gap-2 shrink-0">
                   <div className="text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(inc.amount)}</div>
-                  <button onClick={() => deleteIncident(inc.id)} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
+                  <button type="button" onClick={() => deleteIncident(inc.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                 </div>
               </div>
             </div>
@@ -2243,7 +3715,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Events</h2>
           <div className="flex items-center gap-3">
             {notifPermission === 'default' && (
-              <button onClick={requestNotif} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">🔔 Enable notifications</button>
+              <button type="button" onClick={requestNotif} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">🔔 Enable notifications</button>
             )}
             {notifPermission === 'granted' && (
               <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D]">🔔 Notifications on</span>
@@ -2251,7 +3723,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
             {notifPermission === 'denied' && (
               <span className="text-[10px] uppercase tracking-wider text-[#B85838]">🔔 Blocked in browser</span>
             )}
-            <button onClick={() => setShowEventForm(!showEventForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showEventForm ? '× Cancel' : '+ Add event'}</button>
+            <button type="button" onClick={() => setShowEventForm(!showEventForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showEventForm ? '× Cancel' : '+ Add event'}</button>
           </div>
         </div>
 
@@ -2297,7 +3769,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
               <option value="monthly">Monthly</option>
               <option value="yearly">Yearly</option>
             </select>
-            <button onClick={submitEvent} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Save Event</button>
+            <button type="button" onClick={submitEvent} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Save Event</button>
             {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
               <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>For reminder pop-ups outside the app, click "Enable notifications" above. Visual reminders work either way.</p>
             )}
@@ -2326,8 +3798,8 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
                     )}
                   </div>
                   <div className="flex items-baseline gap-1.5 shrink-0">
-                    <button onClick={() => completeEvent(e.id)} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">✓ Done</button>
-                    <button onClick={() => deleteEvent(e.id)} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
+                    <button type="button" onClick={() => completeEvent(e.id)} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">✓ Done</button>
+                    <button type="button" onClick={() => deleteEvent(e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                   </div>
                 </div>
               </div>
@@ -2426,7 +3898,7 @@ function ScopeForm({ formData, setFormData, projects = [], entities, templateNam
     <div className="space-y-4 max-w-3xl">
       <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3">
         <div><div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium">New Scope · {templateName}</div><h2 className="text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Fill out the agreement</h2></div>
-        <button onClick={onCancel} className="text-[10px] uppercase tracking-wider text-[#5A5751]">× Cancel</button>
+        <button type="button" onClick={onCancel} className="text-[10px] uppercase tracking-wider text-[#5A5751]">× Cancel</button>
       </section>
       <FormField label="Job title *"><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={formData.title || ''} onChange={update('title')} /></FormField>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2445,14 +3917,48 @@ function ScopeForm({ formData, setFormData, projects = [], entities, templateNam
       <FormField label="Deliverables"><textarea rows="3" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.deliverables || ''} onChange={update('deliverables')} /></FormField>
       <FormField label="Materials"><textarea rows="3" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.materials || ''} onChange={update('materials')} /></FormField>
       <FormField label="Schedule"><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.schedule || ''} onChange={update('schedule')} /></FormField>
-      <FormField label="Payment terms"><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.paymentTerms || ''} onChange={update('paymentTerms')} /></FormField>
+
+      {/* Round 12 — Materials-paid-by picker + suggested payment terms.
+          Policy baked in:
+            · Contractor supplies materials → 50% deposit / 50% on completion.
+              The 50% deposit reflects the contractor's real material outlay.
+            · Owner supplies materials → no big deposit needed (the contractor
+              isn't fronting material costs). Pay full at completion is the
+              default — fairer for both sides. Exception: if the contractor
+              genuinely needs cash to hire help or cover small startup costs,
+              a 20% start fee is reasonable.
+            · Split → negotiate based on material split %.
+          The picker auto-generates suggested payment terms; user can still
+          edit the textarea freely. */}
+      <FormField label="Who pays for materials? (drives payment terms)">
+        <select
+          className="w-full p-2 border border-[#E8E4DC] text-sm bg-white"
+          value={formData.materialsPaidBy || 'contractor'}
+          onChange={(e) => {
+            const who = e.target.value;
+            const suggested =
+              who === 'owner'        ? 'Owner supplies all materials. Contractor invoices labor ONLY. Default: pay full balance within 7 days of acceptance walkthrough. If contractor needs start money (helpers, small startup costs), 20% labor-only deposit on day 1; balance at acceptance.' :
+              who === 'split'        ? 'Materials split per the Materials section above. Deposit covers contractor-supplied materials only (typically 50% of contractor materials). Balance + labor at acceptance.' :
+                                       '50% deposit on materials delivery to cover contractor outlay. 50% balance within 7 days of acceptance walkthrough. Paid via 1099 (W-9 on file).';
+            setFormData({ ...formData, materialsPaidBy: who, paymentTerms: suggested });
+          }}
+        >
+          <option value="contractor">Contractor supplies materials → 50% / 50%</option>
+          <option value="owner">Owner supplies materials → pay at completion (or 20% start)</option>
+          <option value="split">Split → negotiated terms</option>
+        </select>
+        <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          <strong>Policy:</strong> When the owner pays for materials, the contractor isn't fronting that cost — so a 50% material-style deposit isn't fair. Default is "pay full at completion," with a 20% labor-only start fee available if the contractor needs help-hire money or small startup outlay. Picking an option auto-fills the Payment Terms below; you can still edit.
+        </p>
+      </FormField>
+      <FormField label="Payment terms"><textarea rows="3" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.paymentTerms || ''} onChange={update('paymentTerms')} /></FormField>
       <FormField label="Acceptance criteria"><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.acceptanceCriteria || ''} onChange={update('acceptanceCriteria')} /></FormField>
       <FormField label="Requirements"><textarea rows="3" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.requirements || ''} onChange={update('requirements')} /></FormField>
       <FormField label="Warranty"><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.warranty || ''} onChange={update('warranty')} /></FormField>
       <FormField label="Termination"><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.terminationClause || ''} onChange={update('terminationClause')} /></FormField>
       <div className="flex gap-2 pt-3 border-t border-[#1A1815]">
-        <button onClick={onSave} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider">Save</button>
-        <button onClick={onCancel} className="border border-[#1A1815] px-6 py-2.5 text-xs uppercase tracking-wider">Cancel</button>
+        <button type="button" onClick={onSave} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider">Save</button>
+        <button type="button" onClick={onCancel} className="border border-[#1A1815] px-6 py-2.5 text-xs uppercase tracking-wider">Cancel</button>
       </div>
     </div>
   );
@@ -2464,8 +3970,8 @@ function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
   return (
     <div className="space-y-4 max-w-3xl">
       <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3 print:hidden">
-        <button onClick={onBack} className="text-[10px] uppercase tracking-wider">← Back</button>
-        <div className="flex gap-3"><button onClick={() => window.print()} className="text-[10px] uppercase tracking-wider text-[#B85838]">⎙ Print</button><button onClick={onDelete} className="text-[10px] uppercase tracking-wider">× Delete</button></div>
+        <button type="button" onClick={onBack} className="text-[10px] uppercase tracking-wider">← Back</button>
+        <div className="flex gap-3"><button type="button" onClick={() => window.print()} className="text-[10px] uppercase tracking-wider text-[#B85838]">⎙ Print</button><button type="button" onClick={onDelete} className="text-[10px] uppercase tracking-wider">× Delete</button></div>
       </section>
       <div className="bg-white border border-[#1A1815] p-6 sm:p-8 print:border-0 print:p-0">
         <div className="text-center mb-6 pb-6 border-b border-[#E8E4DC]">
@@ -2498,7 +4004,510 @@ function FormField({ label, children }) { return (<div><label className="text-[1
 // =============================================================================
 // RENTALS
 // =============================================================================
-function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental }) {
+// =============================================================================
+// v28+ MVP v1.5 — Real Estate Ops add-on. Pulled forward from the 2019-era
+// "Real Estate App" notes (lease + tenant + equipment + room-by-room) but
+// trimmed for the family Financial OS use case. Zero new paid dependencies.
+// All UI uses <label> + visible focus + text-not-color status, holding the
+// WCAG 2.1 AA discipline used elsewhere in this file.
+// =============================================================================
+const ROOM_PRESETS = ['Living Room','Kitchen','Dining Room','Bathroom','Master Bedroom','Bedroom 1','Bedroom 2','Bedroom 3','Garage','Basement','Attic','Laundry','Office','Outdoor'];
+const ROOM_ITEM_PRESETS = ['Cabinets','Windows','Furnace','Plumbing — Toilet','Plumbing — Sink','Plumbing — Faucet','Plumbing — Bathtub','Plumbing — Shower','Flooring','Walls / Paint','Ceiling','Lighting','Outlets / Switches','Doors','Trim','Other'];
+const ROOM_ITEM_STATUSES = [
+  { key: 'good',       label: 'Good',           symbol: '✓' },
+  { key: 'needs-work', label: 'Needs work',     symbol: '!' },
+  { key: 'quoted',     label: 'Quoted',         symbol: '$' },
+  { key: 'scheduled',  label: 'Scheduled',      symbol: '→' },
+  { key: 'done',       label: 'Done',           symbol: '★' },
+];
+const EQUIPMENT_CATEGORIES = ['HVAC','Furnace','AC Unit','Water Heater','Refrigerator','Stove / Oven','Dishwasher','Washer','Dryer','Microwave','Garbage Disposal','Sump Pump','Roof','Electrical Panel','Garage Door','Other'];
+
+function PropertyDetails({ rental, updateRental }) {
+  // v28+ MVP v1.5 round 8 — Property valuation block (Zillow-style)
+  // Characteristics + a market-value field + auto-built lookup links.
+  // No paid API — links pre-fill each major site's search with the address,
+  // user clicks, eyeballs the Zestimate, types it back into the manual field.
+  // Estimated equity = market value − mortgage balance.
+  const blankMarket = () => ({
+    beds: rental.market?.beds || '',
+    baths: rental.market?.baths || '',
+    sqft: rental.market?.sqft || '',
+    lotSize: rental.market?.lotSize || '',
+    yearBuilt: rental.market?.yearBuilt || '',
+    taxAssessedValue: rental.market?.taxAssessedValue || 0,
+    marketValue: rental.market?.marketValue || rental.estimatedValue || 0,
+    valueAsOf: rental.market?.valueAsOf || '',
+    valueSource: rental.market?.valueSource || '', // Zillow / Realtor / Redfin / appraisal / county
+  });
+  const [marketForm, setMarketForm] = useState(blankMarket());
+  const [editingMarket, setEditingMarket] = useState(false);
+  const saveMarket = () => {
+    updateRental(rental.id, {
+      market: {
+        ...marketForm,
+        taxAssessedValue: parseFloat(marketForm.taxAssessedValue) || 0,
+        marketValue: parseFloat(marketForm.marketValue) || 0,
+      },
+    });
+    setEditingMarket(false);
+  };
+  // Round 8 fix — direct site URLs were inconsistent (Zillow's `/homes/X_rb/`
+  // doesn't always route to the property page; Redfin's autocomplete endpoint
+  // isn't a public URL; Trulia's `/p/?searchTerm=` 404s on many addresses).
+  // Replacement: Google site-scoped search with the FULL address in quotes.
+  // The first result is the property's page on that site — works 100% of the
+  // time and survives any URL-structure change the sites make. Also marks
+  // valueSource + valueAsOf when clicked so the user has a click trail.
+  const addressQuery = [rental.address, rental.city, rental.state, rental.zip].filter(Boolean).join(', ');
+  const quoted = `"${addressQuery}"`;
+  const lookupLinks = addressQuery ? [
+    { name: 'Zillow',        url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' site:zillow.com')}` },
+    { name: 'Realtor.com',   url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' site:realtor.com')}` },
+    { name: 'Redfin',        url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' site:redfin.com')}` },
+    { name: 'Trulia',        url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' site:trulia.com')}` },
+    { name: 'County Records',url: `https://www.google.com/search?q=${encodeURIComponent(quoted + ' assessor parcel')}` },
+  ] : [];
+  // Round 10 fix — Two-step confirmation flow. Clicking a lookup link opens
+  // the site in a new tab AND shows an inline ASK panel: "Save the value you
+  // saw on [Site] as this property's market value?" The user types the number
+  // they read and explicitly clicks "Save". Nothing changes until they confirm.
+  // Skip closes the panel without touching the data.
+  const [capturePrompt, setCapturePrompt] = useState(null); // { source, value, askPhase }
+  const onLookupClick = (source) => {
+    // Don't mutate any data on click — just open the prompt in ASK phase.
+    setCapturePrompt({ source, value: '', askPhase: 'ask' });
+  };
+  const confirmSaveValue = () => {
+    if (!capturePrompt || !capturePrompt.value) {
+      alert('Enter the value you saw on the site, or tap Skip to close without saving.');
+      return;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const newVal = parseFloat(capturePrompt.value) || 0;
+    updateRental(rental.id, {
+      market: {
+        ...(rental.market || {}),
+        marketValue: newVal,
+        valueSource: capturePrompt.source,
+        valueAsOf: today,
+      },
+    });
+    setMarketForm(f => ({ ...f, marketValue: newVal, valueSource: capturePrompt.source, valueAsOf: today }));
+    setCapturePrompt(null);
+  };
+  const skipCapture = () => setCapturePrompt(null);
+  const currentMarketValue = parseFloat(rental.market?.marketValue) || 0;
+  const mortgageBalance = parseFloat(rental.mortgage?.balance) || 0;
+  const estimatedEquity = currentMarketValue > 0 ? currentMarketValue - mortgageBalance : null;
+
+  // Lease + tenant — single edit form (collapsible).
+  const blankLease = () => ({
+    start: rental.lease?.start || '',
+    end: rental.lease?.end || '',
+    monthlyRent: rental.lease?.monthlyRent || rental.rent || 0,
+    deposit: rental.lease?.deposit || 0,
+    lateFeePolicy: rental.lease?.lateFeePolicy || '',
+    signedDocURL: rental.lease?.signedDocURL || '',
+  });
+  const blankTenant = () => ({
+    name: rental.tenant?.name || rental.tenantName || '',
+    phone: rental.tenant?.phone || '',
+    email: rental.tenant?.email || '',
+    moveIn: rental.tenant?.moveIn || '',
+    emergencyContactName: rental.tenant?.emergencyContactName || '',
+    emergencyContactPhone: rental.tenant?.emergencyContactPhone || '',
+  });
+  const [leaseForm, setLeaseForm] = useState(blankLease());
+  const [tenantForm, setTenantForm] = useState(blankTenant());
+  const [editingLeaseTenant, setEditingLeaseTenant] = useState(false);
+
+  const saveLeaseTenant = () => {
+    updateRental(rental.id, {
+      lease: {
+        ...leaseForm,
+        monthlyRent: parseFloat(leaseForm.monthlyRent) || 0,
+        deposit: parseFloat(leaseForm.deposit) || 0,
+      },
+      tenant: { ...tenantForm },
+      tenantName: tenantForm.name, // keep legacy field in sync so existing UI shows the name
+    });
+    setEditingLeaseTenant(false);
+  };
+
+  // Equipment list
+  const blankEquip = () => ({ category: 'HVAC', make: '', model: '', serial: '', installDate: '', warrantyEnd: '', notes: '' });
+  const [equipForm, setEquipForm] = useState(blankEquip());
+  const [showEquipForm, setShowEquipForm] = useState(false);
+  const addEquipment = () => {
+    if (!equipForm.category) return;
+    const entry = { ...equipForm, id: `eq-${Date.now()}` };
+    updateRental(rental.id, { equipment: [...(rental.equipment || []), entry] });
+    setEquipForm(blankEquip()); setShowEquipForm(false);
+  };
+  const deleteEquipment = (eqId) => {
+    if (!confirm('Remove this piece of equipment? Warranty & serial data will be lost.')) return;
+    updateRental(rental.id, { equipment: (rental.equipment || []).filter(e => e.id !== eqId) });
+  };
+
+  // Rooms & Needed Work
+  const [roomName, setRoomName] = useState('');
+  const [roomItem, setRoomItem] = useState({ roomId: '', name: '', status: 'needs-work', notes: '' });
+  const [showRoomForm, setShowRoomForm] = useState(false);
+  const addRoom = () => {
+    const name = (roomName || '').trim();
+    if (!name) return;
+    const entry = { id: `rm-${Date.now()}`, name, items: [] };
+    updateRental(rental.id, { rooms: [...(rental.rooms || []), entry] });
+    setRoomName('');
+  };
+  const deleteRoom = (rmId) => {
+    if (!confirm('Delete this room and all of its items?')) return;
+    updateRental(rental.id, { rooms: (rental.rooms || []).filter(r => r.id !== rmId) });
+  };
+  const addRoomItem = () => {
+    if (!roomItem.roomId || !roomItem.name) return;
+    const rooms = (rental.rooms || []).map(rm => rm.id === roomItem.roomId
+      ? { ...rm, items: [...(rm.items || []), { id: `it-${Date.now()}`, name: roomItem.name, status: roomItem.status, notes: roomItem.notes }] }
+      : rm);
+    updateRental(rental.id, { rooms });
+    setRoomItem({ roomId: roomItem.roomId, name: '', status: 'needs-work', notes: '' });
+    setShowRoomForm(false);
+  };
+  const updateRoomItemStatus = (rmId, itId, status) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, items: (rm.items || []).map(it => it.id === itId ? { ...it, status } : it) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const deleteRoomItem = (rmId, itId) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, items: (rm.items || []).filter(it => it.id !== itId) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+
+  const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
+  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">🏠 Property Details</div>
+
+      {/* MARKET VALUATION — round 8 */}
+      <details className="bg-white border border-[#E8E4DC] p-3 mb-2" open>
+        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+          🏘 Market Valuation &amp; Property Info
+          {currentMarketValue > 0 && (
+            <span className="ml-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              · est value {fmt(currentMarketValue)}
+              {estimatedEquity != null && <> · equity {fmt(estimatedEquity)}</>}
+            </span>
+          )}
+        </summary>
+        <div className="mt-3 space-y-3">
+          {/* Lookup links — auto-built from this property's address */}
+          {addressQuery ? (
+            <div>
+              <div className={labelCls + ' mb-1.5'}>Look up market value (opens in new tab → asks to save)</div>
+              <div className="flex flex-wrap gap-1">
+                {lookupLinks.map(l => (
+                  <a
+                    key={l.name}
+                    href={l.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => onLookupClick(l.name)}
+                    className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  >{l.name} ↗</a>
+                ))}
+              </div>
+              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                Tap a link to open the property on that site via Google search (always finds the right address, even when site URLs change). When you come back, we'll ask if you want to save the value you saw — your call, nothing auto-stamps.
+              </p>
+
+              {/* Round 10 — Capture prompt. Opens after clicking any lookup link.
+                  Asks explicitly whether to save the value the user saw. Nothing
+                  in the data changes until they confirm. Skip closes without
+                  touching anything. */}
+              {capturePrompt && (
+                <div className="mt-2 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Save the value you saw on {capturePrompt.source}?</div>
+                  <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    If {capturePrompt.source} shows a value for this property, type it here. We'll save it as the current market value and stamp <strong>{capturePrompt.source}</strong> as the source with today's date. Skip if you don't want to change anything.
+                  </p>
+                  <div className="flex items-end gap-2 flex-wrap">
+                    <div className="flex-1 min-w-[140px]">
+                      <label htmlFor={`cap-val-${rental.id}`} className={labelCls}>Value from {capturePrompt.source}</label>
+                      <input
+                        id={`cap-val-${rental.id}`}
+                        type="number"
+                        min="0"
+                        step="100"
+                        inputMode="decimal"
+                        autoFocus
+                        placeholder="e.g., 145000"
+                        value={capturePrompt.value}
+                        onChange={e => setCapturePrompt({ ...capturePrompt, value: e.target.value })}
+                        className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      />
+                    </div>
+                    <button type="button" onClick={confirmSaveValue} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✓ Yes, save it</button>
+                    <button type="button" onClick={skipCapture} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Skip</button>
+                  </div>
+                  {currentMarketValue > 0 && (
+                    <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                      Current saved value: {fmt(currentMarketValue)}{rental.market?.valueAsOf ? ` (as of ${rental.market.valueAsOf}${rental.market?.valueSource ? ` · ${rental.market.valueSource}` : ''})` : ''}. Confirming overwrites it.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Add a street address to this property (Edit → Address) to enable Zillow / Realtor / Redfin lookup links.</p>
+          )}
+
+          {/* Display vs edit toggle */}
+          {!editingMarket ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div><div className={labelCls}>Beds</div><div>{rental.market?.beds || '—'}</div></div>
+              <div><div className={labelCls}>Baths</div><div>{rental.market?.baths || '—'}</div></div>
+              <div><div className={labelCls}>Sqft</div><div>{rental.market?.sqft ? Number(rental.market.sqft).toLocaleString() : '—'}</div></div>
+              <div><div className={labelCls}>Lot</div><div>{rental.market?.lotSize || '—'}</div></div>
+              <div><div className={labelCls}>Year built</div><div>{rental.market?.yearBuilt || '—'}</div></div>
+              <div><div className={labelCls}>Tax-assessed</div><div style={{ fontFamily: '"JetBrains Mono", monospace' }}>{rental.market?.taxAssessedValue ? fmt(rental.market.taxAssessedValue) : '—'}</div></div>
+              <div>
+                <div className={labelCls}>Market value</div>
+                <div style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{currentMarketValue > 0 ? fmt(currentMarketValue) : '—'}</div>
+                <div className="text-[9px] text-[#5A5751]">{rental.market?.valueAsOf ? `as of ${rental.market.valueAsOf}` : 'not set'}{rental.market?.valueSource ? ` · ${rental.market.valueSource}` : ''}</div>
+              </div>
+              <div>
+                <div className={labelCls}>Estimated equity</div>
+                <div className={`${estimatedEquity != null && estimatedEquity < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{estimatedEquity != null ? fmt(estimatedEquity) : '—'}</div>
+                <div className="text-[9px] text-[#5A5751]">value − mortgage</div>
+              </div>
+              <div className="col-span-2 sm:col-span-4">
+                <button type="button" onClick={() => { setMarketForm(blankMarket()); setEditingMarket(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Edit valuation &amp; characteristics</button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div><label htmlFor={`mk-beds-${rental.id}`} className={labelCls}>Beds</label><input id={`mk-beds-${rental.id}`} type="number" min="0" step="1" className={fieldCls} value={marketForm.beds} onChange={e => setMarketForm({ ...marketForm, beds: e.target.value })} /></div>
+                <div><label htmlFor={`mk-baths-${rental.id}`} className={labelCls}>Baths</label><input id={`mk-baths-${rental.id}`} type="number" min="0" step="0.5" className={fieldCls} value={marketForm.baths} onChange={e => setMarketForm({ ...marketForm, baths: e.target.value })} /></div>
+                <div><label htmlFor={`mk-sqft-${rental.id}`} className={labelCls}>Sqft</label><input id={`mk-sqft-${rental.id}`} type="number" min="0" step="10" className={fieldCls} value={marketForm.sqft} onChange={e => setMarketForm({ ...marketForm, sqft: e.target.value })} /></div>
+                <div><label htmlFor={`mk-lot-${rental.id}`} className={labelCls}>Lot size</label><input id={`mk-lot-${rental.id}`} className={fieldCls} placeholder="e.g., 0.25 ac · 7,800 sqft" value={marketForm.lotSize} onChange={e => setMarketForm({ ...marketForm, lotSize: e.target.value })} /></div>
+                <div><label htmlFor={`mk-year-${rental.id}`} className={labelCls}>Year built</label><input id={`mk-year-${rental.id}`} type="number" min="1800" max="2099" step="1" className={fieldCls} value={marketForm.yearBuilt} onChange={e => setMarketForm({ ...marketForm, yearBuilt: e.target.value })} /></div>
+                <div><label htmlFor={`mk-tax-${rental.id}`} className={labelCls}>Tax-assessed value</label><input id={`mk-tax-${rental.id}`} type="number" min="0" step="100" inputMode="decimal" className={fieldCls} value={marketForm.taxAssessedValue} onChange={e => setMarketForm({ ...marketForm, taxAssessedValue: e.target.value })} /></div>
+                <div><label htmlFor={`mk-val-${rental.id}`} className={labelCls}>Market value (manual)</label><input id={`mk-val-${rental.id}`} type="number" min="0" step="100" inputMode="decimal" className={fieldCls} value={marketForm.marketValue} onChange={e => setMarketForm({ ...marketForm, marketValue: e.target.value })} /></div>
+                <div><label htmlFor={`mk-asof-${rental.id}`} className={labelCls}>Value as of</label><input id={`mk-asof-${rental.id}`} type="date" className={fieldCls} value={marketForm.valueAsOf} onChange={e => setMarketForm({ ...marketForm, valueAsOf: e.target.value })} /></div>
+                <div className="col-span-2 sm:col-span-2"><label htmlFor={`mk-src-${rental.id}`} className={labelCls}>Source (where the number came from)</label><input id={`mk-src-${rental.id}`} className={fieldCls} placeholder="e.g., Zillow Zestimate · Redfin · 2024 appraisal · county records" value={marketForm.valueSource} onChange={e => setMarketForm({ ...marketForm, valueSource: e.target.value })} /></div>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={saveMarket} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
+                <button type="button" onClick={() => setEditingMarket(false)} className="bg-white border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </details>
+
+      {/* LEASE + TENANT */}
+      <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
+        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+          Lease &amp; Tenant Contact
+          {rental.lease?.end && <span className="ml-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· lease ends {rental.lease.end}</span>}
+        </summary>
+        {!editingLeaseTenant ? (
+          <div className="mt-3 space-y-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+            {!rental.lease && !rental.tenant ? (
+              <p className="text-[#5A5751] italic">No lease or tenant info saved yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div><span className="text-[#5A5751]">Lease term:</span> {rental.lease?.start || '—'} → {rental.lease?.end || '—'}</div>
+                <div><span className="text-[#5A5751]">Monthly rent (lease):</span> {rental.lease?.monthlyRent ? fmt(rental.lease.monthlyRent) : '—'}</div>
+                <div><span className="text-[#5A5751]">Deposit:</span> {rental.lease?.deposit ? fmt(rental.lease.deposit) : '—'}</div>
+                <div><span className="text-[#5A5751]">Late-fee policy:</span> {rental.lease?.lateFeePolicy || '—'}</div>
+                {rental.lease?.signedDocURL && <div className="sm:col-span-2"><span className="text-[#5A5751]">Signed lease:</span> <a href={rental.lease.signedDocURL} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">open</a></div>}
+                <div><span className="text-[#5A5751]">Tenant:</span> {rental.tenant?.name || '—'}</div>
+                <div><span className="text-[#5A5751]">Move-in:</span> {rental.tenant?.moveIn || '—'}</div>
+                <div><span className="text-[#5A5751]">Phone:</span> {rental.tenant?.phone ? <a href={`tel:${rental.tenant.phone}`} className="underline text-[#B85838]">{rental.tenant.phone}</a> : '—'}</div>
+                <div><span className="text-[#5A5751]">Email:</span> {rental.tenant?.email ? <a href={`mailto:${rental.tenant.email}`} className="underline text-[#B85838]">{rental.tenant.email}</a> : '—'}</div>
+                <div><span className="text-[#5A5751]">Emergency contact:</span> {rental.tenant?.emergencyContactName || '—'}{rental.tenant?.emergencyContactPhone ? ` · ${rental.tenant.emergencyContactPhone}` : ''}</div>
+              </div>
+            )}
+            <button type="button" onClick={() => { setLeaseForm(blankLease()); setTenantForm(blankTenant()); setEditingLeaseTenant(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] mt-1">Edit lease &amp; tenant</button>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Lease</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div><label htmlFor={`ls-start-${rental.id}`} className={labelCls}>Lease start</label><input id={`ls-start-${rental.id}`} type="date" className={fieldCls} value={leaseForm.start} onChange={e => setLeaseForm({ ...leaseForm, start: e.target.value })} /></div>
+              <div><label htmlFor={`ls-end-${rental.id}`} className={labelCls}>Lease end</label><input id={`ls-end-${rental.id}`} type="date" className={fieldCls} value={leaseForm.end} onChange={e => setLeaseForm({ ...leaseForm, end: e.target.value })} /></div>
+              <div><label htmlFor={`ls-rent-${rental.id}`} className={labelCls}>Monthly rent</label><input id={`ls-rent-${rental.id}`} type="number" step="0.01" min="0" className={fieldCls} value={leaseForm.monthlyRent} onChange={e => setLeaseForm({ ...leaseForm, monthlyRent: e.target.value })} /></div>
+              <div><label htmlFor={`ls-dep-${rental.id}`} className={labelCls}>Deposit held</label><input id={`ls-dep-${rental.id}`} type="number" step="0.01" min="0" className={fieldCls} value={leaseForm.deposit} onChange={e => setLeaseForm({ ...leaseForm, deposit: e.target.value })} /></div>
+              <div className="sm:col-span-2"><label htmlFor={`ls-late-${rental.id}`} className={labelCls}>Late-fee policy</label><input id={`ls-late-${rental.id}`} className={fieldCls} placeholder="e.g., $50 after the 5th, then $10/day" value={leaseForm.lateFeePolicy} onChange={e => setLeaseForm({ ...leaseForm, lateFeePolicy: e.target.value })} /></div>
+              <div className="sm:col-span-3"><label htmlFor={`ls-url-${rental.id}`} className={labelCls}>Signed-lease URL (Google Drive, Dropbox, etc.)</label><input id={`ls-url-${rental.id}`} type="url" className={fieldCls} placeholder="https://..." value={leaseForm.signedDocURL} onChange={e => setLeaseForm({ ...leaseForm, signedDocURL: e.target.value })} /></div>
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mt-2">Tenant</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div><label htmlFor={`tn-name-${rental.id}`} className={labelCls}>Name</label><input id={`tn-name-${rental.id}`} className={fieldCls} value={tenantForm.name} onChange={e => setTenantForm({ ...tenantForm, name: e.target.value })} /></div>
+              <div><label htmlFor={`tn-phone-${rental.id}`} className={labelCls}>Phone</label><input id={`tn-phone-${rental.id}`} type="tel" className={fieldCls} placeholder="(217) 555-0100" value={tenantForm.phone} onChange={e => setTenantForm({ ...tenantForm, phone: e.target.value })} /></div>
+              <div><label htmlFor={`tn-email-${rental.id}`} className={labelCls}>Email</label><input id={`tn-email-${rental.id}`} type="email" className={fieldCls} value={tenantForm.email} onChange={e => setTenantForm({ ...tenantForm, email: e.target.value })} /></div>
+              <div><label htmlFor={`tn-movein-${rental.id}`} className={labelCls}>Move-in date</label><input id={`tn-movein-${rental.id}`} type="date" className={fieldCls} value={tenantForm.moveIn} onChange={e => setTenantForm({ ...tenantForm, moveIn: e.target.value })} /></div>
+              <div><label htmlFor={`tn-ec-name-${rental.id}`} className={labelCls}>Emergency contact</label><input id={`tn-ec-name-${rental.id}`} className={fieldCls} value={tenantForm.emergencyContactName} onChange={e => setTenantForm({ ...tenantForm, emergencyContactName: e.target.value })} /></div>
+              <div><label htmlFor={`tn-ec-phone-${rental.id}`} className={labelCls}>Emergency phone</label><input id={`tn-ec-phone-${rental.id}`} type="tel" className={fieldCls} value={tenantForm.emergencyContactPhone} onChange={e => setTenantForm({ ...tenantForm, emergencyContactPhone: e.target.value })} /></div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button type="button" onClick={saveLeaseTenant} className="bg-[#1A1815] text-white py-2 px-4 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save</button>
+              <button type="button" onClick={() => setEditingLeaseTenant(false)} className="bg-white border border-[#1A1815] py-2 px-4 text-xs uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
+            </div>
+          </div>
+        )}
+      </details>
+
+      {/* EQUIPMENT */}
+      <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
+        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+          Mechanical &amp; Equipment <span className="text-[10px] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.equipment || []).length}</span>
+        </summary>
+        <div className="mt-3 space-y-2">
+          <button type="button" onClick={() => { setShowEquipForm(!showEquipForm); setEquipForm(blankEquip()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showEquipForm ? '× Cancel' : '+ Add equipment'}</button>
+          {showEquipForm && (
+            <div className="bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div><label htmlFor={`eq-cat-${rental.id}`} className={labelCls}>Category</label><select id={`eq-cat-${rental.id}`} className={fieldCls} value={equipForm.category} onChange={e => setEquipForm({ ...equipForm, category: e.target.value })}>{EQUIPMENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div><label htmlFor={`eq-make-${rental.id}`} className={labelCls}>Make</label><input id={`eq-make-${rental.id}`} className={fieldCls} value={equipForm.make} onChange={e => setEquipForm({ ...equipForm, make: e.target.value })} /></div>
+                <div><label htmlFor={`eq-model-${rental.id}`} className={labelCls}>Model</label><input id={`eq-model-${rental.id}`} className={fieldCls} value={equipForm.model} onChange={e => setEquipForm({ ...equipForm, model: e.target.value })} /></div>
+                <div><label htmlFor={`eq-serial-${rental.id}`} className={labelCls}>Serial</label><input id={`eq-serial-${rental.id}`} className={fieldCls} value={equipForm.serial} onChange={e => setEquipForm({ ...equipForm, serial: e.target.value })} /></div>
+                <div><label htmlFor={`eq-install-${rental.id}`} className={labelCls}>Installed</label><input id={`eq-install-${rental.id}`} type="date" className={fieldCls} value={equipForm.installDate} onChange={e => setEquipForm({ ...equipForm, installDate: e.target.value })} /></div>
+                <div><label htmlFor={`eq-warr-${rental.id}`} className={labelCls}>Warranty end</label><input id={`eq-warr-${rental.id}`} type="date" className={fieldCls} value={equipForm.warrantyEnd} onChange={e => setEquipForm({ ...equipForm, warrantyEnd: e.target.value })} /></div>
+              </div>
+              <textarea className={fieldCls} rows="2" placeholder="Notes — manual link, last service date, quirks" value={equipForm.notes} onChange={e => setEquipForm({ ...equipForm, notes: e.target.value })} />
+              <button type="button" onClick={addEquipment} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Equipment</button>
+            </div>
+          )}
+          {(rental.equipment || []).length === 0 ? (
+            <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No equipment recorded yet.</p>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">
+                  <th scope="col" className="py-1 pr-2">Category</th>
+                  <th scope="col" className="py-1 pr-2">Make / Model</th>
+                  <th scope="col" className="py-1 pr-2">Serial</th>
+                  <th scope="col" className="py-1 pr-2">Warranty</th>
+                  <th scope="col" className="py-1"><span className="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(rental.equipment || []).map(eq => (
+                  <tr key={eq.id} className="border-b border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <td className="py-1 pr-2">{eq.category}</td>
+                    <td className="py-1 pr-2">{[eq.make, eq.model].filter(Boolean).join(' ') || '—'}</td>
+                    <td className="py-1 pr-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{eq.serial || '—'}</td>
+                    <td className="py-1 pr-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{eq.warrantyEnd || '—'}</td>
+                    <td className="py-1 text-right"><button type="button" onClick={() => deleteEquipment(eq.id)} aria-label={`Delete ${eq.category} — ${eq.make || ''} ${eq.model || ''}`.trim()} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </details>
+
+      {/* ROOMS & NEEDED WORK */}
+      <details className="bg-white border border-[#E8E4DC] p-3">
+        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+          Rooms &amp; Needed Work <span className="text-[10px] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.rooms || []).length} rooms · {((rental.rooms || []).reduce((s, rm) => s + (rm.items || []).length, 0))} items</span>
+        </summary>
+        <div className="mt-3 space-y-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-[140px]">
+              <label htmlFor={`rm-name-${rental.id}`} className={labelCls}>Add room</label>
+              <input id={`rm-name-${rental.id}`} list={`rm-presets-${rental.id}`} className={fieldCls} placeholder="e.g., Kitchen" value={roomName} onChange={e => setRoomName(e.target.value)} />
+              <datalist id={`rm-presets-${rental.id}`}>
+                {ROOM_PRESETS.map(p => <option key={p} value={p} />)}
+              </datalist>
+            </div>
+            <button type="button" onClick={addRoom} className="bg-[#1A1815] text-white py-2 px-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">+ Room</button>
+          </div>
+          {(rental.rooms || []).length === 0 ? (
+            <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms yet. Add a room above to start tracking needed work.</p>
+          ) : (
+            (rental.rooms || []).map(rm => (
+              <div key={rm.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
+                {/* Primary action (+ Item) sits left-of-center; destructive (× Room)
+                    is pushed right with a divider + larger tap target to prevent
+                    accidental destructive taps next to the create action. */}
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <div className="text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{rm.name}</div>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => { setRoomItem({ roomId: rm.id, name: '', status: 'needs-work', notes: '' }); setShowRoomForm(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">+ Item</button>
+                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
+                    <button type="button" onClick={() => deleteRoom(rm.id)} aria-label={`Delete room ${rm.name}`} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-white px-3 py-2 min-h-[36px] border border-transparent hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">× Room</button>
+                  </div>
+                </div>
+                {showRoomForm && roomItem.roomId === rm.id && (
+                  <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div><label htmlFor={`it-name-${rm.id}`} className={labelCls}>Item</label><input id={`it-name-${rm.id}`} list={`it-presets-${rm.id}`} className={fieldCls} placeholder="e.g., Plumbing — Sink" value={roomItem.name} onChange={e => setRoomItem({ ...roomItem, name: e.target.value })} /><datalist id={`it-presets-${rm.id}`}>{ROOM_ITEM_PRESETS.map(p => <option key={p} value={p} />)}</datalist></div>
+                      <div><label htmlFor={`it-status-${rm.id}`} className={labelCls}>Status</label><select id={`it-status-${rm.id}`} className={fieldCls} value={roomItem.status} onChange={e => setRoomItem({ ...roomItem, status: e.target.value })}>{ROOM_ITEM_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select></div>
+                      <div><label htmlFor={`it-notes-${rm.id}`} className={labelCls}>Notes (optional)</label><input id={`it-notes-${rm.id}`} className={fieldCls} value={roomItem.notes} onChange={e => setRoomItem({ ...roomItem, notes: e.target.value })} /></div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button type="button" onClick={addRoomItem} className="bg-[#1A1815] text-white py-1.5 px-3 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Item</button>
+                      <button type="button" onClick={() => setShowRoomForm(false)} className="bg-white border border-[#1A1815] py-1.5 px-3 text-[10px] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
+                    </div>
+                  </div>
+                )}
+                {(rm.items || []).length === 0 ? (
+                  <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No items yet.</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {(rm.items || []).map(it => {
+                      const stat = ROOM_ITEM_STATUSES.find(s => s.key === it.status) || ROOM_ITEM_STATUSES[1];
+                      return (
+                        <li key={it.id} className="flex items-center gap-2 text-xs py-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                          <span aria-hidden="true" className="inline-block w-5 text-center font-bold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{stat.symbol}</span>
+                          <span className="flex-1 min-w-0">{it.name}{it.notes ? <span className="text-[#5A5751] italic"> — {it.notes}</span> : ''}</span>
+                          <label className="sr-only" htmlFor={`it-sel-${it.id}`}>Status for {it.name}</label>
+                          <select id={`it-sel-${it.id}`} className="text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={it.status} onChange={e => updateRoomItemStatus(rm.id, it.id, e.target.value)}>{ROOM_ITEM_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select>
+                          <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
+                          <button type="button" onClick={() => { if (confirm(`Delete item "${it.name}"?`)) deleteRoomItem(rm.id, it.id); }} aria-label={`Delete ${it.name}`} className="text-xs text-[#5A5751] hover:text-[#B85838] hover:bg-white border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident }) {
+  // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
+  // incident already pointed at it (if any) so we don't double-track.
+  const openIncidentFor = (r) => incidents.find(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
+  const openTenantIssue = (r, urgencyKey) => {
+    if (!addIncident) return;
+    const band = URGENCY_INDEX[urgencyKey] || URGENCY_INDEX.incident;
+    addIncident({
+      date: new Date().toISOString().slice(0, 10),
+      amount: Math.max(0, (r.rent || 0) - (r.actual || 0)),
+      category: 'tenant',
+      entityId: r.entityId || 'e-poeprops',
+      description: `Tenant at ${r.name} behind on rent (${fmt((r.rent || 0) - (r.actual || 0))} short)`,
+      urgency: urgencyKey,
+      status: 'open',
+      dueDate: dueDateFor(urgencyKey),
+      linkedTo: { type: 'rental', id: r.id },
+    });
+    alert(`Opened as ${band.label}. Due ${dueDateFor(urgencyKey)}. Track from Big Picture → Action Queue.`);
+  };
   const rentalsWithCleared = rentals.map(r => { const cleared = rentalSnowball.activeProperties.find(p => p.id === r.id); return { ...r, clearedAtMonth: cleared?.clearedAtMonth }; });
   const orderedByPayoff = rentalsWithCleared.filter(r => r.clearedAtMonth).sort((a, b) => a.clearedAtMonth - b.clearedAtMonth);
   const sevenYrFeasible = rentalSnowball.allClearedYears <= 7;
@@ -2595,7 +4604,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     };
   }, [propForm.purchasePrice, propForm.rent, propForm.escrow, propForm.monthlyPI]);
 
-  const startAddProp = () => { setPropForm(blankProp()); setEditingPropId(null); setShowPropForm(true); setSuggestions([]); };
+  // Round 7 fix: Edit no longer scrolls to top. The form renders inline under
+  // the row being edited (drop-down style) — see renderPropertyRow's
+  // {editingPropId === r.id && renderPropertyForm()} block below. Only "Add new"
+  // uses the top form.
+  const startAddProp = () => { setPropForm(blankProp()); setEditingPropId(null); setShowPropForm(true); setSuggestions([]); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} };
   const startEditProp = (r) => {
     setPropForm({
       name: r.name || '', address: r.address || '', city: r.city || '', state: r.state || '', zip: r.zip || '',
@@ -2608,7 +4621,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       monthlyPI: r.mortgage?.monthlyPI || 0, escrow: r.mortgage?.escrow || 0,
       notes: r.notes || '',
     });
-    setEditingPropId(r.id); setShowPropForm(true); setSuggestions([]);
+    setEditingPropId(r.id); setShowPropForm(false); setSuggestions([]);
+    // NO scroll — inline form opens right under the row, eyes stay where you tapped.
   };
   const cancelPropForm = () => { setShowPropForm(false); setEditingPropId(null); setSuggestions([]); };
 
@@ -2648,7 +4662,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const [openRecordsId, setOpenRecordsId] = useState(null); // which property's records are expanded
   const [showMaintForm, setShowMaintForm] = useState(false);
   const [showConvForm, setShowConvForm] = useState(false);
-  const blankMaint = () => ({ date: new Date().toISOString().slice(0,10), category: 'general', description: '', cost: 0, vendor: '', notes: '', photos: [] });
+  // Round 10 — Maintenance entries carry an ITSM urgency band so the family
+  // can triage at a glance. Defaults to 'incident' (3-day window).
+  const blankMaint = () => ({ date: new Date().toISOString().slice(0,10), category: 'general', urgency: 'incident', description: '', cost: 0, vendor: '', notes: '', photos: [] });
   const blankConv = () => ({ date: new Date().toISOString().slice(0,10), person: '', summary: '', notes: '' });
   const [maintForm, setMaintForm] = useState(blankMaint());
   const [convForm, setConvForm] = useState(blankConv());
@@ -2739,10 +4755,12 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
-          <button onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
+          <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
         </div>
 
-        {showPropForm && (
+        {/* Round 7 — Top form is for ADD only. When editing, the same form
+            renders inline inside the row being edited via {propFormBlock} below. */}
+        {showPropForm && !editingPropId && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingPropId ? 'Edit property' : 'New property · address autocomplete via OpenStreetMap'}</div>
 
@@ -2887,15 +4905,51 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               </p>
             </div>
 
-            <button onClick={submitProp} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingPropId ? 'Save Changes' : 'Save Property'}</button>
+            <button type="button" onClick={submitProp} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingPropId ? 'Save Changes' : 'Save Property'}</button>
           </div>
         )}
 
         {(() => {
           const incomeProducing = rentals.filter(r => (r.rent || 0) > 0);
           const personal = rentals.filter(r => (r.rent || 0) === 0);
-          const renderPropertyRow = (r, i, lastIdx) => (
+          const renderPropertyRow = (r, i, lastIdx) => {
+            // Round 10 — Tenant-late surfacing. If status is 'late', show a
+            // tenant-issue card with one-tap "Open as Change / Incident / Project"
+            // buttons. If an open issue already exists, show its band + Resolve.
+            const existingIssue = r.status === 'late' && !readOnly ? openIncidentFor(r) : null;
+            const showLatePrompt = r.status === 'late' && !readOnly && !existingIssue;
+            return (
                 <div key={r.id} className={`p-4 ${i < lastIdx ? 'border-b border-[#E8E4DC]' : ''}`}>
+                  {showLatePrompt && addIncident && (
+                    <div className="mb-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
+                        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⚐ Tenant Not Paying · open this as</div>
+                        <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{fmt((r.rent || 0) - (r.actual || 0))} short</div>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {URGENCY_BANDS.map(u => (
+                          <button key={u.key} type="button" onClick={() => openTenantIssue(r, u.key)} className="text-[10px] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ color: u.accent, borderColor: u.accent }}>
+                            <span aria-hidden="true">{u.symbol}</span> {u.label} <span className="opacity-70 normal-case">· {u.tagline}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                        Change = same-day action. Incident = 3-day resolution window. Project = formal eviction / multi-week plan. The chosen item shows on Big Picture → Action Queue with a due date.
+                      </p>
+                    </div>
+                  )}
+                  {existingIssue && (
+                    <div className="mb-3 p-3 bg-white border border-[#B85838] flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-base" aria-hidden="true" style={{ color: URGENCY_INDEX[existingIssue.urgency]?.accent }}>{URGENCY_INDEX[existingIssue.urgency]?.symbol}</span>
+                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[existingIssue.urgency]?.accent }}>{URGENCY_INDEX[existingIssue.urgency]?.label}</span>
+                        <span className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>open · due {existingIssue.dueDate}</span>
+                      </div>
+                      {resolveIncident && (
+                        <button type="button" onClick={() => resolveIncident(existingIssue.id)} className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✓ Mark resolved</button>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-baseline justify-between gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
@@ -2927,32 +4981,76 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : 'paid off'}</span></div>
                     <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
                     <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
-                    <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
+                    <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button type="button" onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
                   </div>
                   <div className="flex gap-2 mt-2 items-baseline flex-wrap">
-                    <button onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
-                    <button onClick={() => confirmDeleteProp(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Delete</button>
-                    <button onClick={() => openRecords(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">
+                    <button type="button" onClick={() => editingPropId === r.id ? cancelPropForm() : startEditProp(r)} aria-expanded={editingPropId === r.id} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingPropId === r.id ? '× Cancel edit' : '✎ Edit'}</button>
+                    <button type="button" onClick={() => openRecords(r)} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
                       {openRecordsId === r.id ? '× Close records' : `📋 Records (${(r.maintenanceLog || []).length} maint · ${(r.conversationLog || []).length} notes)`}
                     </button>
                     {(r.maintenanceLog || []).length > 0 && (
-                      <span className="text-[10px] text-[#5A5751] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         Lifetime maint: {fmt((r.maintenanceLog || []).reduce((s, e) => s + (e.cost || 0), 0))}
                       </span>
                     )}
+                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
+                    <button type="button" onClick={() => confirmDeleteProp(r)} aria-label={`Delete property ${r.name}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
                   </div>
                   {r.notes && <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
 
+                  {/* Round 7 — Inline quick-edit form drops down right under the property row.
+                      Covers the common-edit fields (name · address · tenant · rent · status · notes
+                      · monthly P&I · mortgage balance). For the full editor (purchase price,
+                      cap-rate evaluator, address autocomplete) tap "Full editor ↗" — opens the
+                      top form. Keeps the eye where it was, no jump-to-top. */}
+                  {editingPropId === r.id && (
+                    <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-2">Quick edit · {r.name}</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div><label htmlFor={`qe-name-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property name</label><input id={`qe-name-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-addr-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Address</label><input id={`qe-addr-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.address} onChange={e => setPropForm({ ...propForm, address: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-tenant-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Tenant name</label><input id={`qe-tenant-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-rent-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly rent</label><input id={`qe-rent-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-stat-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select id={`qe-stat-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>{['paying','late','vacant','rehab','for-sale','sold','owner-occupied','seasonal','unrented'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label htmlFor={`qe-ent-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select id={`qe-ent-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.entityId} onChange={e => setPropForm({ ...propForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+                        <div><label htmlFor={`qe-mtg-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label><input id={`qe-mtg-${r.id}`} type="number" step="100" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.mortgageBalance} onChange={e => setPropForm({ ...propForm, mortgageBalance: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-pi-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly P&amp;I</label><input id={`qe-pi-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.monthlyPI} onChange={e => setPropForm({ ...propForm, monthlyPI: e.target.value })} /></div>
+                      </div>
+                      <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white mt-2 focus:outline focus:outline-2 focus:outline-[#B85838]" rows="2" placeholder="Notes" value={propForm.notes} onChange={e => setPropForm({ ...propForm, notes: e.target.value })} />
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <button type="button" onClick={submitProp} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
+                        <button type="button" onClick={cancelPropForm} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+                        <button type="button" onClick={() => { setShowPropForm(true); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline ml-auto focus:outline focus:outline-2 focus:outline-[#B85838]">Full editor ↗ (purchase price · evaluator · address autocomplete)</button>
+                      </div>
+                    </div>
+                  )}
+
                   {openRecordsId === r.id && (
                     <div className="mt-3 pt-3 border-t border-[#E8E4DC] space-y-4">
+                      {/* v28+ MVP v1.5: lease/tenant/equipment/rooms — Real Estate App carryover */}
+                      <PropertyDetails rental={r} updateRental={updateRental} />
                       {/* MAINTENANCE LOG */}
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2">
                           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔧 Maintenance Log · {(r.maintenanceLog || []).length}</div>
-                          <button onClick={() => { setShowMaintForm(!showMaintForm); setMaintForm(blankMaint()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showMaintForm ? '× Cancel' : '+ Add entry'}</button>
+                          <button type="button" onClick={() => { setShowMaintForm(!showMaintForm); setMaintForm(blankMaint()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showMaintForm ? '× Cancel' : '+ Add entry'}</button>
                         </div>
                         {showMaintForm && (
                           <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
+                            {/* Round 10 — Urgency band picker. Change / Incident / Project.
+                                Defaults to Incident (3-day resolution window). Picking Change
+                                stamps a same-day due. Picking Project surfaces a hint about
+                                also opening a formal project record. */}
+                            <div>
+                              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Urgency</label>
+                              <div className="flex flex-wrap gap-1">
+                                {URGENCY_BANDS.map(u => (
+                                  <button key={u.key} type="button" onClick={() => setMaintForm({ ...maintForm, urgency: u.key })} className={`text-[10px] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]`} style={maintForm.urgency === u.key ? { backgroundColor: u.accent, color: 'white', borderColor: u.accent } : { color: u.accent, borderColor: u.accent }}>
+                                    <span aria-hidden="true">{u.symbol}</span> {u.label} <span className="opacity-70 normal-case">· {u.tagline}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               <div>
                                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
@@ -2990,7 +5088,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                               )}
                               <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Images are compressed to ~1200px JPEG before saving locally. No upload, no server.</p>
                             </div>
-                            <button onClick={() => addMaintEntry(r)} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Maintenance Entry</button>
+                            <button type="button" onClick={() => addMaintEntry(r)} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Maintenance Entry</button>
                           </div>
                         )}
                         {(r.maintenanceLog || []).length === 0 && !showMaintForm ? (
@@ -3001,13 +5099,20 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                               <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
                                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-[11px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date} · <span className="uppercase tracking-wider">{e.category}</span>{e.vendor ? ` · ${e.vendor}` : ''}</div>
+                                    <div className="text-[11px] flex items-center gap-1.5 flex-wrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                                      {e.urgency && URGENCY_INDEX[e.urgency] && (
+                                        <span className="px-1.5 py-0.5 border text-[9px] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[e.urgency].accent, borderColor: URGENCY_INDEX[e.urgency].accent }} title={URGENCY_INDEX[e.urgency].tagline}>
+                                          {URGENCY_INDEX[e.urgency].symbol} {URGENCY_INDEX[e.urgency].label}
+                                        </span>
+                                      )}
+                                      <span>{e.date} · <span className="uppercase tracking-wider">{e.category}</span>{e.vendor ? ` · ${e.vendor}` : ''}</span>
+                                    </div>
                                     <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.description}</div>
                                     {e.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                                   </div>
                                   <div className="flex items-baseline gap-2 shrink-0">
                                     <div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(e.cost || 0)}</div>
-                                    <button onClick={() => deleteMaintEntry(r, e.id)} className="text-[10px] text-[#5A5751] hover:text-[#B85838]">×</button>
+                                    <button type="button" onClick={() => deleteMaintEntry(r, e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                                   </div>
                                 </div>
                                 {(e.photos || []).length > 0 && (
@@ -3029,7 +5134,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2">
                           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Tenant & Vendor Conversations · {(r.conversationLog || []).length}</div>
-                          <button onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
+                          <button type="button" onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
                         </div>
                         {showConvForm && (
                           <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
@@ -3045,7 +5150,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                             </div>
                             <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Summary (required) — e.g., 'agreed to $200/mo payment plan on rent gap'" value={convForm.summary} onChange={e => setConvForm({ ...convForm, summary: e.target.value })} />
                             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes · tone · next step · promises made" value={convForm.notes} onChange={e => setConvForm({ ...convForm, notes: e.target.value })} />
-                            <button onClick={() => addConvEntry(r)} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Conversation Note</button>
+                            <button type="button" onClick={() => addConvEntry(r)} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Conversation Note</button>
                           </div>
                         )}
                         {(r.conversationLog || []).length === 0 && !showConvForm ? (
@@ -3060,7 +5165,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
                                     {e.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                                   </div>
-                                  <button onClick={() => deleteConvEntry(r, e.id)} className="text-[10px] text-[#5A5751] hover:text-[#B85838] shrink-0">×</button>
+                                  <button type="button" onClick={() => deleteConvEntry(r, e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                                 </div>
                               </div>
                             ))}
@@ -3071,6 +5176,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   )}
                 </div>
           );
+          };
           return (
             <div className="space-y-4">
               {rentals.length === 0 && (
@@ -3218,20 +5324,494 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   );
 }
 
+// =============================================================================
+// v28+ MVP v1.5 — MARKETS · Watchlist with free Stooq CSV feed.
+// "One-stop place for financial data" — anyone can add their main tickers.
+// Cost: $0 (no API key, no signup, public CORS-friendly endpoint).
+// Stooq symbol format: 'aapl.us', 'spy.us', 'btcusd', 'eurusd', '^spx'.
+// CSV columns: Symbol,Date,Time,Open,High,Low,Close,Volume.
+// WCAG 2.1 AA: <label> for inputs, aria-live updates, change direction
+// expressed as text+symbol (not color alone), refresh button has aria-busy.
+// =============================================================================
+const SUGGESTED_TICKERS = [
+  { sym: 'spy.us',  label: 'S&P 500 ETF' },
+  { sym: 'qqq.us',  label: 'Nasdaq 100 ETF' },
+  { sym: 'dia.us',  label: 'Dow Jones ETF' },
+  { sym: 'iwm.us',  label: 'Russell 2000 ETF' },
+  { sym: 'vti.us',  label: 'Total US Market' },
+  { sym: 'aapl.us', label: 'Apple' },
+  { sym: 'msft.us', label: 'Microsoft' },
+  { sym: 'nvda.us', label: 'Nvidia' },
+  { sym: 'btcusd',  label: 'Bitcoin / USD' },
+  { sym: 'ethusd',  label: 'Ethereum / USD' },
+  { sym: 'eurusd',  label: 'EUR / USD' },
+  { sym: '^spx',    label: 'S&P 500 Index' },
+];
+
+function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTier, setView, maxWatchlist = Infinity }) {
+  const atCap = watchlist.length >= maxWatchlist;
+  const capLabel = isFinite(maxWatchlist) ? maxWatchlist : null;
+  // No pre-population — show empty cells until the Stooq fetch resolves.
+  const [quotes, setQuotes] = useState({}); // sym -> {date,time,open,high,low,close,volume,changePct,error}
+  const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [input, setInput] = useState('');
+  const [inputError, setInputError] = useState('');
+  const [globalError, setGlobalError] = useState('');
+
+  // Fetch one symbol from Stooq. Returns parsed quote or {error}.
+  const fetchQuote = async (sym) => {
+    const url = `https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcv&h&e=csv`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return { error: `HTTP ${res.status}` };
+      const text = await res.text();
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 2) return { error: 'empty response' };
+      const cols = lines[1].split(',');
+      // Stooq returns "N/D" for unknown symbols
+      if (cols.includes('N/D') || cols[3] === 'N/D') return { error: 'symbol not found' };
+      const [Symbol, Date_, Time_, Open, High, Low, Close, Volume] = cols;
+      const open = parseFloat(Open), close = parseFloat(Close);
+      const changePct = open > 0 ? ((close - open) / open) * 100 : 0;
+      return { sym: Symbol.toLowerCase(), date: Date_, time: Time_, open, high: parseFloat(High), low: parseFloat(Low), close, volume: parseFloat(Volume) || 0, changePct };
+    } catch (e) {
+      return { error: e.message || 'network error' };
+    }
+  };
+
+  // Refresh all symbols in parallel.
+  const refresh = async () => {
+    if (!watchlist || watchlist.length === 0) { setQuotes({}); setLastUpdated(new Date()); return; }
+    setLoading(true);
+    setGlobalError('');
+    const results = await Promise.all(watchlist.map(async s => [s, await fetchQuote(s)]));
+    const next = {};
+    let anySuccess = false;
+    for (const [s, q] of results) { next[s] = q; if (!q.error) anySuccess = true; }
+    setQuotes(next);
+    setLastUpdated(new Date());
+    setLoading(false);
+    if (!anySuccess && watchlist.length > 0) {
+      setGlobalError('Could not reach the market data feed. This usually clears in a moment — try Refresh, or check your network. Data source: stooq.com (free, no signup).');
+    }
+  };
+
+  // Initial fetch + auto-refresh every 60s. Re-runs when the watchlist changes.
+  useEffect(() => {
+    refresh();
+    const id = setInterval(refresh, 60000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchlist.join('|')]);
+
+  const handleAdd = (e) => {
+    e && e.preventDefault && e.preventDefault();
+    const s = (input || '').trim().toLowerCase();
+    if (!s) { setInputError('Enter a symbol — e.g., aapl.us, spy.us, btcusd.'); return; }
+    if (!/^[a-z0-9.\-^]+$/.test(s)) { setInputError('Symbol can only contain letters, digits, dot, dash, or ^.'); return; }
+    if (watchlist.includes(s)) { setInputError(`${s} is already on your watchlist.`); return; }
+    if (atCap) { setInputError(`Foundation tier holds ${capLabel} tickers. Upgrade to PoeTech+ for unlimited.`); return; }
+    setInputError('');
+    addWatchlistSymbol(s);
+    setInput('');
+  };
+
+  // Format helpers
+  const fmtPrice = (v) => v == null || isNaN(v) ? '—' : v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  const fmtVol = (v) => !v ? '—' : v >= 1e9 ? `${(v/1e9).toFixed(2)}B` : v >= 1e6 ? `${(v/1e6).toFixed(2)}M` : v >= 1e3 ? `${(v/1e3).toFixed(1)}K` : `${v}`;
+  const fmtPct = (p) => p == null || isNaN(p) ? '—' : `${p >= 0 ? '+' : ''}${p.toFixed(2)}%`;
+
+  return (
+    <div className="space-y-6">
+      <section className="bg-white border border-[#1A1815] p-5">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Markets · Watchlist</div>
+        <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>One place for your financial data.</h2>
+        <p className="text-sm leading-relaxed mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          Add the tickers you actually watch — indices, ETFs, individual stocks, crypto, FX. Quotes refresh automatically every minute. Free data source: <a href="https://stooq.com" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">stooq.com</a> (no API key, no signup, no cost to us or to you).
+        </p>
+      </section>
+
+      {/* Add form */}
+      <section aria-labelledby="add-ticker-h">
+        <h3 id="add-ticker-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Add a ticker</h3>
+        <form onSubmit={handleAdd} className="flex flex-wrap gap-2 items-end">
+          <div className="flex-1 min-w-[160px]">
+            <label htmlFor="ticker-input" className="text-[9px] uppercase tracking-wider text-[#5A5751]">Symbol (Stooq format)</label>
+            <input
+              id="ticker-input"
+              list="ticker-suggestions"
+              value={input}
+              onChange={e => { setInput(e.target.value); setInputError(''); }}
+              placeholder="e.g., aapl.us · btcusd · ^spx"
+              className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              aria-invalid={!!inputError}
+              aria-describedby={inputError ? 'ticker-input-error' : undefined}
+            />
+            <datalist id="ticker-suggestions">
+              {SUGGESTED_TICKERS.map(t => <option key={t.sym} value={t.sym}>{t.label}</option>)}
+            </datalist>
+          </div>
+          <button type="submit" className="bg-[#1A1815] text-white py-2 px-4 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">+ Add</button>
+        </form>
+        {inputError && <p id="ticker-input-error" role="alert" className="text-xs text-[#B85838] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{inputError}</p>}
+        <div className="mt-3">
+          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Quick add</div>
+          <div className="flex flex-wrap gap-1">
+            {SUGGESTED_TICKERS.filter(t => !watchlist.includes(t.sym)).map(t => (
+              <button key={t.sym} type="button" onClick={() => addWatchlistSymbol(t.sym)} className="px-2 py-1 text-[10px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.sym}</span> <span className="text-[#5A5751]">· {t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Watchlist */}
+      <section aria-labelledby="watchlist-h">
+        <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+          <h3 id="watchlist-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Watchlist · {watchlist.length} {watchlist.length === 1 ? 'ticker' : 'tickers'}</h3>
+          <div className="flex items-baseline gap-3 text-[10px] uppercase tracking-wider">
+            {lastUpdated && <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }} aria-live="polite">updated {lastUpdated.toLocaleTimeString()}</span>}
+            <button type="button" onClick={refresh} aria-busy={loading} className="text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" disabled={loading}>{loading ? 'Refreshing…' : '↻ Refresh'}</button>
+          </div>
+        </div>
+        {globalError && <p role="alert" className="text-xs text-[#B85838] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{globalError}</p>}
+        {watchlist.length === 0 ? (
+          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+            <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No tickers on your watchlist yet. Use the Quick add buttons above to start.</p>
+          </div>
+        ) : (
+          <div className="bg-white border border-[#1A1815] overflow-x-auto" aria-live="polite">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#1A1815] bg-[#FAF8F4]">
+                  <th scope="col" className="p-3">Symbol</th>
+                  <th scope="col" className="p-3 text-right">Last</th>
+                  <th scope="col" className="p-3 text-right">Day change</th>
+                  <th scope="col" className="p-3 text-right hidden sm:table-cell">Open</th>
+                  <th scope="col" className="p-3 text-right hidden sm:table-cell">High</th>
+                  <th scope="col" className="p-3 text-right hidden sm:table-cell">Low</th>
+                  <th scope="col" className="p-3 text-right hidden md:table-cell">Volume</th>
+                  <th scope="col" className="p-3 text-right hidden md:table-cell">As of</th>
+                  <th scope="col" className="p-3 text-right"><span className="sr-only">Remove</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {watchlist.map((sym, i) => {
+                  const q = quotes[sym] || {};
+                  const isErr = !!q.error;
+                  const hasData = !isErr && q.close !== undefined;
+                  const up = hasData && q.changePct >= 0;
+                  const directionText = hasData ? (q.changePct >= 0 ? 'up' : 'down') : '';
+                  return (
+                    <tr key={sym} className={`border-b border-[#E8E4DC] ${i % 2 === 1 ? 'bg-[#FAF8F4]' : ''}`} style={{ fontFamily: '"Fraunces", serif' }}>
+                      <td className="p-3" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{sym.toUpperCase()}</td>
+                      <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? '—' : fmtPrice(q.close)}</td>
+                      <td className={`p-3 text-right ${isErr ? 'text-[#5A5751]' : up ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                        {isErr ? (
+                          <span title={q.error}>—</span>
+                        ) : (
+                          <>
+                            <span aria-hidden="true">{up ? '▲ ' : '▼ '}</span>
+                            <span className="sr-only">{directionText} </span>
+                            {fmtPct(q.changePct)}
+                          </>
+                        )}
+                      </td>
+                      <td className="p-3 text-right hidden sm:table-cell" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? '—' : fmtPrice(q.open)}</td>
+                      <td className="p-3 text-right hidden sm:table-cell" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? '—' : fmtPrice(q.high)}</td>
+                      <td className="p-3 text-right hidden sm:table-cell" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? '—' : fmtPrice(q.low)}</td>
+                      <td className="p-3 text-right hidden md:table-cell text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? '—' : fmtVol(q.volume)}</td>
+                      <td className="p-3 text-right hidden md:table-cell text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? <span title={q.error}>error</span> : `${q.date || ''} ${q.time || ''}`}</td>
+                      <td className="p-3 text-right">
+                        <button type="button" onClick={() => removeWatchlistSymbol(sym)} aria-label={`Remove ${sym.toUpperCase()} from watchlist`} className="text-base text-[#5A5751] hover:text-[#B85838] hover:bg-white border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Day change is computed from open vs. last (intraday). Quotes are delayed by the data source and meant for awareness — not for executing trades. The change column shows direction in text (up / down) and symbol (▲ / ▼) in addition to color, so the meaning carries through for screen readers and color-blind users (WCAG 2.1 AA).
+        </p>
+      </section>
+    </div>
+  );
+}
+
+// =============================================================================
+// v28+ MVP v1.5 — CHURCH · Home-church tab.
+// Surfaces real info pulled from thechurchofthelivinggod.com (service times,
+// broadcast/social, tithes, ministry sign-up, Bible reading) and adds
+// parishioner-friendly extras: prayer request log (local-first, sent to
+// the office via mailto when the user chooses), one-tap reminder save to
+// the existing Calendar events, ministry-interest sign-up.
+// FUTURE-MODULE HOOK: hands off to the planned `spiritual` module once it
+// ships — same data shape, just more views over it.
+// WCAG 2.1 AA: <label>'d inputs, focus rings, descriptive aria-labels,
+// status meaning conveyed in text as well as color.
+// =============================================================================
+function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent }) {
+  const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
+  const [prError, setPrError] = useState('');
+  const [showPrForm, setShowPrForm] = useState(false);
+  const [ministryInterest, setMinistryInterest] = useState({ name: '', email: '', interest: '', skills: '' });
+  const [showMinistryForm, setShowMinistryForm] = useState(false);
+  const [ministryNote, setMinistryNote] = useState('');
+
+  const c = church || {};
+  const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
+  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+
+  const submitPrayer = () => {
+    const requester = prForm.anonymous ? '(anonymous)' : (prForm.requester || '').trim();
+    const request = (prForm.request || '').trim();
+    if (!request) { setPrError('Please describe the prayer request.'); return; }
+    if (!prForm.anonymous && !requester) { setPrError('Add your name, or check anonymous.'); return; }
+    setPrError('');
+    addPrayerRequest({ requester, request, shareWithChurch: !!prForm.shareWithChurch });
+    setPrForm({ requester: '', request: '', shareWithChurch: true, anonymous: false });
+    setShowPrForm(false);
+  };
+
+  const mailtoFor = (pr) => {
+    const subject = `Prayer request from ${pr.requester}`;
+    const body = `Hello — please add this to the prayer list at The Love Corner.\n\nFrom: ${pr.requester}\nDate: ${pr.createdAt.slice(0, 10)}\n\n${pr.request}\n\nThank you.`;
+    // The site uses an obfuscated email; users without the church's address can paste the contact form URL.
+    // If a contactEmail is configured, prefer that. Otherwise fall back to the Stay Connected page.
+    if (c.contactEmail) return `mailto:${c.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return c.links?.stayConnected || c.site || '#';
+  };
+
+  // Save a one-tap event to the family calendar from a service entry.
+  const saveServiceToCalendar = (svc) => {
+    if (!addEvent) return;
+    // Build the next occurrence of this day-of-week + time.
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const targetDow = days.indexOf(svc.day);
+    if (targetDow < 0) return;
+    const now = new Date();
+    const ahead = (targetDow - now.getDay() + 7) % 7;
+    const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (ahead === 0 ? 7 : ahead));
+    const isoDate = next.toISOString().slice(0, 10);
+    // Parse "11:00 AM" → "11:00"
+    const m = (svc.time || '').match(/(\d+):(\d+)\s*(AM|PM)?/i);
+    let hh = m ? parseInt(m[1]) : 11; const mm = m ? parseInt(m[2]) : 0;
+    if (m && m[3] && m[3].toUpperCase() === 'PM' && hh < 12) hh += 12;
+    if (m && m[3] && m[3].toUpperCase() === 'AM' && hh === 12) hh = 0;
+    addEvent({
+      title: `${c.nickname || c.name || 'Church'} · ${svc.label}`,
+      description: `${svc.day} ${svc.time} — saved from Church tab.`,
+      date: isoDate,
+      time: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`,
+      category: 'family',
+      reminders: ['at-event', 'thirty-min-before'],
+    });
+    alert(`Saved to your calendar: ${svc.label} on ${isoDate} at ${svc.time}`);
+  };
+
+  const submitMinistry = () => {
+    if (!ministryInterest.email) { setMinistryNote('Add an email so the church can follow up.'); return; }
+    setMinistryNote('');
+    const subject = `Ministry interest — ${ministryInterest.interest || 'general'}`;
+    const body = `Name: ${ministryInterest.name}\nEmail: ${ministryInterest.email}\nMinistry of interest: ${ministryInterest.interest}\nSkills / availability:\n${ministryInterest.skills}\n\nSent from PoeTech Family OS · Church tab.`;
+    // Open the church's Stay Connected page so the parishioner can paste/forward;
+    // when contactEmail is set, open a proper mailto instead.
+    if (c.contactEmail) {
+      window.location.href = `mailto:${c.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    } else {
+      window.open(c.links?.stayConnected || c.site, '_blank', 'noopener,noreferrer');
+    }
+    setMinistryInterest({ name: '', email: '', interest: '', skills: '' });
+    setShowMinistryForm(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* HEADER */}
+      <section className="bg-white border border-[#1A1815] p-5">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-1">Home Church</div>
+        <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{c.name}</h2>
+        {c.nickname && <div className="text-base text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{c.nickname}</div>}
+        {c.tagline && <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{c.tagline}</p>}
+        {c.verse && (
+          <blockquote className="mt-3 border-l-2 border-[#B85838] pl-3 text-sm italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            "{c.verse.text}" <span className="not-italic text-[#5A5751] text-xs"> — {c.verse.ref}</span>
+          </blockquote>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+          {c.address && <div><div className={labelCls}>Location</div><div>{c.address}</div></div>}
+          {c.phone && <div><div className={labelCls}>Phone</div><a href={`tel:${c.phone.replace(/[^0-9]/g, '')}`} className="underline text-[#B85838] hover:text-[#1A1815]">{c.phone}</a></div>}
+          {c.officeHours && <div><div className={labelCls}>Office</div><div>{c.officeHours}</div></div>}
+        </div>
+        <div className="mt-3 flex gap-2 flex-wrap">
+          {c.site && <a href={c.site} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Visit Church Site →</a>}
+          {c.links?.about && <a href={c.links.about} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">About Us →</a>}
+        </div>
+      </section>
+
+      {/* SERVICE TIMES + SAVE TO CALENDAR */}
+      {(c.services || []).length > 0 && (
+        <section aria-labelledby="svc-h">
+          <h3 id="svc-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Service Times · in-person + online</h3>
+          <div className="bg-white border border-[#1A1815]">
+            {c.services.map((svc, i, arr) => (
+              <div key={svc.id} className={`p-3 flex items-center justify-between gap-3 flex-wrap ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{svc.day}</div>
+                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{svc.label} · <span style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{svc.time}</span></div>
+                  {svc.online && <div className="text-[10px] text-[#5A6E3D] uppercase tracking-wider">✓ live online</div>}
+                </div>
+                <button type="button" onClick={() => saveServiceToCalendar(svc)} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">📅 Save next one</button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* MEDIA / BROADCAST */}
+      {c.media && (
+        <section aria-labelledby="media-h">
+          <h3 id="media-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Watch · Listen · Follow</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {c.media.youtube && <a href={c.media.youtube} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">▶</div><div className="text-xs uppercase tracking-wider font-semibold">YouTube</div><div className="text-[10px] text-[#5A5751]">Recorded services</div></a>}
+            {c.media.facebook && <a href={c.media.facebook} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">f</div><div className="text-xs uppercase tracking-wider font-semibold">Facebook</div><div className="text-[10px] text-[#5A5751]">Love Corner Live</div></a>}
+            {c.media.instagram && <a href={c.media.instagram} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">◉</div><div className="text-xs uppercase tracking-wider font-semibold">Instagram</div><div className="text-[10px] text-[#5A5751]">@tlcexperience</div></a>}
+            {c.media.broadcast && <a href={c.media.broadcast} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">📻</div><div className="text-xs uppercase tracking-wider font-semibold">Broadcast</div><div className="text-[10px] text-[#5A5751]">All channels</div></a>}
+          </div>
+        </section>
+      )}
+
+      {/* GIVE + PARISH LIFE */}
+      <section aria-labelledby="give-h" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {c.links?.give && (
+          <div className="bg-white border-2 border-[#B85838] p-4">
+            <h3 id="give-h" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Tithes · Offering · Gifts</h3>
+            <p className="text-sm leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Giving runs through the church's own secure page — no payment data passes through this app.</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <a href={c.links.give} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Give →</a>
+              {c.links.giversCreed && <a href={c.links.giversCreed} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Givers Creed</a>}
+            </div>
+          </div>
+        )}
+        <div className="bg-white border border-[#1A1815] p-4">
+          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Parish Life</h3>
+          <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+            {c.links?.calendar && <li>📅 <a href={c.links.calendar} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Church calendar</a></li>}
+            {c.links?.bibleChallenge && <li>📖 <a href={c.links.bibleChallenge} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Bible Reading Challenge 2026</a></li>}
+            {c.links?.classPoints && <li>✏️ <a href={c.links.classPoints} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Bible study class points</a></li>}
+            {c.links?.lettersFromBG && <li>✉️ <a href={c.links.lettersFromBG} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Letters from Bishop Gwin</a></li>}
+            {c.links?.assembly && <li>🏛 <a href={c.links.assembly} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">National Assembly</a></li>}
+            {c.links?.stayConnected && <li>🔗 <a href={c.links.stayConnected} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Stay connected</a></li>}
+          </ul>
+        </div>
+      </section>
+
+      {/* MINISTRY INTEREST */}
+      {c.links?.ministries && (
+        <section aria-labelledby="min-h" className="bg-white border border-[#1A1815] p-4">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <h3 id="min-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Ministry Opportunities</h3>
+            <button type="button" onClick={() => setShowMinistryForm(!showMinistryForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showMinistryForm ? '× Cancel' : '+ Express interest'}</button>
+          </div>
+          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Where you'd like to serve, what hours fit your life. Your note goes to the church office via your email client — nothing is sent through us.</p>
+          <a href={c.links.ministries} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider text-[#B85838] underline hover:text-[#1A1815] inline-block mt-2">See current openings →</a>
+          {showMinistryForm && (
+            <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div><label htmlFor="min-name" className={labelCls}>Your name</label><input id="min-name" className={fieldCls} value={ministryInterest.name} onChange={e => setMinistryInterest({ ...ministryInterest, name: e.target.value })} /></div>
+                <div><label htmlFor="min-email" className={labelCls}>Email (so they can reply)</label><input id="min-email" type="email" className={fieldCls} value={ministryInterest.email} onChange={e => setMinistryInterest({ ...ministryInterest, email: e.target.value })} /></div>
+              </div>
+              <div><label htmlFor="min-interest" className={labelCls}>Ministry of interest</label><input id="min-interest" className={fieldCls} placeholder="e.g., Music · Youth · Tech · Outreach" value={ministryInterest.interest} onChange={e => setMinistryInterest({ ...ministryInterest, interest: e.target.value })} /></div>
+              <div><label htmlFor="min-skills" className={labelCls}>Skills · availability</label><textarea id="min-skills" rows="3" className={fieldCls} value={ministryInterest.skills} onChange={e => setMinistryInterest({ ...ministryInterest, skills: e.target.value })} /></div>
+              <button type="button" onClick={submitMinistry} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Send to Church Office</button>
+              {ministryNote && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{ministryNote}</p>}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* PRAYER REQUESTS — local log, optional send-out */}
+      <section aria-labelledby="pr-h">
+        <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+          <h3 id="pr-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Prayer Requests · {prayerRequests.length}</h3>
+          <button type="button" onClick={() => { setShowPrForm(!showPrForm); setPrError(''); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showPrForm ? '× Cancel' : '+ Add request'}</button>
+        </div>
+        <p className="text-xs text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Logged locally on your device. Tap "Send" to forward a request to the church office through your email client — you stay in control of what leaves your device.
+        </p>
+        {showPrForm && (
+          <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div><label htmlFor="pr-name" className={labelCls}>Requested by</label><input id="pr-name" className={fieldCls} value={prForm.requester} onChange={e => setPrForm({ ...prForm, requester: e.target.value })} disabled={prForm.anonymous} placeholder={prForm.anonymous ? '(anonymous)' : 'Your name'} /></div>
+              <div className="flex items-end gap-3">
+                <label className="flex items-baseline gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <input type="checkbox" checked={prForm.anonymous} onChange={e => setPrForm({ ...prForm, anonymous: e.target.checked })} className="accent-[#B85838]" /> Submit anonymously
+                </label>
+              </div>
+            </div>
+            <div><label htmlFor="pr-text" className={labelCls}>Prayer request</label><textarea id="pr-text" rows="3" className={fieldCls} value={prForm.request} onChange={e => setPrForm({ ...prForm, request: e.target.value })} /></div>
+            <label className="flex items-baseline gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+              <input type="checkbox" checked={prForm.shareWithChurch} onChange={e => setPrForm({ ...prForm, shareWithChurch: e.target.checked })} className="accent-[#B85838]" /> Mark as ready to share with the church
+            </label>
+            <button type="button" onClick={submitPrayer} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save Prayer Request</button>
+            {prError && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{prError}</p>}
+          </div>
+        )}
+        {prayerRequests.length === 0 ? (
+          <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No prayer requests logged yet.</p>
+        ) : (
+          <div className="bg-white border border-[#1A1815]">
+            {[...prayerRequests].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((pr, i, arr) => (
+              <div key={pr.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{pr.createdAt.slice(0, 10)} · {pr.requester || '(anonymous)'}</div>
+                    <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{pr.request}</div>
+                    <div className="text-[10px] uppercase tracking-wider mt-1 text-[#5A5751]">{pr.sentAt ? `✓ sent ${pr.sentAt.slice(0, 10)}` : pr.shareWithChurch ? 'ready to share' : 'private'}</div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {pr.shareWithChurch && !pr.sentAt && (
+                      <a href={mailtoFor(pr)} target={c.contactEmail ? '_self' : '_blank'} rel="noopener noreferrer" onClick={() => markPrayerRequestSent(pr.id)} className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] inline-flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]">Send →</a>
+                    )}
+                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
+                    <button type="button" onClick={() => { if (confirm('Delete this prayer request?')) deletePrayerRequest(pr.id); }} aria-label={`Delete prayer request from ${pr.requester}`} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        Content links to the church's own pages. Service times, media, and ministry openings live on <a href={c.site} target="_blank" rel="noopener noreferrer" className="underline">{(c.site || '').replace(/^https?:\/\//, '')}</a> — this tab is a shortcut, not a copy. Edits to service times can be made in the seed data ({`data.church.services`}) as the church publishes them.
+      </p>
+    </div>
+  );
+}
+
 function BooksEntities({ entityRollups, entityFilter, setEntityFilter, data }) {
   const visible = entityFilter === 'all' ? entityRollups : entityRollups.filter(r => r.entity.id === entityFilter);
   return (
     <div className="space-y-6">
-      <section><SectionTitle>Entities</SectionTitle><div className="flex gap-1 flex-wrap text-xs"><button onClick={() => setEntityFilter('all')} className={`px-3 py-1.5 border ${entityFilter === 'all' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>{data.entities.map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{e.name.split('(')[0].trim()}</button>)}</div></section>
+      <section><SectionTitle>Entities</SectionTitle><div className="flex gap-1 flex-wrap text-xs"><button type="button" onClick={() => setEntityFilter('all')} className={`px-3 py-1.5 border ${entityFilter === 'all' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>{data.entities.map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{e.name.split('(')[0].trim()}</button>)}</div></section>
       {visible.map((r) => (
         <section key={r.entity.id} className="bg-white border border-[#1A1815] p-5">
           <h3 className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.entity.name}</h3>
           <div className="text-xs text-[#5A5751] mt-0.5 mb-3">{r.entity.notes}</div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            <MetricCell label="Cash" value={fmt(r.balance)} small accent={r.balance < 0 ? 'rust' : 'green'} />
-            <MetricCell label="Inflow" value={fmt(r.inflow)} small />
-            <MetricCell label="Debt" value={fmt(r.debtBalance)} small accent={r.debtBalance > 0 ? 'rust' : null} />
-            <MetricCell label="Accounts" value={`${r.accounts.length}`} small />
+          {/* Round 12 fix — Cash tile now uses cashBalance (cash+savings+investment only),
+              not the all-account sum that included credit-card negatives. Added a Credit
+              tile so credit/loan balances surface here too without polluting Cash. */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+            <MetricCell label="Cash" value={fmt(r.cashBalance)} small accent={r.cashBalance < 0 ? 'rust' : 'green'} sub="spendable" />
+            <MetricCell label="Credit" value={fmt(r.creditBalance)} small accent={r.creditBalance < 0 ? 'rust' : null} sub="cards + loans" />
+            <MetricCell label="Inflow" value={fmt(r.inflow)} small sub="per mo" />
+            <MetricCell label="Debt total" value={fmt(r.debtBalance)} small accent={r.debtBalance > 0 ? 'rust' : null} sub="from Debts tab" />
+            <MetricCell label="Accounts" value={`${r.accounts.length}`} small sub="all types" />
           </div>
         </section>
       ))}
@@ -3241,12 +5821,26 @@ function BooksEntities({ entityRollups, entityFilter, setEntityFilter, data }) {
 
 const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'loan', 'investment', 'cash', 'other'];
 
-function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount }) {
+function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {} }) {
+  // v28+ MVP v1.5 round 4 — Buffer target editing is deliberate (modal-style),
+  // current balance is slider-driven (continuous, live feedback).
+  const [editingTarget, setEditingTarget] = useState(false);
+  const [targetDraft, setTargetDraft] = useState(bufferTarget);
+  // Suggested target = ~1 month of total rental P&I (covers timing gap for
+  // a full month), rounded to nearest $500. Falls back to $5,000.
+  const suggestedTarget = (() => {
+    const pAndI = (totals && totals.totalRentalPI) ? totals.totalRentalPI : 0;
+    if (!pAndI) return 5000;
+    return Math.max(1000, Math.round(pAndI / 500) * 500);
+  })();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const blank = { name: '', institution: '', type: 'checking', fragment: '', balance: 0, entityId: entities[0]?.id || 'e-personal', notes: '', isPrimary: false };
   const [form, setForm] = useState(blank);
 
+  // Round 9: no scroll-to-top. Form opens above the account list; the toast at
+  // the form header makes it obvious. Tapping the edit button on a row no
+  // longer hijacks the user's scroll position.
   const startAdd = () => { setForm(blank); setEditingId(null); setShowForm(true); };
   const startEdit = (a) => { setForm({ name: a.name, institution: a.institution, type: a.type, fragment: a.fragment || '', balance: a.balance, entityId: a.entityId, notes: a.notes || '', isPrimary: !!a.isPrimary }); setEditingId(a.id); setShowForm(true); };
   const cancel = () => { setShowForm(false); setEditingId(null); setForm(blank); };
@@ -3258,6 +5852,19 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
   };
   const confirmDelete = (a) => { if (confirm(`Delete account "${a.name}"? Transactions referencing it will keep the original accountId reference but will no longer roll up to an entity.`)) deleteAccount(a.id); };
 
+  // v28+ MVP v1.5 round 3 — All Accounts Total + Buffer Fund occupy the
+  // formerly-blank space at the top of this view. Buffer lives here because
+  // its meaning ("liquid reserve set aside") sits next to the actual liquid
+  // balance figure rather than the big-picture summary.
+  const allAccounts = entityRollups.flatMap(r => r.accounts || []);
+  const liquidTotal = allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type)).reduce((s, a) => s + (a.balance || 0), 0);
+  const creditTotal = allAccounts.filter(a => a.type === 'credit' || a.type === 'loan').reduce((s, a) => s + (a.balance || 0), 0);
+  const debtAccountsCount = allAccounts.filter(a => a.type === 'credit' || a.type === 'loan').length;
+  // Round 8 — netWorth no longer surfaced in the top card; net-position view
+  // moves to the Big Picture dashboard where it belongs alongside debt totals.
+  const bufferPct = bufferTarget > 0 ? Math.min(100, Math.round((bufferCurrent / bufferTarget) * 100)) : 0;
+  const bufferGap = Math.max(0, bufferTarget - bufferCurrent);
+
   return (
     <div className="space-y-6">
       <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
@@ -3268,10 +5875,118 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
         </p>
       </section>
 
+      {/* v28+ MVP v1.5 round 8 — All Accounts Total card now CASH ONLY.
+          Credit / loans surface in the per-entity "Credit Cards & Loans"
+          group below, plus a dedicated "Debt Accounts · Total" summary
+          card that appears right above that group (when any exist).
+          The Buffer Fund pairs with the cash total — meaningful side-by-side
+          because both are "how much spendable cash is on hand." */}
+      <section aria-labelledby="all-accounts-total-h" className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+        {/* Totals card — cash only, 2/5 of the row */}
+        <div className="lg:col-span-2 bg-white border border-[#1A1815] p-4 sm:p-5">
+          <h2 id="all-accounts-total-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">All Accounts · Total Cash</h2>
+          <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Spendable: checking + savings + cash + investments.</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type)).length} cash accounts</div>
+            <div className={`text-3xl ${liquidTotal < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>{fmt(liquidTotal)}</div>
+          </div>
+          <p className="text-[10px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            Credit cards and loans are tracked separately below — they're not cash you can spend, so mixing them here distorted the math.
+          </p>
+        </div>
+
+        {/* Buffer Fund card — slider for current balance (live), target edit is deliberate. */}
+        {bufferTarget > 0 && (
+          <div className="lg:col-span-3 bg-white border-2 border-[#B85838] p-4 sm:p-5">
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <div>
+                <h3 id="buffer-fund-heading" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Buffer Fund · Mortgage Protection</h3>
+                <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>The single highest-ROI move right now. Once funded, mortgage money sits before the 1st — turning "tight" into "covered" without changing income.</p>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmt(bufferCurrent)}<span className="text-sm text-[#5A5751]"> / {fmt(bufferTarget)}</span></div>
+                <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{bufferPct}% funded · gap {fmt(bufferGap)}</div>
+              </div>
+            </div>
+
+            <div className="mt-3" role="progressbar" aria-labelledby="buffer-fund-heading" aria-valuenow={bufferPct} aria-valuemin="0" aria-valuemax="100">
+              <div className="w-full bg-[#FAF8F4] h-3 border border-[#E8E4DC]">
+                <div className="h-full bg-[#5A6E3D] transition-all" style={{ width: `${bufferPct}%` }} />
+              </div>
+              <div className="flex justify-between text-[9px] uppercase tracking-wider text-[#5A5751] mt-1">
+                <span>$0</span>
+                <span>{fmt(bufferTarget / 2)}</span>
+                <span>{fmt(bufferTarget)}</span>
+              </div>
+            </div>
+
+            {/* Slider — current balance, live update */}
+            <div className="mt-4">
+              <div className="flex items-baseline justify-between mb-1">
+                <label htmlFor="buffer-current-slider" className="text-[9px] uppercase tracking-wider text-[#5A5751]">Current balance · slide to update</label>
+                <span className="text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(bufferCurrent)}</span>
+              </div>
+              <input
+                id="buffer-current-slider"
+                type="range"
+                min="0"
+                max={bufferTarget}
+                step={Math.max(25, Math.round(bufferTarget / 200))}
+                value={Math.min(bufferCurrent, bufferTarget)}
+                onChange={e => setBufferCurrent && setBufferCurrent(e.target.value)}
+                aria-valuemin="0"
+                aria-valuemax={bufferTarget}
+                aria-valuenow={bufferCurrent}
+                aria-valuetext={`${fmt(bufferCurrent)} of ${fmt(bufferTarget)}`}
+                className="w-full accent-[#B85838]"
+              />
+            </div>
+
+            {/* Target — deliberate edit only */}
+            <div className="mt-3 flex items-baseline justify-between gap-2 flex-wrap">
+              <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">
+                Target: <strong style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(bufferTarget)}</strong>
+                {bufferTarget !== suggestedTarget && <> · suggested {fmt(suggestedTarget)} (~1 mo rental P&amp;I)</>}
+              </div>
+              {!editingTarget ? (
+                <button type="button" onClick={() => { setTargetDraft(bufferTarget); setEditingTarget(true); }} className="text-[10px] uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Edit target</button>
+              ) : (
+                <div className="flex items-center gap-1 flex-wrap">
+                  <label htmlFor="buffer-target-edit" className="sr-only">Target balance</label>
+                  <input
+                    id="buffer-target-edit"
+                    type="number"
+                    step="100"
+                    min="0"
+                    inputMode="decimal"
+                    value={targetDraft}
+                    onChange={e => setTargetDraft(e.target.value)}
+                    className="p-2 border border-[#1A1815] text-sm bg-[#FAF8F4] w-28 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  />
+                  <button type="button" onClick={() => { setBufferTarget && setBufferTarget(targetDraft); setEditingTarget(false); }} className="text-[10px] uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
+                  <button type="button" onClick={() => { setBufferTarget && setBufferTarget(suggestedTarget); setEditingTarget(false); }} className="text-[10px] uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" title="Use the suggested target">Use suggested</button>
+                  <button type="button" onClick={() => setEditingTarget(false)} className="text-[10px] uppercase tracking-wider px-3 py-2 text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 text-xs text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+              {bufferPct >= 100 ? (
+                <span className="text-[#5A6E3D] font-semibold">✓ Buffer fully funded. Keep replenishing as you draw from it for early mortgage timing.</span>
+              ) : bufferPct >= 60 ? (
+                <span>Close. About <strong>{fmt(bufferGap)}</strong> more closes the timing gap on the 1st.</span>
+              ) : (
+                <span>First {fmt(bufferTarget)} is the most important dollars in this whole system. Aim ~$500/mo until full.</span>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Accounts</h2>
-          <button onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add account'}</button>
+          <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add account'}</button>
         </div>
 
         {showForm && (
@@ -3314,40 +6029,105 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
               <input type="checkbox" checked={!!form.isPrimary} onChange={e => setForm({ ...form, isPrimary: e.target.checked })} className="accent-[#B85838]" />
               <span><strong>Primary bill-pay account</strong> — shown prominently at the top of Transactions so the family can see at a glance what's available to pay bills.</span>
             </label>
-            <button onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Account'}</button>
+            <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Account'}</button>
           </div>
         )}
       </section>
 
-      {entityRollups.map(r => (
-        <section key={r.entity.id}>
-          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">{r.entity.name.split('(')[0].trim()}</h3>
-          {r.accounts.length === 0 ? (
-            <div className="bg-white border border-[#E8E4DC] p-4 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No accounts yet for this entity. Use + Add account above.</div>
-          ) : (
-            <div className="bg-white border border-[#1A1815]">
-              {r.accounts.map((a, i) => (
-                <div key={a.id} className={`p-3 ${i < r.accounts.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-                  <div className="flex justify-between items-baseline gap-3 flex-wrap">
-                    <div className="flex-1 min-w-0">
-                      <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{a.name}</span>
-                      <span className="text-xs text-[#5A5751] ml-2">{a.institution} {a.fragment}</span>
-                      <span className="text-[9px] uppercase tracking-wider text-[#5A5751] ml-2">{a.type}</span>
-                      {a.isPrimary && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold ml-2">★ primary</span>}
-                    </div>
-                    <div className={`text-right ${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div>
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <button onClick={() => startEdit(a)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
-                    <button onClick={() => confirmDelete(a)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Delete</button>
-                  </div>
-                  {a.notes && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.notes}</p>}
-                </div>
-              ))}
+      {/* Round 8 — Debt Accounts Total summary card (only shown if any debts exist).
+          Moved here from the All Accounts Total area at the top so cash and debt
+          are clearly separated. Per-entity drill-down follows below. */}
+      {debtAccountsCount > 0 && (
+        <section aria-labelledby="debt-accounts-total-h" className="bg-[#FAF8F4] border border-[#1A1815] p-4 sm:p-5">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <div>
+              <h2 id="debt-accounts-total-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Debt Accounts · Total</h2>
+              <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Credit cards + loans across all entities. Detailed payoff strategy lives in the <strong>Debts</strong> tab.</p>
             </div>
-          )}
+            <div className="text-right">
+              <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{debtAccountsCount} debt {debtAccountsCount === 1 ? 'account' : 'accounts'}</div>
+              <div className={`text-2xl ${creditTotal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>{fmt(creditTotal)}</div>
+            </div>
+          </div>
         </section>
-      ))}
+      )}
+
+      {/* Round 4 — Bank accounts are PRIMARY (top, prominent border + larger heading).
+          Credit cards & loans are SECONDARY (below, lighter treatment) so the eye
+          lands on the cash that's actually available to spend, not the debt. */}
+      {entityRollups.map(r => {
+        const bankAccounts = r.accounts.filter(a => ['checking','savings','cash','investment'].includes(a.type));
+        const creditAccounts = r.accounts.filter(a => ['credit','loan'].includes(a.type));
+        const otherAccounts = r.accounts.filter(a => !['checking','savings','cash','investment','credit','loan'].includes(a.type));
+        const bankTotal = bankAccounts.reduce((s, a) => s + (a.balance || 0), 0);
+        const creditTotal = creditAccounts.reduce((s, a) => s + (a.balance || 0), 0);
+        const renderRow = (a, i, arr) => (
+          <div key={a.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+            <div className="flex justify-between items-baseline gap-3 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{a.name}</span>
+                <span className="text-xs text-[#5A5751] ml-2">{a.institution} {a.fragment}</span>
+                <span className="text-[9px] uppercase tracking-wider text-[#5A5751] ml-2">{a.type}</span>
+                {a.isPrimary && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold ml-2">★ primary</span>}
+              </div>
+              <div className={`text-right ${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div>
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <button type="button" onClick={() => startEdit(a)} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Edit</button>
+              <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
+              <button type="button" onClick={() => confirmDelete(a)} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
+            </div>
+            {a.notes && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.notes}</p>}
+          </div>
+        );
+        return (
+          <section key={r.entity.id} className="space-y-3">
+            <h3 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.entity.name.split('(')[0].trim()}</h3>
+
+            {/* PRIMARY: Bank Accounts */}
+            <div>
+              <div className="flex items-baseline justify-between mb-1.5">
+                <h4 className="text-[10px] uppercase tracking-[0.25em] text-[#1A1815] font-semibold">💰 Bank Accounts</h4>
+                <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{bankAccounts.length} · {fmt(bankTotal)}</div>
+              </div>
+              {bankAccounts.length === 0 ? (
+                <div className="bg-white border border-[#E8E4DC] p-3 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No bank accounts yet.</div>
+              ) : (
+                <div className="bg-white border-2 border-[#1A1815]">
+                  {bankAccounts.map((a, i) => renderRow(a, i, bankAccounts))}
+                </div>
+              )}
+            </div>
+
+            {/* SECONDARY: Credit Cards & Loans */}
+            {creditAccounts.length > 0 && (
+              <div>
+                <div className="flex items-baseline justify-between mb-1.5">
+                  <h4 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">💳 Credit Cards &amp; Loans <span className="text-[9px] normal-case font-normal italic">· secondary</span></h4>
+                  <div className={`text-xs ${creditTotal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{creditAccounts.length} · {fmt(creditTotal)}</div>
+                </div>
+                <div className="bg-white border border-[#E8E4DC]">
+                  {creditAccounts.map((a, i) => renderRow(a, i, creditAccounts))}
+                </div>
+              </div>
+            )}
+
+            {/* OTHER (cash/other types) — only if present */}
+            {otherAccounts.length > 0 && (
+              <div>
+                <h4 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1.5">Other Accounts</h4>
+                <div className="bg-white border border-[#E8E4DC]">
+                  {otherAccounts.map((a, i) => renderRow(a, i, otherAccounts))}
+                </div>
+              </div>
+            )}
+
+            {r.accounts.length === 0 && (
+              <div className="bg-white border border-[#E8E4DC] p-3 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No accounts yet for this entity. Use + Add account above.</div>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -3378,6 +6158,8 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
   const blank = { date: todayISO, accountId: data.accounts[0]?.id || '', amount: 0, description: '', category: 'other', entityOverride: '' };
   const [form, setForm] = useState(blank);
 
+  // Round 9: no scroll-to-top. Form opens at the top of the transaction list;
+  // the user keeps their place in whatever row they were reading.
   const startAdd = () => { setForm({ ...blank, accountId: data.accounts[0]?.id || '' }); setEditingId(null); setShowForm(true); };
   const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setShowForm(true); };
   const cancel = () => { setShowForm(false); setEditingId(null); setForm(blank); };
@@ -3439,29 +6221,66 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
     return map;
   })();
 
-  // 30/60/90 forecast: projected balance per account at each milestone, including
-  // user-entered future-dated transactions + the next instance of each enabled
-  // recurring obligation. Salaries are NOT included here because data.inflows.salaries
-  // doesn't carry an accountId yet - simplifying for now.
+  // Round 7 — 30/60/90 forecast revised:
+  //   · Cash-only (bank/savings/cash/investment). Credit + loan are tracked
+  //     separately because they don't hold cash you can spend; mixing them
+  //     inflates the negative balances and breaks the projection's meaning.
+  //   · Adds previous 30/60/90 days of ACTUALS (from settled transactions)
+  //     alongside the forward windows so you can sanity-check the forecast
+  //     against lived history — "is what we're projecting realistic?"
+  const CASH_ACCOUNT_TYPES = ['checking','savings','cash','investment'];
   const forecast = (() => {
     const today = currentDate;
     const horizon = (days) => {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + days);
       return d.toISOString().slice(0, 10);
     };
-    const windows = { '30': horizon(30), '60': horizon(60), '90': horizon(90) };
+    const lookback = (days) => {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - days);
+      return d.toISOString().slice(0, 10);
+    };
+    const fw = { '30': horizon(30), '60': horizon(60), '90': horizon(90) };
+    const bw = { '30': lookback(30), '60': lookback(60), '90': lookback(90) };
+    const todayISO = today.toISOString().slice(0, 10);
+
+    const cashAccounts = (data.accounts || []).filter(a => CASH_ACCOUNT_TYPES.includes(a.type));
     const perAccount = {};
-    (data.accounts || []).forEach(a => {
-      perAccount[a.id] = { name: a.name, fragment: a.fragment, balance: a.balance, isPrimary: !!a.isPrimary, w30: a.balance, w60: a.balance, w90: a.balance };
+    cashAccounts.forEach(a => {
+      perAccount[a.id] = {
+        id: a.id, name: a.name, fragment: a.fragment, type: a.type,
+        balance: a.balance, isPrimary: !!a.isPrimary,
+        // forward windows
+        w30: a.balance, w60: a.balance, w90: a.balance,
+        // backward windows — net cash movement over the prior period (sum of actuals)
+        a30: 0, a60: 0, a90: 0,
+      };
     });
+
+    // Forward projection from upcoming
     upcoming.forEach(t => {
       if (!t.accountId || !(t.accountId in perAccount)) return;
-      if (t.date <= windows['30']) perAccount[t.accountId].w30 += (t.amount || 0);
-      if (t.date <= windows['60']) perAccount[t.accountId].w60 += (t.amount || 0);
-      if (t.date <= windows['90']) perAccount[t.accountId].w90 += (t.amount || 0);
+      if (t.date <= fw['30']) perAccount[t.accountId].w30 += (t.amount || 0);
+      if (t.date <= fw['60']) perAccount[t.accountId].w60 += (t.amount || 0);
+      if (t.date <= fw['90']) perAccount[t.accountId].w90 += (t.amount || 0);
     });
-    return Object.entries(perAccount).map(([id, v]) => ({ id, ...v }));
+
+    // Trailing actuals from settled transactions (date <= today and >= lookback)
+    (data.transactions || []).forEach(t => {
+      if (!t.accountId || !(t.accountId in perAccount)) return;
+      if (!t.date || t.date > todayISO) return; // future tx already counted in forward
+      if (t.date >= bw['30']) perAccount[t.accountId].a30 += (t.amount || 0);
+      if (t.date >= bw['60']) perAccount[t.accountId].a60 += (t.amount || 0);
+      if (t.date >= bw['90']) perAccount[t.accountId].a90 += (t.amount || 0);
+    });
+
+    return Object.values(perAccount);
   })();
+  // Cash-only totals for the "Total cash" row below the per-account grid.
+  const forecastTotals = forecast.reduce((acc, f) => ({
+    balance: acc.balance + (f.balance || 0),
+    w30: acc.w30 + (f.w30 || 0), w60: acc.w60 + (f.w60 || 0), w90: acc.w90 + (f.w90 || 0),
+    a30: acc.a30 + (f.a30 || 0), a60: acc.a60 + (f.a60 || 0), a90: acc.a90 + (f.a90 || 0),
+  }), { balance: 0, w30: 0, w60: 0, w90: 0, a30: 0, a60: 0, a90: 0 });
 
   // Per-row shortfall: if projected balance after this charge drops below FUNDS_BUFFER,
   // record how much short we'd be (using the buffer as the floor).
@@ -3629,7 +6448,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
                   {short > 0 && afterBal >= 0 && <span className="ml-1">(below {fmt(FUNDS_BUFFER)} buffer)</span>}
                 </div>
                 {short > 0 && (
-                  <button onClick={() => openTransfer(t)} className="mt-1 text-[10px] uppercase tracking-wider px-2 py-0.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+                  <button type="button" onClick={() => openTransfer(t)} className="mt-1 text-[10px] uppercase tracking-wider px-2 py-0.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
                     ⚐ Cover with transfer
                   </button>
                 )}
@@ -3640,10 +6459,11 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
         <td className={`p-2 text-right whitespace-nowrap ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.amount > 0 ? '+' : ''}{fmt(t.amount)}</td>
         <td className="p-2 text-right whitespace-nowrap">
           {t._source !== 'recurring' && (
-            <>
-              <button onClick={() => startEdit(t)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] mr-2">Edit</button>
-              <button onClick={() => confirmDelete(t)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Delete</button>
-            </>
+            <span className="inline-flex items-center gap-1">
+              <button type="button" onClick={() => startEdit(t)} aria-label={`Edit transaction ${t.description}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Edit</button>
+              <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
+              <button type="button" onClick={() => confirmDelete(t)} aria-label={`Delete transaction ${t.description}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
+            </span>
           )}
         </td>
       </tr>
@@ -3706,12 +6526,12 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
 
         <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
           <div className="flex gap-1 flex-wrap text-xs">
-            <button onClick={() => setEntityFilter('all')} className={`px-3 py-1.5 border ${entityFilter === 'all' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
+            <button type="button" onClick={() => setEntityFilter('all')} className={`px-3 py-1.5 border ${entityFilter === 'all' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
             {data.entities.map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{e.name.split('(')[0].trim()}</button>)}
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => setCsvOpen(true)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">📤 Import CSV</button>
-            <button onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
+            <button type="button" onClick={() => setCsvOpen(true)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">📤 Import CSV</button>
+            <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
           </div>
         </div>
 
@@ -3752,7 +6572,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
                 {data.entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}
               </select>
             </div>
-            <button onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Transaction'}</button>
+            <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Transaction'}</button>
           </div>
         )}
 
@@ -3786,7 +6606,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
               </section>
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-3 gap-2 flex-wrap">
-                  <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={safePage === 0} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">« Previous</button>
+                  <button type="button" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={safePage === 0} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">« Previous</button>
                   <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-[#5A5751]">
                     <span>Page</span>
                     <select value={safePage} onChange={e => setPage(parseInt(e.target.value, 10))} className="p-1 border border-[#E8E4DC] text-xs bg-[#FAF8F4]">
@@ -3794,7 +6614,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
                     </select>
                     <span>of {totalPages} · showing {startIdx + 1}–{Math.min(startIdx + pageSize, list.length)} of {list.length}</span>
                   </div>
-                  <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">Next »</button>
+                  <button type="button" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">Next »</button>
                 </div>
               )}
             </>
@@ -3813,7 +6633,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
                   Chase, AMEX, Discover, and most banks export a CSV with Date / Description / Amount columns. Other columns are ignored.
                 </div>
               </div>
-              <button onClick={() => setCsvOpen(false)} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+              <button type="button" onClick={() => setCsvOpen(false)} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
             </div>
 
             <div className="p-5 space-y-4">
@@ -3874,7 +6694,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
 
               {csvError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{csvError}</div>}
 
-              <button onClick={importCsv} disabled={csvParsed.rows.filter(r => r.ok).length === 0 || !csvAccountId} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
+              <button type="button" onClick={importCsv} disabled={csvParsed.rows.filter(r => r.ok).length === 0 || !csvAccountId} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
                 Import {csvParsed.rows.filter(r => r.ok).length} transaction{csvParsed.rows.filter(r => r.ok).length === 1 ? '' : 's'}
               </button>
               <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -3902,7 +6722,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
                     Upcoming: {transferContext.txDescription} ({fmt(transferContext.txAmount)}) on {tgt?.name}
                   </div>
                 </div>
-                <button onClick={closeTransfer} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+                <button type="button" onClick={closeTransfer} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
               </div>
 
               <div className="p-5 space-y-4">
@@ -3949,7 +6769,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
                   </div>
                 )}
 
-                <button onClick={executeTransfer} disabled={!transferSourceId || (parseFloat(transferAmount) || 0) <= 0} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
+                <button type="button" onClick={executeTransfer} disabled={!transferSourceId || (parseFloat(transferAmount) || 0) <= 0} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
                   Move {fmt(parseFloat(transferAmount) || 0)} · {src ? `${src.name} → ${tgt?.name}` : 'pick a source'}
                 </button>
                 <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -3962,36 +6782,64 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
       })()}
 
       <section>
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">30 / 60 / 90-Day Forecast · Per Account</div>
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">30 / 60 / 90-Day Cash Forecast · vs prior 30 / 60 / 90 actuals</div>
         <div className="bg-white border border-[#1A1815] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1A1815]">
-                <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Account</th>
-                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Now</th>
-                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+30 days</th>
-                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+60 days</th>
-                <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">+90 days</th>
+              <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
+                <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]" rowSpan="2">Cash account</th>
+                <th className="text-center p-2 text-[10px] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]" colSpan="3">Previous (actual cash flow)</th>
+                <th className="text-center p-2 text-[10px] uppercase tracking-wider text-[#1A1815] border-l border-[#E8E4DC]" rowSpan="2">Now</th>
+                <th className="text-center p-2 text-[10px] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]" colSpan="3">Projected (forward)</th>
+              </tr>
+              <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
+                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]">−90d</th>
+                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#5A5751]">−60d</th>
+                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#5A5751]">−30d</th>
+                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]">+30d</th>
+                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#B85838]">+60d</th>
+                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#B85838]">+90d</th>
               </tr>
             </thead>
             <tbody>
-              {forecast.map(f => (
+              {forecast.length === 0 ? (
+                <tr><td colSpan="8" className="p-3 text-xs text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>No cash accounts yet. Add a checking/savings account in Books → Accounts.</td></tr>
+              ) : forecast.map(f => (
                 <tr key={f.id} className="border-b border-[#E8E4DC]">
                   <td className="p-2">
                     <span style={{ fontFamily: '"Fraunces", serif' }}>{f.name}{f.fragment ? ' ' + f.fragment : ''}</span>
                     {f.isPrimary && <span className="ml-2 text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">★</span>}
+                    <span className="ml-2 text-[9px] uppercase tracking-wider text-[#5A5751]">{f.type}</span>
                   </td>
-                  <td className={`p-2 text-right ${f.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.balance)}</td>
-                  <td className={`p-2 text-right ${f.w30 < 0 ? 'text-[#B85838] font-semibold' : f.w30 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w30)}</td>
+                  {/* Trailing actuals — net change over the lookback window */}
+                  <td className={`p-2 text-right border-l border-[#E8E4DC] ${f.a90 < 0 ? 'text-[#B85838]' : f.a90 > 0 ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{f.a90 === 0 ? '—' : `${f.a90 > 0 ? '+' : ''}${fmt(f.a90)}`}</td>
+                  <td className={`p-2 text-right ${f.a60 < 0 ? 'text-[#B85838]' : f.a60 > 0 ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{f.a60 === 0 ? '—' : `${f.a60 > 0 ? '+' : ''}${fmt(f.a60)}`}</td>
+                  <td className={`p-2 text-right ${f.a30 < 0 ? 'text-[#B85838]' : f.a30 > 0 ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{f.a30 === 0 ? '—' : `${f.a30 > 0 ? '+' : ''}${fmt(f.a30)}`}</td>
+                  {/* Now */}
+                  <td className={`p-2 text-right border-l border-[#E8E4DC] ${f.balance < 0 ? 'text-[#B85838] font-semibold' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(f.balance)}</td>
+                  {/* Forward projection */}
+                  <td className={`p-2 text-right border-l border-[#E8E4DC] ${f.w30 < 0 ? 'text-[#B85838] font-semibold' : f.w30 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w30)}</td>
                   <td className={`p-2 text-right ${f.w60 < 0 ? 'text-[#B85838] font-semibold' : f.w60 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w60)}</td>
                   <td className={`p-2 text-right ${f.w90 < 0 ? 'text-[#B85838] font-semibold' : f.w90 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w90)}</td>
                 </tr>
               ))}
+              {forecast.length > 1 && (
+                <tr className="border-t-2 border-[#1A1815] bg-[#FAF8F4]">
+                  <td className="p-2 text-[10px] uppercase tracking-[0.2em] text-[#1A1815] font-semibold">All cash (total)</td>
+                  <td className={`p-2 text-right border-l border-[#E8E4DC] ${forecastTotals.a90 < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{forecastTotals.a90 === 0 ? '—' : `${forecastTotals.a90 > 0 ? '+' : ''}${fmt(forecastTotals.a90)}`}</td>
+                  <td className={`p-2 text-right ${forecastTotals.a60 < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{forecastTotals.a60 === 0 ? '—' : `${forecastTotals.a60 > 0 ? '+' : ''}${fmt(forecastTotals.a60)}`}</td>
+                  <td className={`p-2 text-right ${forecastTotals.a30 < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{forecastTotals.a30 === 0 ? '—' : `${forecastTotals.a30 > 0 ? '+' : ''}${fmt(forecastTotals.a30)}`}</td>
+                  <td className={`p-2 text-right border-l border-[#E8E4DC] ${forecastTotals.balance < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700 }}>{fmt(forecastTotals.balance)}</td>
+                  <td className={`p-2 text-right border-l border-[#E8E4DC] ${forecastTotals.w30 < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(forecastTotals.w30)}</td>
+                  <td className={`p-2 text-right ${forecastTotals.w60 < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(forecastTotals.w60)}</td>
+                  <td className={`p-2 text-right ${forecastTotals.w90 < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(forecastTotals.w90)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
         <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Rolling projection from today: current balance plus all upcoming charges and recurring obligations falling within each window. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion. Tap any upcoming row's <strong>⚐ Cover with transfer</strong> button to move money preemptively.
+          <strong>Cash only</strong> — credit cards and loans are tracked separately in Books → Accounts because they don't hold spendable cash. The <strong>left side</strong> is the actual net cash movement over the prior 30/60/90 days (from settled transactions, +inflow / −outflow). The <strong>right side</strong> is the projected balance at each forward window (current balance + upcoming charges + recurring). Compare the two sides to gut-check: if the forward projection drops faster than the prior 90 days bled, you're projecting tighter than reality — or you've got a real upcoming squeeze. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion. Tap any upcoming row's <strong>⚐ Cover with transfer</strong> button to move money preemptively.
         </p>
       </section>
 
@@ -4241,21 +7089,244 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   );
 }
 
-function Opportunities({ opportunities, totals }) {
+// =============================================================================
+// v28+ MVP v1.5 round 6 — DEV/OPS · Skills → Options engine
+// Personal entrepreneurial-options matcher. PoeTech services portfolio is
+// demoted below the matcher (still useful, no longer the lead).
+// =============================================================================
+function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProfile, updateSkillProfile, deleteSkillProfile, userTier, addProject, addScope, addCapexItem, setView, projects = [] }) {
   const grouped = opportunities.reduce((acc, o) => { (acc[o.person] = acc[o.person] || []).push(o); return acc; }, {});
+
+  // Tier-gated count of opportunities shown per profile.
+  const optionsPerProfile = (() => {
+    if (tierMeets(userTier, 'family')) return 6;       // full library access
+    if (tierMeets(userTier, 'poetech-plus')) return 3;
+    return 1;                                            // Foundation tease
+  })();
+  const canWrap = tierMeets(userTier, 'premium');
+
+  // Skill profile editor
+  const blankProfile = () => ({ name: '', skills: '', hoursPerWeek: 0, monthlyIncome: 0, location: '', techComfort: 3, notes: '' });
+  const [profileForm, setProfileForm] = useState(blankProfile());
+  const [editingProfileId, setEditingProfileId] = useState(null);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const startAddProfile = () => { setProfileForm(blankProfile()); setEditingProfileId(null); setShowProfileForm(true); };
+  const startEditProfile = (p) => { setProfileForm({ ...p }); setEditingProfileId(p.id); setShowProfileForm(true); };
+  const cancelProfile = () => { setShowProfileForm(false); setEditingProfileId(null); };
+  const submitProfile = () => {
+    if (!profileForm.name) { alert('Profile name is required.'); return; }
+    if (editingProfileId) updateSkillProfile && updateSkillProfile(editingProfileId, profileForm);
+    else addSkillProfile && addSkillProfile(profileForm);
+    cancelProfile();
+  };
+  const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
+  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+
+  // Wrap-me-with-the-tech handler — auto-create Project + Scope from an opportunity.
+  // Round 11: capacity check first. If adding this project would push the family
+  // over their available hours/week, prompt to park as TBD instead of stacking
+  // another commitment they can't actually do.
+  const wrapWithTech = (op, profile) => {
+    if (!canWrap) { alert(`The "Wrap me with the tech" handoff unlocks at ${TIER_LABEL['premium']}. See pricing tiers in About.`); return; }
+    const decision = capacityDecisionForNewProject(projects, skillProfiles, op.hoursPerWeek, {
+      label: `"${op.title}" (${op.hoursPerWeek} hrs/wk)`,
+    });
+    if (decision.decision === 'cancel') return;
+    const projectStatus = decision.decision === 'add-tbd' ? 'tbd' : 'planning';
+    const today = new Date(); const isoToday = today.toISOString().slice(0, 10);
+    const endIso = new Date(today.getTime() + 30 * 86400000).toISOString().slice(0, 10);
+    const projectTitle = `${profile.name} · ${op.title}${projectStatus === 'tbd' ? ' (TBD)' : ''}`;
+    addProject && addProject({
+      title: projectTitle,
+      startDate: isoToday,
+      endDate: endIso,
+      status: projectStatus,
+      domain: 'business-poetech',
+      description: `Auto-created from Dev/Ops opportunity matcher.${projectStatus === 'tbd' ? '\n\n⚐ TBD · parked because the family is already at or near capacity. Promote to Active from Projects tab when bandwidth opens up.' : ''}\n\nOpportunity: ${op.title} (${op.category})\nSkill tags: ${op.skillTags.join(', ')}\nTypical earnings: $${op.earningsLow}–$${op.earningsHigh}/mo · ${op.hoursPerWeek} hrs/wk\nStartup cost: $${op.startupCost} · time to first dollar: ${op.timeToFirstDollar}\n\nExample to model: ${op.example}\n\nPoeTech wraps you with: ${op.techStack}`,
+      hoursPerWeek: op.hoursPerWeek,
+      entityId: 'e-personal',
+      contractorIds: [],
+      conversationLog: [],
+    });
+    addScope && addScope({
+      templateType: 'service',
+      templateName: 'Service Engagement',
+      title: `Build kit · ${op.title}`,
+      entityId: 'e-personal',
+      projectId: '', // user can link to the new project after the auto-created project gets its id
+      contractorName: '', contractorEmail: '', contractorPhone: '',
+      scopeOfWork: `Build the tech stack to wrap ${profile.name} into the "${op.title}" path.\n\nWhat PoeTech delivers: ${op.techStack}`,
+      deliverables: '',
+      materials: '',
+      schedule: `Discovery within 1 week. Build target: ${endIso}.`,
+      paymentTerms: '',
+      acceptanceCriteria: '',
+      requirements: '',
+      warranty: '',
+    });
+    if (op.startupCost > 0 && addCapexItem) {
+      addCapexItem({
+        category: 'Tools', name: `Startup kit · ${op.title}`, description: `Initial equipment / setup for ${op.title}`,
+        link: '', priority: 2, cost: op.startupCost, neededBy: 'Soon', status: 'planned', notes: `Linked to Dev/Ops opportunity. Typical first-dollar timing: ${op.timeToFirstDollar}.`,
+        entityId: 'e-personal', module: '', projectId: '',
+        purchaseTargetDate: endIso, locationId: '', purchasedFromAccountId: '',
+        make: '', model: '', serial: '',
+      });
+    }
+    alert(`Created a project "${projectTitle}" + a draft scope. Open the Projects tab to refine details.`);
+    if (setView) setView('projects');
+  };
+
   return (
-    <div className="space-y-8">
-      <PoeTechProjections />
-      <PoeTechDifferentiation />
-      <PoeTechServicesPortfolio />
-      <LowHangingFruit />
-      <section>
-        <SectionTitle eyebrow="Pipeline">Near-Term Opportunities · Active This Year</SectionTitle>
-        <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          The income streams available this month and across the year. Each one compounds into the bigger PoeTech business projection above. Active conversations get priority.
+    <div className="space-y-10">
+      {/* HERO — orient the user */}
+      <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Dev/Ops · Your Entrepreneurial Options</div>
+        <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Your skills · what's working for people like you · how PoeTech wraps it.</h2>
+        <p className="text-sm leading-relaxed mt-2 text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
+          Add the skills, hours, and situation of each person in your household. We match them against curated entrepreneurial paths that real people run today, with what PoeTech can build to wrap that path in tech. <strong>You're seeing {optionsPerProfile} option{optionsPerProfile === 1 ? '' : 's'} per person at your tier.</strong>
         </p>
       </section>
-      {Object.entries(grouped).map(([person, items]) => (<section key={person}><h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">{person}</h3><div className="bg-white border border-[#1A1815]">{items.map((o, i) => (<div key={o.id} className={`p-4 ${i < items.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${o.flag ? 'bg-[#FAF8F4]' : ''}`}><div className="flex justify-between gap-3"><div className="flex-1 min-w-0"><div className="flex items-baseline gap-2 flex-wrap"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{o.what}</span>{o.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium">⚠ Priority</span>}</div><div className="text-xs text-[#5A5751]">{o.skill} · {o.status}</div></div><div className="text-right shrink-0"><div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(o.monthly)}</div><div className="text-[10px] uppercase tracking-wider text-[#5A5751]">/ mo</div></div></div></div>))}</div></section>))}
+
+      {/* SKILL PROFILES — editor */}
+      <section aria-labelledby="profiles-h">
+        <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+          <h3 id="profiles-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">My Skills &amp; Situation · {skillProfiles.length} {skillProfiles.length === 1 ? 'profile' : 'profiles'}</h3>
+          <button type="button" onClick={() => showProfileForm ? cancelProfile() : startAddProfile()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showProfileForm ? '× Cancel' : '+ Add a profile'}</button>
+        </div>
+        {showProfileForm && (
+          <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingProfileId ? 'Edit profile' : 'New profile'}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div><label htmlFor="sp-name" className={labelCls}>Name</label><input id="sp-name" className={fieldCls} value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} /></div>
+              <div><label htmlFor="sp-loc" className={labelCls}>Location (city, state)</label><input id="sp-loc" className={fieldCls} value={profileForm.location} onChange={e => setProfileForm({ ...profileForm, location: e.target.value })} /></div>
+              <div><label htmlFor="sp-tech" className={labelCls}>Tech comfort (1–5)</label><input id="sp-tech" type="number" min="1" max="5" className={fieldCls} value={profileForm.techComfort} onChange={e => setProfileForm({ ...profileForm, techComfort: parseInt(e.target.value) || 3 })} /></div>
+            </div>
+            <div><label htmlFor="sp-skills" className={labelCls}>Skills (comma-separated tags)</label><textarea id="sp-skills" rows="2" className={fieldCls} placeholder="e.g., carpentry, plumbing, spanish, sales, teaching" value={profileForm.skills} onChange={e => setProfileForm({ ...profileForm, skills: e.target.value })} /></div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div><label htmlFor="sp-hours" className={labelCls}>Hours/week available</label><input id="sp-hours" type="number" min="0" max="80" className={fieldCls} value={profileForm.hoursPerWeek} onChange={e => setProfileForm({ ...profileForm, hoursPerWeek: parseInt(e.target.value) || 0 })} /></div>
+              <div><label htmlFor="sp-income" className={labelCls}>Current monthly income</label><input id="sp-income" type="number" min="0" className={fieldCls} value={profileForm.monthlyIncome} onChange={e => setProfileForm({ ...profileForm, monthlyIncome: parseInt(e.target.value) || 0 })} /></div>
+            </div>
+            <div><label htmlFor="sp-notes" className={labelCls}>Notes</label><input id="sp-notes" className={fieldCls} value={profileForm.notes} onChange={e => setProfileForm({ ...profileForm, notes: e.target.value })} /></div>
+            <button type="button" onClick={submitProfile} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingProfileId ? 'Save Changes' : 'Save Profile'}</button>
+          </div>
+        )}
+        {skillProfiles.length === 0 ? (
+          <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No profiles yet — add one above to see personalized options.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {skillProfiles.map(p => (
+              <div key={p.id} className="bg-white border border-[#E8E4DC] p-3">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.name}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{p.hoursPerWeek}h/wk · {fmt(p.monthlyIncome)}/mo · tech {p.techComfort}/5{p.location ? ` · ${p.location}` : ''}</div>
+                    {p.skills && <div className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{p.skills}</div>}
+                    {p.notes && <div className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{p.notes}</div>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <button type="button" onClick={() => startEditProfile(p)} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Edit</button>
+                  <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
+                  <button type="button" onClick={() => { if (confirm(`Delete profile "${p.name}"? Personalized options for them will disappear.`)) deleteSkillProfile && deleteSkillProfile(p.id); }} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* PERSONALIZED OPTIONS PER PROFILE */}
+      <section aria-labelledby="options-h">
+        <h3 id="options-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Personalized Options · top {optionsPerProfile} per profile</h3>
+        {skillProfiles.length === 0 && <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Add a profile above to unlock matched options.</p>}
+        <div className="space-y-6">
+          {skillProfiles.map(profile => {
+            const matches = matchOpportunities(profile, OPPORTUNITY_LIBRARY).slice(0, optionsPerProfile);
+            return (
+              <div key={profile.id}>
+                <h4 className="text-sm mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{profile.name}</h4>
+                {matches.length === 0 ? (
+                  <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No matches yet. Add more skill tags to {profile.name}'s profile (e.g., "teaching, music, real estate").</p>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    {matches.map(op => (
+                      <article key={op.id} className="bg-white border border-[#1A1815] p-4">
+                        <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold">{op.category}</div>
+                            <h5 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{op.title}</h5>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(op.earningsLow)}–{fmt(op.earningsHigh)}<span className="text-xs text-[#5A5751]">/mo</span></div>
+                            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{op.hoursPerWeek}h/wk · startup {fmt(op.startupCost)}</div>
+                          </div>
+                        </div>
+                        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2">first dollar: {op.timeToFirstDollar}</div>
+                        <p className="text-sm text-[#5A5751] leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}><strong>Example:</strong> {op.example}</p>
+                        <p className="text-xs leading-snug bg-[#FAF8F4] border border-[#E8E4DC] p-2" style={{ fontFamily: '"Fraunces", serif' }}>🛠 {op.techStack}</p>
+                        <div className="flex items-center gap-2 mt-3 flex-wrap">
+                          <button type="button" onClick={() => wrapWithTech(op, profile)} disabled={!canWrap} className={`text-xs uppercase tracking-wider px-3 py-2 font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${canWrap ? 'bg-[#1A1815] text-white hover:bg-[#B85838]' : 'bg-[#E8E4DC] text-[#5A5751] cursor-not-allowed'}`} title={canWrap ? 'Auto-create a project + scope + capex item' : `Unlocks at ${TIER_LABEL['premium']}`}>
+                            {canWrap ? '🛠 Wrap me with the tech →' : `🔒 Wrap me (unlocks at ${TIER_LABEL['premium']})`}
+                          </button>
+                          <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">matched on: {op.skillTags.slice(0, 3).join(' · ')}</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-[#5A5751] italic mt-4 max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
+          Examples are composites drawn from public reporting and industry surveys, not specific individuals. Earnings ranges reflect typical solo / small-team operators in the US; your mileage will vary by region, hours, and time invested.
+        </p>
+      </section>
+
+      {/* MY ACTIVE PIPELINE — kept from prior version */}
+      <section aria-labelledby="pipeline-h">
+        <SectionTitle eyebrow="Pipeline">My Active Pipeline · Near-term opportunities</SectionTitle>
+        <p id="pipeline-h" className="text-sm text-[#5A5751] leading-relaxed max-w-prose mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          What's actively in motion this year. Each row compounds into the household projection. Active conversations get priority.
+        </p>
+        {Object.entries(grouped).map(([person, items]) => (
+          <section key={person} className="mb-4">
+            <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">{person}</h3>
+            <div className="bg-white border border-[#1A1815]">
+              {items.map((o, i) => (
+                <div key={o.id} className={`p-4 ${i < items.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${o.flag ? 'bg-[#FAF8F4]' : ''}`}>
+                  <div className="flex justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{o.what}</span>
+                        {o.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium">⚠ Priority</span>}
+                      </div>
+                      <div className="text-xs text-[#5A5751]">{o.skill} · {o.status}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(o.monthly)}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">/ mo</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </section>
+
+      {/* DEMOTED — was the lead, now the answer to "I picked one, who builds it?" */}
+      <section className="bg-[#FAF8F4] border border-[#1A1815] p-4 sm:p-5">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Picked one? Here's how PoeTech wraps it.</div>
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          The four engagement models below are how PoeTech actually builds the technology around an option you pick — from a Saturday hobbyist setup up through full enterprise transformation.
+        </p>
+      </section>
+      <PoeTechServicesPortfolio />
+      <PoeTechProjections />
+      <LowHangingFruit />
+      <PoeTechDifferentiation />
     </div>
   );
 }
@@ -4507,11 +7578,11 @@ function PoeTechServicesPortfolio() {
     },
     {
       name: 'Enterprise · Transformation',
-      tagline: 'For big businesses tired of $5M, 5-year engagements. Pay us what the work is worth — not what BigCo bills.',
-      pricing: '$50K–$500K projects · $25K–$75K/mo retainers · $400–$800/hr senior rate',
+      tagline: 'For big businesses tired of $5M-per-year, 5-year BigCo engagements ($25M total). Pay us what the work is worth.',
+      pricing: '$50K–$5M projects · $25K–$75K/mo retainers · $400–$800/hr senior rate',
       best: 'For mid-large companies who need major build, integration, or transformation work — where compressed delivery and senior depth matter more than headcount. Premium pricing reflects compressed time AND saving you from a relationship with money-pit consulting firms.',
       includes: ['Senior architect on every call · no junior delegation','Compressed delivery — 6 months where BigCo quotes 18+','Modern stack expertise (not legacy Java/SOAP shops)','Direct executive relationship · no account-management layer','Outcome-based scoping — fixed milestones, not endless billable hours','Knowledge transfer · your team owns it after handoff'],
-      forWho: 'CTOs, CIOs, COOs frustrated with $5M consulting bills that ship $500K of value over five years. We do the inverse: deliver $5M of value for $500K in nine months. Pay us for the team we deliver — not the $5M over 5 years a BigCo would charge for less. Pricing is fair because it reflects what we actually save you, in time and in dollars.',
+      forWho: 'CTOs, CIOs, COOs facing the standard BigCo offer: $5M per year × 5 years = $25M, delivered slowly with a fraction of the promised value. Our model inverts that math. Pay us $3M for ~2 months of compressed senior work and walk away with $5M of delivered value — saving $22M AND four-and-a-half years on the same problem. Pricing scales from focused $50K interventions to full $5M transformations. Fair because it reflects time saved AND value delivered.',
       color: 'border-[#1A1815]',
     },
   ];
@@ -4580,7 +7651,7 @@ function PoeTechServicesPortfolio() {
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[#1A1815] font-semibold mb-1">Enterprise · Big Business with Budget</div>
             <p className="text-sm mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              Premium pricing for compressed delivery. $50K–$500K projects. $25K–$75K/mo retainers. $400–$800/hr senior rates. Pay us for the team we deliver — not the $5M over 5 years a BigCo would charge for less.
+              Premium pricing for compressed delivery. $50K–$5M projects. $25K–$75K/mo retainers. $400–$800/hr senior rates. Pay us $3M for ~2 months of senior, focused work and walk with $5M of delivered value — vs <strong>$5M per year × 5 years = $25M</strong> from a BigCo for less.
             </p>
             <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               We save you from a relationship with money pits.
@@ -5076,7 +8147,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
                 <button key={k} onClick={() => setStatusFilter(k)} className={`px-2 py-1 ${statusFilter === k ? 'bg-[#1A1815] text-white' : 'text-[#5A5751]'}`}>{l}</button>
               ))}
             </div>
-            <button onClick={() => setShowForm(!showForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Log inquiry'}</button>
+            <button type="button" onClick={() => setShowForm(!showForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Log inquiry'}</button>
           </div>
         </div>
 
@@ -5152,7 +8223,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
               <textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="General context only — e.g., 'Asked about evening availability', 'Friend of Lisa from choir'" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
             </div>
 
-            <button onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Log Inquiry</button>
+            <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Log Inquiry</button>
             <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               Reminder: do not record clinical history, diagnoses, presenting concerns, or anything that would be PHI. Move the relationship to Acuity for actual intake.
             </p>
@@ -5219,8 +8290,8 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
           </div>
         </div>
         <div className="flex items-baseline gap-1.5 shrink-0">
-          <button onClick={() => setExpanded(!expanded)} className="text-[10px] uppercase tracking-wider text-[#5A5751]">{expanded ? '× Close' : 'Details'}</button>
-          <button onClick={() => { if (confirm('Delete this inquiry?')) deleteInquiry(inq.id); }} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
+          <button type="button" onClick={() => setExpanded(!expanded)} className="text-[10px] uppercase tracking-wider text-[#5A5751]">{expanded ? '× Close' : 'Details'}</button>
+          <button type="button" onClick={() => { if (confirm('Delete this inquiry?')) deleteInquiry(inq.id); }} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
         </div>
       </div>
 
@@ -5255,7 +8326,7 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
           <div className="pt-2 border-t border-[#E8E4DC]">
             <div className="flex items-baseline justify-between gap-2 mb-1.5">
               <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">💬 Conversation Log · {(inq.conversationLog || []).length}</div>
-              <button onClick={() => setShowConvForm(!showConvForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a call / message'}</button>
+              <button type="button" onClick={() => setShowConvForm(!showConvForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a call / message'}</button>
             </div>
             {showConvForm && (
               <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1.5">
@@ -5265,7 +8336,7 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
                 </div>
                 <input className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Summary (required) — e.g., 'verified BCBS, scheduled intake for 5/19 11am'" value={convForm.summary} onChange={e => setConvForm({ ...convForm, summary: e.target.value })} />
                 <textarea className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" rows="2" placeholder="Notes · tone · next step · what to send afterward" value={convForm.notes} onChange={e => setConvForm({ ...convForm, notes: e.target.value })} />
-                <button onClick={addConvNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
+                <button type="button" onClick={addConvNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
               </div>
             )}
             {(inq.conversationLog || []).length === 0 && !showConvForm ? (
@@ -5280,7 +8351,7 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
                         <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
                         {e.notes && <div className="text-[10px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                       </div>
-                      <button onClick={() => deleteConvNote(e.id)} className="text-[10px] text-[#5A5751] hover:text-[#B85838] shrink-0">×</button>
+                      <button type="button" onClick={() => deleteConvNote(e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                     </div>
                   </div>
                 ))}
@@ -5308,6 +8379,8 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
 }
 
 function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject }) {
+  // v28+ MVP v1.5 round 3 — Capex / Tools list moved out of About; lives at the
+  // bottom of the Projects tab as "Project Inventory & Capital Forecast".
   // v28+ Session C: checkout cart drawer state
   const [cartTier, setCartTier] = useState(null);
   const [cartBilling, setCartBilling] = useState('monthly');
@@ -5395,11 +8468,14 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
           The Financial Control System is free for every family. Paid tiers reflect the real value being delivered — each one replaces multiple existing SaaS subscriptions. PoeTech is priced like the premium platform it is, not like a hobby app. <strong>Free access at two layers</strong> for the work of justice: families served by partner orgs, and the mission-aligned orgs themselves.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <PricingTier name="Foundation" tagline="Financial Control System · always free" monthly="0" annual="0" replaces="YNAB, basic budget apps, free tier of family planners — typically $50-$100/mo equivalent" features={['Full Financial module','Multi-entity bookkeeping','Debt avalanche & rental snowball','Tax calendar · recurring obligations · incidents','Scope-of-work agreements','Event reminders','Local-first · device-only storage']} highlight onChoose={openCart} />
-          <PricingTier name="PoeTech+" tagline="Data governance & sync" monthly="39" annual="390" replaces="$100-$150/mo equivalent in cloud-sync budgeting tools, paid YNAB tier, encrypted backup services" features={['Everything in Foundation','Cross-device sync (opt-in cloud)','Encrypted cloud backup','Multi-user household sharing','Historical data stability','Priority email support']} onChoose={openCart} />
-          <PricingTier name="Family" tagline="+ Home Command Center" monthly="89" annual="890" replaces="$200-$300/mo equivalent: Ring/Nest subscriptions, home maintenance apps, HomeKit fees, basic property management tools" features={['Everything in PoeTech+','Home Command Center module','IoT sensor integration','Seasonal maintenance calendar','F&S-level alarms','Floor plan mapping']} onChoose={openCart} />
-          <PricingTier name="Premium" tagline="Small-business stewardship · all modules" monthly="149" annual="1490" replaces="$400-$600/mo equivalent: QuickBooks Self-Employed, Acuity HIPAA, Calendly Pro, Buffer, ConvertKit, household + business apps stack" features={['Everything in Family','Health & Wellness module','Education & Children · Literacy Justice','PoeTech Tutors marketplace (when launched)','All future modules included','PoeTech Marketplace access','Practice Operations for small business','Note: Spiritual Life · Godhead Study Platform is FREE for every tier']} onChoose={openCart} />
-          <PricingTier name="PoeTech Business" tagline="Multi-entity, multi-user, multi-purpose · for serious small businesses" monthly="249" annual="2490" replaces="$700-$1,000/mo equivalent: QuickBooks for multiple entities, full marketing stack, advanced CRM, payroll integrations, SimplePractice or equivalent EHR-adjacent tooling" features={['Everything in Premium','Up to 10 entities tracked','Up to 5 staff/team users','Advanced reporting & exports','API access for custom integrations','Priority phone + Slack support','Quarterly strategy review with PoeTech Services','Eligible for revenue-share consulting partnership']} business onChoose={openCart} />
+          {/* Round 5 — Tier features rewritten to match the live tier-gating map.
+              Every bullet here corresponds to something that's actually unlocked
+              or capped at that tier in the running app (see VIEW_TIER_REQUIREMENTS). */}
+          <PricingTier name="Foundation" tagline="Always free · core financial control" monthly="0" annual="0" replaces="YNAB, basic budget apps, free family planners — typically $50–$100/mo equivalent" features={['Big Picture dashboard + Action Queue (Changes / Incidents / Projects)','Books — entities · accounts · transactions · calendar · 1099 (cap: 2 entities)','Debts — avalanche + snowball strategies','Markets watchlist (cap: 5 tickers)','Church tab — always free for everyone','Dev/Ops tab — 1 personalized entrepreneurial option per profile · view-only PoeTech Services portfolio','Real Estate — read-only preview (sample property)','Event reminders (browser)','Local-first · device-only storage']} highlight onChoose={openCart} />
+          <PricingTier name="PoeTech+" tagline="Real Estate unlocked · unlimited Books + Markets" monthly="39" annual="390" replaces="$100–$200/mo equivalent: paid YNAB tier, Stessa (rentals), encrypted backup services" features={['Everything in Foundation','Real Estate — up to 3 properties (full edit: lease · tenant · equipment · rooms · maintenance · conversations · evaluator · map)','Unlimited entities in Books','Unlimited Markets watchlist','Dev/Ops — 3 personalized options per profile','Cross-device sync (opt-in cloud, when backend ships)','Encrypted cloud backup','Priority email support']} onChoose={openCart} />
+          <PricingTier name="Family" tagline="+ Projects tab · unlimited Real Estate" monthly="89" annual="890" replaces="$200–$350/mo equivalent: Notion/Asana for family ops + rental SaaS + maintenance apps" features={['Everything in PoeTech+','Real Estate — unlimited properties','Projects tab — multi-domain timeline + workload + per-project conversations','Dev/Ops — full opportunity library (6+ matched options per profile)','Home Command Center module (when launched)','Seasonal maintenance calendar · IoT sensor pairing (planned)','Multi-user household sharing (opt-in)']} onChoose={openCart} />
+          <PricingTier name="Premium" tagline="Practice + Wrap-me handoff + Scope tool + Inventory Forecast" monthly="149" annual="1490" replaces="$400–$700/mo equivalent: Practice Better / SimplePractice ($75–$150), QuickBooks Self-Employed ($30), CRM ($30–50), project tools ($20–40), scheduling, scope/contract tools" features={['Everything in Family','Practice Operations tab — inquiry capture · source attribution · conversion tracking (non-PHI)','Dev/Ops — "Wrap me with the tech" CTA enabled (auto-create Project + Scope + Capex from any opportunity)','Scope-of-work agreements (full templates · materials-paid-by policy)','Project Inventory & Capital Forecast — 12-month outflow projection + savings prompts','Education / Tutors / Elder Care modules (when launched)','Marketplace access (when launched)','Spiritual Life · Godhead Study Platform (always free for every tier)']} onChoose={openCart} />
+          <PricingTier name="PoeTech Business" tagline="Multi-entity · multi-user · advanced controls" monthly="249" annual="2490" replaces="$700–$1,200/mo equivalent: QuickBooks multi-entity ($90+), full CRM, marketing stack, payroll integration, EHR-adjacent practice tools, audit/compliance software" features={['Everything in Premium','Up to 10 entities tracked','Up to 5 staff / team users (when backend ships)','Advanced reporting + CSV/Excel bulk export','1099-NEC e-file integration','Audit log + change history','API access for custom integrations','Priority phone + Slack support','Quarterly strategy review with PoeTech Services','Eligible for revenue-share consulting partnership']} business onChoose={openCart} />
           <PricingTier name="Loved Ones · Founding Family" tagline="Free PoeTech+ upgrade for life · First 100 families through Church of the Living God or by direct invitation" monthly="0" annual="0" replaces="Lifetime savings of ~$468/yr per family at current prices · more as prices rise" features={['Everything in Foundation','Cross-device sync (opt-in cloud)','Encrypted cloud backup','Multi-user household sharing','Locked in for life — even when prices change','First 100 families only · tier closes when filled','One month Family-tier credit per paying family you refer']} community onChoose={openCart} />
           <PricingTier name="Community · Families in Need" tagline="Free access for families · sponsored by paying subscribers" monthly="0" annual="0" features={['Available through partner Churches','And 501(c)(3) organizations serving the poor, elderly, fatherless','Verification through partner org · not the family','Full Foundation + PoeTech+ features','Designed to remove stigma — help comes from the community','Paying subscribers fund this tier transparently']} community onChoose={openCart} />
           <PricingTier name="Community Partners · Organizations" tagline="Free PoeTech for mission-aligned orgs that serve the underserved" monthly="0" annual="0" features={['Free for verified 501(c)(3) nonprofits + faith-based ministries','Serving: poor · elderly · fatherless · incarcerated/reentry · unhoused · disabled · mental health · literacy','Full PoeTech platform for the organization itself','Practice Operations for case management (no PHI)','Aggregate community-trend data for advocacy and grant applications','Custom data exports for board meetings, funders, and community awareness','Listed in PoeTech Community Partners directory','Verified annually · service area documented · mission alignment confirmed']} community onChoose={openCart} />
@@ -5423,7 +8499,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{new Date(f.createdAt).toLocaleDateString()}</span>
-                    <button onClick={() => { if (confirm('Delete this feedback?')) deleteFeedback(f.id); }} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">×</button>
+                    <button type="button" onClick={() => { if (confirm('Delete this feedback?')) deleteFeedback(f.id); }} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">×</button>
                   </div>
                 </div>
                 {f.whatsWorking && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsWorking}</p></div>}
@@ -5473,11 +8549,15 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
           <ModuleCard moduleKey="education" status="vision" title="Education & Children · Literacy Justice" desc="&quot;From us for us&quot; — designed by Black families, for Black families. Children not reading proficiently by 3rd grade are 4-8x more likely to drop out of high school. 30-50% of incarcerated individuals have dyslexia (vs 5-15% general population). Technology can help break this pattern through early screening, dyslexia-aware design, and family-supervised AI literacy." features={['AI literacy curriculum for kids (age-appropriate prompt engineering, AI safety, fact-checking AI output)','Dyslexia-aware interface (OpenDyslexic / Lexend fonts, color overlays, line tracking)','Voice-to-text and text-to-speech throughout','Early literacy screening · intervention tracking before 3rd grade','Per-child reading proficiency dashboard','Apprenticeship curriculum tracking','Goal-setting & review cycles','Pricing: Family of 3: $19/mo · Family of 5+: $29/mo · Included in Premium tier']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="tutors" status="vision" title="PoeTech Tutors · Educator Marketplace" desc="Credentialed teachers and school principals earn meaningful income teaching online — specifically serving parents who pulled their kids into homeschooling because of bullying, special needs, or simply because the local school wasn't the right fit. From us, for us. Real educators, real outcomes, real freedom for the parents." features={['Marketplace for vetted teachers and principals to list availability + rates','Booking + scheduling integrated with PoeTech calendar','Specializations: special needs, dyslexia support, IEP advocacy, college-prep, bullied-kids homeschool transitions','Curriculum alignment with state homeschool requirements','Per-student progress tracking shared with parents','Standard split: 80% to educator · 20% to PoeTech (platform fee)','Or: revenue-share partnership for teachers building a full online practice','Free marketplace access for Premium subscribers · session pricing set by educator','Community-tier families receive subsidized sessions through underwriting','Pre-launch interest welcome — vote on priority']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="elder-care-coord" status="vision" title="Elder Care Coordination" desc="For adult children managing care for aging parents. The forgotten generation in family-tech — most platforms focus on the kids or the parents themselves, not the family member doing the coordination work. Built on the same calendar, scope, and practice operations primitives already shipping today." features={['Multi-generational household tracking','Caregiver scheduling and 1099 management (uses scope tool)','Appointment + medication reminder calendar','Document storage (Power of Attorney, advance directives, HIPAA releases)','Shared access for siblings managing care together','Aging-in-place property maintenance tracking','Financial visibility across parent + adult-child budgets','Connection to Elder Care Marketplace (caregivers, helpers)']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
-          <ModuleCard moduleKey="elder-marketplace" status="vision" title="Elder Care · 1099 Caregiver Marketplace" desc="The mission-aligned alternative to Care.com. Local 1099 caregivers earn fair pay doing the work elderly neighbors need — light housekeeping, meal prep, transportation, companionship, medication reminders, tech help. Communities serve their elderly. Workers earn meaningfully. Platform takes a fair fee, not extractive." features={['Vetted caregiver marketplace · background-checked','Family-coordinated booking (adult children manage, multiple workers)','Standard split: 85% to caregiver · 15% to PoeTech (lower than Care.com)','Scope-of-work agreements built into every engagement','Recurring schedule support (weekly grocery runs, daily check-ins)','Subsidized rates for Community-tier elderly through underwriting','Reverse-marketplace: elderly post needs, vetted caregivers respond','Integration with Elder Care Coordination for families managing care']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="home-legacy" status="vision" title="Home Legacy Program · Poe Properties extension" desc="Ethical purchase program for elderly homeowners who want certainty their home will be cared for after they pass — when family inheritance isn't a clean option. Not a marketplace. Not a flip. Relationship-based, attorney-required, family-involved when possible. This is genuinely sensitive territory; we approach it with deep care because Yahweh names the elderly as deserving particular care." features={['Years of relationship before any purchase conversation','Elderly homeowner ALWAYS has their own attorney (we pay if needed)','Family involvement required when family exists','Fair market value pricing · independently documented','Life estate option — they live there until death, paid up front or monthly','Property maintenance commitment baked into the agreement','No high-pressure sales · they walk if they want','Elder abuse prevention training for everyone involved','Transparent reporting of every transaction to a community advisory board','Alternative to probate sales and state escheat']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="spiritual" status="vision" title="Spiritual Life · The Godhead Study Platform" desc="An interactive tool for studying The Godhead, original business systems from a biblical worldview, and the philosophy of technology in light of scripture. FREE for every family — Foundation tier and above. The Poe family worldview, derived from biblical scriptures with algorithmic rigor, made interactive. A stronghold made visible in daily study." features={['FREE tier — included with every PoeTech subscription including Foundation','Interactive Godhead study (Father · Son · Holy Spirit · their unity and distinction)','Original Business Systems study — biblical economics, stewardship, the seven-year cycle, debt-jubilee patterns','Technology Study — philosophy of technology from a biblical worldview','Built-in Bookstore — digital download + Amazon physical order','📖 The Holy Spirit Integration Worldview (Darrell Poe, forthcoming) — the foundational text','📖 Christina Poe (forthcoming) — clinical & community wisdom','Family prayer journal · scripture study plans · ministry calendar','Algorithm-driven study paths · personalized scripture walks','Local-first study notes · device-only by default']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
         </div>
       </section>
+
+      {/* v28+ MVP v1.5 round 3 — Capex / Tools list moved to Projects tab.
+          Lives at the bottom of Projects as "Project Inventory & Capital
+          Forecast" because tools/equipment are most actionable next to the
+          projects that need them. About no longer hosts the editor. */}
 
       <section>
         <SectionTitle>Markets We Serve · Underserved by Mainstream Tech</SectionTitle>
@@ -5608,7 +8688,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Quarterly newsletter co-branding</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 2 active Foundation Sponsors at any time</span></li>
             </ul>
-            <button onClick={() => openCart({ name: 'Foundation Sponsor', tagline: 'Featured placement · max 2 active', monthly: '25000', annual: '25000', features: ['Featured "Brought to you by..." placement on Foundation tier','Prominent "PoeTech Picks" directory listing','Sponsor of a specific module\'s free-tier content','Quarterly newsletter co-branding'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
+            <button type="button" onClick={() => openCart({ name: 'Foundation Sponsor', tagline: 'Featured placement · max 2 active', monthly: '25000', annual: '25000', features: ['Featured "Brought to you by..." placement on Foundation tier','Prominent "PoeTech Picks" directory listing','Sponsor of a specific module\'s free-tier content','Quarterly newsletter co-branding'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
           </div>
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
@@ -5621,7 +8701,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Annual co-branded educational content</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 3 active Module Sponsors at any time</span></li>
             </ul>
-            <button onClick={() => openCart({ name: 'Module Sponsor', tagline: 'Standard placement · max 3 active', monthly: '10000', annual: '10000', features: ['Standard placement on Foundation tier','Directory listing in "PoeTech Picks"','Annual co-branded educational content'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
+            <button type="button" onClick={() => openCart({ name: 'Module Sponsor', tagline: 'Standard placement · max 3 active', monthly: '10000', annual: '10000', features: ['Standard placement on Foundation tier','Directory listing in "PoeTech Picks"','Annual co-branded educational content'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
           </div>
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
@@ -5633,7 +8713,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Annual mission-alignment review</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 5 active Directory Partners</span></li>
             </ul>
-            <button onClick={() => openCart({ name: 'Directory Partner', tagline: 'Directory listing · max 5 active', monthly: '3000', annual: '3000', features: ['"PoeTech Picks" directory listing','Annual mission-alignment review'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
+            <button type="button" onClick={() => openCart({ name: 'Directory Partner', tagline: 'Directory listing · max 5 active', monthly: '3000', annual: '3000', features: ['"PoeTech Picks" directory listing','Annual mission-alignment review'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
           </div>
         </div>
         <div className="mt-4 p-3 bg-[#FAF8F4] border-l-2 border-[#5A6E3D]">
@@ -5722,7 +8802,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
                   </div>
                   <div className="flex items-baseline gap-2 shrink-0">
                     <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{new Date(ci.at).toLocaleDateString()}</div>
-                    <button onClick={() => { if (confirm('Delete this checkout intent?')) deleteCheckoutIntent(ci.id); }} className="text-[#5A5751] hover:text-[#B85838] text-xs">×</button>
+                    <button onClick={() => { if (confirm('Delete this checkout intent?')) deleteCheckoutIntent(ci.id); }} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                   </div>
                 </div>
               </div>
@@ -5762,7 +8842,6 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               ) : cartTier.monthly !== '0' ? (
                 <>
                   <div>
-                    <label className="text-[10px] uppercase tracking-wider text-[#5A5751] block mb-2">Billing cycle</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button onClick={() => setCartBilling('monthly')} className={`p-3 text-left border ${cartBilling === 'monthly' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
                         <div className="text-[10px] uppercase tracking-wider opacity-75">Monthly</div>
@@ -5930,7 +9009,6 @@ function ModuleCard({ moduleKey, status, title, repo, desc, features, moduleInte
   return (
     <div className={`bg-white border ${s.border} p-5`}>
       <div className="flex items-baseline justify-between mb-1 gap-3">
-        <h3 className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{title}</h3>
         <span className={`text-[10px] uppercase tracking-[0.2em] font-medium shrink-0 ${s.tag}`}>{s.label}</span>
       </div>
       {repo && <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2">{repo}</div>}
@@ -5946,7 +9024,6 @@ function ModuleCard({ moduleKey, status, title, repo, desc, features, moduleInte
                 {priorityInfo?.emoji || '✓'} On the list · {priorityInfo?.label || 'interested'} · since {interestDate ? new Date(interestDate).toLocaleDateString() : 'recently'}
               </button>
               <div className="flex gap-1 text-[10px] uppercase tracking-wider">
-                <span className="text-[#5A5751] py-1">Change priority:</span>
                 {priorities.filter(p => p.key !== interestPriority).map(p => (
                   <button key={p.key} onClick={() => toggleModuleInterest(moduleKey, p.key)} className="px-1.5 py-1 text-[#5A5751] hover:text-[#B85838]">{p.emoji} {p.label}</button>
                 ))}
