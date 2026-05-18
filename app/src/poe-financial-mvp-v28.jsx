@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle, MetricCell } from './components/shared.jsx';
 import About from './components/About.jsx';
 import { LegalPlaceholder } from './components/Legal.jsx';
+import { Contractors1099 } from './components/Contractors1099.jsx';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -949,6 +950,10 @@ export default function PoeFinancialSystem() {
   const deleteProject = (id) => setData(d => ({ ...d, projects: (d.projects || []).filter(p => p.id !== id) }));
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
+  // r25 — 1099 contractor CRUD per EDITABLE-EVERYWHERE.md.
+  const addContractor = (item) => setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), { ...item, id: `k-${Date.now()}` }] }));
+  const updateContractor = (id, updates) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c) }));
+  const deleteContractor = (id) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).filter(c => c.id !== id) }));
   const deleteSubscription = (id) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).filter(s => s.id !== id) }));
   // Feedback — seeded with lifecycle so the new → reviewed → planned → shipped flow has an audit trail.
   const addFeedback = (item) => setData(d => {
@@ -1327,7 +1332,7 @@ html{scroll-padding-bottom:280px}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} />}
             {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} />}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
-            {booksView === 'k1099' && <ThousandNinetyNine contractors={data.contractors1099} />}
+            {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
             {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} />}
           </>
@@ -7573,11 +7578,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
   );
 }
 
-function ThousandNinetyNine({ contractors }) {
-  const outbound = contractors.filter(c => c.direction === 'outbound');
-  const inbound = contractors.filter(c => c.direction === 'inbound');
-  return (<div className="space-y-6"><section><SectionTitle>1099 Relationships</SectionTitle></section><section><h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Outbound</h3><div className="bg-white border border-[#1A1815]">{outbound.map((c, i) => (<div key={c.id} className={`p-4 ${i < outbound.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}><div className="flex justify-between"><div><div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{c.name}</div><div className="text-xs text-[#5A5751]">{c.role}</div></div><div className="text-right"><div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(c.ytdPaid)}</div><div className="text-[10px] uppercase tracking-wider text-[#5A5751]">YTD</div></div></div></div>))}</div></section><section><h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Inbound</h3><div className="bg-white border border-[#1A1815]">{inbound.map((c, i) => (<div key={c.id} className={`p-4 ${i < inbound.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}><div className="flex justify-between"><div><div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{c.name}</div><div className="text-xs text-[#5A5751]">{c.role}</div></div><div className="text-right"><div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(c.ytdReceived)}</div><div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{fmt(c.monthlyExpected)}/mo</div></div></div></div>))}</div></section></div>);
-}
+// ThousandNinetyNine moved to ./components/Contractors1099.jsx (r25) with inline edit.
 
 function Pressure({ pressure, setPressure, totals, pressureCalc, reserves, projection }) {
   return (<div className="space-y-8"><section><SectionTitle>Pressure Slider</SectionTitle><div className="bg-white border border-[#1A1815] p-5"><div className="flex items-baseline justify-between mb-2"><div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Current</div><div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{pressure}/10</div></div><input type="range" min="1" max="10" step="1" value={pressure} onChange={(e) => setPressure(parseInt(e.target.value))} className="w-full accent-[#B85838] mb-2" /><div className="flex justify-between text-[10px] uppercase tracking-wider text-[#5A5751]"><span>Loose</span><span>Moderate</span><span>Sprint</span></div><div className="mt-6 pt-6 border-t border-[#E8E4DC]"><div className="text-4xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 400 }}>{projection.debtFreeYears.toFixed(1)} years</div><div className="text-sm text-[#5A5751] mt-1">to consumer debt freedom</div></div><div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] mt-6 border border-[#E8E4DC]"><MetricCell label="Gross" value={fmt(pressureCalc.grossAvailable)} small /><MetricCell label="Reserves" value={fmt(pressureCalc.reservesDeducted)} small accent="rust" /><MetricCell label="To debt" value={fmt(pressureCalc.extraAvailable)} small /><MetricCell label="Rent capture" value={fmt(pressureCalc.rentCapture)} small /></div></div></section></div>);
@@ -9165,8 +9166,5 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
         </div>
       )}
     </div>
-  );
-}
-
   );
 }
