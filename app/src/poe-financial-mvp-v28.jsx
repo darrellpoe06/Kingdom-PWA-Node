@@ -4,6 +4,7 @@ import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle,
 import About from './components/About.jsx';
 import { LegalPlaceholder } from './components/Legal.jsx';
 import { Contractors1099 } from './components/Contractors1099.jsx';
+import { RentCastPrefill } from './components/connectors/RentCast.jsx';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -1373,6 +1374,7 @@ html{scroll-padding-bottom:280px}
                 incidents={data.incidents || []}
                 addIncident={addIncident}
                 resolveIncident={resolveIncident}
+                voiceOps={data.voiceOps || {}}
               />
             </>
           );
@@ -4406,7 +4408,7 @@ const ROOM_ITEM_STATUSES = [
 ];
 const EQUIPMENT_CATEGORIES = ['HVAC','Furnace','AC Unit','Water Heater','Refrigerator','Stove / Oven','Dishwasher','Washer','Dryer','Microwave','Garbage Disposal','Sump Pump','Roof','Electrical Panel','Garage Door','Other'];
 
-function PropertyDetails({ rental, updateRental }) {
+function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   // v28+ MVP v1.5 round 8 — Property valuation block (Zillow-style)
   // Characteristics + a market-value field + auto-built lookup links.
   // No paid API — links pre-fill each major site's search with the address,
@@ -4607,6 +4609,26 @@ function PropertyDetails({ rental, updateRental }) {
           {addressQuery ? (
             <div>
               <div className={labelCls + ' mb-1.5'}>Look up market value (opens in new tab → asks to save)</div>
+              {/* r27 — Auto-fill via RentCast BYOK. Each customer brings their
+                  own free RentCast key (50 calls/mo per key, no credit card).
+                  PoeTech central pays nothing. When the customer hits their
+                  50/mo cap, this falls back gracefully to the manual links
+                  below. Per MODULAR-EXTENSIBILITY.md + IDENTITY-ROLES-AUDIT
+                  + the founder's "no paid tier" direction (r27). */}
+              <div className="mb-2">
+                <RentCastPrefill
+                  rental={rental}
+                  apiUrl={voiceOps.apiUrl || ''}
+                  apiToken={voiceOps.apiToken || ''}
+                  onConfirm={(updates) => {
+                    const today = new Date().toISOString().slice(0, 10);
+                    setMarketForm(f => ({ ...f, marketValue: updates.marketValue, valueSource: 'rentcast', valueAsOf: today }));
+                    updateRental(rental.id, {
+                      market: { ...(rental.market || {}), ...updates, valueAsOf: today },
+                    });
+                  }}
+                />
+              </div>
               <div className="flex flex-wrap gap-1">
                 {lookupLinks.map(l => (
                   <a
@@ -4886,7 +4908,7 @@ function PropertyDetails({ rental, updateRental }) {
   );
 }
 
-function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident }) {
+function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, voiceOps = {} }) {
   // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
   // incident already pointed at it (if any) so we don't double-track.
   const openIncidentFor = (r) => incidents.find(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
@@ -5426,7 +5448,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   {openRecordsId === r.id && (
                     <div className="mt-3 pt-3 border-t border-[#E8E4DC] space-y-4">
                       {/* v28+ MVP v1.5: lease/tenant/equipment/rooms — Real Estate App carryover */}
-                      <PropertyDetails rental={r} updateRental={updateRental} />
+                      <PropertyDetails rental={r} updateRental={updateRental} voiceOps={voiceOps} />
                       {/* MAINTENANCE LOG */}
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -9154,7 +9176,6 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
                     <div className="flex items-baseline justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
-                        <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
                         {e.notes && <div className="text-[10px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                       </div>
                       <button type="button" onClick={() => deleteConvNote(e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
@@ -9184,7 +9205,3 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
   );
 }
 
-      </div>
-    </div>
-  );
-}

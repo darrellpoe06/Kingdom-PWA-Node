@@ -48,6 +48,15 @@ export default {
         return cors(env, await getMonthlyUsage(env));
       }
 
+      // r27 — Property valuation pre-fill via RentCast (https://www.rentcast.io/api).
+      // Free tier: 50 calls/month. Cached for 24h to extend the free allowance
+      // when the user re-opens the same property repeatedly. Returns normalized
+      // shape so the PWA can render it without knowing RentCast's exact schema.
+      if (url.pathname === '/property/lookup' && request.method === 'POST') {
+        if (!authPwa(request, env)) return cors(env, json({ error: 'unauthorized' }, 401));
+        return cors(env, await lookupProperty(env, await request.json().catch(() => ({}))));
+      }
+
       return cors(env, json({ error: 'not found' }, 404));
     } catch (e) {
       return cors(env, json({ error: e.message || 'internal error' }, 500));
@@ -254,4 +263,107 @@ function cors(env, res) {
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   headers.set('Vary', 'Origin');
   return new Response(res.body, { status: res.status, headers });
+}
+
+// -----------------------------------------------------------------------------
+// RentCast property lookup — proxies to https://api.rentcast.io/v1/avm/value
+// so the API key stays server-side. Caches lookups for 24h in D1 to stretch
+// the free 50-call/month allowance — re-opening the same property doesn't
+// burn a call.
+//
+// Cost model: FREE-TIER ONLY. No upgrade path, no paid plan exposed to users.
+// Per the Poe Family operating rule + founder direction r27.
+//
+// BYOK (bring-your-own-key): each customer deploys their own Worker (per
+// MULTI-INSTANCE-STRATEGY.md Phase 1) and runs `wrangler secret put` to set
+// their own RentCast key. That way each customer gets their own 50 free
+// calls/month — PoeTech central pays nothing.
+//
+// Setup (one-time, by the deployer/customer):
+//   1. Sign up at https://app.rentcast.io — free, no credit card required.
+//   2. Copy the API key from the dashboard.
+//   3. `wrangler secret put RENTCAST_API_KEY` (in this Worker's dir).
+//   4. `wrangler d1 execute poetech_voice_ops --file=migrations/0002_property_cache.sql`
+//
+// When the 50/mo limit hits: returns 429 with a friendly message. PWA falls
+// back to the existing manual Zillow/Realtor direct links. No upgrade prompt.
+// -----------------------------------------------------------------------------
+async function lookupProperty(env, body) {
+  const address = (body.address || '').trim();
+  const city = (body.city || '').trim();
+  const state = (body.state || '').trim();
+  const zip = (body.zip || '').trim();
+  if (!address || !city || !state) {
+    return json({ error: 'address, city, and state are required' }, 400);
+  }
+  if (!env.RENTCAST_API_KEY) {
+    return json({
+      error: 'rentcast-not-configured',
+      message: 'RentCast API key not set. Deployer must run: wrangler secret put RENTCAST_API_KEY',
+      setup_url: 'https://app.rentcast.io',
+    }, 503);
+  }
+  const fullAddress = `${address}, ${city}, ${state}${zip ? ' ' + zip : ''}`;
+  const cacheKey = `rentcast:${fullAddress.toLowerCase().replace(/\s+/g, ' ')}`;
+
+  // Check 24-hour cache
+  if (env.DB) {
+    try {
+      const cached = await env.DB.prepare(
+        `SELECT payload, fetched_at FROM property_cache WHERE cache_key = ?1 AND fetched_at > datetime('now', '-1 day')`
+      ).bind(cacheKey).first();
+      if (cached && cached.payload) {
+        return json({ ...JSON.parse(cached.payload), _cached: true, _fetched_at: cached.fetched_at });
+      }
+    } catch (e) {
+      // Cache table may not exist yet — proceed without cache.
+    }
+  }
+
+  // Call RentCast. The Value-Estimate endpoint is the cheapest at 1 call/request.
+  const url = `https://api.rentcast.io/v1/avm/value?address=${encodeURIComponent(fullAddress)}`;
+  const rcRes = await fetch(url, {
+    headers: {
+      'X-Api-Key': env.RENTCAST_API_KEY,
+      'Accept': 'application/json',
+    },
+  });
+  if (!rcRes.ok) {
+    const errText = await rcRes.text().catch(() => '');
+    return json({
+      error: 'rentcast-fetch-failed',
+      status: rcRes.status,
+      message: rcRes.status === 404 ? 'RentCast has no data for this address' :
+               rcRes.status === 401 ? 'RentCast API key invalid or rate-limited' :
+               errText.slice(0, 200) || 'Unknown error from RentCast',
+    }, rcRes.status === 404 ? 404 : 502);
+  }
+  const rcData = await rcRes.json();
+  // Normalize. RentCast returns: { price, priceRangeLow, priceRangeHigh, comparables, latitude, longitude, ... }
+  const normalized = {
+    valueEstimate: rcData.price ?? null,
+    valueRangeLow: rcData.priceRangeLow ?? null,
+    valueRangeHigh: rcData.priceRangeHigh ?? null,
+    confidence: rcData.confidence ?? null,
+    latitude: rcData.latitude ?? null,
+    longitude: rcData.longitude ?? null,
+    comparablesCount: Array.isArray(rcData.comparables) ? rcData.comparables.length : 0,
+    source: 'rentcast',
+    source_version: 'avm/value v1',
+    address_resolved: fullAddress,
+    fetched_at: new Date().toISOString(),
+  };
+
+  // Write to cache (best-effort).
+  if (env.DB) {
+    try {
+      await env.DB.prepare(
+        `INSERT OR REPLACE INTO property_cache (cache_key, payload, fetched_at) VALUES (?1, ?2, datetime('now'))`
+      ).bind(cacheKey, JSON.stringify(normalized)).run();
+    } catch (e) {
+      // Cache failure is non-fatal.
+    }
+  }
+
+  return json(normalized);
 }
