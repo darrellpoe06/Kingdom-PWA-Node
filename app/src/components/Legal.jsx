@@ -67,15 +67,20 @@ export function LegalPlaceholder({ tier = 'foundation', setView }) {
 
       <div className="bg-white border border-[#5A6E3D] p-4">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] mb-2 font-semibold">How Legal connects to the rest of the system</div>
-        <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
-          <li>· <strong>Properties</strong> — Real Estate row shows "🔒 Legal note exists" without leaking the matter title; click to open Legal tab (PIN-gated)</li>
-          <li>· <strong>Entities</strong> — Each LLC's matters live under its umbrella; filter by entity</li>
-          <li>· <strong>Transactions</strong> — Legal fees paid auto-link to the matter; YTD totals roll up in Books</li>
-          <li>· <strong>Calendar</strong> — Court dates appear in Books → Calendar with the label "🔒 Legal matter" only; no title leakage</li>
-          <li>· <strong>Practice inquiries</strong> — TLC compliance items can cross-reference (with caveats; TLC stays isolated from Voice Ops)</li>
-          <li>· <strong>1099 contractors</strong> — Worker disputes link back to the contractor record</li>
-          <li>· <strong>Action Queue</strong> — Excluded by default; user can opt-in to surface a non-privileged summary</li>
-          <li>· <strong>Audit log</strong> — Every view, edit, export logged with timestamp + acting user (per IDENTITY-ROLES-AUDIT)</li>
+        <p className="text-xs text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Every connection below uses an ID, not a title — so the non-Legal side never sees what the matter is about. Just "🔒 Legal note exists." Click-through requires PIN.
+        </p>
+        <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+          <li>· <strong>Real Estate · Properties</strong> — A property row shows "🔒 1 Legal matter linked" when one exists. Title and matter detail stay encrypted; only the count surfaces. Useful for: eviction proceedings, title disputes, tax appeals tied to a specific door.</li>
+          <li>· <strong>Books · Entities</strong> — Each LLC's matters live under its umbrella. Filter Legal by entity to see "what does PoeTech LLC have open right now?" vs. "what does Poe Properties have?" — keeps multi-business operators sane at tax time.</li>
+          <li>· <strong>Books · Transactions</strong> — When you record a legal fee paid, the transaction can optionally link to a matter ID. The matter view then shows cumulative fees-to-date with breakdown by firm. Settlement payments (in or out) link too.</li>
+          <li>· <strong>Books · Calendar</strong> — Court dates added to a matter auto-mirror to the Calendar as "🔒 Legal matter · [date] · [time]" — never with the matter title. Browser notification still fires. Click → opens Legal tab (PIN gate first if locked).</li>
+          <li>· <strong>Books · 1099 contractors</strong> — Worker disputes (misclassification, unpaid scope, harassment) link the matter to the contractor record. The contractor's portal NEVER sees the legal matter — only the operator side sees the link.</li>
+          <li>· <strong>Practice · Inquiries (TLC)</strong> — Professional licensing matters can reference an inquiry only if it's clearly non-PHI. The Legal module ships with messaging DISABLED by default for therapy-practice templates to prevent accidental PHI exchange. Acuity stays the PHI system of record.</li>
+          <li>· <strong>Real Estate · Tenants</strong> — Tenant-related matters (eviction, lease violation) link to the tenant profile. Tenant portal (when shipped) NEVER sees the legal matter; operator side sees the link.</li>
+          <li>· <strong>Big Picture · Action Queue</strong> — Excluded by default. Power users can opt-in per-matter to surface a non-privileged summary line (e.g., "🔒 Court date in 12 days") so urgency is visible without leakage.</li>
+          <li>· <strong>Audit log (per IDENTITY-ROLES-AUDIT)</strong> — Every view, edit, export, PIN attempt, share — timestamped, attributed to the acting user. Tamper-evident in Phase 3+ (hash-chained). The audit log itself is privileged content.</li>
+          <li>· <strong>Export tool</strong> — Two modes: <em>Privileged-stripped</em> (for sharing with non-counsel — strips every note/document marked privileged) and <em>Full</em> (counsel only — requires PIN re-entry, watermarked "ATTORNEY WORK PRODUCT"). Both watermark the matter name + export date for accountability.</li>
         </ul>
       </div>
 
