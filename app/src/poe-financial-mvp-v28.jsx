@@ -6712,7 +6712,9 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
   // Round 9: no scroll-to-top. Form opens at the top of the transaction list;
   // the user keeps their place in whatever row they were reading.
   const startAdd = () => { setForm({ ...blank, accountId: data.accounts[0]?.id || '' }); setEditingId(null); setShowForm(true); };
-  const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setShowForm(true); };
+  // r32 — Inline edit per IN-PLACE-FIRST: edit form drops down under the row,
+  // top form reserved for Add only.
+  const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setShowForm(false); };
   const cancel = () => { setShowForm(false); setEditingId(null); setForm(blank); };
   const submit = () => {
     if (!form.date || !form.accountId || !form.description) { alert('Date, account, and description are required.'); return; }
@@ -6980,7 +6982,8 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
     const currentBal = acc ? balanceByAccount[acc.id] : null;
     const afterBal = txView === 'upcoming' && acc && projectedAfter[t.id] !== undefined ? projectedAfter[t.id] : null;
     return (
-      <tr key={t.id} className="border-b border-[#E8E4DC] align-top">
+      <React.Fragment key={t.id}>
+      <tr className="border-b border-[#E8E4DC] align-top">
         <td className="p-2 text-xs whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.date.slice(5)}</td>
         <td className="p-2">
           <div style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</div>
@@ -7011,13 +7014,36 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
         <td className="p-2 text-right whitespace-nowrap">
           {t._source !== 'recurring' && (
             <span className="inline-flex items-center gap-1">
-              <button type="button" onClick={() => startEdit(t)} aria-label={`Edit transaction ${t.description}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Edit</button>
+              <button type="button" onClick={() => editingId === t.id ? cancel() : startEdit(t)} aria-expanded={editingId === t.id} aria-label={editingId === t.id ? `Cancel edit for ${t.description}` : `Edit transaction ${t.description}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingId === t.id ? '× Cancel' : '✎ Edit'}</button>
               <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
               <button type="button" onClick={() => confirmDelete(t)} aria-label={`Delete transaction ${t.description}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
             </span>
           )}
         </td>
       </tr>
+      {/* r32 — Inline edit row spans all 4 columns. Per IN-PLACE-FIRST + EDITABLE-EVERYWHERE. */}
+      {editingId === t.id && (
+        <tr className="border-b border-[#B85838]">
+          <td colSpan={4} className="p-3 bg-[#FAF8F4] border-l-4 border-[#B85838]">
+            <div className="space-y-2">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {t.description}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
+                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>{data.accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}</select></div>
+                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+              </div>
+              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Description</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity override (optional)</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}><option value="">— No override —</option>{data.entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+              <div className="flex gap-2">
+                <button type="button" onClick={submit} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
+                <button type="button" onClick={cancel} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+      </React.Fragment>
     );
   };
 
@@ -7086,9 +7112,10 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
           </div>
         </div>
 
-        {showForm && (
+        {/* r32 — Top form for Add only; edit happens inline under the row. */}
+        {showForm && !editingId && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingId ? 'Edit transaction' : 'New transaction'}</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New transaction</div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
