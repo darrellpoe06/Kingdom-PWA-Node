@@ -467,6 +467,7 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
             <div>
               <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">History</div>
               <div className="space-y-0.5 text-[10px] text-[#5A5751]">
+                {inq.statusHistory.map((h, i) => (
                   <div key={i}>
                     {new Date(h.at).toLocaleDateString()} — {INQUIRY_STATUSES.find(s => s.key === h.status)?.label || h.status}
                     {h.notes && <span className="italic"> · "{h.notes}"</span>}
