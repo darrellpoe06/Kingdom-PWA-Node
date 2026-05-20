@@ -23,6 +23,28 @@ const INQUIRY_STATUSES = [
 
 const TIMES_TO_CALL = ['morning','afternoon','evening','weekend','anytime'];
 
+// Pure data — duplicated locally to keep this module free of main-monolith
+// deps (same pattern as INQUIRY_STATUSES above).
+const INQUIRY_SOURCES = [
+  { key: 'church',       label: 'Church / parishioner' },
+  { key: 'referral',     label: 'Personal referral' },
+  { key: 'facebook',     label: 'Facebook' },
+  { key: 'instagram',    label: 'Instagram' },
+  { key: 'google',       label: 'Google search' },
+  { key: 'website',      label: 'TLC website' },
+  { key: 'word-of-mouth',label: 'Word of mouth' },
+  { key: 'other',        label: 'Other' },
+];
+const INQUIRY_INTERESTS = [
+  { key: 'individual',   label: 'Individual therapy' },
+  { key: 'couples',      label: 'Couples therapy' },
+  { key: 'family',       label: 'Family therapy' },
+  { key: 'child',        label: 'Child / adolescent' },
+  { key: 'group',        label: 'Group / support' },
+  { key: 'consultation', label: 'Consultation only' },
+  { key: 'unsure',       label: 'Not sure yet' },
+];
+
 // Health insurance carriers commonly used in US mental health billing.
 // `accepted: true` marks the carriers TLC Therapy Solutions has contracted
 // with per the homepage advisement (BCBS, Aetna, UHC, Cigna, VA). They

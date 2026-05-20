@@ -6,7 +6,7 @@ import { SectionTitle } from './shared.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
-function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProfile, updateSkillProfile, deleteSkillProfile, userTier, addProject, addScope, addCapexItem, setView, projects = [], OPPORTUNITY_LIBRARY = [], matchOpportunities, capacityDecisionForNewProject, TIER_LABEL = {} }) {
+function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProfile, updateSkillProfile, deleteSkillProfile, userTier, addProject, addScope, addCapexItem, setView, projects = [], OPPORTUNITY_LIBRARY = [], matchOpportunities, capacityDecisionForNewProject, tierMeets = () => false, TIER_LABEL = {} }) {
   const grouped = opportunities.reduce((acc, o) => { (acc[o.person] = acc[o.person] || []).push(o); return acc; }, {});
 
   // Tier-gated count of opportunities shown per profile.

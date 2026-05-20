@@ -32,6 +32,31 @@ function projectRentalSnowball(rentals, monthlyExtra, sortOrder, currentDate, ma
 
 const EQUIPMENT_CATEGORIES = ['HVAC','Furnace','AC Unit','Water Heater','Refrigerator','Stove / Oven','Dishwasher','Washer','Dryer','Microwave','Garbage Disposal','Sump Pump','Roof','Electrical Panel','Garage Door','Other'];
 
+// Pure data + pure function — duplicated locally to keep this module free of
+// main-monolith deps (same pattern as projectRentalSnowball above, per
+// MODULAR-EXTENSIBILITY.md's allowance for utility-style pure code).
+const URGENCY_BANDS = [
+  { key: 'change',   label: 'Change',   tagline: 'Broken now · same-day',  dueDays: 0, accent: '#B85838', symbol: '⚡', order: 1 },
+  { key: 'incident', label: 'Incident', tagline: 'Resolve within 3 days',  dueDays: 3, accent: '#D97706', symbol: '!',  order: 2 },
+  { key: 'project',  label: 'Project',  tagline: 'Multi-day planned work', dueDays: 14,accent: '#5A6E3D', symbol: '◆',  order: 3 },
+];
+const URGENCY_INDEX = Object.fromEntries(URGENCY_BANDS.map(u => [u.key, u]));
+const dueDateFor = (urgencyKey, fromDate = new Date()) => {
+  const days = URGENCY_INDEX[urgencyKey]?.dueDays ?? 3;
+  const d = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
+const ROOM_PRESETS = ['Living Room','Kitchen','Dining Room','Bathroom','Master Bedroom','Bedroom 1','Bedroom 2','Bedroom 3','Garage','Basement','Attic','Laundry','Office','Outdoor'];
+const ROOM_ITEM_PRESETS = ['Cabinets','Windows','Furnace','Plumbing — Toilet','Plumbing — Sink','Plumbing — Faucet','Plumbing — Bathtub','Plumbing — Shower','Flooring','Walls / Paint','Ceiling','Lighting','Outlets / Switches','Doors','Trim','Other'];
+const ROOM_ITEM_STATUSES = [
+  { key: 'good',       label: 'Good',           symbol: '✓' },
+  { key: 'needs-work', label: 'Needs work',     symbol: '!' },
+  { key: 'quoted',     label: 'Quoted',         symbol: '$' },
+  { key: 'scheduled',  label: 'Scheduled',      symbol: '→' },
+  { key: 'done',       label: 'Done',           symbol: '★' },
+];
+
 function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   // v28+ MVP v1.5 round 8 — Property valuation block (Zillow-style)
   // Characteristics + a market-value field + auto-built lookup links.

@@ -1492,6 +1492,7 @@ html{scroll-padding-bottom:280px}
               OPPORTUNITY_LIBRARY={OPPORTUNITY_LIBRARY}
               matchOpportunities={matchOpportunities}
               capacityDecisionForNewProject={capacityDecisionForNewProject}
+              tierMeets={tierMeets}
               TIER_LABEL={TIER_LABEL}
             />
           : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
