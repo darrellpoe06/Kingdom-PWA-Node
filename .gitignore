@@ -43,3 +43,6 @@ credentials.json
 # Logs
 # ----------------------------------------------------------------------------
 *.log
+
+# Claude Code local config — never commit
+.claude/
