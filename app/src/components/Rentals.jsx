@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { RentCastPrefill } from './connectors/RentCast.jsx';
+import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -568,9 +569,29 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
   // incident already pointed at it (if any) so we don't double-track.
   const openIncidentFor = (r) => incidents.find(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
+  // CONNECTED-CONTEXT task #88 — per-rental selection of auto-link chip choices
+  // before the user clicks an urgency button. Keyed by rental.id so multiple
+  // late-rent prompts don't share state.
+  const [tenantLateSelectedLinks, setTenantLateSelectedLinks] = useState({});
+  const toggleTenantLink = (rentalId, link) => {
+    setTenantLateSelectedLinks(prev => {
+      const cur = prev[rentalId] || [];
+      const next = cur.some(l => l.toEntityId === link.toEntityId)
+        ? cur.filter(l => l.toEntityId !== link.toEntityId)
+        : [...cur, link];
+      return { ...prev, [rentalId]: next };
+    });
+  };
+  const incidentDisplay = (id) => {
+    const inc = (incidents || []).find(i => i.id === id);
+    if (!inc) return id;
+    const short = (inc.description || 'incident').slice(0, 40);
+    return inc.date ? `${short} · ${inc.date}` : short;
+  };
   const openTenantIssue = (r, urgencyKey) => {
     if (!addIncident) return;
     const band = URGENCY_INDEX[urgencyKey] || URGENCY_INDEX.incident;
+    const links = tenantLateSelectedLinks[r.id] || [];
     addIncident({
       date: new Date().toISOString().slice(0, 10),
       amount: Math.max(0, (r.rent || 0) - (r.actual || 0)),
@@ -581,7 +602,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       status: 'open',
       dueDate: dueDateFor(urgencyKey),
       linkedTo: { type: 'rental', id: r.id },
+      links,
     });
+    setTenantLateSelectedLinks(prev => { const n = { ...prev }; delete n[r.id]; return n; });
     alert(`Opened as ${band.label}. Due ${dueDateFor(urgencyKey)}. Track from Big Picture → Action Queue.`);
   };
   const rentalsWithCleared = rentals.map(r => { const cleared = rentalSnowball.activeProperties.find(p => p.id === r.id); return { ...r, clearedAtMonth: cleared?.clearedAtMonth }; });
@@ -1004,6 +1027,42 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </button>
                         ))}
                       </div>
+                      {(() => {
+                        // CONNECTED-CONTEXT task #88 — surface prior incidents at this
+                        // same property. User pre-selects which ones to link before
+                        // clicking an urgency button above. IN-PLACE-FIRST: no modal.
+                        const draft = { linkedTo: { type: 'rental', id: r.id } };
+                        const candidates = findRelatedAuto(draft, 'incident', { incidents }, 5);
+                        if (candidates.length === 0) return null;
+                        const selected = tenantLateSelectedLinks[r.id] || [];
+                        return (
+                          <div className="mt-3 pt-3 border-t border-[#B85838]/40" aria-labelledby={`auto-link-h-${r.id}`}>
+                            <div id={`auto-link-h-${r.id}`} className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">
+                              🔗 Possibly related — tap to pre-link ({candidates.length})
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {candidates.map(link => {
+                                const isSelected = selected.some(l => l.toEntityId === link.toEntityId);
+                                return (
+                                  <button
+                                    key={link.toEntityId}
+                                    type="button"
+                                    onClick={() => toggleTenantLink(r.id, link)}
+                                    aria-pressed={isSelected}
+                                    className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${isSelected ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] bg-white'}`}
+                                  >
+                                    <span aria-hidden="true">{isSelected ? '✓ ' : '+ '}</span>
+                                    {incidentDisplay(link.toEntityId)} <span className="opacity-70 normal-case italic">· {link.kind}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[9px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                              Prior incidents at this property. Selected chips get linked to the new incident when you tap a band above.
+                            </p>
+                          </div>
+                        );
+                      })()}
                       <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                         Change = same-day action. Incident = 3-day resolution window. Project = formal eviction / multi-week plan. The chosen item shows on Big Picture → Action Queue with a due date.
                       </p>
