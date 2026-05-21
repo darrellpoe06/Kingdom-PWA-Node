@@ -8,6 +8,7 @@
 // Acuity, never in SKOS.
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
+import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -81,10 +82,34 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
   const [statusFilter, setStatusFilter] = useState('active');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyInquiry());
+  // CONNECTED-CONTEXT task #88 — auto-link suggestions selected by the user
+  // before save. Per IN-PLACE-FIRST: lives in the create form, not a modal.
+  const [selectedLinks, setSelectedLinks] = useState([]);
 
   function emptyInquiry() {
     return { firstName: '', contactMethod: 'phone', contactValue: '', interestArea: 'unsure', hasInsurance: 'unsure', preferredProvider: 'any', bestTimeToCall: 'anytime', source: 'church', sourceDetail: '', notes: '' };
   }
+
+  // Top-5 candidate links computed from the draft inquiry's source. Per
+  // CONNECTED-CONTEXT.md the matcher is pure and runs in-memory; recomputes
+  // whenever the source field changes or the inquiry list updates.
+  const suggestedLinks = useMemo(() => {
+    if (!showForm || !form.source) return [];
+    return findRelatedAuto(form, 'inquiry', { inquiries }, 5);
+  }, [showForm, form, inquiries]);
+
+  const inquiryDisplay = (id) => {
+    const inq = inquiries.find(i => i.id === id);
+    if (!inq) return id;
+    return `${inq.firstName}${inq.sourceDetail ? ` · ${inq.sourceDetail}` : ''}`;
+  };
+
+  const toggleLink = (link) => {
+    setSelectedLinks(prev => prev.some(l => l.toEntityId === link.toEntityId)
+      ? prev.filter(l => l.toEntityId !== link.toEntityId)
+      : [...prev, link]
+    );
+  };
 
   const mswContractors = contractors.filter(c => c.direction === 'outbound');
 
@@ -110,8 +135,9 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
 
   const submit = () => {
     if (!form.firstName || !form.contactValue) { alert('First name and contact info are required.'); return; }
-    addInquiry(form);
+    addInquiry({ ...form, links: selectedLinks });
     setForm(emptyInquiry());
+    setSelectedLinks([]);
     setShowForm(false);
   };
 
@@ -272,7 +298,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
                 <button key={k} onClick={() => setStatusFilter(k)} className={`px-2 py-1 ${statusFilter === k ? 'bg-[#1A1815] text-white' : 'text-[#5A5751]'}`}>{l}</button>
               ))}
             </div>
-            <button type="button" onClick={() => setShowForm(!showForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Log inquiry'}</button>
+            <button type="button" onClick={() => { setShowForm(!showForm); if (showForm) setSelectedLinks([]); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Log inquiry'}</button>
           </div>
         </div>
 
@@ -347,6 +373,34 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
               <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes (no clinical detail)</label>
               <textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="General context only — e.g., 'Asked about evening availability', 'Friend of Lisa from choir'" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
             </div>
+
+            {suggestedLinks.length > 0 && (
+              <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3" aria-labelledby="auto-link-h">
+                <div id="auto-link-h" className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">
+                  🔗 Possibly related — tap to link ({suggestedLinks.length})
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {suggestedLinks.map(link => {
+                    const isSelected = selectedLinks.some(l => l.toEntityId === link.toEntityId);
+                    return (
+                      <button
+                        key={link.toEntityId}
+                        type="button"
+                        onClick={() => toggleLink(link)}
+                        aria-pressed={isSelected}
+                        className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${isSelected ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] bg-white'}`}
+                      >
+                        <span aria-hidden="true">{isSelected ? '✓ ' : '+ '}</span>
+                        {inquiryDisplay(link.toEntityId)} <span className="opacity-70 normal-case italic">· {link.kind}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[9px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Auto-detected from same source. Tap to record the connection; tap again to remove. Connections are also visible on the inquiry record later.
+                </p>
+              </div>
+            )}
 
             <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Log Inquiry</button>
             <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
