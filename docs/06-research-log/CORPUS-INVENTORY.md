@@ -17,7 +17,7 @@ The folder itself is gitignored. This inventory is the durable index that surviv
 | Who Is God (Parts 1 & 2) — Bradley Chatman | `1DZpfhl4wKIJRGyBk1Md6_vSJmnK9_T65` | Not in local folder | The book |
 | Who Is God (Part 3) Final — Bradley Chatman | `1ZKGvdE32FAVTNJC5G8Sm4Jrr04pZFJ0j` | Not in local folder | The book |
 | Dealing with Fred Price | `1X8-MuI60bAGoKkx6uiMrC7mid6FokQBY6H44hoNK9vs` | Not in local folder | Historical Truth module, the book |
-| CANON STUDY · Access to the Human Mind · Who Has It and What Humans Can Do About It | `19vDHY5xxMu0ZGdKTF5nuiLUSelw6ZPwZbioSTm_Outo` | Yes | `MIND-OF-CHRIST.md`, The Way module |
+| CANON STUDY · Access to the Human Mind · Who Has It and What Humans Can Do About It | `19vDHY5xxMu0ZGdKTF5nuiLUSelw6ZPwZbioSTm_Outo` | Yes — **migrated 2026-05-21 into `docs/00-foundations/_root/ACCESS-TO-THE-HUMAN-MIND.md`** | Response-tuning source for `COUNCIL-CHAMBER.md`, classifier signals for `MODE-ROUTING.md`, `MIND-OF-CHRIST.md`, The Way module |
 | Bishop Wayne Malcolm · *Kingdom Theology for Kingdom Citizens* (57-page book, JPG pages) | `14gT755IAEzDuQ-kZaAqUSaV-hpEZI0mQ` | Not in local folder | Eschatology, Kingdom Economics |
 | Academic Statement of Purpose (Darrell) | `1_LSnBr8bihxABCNpKwu7-cd14YEnfC0Ug7ODpR5ma7w` | Not in local folder | EdD application |
 | CANON-STUDY-BATCH-2-DEUTEROCANON.md | n/a | At repo root (untracked) | Spiritual Life module |
