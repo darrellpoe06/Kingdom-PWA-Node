@@ -231,7 +231,7 @@ Both. The user comes to the Council Chamber carrying something heavy. The room h
 - `LEGAL-PRIVACY-BOUNDARY.md` — the bright line to TLC Therapy Solutions and the HIPAA fence.
 - `LIFECYCLE-AND-HANDOFF.md` — Council Chamber journal entries are first-class entities with their own `lifecycle.log`.
 - `CONNECTED-CONTEXT.md` — bidirectional links between Council Chamber entries and Dev/Ops items.
-- `ECOSYSTEM-PARTICIPANTS.md` — Council Chamber may be enabled or disabled per instance template; default ON for `family` and `church` templates, default OFF for `trades` and `property-management` (operator can enable).
+- `ECOSYSTEM-PARTICIPANTS.md` — Council Chamber is enabled across all instance templates; placement is template-conditional per `MODE-ROUTING.md`. For `family` / `church` / `nonprofit` / `PoeTech` templates, Counseling lives as a sub-tab inside Church (pastoral counseling's natural home). For `trades` / `property-management` / `small-business` / `therapy-practice` templates, Counseling is a top-level tab (no Church surface in those templates).
 - `INTAKE-AND-FIT.md` — the Dev/Ops counterpart; the system deduces between the two modes by input analysis.
 - `SERVICE-MANAGEMENT.md` — the operator-side framework (ITIL + PMP) that governs how Dev/Ops mode actually delivers, and the Service layer that runs autonomously beneath it.
 - `MODE-ROUTING.md` — the classifier spec, the visible mode indicator, the never-auto-switch rule, the both-doors-visible nav pattern. Single source of truth for the routing UX shared by Counseling and Dev/Ops.

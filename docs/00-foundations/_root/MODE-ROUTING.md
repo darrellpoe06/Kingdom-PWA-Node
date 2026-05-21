@@ -17,12 +17,12 @@ The routing posture is named in Psalm 32:8 — the system has eyes on the user (
 
 ## The Two Doors
 
-Both surfaces are top-level, visible in the nav, always available without prerequisite.
+Both surfaces are visible in the nav. **Placement is template-conditional** per `ECOSYSTEM-PARTICIPANTS.md` and `MULTI-INSTANCE-STRATEGY.md` — the natural location of pastoral counseling depends on whether a given operator's instance has a Church surface in the first place.
 
 ### Door 1 — Dev/Ops (the Business door)
 
 - **Tab label:** `Dev/Ops` (kept from existing nav; widely understood; teaches that *Service* is the lower autonomous layer underneath, per `SERVICE-MANAGEMENT.md`)
-- **Position:** Primary nav cluster, where it lives today
+- **Position:** Primary nav cluster, top-level. Same across all instance templates.
 - **Surface header inside:** *Dev/Ops · Build and ship solutions*
 - **Default posture:** Solve. The user came with a problem; the system delivers Service first (preloaded solutions), Dev/Ops engineering second (when Service has a gap).
 - **Backup mode:** Counseling, available via the visible mode indicator and triggered by distress-signal detection (per `SERVICE-MANAGEMENT.md` *Counseling Backup*).
@@ -30,13 +30,21 @@ Both surfaces are top-level, visible in the nav, always available without prereq
 ### Door 2 — Counseling (the relational door)
 
 - **Tab label:** `Counseling` (single word, clear to first-time users; deeper foundational name *Council Chamber* surfaces inside the tab with the Proverbs 11:14 anchor)
-- **Position:** Secondary "life" cluster on the right side of the nav, after the visible vertical divider, alongside `Church` and `Markets`. The felt-life side of the app.
 - **Surface header inside:** *The Council Chamber · A quiet room to think with Scripture*
 - **Default posture:** Listen. Four-section response pattern: Hear → Mirror → Anchor → Invite (per `COUNCIL-CHAMBER.md`).
 - **Backup mode:** Dev/Ops, available via the visible mode indicator and triggered by solve-shaped-question detection or explicit user invitation.
 - **Escalation:** Therapy (clinical, outside SKOS) via three pathways per `COUNCIL-CHAMBER.md` — public crisis resources, Christina's referral list, COLG pastoral care.
 
-The two doors are equal in nav prominence. Neither is the default; the user picks the door, or the classifier picks it for them from any text they've already typed.
+**Position — template-conditional:**
+
+| Instance template | Counseling lives at | Why |
+|---|---|---|
+| `family` / `church` / `nonprofit` / `PoeTech` (the home instance) | **Sub-tab inside `Church`** | Pastoral counseling has its natural home in the church frame for these templates. Users intuitively look there. |
+| `trades` / `property-management` / `small-business` / `therapy-practice` | **Top-level tab** in the secondary "life" cluster | No Church surface in these templates; Counseling stands on its own. (The `therapy-practice` template's Counseling is still pastoral, not clinical — TLC's BAA-walled practice stays separate per `LEGAL-PRIVACY-BOUNDARY.md`.) |
+
+The classifier and mode-detection from inside any surface work identically across all templates. A user mid-conversation in any tab gets routed to wherever Counseling lives in their instance — the door's location varies; the door's existence does not.
+
+This honors `ECOSYSTEM-PARTICIPANTS.md`'s template-conditional surface pattern (small-business templates ship with external portals enabled; family templates ship with them disabled — same principle applied to Counseling placement).
 
 ---
 
