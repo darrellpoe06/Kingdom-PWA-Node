@@ -32,6 +32,13 @@ function projectRentalSnowball(rentals, monthlyExtra, sortOrder, currentDate, ma
 
 const EQUIPMENT_CATEGORIES = ['HVAC','Furnace','AC Unit','Water Heater','Refrigerator','Stove / Oven','Dishwasher','Washer','Dryer','Microwave','Garbage Disposal','Sump Pump','Roof','Electrical Panel','Garage Door','Other'];
 
+// Static — hoisted out of Rentals() so its useMemo doesn't have to depend on it.
+const RENTAL_STRATEGY_OPTIONS = [
+  { id: 'smallest-balance', label: 'Smallest balance', sub: 'Momentum' },
+  { id: 'highest-rate',     label: 'Highest rate',     sub: 'Math optimum' },
+  { id: 'best-cashflow',    label: 'Best cash flow',   sub: 'Strong earners' },
+];
+
 // Pure data + pure function — duplicated locally to keep this module free of
 // main-monolith deps (same pattern as projectRentalSnowball above, per
 // MODULAR-EXTENSIBILITY.md's allowance for utility-style pure code).
@@ -791,13 +798,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     updateRental(r.id, { conversationLog: (r.conversationLog || []).filter(e => e.id !== entryId) });
   };
   // v28+ Bug fix: side-by-side strategy comparison so user can see the delta even when small
-  const strategyOptions = [
-    { id: 'smallest-balance', label: 'Smallest balance', sub: 'Momentum' },
-    { id: 'highest-rate',     label: 'Highest rate',     sub: 'Math optimum' },
-    { id: 'best-cashflow',    label: 'Best cash flow',   sub: 'Strong earners' },
-  ];
   const strategyComparison = useMemo(() => {
-    const runs = strategyOptions.map(s => {
+    const runs = RENTAL_STRATEGY_OPTIONS.map(s => {
       const r = projectRentalSnowball(rentals, snowballExtra, s.id, currentDate, 240);
       return { ...s, totalInterest: r.totalInterest, allClearedYears: r.allClearedYears, allClearedMonth: r.allClearedMonth };
     });

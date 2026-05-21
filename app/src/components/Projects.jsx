@@ -6,7 +6,6 @@ import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
-const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
 
 const PROJECT_DOMAINS = [
   { key: 'personal', label: 'Personal', color: '#5A6E3D' },
@@ -21,6 +20,25 @@ const PROJECT_DOMAINS = [
   { key: 'other', label: 'Other', color: '#5A5751' },
 ];
 const PROJECT_STATUSES = ['planning', 'active', 'ending-soon', 'complete', 'on-hold', 'tbd'];
+
+// MONTHS_ABBR duplicated locally — still in active use by the monolith
+// (monthLabel + transaction display); duplicating instead of moving avoids
+// creating a new no-undef there. Same pattern as Debts.jsx + Rentals.jsx.
+const MONTHS_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// CAPEX constants + SCOPE_TEMPLATES moved from poe-financial-mvp-v28.jsx (r41).
+// All consumers were inside ProjectInventory / Scope (also moved below); the
+// monolith had no remaining reference.
+const CAPEX_STATUSES = ['planned','researching','wishlist','on-hold','purchased'];
+const CAPEX_CATEGORIES = ['Networking','Tools','Storage','Home','Office','Vehicle','Software','Other'];
+
+const SCOPE_TEMPLATES = [
+  { id: 'tmpl-msw', name: 'MSW Clinical Contractor', type: 'clinical', description: 'For licensed clinical contractors joining TLC Therapy Solutions', entityId: 'e-tlc',
+    defaults: { title: 'Clinical Contractor Agreement', scopeOfWork: 'Provide licensed clinical mental health services to assigned clients of TLC Therapy Solutions LLC.', deliverables: '• Documented clinical sessions within 48 hours\n• Monthly caseload report\n• Quarterly case review participation', materials: 'TLC provides: EHR access, billing infrastructure, referral pipeline.\nContractor provides: Personal LCSW license, individual malpractice coverage.', schedule: 'Minimum 15 client hours/week. Maximum 30/week.', paymentTerms: '60/40 split. Paid bi-monthly via 1099. W-9 required.', acceptanceCriteria: 'Sessions documented per Illinois LCSW standards.', requirements: '• Active Illinois LCSW license\n• Individual professional liability insurance\n• W-9 on file\n• HIPAA training current', warranty: 'Services meet Illinois LCSW standards of care.', terminationClause: '30-day notice from either party.' }},
+  { id: 'tmpl-prop', name: 'Property Contractor', type: 'property', description: 'For tradespeople servicing Poe Properties LLC rentals', entityId: 'e-poeprops',
+    defaults: { title: 'Property Service Agreement', scopeOfWork: '[Describe specific work — what gets done, where, with what materials]', deliverables: '• Work meeting Illinois code\n• Photos of completed work\n• Final walkthrough', materials: '[Specify who provides what]', schedule: 'Start: [date]. Completion: [date].', paymentTerms: '50% deposit upon acceptance. 50% upon completion. Paid via 1099 if > $600/yr.', acceptanceCriteria: 'Work passes inspection. All systems function.', requirements: '• Active Illinois trade license\n• General liability insurance $1M+\n• W-9 on file', warranty: 'Labor warranty: 1 year. Materials per manufacturer.', terminationClause: '7 days written notice with cure opportunity.' }},
+  { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
+];
 
 function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [] }) {
   const [subView, setSubView] = useState('list');
@@ -157,8 +175,9 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
     return true;
   }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
-  // Compute timeline range
-  const now = new Date();
+  // Compute timeline range. `now` is captured in a useMemo so the workload
+  // useMemo below has a stable dep (otherwise it'd re-run every render).
+  const now = useMemo(() => new Date(), []);
   const visibleProjects = filtered.filter(p => p.status !== 'complete');
   let earliestDate = now;
   let latestDate = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
@@ -170,6 +189,8 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   });
   const rangeStart = new Date(Math.min(earliestDate.getTime(), now.getTime() - 30*24*60*60000));
   const rangeEnd = new Date(latestDate.getTime() + 30*24*60*60000);
+  // Preparatory scaffolding — pending timeline-summary chip ("X days of horizon").
+  // eslint-disable-next-line no-unused-vars
   const totalDays = Math.max(1, (rangeEnd - rangeStart) / (1000 * 60 * 60 * 24));
 
   // Workload calculation — sum of active project hours/week by month
@@ -196,6 +217,8 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
     return months;
   }, [projects, now]);
 
+  // Preparatory scaffolding — pending "current month's committed hours" chip.
+  // eslint-disable-next-line no-unused-vars
   const totalActiveHours = Object.values(monthlyWorkload).length > 0 ? Object.values(monthlyWorkload)[0].hours : 0;
   const peakWorkload = Math.max(...Object.values(monthlyWorkload).map(m => m.hours), 1);
 
@@ -520,6 +543,510 @@ function DateField({ value, onChange, className }) {
     </div>
   );
 }
+
+// =============================================================================
+// ProjectInventory — moved from poe-financial-mvp-v28.jsx (r41) per
+// MODULAR-EXTENSIBILITY.md. Only consumer was <ProjectsWrapper/> above; the
+// monolith had no remaining reference.
+// =============================================================================
+function ProjectInventory({ projects = [], entities = [], capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], compact = false }) {
+  const blankCapex = () => ({
+    category: 'Tools', name: '', description: '', link: '',
+    priority: 3, cost: 0, neededBy: '', status: 'researching', notes: '',
+    entityId: entities[0]?.id || 'e-personal', module: '', projectId: '',
+    purchaseTargetDate: '',
+    locationId: '', purchasedFromAccountId: '',
+    make: '', model: '', serial: '',
+  });
+  const [capexForm, setCapexForm] = useState(blankCapex());
+  const [showCapexForm, setShowCapexForm] = useState(false);
+  const [capexFilter, setCapexFilter] = useState('all');
+  const [projFilter, setProjFilter] = useState('all');
+
+  const visibleCapex = capexItems.filter(c => {
+    if (capexFilter !== 'all' && c.status !== capexFilter) return false;
+    if (projFilter === 'all') return true;
+    if (projFilter === 'unassigned') return !c.projectId;
+    return c.projectId === projFilter;
+  });
+
+  const capexTotalPlanned = capexItems.filter(c => c.status !== 'purchased').reduce((s, c) => s + (parseFloat(c.cost) || 0), 0);
+
+  const submitCapex = () => {
+    if (!capexForm.name) { alert('Item name is required.'); return; }
+    addCapexItem && addCapexItem(capexForm);
+    setCapexForm(blankCapex()); setShowCapexForm(false);
+  };
+
+  const forecast = useMemo(() => {
+    const now = new Date();
+    const months = [];
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      months.push({ key, label: `${MONTHS_ABBR[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`, items: [], total: 0 });
+    }
+    let unscheduled = { key: 'unscheduled', label: 'Unscheduled', items: [], total: 0 };
+    for (const c of capexItems) {
+      if (c.status === 'purchased') continue;
+      const cost = parseFloat(c.cost) || 0;
+      if (!c.purchaseTargetDate) { unscheduled.items.push(c); unscheduled.total += cost; continue; }
+      const d = new Date(c.purchaseTargetDate);
+      if (isNaN(d.getTime())) { unscheduled.items.push(c); unscheduled.total += cost; continue; }
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = months.find(m => m.key === key);
+      if (bucket) { bucket.items.push(c); bucket.total += cost; }
+      else if (d < now) {
+        months[0].items.push({ ...c, _overdue: true });
+        months[0].total += cost;
+      } else {
+        unscheduled.items.push(c); unscheduled.total += cost;
+      }
+    }
+    return { months, unscheduled };
+  }, [capexItems]);
+
+  const today = new Date();
+  const savingsPrompts = capexItems
+    .filter(c => c.status !== 'purchased' && c.purchaseTargetDate && (parseFloat(c.cost) || 0) > 0)
+    .map(c => {
+      const target = new Date(c.purchaseTargetDate);
+      const monthsLeft = Math.max(0, (target.getFullYear() - today.getFullYear()) * 12 + (target.getMonth() - today.getMonth()));
+      const cost = parseFloat(c.cost) || 0;
+      const perMonth = monthsLeft > 0 ? cost / monthsLeft : cost;
+      return { ...c, monthsLeft, perMonth };
+    })
+    .sort((a, b) => a.monthsLeft - b.monthsLeft || b.perMonth - a.perMonth);
+
+  const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
+  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+  const projectLookup = Object.fromEntries(projects.map(p => [p.id, p]));
+
+  return (
+    <div className="space-y-6">
+      {!compact && (
+        <section className="bg-white border border-[#1A1815] p-5">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Project Inventory · Capital Forecast</div>
+          <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Tools you need · when you'll buy them · whether the money will be there.</h2>
+          <p className="text-sm leading-relaxed mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Add equipment a project needs, give it a target purchase date, and the forecast below shows the month-by-month outflow against your current net cash flow. If a month doesn't pencil, the row turns amber so you know to push the date back or save harder before then.
+          </p>
+        </section>
+      )}
+
+      <section>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+          <MetricCell label="Items tracked" value={`${capexItems.length}`} small />
+          <MetricCell label="Open spend" value={fmt(capexTotalPlanned)} sub="not yet purchased" small accent="rust" />
+          <MetricCell label="Scheduled" value={`${capexItems.filter(c => c.purchaseTargetDate && c.status !== 'purchased').length}`} sub="have a target date" small />
+          <MetricCell label="Net cash flow" value={fmt(netCashFlow)} sub="per mo · current" small accent={netCashFlow >= 0 ? 'green' : 'rust'} />
+        </div>
+      </section>
+
+      <section aria-labelledby="forecast-h">
+        <h3 id="forecast-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">12-Month Capital Forecast</h3>
+        <div className="bg-white border border-[#1A1815] overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#1A1815] bg-[#FAF8F4]">
+                <th scope="col" className="p-3">Month</th>
+                <th scope="col" className="p-3 text-right">Projected outflow</th>
+                <th scope="col" className="p-3 text-right">Gap vs net cash</th>
+                <th scope="col" className="p-3">Items</th>
+              </tr>
+            </thead>
+            <tbody>
+              {forecast.months.map((m, i) => {
+                const gap = netCashFlow - m.total;
+                const short = m.total > 0 && gap < 0;
+                return (
+                  <tr key={m.key} className={`border-b border-[#E8E4DC] ${i % 2 === 1 ? 'bg-[#FAF8F4]' : ''}`} style={{ fontFamily: '"Fraunces", serif' }}>
+                    <td className="p-3" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.label}</td>
+                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: m.total > 0 ? 500 : 400 }}>
+                      {m.total > 0 ? fmt(m.total) : <span className="text-[#5A5751]">—</span>}
+                    </td>
+                    <td className={`p-3 text-right ${short ? 'text-[#B85838] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {m.total > 0 ? (
+                        <>
+                          <span aria-hidden="true">{short ? '⚠ ' : '✓ '}</span>
+                          <span className="sr-only">{short ? 'short by ' : 'covered, '}</span>
+                          {fmt(gap)}
+                        </>
+                      ) : <span>—</span>}
+                    </td>
+                    <td className="p-3 text-xs">
+                      {m.items.length === 0 ? <span className="text-[#5A5751]">—</span> : (
+                        <div className="flex flex-wrap gap-1">
+                          {m.items.map(it => (
+                            <span key={it.id} className={`inline-flex items-baseline gap-1 px-2 py-0.5 border ${it._overdue ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
+                              {it.name} <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {fmt(parseFloat(it.cost) || 0)}</span>
+                              {it._overdue && <span className="text-[9px] uppercase tracking-wider">overdue</span>}
+                              {it.projectId && projectLookup[it.projectId] && <span className="text-[9px] uppercase tracking-wider">· {projectLookup[it.projectId].title.slice(0, 20)}</span>}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {forecast.unscheduled.items.length > 0 && (
+                <tr className="border-t-2 border-[#1A1815] bg-[#FAF8F4]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <td className="p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Unscheduled</td>
+                  <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(forecast.unscheduled.total)}</td>
+                  <td className="p-3 text-right text-[10px] text-[#5A5751]">no target date set</td>
+                  <td className="p-3 text-xs">
+                    <div className="flex flex-wrap gap-1">
+                      {forecast.unscheduled.items.map(it => (
+                        <span key={it.id} className="inline-flex items-baseline gap-1 px-2 py-0.5 border border-[#E8E4DC] text-[#5A5751]">{it.name} <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {fmt(parseFloat(it.cost) || 0)}</span></span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Each row compares projected outflows for that month against your <strong>current</strong> net cash flow ({fmt(netCashFlow)}/mo). Real net cash will shift with seasonality and rent collection — treat the gap column as a "talk about it now" signal, not a hard ledger.
+        </p>
+      </section>
+
+      {savingsPrompts.length > 0 && (
+        <section aria-labelledby="prompts-h">
+          <h3 id="prompts-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Savings Prompts · per item with a target date</h3>
+          <div className="bg-white border border-[#1A1815]">
+            {savingsPrompts.map((p, i, arr) => {
+              const overdue = p.monthsLeft === 0;
+              const stretch = !overdue && p.perMonth > Math.max(0, netCashFlow);
+              const tag = overdue ? 'overdue · lump sum needed' : stretch ? 'tight at current net cash' : 'fits at current net cash';
+              const accent = overdue ? 'text-[#B85838]' : stretch ? 'text-[#B85838]' : 'text-[#5A6E3D]';
+              return (
+                <div key={p.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`} style={{ fontFamily: '"Fraunces", serif' }}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm" style={{ fontWeight: 600 }}>{p.name}</div>
+                      <div className="text-xs text-[#5A5751]">
+                        {p.category} · target {p.purchaseTargetDate} · {fmt(parseFloat(p.cost) || 0)} total
+                        {p.projectId && projectLookup[p.projectId] && <> · project: {projectLookup[p.projectId].title}</>}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg ${accent}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+                        {overdue ? `${fmt(parseFloat(p.cost) || 0)} now` : `${fmt(p.perMonth)}/mo`}
+                      </div>
+                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{p.monthsLeft} month{p.monthsLeft === 1 ? '' : 's'} left</div>
+                    </div>
+                  </div>
+                  <div className={`text-[10px] uppercase tracking-wider mt-2 ${accent}`}>
+                    {overdue ? '⚠' : stretch ? '⚠' : '✓'} <span className="sr-only">{overdue ? 'overdue ' : stretch ? 'stretch ' : 'fits '}</span>{tag}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Per-item set-aside = remaining cost ÷ months until target date. If the per-item ask exceeds your monthly net, the row warns — either push the date, lower the cost, or raise net (cut discretionary, close the rent gap).
+          </p>
+        </section>
+      )}
+
+      {!compact && (
+        <section aria-labelledby="items-h">
+          <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+            <h3 id="items-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Inventory Items · {capexItems.length}</h3>
+            <button type="button" onClick={() => { setShowCapexForm(!showCapexForm); setCapexForm(blankCapex()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showCapexForm ? '× Cancel' : '+ Add inventory item'}</button>
+          </div>
+
+          <div className="flex flex-wrap gap-1 mb-3 text-[10px] uppercase tracking-wider items-center">
+            <span className="text-[#5A5751] mr-1">Status:</span>
+            <button type="button" onClick={() => setCapexFilter('all')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${capexFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
+            {CAPEX_STATUSES.map(s => (
+              <button key={s} type="button" onClick={() => setCapexFilter(s)} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${capexFilter === s ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{s}</button>
+            ))}
+            <span className="text-[#5A5751] mx-1">·</span>
+            <span className="text-[#5A5751] mr-1">Project:</span>
+            <button type="button" onClick={() => setProjFilter('all')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>Any</button>
+            <button type="button" onClick={() => setProjFilter('unassigned')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === 'unassigned' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>Unassigned</button>
+            {projects.map(p => (
+              <button key={p.id} type="button" onClick={() => setProjFilter(p.id)} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === p.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{p.title.slice(0, 24)}</button>
+            ))}
+          </div>
+
+          {showCapexForm && (
+            <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div><label htmlFor="cx-cat" className={labelCls}>Category</label><select id="cx-cat" className={fieldCls} value={capexForm.category} onChange={e => setCapexForm({ ...capexForm, category: e.target.value })}>{CAPEX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div className="sm:col-span-3"><label htmlFor="cx-name" className={labelCls}>Item name</label><input id="cx-name" className={fieldCls} value={capexForm.name} onChange={e => setCapexForm({ ...capexForm, name: e.target.value })} /></div>
+              </div>
+              <div><label htmlFor="cx-desc" className={labelCls}>Description</label><input id="cx-desc" className={fieldCls} value={capexForm.description} onChange={e => setCapexForm({ ...capexForm, description: e.target.value })} /></div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div><label htmlFor="cx-pri" className={labelCls}>Priority (1–5)</label><input id="cx-pri" type="number" min="1" max="5" className={fieldCls} value={capexForm.priority} onChange={e => setCapexForm({ ...capexForm, priority: e.target.value })} /></div>
+                <div><label htmlFor="cx-cost" className={labelCls}>Cost</label><input id="cx-cost" type="number" step="0.01" min="0" inputMode="decimal" className={fieldCls} value={capexForm.cost} onChange={e => setCapexForm({ ...capexForm, cost: e.target.value })} /></div>
+                <div><label htmlFor="cx-target" className={labelCls}>Target purchase date</label><input id="cx-target" type="date" className={fieldCls} value={capexForm.purchaseTargetDate} onChange={e => setCapexForm({ ...capexForm, purchaseTargetDate: e.target.value })} /></div>
+                <div><label htmlFor="cx-stat" className={labelCls}>Status</label><select id="cx-stat" className={fieldCls} value={capexForm.status} onChange={e => setCapexForm({ ...capexForm, status: e.target.value })}>{CAPEX_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div><label htmlFor="cx-proj" className={labelCls}>Linked project (optional)</label><select id="cx-proj" className={fieldCls} value={capexForm.projectId} onChange={e => setCapexForm({ ...capexForm, projectId: e.target.value })}><option value="">— none —</option>{projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+                <div><label htmlFor="cx-ent" className={labelCls}>Entity</label><select id="cx-ent" className={fieldCls} value={capexForm.entityId} onChange={e => setCapexForm({ ...capexForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+                <div><label htmlFor="cx-need" className={labelCls}>Needed by (free text)</label><input id="cx-need" className={fieldCls} placeholder="ASAP / Soon / Later" value={capexForm.neededBy} onChange={e => setCapexForm({ ...capexForm, neededBy: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="cx-loc" className={labelCls}>Purchased FOR (location / property)</label>
+                  <select id="cx-loc" className={fieldCls} value={capexForm.locationId} onChange={e => setCapexForm({ ...capexForm, locationId: e.target.value })}>
+                    <option value="">— not assigned to a property —</option>
+                    {rentals.map(r => <option key={r.id} value={r.id}>{r.name}{r.city ? ` · ${r.city}` : ''}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="cx-acct" className={labelCls}>Purchased FROM (account that pays)</label>
+                  <select id="cx-acct" className={fieldCls} value={capexForm.purchasedFromAccountId} onChange={e => setCapexForm({ ...capexForm, purchasedFromAccountId: e.target.value })}>
+                    <option value="">— not specified —</option>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ` (${a.fragment})` : ''} · {a.type}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div><label htmlFor="cx-make" className={labelCls}>Make (brand)</label><input id="cx-make" className={fieldCls} placeholder="e.g., UniFi, Klein, Dell" value={capexForm.make} onChange={e => setCapexForm({ ...capexForm, make: e.target.value })} /></div>
+                <div><label htmlFor="cx-model" className={labelCls}>Model #</label><input id="cx-model" className={fieldCls} placeholder="e.g., UCG-Max-NS" value={capexForm.model} onChange={e => setCapexForm({ ...capexForm, model: e.target.value })} /></div>
+                <div><label htmlFor="cx-serial" className={labelCls}>Serial #</label><input id="cx-serial" className={fieldCls} placeholder="warranty / theft recovery" value={capexForm.serial} onChange={e => setCapexForm({ ...capexForm, serial: e.target.value })} /></div>
+              </div>
+              <div><label htmlFor="cx-link" className={labelCls}>Link (optional)</label><input id="cx-link" type="url" className={fieldCls} placeholder="https://..." value={capexForm.link} onChange={e => setCapexForm({ ...capexForm, link: e.target.value })} /></div>
+              <div><label htmlFor="cx-notes" className={labelCls}>Notes</label><input id="cx-notes" className={fieldCls} value={capexForm.notes} onChange={e => setCapexForm({ ...capexForm, notes: e.target.value })} /></div>
+              <button type="button" onClick={submitCapex} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save Inventory Item</button>
+            </div>
+          )}
+
+          {visibleCapex.length === 0 ? (
+            <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{capexItems.length === 0 ? 'No inventory items yet. Add the first one above.' : 'No items match this filter.'}</p>
+          ) : (
+            <div className="bg-white border border-[#1A1815]">
+              {[...visibleCapex].sort((a, b) => (a.priority || 99) - (b.priority || 99) || (b.cost || 0) - (a.cost || 0)).map((c, i, arr) => (
+                <div key={c.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>P{c.priority || '?'}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">{c.category}</span>
+                        <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{c.name}</span>
+                        {c.link && <a href={c.link} target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">link →</a>}
+                      </div>
+                      {c.description && <div className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.description}</div>}
+                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">
+                        {c.purchaseTargetDate && <>target {c.purchaseTargetDate}{c.projectId && projectLookup[c.projectId] ? ' · ' : ''}</>}
+                        {c.projectId && projectLookup[c.projectId] && <>project: {projectLookup[c.projectId].title}</>}
+                        {!c.purchaseTargetDate && !c.projectId && <span className="italic">unscheduled · unlinked</span>}
+                      </div>
+                      {(c.locationId || c.purchasedFromAccountId || c.make || c.model || c.serial) && (
+                        <div className="text-[10px] text-[#5A5751] mt-1 space-x-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                          {c.locationId && rentals.find(r => r.id === c.locationId) && <span>📍 for <strong>{rentals.find(r => r.id === c.locationId).name}</strong></span>}
+                          {c.purchasedFromAccountId && accounts.find(a => a.id === c.purchasedFromAccountId) && <span>💳 paid via <strong>{accounts.find(a => a.id === c.purchasedFromAccountId).name}</strong></span>}
+                          {(c.make || c.model) && <span>🔖 {[c.make, c.model].filter(Boolean).join(' ')}</span>}
+                          {c.serial && <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>S/N {c.serial}</span>}
+                        </div>
+                      )}
+                      {c.notes && <div className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{c.cost ? fmt(c.cost) : '—'}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{c.status}{c.neededBy ? ` · ${c.neededBy}` : ''}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <label htmlFor={`cx-edit-stat-${c.id}`} className="sr-only">Status for {c.name}</label>
+                    <select id={`cx-edit-stat-${c.id}`} className="text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={c.status} onChange={e => updateCapexItem && updateCapexItem(c.id, { status: e.target.value })}>
+                      {CAPEX_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <label htmlFor={`cx-edit-proj-${c.id}`} className="sr-only">Project for {c.name}</label>
+                    <select id={`cx-edit-proj-${c.id}`} className="text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={c.projectId || ''} onChange={e => updateCapexItem && updateCapexItem(c.id, { projectId: e.target.value })}>
+                      <option value="">— no project —</option>
+                      {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                    </select>
+                    <label htmlFor={`cx-edit-date-${c.id}`} className="sr-only">Target date for {c.name}</label>
+                    <input id={`cx-edit-date-${c.id}`} type="date" className="text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={c.purchaseTargetDate || ''} onChange={e => updateCapexItem && updateCapexItem(c.id, { purchaseTargetDate: e.target.value })} />
+                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
+                    <button type="button" onClick={() => { if (confirm(`Delete "${c.name}"? This cannot be undone.`)) deleteCapexItem && deleteCapexItem(c.id); }} aria-label={`Delete ${c.name}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {compact && (
+        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+          Add or edit inventory items in the <strong>Inventory · Capital Forecast</strong> sub-tab above.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Scope + ScopeForm + ScopeView + FormField — moved from
+// poe-financial-mvp-v28.jsx (r41). Only consumer was <ProjectsWrapper/> above;
+// the monolith had no remaining reference.
+// =============================================================================
+function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
+  const [mode, setMode] = useState('list');
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [activeScopeId, setActiveScopeId] = useState(null);
+  const [formData, setFormData] = useState({});
+
+  const startNew = (t) => { setSelectedTemplate(t); setFormData({ templateType: t.type, templateName: t.name, ...t.defaults, entityId: t.entityId, contractorName: '', contractorEmail: '', contractorPhone: '', projectId: '' }); setMode('new'); };
+  const saveNew = () => { if (!formData.title || !formData.contractorName) { alert('Title and contractor name are required.'); return; } addScope(formData); setMode('list'); setFormData({}); };
+  const viewScope = (s) => { setActiveScopeId(s.id); setMode('view'); };
+  const activeScope = scopes.find(s => s.id === activeScopeId);
+
+  if (mode === 'view' && activeScope) {
+    return <ScopeView scope={activeScope} projects={projects} entities={entities} onBack={() => setMode('list')} onDelete={() => { if (confirm('Delete this scope?')) { deleteScope(activeScope.id); setMode('list'); } }} />;
+  }
+  if (mode === 'new') {
+    return <ScopeForm formData={formData} setFormData={setFormData} projects={projects} entities={entities} templateName={selectedTemplate?.name} onSave={saveNew} onCancel={() => { setMode('list'); setFormData({}); }} />;
+  }
+  return (
+    <div className="space-y-6">
+      <section>
+        <SectionTitle eyebrow="Scope of Work">Contractor Agreements</SectionTitle>
+        <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>Before work begins, write the scope. Both sides agree. Reviews anchor to the scope, not evolving wishes. Each scope can stand alone OR link to an internal project so the work is tracked in the right timeline.</p>
+      </section>
+      <section>
+        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Start from a template</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {SCOPE_TEMPLATES.map(t => (
+            <button key={t.id} onClick={() => startNew(t)} className="bg-white border border-[#1A1815] p-4 text-left hover:border-[#B85838]">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1">{t.type}</div>
+              <h4 className="text-lg mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{t.name}</h4>
+              <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+      <section>
+        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Your scopes ({scopes.length})</h3>
+        {scopes.length === 0 ? (
+          <div className="bg-white border border-[#E8E4DC] p-8 text-center"><p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No scopes yet. Pick a template above.</p></div>
+        ) : (
+          <div className="space-y-2">
+            {scopes.map(s => { const entity = entities.find(e => e.id === s.entityId); const proj = projects.find(p => p.id === s.projectId); return (
+              <button key={s.id} onClick={() => viewScope(s)} className="w-full text-left bg-white border border-[#1A1815] p-4 hover:border-[#B85838]">
+                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                  <div>
+                    <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.title}</div>
+                    <div className="text-xs text-[#5A5751] mt-1">{s.contractorName} · {entity?.name.split('(')[0].trim()}</div>
+                    {proj && <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] mt-1 font-medium">⛓ Linked to: {proj.title}</div>}
+                    {!proj && s.projectId === '' && <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">Standalone</div>}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{s.status}</div>
+                </div>
+              </button>
+            );})}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ScopeForm({ formData, setFormData, projects = [], entities, templateName, onSave, onCancel }) {
+  const update = (f) => (e) => setFormData({ ...formData, [f]: e.target.value });
+  return (
+    <div className="space-y-4 max-w-3xl">
+      <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3">
+        <div><div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium">New Scope · {templateName}</div><h2 className="text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Fill out the agreement</h2></div>
+        <button type="button" onClick={onCancel} className="text-[10px] uppercase tracking-wider text-[#5A5751]">× Cancel</button>
+      </section>
+      <FormField label="Job title *"><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={formData.title || ''} onChange={update('title')} /></FormField>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Entity"><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={formData.entityId || 'e-personal'} onChange={update('entityId')}>{entities.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></FormField>
+        <FormField label="Link to internal project (optional)"><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={formData.projectId || ''} onChange={update('projectId')}>
+          <option value="">— Standalone (no project)</option>
+          {projects.filter(p => p.status !== 'complete').map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+        </select></FormField>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <FormField label="Contractor name *"><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={formData.contractorName || ''} onChange={update('contractorName')} /></FormField>
+        <FormField label="Email"><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={formData.contractorEmail || ''} onChange={update('contractorEmail')} /></FormField>
+        <FormField label="Phone"><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={formData.contractorPhone || ''} onChange={update('contractorPhone')} /></FormField>
+      </div>
+      <FormField label="Scope of work"><textarea rows="4" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.scopeOfWork || ''} onChange={update('scopeOfWork')} /></FormField>
+      <FormField label="Deliverables"><textarea rows="3" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.deliverables || ''} onChange={update('deliverables')} /></FormField>
+      <FormField label="Materials"><textarea rows="3" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.materials || ''} onChange={update('materials')} /></FormField>
+      <FormField label="Schedule"><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.schedule || ''} onChange={update('schedule')} /></FormField>
+      <FormField label="Who pays for materials? (drives payment terms)">
+        <select
+          className="w-full p-2 border border-[#E8E4DC] text-sm bg-white"
+          value={formData.materialsPaidBy || 'contractor'}
+          onChange={(e) => {
+            const who = e.target.value;
+            const suggested =
+              who === 'owner'        ? 'Owner supplies all materials. Contractor invoices labor ONLY. Default: pay full balance within 7 days of acceptance walkthrough. If contractor needs start money (helpers, small startup costs), 20% labor-only deposit on day 1; balance at acceptance.' :
+              who === 'split'        ? 'Materials split per the Materials section above. Deposit covers contractor-supplied materials only (typically 50% of contractor materials). Balance + labor at acceptance.' :
+                                       '50% deposit on materials delivery to cover contractor outlay. 50% balance within 7 days of acceptance walkthrough. Paid via 1099 (W-9 on file).';
+            setFormData({ ...formData, materialsPaidBy: who, paymentTerms: suggested });
+          }}
+        >
+          <option value="contractor">Contractor supplies materials → 50% / 50%</option>
+          <option value="owner">Owner supplies materials → pay at completion (or 20% start)</option>
+          <option value="split">Split → negotiated terms</option>
+        </select>
+        <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          <strong>Policy:</strong> When the owner pays for materials, the contractor isn't fronting that cost — so a 50% material-style deposit isn't fair. Default is "pay full at completion," with a 20% labor-only start fee available if the contractor needs help-hire money or small startup outlay. Picking an option auto-fills the Payment Terms below; you can still edit.
+        </p>
+      </FormField>
+      <FormField label="Payment terms"><textarea rows="3" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.paymentTerms || ''} onChange={update('paymentTerms')} /></FormField>
+      <FormField label="Acceptance criteria"><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.acceptanceCriteria || ''} onChange={update('acceptanceCriteria')} /></FormField>
+      <FormField label="Requirements"><textarea rows="3" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.requirements || ''} onChange={update('requirements')} /></FormField>
+      <FormField label="Warranty"><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.warranty || ''} onChange={update('warranty')} /></FormField>
+      <FormField label="Termination"><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white font-mono" value={formData.terminationClause || ''} onChange={update('terminationClause')} /></FormField>
+      <div className="flex gap-2 pt-3 border-t border-[#1A1815]">
+        <button type="button" onClick={onSave} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider">Save</button>
+        <button type="button" onClick={onCancel} className="border border-[#1A1815] px-6 py-2.5 text-xs uppercase tracking-wider">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
+  const entity = entities.find(e => e.id === scope.entityId);
+  // Preparatory scaffolding — pending "Linked to: <project>" header in this view.
+  // eslint-disable-next-line no-unused-vars
+  const linkedProject = projects.find(p => p.id === scope.projectId);
+  return (
+    <div className="space-y-4 max-w-3xl">
+      <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3 print:hidden">
+        <button type="button" onClick={onBack} className="text-[10px] uppercase tracking-wider">← Back</button>
+        <div className="flex gap-3"><button type="button" onClick={() => window.print()} className="text-[10px] uppercase tracking-wider text-[#B85838]">⎙ Print</button><button type="button" onClick={onDelete} className="text-[10px] uppercase tracking-wider">× Delete</button></div>
+      </section>
+      <div className="bg-white border border-[#1A1815] p-6 sm:p-8 print:border-0 print:p-0">
+        <div className="text-center mb-6 pb-6 border-b border-[#E8E4DC]">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1">Scope of Work · {scope.templateType}</div>
+          <h1 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{scope.title}</h1>
+        </div>
+        <div className="space-y-5 text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          <div className="grid grid-cols-2 gap-4 pb-4 border-b border-[#E8E4DC]">
+            <div><div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Engaging Entity</div><div>{entity?.name}</div></div>
+            <div><div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Contractor</div><div>{scope.contractorName}</div></div>
+          </div>
+          {[['Scope of Work', scope.scopeOfWork], ['Deliverables', scope.deliverables], ['Materials', scope.materials], ['Schedule', scope.schedule], ['Payment Terms', scope.paymentTerms], ['Acceptance', scope.acceptanceCriteria], ['Requirements', scope.requirements], ['Warranty', scope.warranty], ['Termination', scope.terminationClause]].map(([t, c]) => c && c.trim() ? (
+            <div key={t}><div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1.5">{t}</div><div className="whitespace-pre-line">{c}</div></div>
+          ) : null)}
+        </div>
+        <div className="mt-8 pt-6 border-t border-[#1A1815]">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-4">Acknowledgement</div>
+          <div className="grid grid-cols-2 gap-8">
+            <div><div className="border-b border-[#1A1815] h-8"></div><div className="text-xs text-[#5A5751] mt-1">{entity?.name.split('(')[0].trim()}</div></div>
+            <div><div className="border-b border-[#1A1815] h-8"></div><div className="text-xs text-[#5A5751] mt-1">{scope.contractorName}</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormField({ label, children }) { return (<div><label className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1 block">{label}</label>{children}</div>); }
 
 export { ProjectsWrapper, Projects, ProjectConversationLog, DateField, PROJECT_DOMAINS, PROJECT_STATUSES };
 export default ProjectsWrapper;

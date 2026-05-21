@@ -131,6 +131,58 @@ Claude Code does NOT make strategic decisions or write foundation documents. Spe
 
 ---
 
+## Tool boundaries on the monolith
+
+`app/src/poe-financial-mvp-v28.jsx` is a 4,000+-line JSX file and historically the chronic truncation victim. The same boundaries apply to any future JSX file over 2,000 lines.
+
+**Edit / Write tool — permitted scope:**
+
+- Small top-of-file edits **only when**: under 10 lines changed AND located within the first ~50 lines (imports, top-level constants). The harness has shown these land reliably.
+- Single-line edits anywhere in the file (e.g., flipping a flag, adding one prop, changing a literal).
+
+**Bash-only via PowerShell splice — required for:**
+
+- Deep mid-file edits (anything below line ~50).
+- Multi-region edits (changes touching more than one disjoint range).
+- Any edit larger than ~50 lines.
+
+Use this pattern (the same one that has held since r40):
+
+```powershell
+$path = "C:\…\poe-financial-mvp-v28.jsx"
+$lines = [System.IO.File]::ReadAllLines($path)
+$before = $lines[0..($start-1)]
+$after  = $lines[($end+1)..($lines.Length-1)]
+$new = @($before) + @($replacement) + @($after)
+[System.IO.File]::WriteAllLines($path, $new, [System.Text.UTF8Encoding]::new($false))
+```
+
+Always with `UTF8Encoding($false)` (no BOM) so Vite + git stay quiet, and always with descending line numbers when running multiple splices in sequence so earlier indices remain valid.
+
+**After every Edit/Write touching the monolith:**
+
+1. Run `npm run lint`.
+2. If lint suddenly shows many new `no-undef` errors, or the file shrank far more than the change intended, truncation happened. **Revert** (`git checkout app/src/poe-financial-mvp-v28.jsx`) and redo via splice.
+
+Reason for the binding: prior truncation incidents on multi-region or deep mid-file Edit/Write silently dropped the file tail and shipped white-screen-causing breakage to the founder. The splice path bypasses that class of failure entirely.
+
+---
+
+## Lint & build gates (binding from r41 onwards)
+
+Before any commit touching `app/src/components/` (or the monolith above), the agent MUST run:
+
+1. `cd app && npm run lint` — must exit 0 (the config sets `--max-warnings 0`).
+2. `cd app && npm run build` — must complete without errors.
+
+Both must be green. If either fails, fix the cause before committing — do not commit a known-broken state and do not relax the gates to make a commit pass.
+
+`no-undef` errors are extraction-leaks: a symbol referenced in an extracted component whose definition was left behind in the monolith (or vice versa). Fix the same way as r39-r41: move the definition if no other consumer exists, duplicate the definition if the monolith still uses it, or thread it as a prop if it closes over state.
+
+`no-unused-vars` warnings on top-level functions/components/constants in the monolith are usually preparatory scaffolding for pending UI work. Default to converting them to named exports (`export function …`) rather than deleting — ESLint sees the export as a use, and the pending consumers can import directly. Delete only when the symbol is a literal duplicate of one that already lives in an extracted module.
+
+---
+
 ## Cost & setup
 
 - **Claude Code install:** `npm install -g @anthropic-ai/claude-code` then `claude` in the repo root.

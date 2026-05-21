@@ -3,8 +3,6 @@
 // identifiers, not editable values; user adds/removes via the standard flow.
 import React, { useState, useEffect } from 'react';
 
-const fmtPct = (n) => n == null ? '—' : `${n.toFixed(1)}%`;
-
 // Stooq quick-add suggestions — moved here from poe-financial-mvp-v28.jsx (r40);
 // only consumer is this component. Stooq symbol format: 'aapl.us', 'btcusd', '^spx'.
 const SUGGESTED_TICKERS = [

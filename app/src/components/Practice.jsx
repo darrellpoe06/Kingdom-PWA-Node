@@ -78,8 +78,6 @@ const insuranceLabel = (val) => {
 };
 
 function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry }) {
-  const [mode, setMode] = useState('list');
-  const [activeId, setActiveId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('active');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyInquiry());
