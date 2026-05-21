@@ -181,6 +181,8 @@ Both must be green. If either fails, fix the cause before committing — do not 
 
 `no-unused-vars` warnings on top-level functions/components/constants in the monolith are usually preparatory scaffolding for pending UI work. Default to converting them to named exports (`export function …`) rather than deleting — ESLint sees the export as a use, and the pending consumers can import directly. Delete only when the symbol is a literal duplicate of one that already lives in an extracted module.
 
+**Before wiring exported helpers into UI, cross-check helper input assumptions against actual stored entity shapes.** ESLint sees the export as a "use" even when the helper would produce zero runtime matches because its input field names don't match the data the rest of the codebase actually writes. Lint green is not proof the helper works — only proof the symbol is referenced. The check is two greps: where is the helper's input field read (`newItem.X` inside the helper body) vs. where does the entity actually get that field set (every `addEntity({...})` call site). If they disagree, fix the helper or the call sites before wiring chips/UI on top of it, and ship that fix as its own commit (e.g., r42's `fix(connected-context): incident matcher reads linkedTo not linkType`). Catching this in a code review is cheap; catching it after the chip group ships and silently never appears is not.
+
 ---
 
 ## Cost & setup
