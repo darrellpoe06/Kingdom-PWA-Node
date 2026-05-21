@@ -5,6 +5,23 @@ import React, { useState, useEffect } from 'react';
 
 const fmtPct = (n) => n == null ? '—' : `${n.toFixed(1)}%`;
 
+// Stooq quick-add suggestions — moved here from poe-financial-mvp-v28.jsx (r40);
+// only consumer is this component. Stooq symbol format: 'aapl.us', 'btcusd', '^spx'.
+const SUGGESTED_TICKERS = [
+  { sym: 'spy.us',  label: 'S&P 500 ETF' },
+  { sym: 'qqq.us',  label: 'Nasdaq 100 ETF' },
+  { sym: 'dia.us',  label: 'Dow Jones ETF' },
+  { sym: 'iwm.us',  label: 'Russell 2000 ETF' },
+  { sym: 'vti.us',  label: 'Total US Market' },
+  { sym: 'aapl.us', label: 'Apple' },
+  { sym: 'msft.us', label: 'Microsoft' },
+  { sym: 'nvda.us', label: 'Nvidia' },
+  { sym: 'btcusd',  label: 'Bitcoin / USD' },
+  { sym: 'ethusd',  label: 'Ethereum / USD' },
+  { sym: 'eurusd',  label: 'EUR / USD' },
+  { sym: '^spx',    label: 'S&P 500 Index' },
+];
+
 function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTier, setView, maxWatchlist = Infinity }) {
   const atCap = watchlist.length >= maxWatchlist;
   const capLabel = isFinite(maxWatchlist) ? maxWatchlist : null;
