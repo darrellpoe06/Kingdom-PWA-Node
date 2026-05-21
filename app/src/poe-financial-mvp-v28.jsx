@@ -545,10 +545,12 @@ export function ensureLinks(item) {
 export function findRelatedAuto(newItem, entityType, allData, maxResults = 10) {
   if (!newItem) return [];
   const matches = [];
-  // Property-scoped: incidents/projects mentioning the same property id
-  if (entityType === 'incident' && newItem.linkType === 'rental' && newItem.linkId) {
+  // Property-scoped: incidents mentioning the same property id. Reads the
+  // canonical `linkedTo: { type, id }` shape used by every addIncident call
+  // site (BigPicture Action Queue, Rentals tenant-late, Inbound convert).
+  if (entityType === 'incident' && newItem.linkedTo?.type === 'rental' && newItem.linkedTo?.id) {
     (allData.incidents || []).forEach(i => {
-      if (i.id !== newItem.id && i.linkType === 'rental' && i.linkId === newItem.linkId) {
+      if (i.id !== newItem.id && i.linkedTo?.type === 'rental' && i.linkedTo?.id === newItem.linkedTo.id) {
         matches.push({ toEntityType: 'incident', toEntityId: i.id, kind: 'same-property' });
       }
     });
