@@ -1,4 +1,6 @@
-# SKOS AI Infrastructure on Synology — Vision Notes (FUTURE / UNRATIFIED)
+# SKOS AI Infrastructure — Vision Notes (FUTURE / UNRATIFIED)
+
+### Open-source AI stack (Synology DS1621xs reference deployment, not lock-in)
 
 > **STATUS: PARKING LOT.** This document captures the initiative direction for the SKOS AI pipeline running on Darrell's Synology DS1621xs. It is NOT a ratified foundation. It is NOT a committed plan. It is a structured holding place for vision so nothing is lost. Revisit when the Counseling sub-tab has shipped, MVP-1 (the Sovereign Family Financial OS) has stabilized, and the open questions below have been answered by Darrell.
 
@@ -25,6 +27,22 @@ Self-hosted AI on the family's own hardware is **the natural fit for the Soverei
 This is the same sovereignty thesis SKOS applies to financial data, tenant communications, and contractor relationships, applied one layer deeper: the model itself becomes part of the family-controlled stack. The work the AI does on behalf of the family stays close to the family.
 
 Religion AND relationship. Religion-side: server-side enforcement of the system prompt, the drift tests from `_root/THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md`, the banned-clinical-language audit, the four-section response posture from `_root/BEHAVIORAL-MIRROR.md`. Relationship-side: the family's prompts and the user's frustration at 11 PM on a Tuesday never leave hardware the family owns, except — and only when — Darrell has explicitly approved a hybrid call.
+
+---
+
+## Binding architectural principle: open-source, portable, vendor-independent
+
+This is the controlling constraint for the entire initiative. Darrell's own words on 2026-05-23:
+
+> *"I want to use open-source stack inside of Synology so it can be used with any storage devices as a model so the app doesn't have to be associated with any other systems or devices or organizations."*
+
+The principle has three components, and all three are binding on every phase below:
+
+1. **All open-source.** No proprietary or closed-source components in the runtime stack. The inference engine, the orchestration gateway, the container runtime, and the network-exposure layer are all open-source. (Open-*weights* models with permissive licenses satisfy this for the model layer; see the license note in the reference stack.) Hosted closed models may appear only as *optional* opt-in backends, never as required runtime components.
+2. **Portable across storage devices.** The Synology DS1621xs is the **reference deployment** only — the box this initiative is first proved out on, not the box it is wedded to. The same `docker-compose` stack must run unchanged on any generic Docker host: QNAP, TrueNAS, Unraid, a Raspberry Pi cluster, a plain Linux server, etc. **Do not depend on Synology-specific features** — no DSM-only APIs, no btrfs-only quirks, no Synology proprietary apps in the critical path. "As a model" means the deployment is a template that lifts onto any host.
+3. **Vendor-independent at runtime.** The app must **never *require*** an account, subscription, API key, or relationship with any external company in order to function. A family that unplugs from every vendor still has a working SKOS AI surface. Hosted services (Anthropic, OpenAI, Cloudflare, etc.) may be *optional opt-in backends* a family chooses to enable — they are never required defaults, and the app degrades gracefully to fully-local operation when none are configured.
+
+"So the app doesn't have to be associated with any other systems or devices or organizations" is the plain-language test for every architecture decision in this doc: if a choice ties SKOS to one company's cloud, one vendor's hardware, or one organization's account, it fails the principle and must be reframed as opt-in.
 
 ---
 
@@ -103,6 +121,19 @@ These are the capabilities the gateway should eventually deliver, ordered toward
 
 ---
 
+## Reference Implementation Stack
+
+The concrete, all-open-source stack the phases build toward. Every layer is open-source, runs in a container, and lifts to any Docker host — the binding principle made specific. The Synology is where it is first proved; nothing here is Synology-only.
+
+- **Inference engine:** **Ollama** (preferred for ease of setup and model management) or **vLLM** (preferred for throughput and continuous batching once concurrency matters); **llama.cpp** at the lower level when fine control or the smallest footprint is needed. All three are open-source and CPU-capable.
+- **Models:** open-weights with permissive licenses — **Llama 3.x, Qwen 2.5, Mistral, Phi-3/4, Gemma**, etc. Pick per task by capability + license + RAM footprint (the DS1621xs RAM realities above constrain the choice on the reference box). Open-weights satisfies the open-source component of the principle for the model layer.
+- **Orchestration:** a thin **Node.js or Python gateway** exposing a stable, model-agnostic HTTP API. It fronts one or more inference backends; enforces the system prompt, the drift tests, and the banned-clinical-language audit; and handles routing/specialization. The PWA talks only to this gateway, never to a backend directly.
+- **Container runtime:** **`docker-compose`**. Runs on Synology Container Manager, QNAP Container Station, plain Docker, or Podman — unchanged. This is the portability guarantee in practice.
+- **Network exposure:** **open-source tunnels first** — Tailscale (free tier or self-hosted **headscale**) or raw **WireGuard**. **Cloudflare Tunnel is allowed but tracked as a vendor dependency** (it ties exposure to one company's network), so it is an opt-in convenience, not the default.
+- **Storage:** the **family NAS volume** — works on any filesystem the host supports. No btrfs-only or DSM-only assumptions; model weights and logs live on an ordinary mounted volume.
+
+---
+
 ## Non-Goals (To Prevent Sprawl)
 
 - **No training of custom models from scratch.** Phase N+ at earliest, and only if there is a specific capability that no available open-weights model can deliver. Training is expensive, time-consuming, and out of scope for the foreseeable future.
@@ -118,38 +149,43 @@ These are the capabilities the gateway should eventually deliver, ordered toward
 
 Each phase ends with a deliberate go/no-go decision. Pause is always permitted.
 
-### Phase 0 — Current State (PWA → Anthropic Directly)
+The arc of these phases *is* the migration off vendor-dependence toward the binding principle. Phase 0 sits in open tension with the principle; Phase 3 is where vendor-independence is actually achieved.
+
+### Phase 0 — Current State (PWA → Anthropic Directly) — v0 Stepping Stone, Migration Debt
 
 - The Counseling sub-tab in PR #3 calls Anthropic directly from the browser, with a browser-side API key.
-- Acknowledged as MVP-only. Not safe at scale; not aligned with the sovereignty thesis long-term.
-- **Go/no-go decision:** as soon as PR #3 is merged and Counseling has been live for any reasonable usage period, begin Phase 1.
+- **Explicitly a v0 stepping stone, in acknowledged tension with the binding principle.** It is closed-source at the model layer, vendor-dependent at runtime, and not portable in any meaningful sense — it violates all three components of the principle. This is **recorded migration debt**, not the destination, and it is carried only because shipping the Counseling MVP at all came first.
+- **Go/no-go decision:** as soon as PR #3 is merged and Counseling has been live for any reasonable usage period, begin Phase 1 to start retiring the debt.
 
-### Phase 1 — Synology Gateway, Anthropic Backend
+### Phase 1 — Open-Source Gateway, Anthropic Backend (Still Vendor-Dependent — Transitional)
 
-- A Node.js (or equivalent) API gateway runs on the Synology under Docker / DSM Container Manager.
-- The PWA points at the gateway instead of Anthropic. Same call shape from the PWA's side.
-- The gateway proxies to Anthropic. The API key lives on the Synology, not in the browser.
-- Server-side enforcement begins here: system prompt, drift tests, banned-clinical-language audit, scripture-version lookup, four-section posture. All applied to every request before the response returns to the PWA.
+- An open-source **Node.js or Python** API gateway runs on the reference Synology under `docker-compose` (Container Manager) — and, by construction, on any other Docker host.
+- The PWA points at the gateway instead of Anthropic. Same call shape from the PWA's side. The Anthropic key **moves off the browser onto the gateway.**
+- The gateway proxies to Anthropic. Server-side enforcement begins here: system prompt, drift tests, banned-clinical-language audit, scripture-version lookup, four-section posture — all applied to every request before the response returns to the PWA.
+- **Still vendor-dependent at runtime** (the app cannot answer without Anthropic) — flagged as **transitional**. The gateway itself is open-source and portable; the backend it currently requires is not yet.
 - **Go/no-go decision:** has the gateway been stable for 30 days? Have the drift tests caught at least one bad response that would have shipped without them? If yes, Phase 2.
 
-### Phase 2 — Hybrid Routing (Local for Cheap Tasks, Anthropic for Main Response)
+### Phase 2 — Hybrid Routing (Local Open-Weights for Cheap Tasks, Hosted for Main Response)
 
-- Ollama runs on the Synology with one or two small models (candidates: a small audit/classifier model, a small scripture-lookup helper).
-- The gateway routes the **banned-clinical-language audit** and the **drift-test safety check** to the local small model. Cheap, fast, never leaves the family hardware.
-- The **main four-section response** still routes to Anthropic. The hard prompt still goes to the model best equipped to handle it.
+- An open-source inference engine (**Ollama**, or **vLLM** for throughput) runs alongside the gateway with one or two small **open-weights** models (Llama 3.x / Qwen 2.5 / Mistral / Phi / Gemma class — candidates for a small audit/classifier model and a small scripture-lookup helper).
+- The gateway routes the **banned-clinical-language audit** and the **drift-test sanity check** to the local model. Cheap, fast, never leaves the family hardware.
+- The **main four-section response** still routes to the hosted model. The hard prompt still goes to the model best equipped to handle it.
 - This is **Specialization interpretation #2** from the menu above, in its first concrete form.
 - **Go/no-go decision:** is the local audit catching the same drift cases the hosted model would? Is latency acceptable? If yes, Phase 3.
 
-### Phase 3 — Local Model Serves the Primary Response; Anthropic Optional Fallback
+### Phase 3 — Local Open-Weights Model Serves the Primary Response; Hosted Optional Opt-In Fallback — **Vendor-Independence Achieved**
 
-- A local model (candidates: Llama-3.1-8B-Instruct quantized, Mistral-Small-3, Qwen2.5-7B-Instruct, etc.) serves the four-section response as the default.
-- Anthropic remains available as an explicit fallback or as a "ask the better model" surface for prompts the local model can't handle.
+- A local open-weights model (candidates: Llama-3.1-8B-Instruct quantized, Mistral-Small-3, Qwen2.5-7B-Instruct, etc.) serves the four-section response **as the default**.
+- Hosted models (Anthropic and any others) become an **optional opt-in fallback** — a "ask the better model" surface for prompts the local model can't handle. **The app now functions with zero vendor accounts configured.**
+- **This is the phase that satisfies the binding principle:** all open-source in the required runtime, portable across any Docker host, and vendor-independent — no external company is required for the app to work.
 - Quality bar: **no regression on the drift tests and the banned-language audit, no regression on Christina's clinical-sanity-check rubric.** If the local model fails the quality bar, this phase pauses and the rubric is reapplied.
 - **Go/no-go decision:** is the quality bar met? Is the user expectation of latency aligned with reality? If yes, Phase 4.
 
-### Phase 4 — Parallel Models per Chosen Interpretation
+### Phase 4 — Parallel Models (Specialization First) — All Local by Default, Hosted Opt-In
 
-- Whichever interpretation Darrell selects from §"Models in Parallel" gets implemented here. Recommendation: full **router-based specialization** (#2), with **A/B testing infrastructure** (#4) layered on so model swaps can be evaluated empirically.
+- Whichever interpretation Darrell selects from §"Models in Parallel" gets implemented here. Recommendation: full **router-based specialization** (#2) first, with **A/B testing infrastructure** (#4) layered on so model swaps can be evaluated empirically.
+- **All models are local open-weights by default;** hosted backends remain opt-in for families who choose to enable them. The default-local posture from Phase 3 is preserved, not regressed.
+- **Multi-tenant federation** is considered here *if* other SKOS operators run their own Synologys (or any other host) — opt-in and explicit per the federation non-goal, never default.
 - Measurable improvement on a defined metric is the gate — not novelty.
 - **Go/no-go decision:** if Phase-4 work does not measurably improve a real metric, it does not ship. SKOS is not a research lab; it is a family OS.
 
@@ -166,6 +202,7 @@ Answer these before any of the phases above gets serious build work.
 5. **Counseling-sub-tab PIN-encryption boundary with a Synology-hosted backend.** Today the journal is encrypted at rest in the browser via PIN + AES-GCM (PBKDF2 150k, 15-min idle re-lock). When the gateway runs on the Synology, is the Synology trusted as part of the encryption boundary (decrypted in transit to the gateway), or does encryption-at-rest extend through the API call (gateway never sees plaintext journal content, only the user's typed prompt for that turn)? The second is harder and more sovereign-honest; the first is easier.
 6. **Multi-tenant federation story.** If other SKOS instance operators eventually run their own Synologys, what's the federation / discovery / cross-instance story? Default-no (every Synology is an island) is the safe answer; federation is opt-in and explicit if/when it ever happens.
 7. **32 GB RAM upgrade — already done, or part of this initiative?** Single biggest hardware leverage point for the AI workload. Confirm current state and whether the upgrade is in scope of this initiative or already in place.
+8. **How aggressive should the migration off Anthropic be?** The binding principle says vendor-independence is achieved at Phase 3. Aim for Phase 3 within X months (and what is X)? Or treat hosted backends as a permanent opt-in *alongside* a local default — i.e., reach Phase 3's local-default capability but never deprecate the hosted path? Either honors the principle (hosted-as-opt-in is allowed); the question is how hard to push the timeline and whether retiring the hosted path entirely is ever a goal.
 
 ---
 
