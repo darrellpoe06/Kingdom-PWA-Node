@@ -65,7 +65,7 @@ The DS1621xs is a serious NAS. It is **not** a serious AI workstation. Both thin
 **What the DS1621xs is:**
 
 - **CPU:** Intel Xeon D-1527 — 4 cores / 8 threads at 2.2 GHz base (turbo to 2.7 GHz). Server-grade, ECC-capable, but several generations old and CPU-only.
-- **RAM:** 8 GB ECC stock; 32 GB ECC maximum (registered DIMMs). The 32 GB upgrade is the single biggest leverage move for AI workloads on this box.
+- **RAM:** 32 GB ECC (owned; already at the max-supported configuration — registered DIMMs, no further RAM headroom on this box). This is the baseline the AI workload is designed against, not a planned upgrade.
 - **Storage:** 6 SATA bays + dual NVMe cache slots. The NVMe cache slots can hold model weights for fast loading.
 - **Network:** Dual 10 GbE. Plenty of headroom — networking is not the bottleneck.
 - **GPU:** **None.** No discrete GPU, no integrated GPU on the Xeon D-1527.
@@ -74,9 +74,9 @@ The DS1621xs is a serious NAS. It is **not** a serious AI workstation. Both thin
 
 **Realistic capabilities for AI workloads on this hardware:**
 
-- **CPU-only inference of small-to-medium quantized models** via Ollama, llama.cpp, or vLLM (CPU mode). Models in the **≤13B-parameter range comfortably**, up to ~30B with heavy quantization (Q4_K_M or smaller) if the 32 GB RAM upgrade is in place.
+- **CPU-only inference of small-to-medium quantized models** via Ollama, llama.cpp, or vLLM (CPU mode). Models in the **≤13B-parameter range comfortably**, up to ~30B with heavy quantization (Q4_K_M or smaller) given the already-installed 32 GB ECC.
 - **Throughput is slow on CPU-only.** Realistic ballpark: a few tokens per second for a 7B Q4 model; under one token per second for 30B-class quantized models. **Acceptable for journal/preparation/drafting use cases** where the user is reflecting, not real-time chatting. **Not acceptable** for the user's expectation of conversational responsiveness if they expect to type a question and see a fluent paragraph appear in two seconds.
-- **The 32 GB RAM upgrade + NVMe cache populated with model weights significantly help** model load time, swap pressure, and concurrent-request handling — but they do not change the fundamental tokens-per-second ceiling that comes from being CPU-only.
+- **The already-installed 32 GB ECC + NVMe cache populated with model weights significantly help** model load time, swap pressure, and concurrent-request handling — but they do not change the fundamental tokens-per-second ceiling that comes from being CPU-only.
 - **True parallel multi-model responsive inference probably requires a GPU.** The DS1621xs has no GPU and no Thunderbolt for eGPU. Options for the GPU question:
   - **Stay CPU-only and design the UX for slower turn times.** Journal-style "reflect, submit, see the response a minute later" works; real-time chat does not.
   - **PCIe-slot GPU directly into the Synology** (with caveats: airflow not designed for it; DSM does not officially support discrete GPU passthrough; community-led with no warranty story).
@@ -201,8 +201,7 @@ Answer these before any of the phases above gets serious build work.
 4. **Migration vs. coexistence with hosted Anthropic.** Is the long-term goal **fully local** (Phase 3 endpoint), or **hybrid forever** (specialization + Anthropic for the hard prompts indefinitely)? Either is defensible; the architecture is meaningfully different.
 5. **Counseling-sub-tab PIN-encryption boundary with a Synology-hosted backend.** Today the journal is encrypted at rest in the browser via PIN + AES-GCM (PBKDF2 150k, 15-min idle re-lock). When the gateway runs on the Synology, is the Synology trusted as part of the encryption boundary (decrypted in transit to the gateway), or does encryption-at-rest extend through the API call (gateway never sees plaintext journal content, only the user's typed prompt for that turn)? The second is harder and more sovereign-honest; the first is easier.
 6. **Multi-tenant federation story.** If other SKOS instance operators eventually run their own Synologys, what's the federation / discovery / cross-instance story? Default-no (every Synology is an island) is the safe answer; federation is opt-in and explicit if/when it ever happens.
-7. **32 GB RAM upgrade — already done, or part of this initiative?** Single biggest hardware leverage point for the AI workload. Confirm current state and whether the upgrade is in scope of this initiative or already in place.
-8. **How aggressive should the migration off Anthropic be?** The binding principle says vendor-independence is achieved at Phase 3. Aim for Phase 3 within X months (and what is X)? Or treat hosted backends as a permanent opt-in *alongside* a local default — i.e., reach Phase 3's local-default capability but never deprecate the hosted path? Either honors the principle (hosted-as-opt-in is allowed); the question is how hard to push the timeline and whether retiring the hosted path entirely is ever a goal.
+7. **How aggressive should the migration off Anthropic be?** The binding principle says vendor-independence is achieved at Phase 3. Aim for Phase 3 within X months (and what is X)? Or treat hosted backends as a permanent opt-in *alongside* a local default — i.e., reach Phase 3's local-default capability but never deprecate the hosted path? Either honors the principle (hosted-as-opt-in is allowed); the question is how hard to push the timeline and whether retiring the hosted path entirely is ever a goal.
 
 ---
 

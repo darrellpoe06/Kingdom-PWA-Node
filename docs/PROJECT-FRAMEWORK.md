@@ -298,6 +298,7 @@ Append-only. Absolute dates. Newest at the bottom of each date; oldest day at th
 - **Marketplace is cross-domain** — church / landlord / lawyer / therapist / business mentor / technology counselor / more. SKOS prebuilds the OS for many roles; each role gets its own counselor marketplace at the right time.
 - **AI infrastructure direction:** self-host on Darrell's Synology DS1621xs, with "models in parallel" as the founder framing. See `docs/00-foundations/_future/AI-INFRASTRUCTURE-SYNOLOGY.md` for the initiative writeup.
 - **Binding architecture principle** — SKOS AI stack must be all open-source, portable across storage devices, and vendor-independent at runtime. Synology DS1621xs is the reference deployment, not a lock-in. Hosted backends (current Anthropic-direct call in PR #3) are v0 stepping stones with explicit migration debt to be retired by Phase 3 of the AI infrastructure initiative.
+- Synology DS1621xs is already at 32 GB ECC RAM (max-supported); no further RAM investment required for AI infra Phase 1–3.
 - **`PROJECT-FRAMEWORK.md` created** as the living continuous-context spine. Every working session ends with an update commit to this file.
 
 ---
@@ -325,7 +326,7 @@ Grouped by who can answer them.
 - **Idle-timeout duration.** Default is 15 minutes; confirm or change.
 - **eGPU plan for the Synology.** The DS1621xs has no GPU and no Thunderbolt. Needs a decision before "models in parallel" gets seriously scoped — see `AI-INFRASTRUCTURE-SYNOLOGY.md`.
 - **Network exposure plan for the Synology.** Tailscale / Cloudflare Tunnel / VPN-only / other.
-- **How aggressive should the migration off Anthropic be?** Aim for Phase 3 (local-default, vendor-independent) within a set number of months, or treat hosted backends as a permanent opt-in alongside a local default? See open question #8 in `AI-INFRASTRUCTURE-SYNOLOGY.md`.
+- **How aggressive should the migration off Anthropic be?** Aim for Phase 3 (local-default, vendor-independent) within a set number of months, or treat hosted backends as a permanent opt-in alongside a local default? See open question #7 in `AI-INFRASTRUCTURE-SYNOLOGY.md`.
 
 ### For the team / future cards
 
