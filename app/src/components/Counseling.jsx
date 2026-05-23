@@ -566,22 +566,20 @@ export default function Counseling({ church, onBackToHome }) {
             earlier "pastor or designated care leader"). The person chooses which
             kind of counselor below. */}
         {/* TODO (post-MVP): This picker is the seed of an experiential-knowledge
-            counselor marketplace — eventually maps to discoverable, bookable
-            counselors from the SKOS network (Church of the Living God +
-            affiliated churches + business mentors + technology counselors). The
-            network's value is leaders who have ACTUALLY RUN the thing the seeker
-            is asking about — experiential knowledge from doing, not titles,
-            credentials, or seminary theory. These leaders are the source of
-            experiential knowledge for smaller churches. Domains include pastoral,
-            eldership, ministry-leadership (any department), business operations,
-            Scripture/teaching, AND technology + systems consulting (the
-            originating church's tech department serving smaller churches who
-            lack systems understanding). Eventually pairs with two distinct
-            productized services: (a) deliberate training of smaller churches on
-            SKOS itself, and (b) assisted documentation of those churches'
-            procedures and processes. Tonight ships only the local picker UI;
-            the marketplace, training, and documentation services are separate
-            initiatives. */}
+            counselor marketplace — a cross-domain pattern SKOS is prebuilt for.
+            Tonight's surface focuses on church/spiritual handoff (pastor, elder,
+            lay counselor, ministry leader, business mentor, Scripture teacher,
+            technology counselor). The same pattern applies to every other
+            SKOS-prebuilt domain: landlord-to-landlord on Rentals, attorney-to-
+            attorney for legal questions, licensed-care routing on Practice
+            (already shipped to TLC), and other roles to come. Each domain's marketplace
+            discovers and books experienced counselors whose differentiator is
+            having actually done the thing — credentials welcome but secondary,
+            theory-only contributors support the experienced rather than serving
+            as counselors themselves. Eventually pairs with the deliberate-SKOS-
+            training service and the procedure/process documentation service.
+            Tonight ships only the church-domain picker UI; cross-domain
+            generalization is a separate initiative. */}
         <div className="mt-3 flex items-end gap-3 flex-wrap">
           <label className="text-[9px] uppercase tracking-wider text-[#5A5751] flex flex-col gap-1">
             Bring this to:
