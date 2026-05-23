@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { RentCastPrefill } from './connectors/RentCast.jsx';
-import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
+import { findRelatedAuto } from '../lib/connectedContext.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
