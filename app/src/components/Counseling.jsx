@@ -565,10 +565,14 @@ export default function Counseling({ church, onBackToHome }) {
             "counselors in the church" phrasing (reconciled 2026-05-23 from the
             earlier "pastor or designated care leader"). The person chooses which
             kind of counselor below. */}
-        {/* TODO (post-MVP): This picker is the seed of a credentialed-counselor
-            marketplace — eventually maps to discoverable, bookable counselors
-            from the SKOS network (Church of the Living God + affiliated churches
-            + business mentors + technology counselors). Domains include pastoral,
+        {/* TODO (post-MVP): This picker is the seed of an experiential-knowledge
+            counselor marketplace — eventually maps to discoverable, bookable
+            counselors from the SKOS network (Church of the Living God +
+            affiliated churches + business mentors + technology counselors). The
+            network's value is leaders who have ACTUALLY RUN the thing the seeker
+            is asking about — experiential knowledge from doing, not titles,
+            credentials, or seminary theory. These leaders are the source of
+            experiential knowledge for smaller churches. Domains include pastoral,
             eldership, ministry-leadership (any department), business operations,
             Scripture/teaching, AND technology + systems consulting (the
             originating church's tech department serving smaller churches who
