@@ -68,7 +68,9 @@ Authoritative documents. Read these before generating substantive content. Do no
 - `docs/00-foundations/_future/MARKETING-PIPELINE-NOTES.md` — voice-learned marketing automation for owner-operators (Christina first).
 - `docs/00-foundations/_future/MEDIA-ENGINE-NOTES.md` — narrative content engine.
 - `docs/00-foundations/_future/COMMUNITY-DISCUSSION-LAYER.md` — community discussion surface.
-- `docs/00-foundations/_future/AI-INFRASTRUCTURE-SYNOLOGY.md` — self-hosted AI gateway on the DS1621xs (new, sibling to this doc).
+- `docs/00-foundations/_future/AI-INFRASTRUCTURE-SYNOLOGY.md` — self-hosted AI gateway on the DS1621xs (canonical AI infra workup).
+- `docs/00-foundations/_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md` — decision support for the canonical workup's Open Question #3 (GPU plan); four real options with build manifests and $ figures.
+- `docs/00-foundations/_future/EXPERIENTIAL-KNOWLEDGE-MARKETPLACE.md` — cross-domain marketplace vision: experience over credentials, two-tier model, named anti-pattern (degree-as-resistance), initial domains, paired productized services.
 
 **Module / financial-OS docs:**
 
@@ -269,8 +271,8 @@ What each instance type gets when provisioned. The current source-of-truth for t
 Each line: workstream → owner → next step.
 
 - **Counseling sub-tab MVP** → Darrell to click through and verify the running app; Christina to sanity-check the defaults (PIN encryption boundary, scripture-version dropdown, deletion flow, counselor-handoff picker, .md export shape).
-- **Cross-domain experiential-knowledge counselor marketplace** → vision doc to be written as a separate future writeup (sibling to `_future/MARKETING-PIPELINE-NOTES.md`). Captures the "experience over credentials" principle, the cross-domain picker categories, and the multi-instance marketplace shape (church-to-church, business-mentor-to-owner, technology-counselor-to-family, etc.).
-- **SKOS AI infrastructure on Synology DS1621xs** → see `docs/00-foundations/_future/AI-INFRASTRUCTURE-SYNOLOGY.md` (new sibling doc); next step is Darrell answering the open questions listed there.
+- **Cross-domain experiential-knowledge counselor marketplace** → vision doc landed 2026-05-23 at `docs/00-foundations/_future/EXPERIENTIAL-KNOWLEDGE-MARKETPLACE.md`. Captures the "experience over credentials" principle, the two-tier model (counselors and knowledge-without-experience contributors), the named anti-pattern ("degree-as-resistance"), initial domains (church / therapy / rentals / legal / more to come), and the paired productized services (deliberate SKOS training + assisted procedure documentation). Next step: Darrell + Christina + team review and answer the seven open product questions before any v0 build beyond the Counseling-sub-tab prototype.
+- **SKOS AI infrastructure on Synology DS1621xs** → canonical workup at `docs/00-foundations/_future/AI-INFRASTRUCTURE-SYNOLOGY.md`. Hardware decision support landed 2026-05-23 at `docs/00-foundations/_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md` (four real options with $ figures, recommendation: dual used RTX 3090 build ~$2,000). Polarity note added 2026-05-23 to `docs/00-foundations/_root/INFRASTRUCTURE-PIPELINE.md` — local LLM is the eventual default, hosted is opt-in fallback (per the binding open-source + vendor-independent principle). Next step: Darrell answering the canonical workup's seven open questions, especially #3 (GPU plan).
 - **Marketing pipeline for Christina's TLC Therapy Solutions** → `docs/00-foundations/_future/MARKETING-PIPELINE-NOTES.md` exists and is parked; revisit triggers documented; still needs scoping when those triggers fire.
 - **MVP-1 hardening plan** → `docs/05-financial-os/MVP-1-HARDENING-PLAN.md`; blocked on three founder calls (already flagged in that doc).
 - **Module catalog migration from About.jsx** → first step is this PROJECT-FRAMEWORK.md (done); follow-up card needed to update About.jsx so it renders module cards from the markdown rather than holding the catalog in JSX. Until then, this file is the source-of-truth for project-management view; About.jsx remains the source-of-truth for public-facing tier-feature copy.
@@ -300,6 +302,11 @@ Append-only. Absolute dates. Newest at the bottom of each date; oldest day at th
 - **Binding architecture principle** — SKOS AI stack must be all open-source, portable across storage devices, and vendor-independent at runtime. Synology DS1621xs is the reference deployment, not a lock-in. Hosted backends (current Anthropic-direct call in PR #3) are v0 stepping stones with explicit migration debt to be retired by Phase 3 of the AI infrastructure initiative.
 - Synology DS1621xs is already at 32 GB ECC RAM (max-supported); no further RAM investment required for AI infra Phase 1–3.
 - **`PROJECT-FRAMEWORK.md` created** as the living continuous-context spine. Every working session ends with an update commit to this file.
+- Confirmed the "workup" Darrell referenced for AI hardware IS `docs/00-foundations/_future/AI-INFRASTRUCTURE-SYNOLOGY.md` (the canonical doc landed earlier today on PR #4); fresh chat suggestions slot into its existing Open Question #3 (GPU plan), not as a parallel framework.
+- Corrected stale RAM figure: `INFRASTRUCTURE-PIPELINE.md` line 11 said 64 GB; confirmed 32 GB ECC is max-supported on DS1621xs. Edit applied to that line.
+- Polarity note added to `INFRASTRUCTURE-PIPELINE.md`: per the open-source + vendor-independent principle, local LLM is the eventual default and hosted is opt-in fallback (older "local-as-outage-fallback" framing preserved as historical context with the polarity-flip note).
+- Cross-Domain Experiential-Knowledge Counselor Marketplace vision doc drafted at `docs/00-foundations/_future/EXPERIENTIAL-KNOWLEDGE-MARKETPLACE.md` (sibling to `MARKETING-PIPELINE-NOTES.md`); resolves the §6 placeholder line "vision doc to be written."
+- Hardware Options decision-support doc drafted at `docs/00-foundations/_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md`: four real options (CPU-only $0 / single 3090 ~$1.2–1.5k / dual 3090 ~$2k / RTX 5090 DIY ~$2.8–3.3k / Mac Studio M4 Max $2.8k–5k). Recommendation: dual used RTX 3090 (~$2k) for full principle alignment, true parallel model serving, and lowest $/capability.
 
 ---
 
@@ -325,6 +332,7 @@ Grouped by who can answer them.
 - **Bible-version dropdown contents.** KJV / NIV / NASB / CSB / NLT — confirm or swap (e.g., AMP in, NLT out, etc.). Per `SCRIPTURE-REFERENCE-STANDARD.md` the citation hierarchy is ESV → KJV → NIV → AMP → Strong's; the in-app dropdown can diverge from the citation hierarchy if there's a UX reason.
 - **Idle-timeout duration.** Default is 15 minutes; confirm or change.
 - **eGPU plan for the Synology.** The DS1621xs has no GPU and no Thunderbolt. Needs a decision before "models in parallel" gets seriously scoped — see `AI-INFRASTRUCTURE-SYNOLOGY.md`.
+- **GPU plan: dual RTX 3090 (~$2k) vs Mac Studio M4 Max (~$2.8k+) vs RTX 5090 DIY (~$3k+) vs stay CPU-only.** Answer feeds `AI-INFRASTRUCTURE-SYNOLOGY.md` Open Question #3. Four options with build manifests, $ figures, and tradeoffs scoped in `AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md`; recommendation is the dual-3090 build for full principle alignment and true parallel model serving.
 - **Network exposure plan for the Synology.** Tailscale / Cloudflare Tunnel / VPN-only / other.
 - **How aggressive should the migration off Anthropic be?** Aim for Phase 3 (local-default, vendor-independent) within a set number of months, or treat hosted backends as a permanent opt-in alongside a local default? See open question #7 in `AI-INFRASTRUCTURE-SYNOLOGY.md`.
 

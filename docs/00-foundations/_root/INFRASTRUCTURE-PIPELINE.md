@@ -8,7 +8,7 @@ Binding architecture for how PoeTech builds and ships from now on. Replaces the 
 
 ## The model in one paragraph
 
-The **laptop** (Samsung Galaxy Book Pro · i7-1165G7 · 16 GB) is for active development — fast per-core CPU, portable, where the founder's attention is. The **DS1621xs NAS** (Xeon D-1527 · 64 GB · always-on) is for persistence, automation, backup, CI/CD, and multi-instance staging. **Cloudflare** (free tier) hosts production. **Cowork (Claude in chat)** owns strategy, foundation docs, and task-card specs. **Claude Code (local CLI)** owns execution. **The founder** is the arbiter and the only irreplaceable human in the loop.
+The **laptop** (Samsung Galaxy Book Pro · i7-1165G7 · 16 GB) is for active development — fast per-core CPU, portable, where the founder's attention is. The **DS1621xs NAS** (Xeon D-1527 · 32 GB ECC (max-supported configuration; confirmed 2026-05-23) · always-on) is for persistence, automation, backup, CI/CD, and multi-instance staging. **Cloudflare** (free tier) hosts production. **Cowork (Claude in chat)** owns strategy, foundation docs, and task-card specs. **Claude Code (local CLI)** owns execution. **The founder** is the arbiter and the only irreplaceable human in the loop.
 
 ---
 
@@ -162,6 +162,12 @@ Every step is monitored. Every step has a fallback (e.g., if CI fails, the artif
 28. Local-LLM fallback: install Ollama on NAS with Llama 3.1 or similar. Configure Claude Code to fall through to local model when Anthropic is unreachable. Accuracy drops; velocity doesn't crash.
 29. Monitoring dashboard: Cloudflare Worker metrics + uptime check + NAS health → single Grafana page on the NAS. Family or PoeTech staff can glance at it any time.
 30. Customer-facing demo: when first paying customer is signing up, demo the system from NAS over screen-share with realistic data. No production touch.
+
+---
+
+## Note (2026-05-23): polarity update on local LLM
+
+The binding **open-source + portable + vendor-independent** principle landed in `docs/00-foundations/_future/AI-INFRASTRUCTURE-SYNOLOGY.md` (committed `d1df3b6` on PR #4) **inverts the polarity of the local-LLM framing above.** Local is the eventual default; hosted is the opt-in fallback. The "Local-LLM fallback during outages" row in the hybrid table and item 28 in the Quarter 1 follow-ups (Ollama as outage-only fallback) are preserved above as historical context, but the trajectory has flipped: Phase 3 of the new workup is "local open-weights model serves the primary response; hosted optional opt-in fallback — vendor-independence achieved." Hardware options that unlock Phase 3 are scoped in `docs/00-foundations/_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md`. Read both for the current direction.
 
 ---
 
