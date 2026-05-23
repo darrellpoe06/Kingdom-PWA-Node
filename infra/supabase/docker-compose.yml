@@ -1,0 +1,194 @@
+# =============================================================================
+# Supabase self-hosted on Synology DS1621xs
+# Layer 2 of SKOS / PoeTech Family OS — multi-tenant sync backend.
+#
+# Reference deployment: /volume1/supabase on the DS1621xs, started via
+# Container Manager > Project > pointing at this folder.
+#
+# Stack (minimal/essential — full Supabase has more; we start lean and add later):
+#   db       — Postgres 15 with Supabase extensions (auth, realtime, graphql)
+#   auth     — GoTrue (magic-link email auth, JWT issuer)
+#   rest     — PostgREST (auto-REST API over Postgres tables)
+#   realtime — listens to Postgres logical replication, pushes changes to clients
+#   studio   — admin UI for browsing tables, running SQL, managing auth users
+#   kong     — API gateway that fronts auth / rest / realtime / storage behind one URL
+#
+# After containers are up:
+#   1. Studio reachable via Web Station alias /supabase-studio/  → kong:8000 → studio
+#   2. API gateway reachable via /supabase-api/ → kong:8000 → /auth, /rest, /realtime
+#
+# Secrets come from .env (gitignored). Generated 2026-05-23.
+# =============================================================================
+
+x-restart: &restart-policy
+  restart: unless-stopped
+
+services:
+  # ---------------------------------------------------------------------------
+  # Postgres — the database
+  # ---------------------------------------------------------------------------
+  db:
+    container_name: supabase-db
+    image: supabase/postgres:latest
+    <<: *restart-policy
+    ports:
+      # 54322 is exposed only on the LAN side for emergency direct-DB access
+      # (e.g. running a psql shell from Darrell's laptop). NEVER exposed
+      # via Web Station / QuickConnect — only LAN interface.
+      - "127.0.0.1:54322:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: 3600
+    volumes:
+      - ./volumes/db/data:/var/lib/postgresql/data
+      - ./volumes/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # GoTrue — magic-link email auth, JWT issuance
+  # ---------------------------------------------------------------------------
+  auth:
+    container_name: supabase-auth
+    image: supabase/gotrue:latest
+    <<: *restart-policy
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres?sslmode=disable
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
+      GOTRUE_DISABLE_SIGNUP: ${GOTRUE_DISABLE_SIGNUP}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${GOTRUE_EXTERNAL_EMAIL_ENABLED}
+      GOTRUE_MAILER_AUTOCONFIRM: ${GOTRUE_MAILER_AUTOCONFIRM}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT}
+      GOTRUE_SMTP_USER: ${SMTP_USER}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME}
+
+  # ---------------------------------------------------------------------------
+  # PostgREST — auto-REST API over the Postgres schema
+  # ---------------------------------------------------------------------------
+  rest:
+    container_name: supabase-rest
+    image: postgrest/postgrest:latest
+    <<: *restart-policy
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+
+  # ---------------------------------------------------------------------------
+  # Realtime — push Postgres changes to clients via WebSocket
+  # ---------------------------------------------------------------------------
+  realtime:
+    container_name: supabase-realtime
+    image: supabase/realtime:latest
+    <<: *restart-policy
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: ${VAULT_ENC_KEY}
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      ERL_AFLAGS: "-proto_dist inet_tcp"
+      ENABLE_TAILSCALE: "false"
+      DNS_NODES: "''"
+
+  # ---------------------------------------------------------------------------
+  # Studio — admin UI
+  # ---------------------------------------------------------------------------
+  studio:
+    container_name: supabase-studio
+    image: supabase/studio:latest
+    <<: *restart-policy
+    depends_on:
+      meta:
+        condition: service_started
+    environment:
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DEFAULT_ORGANIZATION_NAME: ${DEFAULT_ORGANIZATION_NAME}
+      DEFAULT_PROJECT_NAME: ${DEFAULT_PROJECT_NAME}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+
+  # ---------------------------------------------------------------------------
+  # postgres-meta — metadata API used by Studio
+  # ---------------------------------------------------------------------------
+  meta:
+    container_name: supabase-meta
+    image: supabase/postgres-meta:latest
+    <<: *restart-policy
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: supabase_admin
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+  # ---------------------------------------------------------------------------
+  # Kong — API gateway routing one external URL to auth/rest/realtime/storage
+  # ---------------------------------------------------------------------------
+  kong:
+    container_name: supabase-kong
+    image: kong:2.8.1
+    <<: *restart-policy
+    depends_on:
+      - auth
+      - rest
+      - realtime
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+    volumes:
+      - ./volumes/kong/kong.yml:/var/lib/kong/kong.yml:ro
+
+networks:
+  default:
+    name: supabase_network
