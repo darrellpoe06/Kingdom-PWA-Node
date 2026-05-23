@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import Counseling from './Counseling.jsx';
 
 export default function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent }) {
+  const [subView, setSubView] = useState('home'); // 'home' | 'counseling'
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -75,8 +77,20 @@ export default function Church({ church, prayerRequests, addPrayerRequest, markP
     setShowMinistryForm(false);
   };
 
+  const tabCls = (active) => `px-4 py-2 text-xs uppercase tracking-wider border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${active ? 'border-[#B85838] text-[#1A1815] font-semibold' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`;
+
   return (
     <div className="space-y-6">
+      {/* SUB-TAB NAV — Home (existing Church) | Counseling (Council Chamber) */}
+      <nav className="flex gap-1 border-b border-[#E8E4DC]" aria-label="Church sections">
+        <button type="button" onClick={() => setSubView('home')} className={tabCls(subView === 'home')} aria-current={subView === 'home' ? 'page' : undefined}>Home</button>
+        <button type="button" onClick={() => setSubView('counseling')} className={tabCls(subView === 'counseling')} aria-current={subView === 'counseling' ? 'page' : undefined}>Counseling</button>
+      </nav>
+
+      {subView === 'counseling' ? (
+        <Counseling church={c} onBackToHome={() => setSubView('home')} />
+      ) : (
+      <div className="space-y-6">
       {/* HEADER */}
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-1">Home Church</div>
@@ -236,6 +250,8 @@ export default function Church({ church, prayerRequests, addPrayerRequest, markP
       <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Content links to the church's own pages. Service times, media, and ministry openings live on <a href={c.site} target="_blank" rel="noopener noreferrer" className="underline">{(c.site || '').replace(/^https?:\/\//, '')}</a> — this tab is a shortcut, not a copy. Edits to service times can be made in the seed data ({`data.church.services`}) as the church publishes them.
       </p>
+      </div>
+      )}
     </div>
   );
 }

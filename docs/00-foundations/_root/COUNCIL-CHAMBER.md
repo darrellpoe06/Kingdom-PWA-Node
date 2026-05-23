@@ -150,7 +150,9 @@ Christina, as an LCSW operating TLC Therapy Solutions, maintains a list of vette
 
 ### Pathway 3 — Pastoral care (COLG, opt-in, relationally trusted)
 
-When the user is connected to The Church of the Living God (Champaign IL) — or any future SKOS instance operator's home congregation — pastoral care from that body is offered as a third hand-off pathway. Opt-in per user; defaults to off on first session. The pastor or designated care leader receives a discreet notification (no transcript, only that a member requested pastoral contact); they reach out directly.
+When the user is connected to The Church of the Living God (Champaign IL) — or any future SKOS instance operator's home congregation — pastoral care from that body is offered as a third hand-off pathway. Opt-in per user; defaults to off on first session. The user chooses which **counselor in the church** to reach (for example a pastor, lay counselor, ministry leader, or elder); that counselor in the church receives a discreet notification (no transcript, only that a member requested pastoral contact); they reach out directly.
+
+> **Vocabulary (unified 2026-05-23).** "Counselors in the church" is the canonical, app-wide phrase for this human-pastoral-care role, replacing the earlier "the pastor or designated care leader." The substance of Pathway 3 is unchanged — only the label is reconciled, and the surface now lets the user pick which kind of counselor in the church to approach.
 
 This pathway honors the truth that some distress is best held by the body of believers the user already belongs to, not by professional services and not by a hotline. Galatians 6:2 — *"bear one another's burdens, and so fulfill the law of Christ"* — operationalized.
 
