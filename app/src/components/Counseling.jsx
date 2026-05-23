@@ -23,7 +23,21 @@ const DISCLAIMER_SESSION_KEY = 'councilChamberDisclaimerDismissed';
 
 const IDLE_LOCK_MS = 15 * 60 * 1000; // configurable idle timeout (default 15 min)
 
-const COUNSELOR_TYPES = ['Pastor', 'Lay counselor', 'Ministry leader', 'Elder', 'Other'];
+// Counselor domains. Counseling depends on the experience/domain of the
+// counselor — this serves individual believers AND church leaders / business
+// owners thinking through how to run their organization.
+const COUNSELOR_TYPES = [
+  'Pastor',
+  'Elder',
+  'Lay counselor',
+  'Ministry / department leader',
+  'Business mentor',
+  'Spiritual knowledge / Bible teacher',
+  'Technology / systems counselor',
+  'Other',
+];
+// Types that reveal a free-text subfield (e.g., which ministry/department).
+const COUNSELOR_DETAIL_TYPES = ['Ministry / department leader', 'Other'];
 
 // Lightweight in-browser crisis signal — only used to visually highlight the
 // always-on resources panel. The warm hand-off copy itself comes from the model.
@@ -122,6 +136,7 @@ export default function Counseling({ church, onBackToHome }) {
 
   const [bibleVersion, setBibleVersion] = useState(() => lsGet(VERSION_KEY) || DEFAULT_BIBLE_VERSION);
   const [counselorType, setCounselorType] = useState(COUNSELOR_TYPES[0]);
+  const [counselorDetail, setCounselorDetail] = useState('');
 
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -290,8 +305,9 @@ export default function Counseling({ church, onBackToHome }) {
     setPending(true);
 
     try {
+      const counselor = counselorDetail.trim() ? `${counselorType} (${counselorDetail.trim()})` : counselorType;
       const { sections, rawText } = await askCouncilChamber({
-        apiKey, history, userMessage: text, isFirstMessage, bibleVersion,
+        apiKey, history, userMessage: text, isFirstMessage, bibleVersion, counselor,
       });
       setMessages((prev) => [...prev, {
         role: 'assistant', content: rawText, sections, version: bibleVersion, timestamp: new Date().toISOString(),
@@ -332,7 +348,8 @@ export default function Counseling({ church, onBackToHome }) {
 
   const exportAll = () => {
     if (exchanges.length === 0) return;
-    const counselorLine = `_For: ${counselorType} · counselor in the church_\n\n`;
+    const detail = counselorDetail.trim() ? ` (${counselorDetail.trim()})` : '';
+    const counselorLine = `_For: ${counselorType}${detail} · counselor in the church_\n\n`;
     const body = counselorLine + exchanges.map(exchangeToMarkdown).join('\n\n');
     downloadText(`council-chamber-all-${new Date().toISOString().slice(0, 10)}.md`, body);
   };
@@ -548,6 +565,19 @@ export default function Counseling({ church, onBackToHome }) {
             "counselors in the church" phrasing (reconciled 2026-05-23 from the
             earlier "pastor or designated care leader"). The person chooses which
             kind of counselor below. */}
+        {/* TODO (post-MVP): This picker is the seed of a credentialed-counselor
+            marketplace — eventually maps to discoverable, bookable counselors
+            from the SKOS network (Church of the Living God + affiliated churches
+            + business mentors + technology counselors). Domains include pastoral,
+            eldership, ministry-leadership (any department), business operations,
+            Scripture/teaching, AND technology + systems consulting (the
+            originating church's tech department serving smaller churches who
+            lack systems understanding). Eventually pairs with two distinct
+            productized services: (a) deliberate training of smaller churches on
+            SKOS itself, and (b) assisted documentation of those churches'
+            procedures and processes. Tonight ships only the local picker UI;
+            the marketplace, training, and documentation services are separate
+            initiatives. */}
         <div className="mt-3 flex items-end gap-3 flex-wrap">
           <label className="text-[9px] uppercase tracking-wider text-[#5A5751] flex flex-col gap-1">
             Bring this to:
@@ -555,6 +585,12 @@ export default function Counseling({ church, onBackToHome }) {
               {COUNSELOR_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </label>
+          {COUNSELOR_DETAIL_TYPES.includes(counselorType) && (
+            <label className="text-[9px] uppercase tracking-wider text-[#5A5751] flex flex-col gap-1 flex-1 min-w-[160px]">
+              {counselorType === 'Ministry / department leader' ? 'Which ministry / department' : 'Specify'}
+              <input value={counselorDetail} onChange={(e) => setCounselorDetail(e.target.value)} placeholder={counselorType === 'Ministry / department leader' ? "e.g., children's, worship, missions, finance" : 'Describe the kind of counselor'} className="border border-[#5A6E3D] bg-[#FAF8F4] text-xs p-1.5 focus:outline focus:outline-2 focus:outline-[#B85838]" />
+            </label>
+          )}
           <button type="button" onClick={exportAll} disabled={locked || exchanges.length === 0} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#E7EBE2] disabled:opacity-40 disabled:cursor-not-allowed focus:outline focus:outline-2 focus:outline-[#B85838]">
             Save reflections as .md →
           </button>

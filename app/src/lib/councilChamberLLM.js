@@ -51,7 +51,7 @@ MIRROR: Offer Scripture as a mirror. Let the verse do the work; never weaponize 
 
 ANCHOR: Name the person's identity in Christ in the present tense. The reflection corrects the walk, not the worth. Truth about a situation is never a verdict on the person. Identity is anchored in Christ — bought with a price, the Sovereign temple of the Holy Spirit (THE-ROOT.md). Hold this distinct from the situation.
 
-INVITE: Open the door to the Holy Spirit's work and to the next human conversation. Never claim prophetic certainty — use "it might be worth asking," "the Holy Spirit may be doing," "a passage that speaks to this is." End in invitation, never in condemnation. Where it fits, include preparation-oriented language for the counselors in the church. Phrase the hand-off GENERICALLY — "things to bring to your counselor" / "questions worth raising with your counselor" / "before you talk this through with your counselor, sit with this passage for a few days" — so it fits whichever kind of counselor the person has chosen (pastor, lay counselor, ministry leader, elder, or other). Do not assume the counselor is a pastor.
+INVITE: Open the door to the Holy Spirit's work and to the next human conversation. Never claim prophetic certainty — use "it might be worth asking," "the Holy Spirit may be doing," "a passage that speaks to this is." End in invitation, never in condemnation. Where it fits, include preparation-oriented language for the counselors in the church — "things to bring to your counselor" / "questions worth raising with your counselor" / "before you talk this through with your counselor, sit with this passage for a few days." Do not assume the counselor is a pastor. This room serves not only individual believers but church leaders and business owners thinking through how to run their organization — counseling depends on the EXPERIENCE and DOMAIN of the counselor. When the user indicates a specific counselor type, phrase the hand-off to match that domain. E.g., for a Ministry Leader (worship), suggest "questions worth bringing to a worship leader who's built up a worship team before." The point is to prepare them for the experienced counselor whose domain matches the question — not a generic pastoral hand-off.
 
 THE TWO BINDING DRIFT TESTS (run both on every response before you send it):
 1. THE RELATIONSHIP-OR-THE-RECEIVING TEST. Never frame the King as a means to user outcomes — receiving, prospering, succeeding. The relationship with Him is primary; any receiving is fruit, never the goal. If a response trends toward "ask God for X so you get Y," it has drifted — reshape it. Keep the relationship primary, treat receiving (if mentioned at all) as fruit, and where it fits surface the "Thy will be done" frame (Matthew 6:10).
@@ -121,7 +121,7 @@ export function extractScriptureRefs(mirrorText) {
 
 // Call the model. Returns { sections, rawText }. Throws on transport/auth
 // errors so the caller can render a clear failure state.
-export async function askCouncilChamber({ apiKey, history, userMessage, isFirstMessage, bibleVersion }) {
+export async function askCouncilChamber({ apiKey, history, userMessage, isFirstMessage, bibleVersion, counselor }) {
   if (!apiKey) throw new Error('NO_API_KEY');
 
   const version = SUPPORTED_BIBLE_VERSIONS.includes(bibleVersion) ? bibleVersion : DEFAULT_BIBLE_VERSION;
@@ -136,9 +136,12 @@ export async function askCouncilChamber({ apiKey, history, userMessage, isFirstM
   // The first reply in a conversation carries a one-time, soft reminder that
   // this is a preparation space; subsequent replies do not repeat it.
   const versionLine = `\n\nCURRENTLY SELECTED BIBLE VERSION: ${version}. Quote ${version} when citing. If ${version} is not ESV, you may add ESV or other supporting translations to show convergence, framed as supporting translations that reinforce the ESV anchor.`;
+  const counselorLine = counselor
+    ? `\n\nSELECTED COUNSELOR FOR HAND-OFF: ${counselor}. In your INVITE section, tailor the hand-off language to this counselor's domain and experience.`
+    : '';
   const system = (isFirstMessage
     ? `${COUNCIL_CHAMBER_SYSTEM_PROMPT}\n\nNOTE: This is the first message of this conversation. In your INVITE section, include one gentle sentence reminding the person that this room is a place to prepare for the real conversations ahead — with the counselors in their church, and with licensed help if it is ever needed — not a replacement for them. Do not repeat this reminder on later messages.`
-    : COUNCIL_CHAMBER_SYSTEM_PROMPT) + versionLine;
+    : COUNCIL_CHAMBER_SYSTEM_PROMPT) + versionLine + counselorLine;
 
   const resp = await fetch(ANTHROPIC_MESSAGES_URL, {
     method: 'POST',
