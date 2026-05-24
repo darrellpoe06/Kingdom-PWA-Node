@@ -1540,4 +1540,806 @@ priority_factors     jsonb NOT NULL DEFAULT '{}'
                        -- {"frequency_30d": 12, "users_affected": 4,
                        --  "severity_weight": 8, "recency_weight": 7,
                        --  "cluster_size": 3, "computed_at": "..."}
-cluster_id           uuid  -- when multi
+cluster_id           uuid  -- when multiple items are similar, they share a cluster_id
+                            -- so the board reviews them together rather than separately
+
+-- User override — the LAST WORD. If non-null, this is what the ranked-list view uses.
+user_priority_override numeric(6,2)
+user_priority_set_by   uuid REFERENCES auth.users(id)
+user_priority_set_at   timestamptz
+user_priority_reason   text  -- "this is more urgent than the score shows because..."
+
+-- Disposition decided by the facilitator / board
+disposition          text CHECK (disposition IN
+                       ('approved','approved-with-changes','deferred-next-cycle',
+                        'declined','duplicate-of','more-info-needed','escalated',
+                        'auto-classified','pending'))
+duplicate_of_item_id uuid  -- when disposition = 'duplicate-of'
+disposition_notes    text
+disposition_at       timestamptz
+disposition_by       uuid REFERENCES auth.users(id)
+
+-- Outcome wiring — when the disposition produces a new entity (e.g., promotes
+-- the feedback to a change_request), the new entity's id lands here so the
+-- audit log on this cycle can read "→ created change_request X"
+produced_kind        text  -- 'change_request', 'project', 'incident'
+produced_id          uuid
+```
+
+### `change_requests` — ITIL Change Management, the most common output of the loop
+
+Per `SERVICE-MANAGEMENT.md`'s Change Management practice. A change_request is "a controlled alteration to a system, process, configuration, or copy" — distinct from an incident (which restores normal service) and from a project (which is a defined-beginning-defined-end body of work). Every change carries the WHAT / WHEN / WHY / HOW that Darrell named on 2026-05-24 as the standing requirement for any actionable item: a clear title and description (WHAT), a scheduled_for date and due/by-when commitments (WHEN), a `linked_feedback_id` plus `priority_factors` on the originating cycle_item (WHY), and `implementation_notes` + `rollback_plan` (HOW).
+
+```
+[STANDARD COLUMNS]
+title              text NOT NULL                 -- WHAT
+description        text                          -- WHAT (expanded)
+change_type        text CHECK (change_type IN
+                     ('standard','normal','emergency',
+                      'config','copy','feature','process','infrastructure'))
+risk_level         text CHECK (risk_level IN ('low','medium','high','critical'))
+proposed_by_user_id uuid REFERENCES auth.users(id)
+proposed_by_external_id uuid REFERENCES external_users(id)
+                     -- changes can be proposed by external participants too
+linked_feedback_id uuid REFERENCES feedback(id)   -- WHY (originating signal)
+linked_incident_id uuid REFERENCES incidents(id)
+review_cycle_id    uuid REFERENCES review_cycles(id)
+                     -- WHY (which review promoted it; priority_factors live there)
+acceptance_criteria text                          -- HOW (done definition)
+implementation_notes text                         -- HOW (the plan)
+rollback_plan      text                           -- HOW (the safety net)
+status             text NOT NULL DEFAULT 'proposed'
+                     CHECK (status IN
+                       ('proposed','reviewed','approved','scheduled',
+                        'in-progress','completed','verified','rejected','declined','rolled-back'))
+scheduled_for      timestamptz                    -- WHEN (start)
+due_by             timestamptz                    -- WHEN (end commitment)
+implemented_at     timestamptz                    -- WHEN (actual completion)
+implemented_by     uuid REFERENCES auth.users(id)
+verified_at        timestamptz
+verified_by        uuid REFERENCES auth.users(id)
+```
+
+### `cross_instance_signals` — PoeTech-central's view across all customer instances (opt-in)
+
+When a customer instance opts into anonymous pattern aggregation (per `MULTI-INSTANCE-STRATEGY.md` Phase 2 backend), counts and patterns flow to PoeTech central — never per-instance content, only patterns. PoeTech central is itself an instance of `instance_type = 'tech-business'`; the signals it watches land in this table within its own instance scope, so the same RLS pattern protects them.
+
+```
+[STANDARD COLUMNS — instance_id = PoeTech central's own instance row]
+signal_kind         text NOT NULL CHECK (signal_kind IN
+                      ('feedback-cluster','common-incident',
+                       'template-link-pattern','churn-risk',
+                       'feature-gap','high-priority-anomaly'))
+detected_at         timestamptz NOT NULL DEFAULT now()
+window_start        timestamptz NOT NULL
+window_end          timestamptz NOT NULL
+affected_instance_count int      -- count only, NEVER instance identities
+instance_template   text         -- 'family','church','rentals','therapy', etc.
+signal_summary      text NOT NULL
+                      -- "30% of family instances reported confusion on Debts tab in last 7d"
+sample_anonymized   jsonb        -- aggregated patterns; never per-instance content
+proposed_response   text         -- "add tooltip explaining APR ranking"
+review_cycle_id     uuid REFERENCES review_cycles(id)
+                      -- when PoeTech central's weekly board reviewed
+status              text NOT NULL DEFAULT 'detected'
+                      CHECK (status IN
+                        ('detected','triaged','acting','responded','closed','ignored'))
+```
+
+### How the loop runs (worked example for the Poe family)
+
+The Poe family configures `review_cadences`:
+
+- "Daily Triage" — daily at 8pm — inputs: feedback + maintenance_requests + incidents — outputs: incidents — auto_priority=true, auto_cluster=true, auto_promote_threshold=80
+- "Weekly Family Board" — weekly Sunday 7pm — inputs: feedback + change_request candidates + project candidates — outputs: change_request + project — facilitator: Darrell, attendees: Darrell + Christina (older kids when ready)
+- "Monthly Retro" — monthly first-Saturday morning — inputs: completed change_requests + closed incidents — outputs: process-changes — facilitator: Darrell
+
+What happens on a Sunday 7pm cycle:
+1. Job creates a `review_cycles` row, status='pending', window=last 7 days.
+2. Job pulls feedback / incident / maintenance_request rows where created_at falls in the window AND the row hasn't been seen in a prior cycle.
+3. For each item: compute priority_score from frequency (similar items in last 30d) + severity (sentiment, urgency) + recency + cluster_size + users_affected.
+4. Auto-cluster: items with high similarity-score share a cluster_id; the board reviews each cluster as one item.
+5. Items with priority_score ≥ 80 and risk_level ≤ 'medium' auto-create a change_request in 'proposed' status — board still has to approve it; auto-promotion just removes the typing.
+6. Cycle status → 'in-progress'. Facilitator sits with items ranked by priority_score; can override per item — system's ranking is the starting point, his judgment is the last word.
+7. Per item, disposition is set. Items dispositioned 'approved' produce the corresponding output entity with `produced_kind` + `produced_id` populated.
+8. Cycle status → 'completed', outcomes_summary written. items_promoted / items_deferred / items_declined counts populated.
+9. Promoted change_requests sit in 'proposed' awaiting scheduling. They appear on next Daily Triage's input feed as already-promoted; daily triage doesn't re-rank them, just monitors progress.
+
+PoeTech central runs the same loop on its own instance, just with `cross_instance_signals` added to the input feed. Same UI, same workflow. The act of using SKOS to ship SKOS is what dogfoods the system's quality bar.
+
+### Why this scales
+
+- **Per-instance configuration:** each instance picks its own cadence(s). High-activity instances run hourly; low-activity families run weekly. Postgres handles either without breaking a sweat.
+- **Bounded windows:** each cycle covers a fixed time window — even at hourly cadence, per-cycle row count is bounded. No "show me ALL feedback ever" in the hot path.
+- **Indexed:** `cycle_items.cycle_id`, `cycle_items.priority_score`, `review_cycles.cadence_id` all indexed. Sub-second board rendering even at 10,000+ items per cycle.
+- **Auto-cluster reduces operator load:** at scale, board sees N clusters not N items. A family with 30 feedback rows on the Debts tab sees 1 cluster on the board, not 30 line items.
+- **Auto-priority is transparent:** `priority_factors` jsonb shows WHY the system ranked something high. Operator audits and overrides; system is not a black box.
+- **User always has the last word:** `user_priority_override` and explicit `disposition` mean nothing happens without human approval. Auto-promotion to 'proposed' status is the most autonomy the system has, and 'proposed' is non-acting.
+
+### Indexes
+
+```
+review_cadences_instance_idx       ON review_cadences (instance_id) WHERE enabled = true
+review_cycles_cadence_status_idx   ON review_cycles (cadence_id, status)
+review_cycles_window_idx           ON review_cycles (window_start, window_end)
+cycle_items_cycle_priority_idx     ON cycle_items (cycle_id, COALESCE(user_priority_override, priority_score) DESC)
+cycle_items_cluster_idx            ON cycle_items (cluster_id) WHERE cluster_id IS NOT NULL
+change_requests_instance_status_idx ON change_requests (instance_id, status)
+change_requests_scheduled_for_idx   ON change_requests (scheduled_for) WHERE status IN ('approved','scheduled','in-progress')
+cross_instance_signals_template_idx ON cross_instance_signals (instance_template, detected_at DESC)
+```
+
+---
+
+## 12.6. Awareness layer — notifications and timely delivery (per Darrell's 2026-05-24 direction)
+
+Darrell named the activation rule: *"scheduled dates with plans for getting it done with notifications to make sure the users aware in time to go be great."* The CIL in §12.5 produces ranked, scheduled change_requests with WHAT / WHEN / WHY / HOW. This section wires the WHEN to actual delivery — the system reaches out to the right human, on the right channel, with enough lead time to act well.
+
+Three tables go into `schema-v2.8-ops.sql` alongside the CIL tables.
+
+### `notifications` — scheduled delivery intents
+
+Every notification is one row. A row binds a target person + a channel + a payload + a deliver_at timestamp. The schema does not assume a delivery transport — that's the application/Worker layer's job — but it owns the queue and the de-dup and the audit.
+
+```
+[STANDARD COLUMNS]
+target_user_id     uuid REFERENCES auth.users(id)
+target_external_id uuid REFERENCES external_users(id)
+                   -- exactly one of target_user_id / target_external_id is set
+kind               text NOT NULL CHECK (kind IN
+                     ('cycle-board-ready','change-due-soon','change-overdue',
+                      'incident-assigned','maintenance-update','prayer-followup',
+                      'inquiry-status','rent-due','lease-renewal',
+                      'court-date','tax-deadline','digest','custom'))
+channel            text NOT NULL CHECK (channel IN
+                     ('in-app','email','sms','push','phone-call'))
+deliver_at         timestamptz NOT NULL
+                   -- the WHEN — when the system should reach out
+                   -- The CIL writes notifications with deliver_at set
+                   -- in proportion to risk_level + lead time needed.
+                   -- A 'court-date' kind defaults to 7d + 1d + 1h leads;
+                   -- a 'rent-due' kind defaults to 5d + 1d leads.
+delivered_at       timestamptz  -- when the transport actually fired
+acknowledged_at    timestamptz  -- when the human marked-read / acted
+title              text NOT NULL
+body               text NOT NULL
+action_label       text         -- "Review the board" / "Mark paid" / "Reschedule"
+action_uri         text         -- in-app deep link or web URL
+linked_entity_kind text         -- 'change_request' / 'incident' / 'lease' / etc.
+linked_entity_id   uuid
+priority           text NOT NULL DEFAULT 'normal'
+                     CHECK (priority IN ('low','normal','high','urgent'))
+dedupe_key         text         -- when set, a future identical (target, dedupe_key)
+                                 -- insert is a no-op — prevents notification storms
+status             text NOT NULL DEFAULT 'queued'
+                     CHECK (status IN
+                       ('queued','sent','delivered','acknowledged',
+                        'failed','superseded','suppressed','expired'))
+```
+
+### `notification_channels` — per-user channel addresses and verification
+
+```
+[STANDARD COLUMNS]
+target_user_id     uuid REFERENCES auth.users(id)
+target_external_id uuid REFERENCES external_users(id)
+channel            text NOT NULL CHECK (channel IN ('email','sms','push','phone-call'))
+address            text NOT NULL  -- email address / phone number / push token
+verified_at        timestamptz    -- channel must be verified before notifications fire
+preferred          boolean NOT NULL DEFAULT false
+quiet_hours_start  time           -- per-user quiet hours (no notifications during)
+quiet_hours_end    time
+timezone           text           -- IANA tz for deliver_at calculation
+status             text NOT NULL DEFAULT 'active'
+                     CHECK (status IN ('active','paused','revoked','bounced'))
+UNIQUE (target_user_id, channel, address)
+```
+
+### `notification_preferences` — per-user-per-kind opt-in / opt-out
+
+```
+[STANDARD COLUMNS]
+target_user_id     uuid REFERENCES auth.users(id)
+target_external_id uuid REFERENCES external_users(id)
+kind               text NOT NULL  -- same enum as notifications.kind
+channel            text NOT NULL  -- which channel for this kind
+lead_times         interval[] NOT NULL DEFAULT '{}'
+                   -- e.g. {'7 days','1 day','1 hour'} — system fans out
+                   -- one notification per lead time. User controls the cadence.
+enabled            boolean NOT NULL DEFAULT true
+UNIQUE (target_user_id, kind, channel)
+```
+
+How this serves the WHEN: when a change_request lands with `scheduled_for = 2026-06-15 09:00`, the application reads the proposed_by user's `notification_preferences` for kind `'change-due-soon'`, finds their lead_times (say {'2 days','1 hour'}), and writes two `notifications` rows — deliver_at 2026-06-13 09:00 and 2026-06-15 08:00. Each row hits the queue, and at deliver_at the Worker sends through the chosen channel(s). Acknowledged rows close out; missed rows can re-fire per kind-specific escalation rules.
+
+---
+
+## 12.7. Reports — what was done, what wasn't, based on the data
+
+Darrell's 2026-05-24 direction: *"reports of what was done and not done based on the data we have available."* The data is already in the schema — every `cycle_items.disposition`, every `change_requests.status`, every `projects.status`, every `incidents.status`, every `notifications.acknowledged_at`. The reports layer rolls them up on schedule, captures snapshots so you can compare period-over-period, and produces digests that feed back into the next cycle's awareness layer.
+
+Two tables go into `schema-v2.8-ops.sql`.
+
+### `report_runs` — each generated report instance
+
+```
+[STANDARD COLUMNS]
+report_kind        text NOT NULL CHECK (report_kind IN
+                     ('cycle-summary','weekly-digest','monthly-status',
+                      'quarterly-review','annual-summary',
+                      'completion-rate','overdue-list','custom'))
+linked_cycle_id    uuid REFERENCES review_cycles(id)
+                     -- set when this report wraps up a specific cycle
+window_start       timestamptz NOT NULL
+window_end         timestamptz NOT NULL
+generated_at       timestamptz NOT NULL DEFAULT now()
+generated_by       text NOT NULL DEFAULT 'system'  -- 'system' / 'user' / 'scheduled-job'
+
+-- The actual report payload — kept as structured jsonb so the UI can render
+-- without a per-report template, and so the audit log can replay the numbers.
+summary            jsonb NOT NULL
+                     -- e.g. {
+                     --   "items_committed": 14,
+                     --   "items_completed": 9,
+                     --   "items_in_progress": 3,
+                     --   "items_overdue": 2,
+                     --   "items_declined": 1,
+                     --   "completion_rate": 0.64,
+                     --   "by_kind": {
+                     --     "change_request": {committed: 8, completed: 6, overdue: 1},
+                     --     "project":        {committed: 3, completed: 2, overdue: 1},
+                     --     "incident":       {committed: 3, completed: 1, overdue: 0}
+                     --   },
+                     --   "newly_introduced": 11,
+                     --   "rolled_forward": 5,
+                     --   "highlights_done":   ["...", "..."],
+                     --   "highlights_not_done": ["...", "..."]
+                     -- }
+narrative          text  -- optional human-written framing for the report
+distribution_user_ids uuid[] NOT NULL DEFAULT '{}'
+                     -- who gets a notification when this report drops
+```
+
+### `report_snapshots` — point-in-time metric capture for trending
+
+Without snapshots, period-over-period comparison requires expensive historical reconstruction. The snapshots table captures the canonical metrics each time a report runs, so the dashboard can plot "completion rate over the last 12 months" with a flat SELECT.
+
+```
+[STANDARD COLUMNS]
+report_run_id      uuid REFERENCES report_runs(id) ON DELETE CASCADE
+snapshot_at        timestamptz NOT NULL DEFAULT now()
+metric_kind        text NOT NULL CHECK (metric_kind IN
+                     ('items-committed','items-completed','items-overdue',
+                      'completion-rate','median-time-to-close',
+                      'notifications-acknowledged-rate',
+                      'feedback-volume','incident-volume',
+                      'change-request-volume','cycle-on-time-rate'))
+metric_subject     text  -- optional sub-bucket: 'family' / 'rentals' / etc.
+value_numeric      numeric(14,4)
+value_text         text   -- for non-numeric metrics
+context_jsonb      jsonb  -- per-metric supporting detail
+```
+
+How this answers the WHAT-WAS-DONE-VS-NOT question, end-to-end:
+
+1. At each cycle-end (Section 12.5), the loop closes with cycle_items counted as approved / deferred / declined.
+2. A scheduled job (one per `report_kind`) walks the closed cycle and writes a `report_runs` row. The `summary` jsonb captures committed vs completed vs overdue vs declined across every output entity kind, with the highlight lists curated from the items themselves (joining cycle_items → produced_id → the actual change_request / project / incident status).
+3. The job writes one `report_snapshots` row per metric, so trending is a flat query.
+4. The `distribution_user_ids` field fans the report out via `notifications` — Darrell, Christina, board members all get a "Last week's report is ready" notification at the cadence's end.
+5. The report itself feeds into next week's CIL — items that were `committed` but didn't `complete` become high-priority inputs to next week's review (they show with elevated priority_score and a `rolled_forward` cluster_id from the prior cycle).
+
+The loop closes: feedback → ranked board → scheduled changes → notifications → execution → reports of done/not-done → feedback (because the report itself can spawn new feedback) → next cycle.
+
+---
+
+
+## 12.8. Learning posture — iterative, non-punitive (per Darrell's 2026-05-24 direction)
+
+The reports in §12.7 surface what was done and what was not done. The disposition vocabulary throughout §12.5 (`deferred-next-cycle`, `rolled-forward`, `more-info-needed`) is **intentionally non-punitive**: nothing is "failed" or "missed"; items are "deferred", "still in progress", "rolled forward". The data shows reality without grading the person who carried it.
+
+To capture explicit learning (distinct from raw status), `report_runs.summary` carries a `learnings` array:
+
+```
+"learnings": [
+  {
+    "what_we_did":      "Promoted 8 change_requests on Sunday; only 3 completed by Friday",
+    "what_didnt_work":  "The 'config' kinds bunched on Friday because no slot was scheduled earlier in the week",
+    "adjustment":       "Next cycle: schedule config changes on Tue/Wed; reserve Fri for review only",
+    "carried_into":     "review_cadences.settings.preferred_implementation_days"
+  },
+  { ... }
+]
+```
+
+The `carried_into` field is the activation move: a learning that names where the adjustment will live (a setting, a new cadence, a process update) so it's not just an observation that evaporates — it changes the next cycle's behavior. The loop is *doing → noticing → learning → adjusting → doing*, with the data carrying each step forward without anyone needing to remember.
+
+This is the SKOS posture from `01-grace-and-mercy-standard.md` and `02-falling-and-rising.md` applied to operational data: the system measures honestly, names what didn't land, and produces the next-step adjustment without grading the operator. We learn by doing; the system holds the memory so we don't have to relearn what we already learned.
+
+---
+
+
+## 12.9. Jurisdictional templates & live legal-code sourcing (per Darrell's 2026-05-24 direction — PARKED, scoped here)
+
+Darrell's 2026-05-24 direction: *"Prepopulating templates and any documents with the latest version of the law or state building codes for that area, depending on their associated zip codes, automatically populated by location so we can have clarity of what is needed sourced at the locations journalists respect as well as the government and communities."*
+
+The user-facing promise: when an operator generates a lease, a scope-of-work, a legal notice, a tax-deadline calendar, or a building-code-referenced maintenance request, the document is **already prefilled with the current law / code text for the operator's jurisdiction**, sourced from the authoritative public-record location. The operator never has to remember "wait, did Illinois change the security-deposit return window?" — the template already reflects the latest authoritative answer for the property's zip code.
+
+This is a substantial workstream. v2 **declares the surface and the table shape** so future work plugs in, but does NOT attempt to ship the live-sourcing pipeline in v2 itself. Treat this section the way `EXPERIENTIAL-KNOWLEDGE-MARKETPLACE.md` is treated: scoped, named, parked until the prior loops (CIL §12.5, Awareness §12.6, Reports §12.7) are alive and stable.
+
+### Tables (forward-declared; deferred to a v3 or later milestone)
+
+`jurisdictions` — geography to law mapping. One row per (country, state/province, county, city) tuple plus optional zip-code list.
+
+```
+[STANDARD COLUMNS]
+country_code     text NOT NULL  -- ISO 3166-1 alpha-2
+state_code       text           -- US state, CA province, etc.
+county           text
+city             text
+zip_codes        text[] NOT NULL DEFAULT '{}'
+                 -- the zip-code list a property's address resolves to
+jurisdiction_kind text CHECK (jurisdiction_kind IN
+                   ('federal','state','county','municipal','hoa'))
+authority_name   text NOT NULL  -- "Illinois Department of Revenue", "City of Champaign", etc.
+authority_url    text           -- the canonical public-record URL
+```
+
+`code_sources` — the authoritative sources we pull text from per (jurisdiction, code_kind).
+
+```
+[STANDARD COLUMNS]
+jurisdiction_id  uuid NOT NULL REFERENCES jurisdictions(id)
+code_kind        text NOT NULL CHECK (code_kind IN
+                   ('landlord-tenant','building-code','tax-deadline','employment',
+                    'data-privacy','fair-housing','health-code','zoning','other'))
+source_kind      text NOT NULL CHECK (source_kind IN
+                   ('government-official','journalism-of-record','community-trusted'))
+                 -- per Darrell's "journalists, government, and communities" framing
+source_name      text NOT NULL  -- "Illinois Compiled Statutes 765 ILCS 705",
+                                 -- "Chicago Tribune Housing Beat", "Illinois Tenants Union", etc.
+source_url       text NOT NULL  -- where we fetch from
+fetch_method     text CHECK (fetch_method IN
+                   ('html-scrape','rss-feed','api','pdf-extract','manual-curation'))
+fetch_frequency  text CHECK (fetch_frequency IN
+                   ('daily','weekly','monthly','quarterly','event-driven'))
+last_fetched_at  timestamptz
+trust_level      text NOT NULL CHECK (trust_level IN ('primary','secondary','reference'))
+                 -- primary = authoritative gov source; secondary = trusted journalism;
+                 -- reference = community-trusted but not authoritative
+```
+
+`code_snapshots` — versioned captures of the actual text at each fetch.
+
+```
+[STANDARD COLUMNS]
+code_source_id   uuid NOT NULL REFERENCES code_sources(id)
+captured_at      timestamptz NOT NULL DEFAULT now()
+content_text     text NOT NULL  -- the law/code text at capture time
+content_hash     text NOT NULL  -- sha-256 for change-detection
+diff_from_prior  jsonb          -- summary of what changed vs prior snapshot
+effective_date   date           -- when the law actually takes effect (often different from captured_at)
+superseded_at    timestamptz    -- null if current; set when a newer snapshot replaces it
+verification     text           -- "auto" / human-review notes
+UNIQUE (code_source_id, content_hash)
+```
+
+`templates` — document templates with placeholders that bind to current snapshots.
+
+```
+[STANDARD COLUMNS]
+template_kind    text NOT NULL CHECK (template_kind IN
+                   ('lease','sublease','notice-to-quit','rent-increase-notice',
+                    'scope-of-work','contractor-agreement',
+                    'maintenance-request-response','tax-deadline-calendar',
+                    'building-code-compliance-checklist','legal-notice','other'))
+name             text NOT NULL
+description      text
+applies_to_jurisdiction_id uuid REFERENCES jurisdictions(id)
+                 -- null = generic / fallback template
+template_body    text NOT NULL
+                 -- markdown/text with {{placeholders}} that bind to:
+                 -- - operator data (entity names, addresses, dates)
+                 -- - code_snapshots (current law text per jurisdiction)
+                 -- - external_users (renter name, contractor name)
+required_snapshots jsonb NOT NULL DEFAULT '[]'
+                 -- declares which code_kinds this template depends on, so the
+                 -- "generate" step refuses to produce a document if the
+                 -- snapshot is stale beyond fetch_frequency
+status           text NOT NULL DEFAULT 'draft'
+                   CHECK (status IN ('draft','published','deprecated'))
+```
+
+`generated_documents` — the actual rendered docs (each one freezes the snapshots it used).
+
+```
+[STANDARD COLUMNS]
+template_id        uuid NOT NULL REFERENCES templates(id)
+linked_entity_kind text NOT NULL  -- 'lease','scope','maintenance_request', etc.
+linked_entity_id   uuid NOT NULL
+rendered_body      text NOT NULL  -- the final document text
+snapshot_ids       uuid[] NOT NULL DEFAULT '{}'
+                   -- which code_snapshots this generation pinned to —
+                   -- so the document is reproducible and auditable
+storage_uri        text           -- pointer to PDF if generated
+generated_by       uuid REFERENCES auth.users(id)
+```
+
+### How the pipeline runs (future-state, not v2)
+
+1. Operator's property is at 1508 Holly Hill, Champaign IL 61820. The `rentals` row resolves to a `jurisdictions` row via zip-code lookup.
+2. Operator opens "Generate Lease" → `templates` lookup finds the lease template applicable to that jurisdiction.
+3. The template declares `required_snapshots`: landlord-tenant statute + security-deposit law + fair-housing clauses.
+4. The template-rendering step pulls the latest non-superseded `code_snapshots` for those code_kinds in this jurisdiction.
+5. Placeholders fill: renter name, property address, lease dates from operator data; statute citations + required-disclosure clauses from snapshots.
+6. The generated document records snapshot_ids so when (months later) Illinois changes the security-deposit window, the operator can see "your existing lease was generated under the prior statute (effective 2025-01-01); the new rule (effective 2026-07-01) applies to leases signed after that date."
+7. The system can also queue a `notifications` row to the operator: "Illinois landlord-tenant code changed; review your lease template?"
+
+### Sourcing posture — government + journalists + communities
+
+The `code_sources.source_kind` enum has three values:
+
+- **government-official** (`primary` trust_level) — the authoritative gov publication. Illinois Compiled Statutes for Illinois laws, IRS.gov for federal tax, the municipal code site for city codes.
+- **journalism-of-record** (`secondary` trust) — reputable journalistic coverage of the change ("Chicago Tribune reports the new rule takes effect..."). Useful as plain-language explanation and change-detection signal, not as the binding text.
+- **community-trusted** (`reference`) — community organizations with subject-matter expertise (tenants unions, fair-housing nonprofits, local landlord associations). Useful as cross-check and as plain-language interpretation; never used as the primary text.
+
+The rendered template always cites the **primary** source — never the secondary or reference. Secondary and reference sources surface in the operator-facing explanation panel ("here's what the Tribune said about this rule") but never appear in the document the operator hands to a renter / contractor / regulator.
+
+### Why this is parked
+
+- The CIL (§12.5), Awareness layer (§12.6), and Reports layer (§12.7) must be alive and stable first — those are the loops that make any operator-facing surface trustworthy. Adding live legal-text fetching before those loops are running just creates new failure modes the operator can't see.
+- The legal-correctness bar for "we will pre-populate your lease with current law" is HIGH. A wrong statute citation in a lease is a real exposure. The pipeline needs human review per jurisdiction before it ships, which is not a v2 expense.
+- The pipeline is best implemented as Cloudflare Workers + scheduled jobs feeding into the Supabase schema declared above. That sits cleanly on top of the existing self-host architecture; no new infrastructure layer required. The schema can land before the pipeline does.
+
+### What v2 commits to right now
+
+- Declaring the table shapes above so future work plugs in without re-architecture.
+- Adding `code_kind` references to `templates` so when the pipeline lands, lease / scope / notice templates already know what authoritative sources they need.
+- Treating this as a v3 (or later) workstream paired with `LEGAL-PRIVACY-BOUNDARY.md`'s privileged-content discipline — the moment the system claims "here's the current law," the operator's legal exposure starts to depend on it being right.
+
+---
+
+
+## 12.10. Review and revision cadence — the system reviews itself (per Darrell's 2026-05-24 direction)
+
+Darrell's standing rule: *"Review and revised as often as necessary so people stay informed about the best path."*
+
+Every loop in this schema follows the same review-and-revise pattern, applied at the right grain:
+
+- **The data loops (§12.5)** review-revise weekly to monthly per cadence configuration. Operators can change `review_cadences` at any time — if Sunday board isn't landing, switch to Tuesday; if hourly is too noisy, switch to daily.
+- **The awareness loops (§12.6)** review-revise per kind. If a `lease-renewal` notification at 7 days isn't enough lead time, the user adjusts `notification_preferences.lead_times` to {30 days, 7 days, 1 day}. No engineering change required.
+- **The reports (§12.7)** review-revise quarterly. What metrics matter changes as the operator's situation changes. The `report_runs.summary` jsonb is schemaless on purpose — new metrics land without migration.
+- **The legal templates (§12.9)** review-revise on every authoritative-source fetch cycle. New statute → new snapshot → notification to operators on affected templates.
+- **The schema itself** review-revises through v2.x → v2.y migrations. v2 is not the end; v3, v4 follow as the system learns what it actually needs.
+- **The CLAUDE.md and foundation docs** review-revise as the binding rules clarify — the 2026-05-24 rename of `tenants` → `instances` is itself an example of the foundation revising because lived use showed a collision.
+
+The discipline: the system holds the data, the data shows what's working, the operator (or the SKOS team) reviews, the system gets revised, the next loop carries the revision forward. No revision is wasted because the data carries memory of what was tried; no revision is forced because the operator always has the last say.
+
+Cross-reference: `THE-WAY.md` line-upon-line, precept-upon-precept; `EXCELLENCE-STANDARD.md` continual improvement; `SERVICE-MANAGEMENT.md` Continual Improvement practice.
+
+---
+
+## 13. External Participants layer (per `ECOSYSTEM-PARTICIPANTS.md`)
+
+*(Note: `external_users.type = 'tenant'` from the original ECOSYSTEM-PARTICIPANTS.md was renamed to `'renter'` in v2 to align with the vocabulary cleanup. See §4.0.)*
+
+Section 4 defined the `external_users`, `interactions`, and `external_invite_tokens` tables. This section defines how the **RLS policy family** for external-user portal access works, because it's a non-trivial second auth model layered on top of the first.
+
+### The two auth-flow problem
+
+Internal users authenticate via Supabase `auth.users` → `instance_members` membership. Every existing v1 RLS policy is `user_in_instance(instance_id)`.
+
+External users authenticate via a separate magic-link flow (Phase 3) that does NOT create an `auth.users` row in the same way. Instead, the external auth flow:
+1. Validates the magic-link token (in `external_invite_tokens`).
+2. Creates a session bound to the external_user_id.
+3. Issues a JWT with custom claim: `external_user_id: <uuid>`.
+4. Postgres sees this claim via `current_setting('request.jwt.claims', true)::json->>'external_user_id'`.
+
+A helper function:
+```
+public.current_external_user_id()
+  RETURNS uuid
+  LANGUAGE sql STABLE
+AS $$
+  SELECT NULLIF(current_setting('request.jwt.claims', true)::json->>'external_user_id', '')::uuid
+$$;
+```
+
+### The external-user RLS pattern
+
+For every domain table that an external user can access, a parallel policy family applies. Example for `leases` (a renter sees their own lease):
+
+```sql
+CREATE POLICY leases_renter_portal_read ON leases FOR SELECT
+  USING (
+    renter_id IN (
+      SELECT id FROM renters
+      WHERE external_user_id = current_external_user_id()
+    )
+  );
+```
+
+For `rent_payments`:
+```sql
+CREATE POLICY rent_payments_renter_portal_read ON rent_payments FOR SELECT
+  USING (
+    lease_id IN (
+      SELECT l.id FROM leases l
+      JOIN renters r ON r.id = l.renter_id
+      WHERE r.external_user_id = current_external_user_id()
+    )
+  );
+```
+
+For `maintenance_requests` — read own, insert own:
+```sql
+CREATE POLICY maint_req_renter_portal_read ON maintenance_requests FOR SELECT
+  USING (
+    renter_id IN (
+      SELECT id FROM renters
+      WHERE external_user_id = current_external_user_id()
+    )
+  );
+
+CREATE POLICY maint_req_renter_portal_insert ON maintenance_requests FOR INSERT
+  WITH CHECK (
+    renter_id IN (
+      SELECT id FROM renters
+      WHERE external_user_id = current_external_user_id()
+    )
+    AND submitted_via = 'renter-portal'
+  );
+```
+
+Same pattern repeats for each external-user type × domain table combination. Per `ECOSYSTEM-PARTICIPANTS.md`, the permissions array on `external_users.permissions` is the user-facing toggle; the RLS policies are the database-level enforcement of those toggles.
+
+### The internal-notes-never-leak rule
+
+The `notes` column on every external-user-accessible table is internal-only. Two enforcement mechanisms:
+
+1. **Application layer:** the React app never sends `notes` to the external-user portal.
+2. **Database layer:** column-level grants. The external-portal Postgres role (a separate role from the internal authenticated role) does NOT have SELECT permission on the `notes` column. Even if the application were buggy and tried to SELECT `notes`, Postgres would reject.
+
+```sql
+-- Example: revoke notes from external portal role on renters
+REVOKE SELECT (notes) ON renters FROM external_portal_role;
+```
+
+This is the strictest guarantee in the schema after the Legal encryption posture.
+
+---
+
+## 14. RLS pattern catalog
+
+For brevity, individual tables in Sections 6–13 referenced "standard instance-scoped RLS." Here are the four canonical patterns, instantiated once and reused.
+
+### Pattern A — instance-member-scoped (default for v2 domain tables)
+
+```sql
+ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY <table>_member_read ON <table> FOR SELECT
+  USING (user_in_instance(instance_id));
+
+CREATE POLICY <table>_member_insert ON <table> FOR INSERT
+  WITH CHECK (user_in_instance(instance_id) AND created_by = auth.uid());
+
+CREATE POLICY <table>_member_update ON <table> FOR UPDATE
+  USING (user_in_instance(instance_id))
+  WITH CHECK (user_in_instance(instance_id));
+
+CREATE POLICY <table>_owner_delete ON <table> FOR DELETE
+  USING (user_role_in_instance(instance_id) = 'owner');
+```
+
+Applied to: rentals, leases, renters, rent_payments, maintenance_requests, inquiries, clinicians, intake_handoffs, clinician_assignments, contractors_1099, scopes, invoices, time_logs, engagements, deliverables, sessions, parishioners, prayer_requests, ministries, ministry_signups, donor_giving, volunteer_hours, incidents, tax_calendar, recurring_obligations, inflows, subscriptions, events, checkout_intents, instance_domains, external_users, interactions.
+
+### Pattern B — scope-modified (role_scopes narrows the role)
+
+```sql
+CREATE POLICY <table>_scope_read ON <table> FOR SELECT
+  USING (
+    user_in_instance(instance_id)
+    AND (
+      user_role_in_instance(instance_id) = 'owner'
+      OR NOT EXISTS (
+        SELECT 1 FROM role_scopes rs
+        JOIN instance_members tm ON tm.id = rs.instance_member_id
+        WHERE tm.user_id = auth.uid()
+          AND tm.instance_id = <table>.instance_id
+          AND rs.scope_kind = 'entity'
+          AND rs.scope_value <> <table>.entity_id::text
+      )
+    )
+  );
+```
+
+Applied to: domain tables where a member's scope is narrowed by entity (e.g., a property manager scoped to one rental).
+
+### Pattern C — strictly-private (per-user, even within instance)
+
+```sql
+CREATE POLICY <table>_self_read ON <table> FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY <table>_self_insert ON <table> FOR INSERT
+  WITH CHECK (user_id = auth.uid() AND user_in_instance(instance_id));
+```
+
+Applied to: confessions (v1), user_instance_settings (v1). Extended in v2 to: per-user-private domain rows where applicable.
+
+### Pattern D — external-user portal
+
+```sql
+CREATE POLICY <table>_external_read ON <table> FOR SELECT
+  USING (<linked-entity-id> IN (
+    SELECT id FROM <linked-table>
+    WHERE external_user_id = current_external_user_id()
+  ));
+```
+
+Applied to: every domain table that's exposed in an external-user portal (Section 13).
+
+---
+
+## 15. Migration path — v1 → v2 in additive slices
+
+The v2 schema does NOT ship as one monolithic SQL file. It ships as a series of additive migrations, each independently applicable. The sequence:
+
+| File | Contents | Depends on | Estimated work |
+|---|---|---|---|
+| `schema-v2.1-infra.sql` | instance_domains, role_scopes, audit_log, entity_links, external_users, interactions, external_invite_tokens. Helper functions. ALTER TYPE on instance_type widening. ALTER on instance_members.role widening to add 'specialist'. ALTER on entities to add domain + parent_entity_id columns. Universal trigger functions. | v1 + v1.1 | 1 session |
+| `schema-v2.2-rentals.sql` | rentals, leases, renters, rent_payments, maintenance_requests. RLS policies. Indexes. | v2.1 | 1 session |
+| `schema-v2.3-therapy.sql` | inquiries, clinicians, intake_handoffs, clinician_assignments. RLS. Indexes. | v2.1 | 1 session |
+| `schema-v2.4-contractor.sql` | contractors_1099, scopes, invoices, time_logs. RLS. Indexes. | v2.1 | 1 session |
+| `schema-v2.5-mentor.sql` | engagements, deliverables, sessions. RLS. Indexes. | v2.1, v2.4 (invoices) | 0.5 session |
+| `schema-v2.6-legal.sql` | legal_matters + 6 sub-tables. Strict RLS. Encryption guidance. | v2.1 | 1.5 sessions (encryption posture is real work) |
+| `schema-v2.7-church.sql` | parishioners, prayer_requests, ministries, ministry_signups, donor_giving, volunteer_hours. RLS. Indexes. | v2.1 | 1 session |
+| `schema-v2.8-ops.sql` | incidents, tax_calendar, recurring_obligations, inflows, subscriptions, events, checkout_intents, **plus the Continual Improvement Loop (review_cadences, review_cycles, cycle_items, change_requests, cross_instance_signals — §12.5), the Awareness layer (notifications, notification_channels, notification_preferences — §12.6), and the Reports layer (report_runs, report_snapshots — §12.7)**. RLS. Indexes. | v2.1 | 2 sessions |
+| `schema-v2.9-portal-rls.sql` | All external-user RLS policies (Pattern D) for every table exposed to a portal. | All prior v2 | 0.5 session |
+
+Total: ~8 sessions of pure schema work. None of these depend on UI work; all can ship without any React changes. Each file is paste-into-Supabase-SQL-Editor + verify.
+
+After all v2 files applied, the schema supports every role surface SKOS prebuilds. Module UI work then becomes "React against existing tables," in any order.
+
+### Ordering recommendation
+
+If Darrell wants to prioritize for Christina-and-Darrell value during vacation:
+1. **v2.1 infra** (always first — everything depends on it).
+2. **v2.2 rentals** (Poe Properties immediately benefits — 11 doors).
+3. **v2.3 therapy** (TLC intake pipeline — Christina benefits).
+4. **v2.4 contractor + v2.8 ops** (incidents + scopes + invoices for property management cross-cuts).
+5. **v2.7 church** (COLG operations).
+6. **v2.5 mentor** (lowest urgency).
+7. **v2.6 legal** (highest engineering effort; can ship after vacation when there's time for the encryption work).
+8. **v2.9 portal RLS** (last — depends on all prior tables existing).
+
+---
+
+## 16. Open questions for Darrell's judgment
+
+These are the decisions that need human judgment, not engineering. They are the inputs the schema cannot decide on its own.
+
+**Q1 — TLC as separate instance or under Poe Family instance?**
+Recommendation in §3 is separate instance for HIPAA-adjacent isolation. Confirm. If TLC is a separate instance, Christina is Owner there; Darrell can be a member but does not have automatic access to TLC data. Acceptable?
+
+**Q2 — Poe Properties as separate instance or sub-entity under Poe Family?**
+Audit treats Poe Properties as an `entity` under the family instance. v2 supports either. Sub-entity is simpler (one instance, all data co-scoped); separate instance is cleaner (when the family steps back from PPM operations someday, the data is already isolated). Which is the right shape NOW?
+
+**Q3 — Hash-chained audit log: Phase 3 only, or earlier?**
+`IDENTITY-ROLES-AUDIT.md` says Phase 3+ for hash-chained tamper detection. Family / single-device instances skip it. But TLC and Legal might warrant earlier hash-chaining. Should v2 ship hash-chaining ready (columns + verify function) but disabled by default, OR defer entirely to Phase 3?
+
+**Q4 — Encrypted-at-rest scope: Legal only, or extend to Counseling-equivalent surfaces?**
+The v1 `confessions` table stores plaintext (audience-scoped RLS, but plaintext on disk). Should v2 extend client-side encryption to confessions as well? The audience-scoped RLS already prevents leakage between instance members; the encryption guards against backup-restore exposure. Adds engineering work but tightens the bar. Worth it?
+
+**Q5 — Renters portal default ON or OFF for the rentals domain?**
+Per `ECOSYSTEM-PARTICIPANTS.md` defaults: external portals ship OFF for `family` instance type, ON for `property-management`. The Poe Family instance with rentals enabled is ambiguous — primary type is family, but rentals domain is enabled. Recommendation: default OFF until Darrell explicitly enables it per `instance_domains` settings.
+
+**Q6 — Donor anonymity in church domain?**
+The audit's external participants section names Donor as a first-class type. But many gifts at COLG are anonymous (cash in the plate). Schema supports both: `donor_giving.parishioner_id` is nullable. Application-layer decision: does the donor portal exist at all for COLG, or just for larger churches/nonprofits? Christina + Pastor input needed.
+
+**Q7 — Mentor domain — does Darrell actually want to operate as a mentor inside SKOS?**
+The mentor tables are designed but the audit listed mentor as ~10% coverage. Is this a real operational need for Darrell in 2026, or is it forward-declared because the OS pattern demands it? If forward-declared only, defer v2.5 indefinitely.
+
+**Q8 — Legal domain MVP scope — full 7 tables, or matter + journal only?**
+The full 7-table Legal design is comprehensive but engineering-heavy. An MVP of `legal_matters` + `matter_journal` (with the encryption posture) handles the dominant use case. Defer parties / counsel / key_dates / documents / financial_links / conflict_checks to a v3 cut? Or land them all in v2.6?
+
+**Q9 — Migration path during vacation: hold all v2 work until return, or land v2.1 infra during vacation?**
+The June 1–vacation window is for family + church testing on v1. v2 work is post-vacation. But v2.1 infra (the cross-cutting tables) is purely additive — landing it during vacation enables the audit log etc. without breaking v1. Land it? Or hold?
+
+**Q10 — Naming: `renters` (ANSWERED 2026-05-24).**
+ANSWERED YES by Darrell on 2026-05-24, paired with the broader rename of `tenants` → `instances`. The audit's `tenants_renters` is moot because there is no more `tenants` table to disambiguate from. Real-estate renters are `renters` in code; the word "Tenant" survives only inside the lease document template's legal text. See Section 4.0 for the full rename rationale.
+
+**Q11 — Where should this draft live in the docs tree?**
+Written to `docs/00-foundations/SCHEMA-V2-MULTI-DOMAIN-DRAFT.md` (Dispatch instruction said `docs/foundations/` — interpreted as the foundations folder). Should it stay here, or move to `_future/` to match SUPABASE-SCHEMA-LAYER-2.md's location? Cosmetic but worth deciding before the file lands permanently.
+
+---
+
+## 17. Appendix — table inventory
+
+Alphabetical list of every table in the v2 schema, grouped by source file. Total: **44 new tables** in v2 (on top of v1's 12 — which are also renamed in v2.1-infra: `tenants` → `instances`, `tenant_members` → `instance_members`, `tenant_invites` → `instance_invites`, `user_tenant_settings` → `user_instance_settings`).
+
+**`schema-v2.1-infra.sql`** (7 new tables)
+- audit_log
+- entity_links
+- external_invite_tokens
+- external_users
+- interactions
+- role_scopes
+- instance_domains
+
+**`schema-v2.2-rentals.sql`** (5 new tables)
+- leases
+- maintenance_requests
+- renters
+- rent_payments
+- rentals
+
+**`schema-v2.3-therapy.sql`** (4 new tables)
+- clinician_assignments
+- clinicians
+- inquiries
+- intake_handoffs
+
+**`schema-v2.4-contractor.sql`** (4 new tables)
+- contractors_1099
+- invoices
+- scopes
+- time_logs
+
+**`schema-v2.5-mentor.sql`** (3 new tables)
+- deliverables
+- engagements
+- sessions
+
+**`schema-v2.6-legal.sql`** (7 new tables)
+- conflict_checks
+- legal_matters
+- matter_counsel
+- matter_documents
+- matter_financial_links
+- matter_journal
+- matter_key_dates
+- matter_parties
+
+**`schema-v2.7-church.sql`** (6 new tables)
+- donor_giving
+- ministries
+- ministry_signups
+- parishioners
+- prayer_requests
+- volunteer_hours
+
+**`schema-v2.8-ops.sql`** (17 new tables — operational core + Continual Improvement Loop + Awareness + Reports)
+- change_requests (§12.5)
+- checkout_intents
+- cross_instance_signals (§12.5)
+- cycle_items (§12.5)
+- events
+- incidents
+- inflows
+- notification_channels (§12.6)
+- notification_preferences (§12.6)
+- notifications (§12.6)
+- recurring_obligations
+- report_runs (§12.7)
+- report_snapshots (§12.7)
+- review_cadences (§12.5)
+- review_cycles (§12.5)
+- subscriptions
+- tax_calendar
+
+**`schema-v2.9-portal-rls.sql`** (0 new tables — policies only)
+
+(Counts above sum to 44 new tables across 9 files. Verify exact totals when SQL is written.)
+
+---
+
+## End of draft
+
+This document is the **target shape**. It is not committed code, not applied schema, not a PR. It is the design Darrell can review from phone or in a fresh session, and the design the next sessions execute against.
+
+Per the foundations: open-source, portable, self-host-ready (Synology DS1621xs target). Per the audit: forward-compatible — every change is additive, no v1 data is migrated or rewritten. Per the cross-domain bar from `EXPERIENTIAL-KNOWLEDGE-MARKETPLACE.md`: every role surface SKOS prebuilds — landlord, therapist, contractor, business mentor, lawyer, church, family — has its operational data shape declared here. Per `MODULAR-EXTENSIBILITY.md`: each domain ships as its own file; disabling a domain is removing one SQL file from the migration runlist; nothing else breaks.
+
+The next decision is Darrell's. The schema is ready when he is.
+
+— Dispatch, 2026-05-24, Option C selected
