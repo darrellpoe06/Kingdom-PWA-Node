@@ -8,7 +8,7 @@
 // Acuity, never in SKOS.
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
-import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
+import { findRelatedAuto } from '../lib/connectedContext.js';
 
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
