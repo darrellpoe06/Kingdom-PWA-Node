@@ -1,6 +1,8 @@
 # Supabase Schema v2 — Multi-Domain, Forward-Declared (DRAFT)
 
-> **Status:** DRAFT, 2026-05-24. Written under Dispatch during Darrell at church, after Darrell selected Option C from the 2026-05-24 schema audit. Not yet executed; not yet pushed. This document is the **target shape** of the data layer for SKOS / PoeTech across every role surface the OS prebuilds — landlord, therapist, contractor, business mentor, lawyer, church, family — and the cross-cutting infrastructure (audit log, role scopes, external participants) that makes those role surfaces real.
+> **Status:** DRAFT, 2026-05-24 (revised same-day after Darrell's terminology + scale + dogfooding clarifications). Written under Dispatch during Darrell at church, after Darrell selected Option C from the 2026-05-24 schema audit. Not yet executed; not yet pushed. This document is the **target shape** of the data layer for SKOS / PoeTech across every role surface the OS prebuilds — landlord, therapist, contractor, business mentor, lawyer, church, family — plus the cross-cutting infrastructure (audit log, role scopes, external participants, the Continual Improvement Loop that turns continuous feedback into ranked candidate work) that makes those role surfaces real and self-improving.
+>
+> **2026-05-24 mid-session revisions baked in:** (1) v1 `tenants` → `instances` rename ratified by Darrell to remove the SaaS-tenant vs real-estate-renter collision (see §4.0); (2) `instance_members.title` added as the human-readable-roles field separate from CRUD-level `role` (one person carries many titles across instances); (3) Section 12.5 added for the Continual Improvement Loop — review_cadences (daily/hourly/weekly/monthly per instance choice), review_cycles, cycle_items (system-ranked, user-overridable), change_requests (ITIL), cross_instance_signals (PoeTech-central dogfood view) — so every instance turns feedback into prioritized candidate projects / incidents / changes on whatever cadence scales for them.
 >
 > **Path forward (per Darrell's selection):** v1 + v1.1 stay as-is. v2 is purely additive — new tables, new policies, enum widenings, jsonb columns — applied incrementally over the weeks after vacation. The June 1 family + church launch ships against v1 surfaces. Every domain table below is dormant until its module's UI lands, but the data layer is **already shaped** so future module work is UI-against-existing-tables, not "design the schema first, then build."
 >
@@ -14,6 +16,7 @@
 2. Architectural principles (binding from foundations)
 3. The polymorphism question — recommendation, not options
 4. Cross-cutting infrastructure tables (new in v2)
+   - 4.0. v1 vocabulary rename — `tenants` → `instances` (ratified 2026-05-24)
 5. Universal column patterns (lifecycle, links, audit)
 6. Domain — Landlord (Poe Properties, 11 doors as the test)
 7. Domain — Therapist (TLC, 7 clinicians as the test)
@@ -22,7 +25,8 @@
 10. Domain — Lawyer (Legal Matters, encrypted at rest)
 11. Domain — Church operations
 12. Cross-cutting business ops (incidents, tax_calendar, etc.)
-13. External Participants layer (Contractor / Tenant / Client / Donor / Parishioner / Volunteer / Customer portals)
+   - 12.5. Continual Improvement Loop — feedback → projects / incidents / changes (per `SERVICE-MANAGEMENT.md`)
+13. External Participants layer (Contractor / Renter / Client / Donor / Parishioner / Volunteer / Customer portals)
 14. RLS pattern catalog
 15. Migration path — v1 → v2 in additive slices
 16. Open questions for Darrell's judgment
@@ -32,7 +36,7 @@
 
 ## 1. Decision summary — what v2 commits to
 
-The 2026-05-24 audit established that v1 + v1.1 is a correct multi-tenant skeleton — `tenants`, `tenant_members`, `tenant_invites`, plus a generic Financial OS (`entities`, `accounts`, `transactions`, `debts`, `projects`) plus three new surfaces (`feedback`, `confessions`, `user_telemetry`) plus per-user settings — but it does NOT carry real business operations for any role except family / church membership. The audit named three paths. Darrell selected **Path C: forward-declare the full multi-domain schema NOW**, so that:
+The 2026-05-24 audit established that v1 + v1.1 is a correct multi-instance skeleton — the original `tenants` / `tenant_members` / `tenant_invites` tables (renamed in v2.1-infra to `instances` / `instance_members` / `instance_invites` per Darrell's 2026-05-24 direction; see Section 4.0), plus a generic Financial OS (`entities`, `accounts`, `transactions`, `debts`, `projects`), plus three new surfaces (`feedback`, `confessions`, `user_telemetry`), plus per-user settings — but it does NOT carry real business operations for any role except family / church membership. The audit named three paths. Darrell selected **Path C: forward-declare the full multi-domain schema NOW**, so that:
 
 - The June 1 family + church testing ships against v1 surfaces as planned.
 - Every domain module (landlord, therapist, contractor, mentor, lawyer, church-ops) has its tables already created and policy-attached when the React UI for that module lands.
@@ -57,11 +61,11 @@ These are not new. They are the rules already binding from the foundation docs. 
 
 **From `LIFECYCLE-AND-HANDOFF.md` —** Every domain entity carries a `lifecycle` object — current phase, openedAt, closedAt, append-only log of transitions with `by` / `at` / `note`. Implemented as a `lifecycle jsonb DEFAULT '{"phase":"new","log":[]}'` column on every domain table.
 
-**From `IDENTITY-ROLES-AUDIT.md` —** Every state-changing action writes to a global `audit_log` table. Plus `tenant_members.role` is supplemented by a `role_scopes` table that narrows the role's scope (per-entity, per-property, per-module, read-only). The `tenant_members.role` enum widens to include `'specialist'` (the 5th role).
+**From `IDENTITY-ROLES-AUDIT.md` —** Every state-changing action writes to a global `audit_log` table. Plus `instance_members.role` is supplemented by a `role_scopes` table that narrows the role's scope (per-entity, per-property, per-module, read-only). The `instance_members.role` enum widens to include `'specialist'` (the 5th role).
 
-**From `ECOSYSTEM-PARTICIPANTS.md` —** External users (Contractor / Tenant / Client / Donor / Parishioner / Volunteer / Customer) are first-class participants with scoped portal access, distinct from internal `tenant_members`. They have their own `external_users` table, their own magic-link auth flow, and a separate RLS pattern that only ever exposes their own linked data + interactions.
+**From `ECOSYSTEM-PARTICIPANTS.md` —** External users (Contractor / Tenant / Client / Donor / Parishioner / Volunteer / Customer) are first-class participants with scoped portal access, distinct from internal `instance_members`. They have their own `external_users` table, their own magic-link auth flow, and a separate RLS pattern that only ever exposes their own linked data + interactions.
 
-**From `LEGAL-PRIVACY-BOUNDARY.md` —** The Legal domain is the strictest in the system. Legal data is encrypted CLIENT-SIDE (AES-GCM via Web Crypto API, PBKDF2 250k iterations) before reaching the database. The server stores ciphertext only. RLS still applies for tenant scoping, but the server cannot decrypt the content. PIN loss = data loss; intentional.
+**From `LEGAL-PRIVACY-BOUNDARY.md` —** The Legal domain is the strictest in the system. Legal data is encrypted CLIENT-SIDE (AES-GCM via Web Crypto API, PBKDF2 250k iterations) before reaching the database. The server stores ciphertext only. RLS still applies for instance scoping, but the server cannot decrypt the content. PIN loss = data loss; intentional.
 
 **From `MULTI-INSTANCE-STRATEGY.md` / `SYNOLOGY-DEPLOY-PLAN.md` —** Self-host target is Supabase running in Docker Compose on the DS1621xs. No managed-service dependencies. Postgres is Postgres. RLS is Postgres-native. Storage is local Synology volumes (no Cloudflare R2 in the data path; R2 is the optional CDN for the React PWA only).
 
@@ -71,32 +75,34 @@ These are not new. They are the rules already binding from the foundation docs. 
 
 ## 3. The polymorphism question — recommendation, not options
 
-The audit asked: **How does "tenant" polymorph to support any business type?** Three candidate shapes were named. Here is the recommendation, with reasoning, not three options:
+The audit asked: **How does an instance polymorph to support any business type?** Three candidate shapes were named. Here is the recommendation, with reasoning, not three options.
 
-### Recommendation: hybrid — `tenants.tenant_type` as primary classification + a `tenant_domains` join table for enabled modules + `entities` for sub-entity scoping within a tenant
+(The audit phrased this in terms of "tenant" because v1 used that word; v2.1-infra renames the SaaS-scope concept to "instance" everywhere, so the question and answer below speak in the renamed vocabulary. See Section 4.0.)
 
-**Why not single enum on tenants alone.** The current `tenants.tenant_type` enum (`family / church / therapy-practice / contractor / nonprofit / business`) treats each tenant as exactly one shape. But the Poe Family tenant ALREADY needs to be a family AND own Poe Properties (landlord) AND own PoeTech (tech business) AND host parts of TLC's operational data (Christina's practice). A single enum forces "primary shape," which is fine for display and default modules, but cannot represent the truth that one organization carries multiple domains.
+### Recommendation: hybrid — `instances.instance_type` as primary classification + an `instance_domains` join table for enabled modules + `entities` for sub-entity scoping within an instance
 
-**Why not separate domain-typed tenant tables.** A `landlord_tenants` table, a `therapy_tenants` table, etc., would duplicate the membership / invite / settings infrastructure N times. It also breaks the audit's correct observation that `tenants` + RLS-by-membership is the right multi-tenancy model. Don't fork the membership layer; layer on top.
+**Why not single enum on `instances` alone.** The current `instances.instance_type` enum (`family / church / therapy-practice / contractor / nonprofit / business`) treats each instance as exactly one shape. But the Poe Family instance ALREADY needs to be a family AND own Poe Properties (landlord) AND own PoeTech (tech business) AND host parts of TLC's operational data (Christina's practice). A single enum forces "primary shape," which is fine for display and default modules, but cannot represent the truth that one organization carries multiple domains.
 
-**Why not pure join table.** A `tenant_domain_profiles` join with no primary classification leaves the dashboard / nav / default-module question unanswered — what does the React app show when a user lands on a tenant that's "family + landlord + tech business + church-leadership"? You need a primary shape for the default UI, even if domains are additive.
+**Why not separate domain-typed instance tables.** A `landlord_instances` table, a `therapy_instances` table, etc., would duplicate the membership / invite / settings infrastructure N times. It also breaks the audit's correct observation that `instances` + RLS-by-membership is the right multi-instance model. Don't fork the membership layer; layer on top.
+
+**Why not pure join table.** An `instance_domain_profiles` join with no primary classification leaves the dashboard / nav / default-module question unanswered — what does the React app show when a user lands on an instance that's "family + landlord + tech business + church-leadership"? You need a primary shape for the default UI, even if domains are additive.
 
 ### The recommended shape
 
 ```
-tenants (existing, v1)
-  tenant_type — primary classification, drives default nav / module set
+instances (v1's `tenants`, renamed in v2.1-infra)
+  instance_type — primary classification, drives default nav / module set
               — widen enum in v2: add 'landlord', 'law-practice', 'mentor', 'trades', 'media-org'
 
-tenant_domains (NEW in v2 — the join)
-  tenant_id    → tenants(id)
+instance_domains (NEW in v2 — the join)
+  instance_id    → instances(id)
   domain       — enum: 'family', 'church', 'rentals', 'therapy', 'contractor',
                        'legal', 'mentor', 'nonprofit', 'media', 'tech-business'
   enabled_at   timestamptz
   enabled_by   uuid → auth.users(id)
   settings     jsonb — per-domain config (e.g., for 'rentals': default-lease-template;
                                           for 'therapy': handoff-target-acuity-instance)
-  UNIQUE(tenant_id, domain)
+  UNIQUE(instance_id, domain)
 
 entities (existing, v1)
   entity_type — widen enum: 'personal' | 'business' | 'rental-property' |
@@ -110,41 +116,41 @@ entities (existing, v1)
 
 ### How a real instance looks under this model
 
-**Poe Family** (the single tenant):
-- `tenants.tenant_type = 'family'` — primary
-- `tenant_domains`: rows for `'family'`, `'rentals'`, `'tech-business'`, `'legal'`
-- `entities`: `e-personal` (personal), `e-poeprops` (business, domain='rentals'), `e-poetech` (business, domain='tech-business'), `e-tlc` (business, domain='therapy' — Christina's practice if she chooses to share-house under the family tenant, OR — see below — TLC could be its own tenant)
-- All rentals rows scope to `tenant_id = poe-family` and `entity_id = e-poeprops`
-- All Legal matters scope to `tenant_id = poe-family` (encrypted)
+**Poe Family** (the single instance):
+- `instances.instance_type = 'family'` — primary
+- `instance_domains`: rows for `'family'`, `'rentals'`, `'tech-business'`, `'legal'`
+- `entities`: `e-personal` (personal), `e-poeprops` (business, domain='rentals'), `e-poetech` (business, domain='tech-business'), `e-tlc` (business, domain='therapy' — Christina's practice if she chooses to share-house under the family instance, OR — see below — TLC could be its own instance)
+- All rentals rows scope to `instance_id = poe-family` and `entity_id = e-poeprops`
+- All Legal matters scope to `instance_id = poe-family` (encrypted)
 
-**The Church of the Living God** (separate tenant):
-- `tenants.tenant_type = 'church'`
-- `tenant_domains`: rows for `'church'`, `'nonprofit'`, `'tech-business'` (Darrell's tech-director work for the church)
+**The Church of the Living God** (separate instance):
+- `instances.instance_type = 'church'`
+- `instance_domains`: rows for `'church'`, `'nonprofit'`, `'tech-business'` (Darrell's tech-director work for the church)
 - `entities`: `e-colg-general` (the operating fund), `e-colg-building` (the property), various ministry entities
-- parishioners, donor_giving, ministry_signups all scope to `tenant_id = colg` and link to the appropriate entity
+- parishioners, donor_giving, ministry_signups all scope to `instance_id = colg` and link to the appropriate entity
 
-**TLC Therapy Solutions** (separate tenant — recommended):
-- `tenants.tenant_type = 'therapy-practice'`
-- `tenant_domains`: rows for `'therapy'`, `'legal'` (LLC matters)
+**TLC Therapy Solutions** (separate instance — recommended):
+- `instances.instance_type = 'therapy-practice'`
+- `instance_domains`: rows for `'therapy'`, `'legal'` (LLC matters)
 - `entities`: `e-tlc-llc` (the operating business)
-- clinicians, inquiries scope to TLC's tenant_id — Christina is `owner`, the 6 other clinicians are `member` or `specialist`
-- **Rationale for separate tenant:** TLC is a separate legal entity from the Poe Family; per `LEGAL-PRIVACY-BOUNDARY.md` and HIPAA-adjacent isolation, TLC's data should be RLS-isolated even from Darrell-as-Poe-Family-Owner. Christina as TLC's Owner controls who gets in.
+- clinicians, inquiries scope to TLC's instance_id — Christina is `owner`, the 6 other clinicians are `member` or `specialist`
+- **Rationale for separate instance:** TLC is a separate legal entity from the Poe Family; per `LEGAL-PRIVACY-BOUNDARY.md` and HIPAA-adjacent isolation, TLC's data should be RLS-isolated even from Darrell-as-Poe-Family-Owner. Christina as TLC's Owner controls who gets in.
 
 **Anonymous Landlord LLC** (a hypothetical future customer):
-- `tenants.tenant_type = 'landlord'`
-- `tenant_domains`: rows for `'rentals'`, `'legal'`
+- `instances.instance_type = 'landlord'`
+- `instance_domains`: rows for `'rentals'`, `'legal'`
 - `entities`: one per property, parented under the LLC entity
 
-The polymorphism falls out cleanly: every domain table scopes to `tenant_id` + RLS-by-membership (unchanged from v1), but additionally references `entity_id` for "which sub-entity owns this row" and the React app reads `tenant_domains` to know which nav surfaces to render.
+The polymorphism falls out cleanly: every domain table scopes to `instance_id` + RLS-by-membership (unchanged from v1), but additionally references `entity_id` for "which sub-entity owns this row" and the React app reads `instance_domains` to know which nav surfaces to render.
 
 ### What this means for the existing schema
 
 Five small changes (all forward-compatible):
 
-1. `ALTER TYPE` on the implicit `tenant_type` check constraint to add the new values. (v1 uses CHECK not enum — even simpler.)
-2. `ALTER TABLE tenant_members ALTER COLUMN role` to add `'specialist'` to the CHECK list.
+1. `ALTER TYPE` on the implicit `instance_type` check constraint to add the new values. (v1 uses CHECK not enum — even simpler.)
+2. `ALTER TABLE instance_members ALTER COLUMN role` to add `'specialist'` to the CHECK list.
 3. `ALTER TABLE entities ADD COLUMN domain text, ADD COLUMN parent_entity_id uuid REFERENCES entities(id)`.
-4. `CREATE TABLE tenant_domains` per Section 4.
+4. `CREATE TABLE instance_domains` per Section 4.
 5. `CREATE TABLE role_scopes` per Section 4.
 
 Nothing breaks. Nothing migrates. Existing rows continue to work because every new column is nullable or has a default.
@@ -153,31 +159,171 @@ Nothing breaks. Nothing migrates. Existing rows continue to work because every n
 
 ## 4. Cross-cutting infrastructure tables (new in v2)
 
-These are the foundation tables every domain depends on. They go in `schema-v2.1-infra.sql` and land first.
+These are the foundation tables every domain depends on. They go in `schema-v2.1-infra.sql` and land first. The very first thing inside that file — before any new CREATE TABLE — is the v1 vocabulary rename described in Section 4.0.
 
-### `tenant_domains` — which domain modules are enabled per tenant
+### 4.0. v1 vocabulary rename — `tenants` → `instances` (ratified 2026-05-24)
+
+Darrell ratified this rename on 2026-05-24 after the schema audit landed, because the word "tenant" was double-booked: it meant both the SaaS-database scope (the row-level-security boundary that Supabase customers call a "tenant") AND the real-world renter-of-a-property. When v2 added rentals as a first-class domain, the collision became unworkable — talking about "TLC as a separate tenant" made it sound like TLC was renting from someone. The fix is to give the SaaS-scope concept its own word, aligned with the existing foundation-doc vocabulary (`MULTI-INSTANCE-STRATEGY.md`, "the family instance," etc.) — **instance**. The word "tenant" is then reserved exclusively for one place: the legal text inside a generated lease document, where "Tenant" is the term of art ("The Tenant agrees to pay rent on the first of the month"). Everywhere else — database columns, code comments, conversations, UI labels — the words are clean.
+
+**What gets renamed (executed at the top of `schema-v2.1-infra.sql`):**
+
+```sql
+-- v1 → v2 rename: tenants → instances
+ALTER TABLE tenants               RENAME TO instances;
+ALTER TABLE tenant_members        RENAME TO instance_members;
+ALTER TABLE tenant_invites        RENAME TO instance_invites;
+
+-- Column renames on every v1 table that carries the FK
+ALTER TABLE entities             RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE accounts             RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE transactions         RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE debts                RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE projects             RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE feedback             RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE confessions          RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE user_telemetry       RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE user_tenant_settings RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE user_tenant_settings RENAME TO user_instance_settings;
+ALTER TABLE instance_members     RENAME COLUMN tenant_id TO instance_id;
+ALTER TABLE instance_invites     RENAME COLUMN tenant_id TO instance_id;
+
+-- Index renames (keep mtime semantics; just align names)
+ALTER INDEX tenant_members_user_id_idx   RENAME TO instance_members_user_id_idx;
+ALTER INDEX tenant_members_tenant_id_idx RENAME TO instance_members_instance_id_idx;
+-- ...same pattern for every per-table tenant_idx → instance_idx
+
+-- Helper function rename (recreate with new name + new internal logic)
+DROP FUNCTION IF EXISTS public.user_in_tenant(uuid);
+DROP FUNCTION IF EXISTS public.user_tenant_role(uuid);
+
+CREATE OR REPLACE FUNCTION public.user_in_instance(instance_uuid uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM instance_members
+    WHERE instance_id = instance_uuid AND user_id = auth.uid()
+  )
+$$;
+
+CREATE OR REPLACE FUNCTION public.user_role_in_instance(instance_uuid uuid)
+RETURNS text
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+  SELECT role FROM instance_members
+  WHERE instance_id = instance_uuid AND user_id = auth.uid() LIMIT 1
+$$;
+
+-- v1.1 helper rename
+DROP FUNCTION IF EXISTS public.join_default_tenant(text);
+CREATE OR REPLACE FUNCTION public.join_default_instance(display_name_in text DEFAULT NULL)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_user_id      uuid := auth.uid();
+  v_user_email   text;
+  v_instance_id  uuid;
+  v_display_name text;
+  v_existing     uuid;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'join_default_instance: not authenticated';
+  END IF;
+  SELECT instance_id INTO v_existing FROM instance_members
+    WHERE user_id = v_user_id LIMIT 1;
+  IF v_existing IS NOT NULL THEN
+    RETURN v_existing;
+  END IF;
+  SELECT id INTO v_instance_id FROM instances WHERE slug = 'poe-family';
+  IF v_instance_id IS NULL THEN
+    RAISE EXCEPTION 'join_default_instance: poe-family instance not seeded';
+  END IF;
+  SELECT email INTO v_user_email FROM auth.users WHERE id = v_user_id;
+  v_display_name := COALESCE(
+    NULLIF(trim(display_name_in), ''),
+    split_part(v_user_email, '@', 1),
+    'Member'
+  );
+  INSERT INTO instance_members (instance_id, user_id, role, display_name)
+    VALUES (v_instance_id, v_user_id, 'member', v_display_name);
+  RETURN v_instance_id;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.join_default_instance(text) TO authenticated;
+
+-- RLS policies: drop the v1 policies (they reference the old names) and recreate
+DROP POLICY IF EXISTS tenants_member_read       ON instances;
+DROP POLICY IF EXISTS tenant_members_self_read  ON instance_members;
+DROP POLICY IF EXISTS tenant_invites_admin_read ON instance_invites;
+
+CREATE POLICY instances_member_read ON instances FOR SELECT
+  USING (user_in_instance(id));
+CREATE POLICY instance_members_self_read ON instance_members FOR SELECT
+  USING (user_in_instance(instance_id));
+CREATE POLICY instance_invites_admin_read ON instance_invites FOR SELECT
+  USING (user_role_in_instance(instance_id) IN ('owner','admin'));
+
+-- Domain-table policy block in v1's section 7 loop: drop + recreate with renamed
+-- helper functions. (The DO $$ ... $$ block from schema-v1.sql is re-run with
+-- the new helper names; output policies are identical except the function call.)
+```
+
+**Application-layer changes paired with this migration** (not SQL, but tracked here for the migration plan):
+
+- `app/src/lib/supabase.js` — every reference to `tenant_id` becomes `instance_id`; calls to `user_in_tenant()` and `user_tenant_role()` become `user_in_instance()` and `user_role_in_instance()`.
+- `app/src/lib/feedback-sync.js` — same rename.
+- `app/src/lib/joinDefaultTenant.js` (if present) — renamed to `joinDefaultInstance.js`, RPC call name updated.
+- React components — any prop or state called `tenantId` becomes `instanceId`; greetings reading `tenant_members.display_name` now read `instance_members.display_name`.
+- Foundation docs and CLAUDE.md vocabulary should be updated to use "instance" everywhere going forward.
+
+**Member titles — paired with the rename, add `title` to `instance_members`** (per Darrell's 2026-05-24 clarification that a single person carries many human-readable roles simultaneously — owner AND clinician AND mother AND intake coordinator):
+
+```sql
+ALTER TABLE instance_members ADD COLUMN title text;
+-- Free-text human-readable role(s) the member carries inside this instance.
+-- Examples:
+--   Christina @ Poe Family       : "Wife · Co-Founder · Homemaker"
+--   Christina @ TLC              : "Owner · Clinician · Intake Coordinator"
+--   Darrell   @ Poe Family       : "Husband · Father · Tech Lead"
+--   Darrell   @ COLG             : "Tech Director · Member"
+-- The application reads `title` for display (greetings, signature blocks,
+-- the About-People panel). The schema does NOT derive permissions from
+-- `title`; permissions come from `role` + `role_scopes` only.
+```
+
+This separates the database's small, narrow `role` enum (Owner / Editor / Contributor / Viewer / Specialist — the CRUD permission abstraction) from the wide, human, free-text `title` (the role(s) the person actually carries in their life). Roles are for the machine; titles are for the humans. Both attached to the same `instance_members` row.
+
+**Rename impact summary:** ~20 lines of SQL to land. ~50 lines of application-layer find-and-replace. Zero data movement. Done once, at the top of `schema-v2.1-infra.sql`, while v1 application code is still fresh.
+
+---
+
+### `instance_domains` — which domain modules are enabled per instance
 
 ```
 id            uuid PK
-tenant_id     uuid NOT NULL → tenants(id) ON DELETE CASCADE
+instance_id     uuid NOT NULL → instances(id) ON DELETE CASCADE
 domain        text NOT NULL CHECK (domain IN
                 ('family','church','rentals','therapy','contractor',
                  'legal','mentor','nonprofit','media','tech-business','trades'))
 enabled_at    timestamptz NOT NULL DEFAULT now()
 enabled_by    uuid NOT NULL → auth.users(id)
 settings      jsonb NOT NULL DEFAULT '{}'
-UNIQUE (tenant_id, domain)
+UNIQUE (instance_id, domain)
 ```
 
-RLS: tenant members read; only owners and admins insert/update/delete.
+RLS: instance members read; only owners and admins insert/update/delete.
 
 ### `role_scopes` — per-member scope modifiers (narrows the global role)
 
-Per `IDENTITY-ROLES-AUDIT.md`, a member's role can be narrowed by entity / property / module / read-only. Without this table, `tenant_members.role = 'admin'` is global to the tenant. With this table, an admin can be scoped to e.g. "admin on Poe Properties only, read-only on PoeTech."
+Per `IDENTITY-ROLES-AUDIT.md`, a member's role can be narrowed by entity / property / module / read-only. Without this table, `instance_members.role = 'admin'` is global to the instance. With this table, an admin can be scoped to e.g. "admin on Poe Properties only, read-only on PoeTech."
 
 ```
 id              uuid PK
-tenant_member_id uuid NOT NULL → tenant_members(id) ON DELETE CASCADE
+instance_member_id uuid NOT NULL → instance_members(id) ON DELETE CASCADE
 scope_kind      text NOT NULL CHECK (scope_kind IN
                   ('entity','property','module','read-only-flag','time-bounded'))
 scope_value     text                       -- the entity_id, property_id, or domain name,
@@ -187,11 +333,11 @@ created_at      timestamptz NOT NULL DEFAULT now()
 created_by      uuid NOT NULL → auth.users(id)
 ```
 
-RLS: same tenant scoping; only owners modify their tenant's scope rows.
+RLS: same instance scoping; only owners modify their instance's scope rows.
 
 Helper function:
 ```
-public.user_role_in_scope(tenant_uuid uuid, scope_kind text, scope_value text)
+public.user_role_in_scope(instance_uuid uuid, scope_kind text, scope_value text)
   RETURNS text  -- the effective role given the scope filter, or NULL if no access
 ```
 
@@ -203,7 +349,7 @@ Per `IDENTITY-ROLES-AUDIT.md`'s Rule 1 (every change is attributable).
 
 ```
 id            bigserial PK    -- bigserial for low-overhead chronological ordering
-tenant_id     uuid NOT NULL → tenants(id)
+instance_id     uuid NOT NULL → instances(id)
 user_id       uuid           → auth.users(id)        -- nullable for system-initiated actions
 at            timestamptz NOT NULL DEFAULT now()
 action        text NOT NULL CHECK (action IN
@@ -222,7 +368,7 @@ prev_hash     text           -- Phase 3+: hash of the prior entry for hash-chain
 hash          text           -- Phase 3+: hash of this entry's content + prev_hash
 ```
 
-RLS: tenant members read their tenant's entries scoped to their visible domains (per `role_scopes`); inserts come only from `SECURITY DEFINER` functions (the application never writes audit_log directly); no UPDATE; no DELETE. Append-only enforced.
+RLS: instance members read their instance's entries scoped to their visible domains (per `role_scopes`); inserts come only from `SECURITY DEFINER` functions (the application never writes audit_log directly); no UPDATE; no DELETE. Append-only enforced.
 
 Helper functions:
 - `public.audit_write(action text, entity_type text, entity_id uuid, from_value jsonb, to_value jsonb, note text)` — SECURITY DEFINER, writes one row.
@@ -230,7 +376,7 @@ Helper functions:
 
 Indexes:
 ```
-audit_log_tenant_at_idx     ON audit_log (tenant_id, at DESC)
+audit_log_tenant_at_idx     ON audit_log (instance_id, at DESC)
 audit_log_entity_idx        ON audit_log (entity_type, entity_id)
 audit_log_user_at_idx       ON audit_log (user_id, at DESC)
 ```
@@ -241,7 +387,7 @@ Every domain table has a `links jsonb DEFAULT '[]'` column for the local link li
 
 ```
 id              uuid PK
-tenant_id       uuid NOT NULL → tenants(id) ON DELETE CASCADE
+instance_id       uuid NOT NULL → instances(id) ON DELETE CASCADE
 from_entity_type text NOT NULL
 from_entity_id   uuid NOT NULL
 to_entity_type   text NOT NULL
@@ -253,12 +399,12 @@ source           text NOT NULL CHECK (source IN ('auto','user','suggested'))
 at               timestamptz NOT NULL DEFAULT now()
 by_user_id       uuid → auth.users(id)
 note             text
-UNIQUE (tenant_id, from_entity_type, from_entity_id, to_entity_type, to_entity_id, kind)
+UNIQUE (instance_id, from_entity_type, from_entity_id, to_entity_type, to_entity_id, kind)
 ```
 
 Trigger on every domain table's `links` jsonb column reconciles inserts/deletes into this table. Bidirectional traversal is via `OR (from = X) (to = X)`.
 
-RLS: tenant members read their tenant's links scoped by their visible entities.
+RLS: instance members read their instance's links scoped by their visible entities.
 
 ### `external_users` — first-class external participants (per `ECOSYSTEM-PARTICIPANTS.md`)
 
@@ -266,9 +412,9 @@ Seven first-class types. Distinct identity from `auth.users` because external us
 
 ```
 id                 uuid PK
-tenant_id          uuid NOT NULL → tenants(id) ON DELETE CASCADE
+instance_id          uuid NOT NULL → instances(id) ON DELETE CASCADE
 type               text NOT NULL CHECK (type IN
-                     ('contractor','tenant','client','donor',
+                     ('contractor','renter','client','donor',
                       'parishioner','volunteer','customer','vendor'))
 display_name       text NOT NULL
 email              text                  -- for magic-link invite
@@ -291,12 +437,14 @@ links              jsonb NOT NULL DEFAULT '[]'
 created_at         timestamptz NOT NULL DEFAULT now()
 created_by         uuid NOT NULL → auth.users(id)
 updated_at         timestamptz
-UNIQUE (tenant_id, email, type)   -- same email at same tenant with different
+UNIQUE (instance_id, email, type)   -- same email at same instance with different
                                    -- type is allowed (parishioner who is also
                                    -- a volunteer); same email + same type is one record
 ```
 
-RLS: internal `tenant_members` see everything per their `role_scopes`. External users authenticated through the separate flow (Phase 3) see only their own row plus the entities they're linked to, via a different policy family on every relevant domain table (see Section 13).
+RLS: internal `instance_members` see everything per their `role_scopes`. External users authenticated through the separate flow (Phase 3) see only their own row plus the entities they're linked to, via a different policy family on every relevant domain table (see Section 13).
+
+**Vocabulary note for `external_users.type`:** the value `'renter'` is used (not `'tenant'`) so the database speaks the same language everywhere — `tenant` is reserved exclusively for the lease document template's legal usage. See the rename rationale in Section 4.0.
 
 ### `interactions` — bidirectional message + status log between internal and external users
 
@@ -304,7 +452,7 @@ Every back-and-forth gets one row.
 
 ```
 id                  uuid PK
-tenant_id           uuid NOT NULL → tenants(id) ON DELETE CASCADE
+instance_id           uuid NOT NULL → instances(id) ON DELETE CASCADE
 external_user_id    uuid NOT NULL → external_users(id) ON DELETE CASCADE
 internal_user_id    uuid           → auth.users(id)
 at                  timestamptz NOT NULL DEFAULT now()
@@ -350,7 +498,7 @@ Every domain table added in v2 carries the same shape. Repeated here as a single
 ```
 -- STANDARD COLUMNS — present on every v2 domain table
 id          uuid PRIMARY KEY DEFAULT gen_random_uuid()
-tenant_id   uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE
+instance_id   uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE
 created_by  uuid NOT NULL REFERENCES auth.users(id)
 created_at  timestamptz NOT NULL DEFAULT now()
 updated_at  timestamptz
@@ -377,7 +525,7 @@ Implementation: one shared trigger function per table family, attached on table 
 
 ## 6. Domain — Landlord (test instance: Poe Properties, 11 doors)
 
-Coverage baseline from the audit: **~10%.** Only the LLC entity record exists; the landlord business cannot operate inside the system today. v2 takes coverage to **~85%** (everything except advanced features like tenant credit-screening API integration, which is post-v2).
+Coverage baseline from the audit: **~10%.** Only the LLC entity record exists; the landlord business cannot operate inside the system today. v2 takes coverage to **~85%** (everything except advanced features like renter credit-screening API integration, which is post-v2).
 
 Five tables. File: `schema-v2.2-rentals.sql`.
 
@@ -428,9 +576,9 @@ status             text NOT NULL DEFAULT 'active'
                        ('draft','active','expired','terminated-early','renewed'))
 ```
 
-### `renters` — the people in the rentals (separate from the `tenants` SaaS-tenant table)
+### `renters` — the people in the rentals
 
-**Naming note:** the v1 `tenants` table is the multi-tenant SaaS sense (an organization). Real-estate renters are people in a rental. To avoid collision, this table is `renters`. The audit's spec doc used `tenants_renters`; `renters` is shorter and unambiguous given the existing `tenants` table.
+**Naming note (post-rename):** the v1 `tenants` table is renamed to `instances` as part of v2.1-infra (see Section 4.0 for the rename rationale). The word `tenant` is reserved exclusively for the lease document's legal usage ("the Tenant agrees to pay rent on the first of the month"). Everywhere in the database, code, and conversation, real-estate renters are `renters` — one word, one meaning.
 
 ```
 [STANDARD COLUMNS]
@@ -500,14 +648,14 @@ resolved_at         timestamptz
 ### Indexes for the landlord domain
 
 ```
-rentals_tenant_idx               ON rentals (tenant_id)
+rentals_instance_idx               ON rentals (instance_id)
 rentals_entity_idx               ON rentals (entity_id)
 rentals_status_idx               ON rentals (status)
-leases_tenant_idx                ON leases (tenant_id)
+leases_instance_idx                ON leases (instance_id)
 leases_rental_idx                ON leases (rental_id)
 leases_renter_idx                ON leases (renter_id)
 leases_status_idx                ON leases (status) WHERE status = 'active'
-renters_tenant_idx               ON renters (tenant_id)
+renters_instance_idx               ON renters (instance_id)
 rent_payments_lease_period_idx   ON rent_payments (lease_id, period_month DESC)
 maintenance_requests_rental_idx  ON maintenance_requests (rental_id)
 maintenance_requests_status_idx  ON maintenance_requests (status) WHERE status != 'resolved'
@@ -523,8 +671,8 @@ maintenance_requests_status_idx  ON maintenance_requests (status) WHERE status !
 - Maintenance requests: probably 30-50/year across the portfolio at typical small-landlord cadence. Trivial.
 
 The design supports the operator:
-- "Show me all late payments this month" → `rent_payments WHERE status = 'late' AND period_month = current_month_first()` scoped by tenant_id.
-- "Which doors have maintenance requests open?" → `maintenance_requests WHERE status != 'resolved' AND tenant_id = ...` joined to rentals.
+- "Show me all late payments this month" → `rent_payments WHERE status = 'late' AND period_month = current_month_first()` scoped by instance_id.
+- "Which doors have maintenance requests open?" → `maintenance_requests WHERE status != 'resolved' AND instance_id = ...` joined to rentals.
 - "What did 1508 Holly Hill cost me last year?" → `transactions JOIN entity_links` where the rental's entity is the target.
 - "Send the lease renewal reminder to the renter" → look up `renters.external_user_id` → message goes through the `interactions` table to their portal.
 
@@ -539,7 +687,7 @@ The design supports the renter (via Phase 3 external portal):
 
 ## 7. Domain — Therapist (test instance: TLC, 7 clinicians)
 
-Coverage baseline from the audit: **~15%.** The practice can exist as a tenant; no operational surface for the intake-to-conversion loop. v2 takes coverage to **~70%** for the non-PHI operational surface. PHI stays out of Supabase entirely, per `LEGAL-PRIVACY-BOUNDARY.md` — the boundary to Acuity (the EHR / scheduling system) is preserved.
+Coverage baseline from the audit: **~15%.** The practice can exist as an instance; no operational surface for the intake-to-conversion loop. v2 takes coverage to **~70%** for the non-PHI operational surface. PHI stays out of Supabase entirely, per `LEGAL-PRIVACY-BOUNDARY.md` — the boundary to Acuity (the EHR / scheduling system) is preserved.
 
 Four tables. File: `schema-v2.3-therapy.sql`.
 
@@ -606,7 +754,7 @@ schedule_load_pct        int                   -- current capacity %
 intake_role              text CHECK (intake_role IN
                            ('intake-coordinator','clinician-only','both'))
 user_id                  uuid REFERENCES auth.users(id)
-                            -- when the clinician has a Supabase login (tenant_member)
+                            -- when the clinician has a Supabase login (instance_member)
                             -- nullable for clinicians who are referenced but not active in the system
 notes                    text
 status                   text NOT NULL DEFAULT 'active'
@@ -651,13 +799,13 @@ status         text NOT NULL DEFAULT 'active'
 7 clinicians, intake-to-conversion pipeline, client portal for non-PHI status updates.
 
 Daily operations:
-- "How many inquiries this week?" → `inquiries WHERE received_at > now() - 7 days` scoped to TLC tenant_id.
+- "How many inquiries this week?" → `inquiries WHERE received_at > now() - 7 days` scoped to TLC instance_id.
 - "Who's not converting?" → `inquiries WHERE status = 'attempting-contact' AND received_at < now() - 14 days`.
 - "Show me each clinician's intake queue" → `clinician_assignments` joined to `inquiries` grouped by clinician_id.
 - "Has the insurance pre-check been done?" → `inquiries.has_insurance IS NOT NULL`.
 
 Christina's view as Owner:
-- Sees every inquiry (RLS: TLC tenant member).
+- Sees every inquiry (RLS: TLC instance member).
 - Can re-assign across clinicians.
 - Sees the intake pipeline funnel (counts per `status`).
 - Cannot see clinical data — there is no clinical data in Supabase.
@@ -814,7 +962,7 @@ Three tables. File: `schema-v2.5-mentor.sql`.
 ```
 [STANDARD COLUMNS]
 mentor_user_id          uuid REFERENCES auth.users(id)
-                           -- the internal tenant_member acting as mentor;
+                           -- the internal instance_member acting as mentor;
                            -- nullable if mentor is external (rare for SKOS use case)
 mentee_display_name     text NOT NULL  -- the mentee org or person
 mentee_contact_email    text
@@ -881,7 +1029,7 @@ invoice_id        uuid REFERENCES invoices(id)
 
 Coverage baseline: **~5%.** No legal-domain primitives. v2 takes coverage to **~65%** — meaningful but constrained by the binding from `LEGAL-PRIVACY-BOUNDARY.md` that the most sensitive content is client-side encrypted.
 
-**Critical architectural decision:** The Legal domain has a different storage posture than every other domain. Per the binding rule, Legal data is encrypted CLIENT-SIDE with AES-GCM 256 via Web Crypto API, key derived from a Legal-tab-specific PIN via PBKDF2 250k iterations. The server stores ciphertext only. RLS still applies for tenant scoping (so a malicious other-tenant can't even download the ciphertext blob), but the server CANNOT decrypt the content.
+**Critical architectural decision:** The Legal domain has a different storage posture than every other domain. Per the binding rule, Legal data is encrypted CLIENT-SIDE with AES-GCM 256 via Web Crypto API, key derived from a Legal-tab-specific PIN via PBKDF2 250k iterations. The server stores ciphertext only. RLS still applies for instance scoping (so a malicious other-instance can't even download the ciphertext blob), but the server CANNOT decrypt the content.
 
 This means the v2 Legal tables store mostly opaque ciphertext columns with structured metadata that doesn't leak privileged content.
 
@@ -1035,21 +1183,21 @@ notes_iv           bytea
 ```sql
 ALTER TABLE legal_matters ENABLE ROW LEVEL SECURITY;
 
--- Only tenant members can read; even owners cannot DELETE matters (must mark closed)
+-- Only instance members can read; even owners cannot DELETE matters (must mark closed)
 CREATE POLICY legal_matters_member_read ON legal_matters FOR SELECT
-  USING (user_in_tenant(tenant_id));
+  USING (user_in_instance(instance_id));
 
 -- Only owners + the user with explicit 'legal' role_scope can write
 CREATE POLICY legal_matters_legal_scope_insert ON legal_matters FOR INSERT
   WITH CHECK (
-    user_in_tenant(tenant_id)
+    user_in_instance(instance_id)
     AND created_by = auth.uid()
     AND (
-      user_tenant_role(tenant_id) = 'owner'
+      user_role_in_instance(instance_id) = 'owner'
       OR EXISTS (SELECT 1 FROM role_scopes rs
-                 JOIN tenant_members tm ON tm.id = rs.tenant_member_id
+                 JOIN instance_members tm ON tm.id = rs.instance_member_id
                  WHERE tm.user_id = auth.uid()
-                   AND tm.tenant_id = legal_matters.tenant_id
+                   AND tm.instance_id = legal_matters.instance_id
                    AND rs.scope_kind = 'module'
                    AND rs.scope_value = 'legal')
     )
@@ -1072,7 +1220,7 @@ Coverage baseline: **~25%** (membership + feedback + confession exist via v1). v
 
 Six tables. File: `schema-v2.7-church.sql`.
 
-### `parishioners` — member records (more detailed than tenant_members, which is system-membership)
+### `parishioners` — member records (more detailed than instance_members, which is system-membership)
 
 ```
 [STANDARD COLUMNS]
@@ -1197,7 +1345,7 @@ Parishioner portal:
 
 ## 12. Cross-cutting business ops (incidents, tax_calendar, etc.)
 
-These are the cross-cutting tables the audit named — useful to every business-type tenant and the family tenant. They go in `schema-v2.8-ops.sql`.
+These are the cross-cutting tables the audit named — useful to every business-type instance and the family instance. They go in `schema-v2.8-ops.sql`.
 
 ### `incidents` — ITSM-shaped issue log (per `SERVICE-MANAGEMENT.md`)
 
@@ -1206,7 +1354,7 @@ These are the cross-cutting tables the audit named — useful to every business-
 incident_date    date NOT NULL
 amount           numeric(12,2)
 category         text NOT NULL CHECK (category IN
-                   ('vehicle','property','medical','tenant',
+                   ('vehicle','property','medical','renter',
                     'maintenance','technology','financial','administrative','other'))
 description      text NOT NULL
 urgency          text NOT NULL DEFAULT 'normal'
@@ -1218,7 +1366,7 @@ status           text NOT NULL DEFAULT 'open'
 due_date         date
 resolved_at      timestamptz
 resolved_by      uuid REFERENCES auth.users(id)
-linked_to_kind   text  -- 'rental','project','tenant','vehicle', etc.
+linked_to_kind   text  -- 'rental','project','renter','vehicle', etc.
 linked_to_id     uuid
 ```
 
@@ -1266,7 +1414,7 @@ source          text
 expected        numeric(12,2)
 actual          numeric(12,2)
 month           date NOT NULL  -- first-of-month
-UNIQUE (tenant_id, entity_id, who, source, month)
+UNIQUE (instance_id, entity_id, who, source, month)
 ```
 
 ### `subscriptions` — recurring outflows (the Subscription Audit surface)
@@ -1314,316 +1462,82 @@ stripe_session_id  text
 
 ---
 
-## 13. External Participants layer (per `ECOSYSTEM-PARTICIPANTS.md`)
+## 12.5. Continual Improvement Loop — feedback to projects/incidents/changes (per `SERVICE-MANAGEMENT.md`)
 
-Section 4 defined the `external_users`, `interactions`, and `external_invite_tokens` tables. This section defines how the **RLS policy family** for external-user portal access works, because it's a non-trivial second auth model layered on top of the first.
+Added 2026-05-24 in response to Darrell's direction that *every instance should be able to take in feedback continuously, organize it, prioritize it from data, and produce candidate projects / incidents / changes for the operator (or the family board) to act on — daily, hourly, weekly, as often as scalable; with the system shining at collection and ranking, and the user always holding the last say.*
 
-### The two auth-flow problem
+This is the schema layer for what `SERVICE-MANAGEMENT.md` names as **Continual Improvement** and **Change Enablement** — the ITIL practice that turns observation into precept-upon-precept refinement. Crucially, **SKOS itself runs on this loop, dogfooded:** PoeTech central is just another instance of this same data model, and its weekly board surfaces the cross-instance aggregated signals just as a family's weekly board surfaces their household-scope feedback. Same software, same data, same workflow — operator and user touch the same surface.
 
-Internal users authenticate via Supabase `auth.users` → `tenant_members` membership. Every existing v1 RLS policy is `user_in_tenant(tenant_id)`.
+Three tables, all going into `schema-v2.8-ops.sql`:
 
-External users authenticate via a separate magic-link flow (Phase 3) that does NOT create an `auth.users` row in the same way. Instead, the external auth flow:
-1. Validates the magic-link token (in `external_invite_tokens`).
-2. Creates a session bound to the external_user_id.
-3. Issues a JWT with custom claim: `external_user_id: <uuid>`.
-4. Postgres sees this claim via `current_setting('request.jwt.claims', true)::json->>'external_user_id'`.
+### `review_cadences` — per-instance configuration of how often the loop runs
 
-A helper function:
+Each instance configures one or more cadences. A typical family might run a daily 8pm sweep (high-frequency triage) + a weekly Sunday-evening board (deeper review) + a monthly retrospective. A small business might run hourly during business hours + weekly + quarterly. PoeTech central runs continuous + daily + weekly + monthly. The schema does not impose a cadence; the operator picks.
+
 ```
-public.current_external_user_id()
-  RETURNS uuid
-  LANGUAGE sql STABLE
-AS $$
-  SELECT NULLIF(current_setting('request.jwt.claims', true)::json->>'external_user_id', '')::uuid
-$$;
-```
-
-### The external-user RLS pattern
-
-For every domain table that an external user can access, a parallel policy family applies. Example for `leases` (a renter sees their own lease):
-
-```sql
-CREATE POLICY leases_renter_portal_read ON leases FOR SELECT
-  USING (
-    renter_id IN (
-      SELECT id FROM renters
-      WHERE external_user_id = current_external_user_id()
-    )
-  );
-```
-
-For `rent_payments`:
-```sql
-CREATE POLICY rent_payments_renter_portal_read ON rent_payments FOR SELECT
-  USING (
-    lease_id IN (
-      SELECT l.id FROM leases l
-      JOIN renters r ON r.id = l.renter_id
-      WHERE r.external_user_id = current_external_user_id()
-    )
-  );
+[STANDARD COLUMNS]
+cadence_name        text NOT NULL  -- "Daily Triage", "Weekly Board", "Monthly Retro"
+cadence_frequency   text NOT NULL CHECK (cadence_frequency IN
+                      ('continuous','hourly','daily','weekly',
+                       'biweekly','monthly','quarterly','ad-hoc'))
+cron_expression     text  -- standard 5-field cron in local TZ; null for 'continuous' / 'ad-hoc'
+input_kinds         text[] NOT NULL DEFAULT
+                      ARRAY['feedback','incident','maintenance_request','inquiry','prayer_request']
+                    -- what feeds INTO this cadence's window
+output_kinds        text[] NOT NULL DEFAULT
+                      ARRAY['change_request','project','incident']
+                    -- what the cadence is allowed to PRODUCE
+facilitator_user_id uuid REFERENCES auth.users(id)
+attendee_user_ids   uuid[] NOT NULL DEFAULT '{}'  -- the "board" for this cadence
+auto_cluster        boolean NOT NULL DEFAULT true
+                    -- group similar feedback by tag+screen+sentiment automatically
+auto_priority       boolean NOT NULL DEFAULT true
+                    -- compute initial priority_score on each item
+auto_promote_threshold int
+                    -- if priority_score exceeds this and risk_level <= 'medium',
+                    -- auto-create the change_request in 'proposed' status
+                    -- (still requires human approval to advance further)
+enabled             boolean NOT NULL DEFAULT true
 ```
 
-For `maintenance_requests` — read own, insert own:
-```sql
-CREATE POLICY maint_req_renter_portal_read ON maintenance_requests FOR SELECT
-  USING (
-    renter_id IN (
-      SELECT id FROM renters
-      WHERE external_user_id = current_external_user_id()
-    )
-  );
+### `review_cycles` — one row per cadence run
 
-CREATE POLICY maint_req_renter_portal_insert ON maintenance_requests FOR INSERT
-  WITH CHECK (
-    renter_id IN (
-      SELECT id FROM renters
-      WHERE external_user_id = current_external_user_id()
-    )
-    AND submitted_via = 'renter-portal'
-  );
+```
+[STANDARD COLUMNS]
+cadence_id         uuid NOT NULL REFERENCES review_cadences(id) ON DELETE CASCADE
+cycle_start        timestamptz NOT NULL  -- when this review started
+cycle_end          timestamptz           -- when concluded (null while in-progress)
+window_start       timestamptz NOT NULL  -- start of the input time-window covered
+window_end         timestamptz NOT NULL  -- end of the input time-window covered
+agenda_notes       text                  -- what the facilitator queued up
+outcomes_summary   text                  -- post-cycle summary
+items_reviewed     int NOT NULL DEFAULT 0
+items_promoted     int NOT NULL DEFAULT 0
+items_deferred     int NOT NULL DEFAULT 0
+items_declined     int NOT NULL DEFAULT 0
+status             text NOT NULL DEFAULT 'pending'
+                     CHECK (status IN
+                       ('pending','in-progress','completed','skipped','cancelled'))
 ```
 
-Same pattern repeats for each external-user type × domain table combination. Per `ECOSYSTEM-PARTICIPANTS.md`, the permissions array on `external_users.permissions` is the user-facing toggle; the RLS policies are the database-level enforcement of those toggles.
+### `cycle_items` — the rows considered during a cycle, with disposition
 
-### The internal-notes-never-leak rule
+Polymorphic linker (the linked item can be any of the kinds in the parent cadence's `input_kinds`). Carries both the system-computed `priority_score` and the human `user_priority_override` — the system ranks, the user decides.
 
-The `notes` column on every external-user-accessible table is internal-only. Two enforcement mechanisms:
-
-1. **Application layer:** the React app never sends `notes` to the external-user portal.
-2. **Database layer:** column-level grants. The external-portal Postgres role (a separate role from the internal authenticated role) does NOT have SELECT permission on the `notes` column. Even if the application were buggy and tried to SELECT `notes`, Postgres would reject.
-
-```sql
--- Example: revoke notes from external portal role on renters
-REVOKE SELECT (notes) ON renters FROM external_portal_role;
 ```
+[STANDARD COLUMNS]
+cycle_id             uuid NOT NULL REFERENCES review_cycles(id) ON DELETE CASCADE
+item_kind            text NOT NULL CHECK (item_kind IN
+                       ('feedback','incident','change_request','project',
+                        'maintenance_request','inquiry','prayer_request','interaction'))
+item_id              uuid NOT NULL  -- FK enforced at app layer due to polymorphism
 
-This is the strictest guarantee in the schema after the Legal encryption posture.
-
----
-
-## 14. RLS pattern catalog
-
-For brevity, individual tables in Sections 6–13 referenced "standard tenant-scoped RLS." Here are the four canonical patterns, instantiated once and reused.
-
-### Pattern A — tenant-member-scoped (default for v2 domain tables)
-
-```sql
-ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY <table>_member_read ON <table> FOR SELECT
-  USING (user_in_tenant(tenant_id));
-
-CREATE POLICY <table>_member_insert ON <table> FOR INSERT
-  WITH CHECK (user_in_tenant(tenant_id) AND created_by = auth.uid());
-
-CREATE POLICY <table>_member_update ON <table> FOR UPDATE
-  USING (user_in_tenant(tenant_id))
-  WITH CHECK (user_in_tenant(tenant_id));
-
-CREATE POLICY <table>_owner_delete ON <table> FOR DELETE
-  USING (user_tenant_role(tenant_id) = 'owner');
-```
-
-Applied to: rentals, leases, renters, rent_payments, maintenance_requests, inquiries, clinicians, intake_handoffs, clinician_assignments, contractors_1099, scopes, invoices, time_logs, engagements, deliverables, sessions, parishioners, prayer_requests, ministries, ministry_signups, donor_giving, volunteer_hours, incidents, tax_calendar, recurring_obligations, inflows, subscriptions, events, checkout_intents, tenant_domains, external_users, interactions.
-
-### Pattern B — scope-modified (role_scopes narrows the role)
-
-```sql
-CREATE POLICY <table>_scope_read ON <table> FOR SELECT
-  USING (
-    user_in_tenant(tenant_id)
-    AND (
-      user_tenant_role(tenant_id) = 'owner'
-      OR NOT EXISTS (
-        SELECT 1 FROM role_scopes rs
-        JOIN tenant_members tm ON tm.id = rs.tenant_member_id
-        WHERE tm.user_id = auth.uid()
-          AND tm.tenant_id = <table>.tenant_id
-          AND rs.scope_kind = 'entity'
-          AND rs.scope_value <> <table>.entity_id::text
-      )
-    )
-  );
-```
-
-Applied to: domain tables where a member's scope is narrowed by entity (e.g., a property manager scoped to one rental).
-
-### Pattern C — strictly-private (per-user, even within tenant)
-
-```sql
-CREATE POLICY <table>_self_read ON <table> FOR SELECT
-  USING (user_id = auth.uid());
-
-CREATE POLICY <table>_self_insert ON <table> FOR INSERT
-  WITH CHECK (user_id = auth.uid() AND user_in_tenant(tenant_id));
-```
-
-Applied to: confessions (v1), user_tenant_settings (v1). Extended in v2 to: per-user-private domain rows where applicable.
-
-### Pattern D — external-user portal
-
-```sql
-CREATE POLICY <table>_external_read ON <table> FOR SELECT
-  USING (<linked-entity-id> IN (
-    SELECT id FROM <linked-table>
-    WHERE external_user_id = current_external_user_id()
-  ));
-```
-
-Applied to: every domain table that's exposed in an external-user portal (Section 13).
-
----
-
-## 15. Migration path — v1 → v2 in additive slices
-
-The v2 schema does NOT ship as one monolithic SQL file. It ships as a series of additive migrations, each independently applicable. The sequence:
-
-| File | Contents | Depends on | Estimated work |
-|---|---|---|---|
-| `schema-v2.1-infra.sql` | tenant_domains, role_scopes, audit_log, entity_links, external_users, interactions, external_invite_tokens. Helper functions. ALTER TYPE on tenant_type widening. ALTER on tenant_members.role widening to add 'specialist'. ALTER on entities to add domain + parent_entity_id columns. Universal trigger functions. | v1 + v1.1 | 1 session |
-| `schema-v2.2-rentals.sql` | rentals, leases, renters, rent_payments, maintenance_requests. RLS policies. Indexes. | v2.1 | 1 session |
-| `schema-v2.3-therapy.sql` | inquiries, clinicians, intake_handoffs, clinician_assignments. RLS. Indexes. | v2.1 | 1 session |
-| `schema-v2.4-contractor.sql` | contractors_1099, scopes, invoices, time_logs. RLS. Indexes. | v2.1 | 1 session |
-| `schema-v2.5-mentor.sql` | engagements, deliverables, sessions. RLS. Indexes. | v2.1, v2.4 (invoices) | 0.5 session |
-| `schema-v2.6-legal.sql` | legal_matters + 6 sub-tables. Strict RLS. Encryption guidance. | v2.1 | 1.5 sessions (encryption posture is real work) |
-| `schema-v2.7-church.sql` | parishioners, prayer_requests, ministries, ministry_signups, donor_giving, volunteer_hours. RLS. Indexes. | v2.1 | 1 session |
-| `schema-v2.8-ops.sql` | incidents, tax_calendar, recurring_obligations, inflows, subscriptions, events, checkout_intents. RLS. Indexes. | v2.1 | 1 session |
-| `schema-v2.9-portal-rls.sql` | All external-user RLS policies (Pattern D) for every table exposed to a portal. | All prior v2 | 0.5 session |
-
-Total: ~8 sessions of pure schema work. None of these depend on UI work; all can ship without any React changes. Each file is paste-into-Supabase-SQL-Editor + verify.
-
-After all v2 files applied, the schema supports every role surface SKOS prebuilds. Module UI work then becomes "React against existing tables," in any order.
-
-### Ordering recommendation
-
-If Darrell wants to prioritize for Christina-and-Darrell value during vacation:
-1. **v2.1 infra** (always first — everything depends on it).
-2. **v2.2 rentals** (Poe Properties immediately benefits — 11 doors).
-3. **v2.3 therapy** (TLC intake pipeline — Christina benefits).
-4. **v2.4 contractor + v2.8 ops** (incidents + scopes + invoices for property management cross-cuts).
-5. **v2.7 church** (COLG operations).
-6. **v2.5 mentor** (lowest urgency).
-7. **v2.6 legal** (highest engineering effort; can ship after vacation when there's time for the encryption work).
-8. **v2.9 portal RLS** (last — depends on all prior tables existing).
-
----
-
-## 16. Open questions for Darrell's judgment
-
-These are the decisions that need human judgment, not engineering. They are the inputs the schema cannot decide on its own.
-
-**Q1 — TLC as separate tenant or under Poe Family tenant?**
-Recommendation in §3 is separate tenant for HIPAA-adjacent isolation. Confirm. If TLC is a separate tenant, Christina is Owner there; Darrell can be a member but does not have automatic access to TLC data. Acceptable?
-
-**Q2 — Poe Properties as separate tenant or sub-entity under Poe Family?**
-Audit treats Poe Properties as an `entity` under the family tenant. v2 supports either. Sub-entity is simpler (one tenant, all data co-scoped); separate tenant is cleaner (when the family steps back from PPM operations someday, the data is already isolated). Which is the right shape NOW?
-
-**Q3 — Hash-chained audit log: Phase 3 only, or earlier?**
-`IDENTITY-ROLES-AUDIT.md` says Phase 3+ for hash-chained tamper detection. Family / single-device instances skip it. But TLC and Legal might warrant earlier hash-chaining. Should v2 ship hash-chaining ready (columns + verify function) but disabled by default, OR defer entirely to Phase 3?
-
-**Q4 — Encrypted-at-rest scope: Legal only, or extend to Counseling-equivalent surfaces?**
-The v1 `confessions` table stores plaintext (audience-scoped RLS, but plaintext on disk). Should v2 extend client-side encryption to confessions as well? The audience-scoped RLS already prevents leakage between tenant members; the encryption guards against backup-restore exposure. Adds engineering work but tightens the bar. Worth it?
-
-**Q5 — Renters portal default ON or OFF for the rentals domain?**
-Per `ECOSYSTEM-PARTICIPANTS.md` defaults: external portals ship OFF for `family` instance type, ON for `property-management`. The Poe Family tenant with rentals enabled is ambiguous — primary type is family, but rentals domain is enabled. Recommendation: default OFF until Darrell explicitly enables it per tenant_domain settings.
-
-**Q6 — Donor anonymity in church domain?**
-The audit's external participants section names Donor as a first-class type. But many gifts at COLG are anonymous (cash in the plate). Schema supports both: `donor_giving.parishioner_id` is nullable. Application-layer decision: does the donor portal exist at all for COLG, or just for larger churches/nonprofits? Christina + Pastor input needed.
-
-**Q7 — Mentor domain — does Darrell actually want to operate as a mentor inside SKOS?**
-The mentor tables are designed but the audit listed mentor as ~10% coverage. Is this a real operational need for Darrell in 2026, or is it forward-declared because the OS pattern demands it? If forward-declared only, defer v2.5 indefinitely.
-
-**Q8 — Legal domain MVP scope — full 7 tables, or matter + journal only?**
-The full 7-table Legal design is comprehensive but engineering-heavy. An MVP of `legal_matters` + `matter_journal` (with the encryption posture) handles the dominant use case. Defer parties / counsel / key_dates / documents / financial_links / conflict_checks to a v3 cut? Or land them all in v2.6?
-
-**Q9 — Migration path during vacation: hold all v2 work until return, or land v2.1 infra during vacation?**
-The June 1–vacation window is for family + church testing on v1. v2 work is post-vacation. But v2.1 infra (the cross-cutting tables) is purely additive — landing it during vacation enables the audit log etc. without breaking v1. Land it? Or hold?
-
-**Q10 — Naming: `renters` vs `tenants_renters`?**
-The audit spec used `tenants_renters` to disambiguate from the `tenants` SaaS table. v2 uses `renters` for brevity. Confirm.
-
-**Q11 — Where should this draft live in the docs tree?**
-Written to `docs/00-foundations/SCHEMA-V2-MULTI-DOMAIN-DRAFT.md` (Dispatch instruction said `docs/foundations/` — interpreted as the foundations folder). Should it stay here, or move to `_future/` to match SUPABASE-SCHEMA-LAYER-2.md's location? Cosmetic but worth deciding before the file lands permanently.
-
----
-
-## 17. Appendix — table inventory
-
-Alphabetical list of every table in the v2 schema, grouped by source file. Total: **34 new tables** in v2 (on top of v1's 12).
-
-**`schema-v2.1-infra.sql`** (7 new tables)
-- audit_log
-- entity_links
-- external_invite_tokens
-- external_users
-- interactions
-- role_scopes
-- tenant_domains
-
-**`schema-v2.2-rentals.sql`** (5 new tables)
-- leases
-- maintenance_requests
-- renters
-- rent_payments
-- rentals
-
-**`schema-v2.3-therapy.sql`** (4 new tables)
-- clinician_assignments
-- clinicians
-- inquiries
-- intake_handoffs
-
-**`schema-v2.4-contractor.sql`** (4 new tables)
-- contractors_1099
-- invoices
-- scopes
-- time_logs
-
-**`schema-v2.5-mentor.sql`** (3 new tables)
-- deliverables
-- engagements
-- sessions
-
-**`schema-v2.6-legal.sql`** (7 new tables)
-- conflict_checks
-- legal_matters
-- matter_counsel
-- matter_documents
-- matter_financial_links
-- matter_journal
-- matter_key_dates
-- matter_parties
-
-**`schema-v2.7-church.sql`** (6 new tables)
-- donor_giving
-- ministries
-- ministry_signups
-- parishioners
-- prayer_requests
-- volunteer_hours
-
-**`schema-v2.8-ops.sql`** (7 new tables)
-- checkout_intents
-- events
-- incidents
-- inflows
-- recurring_obligations
-- subscriptions
-- tax_calendar
-
-**`schema-v2.9-portal-rls.sql`** (0 new tables — policies only)
-
-(Counts above are 34 new domain tables across 8 files. The legal file has 7 sub-tables plus `legal_matters` itself for 8; the count includes both. Apologies if I miscounted by one — verify when SQL is written.)
-
----
-
-## End of draft
-
-This document is the **target shape**. It is not committed code, not applied schema, not a PR. It is the design Darrell can review from phone or in a fresh session, and the design the next sessions execute against.
-
-Per the foundations: open-source, portable, self-host-ready (Synology DS1621xs target). Per the audit: forward-compatible — every change is additive, no v1 data is migrated or rewritten. Per the cross-domain bar from `EXPERIENTIAL-KNOWLEDGE-MARKETPLACE.md`: every role surface SKOS prebuilds — landlord, therapist, contractor, business mentor, lawyer, church, family — has its operational data shape declared here. Per `MODULAR-EXTENSIBILITY.md`: each domain ships as its own file; disabling a domain is removing one SQL file from the migration runlist; nothing else breaks.
-
-The next decision is Darrell's. The schema is ready when he is.
-
-— Dispatch, 2026-05-24, Option C selected
+-- Auto-computed signal: the system's recommended priority based on
+-- frequency, severity, recency, user_count_affected, cluster_size, etc.
+priority_score       numeric(6,2)   -- 0.00–100.00, higher = more urgent
+priority_factors     jsonb NOT NULL DEFAULT '{}'
+                       -- transparent breakdown:
+                       -- {"frequency_30d": 12, "users_affected": 4,
+                       --  "severity_weight": 8, "recency_weight": 7,
+                       --  "cluster_size": 3, "computed_at": "..."}
+cluster_id           uuid  -- when multi
