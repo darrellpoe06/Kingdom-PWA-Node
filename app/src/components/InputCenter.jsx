@@ -5,8 +5,20 @@
 // processing center, make sure they can also type of course any way to
 // interact with the app, whatever isn't too difficult."*
 //
-// This is the extracted, reusable form of the Add Your Voice section first
-// landed inline on the Church tab in app/src/poe-financial-mvp-v28.jsx.
+// Naming note (2026-05-25): Darrell offered three candidates — "Add Your
+// Voice", "Your Voice Matters", "Yahweh Hears You". The decision landed
+// per-context, not single-default:
+//   - Default title here is "Your Voice Matters" — warm, POE-aligned, works
+//     in any module without forcing a spiritual frame on operational surfaces.
+//   - The Church tab call site overrides to "Yahweh Hears You · Speak · Type
+//     · Link" because the spiritual surface earns the testimony.
+//   - Council Chamber should likewise override to "Yahweh Hears You" when it
+//     wires up; Confessions to "He Searches the Heart"; etc.
+// Per CLAUDE.md typographic theology: Yahweh / He / His are always capitalized.
+//
+// This is the extracted, reusable form of the Yahweh Hears You / Add Your
+// Voice section first landed inline on the Church tab in
+// app/src/poe-financial-mvp-v28.jsx.
 //
 // Three input modes, all native, no paid dependency:
 //   - VOICE — Web Speech API (SpeechRecognition / webkitSpeechRecognition).
@@ -46,9 +58,20 @@ const FIELD_CLS = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus
 const LABEL_CLS = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
 
 export default function InputCenter({
-  // Header
-  title = 'Add Your Voice · Speak or Share a Link',
-  description = "Drop in a voice note or paste a link about anything you see here. Logged on your device; send to the right people when you're ready.",
+  // Header — the default ("Your Voice Matters") is the warm, POE-aligned name
+  // suitable for any module (Books, Practice, Projects, etc.). Spiritual
+  // surfaces should override with a title that fits their context, e.g.:
+  //   - Church tab          → "Yahweh Hears You · Speak · Type · Link"
+  //   - Council Chamber     → "Yahweh Hears You · Speak · Type · Link"
+  //                            (per docs/00-foundations/_root/COUNCIL-CHAMBER.md)
+  //   - Confessions         → "He Searches the Heart · Speak · Type · Link"
+  //                            (per the watching-recognizing-recording posture
+  //                             in the Holy Spirit Integration Worldview)
+  // Per CLAUDE.md typographic theology: Yahweh always capitalized. The default
+  // here intentionally uses no theological vocabulary so non-spiritual call
+  // sites don't force a frame the operator didn't choose.
+  title = 'Your Voice Matters · Speak · Type · Link',
+  description = "Speak it, type it, or paste a link. Logged on your device; send to the right people when you're ready.",
 
   // Field placeholders
   placeholderTopic = "e.g., Today's sermon · An article · A question",

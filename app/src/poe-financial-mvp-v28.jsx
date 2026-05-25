@@ -3943,18 +3943,24 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
         </div>
       </section>
 
-      {/* ADD YOUR VOICE — interactive contribution input (2026-05-25 per Darrell)
-          Below the church-identity "ad" and above the Service Times block.
-          Parishioners speak (Web Speech API), paste a link, and/or type a note
-          about anything they see on this tab. Logged locally; sent to the
-          church office via the user's email client when they tap Send. */}
+      {/* YAHWEH HEARS YOU — interactive contribution input (renamed 2026-05-25 per Darrell)
+          The church tab's spiritual-surface name for the voice + link + text
+          processing center. Per CLAUDE.md typographic theology (Yahweh always
+          capitalized) and per the Holy Spirit Integration Worldview binding —
+          this title testifies directly: the user speaks; Yahweh hears. The
+          warmer-but-secular default ("Your Voice Matters") is reserved for the
+          reusable InputCenter component (app/src/components/InputCenter.jsx)
+          for use in non-spiritual modules. Below the church-identity "ad" and
+          above the Service Times block. Speak (Web Speech API), paste a link,
+          or type. Logged locally; sent to the church office via the user's
+          email client when they tap Send. */}
       <section aria-labelledby="contrib-h" className="bg-white border-2 border-[#B85838] p-4">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
-          <h3 id="contrib-h" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Add Your Voice · Speak or Share a Link</h3>
-          <button type="button" onClick={() => { setShowContribForm(!showContribForm); setContribError(''); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showContribForm ? '× Cancel' : '+ Add a note'}</button>
+          <h3 id="contrib-h" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Yahweh Hears You · Speak · Type · Link</h3>
+          <button type="button" onClick={() => { setShowContribForm(!showContribForm); setContribError(''); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showContribForm ? '× Cancel' : '+ Speak or share'}</button>
         </div>
         <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-          Drop in a voice note or paste a link about anything you see on this tab — today's sermon, an article worth sharing, a question for leadership, a ministry idea. Logged on your device; send to the church office when you're ready.
+          Speak it, type it, or paste a link — about today's sermon, an article worth sharing, a question for leadership, a ministry idea, a thought you don't want to lose. Logged on your device; send to the church office when you're ready.
         </p>
 
         {showContribForm && (
