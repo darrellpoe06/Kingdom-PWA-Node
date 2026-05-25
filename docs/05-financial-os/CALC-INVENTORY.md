@@ -465,6 +465,7 @@ Pass 1 is **substantively complete** for prioritization purposes. Pass 2 (unit t
 | **FLAG-10** | **CRITICAL** | **C8** | **Incidents treated as perpetual monthly drain — likely real bug; understates attack capacity** |
 | **FLAG-11** | **CRITICAL** | **C11** | **Practice math contradicts its own disclosure — 4× understatement of expected annual revenue** |
 | FLAG-12 | Medium | C12 | Cart sums `subscriptions[].monthly` directly, ignoring `billingCycle` — annual subs entered at annual cost would overcount 12× |
+| FLAG-13 | Low | C1 | `projectDebt` with empty input produces a 1-month projection instead of an empty one — harmless (no NaN, no wrong numbers) but technically loose. Discovered by Pass 2 test. |
 
 Pass 2 (unit tests) will quantify each flag's impact on Darrell's actual numbers. Pass 3 (xlsx reconciliation) will surface any flags this pass missed.
 
