@@ -1,10 +1,21 @@
 # Supabase Schema v2 — Multi-Domain, Forward-Declared (DRAFT)
 
-> **Status:** DRAFT, 2026-05-24 (revised same-day after Darrell's terminology + scale + dogfooding clarifications). Written under Dispatch during Darrell at church, after Darrell selected Option C from the 2026-05-24 schema audit. Not yet executed; not yet pushed. This document is the **target shape** of the data layer for SKOS / PoeTech across every role surface the OS prebuilds — landlord, therapist, contractor, business mentor, lawyer, church, family — plus the cross-cutting infrastructure (audit log, role scopes, external participants, the Continual Improvement Loop that turns continuous feedback into ranked candidate work) that makes those role surfaces real and self-improving.
+> **Status:** DRAFT, last revised 2026-05-25 (Dispatch session under Darrell's at-church standing order: "I want this app done in the next few days. I leave in 6 and I want to use it before I go and on vacation. So let's work all night if we have to."). Built originally 2026-05-24 after Darrell selected Option C from that day's schema audit; revised 2026-05-25 to bake in Q1–Q9 lock-in answers plus the trust-ownership architecture plus the **People Over Everything (POE) binding** (see §2 — "People Over Everything POE in PoeTech" governs vocabulary, disposition language, notification cadence, and the user-has-last-say pattern wherever a tradeoff arises). This document is the **target shape** of the data layer for SKOS / PoeTech across every role surface the OS prebuilds — landlord, therapist, contractor, business mentor, lawyer, church, family — plus the cross-cutting infrastructure (audit log, role scopes, external participants, the Continual Improvement Loop that turns continuous feedback into ranked candidate work) that makes those role surfaces real and self-improving.
 >
 > **2026-05-24 mid-session revisions baked in:** (1) v1 `tenants` → `instances` rename ratified by Darrell to remove the SaaS-tenant vs real-estate-renter collision (see §4.0); (2) `instance_members.title` added as the human-readable-roles field separate from CRUD-level `role` (one person carries many titles across instances); (3) Section 12.5 added for the Continual Improvement Loop — review_cadences (daily/hourly/weekly/monthly per instance choice), review_cycles, cycle_items (system-ranked, user-overridable), change_requests (ITIL), cross_instance_signals (PoeTech-central dogfood view) — so every instance turns feedback into prioritized candidate projects / incidents / changes on whatever cadence scales for them.
 >
-> **Path forward (per Darrell's selection):** v1 + v1.1 stay as-is. v2 is purely additive — new tables, new policies, enum widenings, jsonb columns — applied incrementally over the weeks after vacation. The June 1 family + church launch ships against v1 surfaces. Every domain table below is dormant until its module's UI lands, but the data layer is **already shaped** so future module work is UI-against-existing-tables, not "design the schema first, then build."
+> **2026-05-25 revisions baked in (this session, locked in by Darrell):**
+> - **Trust ownership architecture (§4.0.5).** `instances.instance_type` widens to include `'trust'` and `'holding-company'`. The Poe Trust is the root instance; TLC, Poe Properties, and PoeTech each carry `parent_instance_id = poe-trust`. The Poe Family is its own instance whose members hold trustee / beneficiary roles via `instance_members.title`. A new `legal_structure_notes` jsonb column on `instances` captures the legal/operational notes (entity number, registered agent, trustees, beneficiaries — non-privileged metadata). The non-liability posture is enforced at the data layer via an explicit `disclaimers_acknowledgments` table (§4.0.6) — every consequential surface (lease generation, legal-template render, financial export) requires a fresh ack row from the operator acknowledging the system is informational/operational, not legal/financial advice.
+> - **Subscription tier model (§4.6).** New `instance_subscriptions` table with `tier` enum (`foundation`, `poetech-plus`, `family`, `premium`, `business`, `landlord`, `enterprise`) + `tier_limits` jsonb. `instance_domains.domain` carries a `requires_tier` check. Family tier covers homes only (constraint: a Family-tier instance's rentals can only have internal/family renters — no third-party renters). Business tier is required for rental properties with non-family renters. Landlord tier $99/mo up to 10 doors; Premium for over 10 (enforced by trigger on `rentals`). Higher-level business + 1099 projects gate to Business instance; family-house projects gate to Family instance.
+> - **Renter families (§6.X).** `renters` extended with `household_id`; new `renter_household_members` table; each household member can have an `external_users` portal row with permissions. Renters AND their family members can submit change_requests / incidents / projects / maintenance requests via being represented as `external_users`.
+> - **Hash-chained audit log: stub in v2.1-infra (§4.4).** `prev_hash` + `hash` columns ship on `audit_log` now; `audit_verify_chain()` is a ~20-line stub in v2.1 (cheap insurance). Default-disabled (writes leave hash columns NULL) until Phase 3; verify function returns a clean walk over chained rows when populated.
+> - **Confessions encryption (§10.5).** Extend client-side AES-GCM 256 + PBKDF2 to the v1 `confessions` table: add `context_ciphertext` + `context_iv`, `prayer_request_ciphertext` + `prayer_request_iv`, `scripture_anchor_ciphertext` + `scripture_anchor_iv`. Same posture as Legal; PIN loss = data loss; intentional.
+> - **COLG giving reconciliation (§11.5).** Donor schema supports both anonymous AND identified gifts. New `service_offerings` table (one row per service: cash count + check count + check numbers + online total). New `giving_reconciliations` table linking named-giving claims to anonymous `service_offerings` rows so the annual tax statement is accurate without forcing every giver to be named. Darrell's accuracy bar: "making sure what was given is what was given — cash, check, and online."
+> - **Mentor domain forward-declared only (§9).** `schema-v2.5-mentor.sql` is on the doc but **NOT** on the migration runlist this cycle. The tables stay in the draft for future activation.
+> - **Legal: full 7-table cut (§10).** All seven Legal tables ship together (legal_matters, matter_parties, matter_counsel, matter_key_dates, matter_documents, matter_journal, matter_financial_links, conflict_checks) per Darrell's Q8 lock-in.
+> - **Timeline: v2.1-infra THIS WEEK before vacation (§15).** Aggressive ramp; everything else queued behind it.
+>
+> **Path forward (per Darrell's selection):** v1 + v1.1 stay as-is for the active app. v2 is purely additive — new tables, new policies, enum widenings, jsonb columns. v2.1-infra lands before vacation; subsequent v2.x files follow as the app surfaces are ready. The June 1 family + church launch ships against v1 surfaces. Every domain table below is dormant until its module's UI lands, but the data layer is **already shaped** so future module work is UI-against-existing-tables, not "design the schema first, then build." The rename application (tenant_id → instance_id in Supabase + React) is a SEPARATE downstream task chained behind the v1 corrupted-files restoration that is in flight concurrently with this draft; this document and the v2.x SQL files are the inputs to that downstream task, not the task itself.
 >
 > **Architectural binding:** open-source / portable Postgres (self-host target: Supabase on Synology DS1621xs per `_future/SYNOLOGY-DEPLOY-PLAN.md`). No vendor-specific SQL. No managed-service-only features. Every table runs as comfortably on bare Postgres as on Supabase. Vendor independence at runtime per `MODULAR-EXTENSIBILITY.md`.
 
@@ -54,6 +65,8 @@ What v2 does NOT do:
 ## 2. Architectural principles (binding from foundations)
 
 These are not new. They are the rules already binding from the foundation docs. v2 inherits all of them.
+
+**POE binding (added 2026-05-25, stated explicitly by Darrell, governs everything below):** **People Over Everything POE in PoeTech.** Every architectural tradeoff in this schema and the SQL it generates resolves in favor of the person, not the system: the human reads ranked lists but holds the last word on every disposition (`cycle_items.user_priority_override`, §12.5); the system never auto-promotes past `'proposed'` and never auto-acknowledges on someone's behalf; disposition vocabulary is non-punitive ("deferred", "rolled forward", never "failed"); notifications respect quiet hours and per-user opt-out (§12.6); external participants can always read their own data, request export, and request deletion (§13); the schema captures information about people only with their consent path documented in `external_users.invite_status` + the disclaimers ack pattern (§4.0.6). The acronym is binding: when you read POE in any column comment, policy, or function name, it is shorthand for this rule — *people over everything*.
 
 **From `MODULAR-EXTENSIBILITY.md` —** Every module is a file. Every table family in v2 ships as its own `schema-v2.{n}-{domain}.sql` file. A landlord-only customer can have only the landlord tables; a therapy-only customer can have only the therapy tables. Disabling a domain is dropping a SQL file from the migration runlist; no other table breaks.
 
@@ -301,21 +314,132 @@ This separates the database's small, narrow `role` enum (Owner / Editor / Contri
 
 ---
 
+### 4.0.5. Trust ownership architecture (locked in 2026-05-25 — answers Q1)
+
+Darrell's lock-in: TLC, Poe Properties, and PoeTech are not three siblings under the Poe Family — they are three operating instances **owned by the Poe Trust**, which is itself a root instance. The Poe Family is a separate instance whose members hold trustee / beneficiary roles via `instance_members.title`. This shape isolates the operating businesses from the family at the instance boundary, supports the non-liability posture (the trust owns the asset; the family member operates the asset; the system is operational tooling and not legal/financial advice), and lets each operating instance scale its own membership, RLS, audit log, and subscription tier independently.
+
+**Schema deltas (executed inside `schema-v2.1-infra.sql`):**
+
+```sql
+-- Widen instance_type to include trust + holding-company
+ALTER TABLE instances DROP CONSTRAINT IF EXISTS instances_instance_type_check;
+ALTER TABLE instances ADD CONSTRAINT instances_instance_type_check CHECK (
+  instance_type IN (
+    'family','church','therapy-practice','contractor','nonprofit','business',
+    'landlord','law-practice','mentor','trades','media-org',
+    'trust','holding-company'              -- new in v2.1
+  )
+);
+
+-- Parent instance — supports trust → operating-company ownership graph
+ALTER TABLE instances ADD COLUMN parent_instance_id uuid REFERENCES instances(id);
+
+-- Legal / operational metadata (non-privileged) for trust + operating companies.
+-- This is NOT a substitute for the Legal domain's encrypted matters. This is the
+-- public-record administrative shape (entity number, registered agent, beneficiary
+-- names where the operator chooses to record them) needed for routine operations.
+ALTER TABLE instances ADD COLUMN legal_structure_notes jsonb NOT NULL DEFAULT '{}';
+-- example:
+-- {
+--   "entity_kind": "revocable-living-trust",
+--   "state_of_formation": "IL",
+--   "ein_last_4": "1234",
+--   "registered_agent": "Darrell Poe",
+--   "trustees": ["Darrell Poe","Christina Poe"],
+--   "beneficiaries": ["...","..."],
+--   "successor_trustee": "...",
+--   "operating_agreement_uri": null
+-- }
+```
+
+**The instance graph as Darrell ratified it:**
+
+```
+poe-trust (instance_type = 'trust', parent_instance_id = null)
+  ├── poe-tlc          (instance_type = 'therapy-practice', parent_instance_id = poe-trust)
+  ├── poe-properties   (instance_type = 'landlord',         parent_instance_id = poe-trust)
+  └── poe-tech         (instance_type = 'business',         parent_instance_id = poe-trust)
+
+poe-family (instance_type = 'family', parent_instance_id = null)
+  -- members hold trustee / beneficiary titles for the trust via instance_members.title
+  -- and operator titles for the three operating instances via membership in each
+```
+
+**RLS pattern on `instances`:** members of an instance can read their own instance plus its `parent_instance_id` chain (trustees see "their" trust); members of a parent (the trust) can read the children's `legal_structure_notes` but NOT the operating data (that requires explicit membership in the child instance). The boundary is RLS-enforced; trustee-as-aggregate-reader does not auto-leak into operator-level access.
+
+```sql
+-- Drop-in addition to the v2.1-infra policy block
+CREATE POLICY instances_parent_chain_read ON instances FOR SELECT
+  USING (
+    user_in_instance(id)                                              -- own instance
+    OR user_in_instance(parent_instance_id)                           -- parent (trust)
+    OR id IN (
+      SELECT parent_instance_id FROM instances WHERE user_in_instance(id)  -- child
+    )
+  );
+```
+
+### 4.0.6. Disclaimers acknowledgments (locked in 2026-05-25 — answers Q1 follow-on)
+
+Per the POE binding (§2) and Darrell's non-liability posture: every consequential output the system produces (lease render, scope-of-work render, legal-notice render, tax export, donor tax statement, generated 1099 export) carries an explicit disclaimer that the system is operational tooling, not legal / financial / tax advice. Acknowledgment of that disclaimer is recorded in the data layer so the audit log carries proof that the operator was informed.
+
+```sql
+CREATE TABLE disclaimers_acknowledgments (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id     uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+  acknowledged_by uuid NOT NULL REFERENCES auth.users(id),
+  disclaimer_kind text NOT NULL CHECK (disclaimer_kind IN (
+    'general-not-legal-advice',
+    'general-not-financial-advice',
+    'general-not-tax-advice',
+    'lease-template-current-law',
+    'scope-of-work-binding-contract',
+    'tax-statement-self-verify',
+    'donor-tax-statement',
+    '1099-export-self-verify',
+    'data-export-personal-responsibility',
+    'legal-template-jurisdiction-stale'
+  )),
+  acknowledged_at timestamptz NOT NULL DEFAULT now(),
+  disclaimer_text text NOT NULL,    -- snapshot of the exact text shown at ack time
+  disclaimer_hash text NOT NULL,    -- sha-256 of disclaimer_text for fast lookup
+  context_kind    text,             -- 'lease', 'scope', 'tax-export', ...
+  context_id      uuid,             -- which row of that kind triggered the ack
+  scope           text NOT NULL DEFAULT 'single-use'
+                  CHECK (scope IN ('single-use','session','30-days','until-revoked')),
+  expires_at      timestamptz,      -- null for 'until-revoked'
+  revoked_at      timestamptz
+);
+
+CREATE INDEX disclaimers_ack_instance_user_kind_idx
+  ON disclaimers_acknowledgments (instance_id, acknowledged_by, disclaimer_kind);
+CREATE INDEX disclaimers_ack_context_idx
+  ON disclaimers_acknowledgments (context_kind, context_id);
+```
+
+Application-layer rule: any code path that renders a consequential output checks for a non-revoked, non-expired ack of the appropriate `disclaimer_kind` for the current operator on the current instance. Missing ack → modal prompt with the disclaimer text → insert ack row → proceed. The ack is content-hashed so updates to the disclaimer text invalidate prior acks (the operator sees the new text).
+
+---
+
 ### `instance_domains` — which domain modules are enabled per instance
 
 ```
 id            uuid PK
-instance_id     uuid NOT NULL → instances(id) ON DELETE CASCADE
+instance_id   uuid NOT NULL → instances(id) ON DELETE CASCADE
 domain        text NOT NULL CHECK (domain IN
                 ('family','church','rentals','therapy','contractor',
                  'legal','mentor','nonprofit','media','tech-business','trades'))
 enabled_at    timestamptz NOT NULL DEFAULT now()
 enabled_by    uuid NOT NULL → auth.users(id)
 settings      jsonb NOT NULL DEFAULT '{}'
+requires_tier text                    -- declared tier minimum for enabling this domain
+                                      -- e.g. 'business' for rentals with non-family renters,
+                                      -- 'landlord' for >10 doors, etc. See §4.6 for the tier
+                                      -- enum + enforcement helpers.
 UNIQUE (instance_id, domain)
 ```
 
-RLS: instance members read; only owners and admins insert/update/delete.
+RLS: instance members read; only owners and admins insert/update/delete. INSERT trigger checks the instance's active `instance_subscriptions.tier` against `requires_tier` and refuses if the tier doesn't cover the domain (§4.6 carries the enforcement details).
 
 ### `role_scopes` — per-member scope modifiers (narrows the global role)
 
@@ -491,6 +615,121 @@ RLS: no direct read; only the auth helper functions (SECURITY DEFINER) touch thi
 
 ---
 
+### 4.6. `instance_subscriptions` — tier-gated capabilities (locked in 2026-05-25, answers Q5)
+
+Darrell ratified the tier model on 2026-05-25 to make the rental-renter capability dependence explicit at the data layer. Family-tier instances cover homes; Business-tier or Landlord-tier instances cover income-producing rentals; tier mismatch refuses the write at INSERT time, with a clear error message and a pointer at the upgrade flow.
+
+```sql
+CREATE TABLE instance_subscriptions (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id     uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+  tier            text NOT NULL CHECK (tier IN (
+    'foundation',     -- free / read-only / single-user
+    'poetech-plus',   -- $9/mo per-seat upgrade on top of foundation
+    'family',         -- $19/mo household tier — homes only, internal renters only
+    'premium',        -- $49/mo solo professional — therapy intake, mentor, legal personal
+    'business',       -- $99/mo small business — rentals with non-family renters allowed
+    'landlord',       -- $99/mo landlord — up to 10 doors
+    'enterprise'      -- $299+ — multi-instance trust + holding-company root
+  )),
+  tier_limits     jsonb NOT NULL DEFAULT '{}',
+  -- example tier_limits payloads:
+  --   family    : {"max_internal_renters": 5, "rental_doors": 1, "external_portals": 0}
+  --   landlord  : {"max_doors": 10, "max_renters": 30, "external_portals": 30}
+  --   business  : {"max_doors": 50, "max_employees": 50, "external_portals": 200}
+  --   enterprise: {"max_doors": null, "max_employees": null, "external_portals": null}
+  status          text NOT NULL DEFAULT 'active'
+                  CHECK (status IN ('trial','active','past-due','cancelled','expired')),
+  current_period_start timestamptz NOT NULL DEFAULT now(),
+  current_period_end   timestamptz,
+  stripe_customer_id     text,
+  stripe_subscription_id text,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  created_by      uuid NOT NULL REFERENCES auth.users(id),
+  updated_at      timestamptz
+);
+
+CREATE INDEX instance_subscriptions_active_idx
+  ON instance_subscriptions (instance_id) WHERE status = 'active';
+```
+
+**Tier enforcement helpers used by domain triggers (`schema-v2.1-infra.sql`):**
+
+```sql
+CREATE OR REPLACE FUNCTION public.instance_active_tier(p_instance uuid)
+RETURNS text
+LANGUAGE sql STABLE
+AS $$
+  SELECT tier FROM instance_subscriptions
+  WHERE instance_id = p_instance AND status = 'active'
+  ORDER BY current_period_start DESC LIMIT 1
+$$;
+
+CREATE OR REPLACE FUNCTION public.tier_rank(p_tier text)
+RETURNS int
+LANGUAGE sql IMMUTABLE
+AS $$
+  SELECT CASE p_tier
+    WHEN 'foundation'  THEN 0
+    WHEN 'poetech-plus' THEN 1
+    WHEN 'family'      THEN 2
+    WHEN 'premium'     THEN 3
+    WHEN 'landlord'    THEN 4
+    WHEN 'business'    THEN 5
+    WHEN 'enterprise'  THEN 6
+    ELSE -1
+  END
+$$;
+
+CREATE OR REPLACE FUNCTION public.instance_meets_tier(p_instance uuid, p_required text)
+RETURNS boolean
+LANGUAGE sql STABLE
+AS $$
+  SELECT tier_rank(instance_active_tier(p_instance)) >= tier_rank(p_required)
+$$;
+```
+
+**Rentals tier-gating trigger (lives in `schema-v2.2-rentals.sql` per the migration split, but the helper above lives here):**
+
+```sql
+CREATE OR REPLACE FUNCTION public.rentals_tier_enforce()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_door_count int;
+  v_tier text;
+BEGIN
+  v_tier := instance_active_tier(NEW.instance_id);
+
+  -- Family-tier instances: homes only, no third-party renters
+  IF v_tier = 'family' AND EXISTS (
+    SELECT 1 FROM leases l
+    JOIN renters r ON r.id = l.renter_id
+    WHERE l.rental_id = NEW.id
+      AND r.external_user_id IS NOT NULL  -- third-party renters have portal access
+  ) THEN
+    RAISE EXCEPTION 'Family tier: rentals cannot have non-family renters. Upgrade to Landlord or Business tier.';
+  END IF;
+
+  -- Door-count enforcement: landlord tier 10-door cap
+  SELECT COUNT(*) INTO v_door_count FROM rentals
+    WHERE instance_id = NEW.instance_id AND status != 'sold';
+  IF v_tier = 'landlord' AND v_door_count > 10 THEN
+    RAISE EXCEPTION 'Landlord tier: maximum 10 active doors. Currently have %; upgrade to Premium or Business.', v_door_count;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+```
+
+**Project gating:** higher-level Business + 1099 projects require Business tier or higher on the instance. Family-house projects (default) work at Family tier. Enforced at the application layer plus a `projects` INSERT trigger that calls `instance_meets_tier(instance_id, 'business')` when the proposed project is one of the higher-level kinds.
+
+RLS on `instance_subscriptions`: owners + admins read + write; members read; cannot delete (use `status='cancelled'`).
+
+---
+
 ## 5. Universal column patterns (lifecycle, links, audit)
 
 Every domain table added in v2 carries the same shape. Repeated here as a single block so the per-domain sections (6–11) can reference "standard columns" without restating.
@@ -593,7 +832,49 @@ notes                  text
 external_user_id       uuid REFERENCES external_users(id)
                             -- when this renter is given portal access, the link to
                             -- their external_user record lives here
+household_id           uuid REFERENCES renters(id)
+                            -- self-FK: a renter's household_id points to the head-of-household's
+                            -- own renter.id; a household head's household_id can be NULL.
+                            -- Used for grouping a couple, a family, or a multi-adult household
+                            -- onto one lease + one set of portal accounts.
+relationships          jsonb NOT NULL DEFAULT '[]'
+                            -- compact list of [{related_renter_id, relationship, since}]
+                            -- e.g. [{"to":"<uuid>","kind":"spouse"}, ...]
+                            -- duplicates the renter_household_members table for read access;
+                            -- renter_household_members is system of record
 ```
+
+### `renter_household_members` — household structure for renters (Q5 lock-in 2026-05-25)
+
+Per Darrell's 2026-05-25 ratification: renters AND their family members can submit change_requests / incidents / projects / maintenance requests via being represented as `external_users`. Each household member gets their own portal row with explicit `permissions` so e.g. a spouse can submit a plumbing request and a teenager can submit a parking-spot complaint but only the lease-signing adult can sign a renewal.
+
+```
+[STANDARD COLUMNS]
+household_id        uuid NOT NULL REFERENCES renters(id) ON DELETE CASCADE
+                       -- the head-of-household renter row
+member_renter_id    uuid REFERENCES renters(id)
+                       -- when this household member is themselves a tracked renter row
+                       -- (typical: lease-signing spouse). Nullable for minors / dependents
+                       -- whose data is captured at household level only.
+display_name        text NOT NULL
+relationship        text CHECK (relationship IN
+                      ('spouse','partner','child','parent','sibling',
+                       'roommate','dependent','guest-long-term','other'))
+date_of_birth       date           -- nullable; captured only if operator chooses to
+contact_email       text
+contact_phone       text
+external_user_id    uuid REFERENCES external_users(id)
+                       -- per-member portal row; permissions live on external_users.permissions
+can_submit_requests boolean NOT NULL DEFAULT true
+                       -- POE binding: head can disable a household member's submission rights;
+                       -- the per-member ack of this is recorded in the disclaimers table.
+is_lease_signer     boolean NOT NULL DEFAULT false
+moved_in_at         date
+moved_out_at        date
+notes               text   -- internal-only; never exposed to portal users
+```
+
+A renter who lives alone has no `renter_household_members` rows — the renter row IS the household. A couple has one `renters` row per lease-signing adult (each with portal access) and zero or more `renter_household_members` rows for non-signing household members (children, long-term guests).
 
 ### `rent_payments` — per-period payment records
 
@@ -1212,6 +1493,32 @@ Plus: Legal matters are excluded from the `entity_links` reconciliation trigger 
 
 **Verdict for legal domain: usable for matter management with the binding confidentiality posture intact.** Coverage ~5% → ~65%. Gap is encrypted-doc-storage UX flow (where the encrypted PDFs actually land on the Synology and how the React app reads them) — non-trivial engineering, but the schema shape is right.
 
+### 10.5. Extending client-side AES-GCM encryption to `confessions` (locked in 2026-05-25 — answers Q4)
+
+The v1 `confessions` table stores plaintext (audience-scoped RLS, but content lives on disk unencrypted). Darrell ratified the upgrade: extend the same Web Crypto AES-GCM 256 + PBKDF2 250k posture used in Legal to `confessions` because confessions are voluntary disclosures of personally significant content (spiritual, emotional, relational) — even with strict RLS, the backup-restore exposure path is real and the cost to close it is small.
+
+**Schema delta (lands inside `schema-v2.1-infra.sql` because confessions is a v1 table and the new columns are additive — keeps the change adjacent to the rename block):**
+
+```sql
+ALTER TABLE confessions
+  ADD COLUMN context_ciphertext         bytea,
+  ADD COLUMN context_iv                 bytea,
+  ADD COLUMN prayer_request_ciphertext  bytea,
+  ADD COLUMN prayer_request_iv          bytea,
+  ADD COLUMN scripture_anchor_ciphertext bytea,
+  ADD COLUMN scripture_anchor_iv         bytea,
+  ADD COLUMN encryption_version         smallint NOT NULL DEFAULT 0;
+  -- encryption_version = 0 → v1 plaintext columns are authoritative
+  -- encryption_version = 1 → ciphertext columns are authoritative;
+  --   v1 plaintext columns are zeroed/NULL by an application migration step.
+
+CREATE INDEX confessions_enc_version_idx ON confessions (encryption_version);
+```
+
+The migration to v1 plaintext → v1 ciphertext is application-driven and per-row (the user holds the PIN; the server can't do it). Until the user opens Confessions and unlocks with their PIN, rows stay at `encryption_version = 0`. Post-unlock, the React app encrypts in batches and zeros the plaintext columns. Same PIN as Legal (one PIN per user, scoped to "private-content"); same loss-equals-loss posture.
+
+RLS unchanged — audience scoping still applies before the encrypted fields are even fetched.
+
 ---
 
 ## 11. Domain — Church operations
@@ -1321,6 +1628,72 @@ description      text
 status           text NOT NULL DEFAULT 'logged'
                    CHECK (status IN ('logged','approved','disputed'))
 ```
+
+### 11.5. Service offerings + giving reconciliations (locked in 2026-05-25 — answers Q6)
+
+Darrell's accuracy bar for COLG giving: *"making sure what was given is what was given — cash, check, and online."* Many gifts at COLG are anonymous (cash in the plate, no envelope); some gifts are claimed by donor name for tax-statement purposes weeks or months later. The schema supports both anonymous and identified gifts via the nullable `donor_giving.parishioner_id` (already present in §11), AND adds two reconciliation tables so the per-service counts roll up cleanly and named claims tie back to the right anonymous rows.
+
+```sql
+CREATE TABLE service_offerings (
+  -- [STANDARD COLUMNS — id, instance_id, created_by, created_at, updated_at, updated_by,
+  --                     lifecycle, links, entity_id]
+  service_date    date NOT NULL,
+  service_kind    text NOT NULL CHECK (service_kind IN (
+    'sunday-morning','sunday-evening','wednesday-bible-study',
+    'special-event','funeral','wedding','conference','revival','other'
+  )),
+  service_label   text,                                -- "Easter Sunday", "Watch Night", etc.
+  cash_total      numeric(12,2) NOT NULL DEFAULT 0,
+  cash_count_by   uuid REFERENCES auth.users(id),      -- who counted the cash
+  check_total     numeric(12,2) NOT NULL DEFAULT 0,
+  check_count     int NOT NULL DEFAULT 0,
+  check_numbers   text[] NOT NULL DEFAULT '{}',        -- the actual check #s recorded that service
+  online_total    numeric(12,2) NOT NULL DEFAULT 0,    -- imported from the online processor batch
+  online_source   text,                                -- 'Tithely','Givelify','PushPay', etc.
+  online_batch_id text,                                -- the processor's batch id
+  notes           text,
+  reconciled_at   timestamptz,                         -- when the offering was reconciled to Books
+  reconciled_by   uuid REFERENCES auth.users(id),
+  transaction_id  uuid REFERENCES transactions(id)     -- the Books row for this service
+);
+
+CREATE INDEX service_offerings_date_idx ON service_offerings (service_date DESC);
+```
+
+```sql
+CREATE TABLE giving_reconciliations (
+  -- [STANDARD COLUMNS]
+  service_offering_id  uuid NOT NULL REFERENCES service_offerings(id) ON DELETE CASCADE,
+  donor_giving_id      uuid REFERENCES donor_giving(id),
+                       -- nullable: an unclaimed anonymous gift has no donor_giving row yet
+  parishioner_id       uuid REFERENCES parishioners(id),
+                       -- the named donor claiming credit for an anonymous gift
+  amount_claimed       numeric(12,2) NOT NULL,
+  method               text NOT NULL CHECK (method IN ('cash','check','online','mixed')),
+  check_number         text,                           -- when method=check, the # being claimed
+  claim_kind           text NOT NULL CHECK (claim_kind IN (
+    'named-at-service',          -- envelope or check signed at the time
+    'claimed-after-service',     -- parishioner contacted treasurer later
+    'reconciled-from-online',    -- online processor sent named gift; matched to service total
+    'corrected-bookkeeping'      -- treasurer fixed a posting error
+  )),
+  claim_status         text NOT NULL DEFAULT 'pending'
+                       CHECK (claim_status IN
+                         ('pending','verified','disputed','accepted','rejected')),
+  verified_by          uuid REFERENCES auth.users(id),
+  verified_at          timestamptz,
+  notes                text,                          -- treasurer notes (internal-only)
+  tax_year             int NOT NULL                   -- determines which annual statement gets the gift
+);
+
+CREATE INDEX giving_recon_service_idx ON giving_reconciliations (service_offering_id);
+CREATE INDEX giving_recon_parishioner_year_idx
+  ON giving_reconciliations (parishioner_id, tax_year);
+```
+
+**Annual tax statement flow:** for each parishioner per tax_year, the statement totals = `SUM(donor_giving.amount WHERE parishioner_id = X AND tax_year = Y)` PLUS `SUM(giving_reconciliations.amount_claimed WHERE parishioner_id = X AND tax_year = Y AND claim_status IN ('verified','accepted'))`. Disclaimer ack required (`disclaimers_acknowledgments.disclaimer_kind = 'donor-tax-statement'`) on download — the system is operational record-keeping, not tax advice.
+
+Per-service reconciliation invariant (enforced application-layer + reported by Books): for every service_offering row, `cash_total + check_total + online_total` should match the Books transaction(s) for that service AND should match the sum of identified `donor_giving` rows for that date plus the residual anonymous amount. A daily Books reconciliation report surfaces any drift > $1.
 
 ### COLG as the test — does the design work?
 
@@ -2185,72 +2558,73 @@ Applied to: every domain table that's exposed in an external-user portal (Sectio
 
 The v2 schema does NOT ship as one monolithic SQL file. It ships as a series of additive migrations, each independently applicable. The sequence:
 
-| File | Contents | Depends on | Estimated work |
+| File | Contents | On runlist? | Depends on |
 |---|---|---|---|
-| `schema-v2.1-infra.sql` | instance_domains, role_scopes, audit_log, entity_links, external_users, interactions, external_invite_tokens. Helper functions. ALTER TYPE on instance_type widening. ALTER on instance_members.role widening to add 'specialist'. ALTER on entities to add domain + parent_entity_id columns. Universal trigger functions. | v1 + v1.1 | 1 session |
-| `schema-v2.2-rentals.sql` | rentals, leases, renters, rent_payments, maintenance_requests. RLS policies. Indexes. | v2.1 | 1 session |
-| `schema-v2.3-therapy.sql` | inquiries, clinicians, intake_handoffs, clinician_assignments. RLS. Indexes. | v2.1 | 1 session |
-| `schema-v2.4-contractor.sql` | contractors_1099, scopes, invoices, time_logs. RLS. Indexes. | v2.1 | 1 session |
-| `schema-v2.5-mentor.sql` | engagements, deliverables, sessions. RLS. Indexes. | v2.1, v2.4 (invoices) | 0.5 session |
-| `schema-v2.6-legal.sql` | legal_matters + 6 sub-tables. Strict RLS. Encryption guidance. | v2.1 | 1.5 sessions (encryption posture is real work) |
-| `schema-v2.7-church.sql` | parishioners, prayer_requests, ministries, ministry_signups, donor_giving, volunteer_hours. RLS. Indexes. | v2.1 | 1 session |
-| `schema-v2.8-ops.sql` | incidents, tax_calendar, recurring_obligations, inflows, subscriptions, events, checkout_intents, **plus the Continual Improvement Loop (review_cadences, review_cycles, cycle_items, change_requests, cross_instance_signals — §12.5), the Awareness layer (notifications, notification_channels, notification_preferences — §12.6), and the Reports layer (report_runs, report_snapshots — §12.7)**. RLS. Indexes. | v2.1 | 2 sessions |
-| `schema-v2.9-portal-rls.sql` | All external-user RLS policies (Pattern D) for every table exposed to a portal. | All prior v2 | 0.5 session |
+| `schema-v2.1-infra.sql` | tenants→instances rename block. instance_domains, role_scopes, audit_log (with prev_hash/hash stubs + audit_verify_chain), entity_links, external_users, interactions, external_invite_tokens. **Trust ownership widening (instance_type adds 'trust','holding-company'; parent_instance_id; legal_structure_notes; instances_parent_chain_read policy — §4.0.5).** **disclaimers_acknowledgments (§4.0.6).** **Confessions encryption columns (§10.5).** **instance_subscriptions + tier helpers (§4.6).** ALTER on instance_members.role widening to add 'specialist'. ALTER on entities to add domain + parent_entity_id. Universal trigger functions. | **YES — THIS WEEK** | v1 + v1.1 |
+| `schema-v2.2-rentals.sql` | rentals, leases, renters, **renter_household_members (§6 Q5)**, rent_payments, maintenance_requests. **rentals_tier_enforce trigger**. RLS policies. Indexes. | YES | v2.1 |
+| `schema-v2.3-therapy.sql` | inquiries, clinicians, intake_handoffs, clinician_assignments. RLS. Indexes. | YES | v2.1 |
+| `schema-v2.4-contractor.sql` | contractors_1099, scopes, invoices, time_logs. RLS. Indexes. | YES | v2.1 |
+| `schema-v2.5-mentor.sql` | engagements, deliverables, sessions. RLS. Indexes. | **NO — forward-declared only, Q7 lock-in 2026-05-25.** Stays in draft for future activation; not on the runlist this cycle. | (deferred) |
+| `schema-v2.6-legal.sql` | All 7 Legal tables: legal_matters, matter_parties, matter_counsel, matter_key_dates, matter_documents, matter_journal, matter_financial_links, conflict_checks (Q8 lock-in: full cut, not MVP). Strict RLS. AES-GCM column shape. | YES | v2.1 |
+| `schema-v2.7-church.sql` | parishioners, prayer_requests, ministries, ministry_signups, donor_giving, volunteer_hours, **service_offerings (§11.5), giving_reconciliations (§11.5)**. RLS. Indexes. | YES | v2.1 |
+| `schema-v2.8-ops.sql` | incidents, tax_calendar, recurring_obligations, inflows, subscriptions, events, checkout_intents, **plus the Continual Improvement Loop (review_cadences, review_cycles, cycle_items, change_requests, cross_instance_signals — §12.5), the Awareness layer (notifications, notification_channels, notification_preferences — §12.6), and the Reports layer (report_runs, report_snapshots — §12.7)**. RLS. Indexes. | YES | v2.1 |
+| `schema-v2.9-portal-rls.sql` | All external-user RLS policies (Pattern D) for every table exposed to a portal. | YES | All prior v2 |
 
-Total: ~8 sessions of pure schema work. None of these depend on UI work; all can ship without any React changes. Each file is paste-into-Supabase-SQL-Editor + verify.
+After v2.1-infra lands, subsequent files queue in the order that delivers the most operator value soonest. Each is paste-into-Supabase-SQL-Editor + verify; each is independently shippable.
 
 After all v2 files applied, the schema supports every role surface SKOS prebuilds. Module UI work then becomes "React against existing tables," in any order.
 
-### Ordering recommendation
+### Ordering recommendation (locked in 2026-05-25 with Darrell's 6-day vacation timeline)
 
-If Darrell wants to prioritize for Christina-and-Darrell value during vacation:
-1. **v2.1 infra** (always first — everything depends on it).
-2. **v2.2 rentals** (Poe Properties immediately benefits — 11 doors).
-3. **v2.3 therapy** (TLC intake pipeline — Christina benefits).
-4. **v2.4 contractor + v2.8 ops** (incidents + scopes + invoices for property management cross-cuts).
-5. **v2.7 church** (COLG operations).
-6. **v2.5 mentor** (lowest urgency).
-7. **v2.6 legal** (highest engineering effort; can ship after vacation when there's time for the encryption work).
-8. **v2.9 portal RLS** (last — depends on all prior tables existing).
+1. **v2.1 infra (THIS WEEK).** Foundation. Everything else depends on it. Lands BEFORE the React `tenant_id → instance_id` rename (which is a separate downstream task chained after the parallel v1 corrupted-files restoration completes).
+2. **v2.2 rentals.** Poe Properties immediately benefits — 11 doors gated to Landlord tier.
+3. **v2.7 church.** COLG benefits — service_offerings + giving_reconciliations operational before June 1 family/church testing if at all possible.
+4. **v2.8 ops.** Incidents + CIL + Awareness + Reports — the cross-cutting loop that makes every domain self-improving.
+5. **v2.3 therapy.** TLC intake pipeline — Christina benefits.
+6. **v2.4 contractor.** 1099 + scopes + invoices for property management cross-cuts.
+7. **v2.6 legal.** Highest engineering effort (AES-GCM PIN flow); can ship after vacation when there's time for the React Web-Crypto work.
+8. **v2.9 portal RLS.** Last — depends on every prior domain table existing.
+
+**v2.5 mentor is NOT on the runlist this cycle (Q7 lock-in).** Tables stay in the draft for future activation only.
 
 ---
 
-## 16. Open questions for Darrell's judgment
+## 16. Open questions for Darrell's judgment — RESOLVED 2026-05-25
 
-These are the decisions that need human judgment, not engineering. They are the inputs the schema cannot decide on its own.
+All Q1–Q9 were closed by Darrell in dialogue with Dispatch on 2026-05-25 (the at-church session under the "I want this app done in the next few days" directive). The locked-in answers are below. Q10 was already resolved 2026-05-24; Q11 stays as-is.
 
-**Q1 — TLC as separate instance or under Poe Family instance?**
-Recommendation in §3 is separate instance for HIPAA-adjacent isolation. Confirm. If TLC is a separate instance, Christina is Owner there; Darrell can be a member but does not have automatic access to TLC data. Acceptable?
+**Q1 — TLC instance + trust ownership architecture. ANSWERED 2026-05-25.**
+TLC is its own instance, AND so are Poe Properties and PoeTech — all three are owned by the Poe Trust (a new root instance, `instance_type = 'trust'`). `instances.instance_type` widens to include `'trust'` and `'holding-company'`; TLC, Poe Properties, and PoeTech each carry `parent_instance_id = poe-trust`. The Poe Family is its own instance whose members hold trustee / beneficiary roles via `instance_members.title`. A new `legal_structure_notes` jsonb column on `instances` captures the non-privileged administrative shape (trustees, beneficiaries, registered agent, EIN last-4, formation state). The non-liability posture is enforced at the data layer via the `disclaimers_acknowledgments` table — every consequential surface (lease render, legal template, tax export) requires a fresh, hash-bound ack from the operator before the system emits the output. See §4.0.5 + §4.0.6.
 
-**Q2 — Poe Properties as separate instance or sub-entity under Poe Family?**
-Audit treats Poe Properties as an `entity` under the family instance. v2 supports either. Sub-entity is simpler (one instance, all data co-scoped); separate instance is cleaner (when the family steps back from PPM operations someday, the data is already isolated). Which is the right shape NOW?
+**Q2 — Poe Properties: separate instance AND sub-instance under the trust. ANSWERED 2026-05-25.**
+Poe Properties has its own `instance_id` so its rentals + leases + maintenance + renters scope cleanly. Its `parent_instance_id` points at the Poe Trust so trustees can read its `legal_structure_notes` (and aggregated reports) without auto-leaking operational rows. The Poe Family instance can still hold the family's own-house data without it commingling with Poe Properties' income-producing portfolio. See §4.0.5.
 
-**Q3 — Hash-chained audit log: Phase 3 only, or earlier?**
-`IDENTITY-ROLES-AUDIT.md` says Phase 3+ for hash-chained tamper detection. Family / single-device instances skip it. But TLC and Legal might warrant earlier hash-chaining. Should v2 ship hash-chaining ready (columns + verify function) but disabled by default, OR defer entirely to Phase 3?
+**Q3 — Hash-chained audit log: stub in v2.1-infra. ANSWERED 2026-05-25.**
+`audit_log.prev_hash` and `audit_log.hash` columns ship in v2.1-infra now (cheap insurance — bytea NULLable). A stub `audit_verify_chain(from_id bigint, to_id bigint)` function ships at ~20 lines that walks the chain when populated and returns the first tampered row (or NULL). Default-disabled: the application-layer `audit_write()` helper leaves the two columns NULL until Phase 3 wires the hash inputs. No backfill required when Phase 3 lands. See §4.4.
 
-**Q4 — Encrypted-at-rest scope: Legal only, or extend to Counseling-equivalent surfaces?**
-The v1 `confessions` table stores plaintext (audience-scoped RLS, but plaintext on disk). Should v2 extend client-side encryption to confessions as well? The audience-scoped RLS already prevents leakage between instance members; the encryption guards against backup-restore exposure. Adds engineering work but tightens the bar. Worth it?
+**Q4 — Extend client-side AES-GCM to Confessions. ANSWERED 2026-05-25.**
+Confessions becomes the second client-side encrypted surface (Legal was the first). New columns on the v1 `confessions` table: `context_ciphertext` + `context_iv`, `prayer_request_ciphertext` + `prayer_request_iv`, `scripture_anchor_ciphertext` + `scripture_anchor_iv`, plus `encryption_version smallint NOT NULL DEFAULT 0`. Per-row migration happens after the user unlocks Confessions with their PIN. Same posture as Legal; loss-of-PIN equals loss-of-data; intentional. See §10.5.
 
-**Q5 — Renters portal default ON or OFF for the rentals domain?**
-Per `ECOSYSTEM-PARTICIPANTS.md` defaults: external portals ship OFF for `family` instance type, ON for `property-management`. The Poe Family instance with rentals enabled is ambiguous — primary type is family, but rentals domain is enabled. Recommendation: default OFF until Darrell explicitly enables it per `instance_domains` settings.
+**Q5 — Tier-gated rentals + renter families. ANSWERED 2026-05-25.**
+New `instance_subscriptions` table with `tier` enum (`foundation`, `poetech-plus`, `family`, `premium`, `business`, `landlord`, `enterprise`) + `tier_limits` jsonb. `instance_domains.domain` carries `requires_tier`. Family tier covers homes only — constraint: a Family-tier instance's leases cannot have renters with `external_user_id IS NOT NULL` (no third-party renters). Business tier required for non-family-renter rentals. Landlord tier $99/mo up to 10 doors; Premium for >10 — enforced by trigger on `rentals`. Higher-level business + 1099 projects gate to Business instance; family-house projects gate to Family. Renters extended with `household_id`; new `renter_household_members` table; each member can have an `external_users` portal row with permissions. Renters AND their family members can submit change_requests / incidents / projects / maintenance requests via being `external_users`. See §4.6 + §6.
 
-**Q6 — Donor anonymity in church domain?**
-The audit's external participants section names Donor as a first-class type. But many gifts at COLG are anonymous (cash in the plate). Schema supports both: `donor_giving.parishioner_id` is nullable. Application-layer decision: does the donor portal exist at all for COLG, or just for larger churches/nonprofits? Christina + Pastor input needed.
+**Q6 — Donors: both anonymous AND identified, with reconciliation tables. ANSWERED 2026-05-25.**
+Darrell's accuracy bar: "making sure what was given is what was given — cash, check, and online." Two new tables: `service_offerings` (one row per service, capturing cash total + check total + check numbers + online total + counter user_id), and `giving_reconciliations` (links named claims to `service_offerings` rows so the annual tax statement aggregates anonymous + named correctly). Per-service invariant: cash + check + online totals reconcile to Books + to the sum of identified donor_giving rows for the date + residual anonymous. See §11.5.
 
-**Q7 — Mentor domain — does Darrell actually want to operate as a mentor inside SKOS?**
-The mentor tables are designed but the audit listed mentor as ~10% coverage. Is this a real operational need for Darrell in 2026, or is it forward-declared because the OS pattern demands it? If forward-declared only, defer v2.5 indefinitely.
+**Q7 — Mentor domain forward-declared only. ANSWERED 2026-05-25.**
+The mentor tables (engagements, deliverables, sessions) stay in the draft (§9), but `schema-v2.5-mentor.sql` is **NOT** on the migration runlist this cycle. Activation deferred indefinitely; revisit when Darrell takes on a paid mentee engagement that needs the schema.
 
-**Q8 — Legal domain MVP scope — full 7 tables, or matter + journal only?**
-The full 7-table Legal design is comprehensive but engineering-heavy. An MVP of `legal_matters` + `matter_journal` (with the encryption posture) handles the dominant use case. Defer parties / counsel / key_dates / documents / financial_links / conflict_checks to a v3 cut? Or land them all in v2.6?
+**Q8 — Legal: full 7 tables in v2.6. ANSWERED 2026-05-25.**
+Ship all of `legal_matters`, `matter_parties`, `matter_counsel`, `matter_key_dates`, `matter_documents`, `matter_journal`, `matter_financial_links`, `conflict_checks` together in `schema-v2.6-legal.sql`. The MVP-only path is rejected — the full 7-table cut + the AES-GCM posture lands together so Legal is whole from day one.
 
-**Q9 — Migration path during vacation: hold all v2 work until return, or land v2.1 infra during vacation?**
-The June 1–vacation window is for family + church testing on v1. v2 work is post-vacation. But v2.1 infra (the cross-cutting tables) is purely additive — landing it during vacation enables the audit log etc. without breaking v1. Land it? Or hold?
+**Q9 — v2.1-infra THIS WEEK before vacation. ANSWERED 2026-05-25.**
+Darrell's directive: "I want this app done in the next few days. I leave in 6 and I want to use it before I go and on vacation. So let's work all night if we have to." v2.1-infra lands this week. Subsequent v2.2 / v2.3 / v2.6 / v2.7 / v2.8 / v2.9 files queue behind it, intended to land before or during vacation as time allows. The June 1 family + church launch still ships against v1; v2 is the post-launch incremental ramp, with v2.1-infra being the foundation that everything else builds on. The tenant_id → instance_id application-layer rename (Supabase + React) is a SEPARATE downstream task chained after the parallel v1 corrupted-files restoration session completes, NOT inside this draft's scope.
 
 **Q10 — Naming: `renters` (ANSWERED 2026-05-24).**
-ANSWERED YES by Darrell on 2026-05-24, paired with the broader rename of `tenants` → `instances`. The audit's `tenants_renters` is moot because there is no more `tenants` table to disambiguate from. Real-estate renters are `renters` in code; the word "Tenant" survives only inside the lease document template's legal text. See Section 4.0 for the full rename rationale.
+ANSWERED YES by Darrell on 2026-05-24, paired with the broader rename of `tenants` → `instances`. Real-estate renters are `renters` in code; the word "Tenant" survives only inside the lease document template's legal text. See §4.0.
 
 **Q11 — Where should this draft live in the docs tree?**
-Written to `docs/00-foundations/SCHEMA-V2-MULTI-DOMAIN-DRAFT.md` (Dispatch instruction said `docs/foundations/` — interpreted as the foundations folder). Should it stay here, or move to `_future/` to match SUPABASE-SCHEMA-LAYER-2.md's location? Cosmetic but worth deciding before the file lands permanently.
+Stays at `docs/00-foundations/SCHEMA-V2-MULTI-DOMAIN-DRAFT.md` — proven correct by the parallel session restoring it from HEAD when the working copy was lost. Cosmetic question closed.
 
 ---
 
@@ -2258,20 +2632,24 @@ Written to `docs/00-foundations/SCHEMA-V2-MULTI-DOMAIN-DRAFT.md` (Dispatch instr
 
 Alphabetical list of every table in the v2 schema, grouped by source file. Total: **44 new tables** in v2 (on top of v1's 12 — which are also renamed in v2.1-infra: `tenants` → `instances`, `tenant_members` → `instance_members`, `tenant_invites` → `instance_invites`, `user_tenant_settings` → `user_instance_settings`).
 
-**`schema-v2.1-infra.sql`** (7 new tables)
-- audit_log
+**`schema-v2.1-infra.sql`** (10 new tables + v1 rename + alter blocks)
+- audit_log (with prev_hash + hash stub columns)
+- disclaimers_acknowledgments (§4.0.6 — 2026-05-25)
 - entity_links
 - external_invite_tokens
 - external_users
+- instance_domains
+- instance_subscriptions (§4.6 — 2026-05-25)
 - interactions
 - role_scopes
-- instance_domains
+- (v1 ALTERS: confessions encryption columns §10.5; instances widen instance_type + add parent_instance_id + legal_structure_notes §4.0.5; instance_members.role widen to add 'specialist'; entities add domain + parent_entity_id)
 
-**`schema-v2.2-rentals.sql`** (5 new tables)
+**`schema-v2.2-rentals.sql`** (6 new tables)
 - leases
 - maintenance_requests
-- renters
 - rent_payments
+- renter_household_members (§6 — 2026-05-25 Q5 lock-in)
+- renters
 - rentals
 
 **`schema-v2.3-therapy.sql`** (4 new tables)
@@ -2301,12 +2679,14 @@ Alphabetical list of every table in the v2 schema, grouped by source file. Total
 - matter_key_dates
 - matter_parties
 
-**`schema-v2.7-church.sql`** (6 new tables)
+**`schema-v2.7-church.sql`** (8 new tables)
 - donor_giving
+- giving_reconciliations (§11.5 — 2026-05-25 Q6 lock-in)
 - ministries
 - ministry_signups
 - parishioners
 - prayer_requests
+- service_offerings (§11.5 — 2026-05-25 Q6 lock-in)
 - volunteer_hours
 
 **`schema-v2.8-ops.sql`** (17 new tables — operational core + Continual Improvement Loop + Awareness + Reports)
@@ -2330,7 +2710,18 @@ Alphabetical list of every table in the v2 schema, grouped by source file. Total
 
 **`schema-v2.9-portal-rls.sql`** (0 new tables — policies only)
 
-(Counts above sum to 44 new tables across 9 files. Verify exact totals when SQL is written.)
+**v2.x updated table totals (post-2026-05-25 lock-ins):**
+- v2.1-infra: 10 new tables (added disclaimers_acknowledgments + instance_subscriptions; audit_log gets hash-chain stubs)
+- v2.2-rentals: 6 new tables (added renter_household_members)
+- v2.3-therapy: 4 (unchanged)
+- v2.4-contractor: 4 (unchanged)
+- v2.5-mentor: 3 (DEFERRED — not on runlist this cycle)
+- v2.6-legal: 7 (unchanged — full 7-table cut confirmed by Q8)
+- v2.7-church: 8 new tables (added service_offerings + giving_reconciliations)
+- v2.8-ops: 17 (unchanged)
+- v2.9-portal-rls: 0 tables (policies only)
+
+Total on the active runlist: **56 new tables across 8 files** (mentor's 3 tables stay in draft only). v1 also gets ALTERs to widen instance_type, add parent_instance_id + legal_structure_notes on `instances`, add 6 confessions encryption columns + encryption_version, and widen instance_members.role.
 
 ---
 
@@ -2340,6 +2731,7 @@ This document is the **target shape**. It is not committed code, not applied sch
 
 Per the foundations: open-source, portable, self-host-ready (Synology DS1621xs target). Per the audit: forward-compatible — every change is additive, no v1 data is migrated or rewritten. Per the cross-domain bar from `EXPERIENTIAL-KNOWLEDGE-MARKETPLACE.md`: every role surface SKOS prebuilds — landlord, therapist, contractor, business mentor, lawyer, church, family — has its operational data shape declared here. Per `MODULAR-EXTENSIBILITY.md`: each domain ships as its own file; disabling a domain is removing one SQL file from the migration runlist; nothing else breaks.
 
-The next decision is Darrell's. The schema is ready when he is.
+Per the POE binding (§2): every architectural tradeoff resolves in favor of the person, not the system. People Over Everything — that's the rule that governs every column, policy, and trigger below.
 
 — Dispatch, 2026-05-24, Option C selected
+— Dispatch, 2026-05-25, Q1–Q9 closed; trust ownership + POE binding + tier model + Confessions encryption + COLG reconciliation baked in
