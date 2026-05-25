@@ -46,3 +46,16 @@ credentials.json
 
 # Claude Code local config — never commit
 .claude/
+
+# Supabase self-hosted — secrets and data volumes never committed
+infra/supabase/.env
+infra/supabase/.secrets-summary.txt
+infra/supabase/volumes/db/data/
+infra/supabase/volumes/storage/
+
+# Vite local env files — Supabase URL/key (publishable but still kept out of git)
+app/.env.local
+app/.env.*.local
+
+# Stale / experimental build outputs — only app/dist is the canonical artifact
+app/dist-*/
