@@ -16,6 +16,11 @@ import AuthBanner from './components/AuthBanner.jsx';
 import { onAuthChange } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
+import { accountsSync } from './lib/accounts-sync.js';
+import { debtsSync } from './lib/debts-sync.js';
+import { transactionsSync } from './lib/transactions-sync.js';
+import { projectsSync } from './lib/projects-sync.js';
+import VerifyBalances from './components/VerifyBalances.jsx';
 import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
 import { Queue } from './components/Queue.jsx';
@@ -867,6 +872,8 @@ export default function PoeFinancialSystem() {
   // data.feedback because the storage save effect would then persist
   // them to localStorage too, duplicating data.
   const [remoteFeedback, setRemoteFeedback] = useState([]);
+  const [authSession, setAuthSession] = useState(null);
+  const [showVerifyBalances, setShowVerifyBalances] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -988,6 +995,68 @@ export default function PoeFinancialSystem() {
       if (unsubscribeEntities) unsubscribeEntities();
     };
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // Numeric-table sync (accounts / debts / transactions / projects)
+  // ---------------------------------------------------------------------------
+  // Gated behind data.numericSyncVerifiedAt — set by VerifyBalances after the
+  // user walks through their seed and confirms the starting numbers. Once
+  // set, this effect runs initialSync (pushes any local rows not in Supabase
+  // yet, returns merged list) and subscribes to realtime changes from other
+  // devices. Per-CRUD uploads are wired into addAccount/updateAccount/etc.
+  // below so individual edits propagate without waiting for re-sign-in.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    let unsub = onAuthChange((session) => setAuthSession(session));
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!authSession) {
+      setShowVerifyBalances(false);
+      return;
+    }
+    if (!data.numericSyncVerifiedAt) {
+      setShowVerifyBalances(true);
+      return;
+    }
+    setShowVerifyBalances(false);
+
+    const cleanups = [];
+    let cancelled = false;
+
+    async function start() {
+      const latest = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__) || data;
+      const tables = [
+        { sync: accountsSync,     key: 'accounts',     localList: latest.accounts || [] },
+        { sync: debtsSync,        key: 'debts',        localList: latest.debts || [] },
+        { sync: transactionsSync, key: 'transactions', localList: latest.transactions || [] },
+        { sync: projectsSync,     key: 'projects',     localList: latest.projects || [] },
+      ];
+      for (const t of tables) {
+        if (cancelled) return;
+        try {
+          const result = await t.sync.initialSync(t.localList);
+          if (!cancelled && result && result.merged) {
+            setData(d => ({ ...d, [t.key]: result.merged }));
+          }
+        } catch (e) {
+          console.warn(`[${t.sync.remoteTable}-sync] initial sync failed`, e);
+        }
+        if (cancelled) return;
+        const unsubscribe = t.sync.subscribe((items) => {
+          setData(d => ({ ...d, [t.key]: items }));
+        });
+        cleanups.push(unsubscribe);
+      }
+    }
+    start();
+
+    return () => {
+      cancelled = true;
+      cleanups.forEach(fn => { try { fn && fn(); } catch (_) {} });
+    };
+  }, [authSession, data.numericSyncVerifiedAt]);
 
   // Stash the latest data on window so the auth effect (which has [] deps
   // and therefore captures only the initial closure) can read the current
@@ -1161,7 +1230,13 @@ export default function PoeFinancialSystem() {
   const deleteIncident = (id) => setData(d => ({ ...d, incidents: d.incidents.filter(i => i.id !== id) }));
   const deleteEvent = (id) => setData(d => ({ ...d, events: (d.events || []).filter(e => e.id !== id) }));
   // v28+ Session A: Accounts CRUD
-  const addAccount = (item) => setData(d => ({ ...d, accounts: [...(d.accounts || []), { ...item, id: `a-${Date.now()}`, balance: parseFloat(item.balance) || 0, inLegal: !!item.inLegal }] }));
+  const addAccount = (item) => {
+    const seeded = { ...item, id: `a-${Date.now()}`, balance: parseFloat(item.balance) || 0, inLegal: !!item.inLegal };
+    setData(d => ({ ...d, accounts: [...(d.accounts || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      accountsSync.upload(seeded).catch(e => console.warn('[accounts-sync] upload failed', e));
+    }
+  };
   // 2026-05-24 — Move-to-Legal toggle: flips inLegal on an account, which
   // removes it from cash totals and the Accounts tab and surfaces it in the
   // Legal tab. Reversible; Legal tab has a Restore button that calls back
@@ -1171,8 +1246,33 @@ export default function PoeFinancialSystem() {
     if (!a) return;
     updateAccount(id, { inLegal: !a.inLegal });
   };
-  const updateAccount = (id, updates) => setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === id ? { ...a, ...updates, balance: updates.balance !== undefined ? parseFloat(updates.balance) || 0 : a.balance } : a) }));
-  const deleteAccount = (id) => setData(d => ({ ...d, accounts: (d.accounts || []).filter(a => a.id !== id) }));
+  const updateAccount = (id, updates) => {
+    setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === id ? { ...a, ...updates, balance: updates.balance !== undefined ? parseFloat(updates.balance) || 0 : a.balance } : a) }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.accounts || []).find(a => a.id === id);
+      if (local && local.remoteUuid) {
+        const patch = {};
+        if (updates.name !== undefined)        patch.display_name = updates.name;
+        if (updates.institution !== undefined) patch.institution = updates.institution;
+        if (updates.type !== undefined)        patch.account_type = updates.type;
+        if (updates.fragment !== undefined)    patch.fragment = updates.fragment;
+        if (updates.balance !== undefined)     patch.balance = parseFloat(updates.balance) || 0;
+        if (updates.inLegal !== undefined)     patch.in_legal = !!updates.inLegal;
+        if (updates.isPrimary !== undefined)   patch.is_primary = !!updates.isPrimary;
+        if (updates.entityId !== undefined)    patch.entity_slug = updates.entityId;
+        accountsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[accounts-sync] update failed', e));
+      }
+    }
+  };
+  const deleteAccount = (id) => {
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.accounts || []).find(a => a.id === id);
+      if (local && local.remoteUuid) {
+        accountsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[accounts-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, accounts: (d.accounts || []).filter(a => a.id !== id) }));
+  };
   // v28+ Session A: Transactions CRUD
   const addTransaction = (item) => setData(d => ({ ...d, transactions: [...(d.transactions || []), { ...item, id: `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 }] }));
   const updateTransaction = (id, updates) => setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
@@ -1431,6 +1531,16 @@ html{scroll-padding-bottom:280px}
       </div>
 
       <AuthBanner />
+      {showVerifyBalances && (
+        <VerifyBalances
+          data={data}
+          onComplete={(iso) => {
+            setData(d => ({ ...d, numericSyncVerifiedAt: iso }));
+            setShowVerifyBalances(false);
+          }}
+          onSkip={() => setShowVerifyBalances(false)}
+        />
+      )}
 
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
