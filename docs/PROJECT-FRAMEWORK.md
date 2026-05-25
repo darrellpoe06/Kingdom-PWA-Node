@@ -234,35 +234,32 @@ What each instance type gets when provisioned. The current source-of-truth for t
 
 ## 5. Current state — branches and PRs
 
-> *Reconciliation against `git status` on 2026-05-23.* The local repo confirms branches; PR mergeability and CI state are as reported by Darrell at the time of writing and should be re-verified at the start of every session.
+> *Reconciliation against `git status` and `git branch -a` on 2026-05-23 (later in the day than the prior entry — see history at the end of this section).* The local repo confirms branches; PR mergeability and CI state are as reported by Darrell at the time of writing and should be re-verified at the start of every session.
 
-**Active branch:** `feat/counseling-subtab` (commits ahead of `docs/skos-foundations` through `fca606e`).
+**Active branch:** `docs/foundations-and-framework-2026-05-23` (pushed to `origin`; working tree clean; 8 commits ahead of `feat/counseling-subtab`).
 
-**Open PRs:**
+These 8 commits are the foundations and framework work that landed today *after* the spine was first written, and they resolved the prior "uncommitted on `feat/counseling-subtab`" backlog. Commit walk, newest first:
+
+- `8046398` — `docs: correct DS1621xs RAM (32 GB max), note local-LLM polarity flip, update framework spine`
+- `dadbbe7` — `docs(future): add hardware options + experiential-knowledge marketplace initiative docs`
+- `bbd146b` — `docs: record DS1621xs already at 32 GB ECC; remove RAM-upgrade open question`
+- `d1df3b6` — `docs: bind open-source + portable + vendor-independent principle into AI infra and framework`
+- `c34d28a` — `docs(framework): add PROJECT-FRAMEWORK spine and AI infrastructure Synology future doc`
+- `d5774c8` — `docs(future): add marketing pipeline notes`
+- `8f1b1a2` — `docs(task-cards): add counseling sub-tab card, handoff, and ROOT.md reconciliation analyses`
+- `565b014` — `docs(foundations): add Holy Spirit integration worldview and ROOT open investigations`
+
+No PR has been opened yet for this branch; it is pushed and ready when a PR target is chosen (likely `docs/skos-foundations`, matching the other docs-track PRs).
+
+**Open PRs (unchanged from earlier today):**
 
 - **PR #1** — `feat/extract-church` → `docs/skos-foundations`. Church component extracted from the monolith into `app/src/components/Church.jsx`. Status as reported: mergeable, all CI green, deferred dev click-through. Local branch confirmed present.
 - **PR #2** — `feat/connected-context-leaf-util` → `docs/skos-foundations`. CONNECTED-CONTEXT helpers moved into `lib/connectedContext.js` leaf util. Status as reported: mergeable, all CI green, deferred dev click-through. Local branch confirmed present (commit `0ede615`).
 - **PR #3** — `feat/counseling-subtab` → `feat/extract-church` (stacked on PR #1). Counseling sub-tab MVP inside Church (Council Chamber surface) with AI loop, voice, PIN + AES-GCM encryption (PBKDF2 150k, 15-min idle re-lock), scripture-version dropdown (ESV default), counselor-handoff picker (cross-domain), per-entry and bulk .md export, vocabulary alignment to "counselors in the church." Final commit `fca606e`. Status as reported: mergeable, all CI green, deferred dev click-through. Local branch confirmed; matches reported commit SHA.
 
-**Uncommitted changes on `feat/counseling-subtab` (correction to the prompt-stated "none known"):**
+**Prior-session backlog — resolved.** The earlier reconciliation in this section flagged uncommitted modifications and untracked foundation/task-card additions on `feat/counseling-subtab` and asked the next session to resolve them. Those changes were moved off `feat/counseling-subtab` and committed onto `docs/foundations-and-framework-2026-05-23` in the 8 commits above. `feat/counseling-subtab` is now clean at `fca606e` and PR #3 is unaffected.
 
-- `app/src/components/Church.jsx` — modified
-- `app/src/poe-financial-mvp-v28.jsx` — modified
-- `docs/00-foundations/_root/COUNCIL-CHAMBER.md` — modified
-
-**Untracked files (foundation + task-card additions, on `feat/counseling-subtab`):**
-
-- `docs/00-foundations/_future/MARKETING-PIPELINE-NOTES.md`
-- `docs/00-foundations/_root/THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md`
-- `docs/00-foundations/_root/THE-ROOT-OPEN-INVESTIGATIONS.md`
-- `docs/01-architecture/task-cards/2026-05-22-counseling-subtab-inside-church.md`
-- `docs/01-architecture/task-cards/2026-05-23-ROOT-md-reconciliation-notes.md`
-- `docs/01-architecture/task-cards/2026-05-23-handoff-counseling-card.md`
-- `docs/01-architecture/task-cards/2026-05-23-root-docs-coexistence-plan.md`
-
-(Resolve into a commit during the next session before opening a new working stream.)
-
-**Other local branches:** `claude/strange-yonath-7a964f`, `docs/skos-foundations`, `feat/connected-context-leaf-util`, `feat/extract-church`, `main`.
+**Other local branches (unchanged):** `claude/strange-yonath-7a964f`, `docs/skos-foundations`, `feat/connected-context-leaf-util`, `feat/extract-church`, `main`.
 
 ---
 
@@ -307,6 +304,20 @@ Append-only. Absolute dates. Newest at the bottom of each date; oldest day at th
 - Polarity note added to `INFRASTRUCTURE-PIPELINE.md`: per the open-source + vendor-independent principle, local LLM is the eventual default and hosted is opt-in fallback (older "local-as-outage-fallback" framing preserved as historical context with the polarity-flip note).
 - Cross-Domain Experiential-Knowledge Counselor Marketplace vision doc drafted at `docs/00-foundations/_future/EXPERIENTIAL-KNOWLEDGE-MARKETPLACE.md` (sibling to `MARKETING-PIPELINE-NOTES.md`); resolves the §6 placeholder line "vision doc to be written."
 - Hardware Options decision-support doc drafted at `docs/00-foundations/_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md`: four real options (CPU-only $0 / single 3090 ~$1.2–1.5k / dual 3090 ~$2k / RTX 5090 DIY ~$2.8–3.3k / Mac Studio M4 Max $2.8k–5k). Recommendation: dual used RTX 3090 (~$2k) for full principle alignment, true parallel model serving, and lowest $/capability.
+
+**2026-05-23 (afternoon — Layer 1 shipped, Layer 2 mid-flight)**
+
+- **LAYER 1 LIVE.** PoeTech Family OS deployed to Synology DS1621xs Web Station at `https://192-168-1-26.poetech.direct.quickconnect.to/poetech-app/`. Alias portal, Let's Encrypt wildcard cert (`*.poetech.direct.quickconnect.to`) confirmed secure. Backup port-8443 portal kept for LAN-only. DSM admin on `:5001` untouched. Deploy pipeline: `.\deploy-to-synology.bat` (or `.ps1`).
+- **Greeting fix shipped** — "Welcome, Christina." → "Welcome to Your PoeTech Family OS." so non-Christina family members on shared install don't see her name. Layer 2 will personalize from `tenant_members.display_name`.
+- **Vacation deadline locked in: June 1, 2026.** Darrell + Christina away first week of June; family + church need to be testing the live app and submitting feedback during vacation so Darrell can ship fixes from hotel wifi over QuickConnect. Drives all priorities this week.
+- **Family device mix confirmed:** Darrell + Christina + twins on Samsung (Android Chrome), Christiana on iPhone (iOS Safari). Cert fix unblocks iPhone PWA install.
+- **Church-of-the-Living-God instance committed as a second tenant** under same Synology + same Supabase backend, served at `/church/` alias portal (TBD), data scoped via row-level security (`tenant_id`). Church members install during vacation week and submit feedback alongside family.
+- **Darrell's 2026-05-23 product clarifications captured in tasks 22–26:** Multitude-of-Counselors / Shepherd-of-Souls framing (Prov 11:14, 1 Pet 2:25); voluntary Confession surface (James 5:16, distinct from Counseling); Feedback → Project pipeline; aggregate user analytics on Projects tab; adoption incentives parked for later.
+- **Self-hosted Supabase on Synology — PAUSED.** Hand-written docker-compose hit Docker Hub image-tag verification failures (sandbox can't query hub.docker.com). All files staged at `infra/supabase/` (docker-compose.yml, .env, kong.yml, README); `\\PoeTech\supabase` shared folder exists on the NAS. Resumes post-vacation with Darrell-side tag verification.
+- **PIVOT — Supabase Cloud (free tier) as v0** for the June 1 deadline. Honors the same open-source + portable + vendor-independent principle as the Vercel-vs-Synology decision earlier in the day: Cloud is a v0 stepping stone, data exports cleanly via `pg_dump`/`pg_restore` to self-hosted Postgres later. Treated as explicit migration debt.
+- **Supabase Cloud project provisioned:** PoeTech-Family-OS, AWS us-east-2 (Ohio), Free Plan, GitHub OAuth (`darrellpoe06@gmail.com`), 2FA-protected. Project URL: `https://mjjlevhdufpaplypnqrv.supabase.co`. Publishable key written to `app/.env.local` (gitignored). Auto-RLS-on-new-tables enabled, auto-expose-tables disabled.
+- **Schema v1 written and staged** at `infra/supabase/schema-v1.sql` (390 lines). Translates `SUPABASE-SCHEMA-LAYER-2.md` into runnable SQL: tenants + tenant_members + tenant_invites, helper functions (`user_in_tenant`, `user_tenant_role`), Financial OS tables (entities, accounts, transactions, debts, projects), new surfaces (feedback, confessions — strict audience-scoped RLS, user_telemetry), user_tenant_settings, RLS policies on everything, seeded the 'poe-family' and 'church-of-the-living-god' tenants.
+- **Session ended at 90% budget** with the schema pasted into Supabase SQL Editor, blocked only by the Grammarly browser extension popup overlay. Session handoff written at `docs/SESSION-HANDOFF-2026-05-23.md`.
 
 ---
 

@@ -92,4 +92,29 @@ Before delivering any substantive content (documentation, copy, teaching, code c
 - Is it PRAISEWORTHY? Worth amplifying
 If any answer is no, the output is revised before delivery.
 ---
+
+## Drive, Don't Delegate (added 2026-05-23)
+
+When working with Darrell on any multi-step flow that touches the browser, a dashboard, the shell, the repo, or any tool the agent has access to: **the agent does the clicking, navigating, typing, and re-doing**. Darrell is the principal, the decider, and the strategist — not the agent's hands. He has ~25 years of operating experience; spending that capacity on repetitive clicks the agent can drive itself is wasted.
+
+**Direct quote from Darrell, 2026-05-23, mid-Google-OAuth setup:**
+> "stop asking me to do what you have done before! I want to move efficiently and effectively... you make us stall out for minor things you can control that we have already done."
+
+**The agent asks Darrell ONLY when one of these is genuinely true:**
+
+1. **A real user-gesture is required** by the browser (writing the clipboard from a sensitive source, accepting a file download, granting an OS-level permission). And only after verifying that automation paths are actually exhausted, not just inconvenient.
+2. **A value only he has** (his own passwords typed at the keyboard, his Google account choice during OAuth, his credit card, his signature). Not values he already typed once that the agent could re-drive.
+3. **A decision only he can make** (strategic, product, relational, or tone choices).
+4. **Verification on a screen the agent literally can't see** (his email inbox, his phone's notifications). And only after the agent has exhausted screenshots, DOM reads, and other observation paths.
+
+**Never ask Darrell to:**
+- Re-paste a value already pasted (re-drive it from the agent-controlled tab)
+- Re-do clicks already driven successfully earlier in the session
+- Switch tabs to find something the agent can navigate to directly
+- Run commands the agent can run via bash, or read files the agent can read via its tools
+- "Tell me when you've done X" if the agent can verify via screenshot or DOM read
+
+**Posture:** lean forward, take action, drive. If stuck on a tool limit: acknowledge the limit clearly, propose two or three alternative routes (not eight), and pick the fastest unblock — usually that means routing around the blocker, not adding manual steps for Darrell. If forced to ask, ask for the smallest possible piece of his time: one click, not a sequence.
+
+---
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
