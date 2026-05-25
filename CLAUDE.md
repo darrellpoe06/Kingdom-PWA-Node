@@ -36,6 +36,18 @@ If the user pastes source text that capitalizes any of the lowercase-only terms,
 
 The canonical statement of these rules lives in [`docs/00-foundations/14-naming-conventions.md`](docs/00-foundations/14-naming-conventions.md). If that document and this one drift, the binding rules in this file govern until the foundation doc is updated.
 
+## The Source of Answers (added 2026-05-25, declared by Darrell)
+
+**All answers come from our biblical source — The Holy Spirit Integration Worldview** (Darrell Poe, forthcoming). This is the foundational text. It is a biblical-scripture-derived worldview applied with algorithmic rigor, covering:
+
+- **The Godhead** — Yahweh, the Father; Jesus, the Son; the Holy Spirit.
+- **Original business systems** — biblical economics, the seven-year cycle, debt-jubilee patterns, the original blueprints for stewardship of land, labor, time, and money.
+- **The philosophy of technology** — what technology is for, who it serves, and the binding rule that systems exist to make the person more able to follow The Way, not to extract from them.
+
+This text is **the intellectual spine of the Spiritual Life module** that the rest of SKOS / PoeTech orbits. When generating any substantive content that touches the Godhead, faith, biblical economics, jubilee, or the moral-philosophical posture of any module, the agent treats the Worldview as the authoritative source of answers — even while the text itself is still being written. When the user asks a doctrinal or worldview-grounded question, the agent answers from this source, citing Scripture per `SCRIPTURE-REFERENCE-STANDARD.md` (ESV primary, KJV secondary, NIV/AMP/Strong's for clarification). The agent does NOT improvise theology and does NOT cite training-data theology as if it were canonical. When the agent is uncertain whether a given answer is consistent with the Worldview, it surfaces the uncertainty rather than fabricating certainty.
+
+Per Darrell's standing rule on translations: do not invent translations, do not paraphrase scripture without explicitly noting it as a paraphrase, fetch the actual translation when uncertain.
+
 ## SKOS Foundations (Added 2026-05-13)
 The following foundation documents in `docs/00-foundations/_root/` are authoritative and govern all SKOS-generated content. Read them before generating substantive content for this project:
 - `THE-WAY.md` — Meta-frame. SKOS IS The Way. Every module and foundation operates within this frame.
@@ -43,6 +55,11 @@ The following foundation documents in `docs/00-foundations/_root/` are authorita
 - `SCRIPTURE-REFERENCE-STANDARD.md` — Translation citation rubric (ESV primary, KJV secondary, NIV/AMP/Strong's for clarification).
 - `EXCELLENCE-STANDARD.md` — Religion AND relationship balance. Representatives of the King.
 - `UX-PATTERNS.md` — Cross-app UX patterns including the Scripture component, TTS spec, and the Test tool.
+- `THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md` — The source-of-answers text declared above. Lives at `docs/00-foundations/_root/THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md`. Already drafted: integration is the relationship, the first death is the doorway, asking-and-receiving is fruit not goal, the watching-recognizing-recording posture, the gap and the bridge, Job as the named exemplar, the reprogramming-by-story work. The agent reads this before generating any worldview-grounded content.
+- `COUNCIL-CHAMBER.md` — The universal input-to-output surface. The system deduces the needed process based on input of the user by voice or text. Two modes — Council Chamber (listening / Scripture-mirrored) and Dev/Ops (problem-solving) — same PWA, same input pipeline, classifier auto-routes, visible mode badge, never-auto-switch. The four-section response posture (Hear → Mirror → Anchor → Invite) is binding for Council Chamber replies. Pastoral, not clinical (the TLC bright line is held).
+- `MODE-ROUTING.md` — Classifier spec, single source of truth for routing UX shared by Counseling and Dev/Ops.
+- `INTAKE-AND-FIT.md` — The Dev/Ops counterpart; the system deduces between the two modes by input analysis.
+- `ACCESS-TO-THE-HUMAN-MIND.md` — Response-tuning source for what Scripture says about influence on the mind, divine and adversarial.
 ## Terminology Bindings
 When referring to these concepts in any generated content, use the canonical capitalization:
 - **The Way** (with definite article, both words capitalized) — the early believer self-designation; the SKOS meta-frame
@@ -117,4 +134,42 @@ When working with Darrell on any multi-step flow that touches the browser, a das
 **Posture:** lean forward, take action, drive. If stuck on a tool limit: acknowledge the limit clearly, propose two or three alternative routes (not eight), and pick the fastest unblock — usually that means routing around the blocker, not adding manual steps for Darrell. If forced to ask, ask for the smallest possible piece of his time: one click, not a sequence.
 
 ---
+
+## Two-Session Git Race Rule (added 2026-05-25)
+
+When two Claude or Dispatch sessions touch this repo's `.git` directory at the same time — for example one Dispatch session writing files while another Claude Code session runs an auto-commit script — the bash sandbox sees a torn snapshot of `.git/index` and a stale `.git/index.lock` it cannot delete (Operation not permitted from inside the sandbox; Windows file ACLs hold). The sandbox's view stops updating even after PowerShell modifies the same files. PowerShell's view stays authoritative; the sandbox can only WRITE new files at that point, not commit them.
+
+**Symptoms the agent will see:**
+- `git status` from the sandbox returns `fatal: unknown index entry format 0x39330000` (or similar magic-number garbage).
+- `git add` and `git commit` from the sandbox error with "Another git process seems to be running" pointing at `.git/index.lock`.
+- `ls .git/index.lock` says "No such file" while `ls -la .git/index.lock` shows it (smoking-gun inconsistency from the mount cache).
+- `rm -f .git/index.lock` from sandbox returns "Operation not permitted."
+
+**One-time cleanup the user runs in PowerShell at session start:**
+
+```
+cd C:\Users\dpoe\Kingdom-PWA-Node
+Remove-Item .git\index.lock -Force -ErrorAction SilentlyContinue
+git status
+```
+
+If `git status` is clean from PowerShell, commit attempts from the sandbox will usually work. If the sandbox view STILL shows the torn snapshot after the lock removal (the bash mount has cached the corrupt read), the cache stays stuck until the sandbox restarts — in that case fall through to the workflow below.
+
+**Workflow when the sandbox cannot commit:**
+
+1. Agent writes files into the working tree (Write/Edit tools — these succeed).
+2. Agent reports the file paths + commit messages in a single batch.
+3. Darrell runs `git add` + `git commit` from PowerShell, using the messages the agent provided.
+4. Darrell pushes when the batch is done.
+
+This is not a degraded mode; it's the normal mode when two sessions race. The agent does NOT need to apologize for it or ask the user to fix it on every commit — the agent should propose the commit batch concisely and move on to the next piece of work.
+
+**Don't:**
+- Create test files inside the repo to probe the sandbox's commit ability. If the test fails, the file is stuck (sandbox can't delete it) and the user has to clean it up from PowerShell.
+- Run two Claude / Dispatch sessions that both write to `.git` simultaneously when it can be avoided. One session owning git operations at a time is the durable pattern.
+
+**Long-term:** this is a Cowork mount-layer behavior to file with the Cowork team when convenient. Not blocking; just slows commits by a few seconds per batch.
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.

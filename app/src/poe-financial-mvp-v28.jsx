@@ -3594,6 +3594,116 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
   const [showMinistryForm, setShowMinistryForm] = useState(false);
   const [ministryNote, setMinistryNote] = useState('');
 
+  // ---------------------------------------------------------------------------
+  // ADD YOUR VOICE — interactive contribution input (2026-05-25, per Darrell):
+  // parishioners speak (Web Speech API) or paste a link to drop a note about
+  // anything on the church tab — today's sermon, an article, a question for
+  // leadership, a ministry idea, a building-fund follow-up. Stored locally
+  // for now; future-state syncs to the v2.7 `interactions` table (schema
+  // already declared in infra/supabase/schema-v2.7-church.sql §11.5 area).
+  // POE binding: the user controls the mic, the link, the topic, and the
+  // moment to share. Nothing leaves the device until they tap Send.
+  // ---------------------------------------------------------------------------
+  const [contribForm, setContribForm] = useState({ topic: '', text: '', link: '' });
+  const [contribError, setContribError] = useState('');
+  const [showContribForm, setShowContribForm] = useState(false);
+  const [contributions, setContributions] = useState([]);  // local-only until v2.7 sync wires up
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  // Feature detection — Web Speech API (still vendor-prefixed in some browsers)
+  const speechSupported = typeof window !== 'undefined'
+    && (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  const toggleSpeech = () => {
+    if (!speechSupported) {
+      setContribError('Voice input is not supported in this browser. Type your note or paste a link instead.');
+      return;
+    }
+    if (isListening) {
+      try { recognitionRef.current?.stop(); } catch (_) { /* ignore */ }
+      setIsListening(false);
+      return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const r = new SR();
+    r.continuous = false;
+    r.interimResults = false;
+    r.lang = 'en-US';
+    r.onresult = (e) => {
+      const transcript = Array.from(e.results)
+        .map(res => res[0].transcript)
+        .join(' ')
+        .trim();
+      if (transcript) {
+        setContribForm(prev => ({
+          ...prev,
+          text: prev.text ? `${prev.text} ${transcript}`.trim() : transcript,
+        }));
+      }
+    };
+    r.onerror = (e) => {
+      setContribError(`Voice input error: ${e.error || 'unknown'}. Type your note instead.`);
+      setIsListening(false);
+    };
+    r.onend = () => setIsListening(false);
+    recognitionRef.current = r;
+    setContribError('');
+    try {
+      r.start();
+      setIsListening(true);
+    } catch (err) {
+      setContribError('Could not start voice input. Type your note or paste a link instead.');
+      setIsListening(false);
+    }
+  };
+
+  const submitContribution = () => {
+    const topic = (contribForm.topic || '').trim();
+    const text  = (contribForm.text  || '').trim();
+    const link  = (contribForm.link  || '').trim();
+    if (!text && !link) {
+      setContribError('Add a note (speak or type) or paste a link before saving.');
+      return;
+    }
+    // Light URL sanity check — non-blocking; the user can still save if they
+    // typed something that isn't a parseable URL.
+    if (link && !/^https?:\/\//i.test(link)) {
+      setContribError('Links should start with http:// or https://. Edit and re-save.');
+      return;
+    }
+    setContribError('');
+    const entry = {
+      id: `contrib-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      topic, text, link,
+      createdAt: new Date().toISOString(),
+      sentAt: null,
+    };
+    setContributions(prev => [entry, ...prev]);
+    setContribForm({ topic: '', text: '', link: '' });
+    setShowContribForm(false);
+  };
+
+  const mailtoForContribution = (contrib) => {
+    const subject = `Church-tab note${contrib.topic ? ` — ${contrib.topic}` : ''}`;
+    const body =
+      `Sent from PoeTech Family OS · Church tab.\n\n` +
+      (contrib.topic ? `About: ${contrib.topic}\n\n` : '') +
+      (contrib.text  ? `Note:\n${contrib.text}\n\n` : '') +
+      (contrib.link  ? `Link: ${contrib.link}\n` : '');
+    if (church?.contactEmail) return `mailto:${church.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return church?.links?.stayConnected || church?.site || '#';
+  };
+
+  const markContributionSent = (id) => {
+    const at = new Date().toISOString();
+    setContributions(prev => prev.map(c => c.id === id ? { ...c, sentAt: at } : c));
+  };
+
+  const deleteContribution = (id) => {
+    setContributions(prev => prev.filter(c => c.id !== id));
+  };
+
   const c = church || {};
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
@@ -3683,6 +3793,154 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
           {c.site && <a href={c.site} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Visit Church Site →</a>}
           {c.links?.about && <a href={c.links.about} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">About Us →</a>}
         </div>
+      </section>
+
+      {/* ADD YOUR VOICE — interactive contribution input (2026-05-25 per Darrell)
+          Below the church-identity "ad" and above the Service Times block.
+          Parishioners speak (Web Speech API), paste a link, and/or type a note
+          about anything they see on this tab. Logged locally; sent to the
+          church office via the user's email client when they tap Send. */}
+      <section aria-labelledby="contrib-h" className="bg-white border-2 border-[#B85838] p-4">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+          <h3 id="contrib-h" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Add Your Voice · Speak or Share a Link</h3>
+          <button type="button" onClick={() => { setShowContribForm(!showContribForm); setContribError(''); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showContribForm ? '× Cancel' : '+ Add a note'}</button>
+        </div>
+        <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Drop in a voice note or paste a link about anything you see on this tab — today's sermon, an article worth sharing, a question for leadership, a ministry idea. Logged on your device; send to the church office when you're ready.
+        </p>
+
+        {showContribForm && (
+          <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
+            <div>
+              <label htmlFor="contrib-topic" className={labelCls}>What's this about? (optional)</label>
+              <input
+                id="contrib-topic"
+                className={fieldCls}
+                placeholder="e.g., Today's sermon · Building fund · Ministry idea"
+                value={contribForm.topic}
+                onChange={e => setContribForm({ ...contribForm, topic: e.target.value })}
+              />
+            </div>
+            <div>
+              <label htmlFor="contrib-text" className={labelCls}>Your note (type or speak)</label>
+              <textarea
+                id="contrib-text"
+                rows="3"
+                className={fieldCls}
+                placeholder="Type here, or tap the mic to speak."
+                value={contribForm.text}
+                onChange={e => setContribForm({ ...contribForm, text: e.target.value })}
+              />
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <button
+                  type="button"
+                  onClick={toggleSpeech}
+                  aria-pressed={isListening}
+                  aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+                  disabled={!speechSupported}
+                  className={`text-xs uppercase tracking-wider px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${
+                    isListening
+                      ? 'bg-[#B85838] text-white border-[#B85838] animate-pulse'
+                      : speechSupported
+                        ? 'border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white'
+                        : 'border-[#E8E4DC] text-[#5A5751] opacity-60 cursor-not-allowed'
+                  }`}
+                >
+                  {isListening ? '⏹ Stop' : '🎤 Speak'}
+                </button>
+                {!speechSupported && (
+                  <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Voice input not available in this browser — type your note instead.
+                  </span>
+                )}
+                {isListening && (
+                  <span className="text-[10px] text-[#B85838] uppercase tracking-wider" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    listening…
+                  </span>
+                )}
+              </div>
+            </div>
+            <div>
+              <label htmlFor="contrib-link" className={labelCls}>Or paste a link</label>
+              <input
+                id="contrib-link"
+                type="url"
+                className={fieldCls}
+                placeholder="https://…"
+                value={contribForm.link}
+                onChange={e => setContribForm({ ...contribForm, link: e.target.value })}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={submitContribution}
+              className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              Save Note
+            </button>
+            {contribError && (
+              <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                {contribError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {contributions.length > 0 && (
+          <div className="mt-3 border border-[#1A1815]">
+            {contributions.map((entry, i, arr) => (
+              <div key={entry.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {entry.createdAt.slice(0, 10)}{entry.topic ? ` · ${entry.topic}` : ''}
+                    </div>
+                    {entry.text && (
+                      <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{entry.text}</div>
+                    )}
+                    {entry.link && (
+                      <div className="text-xs mt-0.5">
+                        <a
+                          href={entry.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline text-[#B85838] hover:text-[#1A1815] break-all"
+                        >
+                          {entry.link}
+                        </a>
+                      </div>
+                    )}
+                    <div className="text-[10px] uppercase tracking-wider mt-1 text-[#5A5751]">
+                      {entry.sentAt ? `✓ sent ${entry.sentAt.slice(0, 10)}` : 'private (on this device)'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {!entry.sentAt && (
+                      <a
+                        href={mailtoForContribution(entry)}
+                        target={c.contactEmail ? '_self' : '_blank'}
+                        rel="noopener noreferrer"
+                        onClick={() => markContributionSent(entry.id)}
+                        className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] inline-flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      >
+                        Send →
+                      </a>
+                    )}
+                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
+                    <button
+                      type="button"
+                      onClick={() => { if (confirm('Delete this note?')) deleteContribution(entry.id); }}
+                      aria-label="Delete this note"
+                      className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* SERVICE TIMES + SAVE TO CALENDAR */}
