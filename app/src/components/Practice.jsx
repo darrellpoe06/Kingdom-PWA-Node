@@ -21,10 +21,10 @@ const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a
 // constants below match the disclosure so the formula and the displayed
 // assumption stay in sync. Christina is the right judge of any future
 // adjustment; these defaults match what was always shown to the user.
-const RATE_PER_SESSION = 150;
-const SESSIONS_PER_WEEK = 1;
-const ACTIVE_WEEKS_PER_YEAR = 48;
-const ANNUAL_REVENUE_PER_CLIENT = RATE_PER_SESSION * SESSIONS_PER_WEEK * ACTIVE_WEEKS_PER_YEAR; // = $7,200
+export const RATE_PER_SESSION = 150;
+export const SESSIONS_PER_WEEK = 1;
+export const ACTIVE_WEEKS_PER_YEAR = 48;
+export const ANNUAL_REVENUE_PER_CLIENT = RATE_PER_SESSION * SESSIONS_PER_WEEK * ACTIVE_WEEKS_PER_YEAR; // = $7,200
 
 const INQUIRY_STATUSES = [
   { key: 'new',                label: 'New',              color: 'rust',    group: 'active' },

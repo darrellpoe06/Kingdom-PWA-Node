@@ -18,6 +18,7 @@ import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib
 import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
 import { Queue } from './components/Queue.jsx';
+import { computeReserves } from './lib/financial-calcs.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -523,7 +524,7 @@ function ensureLifecycle(item, by = 'system') {
     },
   };
 }
-function frequencyToMonthly(amount, frequency) { switch (frequency) { case 'monthly': return amount; case 'quarterly': return amount / 3; case 'semi-annual': return amount / 6; case 'annual': return amount / 12; case 'biennial': return amount / 24; default: return 0; } }
+export function frequencyToMonthly(amount, frequency) { switch (frequency) { case 'monthly': return amount; case 'quarterly': return amount / 3; case 'semi-annual': return amount / 6; case 'annual': return amount / 12; case 'biennial': return amount / 24; default: return 0; } }
 
 // =============================================================================
 // CONNECTED-CONTEXT helpers (r36) — per /docs/00-foundations/_root/CONNECTED-CONTEXT.md
@@ -634,7 +635,7 @@ function relativeWhen(eventDate) {
   return `in ${Math.round(diffMin / 43200)}mo`;
 }
 
-function projectDebt(debts, monthlyExtraAvailable, currentDate, maxMonths = 240) {
+export function projectDebt(debts, monthlyExtraAvailable, currentDate, maxMonths = 240) {
   let activeDebts = debts.filter((d) => !d.leaveAlone).map((d) => ({ ...d, currentBalance: d.balance, clearedAtMonth: null }));
   const projection = []; let totalInterestPaid = 0;
   for (let m = 1; m <= maxMonths; m++) {
@@ -651,7 +652,7 @@ function projectDebt(debts, monthlyExtraAvailable, currentDate, maxMonths = 240)
 }
 
 // v12: Debt snowball with sort strategy and cascade tracking — mirrors rental snowball architecture
-function projectDebtSnowball(debts, monthlyExtra, sortOrder, currentDate, maxMonths = 360) {
+export function projectDebtSnowball(debts, monthlyExtra, sortOrder, currentDate, maxMonths = 360) {
   let active = debts.filter(d => !d.leaveAlone).map(d => ({ id: d.id, name: d.name, rate: d.rate, minPayment: d.minPayment, originalBalance: d.balance, currentBalance: d.balance, clearedAtMonth: null, interestPaid: 0, flag: d.flag, entityId: d.entityId }));
 
   function sortQueue(list) {
@@ -726,7 +727,7 @@ function projectDebtSnowball(debts, monthlyExtra, sortOrder, currentDate, maxMon
 }
 
 // v12: Minimum-only baseline for interest-saved comparison
-function projectDebtMinimumOnly(debts, currentDate, maxMonths = 600) {
+export function projectDebtMinimumOnly(debts, currentDate, maxMonths = 600) {
   let active = debts.filter(d => !d.leaveAlone).map(d => ({ id: d.id, currentBalance: d.balance, originalBalance: d.balance, rate: d.rate, minPayment: d.minPayment, clearedAtMonth: null, interestPaid: 0, stuck: false }));
 
   for (let m = 1; m <= maxMonths; m++) {
@@ -755,7 +756,7 @@ function projectDebtMinimumOnly(debts, currentDate, maxMonths = 600) {
 }
 
 
-function projectRentalSnowball(rentals, monthlyExtra, sortOrder, currentDate, maxMonths = 240) {
+export function projectRentalSnowball(rentals, monthlyExtra, sortOrder, currentDate, maxMonths = 240) {
   let active = rentals.map(r => ({ id: r.id, name: r.name, rent: r.rent, currentBalance: r.mortgage.balance, originalBalance: r.mortgage.balance, rate: r.mortgage.rate, monthlyPI: r.mortgage.monthlyPI, escrow: r.mortgage.escrow, clearedAtMonth: null, interestPaid: 0 }));
   function sortQueue(list) { return [...list].filter(r => r.currentBalance > 0).sort((a, b) => { if (sortOrder === 'smallest-balance') return a.currentBalance - b.currentBalance; if (sortOrder === 'highest-rate') return b.rate - a.rate; if (sortOrder === 'best-cashflow') return (b.rent - b.monthlyPI - b.escrow) - (a.rent - a.monthlyPI - a.escrow); return a.currentBalance - b.currentBalance; }); }
   const monthlyHistory = []; let freedFromSnowball = 0;
@@ -771,7 +772,7 @@ function projectRentalSnowball(rentals, monthlyExtra, sortOrder, currentDate, ma
   return { monthlyHistory, allClearedMonth: monthlyHistory.length, allClearedYears: monthlyHistory.length / 12, allClearedDate: monthLabel(currentDate, monthlyHistory.length), activeProperties: active, totalInterest: Math.round(active.reduce((s, r) => s + r.interestPaid, 0)), finalFreedCashFlow: Math.round(freedFromSnowball) };
 }
 
-function findExtraForTarget(rentals, targetYears, currentDate) {
+export function findExtraForTarget(rentals, targetYears, currentDate) {
   let lo = 0, hi = 50000, bestExtra = hi;
   for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; const result = projectRentalSnowball(rentals, mid, 'smallest-balance', currentDate, targetYears * 12 + 24); if (result.allClearedYears <= targetYears) { bestExtra = mid; hi = mid; } else { lo = mid; } if (hi - lo < 50) break; }
   return Math.ceil(bestExtra);
@@ -1183,28 +1184,10 @@ export default function PoeFinancialSystem() {
     return { salaryActual, rentalActual, rentalExpected, rentGap, collectionRate, totalInflow, totalOutflow, netCashFlow, totalConsumerDebt, totalRentalDebt, totalRentalPI, totalPersonalRealEstateDebt, totalPersonalRealEstatePI, totalOpportunity, totalOppHours, allAccountsCash };
   }, [data]);
 
-  const reserves = useMemo(() => {
-    const recurringMonthly = data.recurringObligations.filter(r => r.enabled && r.frequency !== 'monthly').reduce((s, r) => s + frequencyToMonthly(r.amount, r.frequency), 0);
-    const taxItemsAnnual = data.taxCalendar.filter(t => t.applies && t.amount).reduce((s, t) => s + t.amount, 0);
-    // FLAG-10 fix (2026-05-24, CALC-INVENTORY.md): incidents are one-time
-    // events, not perpetual monthly drains. Previously `incidentMonthly` was
-    // computed as Σ incident.amount and added to `totalMonthly`, which meant
-    // every logged incident silently and permanently reduced the pressure
-    // slider's extra-available figure, biasing the debt-free projection
-    // pessimistic by the full incidents total per month forever. Incidents
-    // now contribute 0 to monthly reserves; they remain visible in the
-    // incidents list and Calendar for record-keeping. If a future incident
-    // is genuinely a multi-month drain (e.g., a $3k roof repaired over 6
-    // months), model it as a recurring obligation with `monthly` frequency
-    // and a defined end-date, not as a free-standing incident. A future
-    // enhancement will add `repayMonths` / `paidDate` to the incident model.
-    return {
-      recurringMonthly,
-      taxMonthly: taxItemsAnnual / 12,
-      incidentMonthly: 0,
-      totalMonthly: recurringMonthly + taxItemsAnnual / 12,
-    };
-  }, [data]);
+  // Reserves math extracted into computeReserves (app/src/lib/financial-calcs.js)
+  // so Pass 2 of the financial audit can unit-test it directly. See FLAG-10
+  // fix in CALC-INVENTORY.md for why incidents contribute 0 to totalMonthly.
+  const reserves = useMemo(() => computeReserves(data), [data]);
 
   const pressureCalc = useMemo(() => {
     const map = data.pressureMappings[pressure];
