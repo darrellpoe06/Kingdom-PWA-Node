@@ -31,7 +31,6 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   // Fail loud during dev so a missing .env.local is caught immediately,
   // not silently as "Royalty Link clicks don't work."
-  // eslint-disable-next-line no-console
   console.error(
     '[supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. ' +
     'Check app/.env.local — see infra/supabase/README.md for the layout.'

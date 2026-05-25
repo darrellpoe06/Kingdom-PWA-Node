@@ -12,6 +12,9 @@ import { Inbound } from './components/Inbound.jsx';
 import { Rentals } from './components/Rentals.jsx';
 import { ProjectsWrapper, DateField } from './components/Projects.jsx';
 import { Opportunities } from './components/DevOps.jsx';
+import AuthBanner from './components/AuthBanner.jsx';
+import { onAuthChange } from './lib/supabase.js';
+import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -852,6 +855,14 @@ export default function PoeFinancialSystem() {
   const firedRemindersRef = useRef(new Set());
   const currentDate = useMemo(() => new Date(2026, 4, 15), []);
 
+  // Layer 2 — cross-device feedback sync. Local feedback (data.feedback)
+  // stays in localStorage; remote-authored feedback from other devices
+  // lives in this separate state slice and gets merged into the array
+  // passed to About.jsx. We deliberately do NOT mirror remote items into
+  // data.feedback because the storage save effect would then persist
+  // them to localStorage too, duplicating data.
+  const [remoteFeedback, setRemoteFeedback] = useState([]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -918,6 +929,29 @@ export default function PoeFinancialSystem() {
     if (!loaded) return;
     (async () => { try { await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme })); } catch (e) { console.error('Storage failed', e); } })();
   }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded]);
+
+  // Layer 2 — auth + feedback sync wiring.
+  // On every auth state change: tear down any prior subscription, then
+  // if newly signed in, ensure tenant membership (calls our SECURITY
+  // DEFINER join_default_tenant() RPC, idempotent) and subscribe to
+  // feedback from other users in the tenant. Signed-out state clears
+  // the remote slice so users don't see stale cross-device data.
+  useEffect(() => {
+    let unsubscribeFeedback = null;
+    const cleanupAuth = onAuthChange((session) => {
+      if (unsubscribeFeedback) { unsubscribeFeedback(); unsubscribeFeedback = null; }
+      if (!session) {
+        setRemoteFeedback([]);
+        return;
+      }
+      ensureTenantMembership().catch(e => console.warn('[auth] tenant join failed', e));
+      unsubscribeFeedback = subscribeFeedback((items) => setRemoteFeedback(items));
+    });
+    return () => {
+      cleanupAuth();
+      if (unsubscribeFeedback) unsubscribeFeedback();
+    };
+  }, []);
 
   // v7: Reminder checking loop — fires browser notifications for upcoming events
   useEffect(() => {
@@ -1036,7 +1070,10 @@ export default function PoeFinancialSystem() {
   const updateEntity = (id, updates) => setData(d => ({ ...d, entities: (d.entities || []).map(e => e.id === id ? { ...e, ...updates } : e) }));
   const deleteSubscription = (id) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).filter(s => s.id !== id) }));
   // Feedback — seeded with lifecycle so the new → reviewed → planned → shipped flow has an audit trail.
-  const addFeedback = (item) => setData(d => {
+  // Layer 2: after the local setData, fire-and-forget uploadFeedback so
+  // other signed-in family/church devices see it. Upload no-ops when
+  // signed out, so the local-only path is unchanged for guest users.
+  const addFeedback = (item) => {
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'new';
     const seeded = {
@@ -1051,8 +1088,9 @@ export default function PoeFinancialSystem() {
         log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: 'feedback submitted' }],
       },
     };
-    return { ...d, feedback: [...(d.feedback || []), seeded] };
-  });
+    setData(d => ({ ...d, feedback: [...(d.feedback || []), seeded] }));
+    uploadFeedback(seeded, { activeTab: view, appVersion: data.meta?.appVersion });
+  };
   const deleteFeedback = (id) => setData(d => ({ ...d, feedback: (d.feedback || []).filter(f => f.id !== id) }));
   const dismissWelcome = () => setData(d => ({ ...d, welcomeDismissed: true }));
   const deleteRecurring = (id) => setData(d => ({ ...d, recurringObligations: d.recurringObligations.filter(r => r.id !== id) }));
@@ -1312,6 +1350,8 @@ html{scroll-padding-bottom:280px}
         Projections, not promises · Verify with licensed professionals
       </div>
 
+      <AuthBanner />
+
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
@@ -1490,7 +1530,7 @@ html{scroll-padding-bottom:280px}
             />
           : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
-        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={data.feedback || []} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} />}
+        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} />}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
@@ -2314,9 +2354,9 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
           <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
             <div className="min-w-0">
               <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">MVP v1.0 · Welcome</div>
-              <h2 className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Welcome, Christina.</h2>
+              <h2 className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Welcome to Your PoeTech Family OS.</h2>
               <p className="text-base leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                This is the PoeTech Family OS — our family's stronghold for stewardship, work, and ministry made visible. Sample data is loaded so you can see how everything connects before importing real numbers.
+                A family's stronghold for stewardship, work, and ministry made visible. Sample data is loaded so you can see how everything connects before importing real numbers.
               </p>
             </div>
             <button type="button" onClick={dismissWelcome} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] shrink-0">× Dismiss</button>
