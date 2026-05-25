@@ -15,6 +15,7 @@ import { Opportunities } from './components/DevOps.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import { onAuthChange } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
+import { entitiesSync } from './lib/entities-sync.js';
 import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
 import { Queue } from './components/Queue.jsx';
@@ -935,27 +936,68 @@ export default function PoeFinancialSystem() {
   }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded]);
 
   // Layer 2 — auth + feedback sync wiring.
-  // On every auth state change: tear down any prior subscription, then
+  // On every auth state change: tear down any prior subscriptions, then
   // if newly signed in, ensure tenant membership (calls our SECURITY
-  // DEFINER join_default_tenant() RPC, idempotent) and subscribe to
-  // feedback from other users in the tenant. Signed-out state clears
-  // the remote slice so users don't see stale cross-device data.
+  // DEFINER join_default_tenant() RPC, idempotent), do initial-sync for
+  // tables that don't need the verify-balances gate (entities only for
+  // now — see memory/project_full-data-sync-next-priority), and subscribe
+  // to inbound changes from other devices.
+  //
+  // Signed-out state clears the remote slice so users don't see stale
+  // cross-device data.
   useEffect(() => {
     let unsubscribeFeedback = null;
-    const cleanupAuth = onAuthChange((session) => {
+    let unsubscribeEntities = null;
+    const cleanupAuth = onAuthChange(async (session) => {
       if (unsubscribeFeedback) { unsubscribeFeedback(); unsubscribeFeedback = null; }
+      if (unsubscribeEntities) { unsubscribeEntities(); unsubscribeEntities = null; }
       if (!session) {
         setRemoteFeedback([]);
         return;
       }
-      ensureTenantMembership().catch(e => console.warn('[auth] tenant join failed', e));
+      try {
+        await ensureTenantMembership();
+      } catch (e) {
+        console.warn('[auth] tenant join failed', e);
+        return;
+      }
       unsubscribeFeedback = subscribeFeedback((items) => setRemoteFeedback(items));
+
+      // Entities sync (no verify-gate needed — no load-bearing numbers).
+      // Initial sync uploads any local entities not yet in Supabase, then
+      // pulls the merged set. Realtime subscription keeps subsequent edits
+      // from other devices flowing in.
+      try {
+        const localEntities = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__)
+          ? (window.__POETECH_LATEST_DATA__.entities || [])
+          : [];
+        const result = await entitiesSync.initialSync(localEntities);
+        if (result && result.merged) {
+          setData(d => ({ ...d, entities: result.merged }));
+        }
+      } catch (e) {
+        console.warn('[auth] entities initial sync failed', e);
+      }
+      unsubscribeEntities = entitiesSync.subscribe((items) => {
+        setData(d => ({ ...d, entities: items }));
+      });
     });
     return () => {
       cleanupAuth();
       if (unsubscribeFeedback) unsubscribeFeedback();
+      if (unsubscribeEntities) unsubscribeEntities();
     };
   }, []);
+
+  // Stash the latest data on window so the auth effect (which has [] deps
+  // and therefore captures only the initial closure) can read the current
+  // local entities at sign-in time. Avoids putting `data` in deps which
+  // would re-run the auth wiring on every change.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__POETECH_LATEST_DATA__ = data;
+    }
+  }, [data]);
 
   // v7: Reminder checking loop — fires browser notifications for upcoming events
   useEffect(() => {
@@ -1071,7 +1113,20 @@ export default function PoeFinancialSystem() {
   const updateContractor = (id, updates) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c) }));
   const deleteContractor = (id) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).filter(c => c.id !== id) }));
   // r30 — Entity update (no delete: entities are referenced by accounts/debts/contractors/transactions; orphan risk).
-  const updateEntity = (id, updates) => setData(d => ({ ...d, entities: (d.entities || []).map(e => e.id === id ? { ...e, ...updates } : e) }));
+  const updateEntity = (id, updates) => {
+    setData(d => ({ ...d, entities: (d.entities || []).map(e => e.id === id ? { ...e, ...updates } : e) }));
+    // Layer 2 sync — fire-and-forget push to Supabase. The local update
+    // already landed via setData; if the remote update fails, the next
+    // initial-sync on next sign-in will reconcile.
+    const local = (data.entities || []).find(e => e.id === id);
+    if (local && local.remoteUuid) {
+      const patch = {};
+      if (updates.name !== undefined) patch.display_name = updates.name;
+      if (updates.type !== undefined) patch.entity_type = updates.type;
+      if (updates.notes !== undefined) patch.notes = updates.notes;
+      entitiesSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[entities-sync] update failed', e));
+    }
+  };
   const deleteSubscription = (id) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).filter(s => s.id !== id) }));
   // Feedback — seeded with lifecycle so the new → reviewed → planned → shipped flow has an audit trail.
   // Layer 2: after the local setData, fire-and-forget uploadFeedback so
