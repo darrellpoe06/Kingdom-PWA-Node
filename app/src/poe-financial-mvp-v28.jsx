@@ -1161,7 +1161,16 @@ export default function PoeFinancialSystem() {
   const deleteIncident = (id) => setData(d => ({ ...d, incidents: d.incidents.filter(i => i.id !== id) }));
   const deleteEvent = (id) => setData(d => ({ ...d, events: (d.events || []).filter(e => e.id !== id) }));
   // v28+ Session A: Accounts CRUD
-  const addAccount = (item) => setData(d => ({ ...d, accounts: [...(d.accounts || []), { ...item, id: `a-${Date.now()}`, balance: parseFloat(item.balance) || 0 }] }));
+  const addAccount = (item) => setData(d => ({ ...d, accounts: [...(d.accounts || []), { ...item, id: `a-${Date.now()}`, balance: parseFloat(item.balance) || 0, inLegal: !!item.inLegal }] }));
+  // 2026-05-24 — Move-to-Legal toggle: flips inLegal on an account, which
+  // removes it from cash totals and the Accounts tab and surfaces it in the
+  // Legal tab. Reversible; Legal tab has a Restore button that calls back
+  // through updateAccount with inLegal: false.
+  const toggleAccountLegal = (id) => {
+    const a = (data.accounts || []).find(x => x.id === id);
+    if (!a) return;
+    updateAccount(id, { inLegal: !a.inLegal });
+  };
   const updateAccount = (id, updates) => setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === id ? { ...a, ...updates, balance: updates.balance !== undefined ? parseFloat(updates.balance) || 0 : a.balance } : a) }));
   const deleteAccount = (id) => setData(d => ({ ...d, accounts: (d.accounts || []).filter(a => a.id !== id) }));
   // v28+ Session A: Transactions CRUD
@@ -1232,10 +1241,12 @@ export default function PoeFinancialSystem() {
     const totalOpportunity = data.opportunities.reduce((s, o) => s + o.monthly, 0);
     const totalOppHours = data.opportunities.reduce((s, o) => s + o.hours, 0);
     // Cash on hand — spendable balances only (checking + savings + cash + investment).
-    // Excludes credit cards and loans (those are debts, not cash). Used by the
-    // Debt Snowball "Baseline" affordance to anchor the slider in reality.
+    // Excludes credit cards and loans (those are debts, not cash). Also excludes
+    // accounts flagged inLegal (per Darrell 2026-05-24): those are "out of the
+    // financial picture" — disputed, frozen, under probate, etc. They surface
+    // in the Legal tab instead.
     const CASH_TYPES = ['checking','savings','cash','investment'];
-    const allAccountsCash = (data.accounts || []).filter(a => CASH_TYPES.includes(a.type)).reduce((s, a) => s + (a.balance || 0), 0);
+    const allAccountsCash = (data.accounts || []).filter(a => CASH_TYPES.includes(a.type) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
     return { salaryActual, rentalActual, rentalExpected, rentGap, collectionRate, totalInflow, totalOutflow, netCashFlow, totalConsumerDebt, totalRentalDebt, totalRentalPI, totalPersonalRealEstateDebt, totalPersonalRealEstatePI, totalOpportunity, totalOppHours, allAccountsCash };
   }, [data]);
 
@@ -1266,18 +1277,29 @@ export default function PoeFinancialSystem() {
   //   · balance       = retained as the FULL sum for back-compat (anything that
   //                     used to read .balance still gets the old number), but
   //                     Cash UI tiles now read .cashBalance.
-  const entityRollups = useMemo(() => data.entities.map(entity => {
-    const accounts = data.accounts.filter(a => a.entityId === entity.id);
-    const isCash = (a) => ['checking','savings','cash','investment'].includes(a.type);
-    const isCredit = (a) => a.type === 'credit' || a.type === 'loan';
-    const cashBalance = accounts.filter(isCash).reduce((s, a) => s + (a.balance || 0), 0);
-    const creditBalance = accounts.filter(isCredit).reduce((s, a) => s + (a.balance || 0), 0);
-    const balance = accounts.reduce((s, a) => s + (a.balance || 0), 0); // legacy total
-    const inflow = [...data.inflows.salaries.filter(s => s.entityId === entity.id).map(s => s.actual), ...data.inflows.rentals.filter(r => r.entityId === entity.id).map(r => r.actual)].reduce((s, x) => s + x, 0);
-    const debts = data.debts.filter(d => d.entityId === entity.id);
-    const debtBalance = debts.reduce((s, d) => s + d.balance, 0);
-    return { entity, accounts, balance, cashBalance, creditBalance, inflow, debts, debtBalance };
-  }), [data]);
+  const entityRollups = useMemo(() => {
+    // 2026-05-24 — sort entities so personal types render first, then business
+    // types. Keeps the Accounts tab's "your money first" ordering aligned with
+    // the entity grouping. Within each type, preserve insertion order.
+    const sortedEntities = [...data.entities].sort((a, b) => {
+      if (a.type === b.type) return 0;
+      return a.type === 'personal' ? -1 : 1;
+    });
+    return sortedEntities.map(entity => {
+      const accounts = data.accounts.filter(a => a.entityId === entity.id);
+      const isCash = (a) => ['checking','savings','cash','investment'].includes(a.type);
+      const isCredit = (a) => a.type === 'credit' || a.type === 'loan';
+      // inLegal accounts are out of the financial picture (per Darrell 2026-05-24).
+      // They still belong to the entity but don't contribute to cash/credit totals.
+      const cashBalance = accounts.filter(a => isCash(a) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
+      const creditBalance = accounts.filter(a => isCredit(a) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
+      const balance = accounts.filter(a => !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0); // legacy total
+      const inflow = [...data.inflows.salaries.filter(s => s.entityId === entity.id).map(s => s.actual), ...data.inflows.rentals.filter(r => r.entityId === entity.id).map(r => r.actual)].reduce((s, x) => s + x, 0);
+      const debts = data.debts.filter(d => d.entityId === entity.id);
+      const debtBalance = debts.reduce((s, d) => s + d.balance, 0);
+      return { entity, accounts, balance, cashBalance, creditBalance, inflow, debts, debtBalance };
+    });
+  }, [data]);
 
   const flaggedRentals = data.inflows.rentals.filter((r) => r.status === 'late' && (r.rent || 0) > 0);
   const flaggedOpportunities = data.opportunities.filter((o) => o.flag);
@@ -1506,13 +1528,13 @@ html{scroll-padding-bottom:280px}
         {view === 'books' && (
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
-            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} />}
+            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} />}
             {booksView === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
             {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} />}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
-            {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} />}
+            {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} />}
           </>
         )}
         {view === 'inbound' && <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />}
@@ -3823,7 +3845,7 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
 
 const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'loan', 'investment', 'cash', 'other'];
 
-function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {} }) {
+function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, toggleAccountLegal, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {} }) {
   // v28+ MVP v1.5 round 4 — Buffer target editing is deliberate (modal-style),
   // current balance is slider-driven (continuous, live feedback).
   const [editingTarget, setEditingTarget] = useState(false);
@@ -3861,9 +3883,9 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
   // its meaning ("liquid reserve set aside") sits next to the actual liquid
   // balance figure rather than the big-picture summary.
   const allAccounts = entityRollups.flatMap(r => r.accounts || []);
-  const liquidTotal = allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type)).reduce((s, a) => s + (a.balance || 0), 0);
-  const creditTotal = allAccounts.filter(a => a.type === 'credit' || a.type === 'loan').reduce((s, a) => s + (a.balance || 0), 0);
-  const debtAccountsCount = allAccounts.filter(a => a.type === 'credit' || a.type === 'loan').length;
+  // 2026-05-24: liquid = cash types AND not in legal. Credit cards and loans
+  // no longer surface on this tab; their totals live on the Debts page.
+  const liquidTotal = allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
   // Round 8 — netWorth no longer surfaced in the top card; net-position view
   // moves to the Big Picture dashboard where it belongs alongside debt totals.
   const bufferPct = bufferTarget > 0 ? Math.min(100, Math.round((bufferCurrent / bufferTarget) * 100)) : 0;
@@ -3891,11 +3913,11 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
           <h2 id="all-accounts-total-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">All Accounts · Total Cash</h2>
           <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Spendable: checking + savings + cash + investments.</p>
           <div className="mt-3 flex items-baseline justify-between">
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type)).length} cash accounts</div>
+            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal).length} cash accounts</div>
             <div className={`text-3xl ${liquidTotal < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>{fmt(liquidTotal)}</div>
           </div>
           <p className="text-[10px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
-            Credit cards and loans are tracked separately below — they're not cash you can spend, so mixing them here distorted the math.
+            Credit cards and loans live on the <strong>Debts</strong> tab. Accounts under legal hold live in the <strong>Legal</strong> tab. Both are excluded from this cash total.
           </p>
         </div>
 
@@ -4039,33 +4061,19 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
         )}
       </section>
 
-      {/* Round 8 — Debt Accounts Total summary card (only shown if any debts exist).
-          Moved here from the All Accounts Total area at the top so cash and debt
-          are clearly separated. Per-entity drill-down follows below. */}
-      {debtAccountsCount > 0 && (
-        <section aria-labelledby="debt-accounts-total-h" className="bg-[#FAF8F4] border border-[#1A1815] p-4 sm:p-5">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <div>
-              <h2 id="debt-accounts-total-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Debt Accounts · Total</h2>
-              <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Credit cards + loans across all entities. Detailed payoff strategy lives in the <strong>Debts</strong> tab.</p>
-            </div>
-            <div className="text-right">
-              <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{debtAccountsCount} debt {debtAccountsCount === 1 ? 'account' : 'accounts'}</div>
-              <div className={`text-2xl ${creditTotal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>{fmt(creditTotal)}</div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Round 4 — Bank accounts are PRIMARY (top, prominent border + larger heading).
-          Credit cards & loans are SECONDARY (below, lighter treatment) so the eye
-          lands on the cash that's actually available to spend, not the debt. */}
+      {/* 2026-05-24 reorg per Darrell:
+          - Credit cards + loans are removed from this tab entirely. They live on
+            the Debts page now (their primary identity is "debt," not "account").
+          - The Debt Accounts Total card that used to live here is gone for the
+            same reason.
+          - Accounts flagged inLegal don't surface here either — they live in
+            the Legal tab and are excluded from cash totals.
+          - Entity rendering order is personal-first → business-second (handled
+            upstream in entityRollups). */}
       {entityRollups.map(r => {
-        const bankAccounts = r.accounts.filter(a => ['checking','savings','cash','investment'].includes(a.type));
-        const creditAccounts = r.accounts.filter(a => ['credit','loan'].includes(a.type));
-        const otherAccounts = r.accounts.filter(a => !['checking','savings','cash','investment','credit','loan'].includes(a.type));
+        // Bank accounts only (cash types), and only those NOT in legal status.
+        const bankAccounts = r.accounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal);
         const bankTotal = bankAccounts.reduce((s, a) => s + (a.balance || 0), 0);
-        const creditTotal = creditAccounts.reduce((s, a) => s + (a.balance || 0), 0);
         const renderRow = (a, i, arr) => (
           <div key={a.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
             <div className="flex justify-between items-baseline gap-3 flex-wrap">
@@ -4077,8 +4085,11 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
               </div>
               <div className={`text-right ${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div>
             </div>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
               <button type="button" onClick={() => editingId === a.id ? cancel() : startEdit(a)} aria-expanded={editingId === a.id} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingId === a.id ? '× Cancel edit' : '✎ Edit'}</button>
+              {toggleAccountLegal && (
+                <button type="button" onClick={() => { if (confirm(`Move "${a.name}" to Legal? It will be removed from cash totals and surface in the Legal tab. You can restore it from there.`)) toggleAccountLegal(a.id); }} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">🔒 Move to Legal</button>
+              )}
               <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
               <button type="button" onClick={() => confirmDelete(a)} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
             </div>
@@ -4129,32 +4140,10 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
               )}
             </div>
 
-            {/* SECONDARY: Credit Cards & Loans */}
-            {creditAccounts.length > 0 && (
-              <div>
-                <div className="flex items-baseline justify-between mb-1.5">
-                  <h4 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">💳 Credit Cards &amp; Loans <span className="text-[9px] normal-case font-normal italic">· secondary</span></h4>
-                  <div className={`text-xs ${creditTotal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{creditAccounts.length} · {fmt(creditTotal)}</div>
-                </div>
-                <div className="bg-white border border-[#E8E4DC]">
-                  {creditAccounts.map((a, i) => renderRow(a, i, creditAccounts))}
-                </div>
-              </div>
-            )}
-
-            {/* OTHER (cash/other types) — only if present */}
-            {otherAccounts.length > 0 && (
-              <div>
-                <h4 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1.5">Other Accounts</h4>
-                <div className="bg-white border border-[#E8E4DC]">
-                  {otherAccounts.map((a, i) => renderRow(a, i, otherAccounts))}
-                </div>
-              </div>
-            )}
-
-            {r.accounts.length === 0 && (
-              <div className="bg-white border border-[#E8E4DC] p-3 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No accounts yet for this entity. Use + Add account above.</div>
-            )}
+            {/* 2026-05-24: Credit Cards & Loans removed from this tab. They
+                live on the Debts page now. The Move-to-Legal button on each
+                bank-account row sends an account to the Legal tab if it's in
+                dispute / probate / frozen / etc. */}
           </section>
         );
       })}

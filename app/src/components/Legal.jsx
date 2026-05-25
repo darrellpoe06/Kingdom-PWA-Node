@@ -4,13 +4,57 @@
 // export tool. Those are queued as tasks #94–#99. This file ships the visible
 // commitment now — tier-gated, with the four-scope structure named so users
 // see what's coming.
+//
+// 2026-05-24 — first real surface added: Accounts In Legal. Any account
+// flagged inLegal (via the Move-to-Legal button on the Accounts tab) shows
+// up here with a Restore button. These accounts are excluded from cash
+// totals on every other tab. Available at every tier — the encryption-
+// heavy legal-matters module remains gated.
 import React from 'react';
 
-export function LegalPlaceholder({ tier = 'foundation', setView }) {
+export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], entities = [], toggleAccountLegal }) {
   const unlockedTiers = new Set(['family', 'premium', 'business', 'loved-ones']);
   const unlocked = unlockedTiers.has(tier);
+  const legalAccounts = (accounts || []).filter(a => a.inLegal);
+  const entityName = (id) => (entities || []).find(e => e.id === id)?.name || id;
   return (
     <section className="space-y-4">
+      {/* Accounts In Legal — surfaced FIRST so the user lands on the actionable
+          surface. Empty state is informative, not loud. */}
+      <div className="bg-white border-2 border-[#5A6E3D] p-5">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] mb-2 font-semibold">🔒 Accounts In Legal · {legalAccounts.length}</div>
+        {legalAccounts.length === 0 ? (
+          <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            No accounts under legal hold right now. If an account becomes disputed, frozen, in probate, or otherwise out of normal financial flow, open it on the <strong>Accounts</strong> tab and tap <strong>🔒 Move to Legal</strong>. It will surface here and be excluded from cash totals everywhere else.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              These accounts are excluded from cash totals on every other tab. They remain in the data — balances, notes, history — but don't distort the financial picture while they're in legal limbo.
+            </p>
+            {legalAccounts.map(a => (
+              <div key={a.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{a.name}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">
+                      {a.institution} {a.fragment ? `· ${a.fragment}` : ''} · {a.type} · {entityName(a.entityId)}
+                    </div>
+                  </div>
+                  <div className={`text-right shrink-0 ${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{a.balance != null ? `$${Number(a.balance).toFixed(2)}` : '—'}</div>
+                </div>
+                {a.notes && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.notes}</p>}
+                {toggleAccountLegal && (
+                  <div className="mt-2">
+                    <button type="button" onClick={() => { if (confirm(`Restore "${a.name}" to the Accounts tab? Its balance will rejoin cash totals.`)) toggleAccountLegal(a.id); }} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">↩ Restore to Accounts</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="bg-white border-2 border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">🔒 Legal Matters · Confidential</div>
         <h2 className="text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Track legal work the right way</h2>
