@@ -1174,7 +1174,15 @@ export default function PoeFinancialSystem() {
       return merged;
     }),
   }));
-  const deleteProject = (id) => setData(d => ({ ...d, projects: (d.projects || []).filter(p => p.id !== id) }));
+  const deleteProject = (id) => {
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.projects || []).find(p => p.id === id);
+      if (local && local.remoteUuid) {
+        projectsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[projects-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, projects: (d.projects || []).filter(p => p.id !== id) }));
+  };
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
   // r25 — 1099 contractor CRUD per EDITABLE-EVERYWHERE.md.
@@ -1274,9 +1282,39 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, accounts: (d.accounts || []).filter(a => a.id !== id) }));
   };
   // v28+ Session A: Transactions CRUD
-  const addTransaction = (item) => setData(d => ({ ...d, transactions: [...(d.transactions || []), { ...item, id: `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 }] }));
-  const updateTransaction = (id, updates) => setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
-  const deleteTransaction = (id) => setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
+  const addTransaction = (item) => {
+    const seeded = { ...item, id: `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 };
+    setData(d => ({ ...d, transactions: [...(d.transactions || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      transactionsSync.upload(seeded).catch(e => console.warn('[transactions-sync] upload failed', e));
+    }
+  };
+  const updateTransaction = (id, updates) => {
+    setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.transactions || []).find(t => t.id === id);
+      if (local && local.remoteUuid) {
+        const patch = {};
+        if (updates.date !== undefined)           patch.txn_date = updates.date;
+        if (updates.accountId !== undefined)      patch.account_slug = updates.accountId;
+        if (updates.entityOverride !== undefined) patch.entity_override_slug = updates.entityOverride;
+        if (updates.amount !== undefined)         patch.amount = parseFloat(updates.amount) || 0;
+        if (updates.description !== undefined)    patch.description = updates.description;
+        if (updates.category !== undefined)       patch.category = updates.category;
+        if (updates.isTransfer !== undefined)     patch.is_transfer = !!updates.isTransfer;
+        transactionsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[transactions-sync] update failed', e));
+      }
+    }
+  };
+  const deleteTransaction = (id) => {
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.transactions || []).find(t => t.id === id);
+      if (local && local.remoteUuid) {
+        transactionsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[transactions-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
+  };
   // v28+ Rentals expansion: Rental property CRUD
   const addRental = (item) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), { ...item, id: `r-${Date.now()}` }] } }));
   const updateRental = (id, updates) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
