@@ -13,6 +13,18 @@ import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
 
+// FLAG-11 fix (2026-05-24, CALC-INVENTORY.md): pipeline-revenue formulas
+// were `clients × 150 × 12` which produces $1,800/client/year, but the
+// stated assumption shown to the user is "$150/session × 1 session/week ×
+// 48 weeks/year (~$7.2K/client/yr)". The math was 4× too low. Explicit
+// constants below match the disclosure so the formula and the displayed
+// assumption stay in sync. Christina is the right judge of any future
+// adjustment; these defaults match what was always shown to the user.
+const RATE_PER_SESSION = 150;
+const SESSIONS_PER_WEEK = 1;
+const ACTIVE_WEEKS_PER_YEAR = 48;
+const ANNUAL_REVENUE_PER_CLIENT = RATE_PER_SESSION * SESSIONS_PER_WEEK * ACTIVE_WEEKS_PER_YEAR; // = $7,200
+
 const INQUIRY_STATUSES = [
   { key: 'new',                label: 'New',              color: 'rust',    group: 'active' },
   { key: 'attempting-contact', label: 'Attempting contact', color: 'rust',  group: 'active' },
@@ -247,17 +259,17 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
           <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
             <div>
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Active pipeline</div>
-              <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact((stats.newCount + stats.inProgress) * (stats.conversionRate || 50) / 100 * 150 * 12)}</div>
+              <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact((stats.newCount + stats.inProgress) * (stats.conversionRate || 50) / 100 * ANNUAL_REVENUE_PER_CLIENT)}</div>
               <div className="text-[9px] sm:text-[10px] text-[#5A5751]">expected annual · at current conv</div>
             </div>
             <div>
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Converted clients</div>
-              <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact(stats.converted * 150 * 12)}</div>
+              <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact(stats.converted * ANNUAL_REVENUE_PER_CLIENT)}</div>
               <div className="text-[9px] sm:text-[10px] text-[#5A5751]">annual recurring est.</div>
             </div>
             <div>
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">If all active convert</div>
-              <div className="text-xl sm:text-3xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtCompact((stats.newCount + stats.inProgress) * 150 * 12)}</div>
+              <div className="text-xl sm:text-3xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtCompact((stats.newCount + stats.inProgress) * ANNUAL_REVENUE_PER_CLIENT)}</div>
               <div className="text-[9px] sm:text-[10px] text-[#5A5751]">upside</div>
             </div>
           </div>
