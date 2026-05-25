@@ -9,6 +9,7 @@
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
+import { Queue } from './Queue.jsx';
 
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -252,53 +253,10 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
         <MetricCell label="Conversion" value={stats.closed > 0 ? `${stats.conversionRate.toFixed(0)}%` : '—'} sub="of closed" small />
       </section>
 
-      {/* Revenue projection — assumptions made explicit, replaces actual data once Acuity sync is built */}
-      {stats.total > 0 && (
-        <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-3">Pipeline Revenue · Estimates (until Acuity sync is built)</div>
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
-            <div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Active pipeline</div>
-              <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact((stats.newCount + stats.inProgress) * (stats.conversionRate || 50) / 100 * ANNUAL_REVENUE_PER_CLIENT)}</div>
-              <div className="text-[9px] sm:text-[10px] text-[#5A5751]">expected annual · at current conv</div>
-            </div>
-            <div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Converted clients</div>
-              <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact(stats.converted * ANNUAL_REVENUE_PER_CLIENT)}</div>
-              <div className="text-[9px] sm:text-[10px] text-[#5A5751]">annual recurring est.</div>
-            </div>
-            <div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">If all active convert</div>
-              <div className="text-xl sm:text-3xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtCompact((stats.newCount + stats.inProgress) * ANNUAL_REVENUE_PER_CLIENT)}</div>
-              <div className="text-[9px] sm:text-[10px] text-[#5A5751]">upside</div>
-            </div>
-          </div>
-          <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
-            Assumptions: ~$150/session avg blended (insurance + self-pay), 1 session/week, 48 weeks/year (~$7.2K/client/yr). Estimates only until Acuity integration syncs actual booked + completed session data.
-          </p>
-        </section>
-      )}
-
-      {/* Source breakdown */}
-      {stats.bySource.length > 0 && (
-        <section className="bg-white border border-[#1A1815] p-4">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">By source</div>
-          <div className="space-y-1.5">
-            {stats.bySource.map(s => {
-              const pct = (s.count / stats.total) * 100;
-              return (
-                <div key={s.key}>
-                  <div className="flex justify-between text-xs mb-0.5">
-                    <span style={{ fontFamily: '"Fraunces", serif' }}>{s.label}</span>
-                    <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{s.count}</span>
-                  </div>
-                  <div className="h-1.5 bg-[#E8E4DC]"><div className="h-full bg-[#B85838]" style={{ width: `${pct}%` }}></div></div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* 2026-05-24: Inquiries section (the Queue + filters + new-inquiry
+          form) was moved up to here so the stats row above sits directly
+          adjacent to the queue. Pipeline Revenue + By Source breakdowns
+          moved below the queue (see further down). */}
 
       {/* Add inquiry */}
       <section>
@@ -428,17 +386,126 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
             </p>
           </div>
         ) : (
-          <div className="bg-white border border-[#1A1815]">
-            {visible.map((inq, i) => <InquiryRow key={inq.id} inq={inq} contractors={mswContractors} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} isLast={i === visible.length - 1} />)}
-          </div>
+          <Queue
+            title="Inquiries · Promote queue"
+            subtitle="Focused inquiry shows full detail (status, contact, conversation log). Browse the rest below; click any card to bring it into focus."
+            emoji="📞"
+            accent="#B85838"
+            items={visible}
+            getKey={(inq) => inq.id}
+            defaultPageSize={5}
+            pageSizeOptions={[5, 25, 50]}
+            renderFocus={(inq) => (
+              <InquiryRow
+                inq={inq}
+                contractors={mswContractors}
+                updateInquiry={updateInquiry}
+                deleteInquiry={deleteInquiry}
+                isLast={true}
+                queueMode={true}
+              />
+            )}
+            renderCard={(inq) => {
+              const si = INQUIRY_STATUSES.find(s => s.key === inq.status) || INQUIRY_STATUSES[0];
+              const so = INQUIRY_SOURCES.find(s => s.key === inq.source);
+              const ii = INQUIRY_INTERESTS.find(s => s.key === inq.interestArea);
+              const receivedDate = new Date(inq.receivedAt);
+              const daysAgo = Math.floor((Date.now() - receivedDate.getTime()) / 86400000);
+              const ago = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}d ago`;
+              const lastLog = inq.conversationLog && inq.conversationLog.length > 0
+                ? [...inq.conversationLog].sort((a, b) => b.date.localeCompare(a.date))[0]
+                : null;
+              const statusColor = si.color === 'green' ? 'text-[#5A6E3D]' : si.color === 'rust' ? 'text-[#B85838]' : 'text-[#5A5751]';
+              return (
+                <div>
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+                      <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{inq.firstName}</span>
+                      <span className={`text-[10px] uppercase tracking-wider font-medium ${statusColor}`}>{si.label}</span>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wider text-[#5A5751] shrink-0">{ago}</span>
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">
+                    {so?.label || inq.source} · {ii?.label || inq.interestArea}
+                  </div>
+                  {lastLog && (
+                    <div className="text-xs text-[#5A5751] italic mt-1 truncate" style={{ fontFamily: '"Fraunces", serif' }}>
+                      Last: {lastLog.summary}
+                    </div>
+                  )}
+                  {!lastLog && inq.notes && (
+                    <div className="text-xs text-[#5A5751] italic mt-1 truncate" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {inq.notes.length > 80 ? inq.notes.slice(0, 77) + '...' : inq.notes}
+                    </div>
+                  )}
+                </div>
+              );
+            }}
+            actions={[
+              { label: '× Delete', onClick: (inq) => { if (confirm(`Delete inquiry from ${inq.firstName}?`)) deleteInquiry(inq.id); }, secondary: true },
+            ]}
+          />
         )}
       </section>
+
+      {/* Revenue projection — assumptions made explicit, replaces actual data once Acuity sync is built */}
+      {stats.total > 0 && (
+        <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-3">Pipeline Revenue · Estimates (until Acuity sync is built)</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
+            <div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Active pipeline</div>
+              <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact((stats.newCount + stats.inProgress) * (stats.conversionRate || 50) / 100 * ANNUAL_REVENUE_PER_CLIENT)}</div>
+              <div className="text-[9px] sm:text-[10px] text-[#5A5751]">expected annual · at current conv</div>
+            </div>
+            <div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Converted clients</div>
+              <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact(stats.converted * ANNUAL_REVENUE_PER_CLIENT)}</div>
+              <div className="text-[9px] sm:text-[10px] text-[#5A5751]">annual recurring est.</div>
+            </div>
+            <div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">If all active convert</div>
+              <div className="text-xl sm:text-3xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtCompact((stats.newCount + stats.inProgress) * ANNUAL_REVENUE_PER_CLIENT)}</div>
+              <div className="text-[9px] sm:text-[10px] text-[#5A5751]">upside</div>
+            </div>
+          </div>
+          <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            Assumptions: ~$150/session avg blended (insurance + self-pay), 1 session/week, 48 weeks/year (~$7.2K/client/yr). Estimates only until Acuity integration syncs actual booked + completed session data.
+          </p>
+        </section>
+      )}
+
+      {/* Source breakdown */}
+      {stats.bySource.length > 0 && (
+        <section className="bg-white border border-[#1A1815] p-4">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">By source</div>
+          <div className="space-y-1.5">
+            {stats.bySource.map(s => {
+              const pct = (s.count / stats.total) * 100;
+              return (
+                <div key={s.key}>
+                  <div className="flex justify-between text-xs mb-0.5">
+                    <span style={{ fontFamily: '"Fraunces", serif' }}>{s.label}</span>
+                    <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{s.count}</span>
+                  </div>
+                  <div className="h-1.5 bg-[#E8E4DC]"><div className="h-full bg-[#B85838]" style={{ width: `${pct}%` }}></div></div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
-function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) {
-  const [expanded, setExpanded] = useState(false);
+function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast, queueMode = false }) {
+  // queueMode (2026-05-24): when true, this row is being rendered as the
+  // focus pane of a Queue widget — render the expanded content always,
+  // skip the collapsed-row chrome (Details toggle + delete button), since
+  // the Queue itself handles delete via its action row and the focus pane
+  // is by definition always-expanded.
+  const [expanded, setExpanded] = useState(queueMode);
   const [statusNotes, setStatusNotes] = useState('');
   // v28+ Conversation log per inquiry (mirrors property records)
   const [showConvForm, setShowConvForm] = useState(false);
@@ -469,7 +536,7 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
   const statusColor = statusInfo.color === 'green' ? 'text-[#5A6E3D]' : statusInfo.color === 'rust' ? 'text-[#B85838]' : 'text-[#5A5751]';
 
   return (
-    <div className={`p-3 ${!isLast ? 'border-b border-[#E8E4DC]' : ''}`}>
+    <div className={queueMode ? '' : `p-3 ${!isLast ? 'border-b border-[#E8E4DC]' : ''}`}>
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
@@ -480,10 +547,12 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast }) 
             {daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}d ago`} · {sourceInfo?.label} · {interestInfo?.label}
           </div>
         </div>
-        <div className="flex items-baseline gap-1.5 shrink-0">
-          <button type="button" onClick={() => setExpanded(!expanded)} className="text-[10px] uppercase tracking-wider text-[#5A5751]">{expanded ? '× Close' : 'Details'}</button>
-          <button type="button" onClick={() => { if (confirm('Delete this inquiry?')) deleteInquiry(inq.id); }} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
-        </div>
+        {!queueMode && (
+          <div className="flex items-baseline gap-1.5 shrink-0">
+            <button type="button" onClick={() => setExpanded(!expanded)} className="text-[10px] uppercase tracking-wider text-[#5A5751]">{expanded ? '× Close' : 'Details'}</button>
+            <button type="button" onClick={() => { if (confirm('Delete this inquiry?')) deleteInquiry(inq.id); }} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+          </div>
+        )}
       </div>
 
       {expanded && (
