@@ -15,6 +15,9 @@ import { Opportunities } from './components/DevOps.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import { onAuthChange } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
+import { QueueSpotlight } from './components/QueueSpotlight.jsx';
+import { QueueList } from './components/QueueList.jsx';
+import { Queue } from './components/Queue.jsx';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -1183,7 +1186,24 @@ export default function PoeFinancialSystem() {
   const reserves = useMemo(() => {
     const recurringMonthly = data.recurringObligations.filter(r => r.enabled && r.frequency !== 'monthly').reduce((s, r) => s + frequencyToMonthly(r.amount, r.frequency), 0);
     const taxItemsAnnual = data.taxCalendar.filter(t => t.applies && t.amount).reduce((s, t) => s + t.amount, 0);
-    return { recurringMonthly, taxMonthly: taxItemsAnnual / 12, incidentMonthly: data.incidents.reduce((s, i) => s + i.amount, 0), totalMonthly: recurringMonthly + taxItemsAnnual / 12 + data.incidents.reduce((s, i) => s + i.amount, 0) };
+    // FLAG-10 fix (2026-05-24, CALC-INVENTORY.md): incidents are one-time
+    // events, not perpetual monthly drains. Previously `incidentMonthly` was
+    // computed as Σ incident.amount and added to `totalMonthly`, which meant
+    // every logged incident silently and permanently reduced the pressure
+    // slider's extra-available figure, biasing the debt-free projection
+    // pessimistic by the full incidents total per month forever. Incidents
+    // now contribute 0 to monthly reserves; they remain visible in the
+    // incidents list and Calendar for record-keeping. If a future incident
+    // is genuinely a multi-month drain (e.g., a $3k roof repaired over 6
+    // months), model it as a recurring obligation with `monthly` frequency
+    // and a defined end-date, not as a free-standing incident. A future
+    // enhancement will add `repayMonths` / `paidDate` to the incident model.
+    return {
+      recurringMonthly,
+      taxMonthly: taxItemsAnnual / 12,
+      incidentMonthly: 0,
+      totalMonthly: recurringMonthly + taxItemsAnnual / 12,
+    };
   }, [data]);
 
   const pressureCalc = useMemo(() => {
@@ -1406,7 +1426,6 @@ html{scroll-padding-bottom:280px}
                 ['overview','Big Picture'],
                 ['books','Books'],
                 ['inbound','📞 Inbound'],
-                ['debts','Debts'],
                 ['rentals','Real Estate'],
                 ['projects','Projects'],
                 ['practice','Practice'],
@@ -1430,7 +1449,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['entities','Entities'],['accounts','Accounts'],['transactions','Tx'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal','🔒 Legal']].map(([id, label]) => (
+                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal','🔒 Legal']].map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -1450,6 +1469,7 @@ html{scroll-padding-bottom:280px}
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} />}
+            {booksView === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
             {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} />}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} />}
@@ -1458,7 +1478,6 @@ html{scroll-padding-bottom:280px}
           </>
         )}
         {view === 'inbound' && <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />}
-        {view === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
         {view === 'rentals' && (() => {
           // Real Estate: Foundation tier = READ-ONLY PREVIEW of one seed property.
           // PoeTech+ and above = full editor over the user's actual rentals.
@@ -1501,7 +1520,9 @@ html{scroll-padding-bottom:280px}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
         {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
-          ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} />
+          ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
+              feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
+            />
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'practice' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.practice)
@@ -1536,12 +1557,12 @@ html{scroll-padding-bottom:280px}
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
           <button type="button" onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
         </footer>
-        {view !== 'overview' && view !== 'debts' && (data.userTier === 'foundation' || !data.userTier) && (
+        {view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mt-6">
             <AdvisementBanner />
           </div>
         )}
-        {view === 'debts' && <TherapyReminder />}
+        {view === 'books' && booksView === 'debts' && <TherapyReminder />}
       </main>
       <TTSControls />
       <InstallPrompt />
@@ -2200,6 +2221,157 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// FEEDBACK PROMOTE PANEL — Projects tab
+// =============================================================================
+// Wraps the QueueSpotlight pattern (one item at a time + dropdown nav)
+// around the feedback log, with three promotion actions per item:
+//   + Change   — creates a project tagged category='change-request' (ITIL
+//                "change" model; no dedicated changes collection in v0 — the
+//                v2 schema CIL section adds change_requests proper later)
+//   + Incident — calls addIncident() with the feedback content as description
+//   + Project  — calls addProject() with the feedback content as description
+//
+// Original feedback stays in the queue after any promotion (non-destructive);
+// the × secondary action deletes the feedback if the user wants it removed.
+// Per 2026-05-24 design ask from Darrell: reusable Queue Spotlight pattern so
+// future surfaces (incidents queue, prayer requests, action queue) can adopt
+// the same one-at-a-time + dropdown navigation.
+// =============================================================================
+function buildFeedbackDescription(f) {
+  return [
+    f.whatsWorking ? `✓ Working: ${f.whatsWorking}` : null,
+    f.whatsNot ? `✗ Not working: ${f.whatsNot}` : null,
+    f.whatsMissing ? `+ Missing: ${f.whatsMissing}` : null,
+    f.rating ? `Rating: ${f.rating}` : null,
+  ].filter(Boolean).join('\n\n');
+}
+
+function feedbackSummary(f, maxLen = 60) {
+  const summary = (f.whatsNot || f.whatsMissing || f.whatsWorking || 'Tester note').trim();
+  return summary.length > maxLen ? summary.slice(0, maxLen - 3) + '...' : summary;
+}
+
+function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback }) {
+  if (!feedback || feedback.length === 0) return null;
+  const sorted = [...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const promoteToProject = (f) => {
+    const name = `${f.area || 'Feedback'}: ${feedbackSummary(f)}`;
+    addProject({
+      name,
+      description: buildFeedbackDescription(f),
+      status: 'planning',
+      sourceFeedbackId: f.id,
+      _note: `promoted from feedback (${f.area || 'tester note'})`,
+    });
+    alert(`Project created: "${name}"`);
+  };
+
+  const promoteToIncident = (f) => {
+    const description = `[from feedback · ${f.area || 'note'}] ${feedbackSummary(f, 120)}`;
+    addIncident({
+      description,
+      amount: 0,
+      category: 'other',
+      entityId: 'e-personal',
+      date: new Date().toISOString().slice(0, 10),
+      contractorIds: [],
+      sourceFeedbackId: f.id,
+      _note: `promoted from feedback (${f.area || 'tester note'})`,
+    });
+    alert('Incident created. Fill in amount + entity on the incident.');
+  };
+
+  const promoteToChange = (f) => {
+    // No `changes` collection yet (v2 schema CIL section adds change_requests
+    // later). For v0 a "change" is a project tagged with category='change-request'
+    // so it shows up alongside other projects but is filterable later.
+    const name = `Change: ${f.area || 'Feedback'}: ${feedbackSummary(f)}`;
+    addProject({
+      name,
+      description: buildFeedbackDescription(f),
+      category: 'change-request',
+      status: 'planning',
+      sourceFeedbackId: f.id,
+      _note: `promoted from feedback as change-request (${f.area || 'tester note'})`,
+    });
+    alert(`Change request created (tagged as 'change-request' in projects).`);
+  };
+
+  return (
+    <div className="mt-8">
+      <Queue
+        title="Feedback Log · Promote queue"
+        subtitle="Focused item is in full detail at top. Browse the rest below and click any card to bring it into focus."
+        emoji="💬"
+        accent="#B85838"
+        items={sorted}
+        getKey={(f) => f.id}
+        defaultPageSize={5}
+        pageSizeOptions={[5, 25, 50]}
+        renderFocus={(f) => (
+          <div>
+            <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
+              <div className="text-[10px] uppercase tracking-wider">
+                <span className="font-semibold text-[#B85838]">{f.area || 'Note'}</span>
+                {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
+              </div>
+              <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                {new Date(f.createdAt).toLocaleString()}
+              </span>
+            </div>
+            {f.whatsWorking && (
+              <div className="mb-2">
+                <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Working</div>
+                <p className="text-sm" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsWorking}</p>
+              </div>
+            )}
+            {f.whatsNot && (
+              <div className="mb-2">
+                <div className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">✗ Not working</div>
+                <p className="text-sm" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsNot}</p>
+              </div>
+            )}
+            {f.whatsMissing && (
+              <div className="mb-2">
+                <div className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">+ Missing</div>
+                <p className="text-sm" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsMissing}</p>
+              </div>
+            )}
+          </div>
+        )}
+        renderCard={(f) => {
+          const d = new Date(f.createdAt);
+          const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
+          return (
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] uppercase tracking-wider">
+                  <span className="font-semibold text-[#B85838]">{f.area || 'Note'}</span>
+                  {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
+                </div>
+                <div className="text-sm truncate" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {feedbackSummary(f, 80)}
+                </div>
+              </div>
+              <span className="text-[9px] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                {dateStr}
+              </span>
+            </div>
+          );
+        }}
+        actions={[
+          { label: '+ Change', onClick: promoteToChange, color: '#5A6E3D' },
+          { label: '+ Incident', onClick: promoteToIncident, color: '#B85838' },
+          { label: '+ Project', onClick: promoteToProject, color: '#1A1815' },
+          { label: '× Delete', onClick: (f) => { if (confirm('Delete this feedback? It will be removed from the queue but any projects/incidents/changes you already created from it remain.')) deleteFeedback(f.id); }, secondary: true },
+        ]}
+      />
     </div>
   );
 }

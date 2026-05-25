@@ -40,7 +40,7 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [] }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null }) {
   const [subView, setSubView] = useState('list');
   return (
     <div className="space-y-4">
@@ -54,6 +54,11 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'list' && (
         <>
           <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
+          {/* 2026-05-24 — Feedback Log → Promote queue is now positioned
+              between All Projects (above) and the 12-Month Capital Forecast
+              (below) so the "decide what becomes a project" loop is visually
+              adjacent to the projects list itself. */}
+          {feedbackPanel}
           {/* v28+ MVP v1.5 round 3 — Inventory + forecast also appears at the
               bottom of the Projects list so the connection is obvious. The
               dedicated Inventory sub-tab is where the editing/adding lives. */}
