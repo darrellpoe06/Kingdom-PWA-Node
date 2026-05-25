@@ -441,6 +441,8 @@ UNIQUE (instance_id, domain)
 
 RLS: instance members read; only owners and admins insert/update/delete. INSERT trigger checks the instance's active `instance_subscriptions.tier` against `requires_tier` and refuses if the tier doesn't cover the domain (§4.6 carries the enforcement details).
 
+**`settings.show_tier_requirement` convention (Q2 follow-on lock-in 2026-05-25):** the `instance_domains.settings` jsonb carries an optional boolean key `show_tier_requirement`. When set to `true` (or absent — the default), the React app surfaces the tier requirement to operators on the domain settings panel and on the upgrade flow. When the operator wants to hide the upgrade nag — for example, an Enterprise customer whose every domain is covered and doesn't want the tier label visible to staff — set `settings.show_tier_requirement = false`. Pure UX layer; the underlying tier enforcement at INSERT time still fires regardless of the display flag. POE binding: the user controls whether the tier banner is visible; the constraint is non-negotiable.
+
 ### `role_scopes` — per-member scope modifiers (narrows the global role)
 
 Per `IDENTITY-ROLES-AUDIT.md`, a member's role can be narrowed by entity / property / module / read-only. Without this table, `instance_members.role = 'admin'` is global to the instance. With this table, an admin can be scoped to e.g. "admin on Poe Properties only, read-only on PoeTech."
