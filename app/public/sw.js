@@ -1,7 +1,12 @@
 // PoeTech Family OS — minimal service worker
 // Enables PWA installability + offline shell + opt-in instant updates.
-const CACHE = 'poetech-v1';
-const PRECACHE = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
+// BASE is the path the app is served under. Built artifacts live under this
+// prefix because Synology Web Station uses an alias portal at /poetech-app/.
+// If we ever move to a different mount point, update BASE and rebuild — the
+// service worker version (CACHE) auto-bumps to invalidate the old cache.
+const BASE = '/poetech-app';
+const CACHE = 'poetech-v2-alias';
+const PRECACHE = [BASE + '/', BASE + '/index.html', BASE + '/manifest.webmanifest', BASE + '/icon.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -28,7 +33,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
+      fetch(event.request).catch(() => caches.match(BASE + '/index.html'))
     );
     return;
   }
