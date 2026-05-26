@@ -82,6 +82,8 @@ services:
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
       - OLLAMA_PRIMARY_MODEL=${OLLAMA_PRIMARY_MODEL:-qwen2.5:3b-instruct-q4_K_M}
       - OLLAMA_SECONDARY_MODEL=${OLLAMA_SECONDARY_MODEL:-deepseek-r1:8b-llama-distill-q4_K_M}
+      - OLLAMA_TERTIARY_MODEL=${OLLAMA_TERTIARY_MODEL:-qwen2.5:14b-instruct-q4_K_M}
+      - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
     volumes:
       - /volume1/docker/n8n-stack/n8n:/home/node/.n8n
 
@@ -125,12 +127,13 @@ services:
   #
   # Both loaded simultaneously via OLLAMA_MAX_LOADED_MODELS=2.
   #
-  # Memory cap: ~9 GB worst case for both models loaded (Qwen 2 GB + DeepSeek
-  # 5 GB + Ollama runtime ~2 GB). Capping at 12 GB leaves a 3 GB cushion for
-  # cold-pull bursts. Supabase Postgres is cloud-hosted (us-east-2), not on the
-  # Synology, so we don't need to reserve 4 GB for Postgres anymore. Rest of
-  # the budget: n8n 1-2 GB + ntfy 0.5 GB + DSM ~4 GB. Total at full load ~18-20
-  # GB. Fits 32 GB target with headroom; tight on 16 GB.
+  # Memory cap: 24 GB (updated 2026-05-26 after live `free -h` reported 62 GB
+  # physical RAM on the DS1621xs — Synology's official spec is 32 GB max but
+  # Darrell's unit is populated past that and runs stable). Headroom now allows
+  # Qwen + DeepSeek + a future 13B-class model loaded simultaneously. For a
+  # 70B Q4 (~40 GB resident) bump to 45g; the host has the headroom (62 - 45 =
+  # 17 GB still for n8n + ntfy + app + DSM, which fit in ~6 GB combined).
+  # Supabase Postgres is cloud-hosted (us-east-2), not on the Synology.
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -140,10 +143,12 @@ services:
     environment:
       - TZ=America/Chicago
       - OLLAMA_KEEP_ALIVE=15m
-      - OLLAMA_MAX_LOADED_MODELS=2
+      # Bumped to 4 (2026-05-26) to keep all four quad-model picks resident:
+      # Qwen 3B + DeepSeek 8B + Qwen 14B + nomic-embed-text = ~16 GB combined.
+      - OLLAMA_MAX_LOADED_MODELS=4
     volumes:
       - /volume1/docker/n8n-stack/ollama:/root/.ollama
     deploy:
       resources:
         limits:
-          memory: 12g
+          memory: 24g
