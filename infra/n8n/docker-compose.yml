@@ -84,6 +84,15 @@ services:
       - OLLAMA_SECONDARY_MODEL=${OLLAMA_SECONDARY_MODEL:-deepseek-r1:8b-llama-distill-q4_K_M}
       - OLLAMA_TERTIARY_MODEL=${OLLAMA_TERTIARY_MODEL:-qwen2.5:14b-instruct-q4_K_M}
       - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      # Pushover dual-path: workflows read these via {{ $env.PUSHOVER_* }} in
+      # HTTP Request body parameters (Path A) and Email Send recipient (Path B).
+      # PUSHOVER_APP_TOKEN empty = Path A disabled, all traffic routes to Path B.
+      # Added 2026-05-26 after Phase 1c workflows referenced env vars not yet
+      # passed through.
+      - PUSHOVER_USER_KEY=${PUSHOVER_USER_KEY:-}
+      - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN:-}
+      - PUSHOVER_EMAIL_GATEWAY=${PUSHOVER_EMAIL_GATEWAY:-}
+      - PUSHOVER_DEVICE_NAME=${PUSHOVER_DEVICE_NAME:-PoeTech}
     volumes:
       - /volume1/docker/n8n-stack/n8n:/home/node/.n8n
 
