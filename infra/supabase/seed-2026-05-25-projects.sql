@@ -131,12 +131,12 @@ BEGIN
     v_instance_id, v_darrell_user_id,
     'Synology n8n rollout', 'synology-n8n-rollout-2026-05-25',
     'active', 'family',
-    E'Self-host the PWA + Supabase + n8n + Ollama on the DS1621xs so '
-    E'Christina and the kids can install one PWA per device and feedback '
-    E'collects in one shared place.\n\n'
-    E'Plan: docs/00-foundations/_future/SYNOLOGY-DEPLOY-PLAN.md\n'
-    E'Frameworks eval: docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md\n\n'
-    E'Vacation deadline: Darrell departs in 6 days; installable for '
+    E'Self-host the PWA + Supabase + n8n + Ollama on the DS1621xs so ' ||
+    E'Christina and the kids can install one PWA per device and feedback ' ||
+    E'collects in one shared place.\n\n' ||
+    E'Plan: docs/00-foundations/_future/SYNOLOGY-DEPLOY-PLAN.md\n' ||
+    E'Frameworks eval: docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md\n\n' ||
+    E'Vacation deadline: Darrell departs in 6 days; installable for ' ||
     E'Darrell-only access by then; family onboarding lands on return.',
     v_today, v_today + interval '5 days', 10
   )
@@ -152,11 +152,11 @@ BEGIN
     v_instance_id, v_darrell_user_id,
     'Schema v2 deployment', 'schema-v2-deployment-2026-05-25',
     'active', 'tech-business',
-    E'Apply schema-v2.x migrations in order: v2.1-infra → v2.2-rentals → '
-    E'v2.3-therapy → v2.4-contractor → v2.6-legal → v2.7-church → v2.8-ops '
-    E'→ v2.9-portal-rls.\n\n'
-    E'Files live in infra/supabase/. v2.1-infra is the foundation; the '
-    E'rest light up domain modules incrementally. v1 surfaces keep working '
+    E'Apply schema-v2.x migrations in order: v2.1-infra → v2.2-rentals → ' ||
+    E'v2.3-therapy → v2.4-contractor → v2.6-legal → v2.7-church → v2.8-ops ' ||
+    E'→ v2.9-portal-rls.\n\n' ||
+    E'Files live in infra/supabase/. v2.1-infra is the foundation; the ' ||
+    E'rest light up domain modules incrementally. v1 surfaces keep working ' ||
     E'throughout (additive migration per §4.0 of the design doc).',
     v_today, v_today + interval '5 days'
   )
@@ -172,12 +172,12 @@ BEGIN
     v_instance_id, v_darrell_user_id,
     'React rewire to instance_id', 'react-rewire-instance-id-2026-05-25',
     'active', 'tech-business',
-    E'Application-layer rename: tenant_id → instance_id across React '
-    E'sources and Supabase client calls. Work is done in repo but '
-    E'uncommitted; one cycle item remains to commit + push.\n\n'
-    E'Files affected (per `git status` 2026-05-25): app/src/components/'
-    E'InputCenter.jsx, app/src/lib/{accounts,debts,entities,feedback,'
-    E'projects,table,transactions}-sync.js, app/src/poe-financial-mvp-v28'
+    E'Application-layer rename: tenant_id → instance_id across React ' ||
+    E'sources and Supabase client calls. Work is done in repo but ' ||
+    E'uncommitted; one cycle item remains to commit + push.\n\n' ||
+    E'Files affected (per `git status` 2026-05-25): app/src/components/' ||
+    E'InputCenter.jsx, app/src/lib/{accounts,debts,entities,feedback,' ||
+    E'projects,table,transactions}-sync.js, app/src/poe-financial-mvp-v28' ||
     E'.jsx.',
     v_today, v_today + interval '1 day'
   )
@@ -193,10 +193,10 @@ BEGIN
     v_instance_id, v_darrell_user_id,
     'VerifyBalances + numeric sync', 'verifybalances-numeric-sync-2026-05-24',
     'done', 'tech-business',
-    E'v1.2 numeric-table sync (accounts, debts, transactions, projects) + '
-    E'VerifyBalances gate.\n\n'
-    E'Status: SHIPPED. Captured here for honest history per §12.5. The '
-    E'restore-from-head batch + v1.2 SQL apply were the unblocks; both '
+    E'v1.2 numeric-table sync (accounts, debts, transactions, projects) + ' ||
+    E'VerifyBalances gate.\n\n' ||
+    E'Status: SHIPPED. Captured here for honest history per §12.5. The ' ||
+    E'restore-from-head batch + v1.2 SQL apply were the unblocks; both ' ||
     E'are complete (see SESSION-HANDOFF-2026-05-24.md).',
     v_today - interval '1 day', v_today
   )
@@ -212,15 +212,15 @@ BEGIN
     v_instance_id, v_darrell_user_id,
     E'Counseling tab MVP — Christina''s 6 answers', 'counseling-tab-mvp-2026-05-25',
     'planning', 'therapy',
-    E'Counseling tab cannot ship until Christina answers six product-shape '
-    E'questions:\n'
-    E'  Q2 — voice/tone\n'
-    E'  Q3 — scripture posture\n'
-    E'  Q4 — model + system prompt\n'
-    E'  Q5 — triage / crisis routing\n'
-    E'  Q6 — disclaimer pattern\n'
-    E'  Q9 — counseling vocabulary\n\n'
-    E'Owner: Christina. Status: waiting on answers (non-blocking for '
+    E'Counseling tab cannot ship until Christina answers six product-shape ' ||
+    E'questions:\n' ||
+    E'  Q2 — voice/tone\n' ||
+    E'  Q3 — scripture posture\n' ||
+    E'  Q4 — model + system prompt\n' ||
+    E'  Q5 — triage / crisis routing\n' ||
+    E'  Q6 — disclaimer pattern\n' ||
+    E'  Q9 — counseling vocabulary\n\n' ||
+    E'Owner: Christina. Status: waiting on answers (non-blocking for ' ||
     E'vacation week — counseling tab is post-vacation work).',
     v_today, NULL
   )
@@ -236,9 +236,9 @@ BEGIN
     v_instance_id, v_darrell_user_id,
     'Resend SMTP setup', 'resend-smtp-setup-2026-05-25',
     'active', 'tech-business',
-    E'Sign up at https://resend.com with darrellpoe06@gmail.com (60-sec '
-    E'signup), get the SMTP credentials, wire into Supabase Auth so '
-    E'magic-link emails actually deliver. The Resend session continues '
+    E'Sign up at https://resend.com with darrellpoe06@gmail.com (60-sec ' ||
+    E'signup), get the SMTP credentials, wire into Supabase Auth so ' ||
+    E'magic-link emails actually deliver. The Resend session continues ' ||
     E'after Darrell completes signup.',
     v_today, v_today + interval '1 day'
   )
@@ -254,12 +254,12 @@ BEGIN
     v_instance_id, v_darrell_user_id,
     'Trust ownership architecture', 'trust-ownership-architecture-2026-05-25',
     'active', 'legal',
-    E'Q1 + Q2 v2-schema answer: TLC, Poe Properties, and PoeTech all carry '
-    E'parent_instance_id = trust.id. Trust is an instance of '
-    E'instance_type=''trust''; operating companies hang under it via '
-    E'parent_instance_id. legal_structure_notes jsonb holds the '
-    E'non-privileged admin shape (trustees, successor trustee, EIN last 4, '
-    E'state of formation, registered agent).\n\n'
+    E'Q1 + Q2 v2-schema answer: TLC, Poe Properties, and PoeTech all carry ' ||
+    E'parent_instance_id = trust.id. Trust is an instance of ' ||
+    E'instance_type=''trust''; operating companies hang under it via ' ||
+    E'parent_instance_id. legal_structure_notes jsonb holds the ' ||
+    E'non-privileged admin shape (trustees, successor trustee, EIN last 4, ' ||
+    E'state of formation, registered agent).\n\n' ||
     E'Privileged legal content lives encrypted in the Legal domain (v2.6).',
     v_today, NULL
   )
@@ -275,10 +275,10 @@ BEGIN
     v_instance_id, v_darrell_user_id,
     'Parallel frameworks evaluation', 'parallel-frameworks-eval-2026-05-25',
     'active', 'tech-business',
-    E'Stack A / B / C evaluation of n8n + Ollama + Tailscale + ntfy + '
-    E'Pushover + Backblaze B2 against the DS1621xs 32 GB RAM ceiling and '
-    E'the 6-day vacation deadline.\n\n'
-    E'Doc: docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md\n'
+    E'Stack A / B / C evaluation of n8n + Ollama + Tailscale + ntfy + ' ||
+    E'Pushover + Backblaze B2 against the DS1621xs 32 GB RAM ceiling and ' ||
+    E'the 6-day vacation deadline.\n\n' ||
+    E'Doc: docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md\n' ||
     E'TL;DR: Stack B (minimal-surface n8n) is the vacation-week answer.',
     v_today, v_today + interval '1 day'
   )
@@ -318,7 +318,7 @@ BEGIN
   )
   SELECT v_instance_id, v_darrell_user_id, v_cadence_id,
          v_now, v_cycle_close, v_cycle_window_start, v_cycle_close,
-         E'[seed:2026-05-25-vacation-prep] Items in flight before Darrell departs. '
+         E'[seed:2026-05-25-vacation-prep] Items in flight before Darrell departs. ' ||
          E'Close 24h before departure so nothing untriaged carries over.',
          'in-progress'
   WHERE NOT EXISTS (
@@ -352,11 +352,11 @@ BEGIN
   SELECT
     v_instance_id, v_darrell_user_id,
     'Approve Pushover license ($5 one-time)',
-    E'Purchase Pushover license at https://pushover.net for Darrell''s '
-    E'phone notifications during vacation week. $5 one-time per platform '
-    E'(iOS/Android, one-time). Best reliability for time-sensitive alerts '
-    E'(rent due, incident escalation, family emergencies).\n\n'
-    E'Parallel-frameworks eval: locked-in (Tier F notifications, '
+    E'Purchase Pushover license at https://pushover.net for Darrell''s ' ||
+    E'phone notifications during vacation week. $5 one-time per platform ' ||
+    E'(iOS/Android, one-time). Best reliability for time-sensitive alerts ' ||
+    E'(rent due, incident escalation, family emergencies).\n\n' ||
+    E'Parallel-frameworks eval: locked-in (Tier F notifications, ' ||
     E'Pushover + ntfy dual-channel).',
     'standard', 'low',
     v_darrell_user_id,
@@ -393,10 +393,10 @@ BEGIN
   SELECT
     v_instance_id, v_darrell_user_id,
     'Approve USB external 4 TB drive ($50-80 one-time)',
-    E'4 TB USB external drive for offsite backup rotation (carry to '
-    E'parents'' house monthly). Hardware redundancy for the Synology RAID. '
-    E'$50-80 one-time depending on model.\n\n'
-    E'Parallel-frameworks eval: Tier F backup, budget alternative to '
+    E'4 TB USB external drive for offsite backup rotation (carry to ' ||
+    E'parents'' house monthly). Hardware redundancy for the Synology RAID. ' ||
+    E'$50-80 one-time depending on model.\n\n' ||
+    E'Parallel-frameworks eval: Tier F backup, budget alternative to ' ||
     E'Backblaze B2.',
     'standard', 'low',
     v_darrell_user_id,
@@ -433,11 +433,11 @@ BEGIN
   SELECT
     v_instance_id, v_darrell_user_id,
     'Approve Synology RAM upgrade to 32 GB ECC (CONDITIONAL — $80-150 one-time)',
-    E'IF currently installed RAM is < 32 GB ECC on the DS1621xs, upgrade '
-    E'to the 32 GB max so Postgres + Ollama + n8n + the app + everything '
-    E'else can share the pool without paging. Darrell to confirm current '
-    E'install before approving spend.\n\n'
-    E'Conditional: change_request can be closed ''approved-no-cost'' if '
+    E'IF currently installed RAM is < 32 GB ECC on the DS1621xs, upgrade ' ||
+    E'to the 32 GB max so Postgres + Ollama + n8n + the app + everything ' ||
+    E'else can share the pool without paging. Darrell to confirm current ' ||
+    E'install before approving spend.\n\n' ||
+    E'Conditional: change_request can be closed ''approved-no-cost'' if ' ||
     E'current RAM is already 32 GB.',
     'standard', 'low',
     v_darrell_user_id,
@@ -475,12 +475,12 @@ BEGIN
   SELECT
     v_instance_id, v_darrell_user_id,
     'Choose offsite backup path: $0 self-hosted OR paid object storage',
-    E'Pick the perpetual-cost path for offsite backup:\n'
-    E'  Option A — $0/mo: USB drive rotation only (Tier F budget option).\n'
-    E'  Option B — ~$6/mo: Backblaze B2 (default in PARALLEL-FRAMEWORKS-EVAL).\n'
-    E'  Option C — ~$5/mo: Cloudflare R2 (no egress fees, lock-in moderate).\n'
-    E'  Option D — €3.20/mo: Hetzner Storage Box (EU jurisdiction).\n\n'
-    E'Default lean: Option A (USB only) to minimize perpetual cost per '
+    E'Pick the perpetual-cost path for offsite backup:\n' ||
+    E'  Option A — $0/mo: USB drive rotation only (Tier F budget option).\n' ||
+    E'  Option B — ~$6/mo: Backblaze B2 (default in PARALLEL-FRAMEWORKS-EVAL).\n' ||
+    E'  Option C — ~$5/mo: Cloudflare R2 (no egress fees, lock-in moderate).\n' ||
+    E'  Option D — €3.20/mo: Hetzner Storage Box (EU jurisdiction).\n\n' ||
+    E'Default lean: Option A (USB only) to minimize perpetual cost per ' ||
     E'Darrell''s standing rule. Christina to approve the chosen path.',
     'standard', 'low',
     v_darrell_user_id,
@@ -798,11 +798,11 @@ BEGIN
     SELECT v_instance_id, v_darrell_user_id, v_christina_user_id,
            'cycle-board-ready', 'in-app', v_now,
            'Family project board: 3 items awaiting your approval',
-           E'Three change_requests are routed to you for spouse-approval as part of the '
-           E'2026-05-25 Vacation Prep cycle:\n'
-           E'  • Pushover license ($5 one-time)\n'
-           E'  • USB external 4 TB drive ($50-80 one-time)\n'
-           E'  • Offsite backup path decision (default-lean $0/mo)\n\n'
+           E'Three change_requests are routed to you for spouse-approval as part of the ' ||
+           E'2026-05-25 Vacation Prep cycle:\n' ||
+           E'  • Pushover license ($5 one-time)\n' ||
+           E'  • USB external 4 TB drive ($50-80 one-time)\n' ||
+           E'  • Offsite backup path decision (default-lean $0/mo)\n\n' ||
            E'Synology RAM upgrade is conditional and waiting on Darrell to verify current RAM.',
            'Open family project board',
            '/projects?cycle=vacation-prep-2026-05-25',

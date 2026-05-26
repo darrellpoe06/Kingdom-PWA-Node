@@ -119,6 +119,26 @@ CREATE POLICY clinicians_member_update ON clinicians FOR UPDATE
 CREATE POLICY clinicians_owner_delete  ON clinicians FOR DELETE
   USING (user_role_in_instance(instance_id) = 'owner');
 
+-- ===================================================================
+-- v1.2 already created an "inquiries" table for contractor lead intake
+-- with a DIFFERENT column shape. v2.3's CREATE TABLE IF NOT EXISTS is a
+-- no-op against that existing table, so the new columns never land and
+-- the FK below errors with "column preferred_provider_id does not exist".
+-- Backfill the missing v2.3 columns first.
+-- ===================================================================
+ALTER TABLE inquiries
+  ADD COLUMN IF NOT EXISTS updated_by              uuid REFERENCES auth.users(id),
+  ADD COLUMN IF NOT EXISTS lifecycle               jsonb NOT NULL DEFAULT '{"phase":"new","openedAt":null,"closedAt":null,"log":[]}',
+  ADD COLUMN IF NOT EXISTS links                   jsonb NOT NULL DEFAULT '[]',
+  ADD COLUMN IF NOT EXISTS entity_id               uuid REFERENCES entities(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS last_initial            text,
+  ADD COLUMN IF NOT EXISTS phone_redacted          text,
+  ADD COLUMN IF NOT EXISTS email_redacted          text,
+  ADD COLUMN IF NOT EXISTS insurance_carrier       text,
+  ADD COLUMN IF NOT EXISTS preferred_provider_id   uuid,
+  ADD COLUMN IF NOT EXISTS external_user_id        uuid,
+  ADD COLUMN IF NOT EXISTS handed_off_to_acuity_at timestamptz;
+
 -- Backfill the inquiries preferred_provider_id FK now that clinicians exists
 ALTER TABLE inquiries
   ADD CONSTRAINT inquiries_preferred_provider_fk

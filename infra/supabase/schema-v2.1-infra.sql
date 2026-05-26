@@ -52,6 +52,11 @@ ALTER TABLE IF EXISTS tenants               RENAME TO instances;
 ALTER TABLE IF EXISTS tenant_members        RENAME TO instance_members;
 ALTER TABLE IF EXISTS tenant_invites        RENAME TO instance_invites;
 
+-- Rename the tenant_type column on the renamed instances table (v1 had this
+-- column on tenants; without renaming it here, the CHECK constraint redefinition
+-- below errors with "column instance_type does not exist").
+ALTER TABLE IF EXISTS instances RENAME COLUMN tenant_type TO instance_type;
+
 -- Column renames on every v1 table that carried the FK + every v1.2 table
 -- (rentals, incidents, inquiries, scopes — added by schema-v1.2-numeric-sync).
 -- DO block per-table so a missing v1.2 table doesn't abort the migration.
@@ -112,24 +117,28 @@ BEGIN
   END IF;
 END $rename_fns$;
 
-CREATE OR REPLACE FUNCTION public.user_in_instance(instance_uuid uuid)
+-- NOTE: parameter name kept as `tenant_uuid` (matches v1) so CREATE OR REPLACE
+-- can swap the body without PG errors. PG refuses to change parameter names
+-- on a renamed function; the column name in the WHERE clause is the new
+-- `instance_id`, only the formal parameter retains the legacy name.
+CREATE OR REPLACE FUNCTION public.user_in_instance(tenant_uuid uuid)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public, auth
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM instance_members
-    WHERE instance_id = instance_uuid AND user_id = auth.uid()
+    WHERE instance_id = tenant_uuid AND user_id = auth.uid()
   )
 $$;
 
-CREATE OR REPLACE FUNCTION public.user_role_in_instance(instance_uuid uuid)
+CREATE OR REPLACE FUNCTION public.user_role_in_instance(tenant_uuid uuid)
 RETURNS text
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public, auth
 AS $$
   SELECT role FROM instance_members
-  WHERE instance_id = instance_uuid AND user_id = auth.uid()
+  WHERE instance_id = tenant_uuid AND user_id = auth.uid()
   LIMIT 1
 $$;
 
