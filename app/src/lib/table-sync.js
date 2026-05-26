@@ -9,7 +9,7 @@
 //   - remoteTable: the Supabase table name (usually the same as localKey)
 //   - toRow      : (localItem, { tenantId, userId }) => row
 //                  Maps a local record to a Supabase row. Must include
-//                  tenant_id and created_by.
+//                  instance_id and created_by.
 //   - fromRow    : (row) => localItem
 //                  Maps a Supabase row back to the local record shape.
 //                  Should include a stable `id` (the row.id from the DB).

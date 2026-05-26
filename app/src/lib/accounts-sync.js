@@ -14,7 +14,7 @@
 //     fragment: '...8168', balance: 4223, inLegal: false, isPrimary: false }
 //
 // Remote shape (schema v1.2 accounts row):
-//   { id (uuid), tenant_id, created_by, created_at, updated_at,
+//   { id (uuid), instance_id, created_by, created_at, updated_at,
 //     entity_id (uuid, populated by trigger from entity_slug),
 //     slug, entity_slug, display_name, institution, account_type,
 //     fragment, balance, in_legal, is_primary }
@@ -37,7 +37,7 @@ export const accountsSync = createTableSync({
 
   toRow(item, { tenantId, userId }) {
     return {
-      tenant_id:    tenantId,
+      instance_id:    tenantId,
       created_by:   userId,
       slug:         item.id,
       entity_slug:  item.entityId ?? null,
@@ -55,7 +55,7 @@ export const accountsSync = createTableSync({
     return {
       id:          row.slug ?? `a-remote-${row.id}`,
       remoteUuid:  row.id,
-      tenantId:    row.tenant_id,
+      tenantId:    row.instance_id,
       entityId:    row.entity_slug ?? null,
       name:        row.display_name,
       institution: row.institution,

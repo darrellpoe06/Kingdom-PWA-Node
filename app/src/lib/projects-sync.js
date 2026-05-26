@@ -22,7 +22,7 @@ export const projectsSync = createTableSync({
 
   toRow(item, { tenantId, userId }) {
     return {
-      tenant_id:      tenantId,
+      instance_id:      tenantId,
       created_by:     userId,
       slug:           item.id,
       entity_slug:    item.entityId ?? null,
@@ -40,7 +40,7 @@ export const projectsSync = createTableSync({
     return {
       id:           row.slug ?? `pr-remote-${row.id}`,
       remoteUuid:   row.id,
-      tenantId:     row.tenant_id,
+      tenantId:     row.instance_id,
       entityId:     row.entity_slug ?? null,
       title:        row.title,
       startDate:    row.start_date,

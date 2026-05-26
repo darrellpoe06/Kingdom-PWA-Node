@@ -6,7 +6,7 @@
 //   await ensureTenantMembership()
 //     Call once after sign-in. Idempotent. Adds the signed-in user to
 //     'poe-family' tenant if they're not already a member of any tenant.
-//     Returns the tenant_id they're now in. Throws if not signed in.
+//     Returns the instance_id they're now in. Throws if not signed in.
 //
 //   await uploadFeedback(item, { activeTab, appVersion })
 //     Writes one feedback row to Supabase. Item shape matches what
@@ -40,7 +40,7 @@ async function currentSession() {
 /**
  * Ensures the signed-in user is a member of at least one tenant. Calls
  * the join_default_tenant() RPC which adds them to 'poe-family' if not.
- * Returns the tenant_id they belong to. Throws if not signed in.
+ * Returns the instance_id they belong to. Throws if not signed in.
  */
 export async function ensureTenantMembership(displayName) {
   const session = await currentSession();
@@ -50,7 +50,7 @@ export async function ensureTenantMembership(displayName) {
     display_name_in: displayName ?? null,
   });
   if (error) throw error;
-  return data; // tenant_id
+  return data; // instance_id
 }
 
 /**
@@ -77,7 +77,7 @@ export async function uploadFeedback(item, meta = {}) {
   const row = {
     // Let Postgres generate the UUID — the prototype's `fb-${Date.now()}`
     // local id is kept on the local copy only and isn't a valid uuid.
-    tenant_id: tenantId,
+    instance_id: tenantId,
     user_id: session.user.id,
     display_name: session.user.email?.split('@')[0] || 'Member',
     device_label: meta.deviceLabel || detectDeviceLabel(),

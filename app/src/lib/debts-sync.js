@@ -11,7 +11,7 @@
 //     entityId: 'e-personal' }
 //
 // Remote shape (schema v1.2 debts row):
-//   { id (uuid), tenant_id, created_by, created_at, updated_at,
+//   { id (uuid), instance_id, created_by, created_at, updated_at,
 //     entity_id (uuid, populated by trigger from entity_slug),
 //     slug, entity_slug, creditor, debt_type, balance, apr,
 //     minimum_payment, extra_payment, promo_zero_apr_until, notes,
@@ -28,7 +28,7 @@ export const debtsSync = createTableSync({
 
   toRow(item, { tenantId, userId }) {
     return {
-      tenant_id:        tenantId,
+      instance_id:        tenantId,
       created_by:       userId,
       slug:             item.id,
       entity_slug:      item.entityId ?? null,
@@ -49,7 +49,7 @@ export const debtsSync = createTableSync({
     return {
       id:           row.slug ?? `d-remote-${row.id}`,
       remoteUuid:   row.id,
-      tenantId:     row.tenant_id,
+      tenantId:     row.instance_id,
       entityId:     row.entity_slug ?? null,
       name:         row.creditor,
       debtType:     row.debt_type,

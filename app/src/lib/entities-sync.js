@@ -14,11 +14,11 @@ export const entitiesSync = createTableSync({
   remoteTable: 'entities',
 
   // Local shape:  { id: 'e-personal', name: '...', type: 'personal'|'business', notes: '...' }
-  // Schema shape: { id (uuid), tenant_id, created_by, slug, display_name,
+  // Schema shape: { id (uuid), instance_id, created_by, slug, display_name,
   //                 entity_type ('personal'|'business'), notes, created_at, updated_at }
   toRow(item, { tenantId, userId }) {
     return {
-      tenant_id: tenantId,
+      instance_id: tenantId,
       created_by: userId,
       slug: item.id, // local 'e-personal' becomes the slug
       display_name: item.name,
@@ -35,7 +35,7 @@ export const entitiesSync = createTableSync({
     return {
       id: row.slug,
       remoteUuid: row.id,
-      tenantId: row.tenant_id,
+      tenantId: row.instance_id,
       name: row.display_name,
       type: row.entity_type,
       notes: row.notes,

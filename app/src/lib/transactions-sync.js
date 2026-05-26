@@ -11,7 +11,7 @@
 //     entityOverride: 'e-poeprops', isTransfer: false }
 //
 // Remote shape (schema v1.2 transactions row):
-//   { id, tenant_id, created_by, created_at, updated_at,
+//   { id, instance_id, created_by, created_at, updated_at,
 //     account_id (uuid, populated by trigger from account_slug),
 //     txn_date, amount, description, category, is_transfer,
 //     entity_override (uuid), linked_to_kind, linked_to_id,
@@ -25,7 +25,7 @@ export const transactionsSync = createTableSync({
 
   toRow(item, { tenantId, userId }) {
     return {
-      tenant_id:            tenantId,
+      instance_id:            tenantId,
       created_by:           userId,
       slug:                 item.id,
       account_slug:         item.accountId ?? null,
@@ -42,7 +42,7 @@ export const transactionsSync = createTableSync({
     return {
       id:             row.slug ?? `t-remote-${row.id}`,
       remoteUuid:     row.id,
-      tenantId:       row.tenant_id,
+      tenantId:       row.instance_id,
       accountId:      row.account_slug ?? null,
       entityOverride: row.entity_override_slug ?? null,
       date:           row.txn_date,
