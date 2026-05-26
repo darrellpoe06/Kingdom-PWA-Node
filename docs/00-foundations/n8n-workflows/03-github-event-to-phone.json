@@ -1,5 +1,5 @@
 {
-  "name": "03 · GitHub event (commit/PR) → Pushover",
+  "name": "03 · GitHub event (commit/PR) → Pushover (dual-path)",
   "nodes": [
     {
       "parameters": {
@@ -12,18 +12,18 @@
       "name": "GitHub Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
-      "position": [240, 320],
+      "position": [120, 320],
       "webhookId": "github-events"
     },
     {
       "parameters": {
-        "jsCode": "// GitHub webhook payloads we care about:\n//   - push:           commits[] + ref + pusher + repository\n//   - pull_request:   action, number, pull_request.title/state/html_url, sender\n//\n// X-GitHub-Event header tells us which one. Read from $input.headers.\nconst headers = $input.first().json.headers || {};\nconst body = $input.first().json.body || $input.first().json || {};\nconst event = (headers['x-github-event'] || '').toLowerCase();\n\nconst repo = body.repository?.full_name || 'unknown-repo';\nlet title, message, url;\n\nif (event === 'push') {\n  const ref = (body.ref || '').replace('refs/heads/', '');\n  const pusher = body.pusher?.name || body.sender?.login || 'someone';\n  const commits = body.commits || [];\n  const head = commits[commits.length - 1] || {};\n  const shortMsg = (head.message || '').split('\\n')[0].slice(0, 140);\n  title = `${repo} · push to ${ref}`;\n  message = `${pusher}: ${shortMsg || '(no message)'}\\n${commits.length} commit(s).`;\n  url = head.url || body.compare || body.repository?.html_url || '';\n} else if (event === 'pull_request') {\n  const pr = body.pull_request || {};\n  const action = body.action || 'updated';\n  title = `${repo} · PR ${action}`;\n  message = `#${pr.number || '?'}: ${pr.title || '(no title)'}\\nby ${pr.user?.login || 'someone'} · state ${pr.state}`;\n  url = pr.html_url || '';\n} else if (event === 'ping') {\n  title = `${repo} · webhook ping`;\n  message = 'GitHub successfully reached n8n.';\n  url = body.repository?.html_url || '';\n} else {\n  // Drop noisy events silently (don't punish the source).\n  return [{ json: { skip: true, event } }];\n}\n\nreturn [{\n  json: {\n    skip: false,\n    pushover: {\n      title,\n      message,\n      priority: 0,\n      url,\n      url_title: 'View on GitHub'\n    }\n  }\n}];"
+        "jsCode": "// GitHub webhook payloads we care about: push, pull_request, ping.\n// X-GitHub-Event header tells us which one.\nconst headers = $input.first().json.headers || {};\nconst body = $input.first().json.body || $input.first().json || {};\nconst event = (headers['x-github-event'] || '').toLowerCase();\n\nconst repo = body.repository?.full_name || 'unknown-repo';\nlet title, message, url;\n\nif (event === 'push') {\n  const ref = (body.ref || '').replace('refs/heads/', '');\n  const pusher = body.pusher?.name || body.sender?.login || 'someone';\n  const commits = body.commits || [];\n  const head = commits[commits.length - 1] || {};\n  const shortMsg = (head.message || '').split('\\n')[0].slice(0, 140);\n  title = `${repo} · push to ${ref}`;\n  message = `${pusher}: ${shortMsg || '(no message)'}\\n${commits.length} commit(s).`;\n  url = head.url || body.compare || body.repository?.html_url || '';\n} else if (event === 'pull_request') {\n  const pr = body.pull_request || {};\n  const action = body.action || 'updated';\n  title = `${repo} · PR ${action}`;\n  message = `#${pr.number || '?'}: ${pr.title || '(no title)'}\\nby ${pr.user?.login || 'someone'} · state ${pr.state}`;\n  url = pr.html_url || '';\n} else if (event === 'ping') {\n  title = `${repo} · webhook ping`;\n  message = 'GitHub successfully reached n8n.';\n  url = body.repository?.html_url || '';\n} else {\n  return [{ json: { skip: true, event } }];\n}\n\nreturn [{\n  json: {\n    skip: false,\n    title,\n    body: message,\n    pushover: { title, message, priority: 0, url, url_title: 'View on GitHub' },\n    email:    { subject: title, text: message + (url ? '\\n\\n' + url : '') }\n  }\n}];"
       },
       "id": "node-format-03",
       "name": "Parse GitHub event",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 320]
+      "position": [320, 320]
     },
     {
       "parameters": {
@@ -41,11 +41,33 @@
         },
         "options": {}
       },
-      "id": "node-if-03",
+      "id": "node-if-skip-03",
       "name": "Skip noisy events",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [720, 320]
+      "position": [520, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"version": 2, "leftValue": "", "caseSensitive": true, "typeValidation": "loose"},
+          "conditions": [
+            {
+              "id": "cond-token-03",
+              "leftValue": "={{ $env.PUSHOVER_APP_TOKEN }}",
+              "rightValue": "",
+              "operator": {"type": "string", "operation": "notEmpty", "singleValue": true}
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-token-03",
+      "name": "PUSHOVER_APP_TOKEN set? (Path A vs B)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 220]
     },
     {
       "parameters": {
@@ -55,8 +77,9 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            {"name": "token", "value": "={{ $credentials.pushoverApi?.apiToken || $env.PUSHOVER_APP_TOKEN }}"},
-            {"name": "user", "value": "={{ $credentials.pushoverApi?.userKey || $env.PUSHOVER_USER_KEY }}"},
+            {"name": "token", "value": "={{ $env.PUSHOVER_APP_TOKEN }}"},
+            {"name": "user", "value": "={{ $env.PUSHOVER_USER_KEY }}"},
+            {"name": "device", "value": "={{ $env.PUSHOVER_DEVICE_NAME }}"},
             {"name": "title", "value": "={{ $json.pushover.title }}"},
             {"name": "message", "value": "={{ $json.pushover.message }}"},
             {"name": "priority", "value": "={{ $json.pushover.priority }}"},
@@ -67,10 +90,24 @@
         "options": {}
       },
       "id": "node-pushover-03",
-      "name": "Pushover (Darrell)",
+      "name": "Path A · Pushover Direct API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [960, 240]
+      "position": [960, 120]
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@poetech.local",
+        "toEmail": "={{ $env.PUSHOVER_EMAIL_GATEWAY }}",
+        "subject": "={{ $json.email.subject }}",
+        "text": "={{ $json.email.text }}",
+        "options": {}
+      },
+      "id": "node-email-03",
+      "name": "Path B · Email-to-push (pomail)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [960, 320]
     },
     {
       "parameters": {
@@ -81,7 +118,7 @@
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1200, 320]
+      "position": [1240, 320]
     }
   ],
   "connections": {
@@ -93,17 +130,26 @@
     },
     "Skip noisy events": {
       "main": [
-        [{"node": "Pushover (Darrell)", "type": "main", "index": 0}],
+        [{"node": "PUSHOVER_APP_TOKEN set? (Path A vs B)", "type": "main", "index": 0}],
         [{"node": "Respond 200", "type": "main", "index": 0}]
       ]
     },
-    "Pushover (Darrell)": {
+    "PUSHOVER_APP_TOKEN set? (Path A vs B)": {
+      "main": [
+        [{"node": "Path A · Pushover Direct API", "type": "main", "index": 0}],
+        [{"node": "Path B · Email-to-push (pomail)", "type": "main", "index": 0}]
+      ]
+    },
+    "Path A · Pushover Direct API": {
+      "main": [[{"node": "Respond 200", "type": "main", "index": 0}]]
+    },
+    "Path B · Email-to-push (pomail)": {
       "main": [[{"node": "Respond 200", "type": "main", "index": 0}]]
     }
   },
   "active": false,
   "settings": {"executionOrder": "v1", "saveManualExecutions": true},
   "pinData": {},
-  "tags": [{"name": "github"}, {"name": "production"}],
+  "tags": [{"name": "github"}, {"name": "production"}, {"name": "dual-path"}],
   "meta": {"templateCredsSetupCompleted": false}
 }

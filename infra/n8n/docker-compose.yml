@@ -104,7 +104,11 @@ services:
       - TZ=America/Chicago
       - NTFY_BEHIND_PROXY=false
       - NTFY_AUTH_FILE=/var/lib/ntfy/user.db
-      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
+      # read-write = anyone reaching the ntfy server can publish and subscribe.
+      # Tailscale is the security boundary (only Tailscale-authenticated devices
+      # can reach the Synology). Tighten with per-topic ACLs post-vacation if
+      # other users (Christina, kids) need separate channels.
+      - NTFY_AUTH_DEFAULT_ACCESS=read-write
       - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
       - NTFY_CACHE_DURATION=72h
       - NTFY_ATTACHMENT_CACHE_DIR=/var/cache/ntfy/attachments

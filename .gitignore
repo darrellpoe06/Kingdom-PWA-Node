@@ -38,6 +38,12 @@ Thumbs.db
 *.key
 secrets.json
 credentials.json
+# Exception: .env.example files ARE templates and MUST be committed so a
+# fresh clone knows what env vars exist. Same for .env.sample / .env.template.
+# Added 2026-05-26 after Phase 1c add-batch failed on infra/n8n/.env.example.
+!**/.env.example
+!**/.env.sample
+!**/.env.template
 
 # ----------------------------------------------------------------------------
 # Logs

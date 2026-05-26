@@ -60,10 +60,14 @@ The schema does not carry an `assigned_to` column on `change_requests`. The assi
 
 | Title | One-time | Perpetual | Risk | Cycle-item priority |
 |---|---|---|---|---|
-| Pushover license | $5 | $0 | low | 9.4 (urgent) |
+| Pushover license | $5 | $0 | low | 9.7 (countdown-bound, deadline **2026-06-25**) |
 | USB external 4 TB drive | $50–80 | $0 | low | 7.0 |
-| Synology RAM upgrade to 32 GB ECC (CONDITIONAL) | $80–150 | $0 | low | 5.4 (`more-info-needed` until Darrell verifies current RAM) |
+| Synology RAM upgrade to 32 GB ECC (RESOLVED) | $0 | $0 | low | n/a (Darrell's unit has **62 GB physical** confirmed 2026-05-26 — disposition `deferred-next-cycle` with note "already populated past 32 GB target") |
 | Choose offsite backup path | $0 | $0–6/mo | low | 6.6 (default lean: $0/mo USB-only) |
+
+> **Pushover license countdown (added 2026-05-26):** Pushover account `darrellpoe06@gmail.com` created 2026-05-26 on a 30-day free trial. The $5 lifetime license must be purchased at https://pushover.net by **2026-06-25** or pushes cap out. Workflow 04 (POE morning standup) surfaces this `change_request` daily once `user_priority_override IS NULL` and `priority_score >= 0.6`; priority is bumped from 9.4 → 9.7 so it stays in the top-5 morning digest as the deadline approaches. This row needs an `UPDATE` against the live Supabase `change_requests` table during Phase 4 — the seed file is the source of truth for documentation, the live DB carries the running value.
+>
+> **Synology RAM update:** the `Synology RAM upgrade to 32 GB ECC (CONDITIONAL)` change_request is resolved as `deferred-next-cycle` — Darrell's unit reports 62 GB physical via `free -h`, well past the original 32 GB target. The seed entry stays in the doc as a historical record of the conditional; the live row should be dispositioned `deferred-next-cycle` during Phase 4 with note `already populated past 32 GB target — verified 2026-05-26`.
 
 ### Priority math (transparent in `priority_factors` jsonb)
 
@@ -96,7 +100,7 @@ All eight projects and all four change_requests are bound to this cycle as `cycl
 ## Notifications
 
 - **Christina** — `notification_preferences` row at `kind='cycle-board-ready'`, `channel='in-app'`, `lead_times={immediate}`. One queued `notification` (`status='queued'`, `priority='high'`) summarizes the three items awaiting her call.
-- **Darrell** — `notification_preferences` row at `kind='change-due-soon'`, `channel='in-app'`, `lead_times={immediate,1h,24h}`. A `notification_channels` row stages a `push` channel with address `pushover://PLACEHOLDER-user-key-replace-after-license` and `status='paused'` — replaced with the real user-key after Christina approves the Pushover license and Darrell registers Pushover.
+- **Darrell** — `notification_preferences` row at `kind='change-due-soon'`, `channel='in-app'`, `lead_times={immediate,1h,24h}`. A `notification_channels` row stages a `push` channel with address `pushover://PLACEHOLDER-user-key-replace-after-license` and `status='paused'` — **as of 2026-05-26 the real user-key is `upan72gdukpvmo49uet2jfyjgrrf3v` (Path A, awaiting app token) plus email gateway `ikzf7xijr4@pomail.net` (Path B, works the moment SMTP lands). See `infra/n8n/INSTALL.md §Step 6` for the dual-path setup.** The `notification_channels` row should be updated during Phase 4 (Phase 4: change `status` to `active` once at least one path is verified end-to-end).
 
 Christina's notification rows only insert if her `user_id` is resolvable in `instance_members` (title containing `co-founder` or `spouse`, or display_name starting with `Christina`, or any non-Darrell owner/admin). If she hasn't signed up yet, those rows are skipped without error and the seed completes.
 

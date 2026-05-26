@@ -11,17 +11,17 @@
       "name": "9 PM daily",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [240, 320]
+      "position": [120, 320]
     },
     {
       "parameters": {
-        "jsCode": "// Compose the daily-dogfood reflection prompt. POE binding: this is a\n// prompt, not a homework assignment — frame as invitation, not obligation.\n// Output gets queued into cycle_items (next step) where tomorrow's 6 AM\n// report (workflow 02) will pick it up.\n\nconst today = new Date();\nconst dateStr = today.toLocaleDateString('en-US', {\n  weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago'\n});\n\nconst prompt = [\n  `End of ${dateStr}.`,\n  '',\n  'One question, no wrong answer:',\n  'What did Yahweh show you today that the report should know about?',\n  '',\n  'Reply by tapping the link, or just open the app and drop a note in the day\\'s reflection slot.',\n  'If today was quiet, that\\'s the answer too.'\n].join('\\n');\n\nreturn [{\n  json: {\n    pushover: {\n      title: 'Evening reflection · ' + dateStr,\n      message: prompt,\n      priority: -1,\n      url_title: 'Drop today\\'s note',\n      url: 'https://kingdom-pwa-node.vercel.app/?reflection=today'\n    },\n    cycleItem: {\n      title: `Daily dogfood reflection — ${today.toISOString().slice(0, 10)}`,\n      summary: 'End-of-day prompt queued by n8n workflow 05. Awaiting Darrell\\'s reply.',\n      disposition: 'pending',\n      assigned_to: 'darrell',\n      kind: 'reflection',\n      source: 'n8n-eod-cron',\n      payload: { prompt }\n    }\n  }\n}];"
+        "jsCode": "// Compose the daily-dogfood reflection prompt. POE binding: this is a\n// prompt, not a homework assignment — frame as invitation, not obligation.\n\nconst today = new Date();\nconst dateStr = today.toLocaleDateString('en-US', {\n  weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago'\n});\n\nconst prompt = [\n  `End of ${dateStr}.`,\n  '',\n  'One question, no wrong answer:',\n  'What did Yahweh show you today that the report should know about?',\n  '',\n  'Reply by tapping the link, or just open the app and drop a note in the day\\'s reflection slot.',\n  'If today was quiet, that\\'s the answer too.'\n].join('\\n');\n\nconst title = 'Evening reflection · ' + dateStr;\nconst url = 'https://kingdom-pwa-node.vercel.app/?reflection=today';\n\nreturn [{\n  json: {\n    title,\n    body: prompt,\n    pushover: { title, message: prompt, priority: -1, url_title: 'Drop today\\'s note', url },\n    email:    { subject: title, text: prompt + '\\n\\n' + url },\n    cycleItem: {\n      title: `Daily dogfood reflection — ${today.toISOString().slice(0, 10)}`,\n      summary: 'End-of-day prompt queued by n8n workflow 05. Awaiting Darrell\\'s reply.',\n      disposition: 'pending',\n      assigned_to: 'darrell',\n      kind: 'reflection',\n      source: 'n8n-eod-cron',\n      payload: { prompt }\n    }\n  }\n}];"
       },
       "id": "node-format-05",
       "name": "Compose reflection prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 320]
+      "position": [320, 320]
     },
     {
       "parameters": {
@@ -48,7 +48,29 @@
       "name": "Queue cycle_item for tomorrow",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [720, 220]
+      "position": [520, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"version": 2, "leftValue": "", "caseSensitive": true, "typeValidation": "loose"},
+          "conditions": [
+            {
+              "id": "cond-token-05",
+              "leftValue": "={{ $env.PUSHOVER_APP_TOKEN }}",
+              "rightValue": "",
+              "operator": {"type": "string", "operation": "notEmpty", "singleValue": true}
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-token-05",
+      "name": "PUSHOVER_APP_TOKEN set? (Path A vs B)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [520, 440]
     },
     {
       "parameters": {
@@ -58,8 +80,9 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            {"name": "token", "value": "={{ $credentials.pushoverApi?.apiToken || $env.PUSHOVER_APP_TOKEN }}"},
-            {"name": "user", "value": "={{ $credentials.pushoverApi?.userKey || $env.PUSHOVER_USER_KEY }}"},
+            {"name": "token", "value": "={{ $env.PUSHOVER_APP_TOKEN }}"},
+            {"name": "user", "value": "={{ $env.PUSHOVER_USER_KEY }}"},
+            {"name": "device", "value": "={{ $env.PUSHOVER_DEVICE_NAME }}"},
             {"name": "title", "value": "={{ $('Compose reflection prompt').item.json.pushover.title }}"},
             {"name": "message", "value": "={{ $('Compose reflection prompt').item.json.pushover.message }}"},
             {"name": "priority", "value": "={{ $('Compose reflection prompt').item.json.pushover.priority }}"},
@@ -70,10 +93,24 @@
         "options": {}
       },
       "id": "node-pushover-05",
-      "name": "Pushover (Darrell)",
+      "name": "Path A · Pushover Direct API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [720, 420]
+      "position": [780, 360]
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@poetech.local",
+        "toEmail": "={{ $env.PUSHOVER_EMAIL_GATEWAY }}",
+        "subject": "={{ $('Compose reflection prompt').item.json.email.subject }}",
+        "text": "={{ $('Compose reflection prompt').item.json.email.text }}",
+        "options": {}
+      },
+      "id": "node-email-05",
+      "name": "Path B · Email-to-push (pomail)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [780, 540]
     }
   ],
   "connections": {
@@ -84,14 +121,20 @@
       "main": [
         [
           {"node": "Queue cycle_item for tomorrow", "type": "main", "index": 0},
-          {"node": "Pushover (Darrell)", "type": "main", "index": 0}
+          {"node": "PUSHOVER_APP_TOKEN set? (Path A vs B)", "type": "main", "index": 0}
         ]
+      ]
+    },
+    "PUSHOVER_APP_TOKEN set? (Path A vs B)": {
+      "main": [
+        [{"node": "Path A · Pushover Direct API", "type": "main", "index": 0}],
+        [{"node": "Path B · Email-to-push (pomail)", "type": "main", "index": 0}]
       ]
     }
   },
   "active": false,
   "settings": {"executionOrder": "v1", "timezone": "America/Chicago", "saveManualExecutions": true},
   "pinData": {},
-  "tags": [{"name": "poe-binding"}, {"name": "cron"}, {"name": "dogfood"}],
+  "tags": [{"name": "poe-binding"}, {"name": "cron"}, {"name": "dogfood"}, {"name": "dual-path"}],
   "meta": {"templateCredsSetupCompleted": false}
 }

@@ -36,13 +36,17 @@ Each PR that adds or modifies a workflow MUST update this README's "Active workf
 
 ## Active workflows (Stack B install · 2026-05-26)
 
-| # | File | Trigger | Outputs | POE-bound? |
-|---|------|---------|---------|------------|
-| 01 | `01-supabase-cycle-item-webhook.json` | Supabase webhook on `cycle_items.insert` | Pushover (if assigned to Darrell) or ntfy `family-ops` topic | Yes |
-| 02 | `02-daily-reports-cron.json` | Cron, 6:00 AM America/Chicago | Pushover digest of yesterday's `report_runs` + cycle_item dispositions | Yes |
-| 03 | `03-github-event-to-phone.json` | GitHub webhook (`push` / `pull_request` / `ping`) | Pushover with the commit/PR summary | No (infra) |
-| 04 | `04-poe-morning-standup.json` | Cron, 7:00 AM America/Chicago | Single Pushover with up to 5 high-priority `change_requests` where `user_priority_override IS NULL` | Yes |
-| 05 | `05-end-of-day-reflection.json` | Cron, 9:00 PM America/Chicago | Pushover prompt + inserts a `cycle_items` row tagged `kind=reflection` for the next morning's report | Yes |
+> **Numbering note (2026-05-26):** A parallel session shipped four additional workflows in this folder with overlapping numeric prefixes (`01-project-timeline-daily.json`, `02-workflow-failure-alert.json`, `03-b2-backup-status.json`, `04-pushover-smoke-test.json`). The five POE-bound production workflows below are the install-bound set Dispatch authored. Both sets coexist for now; Darrell to decide whether to renumber one set to a `10-`/`20-` band when he reviews.
+
+The five workflows below all emit notifications via the **dual-path** pattern (Path A: Pushover Direct API; Path B: email-to-push via pomail.net) — see "Pushover dual-path notification" section below for the env vars and node wiring.
+
+| # | File | Trigger | Outputs | POE-bound? | Dual-path? |
+|---|------|---------|---------|------------|------------|
+| 01 | `01-supabase-cycle-item-webhook.json` | Supabase webhook on `cycle_items.insert` | Pushover (Darrell branch, A or B) or ntfy `family-ops` (family branch) | Yes | Yes (Darrell branch only) |
+| 02 | `02-daily-reports-cron.json` | Cron, 6:00 AM America/Chicago | Pushover digest of yesterday's `report_runs` + cycle_item dispositions | Yes | Yes |
+| 03 | `03-github-event-to-phone.json` | GitHub webhook (`push` / `pull_request` / `ping`) | Pushover with the commit/PR summary | No (infra) | Yes |
+| 04 | `04-poe-morning-standup.json` | Cron, 7:00 AM America/Chicago | Single Pushover with up to 5 high-priority `change_requests` where `user_priority_override IS NULL` | Yes | Yes |
+| 05 | `05-end-of-day-reflection.json` | Cron, 9:00 PM America/Chicago | Pushover prompt + inserts a `cycle_items` row tagged `kind=reflection` for the next morning's report | Yes | Yes |
 
 ## POE binding (read this before editing any workflow)
 
@@ -55,10 +59,36 @@ Per the seed-projects commit (`3ba0d9b`, 2026-05-25) and the `01-grace-and-mercy
 
 ## Credentials required (set up in n8n Settings → Credentials)
 
-- **Pushover** — user key + app token (workflows 01, 02, 03, 04, 05)
+- **Pushover (Path A)** — user key + app token. Workflows reference via `$env.PUSHOVER_USER_KEY` + `$env.PUSHOVER_APP_TOKEN` + `$env.PUSHOVER_DEVICE_NAME`. Until `PUSHOVER_APP_TOKEN` is non-empty, Path A is skipped and the If node routes to Path B.
+- **SMTP (Path B)** — Gmail app password (fastest) or Resend API key. Wire as n8n's SMTP / Resend credential and pick it in each workflow's Email Send node. Recipient is `$env.PUSHOVER_EMAIL_GATEWAY` (the pomail.net address that Pushover converts to a push).
 - **Postgres** — Supabase project `mjjlevhdufpaplypnqrv` (workflows 02, 04, 05). Use the dedicated `n8n_runner` role per `infra/n8n/INSTALL.md §Step 7`.
 - **ntfy** — none (HTTP-only, no credential object; auth via path topic + per-user grants on the ntfy server)
 - **Ollama** — none (HTTP-only against the local container; reach it at `$env.OLLAMA_BASE_URL` from any n8n node)
+
+## Pushover dual-path notification (decision 2026-05-26)
+
+Two paths to deliver pushes; every Pushover-emitting workflow contains an `If` node that picks at runtime based on whether `$env.PUSHOVER_APP_TOKEN` is non-empty.
+
+| Env var | Default | Used by |
+|---------|---------|---------|
+| `PUSHOVER_USER_KEY` | — | Path A (Pushover Direct API user identifier) |
+| `PUSHOVER_APP_TOKEN` | — | Path A (Pushover Direct API app token). **Empty = Path A disabled, all traffic routes to Path B.** |
+| `PUSHOVER_EMAIL_GATEWAY` | — | Path B (recipient of email-to-push, e.g. `ikzf7xijr4@pomail.net`) |
+| `PUSHOVER_DEVICE_NAME` | `PoeTech` | Path A only (target device routing — leave blank to broadcast to all of the user's devices) |
+
+**Wiring pattern in every workflow:**
+
+```
+Format notification (Code) → If: $env.PUSHOVER_APP_TOKEN is set?
+                              ├─ true  → Path A · Pushover Direct API (HTTP)
+                              └─ false → Path B · Email Send → pomail.net
+```
+
+Both branches converge to the same Respond / Continue node. Switching between paths = one `.env` edit + `docker compose up -d`; zero workflow JSON edits.
+
+**Day-1 posture:** Path B operational the moment an SMTP credential lands on the Email Send node (Gmail app password takes ~2 minutes; Resend when his signup completes). Path A goes live the moment Darrell creates the app token at https://pushover.net/apps/build and pastes it into `.env`.
+
+**License countdown:** Pushover account created 2026-05-26 with 30-day free trial. $5 lifetime license due by **2026-06-25** — seeded `change_request` "Pushover license $5 one-time" has its `priority_score` bumped to surface this through workflow 04's morning digest as the deadline approaches.
 
 ## Ollama dual-model architecture (decision 2026-05-26)
 

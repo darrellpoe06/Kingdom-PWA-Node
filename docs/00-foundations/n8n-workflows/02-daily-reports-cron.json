@@ -11,7 +11,7 @@
       "name": "6 AM daily (Darrell-local)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [240, 320]
+      "position": [120, 320]
     },
     {
       "parameters": {
@@ -23,16 +23,38 @@
       "name": "Query report_runs (last 24h)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [480, 320]
+      "position": [320, 320]
     },
     {
       "parameters": {
-        "jsCode": "// Compile a single morning digest. If there are zero runs, still send a\n// 'no runs yet — your seed is the input' note (no shaming).\nconst rows = $input.all().map(i => i.json);\nconst hasRows = rows.length > 0;\n\nlet body;\nif (!hasRows) {\n  body = [\n    'No report runs in the last 24h.',\n    'That is fine — today\\'s seed is the input.',\n    'Open the app to drop one cycle item.'\n  ].join('\\n');\n} else {\n  const lines = rows.slice(0, 5).map(r => {\n    const status = r.status === 'failed' ? 'needs-rework' : r.status;\n    return `· ${r.report_name} — ${status}` +\n           ` (pending ${r.items_pending}, approved ${r.items_approved}, deferred ${r.items_deferred})`;\n  });\n  body = ['Yesterday\\'s reports:', ...lines, '', 'Tap to open: https://kingdom-pwa-node.vercel.app/'].join('\\n');\n}\n\nreturn [{\n  json: {\n    pushover: {\n      title: 'Daily report · ' + new Date().toLocaleDateString('en-US', { weekday: 'long' }),\n      message: body,\n      priority: 0,\n      url_title: 'Open dashboard',\n      url: 'https://kingdom-pwa-node.vercel.app/'\n    }\n  }\n}];"
+        "jsCode": "// Compile a single morning digest. If there are zero runs, still send a\n// 'no runs yet — your seed is the input' note (no shaming).\nconst rows = $input.all().map(i => i.json);\nconst hasRows = rows.length > 0;\n\nlet body;\nif (!hasRows) {\n  body = [\n    'No report runs in the last 24h.',\n    'That is fine — today\\'s seed is the input.',\n    'Open the app to drop one cycle item.'\n  ].join('\\n');\n} else {\n  const lines = rows.slice(0, 5).map(r => {\n    const status = r.status === 'failed' ? 'needs-rework' : r.status;\n    return `· ${r.report_name} — ${status}` +\n           ` (pending ${r.items_pending}, approved ${r.items_approved}, deferred ${r.items_deferred})`;\n  });\n  body = ['Yesterday\\'s reports:', ...lines, '', 'Tap to open: https://kingdom-pwa-node.vercel.app/'].join('\\n');\n}\n\nconst title = 'Daily report · ' + new Date().toLocaleDateString('en-US', { weekday: 'long' });\nconst url = 'https://kingdom-pwa-node.vercel.app/';\n\nreturn [{\n  json: {\n    title,\n    body,\n    pushover: { title, message: body, priority: 0, url_title: 'Open dashboard', url },\n    email:    { subject: title, text: body + '\\n\\n' + url }\n  }\n}];"
       },
       "id": "node-format-02",
       "name": "Compile digest (POE-bound)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
+      "position": [520, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"version": 2, "leftValue": "", "caseSensitive": true, "typeValidation": "loose"},
+          "conditions": [
+            {
+              "id": "cond-token-02",
+              "leftValue": "={{ $env.PUSHOVER_APP_TOKEN }}",
+              "rightValue": "",
+              "operator": {"type": "string", "operation": "notEmpty", "singleValue": true}
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-token-02",
+      "name": "PUSHOVER_APP_TOKEN set? (Path A vs B)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
       "position": [720, 320]
     },
     {
@@ -43,8 +65,9 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            {"name": "token", "value": "={{ $credentials.pushoverApi?.apiToken || $env.PUSHOVER_APP_TOKEN }}"},
-            {"name": "user", "value": "={{ $credentials.pushoverApi?.userKey || $env.PUSHOVER_USER_KEY }}"},
+            {"name": "token", "value": "={{ $env.PUSHOVER_APP_TOKEN }}"},
+            {"name": "user", "value": "={{ $env.PUSHOVER_USER_KEY }}"},
+            {"name": "device", "value": "={{ $env.PUSHOVER_DEVICE_NAME }}"},
             {"name": "title", "value": "={{ $json.pushover.title }}"},
             {"name": "message", "value": "={{ $json.pushover.message }}"},
             {"name": "priority", "value": "={{ $json.pushover.priority }}"},
@@ -55,10 +78,24 @@
         "options": {}
       },
       "id": "node-pushover-02",
-      "name": "Pushover (Darrell)",
+      "name": "Path A · Pushover Direct API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [960, 320]
+      "position": [960, 220]
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@poetech.local",
+        "toEmail": "={{ $env.PUSHOVER_EMAIL_GATEWAY }}",
+        "subject": "={{ $json.email.subject }}",
+        "text": "={{ $json.email.text }}",
+        "options": {}
+      },
+      "id": "node-email-02",
+      "name": "Path B · Email-to-push (pomail)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [960, 420]
     }
   ],
   "connections": {
@@ -69,12 +106,18 @@
       "main": [[{"node": "Compile digest (POE-bound)", "type": "main", "index": 0}]]
     },
     "Compile digest (POE-bound)": {
-      "main": [[{"node": "Pushover (Darrell)", "type": "main", "index": 0}]]
+      "main": [[{"node": "PUSHOVER_APP_TOKEN set? (Path A vs B)", "type": "main", "index": 0}]]
+    },
+    "PUSHOVER_APP_TOKEN set? (Path A vs B)": {
+      "main": [
+        [{"node": "Path A · Pushover Direct API", "type": "main", "index": 0}],
+        [{"node": "Path B · Email-to-push (pomail)", "type": "main", "index": 0}]
+      ]
     }
   },
   "active": false,
   "settings": {"executionOrder": "v1", "timezone": "America/Chicago", "saveManualExecutions": true},
   "pinData": {},
-  "tags": [{"name": "poe-binding"}, {"name": "cron"}],
+  "tags": [{"name": "poe-binding"}, {"name": "cron"}, {"name": "dual-path"}],
   "meta": {"templateCredsSetupCompleted": false}
 }

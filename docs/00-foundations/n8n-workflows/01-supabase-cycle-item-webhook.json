@@ -1,5 +1,5 @@
 {
-  "name": "01 · Supabase cycle_item insert → Pushover+ntfy",
+  "name": "01 · Supabase cycle_item insert → Pushover (dual-path) + ntfy",
   "nodes": [
     {
       "parameters": {
@@ -12,18 +12,18 @@
       "name": "Supabase Webhook (cycle_items.insert)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
-      "position": [240, 320],
+      "position": [120, 320],
       "webhookId": "supabase-cycle-item"
     },
     {
       "parameters": {
-        "jsCode": "// Supabase webhook payload shape (from Database -> Webhooks):\n//   { type: 'INSERT', table: 'cycle_items', record: {...}, schema: 'public', old_record: null }\n// POE binding: dispositions stay pending/approved/deferred-next-cycle — never 'rejected'.\n// Non-punitive vocabulary in every notification template.\n\nconst input = $input.first().json;\nconst record = input.body?.record || input.record || {};\n\nconst title = record.title || 'New cycle item';\nconst assignee = record.assigned_to || 'unassigned';\nconst priority = record.priority_score ?? null;\nconst override = record.user_priority_override ?? null;\nconst cycle = record.cycle_id || 'current cycle';\nconst itemId = record.id || '';\n\n// Decide channel: items assigned to Darrell route to Pushover (personal),\n// everything else routes to ntfy topic 'family-ops' (family-visible).\nconst routeToDarrell = (assignee || '').toLowerCase().includes('darrell');\n\n// POE-bound message — names the disposition vocabulary explicitly,\n// never uses 'blocked' or 'urgent' in a punitive sense.\nconst priorityNote = override !== null\n  ? `Your override: ${override}.`\n  : (priority !== null ? `Suggested priority: ${priority}.` : 'Priority pending.');\n\nconst message = [\n  `New item ready for your prayer: \"${title}\"`,\n  `Assigned: ${assignee} · Cycle: ${cycle}`,\n  priorityNote,\n  'Disposition stays pending until you weigh in.'\n].join('\\n');\n\nreturn [{\n  json: {\n    routeToDarrell,\n    pushover: {\n      title: `Cycle item · ${title}`,\n      message,\n      priority: 0,\n      url_title: 'Open in PoeTech',\n      url: `https://kingdom-pwa-node.vercel.app/?cycle_item=${itemId}`\n    },\n    ntfy: {\n      topic: 'family-ops',\n      title: `Cycle item · ${title}`,\n      message,\n      tags: ['pray', assignee.toLowerCase()],\n      click: `https://kingdom-pwa-node.vercel.app/?cycle_item=${itemId}`\n    }\n  }\n}];"
+        "jsCode": "// Supabase webhook payload shape:\n//   { type: 'INSERT', table: 'cycle_items', record: {...}, schema: 'public', old_record: null }\n// POE binding: dispositions stay pending/approved/deferred-next-cycle — never 'rejected'.\nconst input = $input.first().json;\nconst record = input.body?.record || input.record || {};\n\nconst title = record.title || 'New cycle item';\nconst assignee = record.assigned_to || 'unassigned';\nconst priority = record.priority_score ?? null;\nconst override = record.user_priority_override ?? null;\nconst cycle = record.cycle_id || 'current cycle';\nconst itemId = record.id || '';\n\n// Route to Darrell (Pushover dual-path) vs family (ntfy).\nconst routeToDarrell = (assignee || '').toLowerCase().includes('darrell');\n\nconst priorityNote = override !== null\n  ? `Your override: ${override}.`\n  : (priority !== null ? `Suggested priority: ${priority}.` : 'Priority pending.');\n\nconst notifTitle = `Cycle item · ${title}`;\nconst notifBody = [\n  `New item ready for your prayer: \"${title}\"`,\n  `Assigned: ${assignee} · Cycle: ${cycle}`,\n  priorityNote,\n  'Disposition stays pending until you weigh in.'\n].join('\\n');\nconst url = `https://kingdom-pwa-node.vercel.app/?cycle_item=${itemId}`;\n\nreturn [{\n  json: {\n    routeToDarrell,\n    title: notifTitle,\n    body: notifBody,\n    pushover: { title: notifTitle, message: notifBody, priority: 0, url_title: 'Open in PoeTech', url },\n    email:    { subject: notifTitle, text: notifBody + '\\n\\n' + url },\n    ntfy: { topic: 'family-ops', title: notifTitle, message: notifBody, tags: ['pray', assignee.toLowerCase()], click: url }\n  }\n}];"
       },
       "id": "node-format-01",
       "name": "Format notification (POE-bound)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 320]
+      "position": [320, 320]
     },
     {
       "parameters": {
@@ -41,11 +41,33 @@
         },
         "options": {}
       },
-      "id": "node-if-01",
+      "id": "node-if-route-01",
       "name": "Route: Darrell vs family",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [720, 320]
+      "position": [520, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"version": 2, "leftValue": "", "caseSensitive": true, "typeValidation": "loose"},
+          "conditions": [
+            {
+              "id": "cond-token-01",
+              "leftValue": "={{ $env.PUSHOVER_APP_TOKEN }}",
+              "rightValue": "",
+              "operator": {"type": "string", "operation": "notEmpty", "singleValue": true}
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-token-01",
+      "name": "PUSHOVER_APP_TOKEN set? (Path A vs B)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 180]
     },
     {
       "parameters": {
@@ -55,8 +77,9 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            {"name": "token", "value": "={{ $credentials.pushoverApi?.apiToken || $env.PUSHOVER_APP_TOKEN }}"},
-            {"name": "user", "value": "={{ $credentials.pushoverApi?.userKey || $env.PUSHOVER_USER_KEY }}"},
+            {"name": "token", "value": "={{ $env.PUSHOVER_APP_TOKEN }}"},
+            {"name": "user", "value": "={{ $env.PUSHOVER_USER_KEY }}"},
+            {"name": "device", "value": "={{ $env.PUSHOVER_DEVICE_NAME }}"},
             {"name": "title", "value": "={{ $json.pushover.title }}"},
             {"name": "message", "value": "={{ $json.pushover.message }}"},
             {"name": "priority", "value": "={{ $json.pushover.priority }}"},
@@ -67,10 +90,24 @@
         "options": {}
       },
       "id": "node-pushover-01",
-      "name": "Pushover (Darrell)",
+      "name": "Path A · Pushover Direct API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [960, 220]
+      "position": [960, 80]
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@poetech.local",
+        "toEmail": "={{ $env.PUSHOVER_EMAIL_GATEWAY }}",
+        "subject": "={{ $json.email.subject }}",
+        "text": "={{ $json.email.text }}",
+        "options": {}
+      },
+      "id": "node-email-01",
+      "name": "Path B · Email-to-push (pomail)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [960, 280]
     },
     {
       "parameters": {
@@ -94,18 +131,18 @@
       "name": "ntfy (family-ops)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [960, 420]
+      "position": [720, 480]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\"ok\": true, \"routed_to\": \"{{ $json.routeToDarrell ? 'pushover' : 'ntfy' }}\"}"
+        "responseBody": "={\"ok\": true}"
       },
       "id": "node-respond-01",
       "name": "Respond to Supabase",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1200, 320]
+      "position": [1240, 320]
     }
   ],
   "connections": {
@@ -117,11 +154,20 @@
     },
     "Route: Darrell vs family": {
       "main": [
-        [{"node": "Pushover (Darrell)", "type": "main", "index": 0}],
+        [{"node": "PUSHOVER_APP_TOKEN set? (Path A vs B)", "type": "main", "index": 0}],
         [{"node": "ntfy (family-ops)", "type": "main", "index": 0}]
       ]
     },
-    "Pushover (Darrell)": {
+    "PUSHOVER_APP_TOKEN set? (Path A vs B)": {
+      "main": [
+        [{"node": "Path A · Pushover Direct API", "type": "main", "index": 0}],
+        [{"node": "Path B · Email-to-push (pomail)", "type": "main", "index": 0}]
+      ]
+    },
+    "Path A · Pushover Direct API": {
+      "main": [[{"node": "Respond to Supabase", "type": "main", "index": 0}]]
+    },
+    "Path B · Email-to-push (pomail)": {
       "main": [[{"node": "Respond to Supabase", "type": "main", "index": 0}]]
     },
     "ntfy (family-ops)": {
@@ -131,6 +177,6 @@
   "active": false,
   "settings": {"executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true},
   "pinData": {},
-  "tags": [{"name": "poe-binding"}, {"name": "production"}],
+  "tags": [{"name": "poe-binding"}, {"name": "production"}, {"name": "dual-path"}],
   "meta": {"templateCredsSetupCompleted": false}
 }
