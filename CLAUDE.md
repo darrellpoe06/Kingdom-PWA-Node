@@ -172,4 +172,34 @@ This is not a degraded mode; it's the normal mode when two sessions race. The ag
 
 ---
 
+## PowerShell Commands — Self-Contained From Anywhere (added 2026-05-26)
+
+**Binding rule, declared by Darrell 2026-05-26 (all caps with multiple exclamation marks — this is law-tier):**
+
+> "Always give me powershell commands that are from anywhere I could be this is a law or rule or parameter!!!!!!!!!!!!!!"
+
+Every PowerShell command the agent gives Darrell must work regardless of his current working directory, his paste state (he may have just pasted previous terminal output above), and his PowerShell version (assume Windows PowerShell 5.x).
+
+**The agent MUST:**
+
+1. **Prefix every shell command block with `cd C:\Users\dpoe\Kingdom-PWA-Node`** as line 1, even if the command technically doesn't need it (e.g. pure ssh calls). This makes paste-from-anywhere safe.
+2. **Use absolute paths** for any file references outside the repo.
+3. **One command per line.** No multi-line chains where line 2 depends on line 1's success without `;` or `if ($?)` glue.
+4. **No `&&` or `||` outside quoted strings.** Use `;` or separate lines. PS 5.x doesn't support them.
+5. **No PS7+ features.** No `-SkipHttpErrorCheck`, no ternaries, no null-coalescing.
+6. **No em-dashes or non-ASCII** in PowerShell commands or `.ps1` files (see also the existing ASCII-only memory note).
+
+**The agent MUST NOT:**
+
+- Say "in PowerShell, run X" without prefixing the `cd`.
+- Assume Darrell is in `C:\Users\dpoe\Kingdom-PWA-Node` even if he was there 30 seconds ago.
+- Give multi-line command blocks where line 2 depends on line 1 having succeeded without explicit chaining.
+- Expect Darrell to manually edit a command when a literal value is known (his Synology IP `192.168.1.26`, his SSH user `dpoe`, etc. should always be filled in — never `<your-ip>` placeholders).
+
+**Why this matters.** Darrell paste-mixes chat content with his live PowerShell session at speed. The friction of recovering from a misplaced paste is real — multiple parse errors, confusion about what actually ran. Self-contained commands eliminate that friction. He is the principal; his time recovering from brittle commands is wasted time.
+
+**Pairs with the existing rules:** Drive Don't Delegate (2026-05-23), Two-Session Git Race (2026-05-25). Reinforces ASCII-only for `.ps1` files.
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
