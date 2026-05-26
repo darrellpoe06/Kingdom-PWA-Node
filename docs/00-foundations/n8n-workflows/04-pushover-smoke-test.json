@@ -1,0 +1,87 @@
+{
+  "name": "04 - Pushover Smoke Test (manual)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  title: 'PoeTech smoke test',\n  message: 'If you can see this on your phone, the full chain works: n8n -> Pushover API -> your phone. Time: ' + new Date().toISOString()\n} }];"
+      },
+      "id": "compose",
+      "name": "Compose test message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pushover.net/1/messages.json",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "token",    "value": "PASTE_PUSHOVER_APP_TOKEN_HERE" },
+            { "name": "user",     "value": "PASTE_PUSHOVER_USER_KEY_HERE" },
+            { "name": "title",    "value": "={{ $json.title }}" },
+            { "name": "message",  "value": "={{ $json.message }}" },
+            { "name": "priority", "value": "0" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pushover",
+      "name": "Pushover send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ntfy:80/darrell",
+        "sendBody": true,
+        "bodyContentType": "raw",
+        "rawContentType": "text/plain",
+        "body": "={{ $json.message }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Title",    "value": "ntfy smoke test" },
+            { "name": "Priority", "value": "3" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ntfy",
+      "name": "ntfy darrell topic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 480]
+    }
+  ],
+  "connections": {
+    "Manual trigger": {
+      "main": [[{ "node": "Compose test message", "type": "main", "index": 0 }]]
+    },
+    "Compose test message": {
+      "main": [
+        [
+          { "node": "Pushover send", "type": "main", "index": 0 },
+          { "node": "ntfy darrell topic", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Manual-trigger workflow. Click 'Execute Workflow' in the n8n editor; you should get a Pushover notification AND a ntfy notification within ~5 seconds. If either fails, the chain has a wiring issue we need to fix before any of the other workflows will work."
+  }
+}

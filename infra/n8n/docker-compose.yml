@@ -1,0 +1,149 @@
+# =============================================================================
+# Stack B install — n8n + ntfy + Ollama for the DS1621xs
+# =============================================================================
+# Per docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md Stack B (ratified
+# 2026-05-25). Three containers, isolated SQLite for n8n (vacation week —
+# smaller blast radius), Ollama with one small model, ntfy for family-channel
+# notifications.
+#
+# Access: Tailscale only (locked). Do NOT bind these ports to 0.0.0.0 on the
+# public side; the Synology firewall + Tailscale ACLs keep them family-only.
+#
+# Volumes follow the Synology convention: /volume1/docker/<service>/. Create
+# the shared folder `docker` first if it doesn't exist (DSM Control Panel →
+# Shared Folder → Create → name it "docker", default permissions).
+#
+# To deploy via Container Manager:
+#   1. DSM → Container Manager → Project → Create
+#   2. Project name: n8n-stack
+#   3. Path: /volume1/docker/n8n-stack
+#   4. Source: Upload docker-compose.yml (this file)
+#   5. Build (it'll pull images + start)
+#
+# To deploy via SSH:
+#   ssh admin@<synology-tailscale-ip>
+#   sudo mkdir -p /volume1/docker/n8n-stack
+#   # copy this file to /volume1/docker/n8n-stack/docker-compose.yml
+#   cd /volume1/docker/n8n-stack
+#   sudo docker compose up -d
+#
+# Verify:
+#   curl http://<synology-tailscale-ip>:5678/   # n8n login page
+#   curl http://<synology-tailscale-ip>:11434/  # "Ollama is running"
+#   curl http://<synology-tailscale-ip>:8081/   # ntfy welcome page
+# =============================================================================
+
+services:
+  # --- n8n --------------------------------------------------------------------
+  # Workflow orchestrator. Isolated SQLite backend (default) — vacation week.
+  # Post-vacation, can be repointed at Supabase Postgres by setting
+  # DB_TYPE=postgresdb + DB_POSTGRESDB_* envs. See README.md §Post-vacation.
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Generic
+      - GENERIC_TIMEZONE=America/Chicago
+      - TZ=America/Chicago
+      # Encryption key for credentials at rest. CHANGE THIS before first start
+      # (see README.md §First-time setup). If you let n8n auto-generate on first
+      # run, n8n writes the key to ~/.n8n/config — capture it then.
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      # Public URL used by webhooks. Set to the Tailscale IP or hostname.
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      # Disable usage telemetry to vendor.
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=true
+      # Basic auth disabled — Tailscale gates the network reach, and turning
+      # basic auth on adds friction for the family. Re-enable post-vacation if
+      # the n8n editor is ever exposed beyond Tailscale.
+      - N8N_BASIC_AUTH_ACTIVE=false
+      # Permissions hardening per n8n's startup check.
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      # Cookie security: n8n defaults to secure cookies which require HTTPS.
+      # We access n8n over Tailscale (already encrypted at the network layer)
+      # so the cookie-level TLS requirement is redundant and just blocks login.
+      # Switch back to true if/when we put TLS in front of n8n (Tailscale Funnel
+      # or a reverse proxy).
+      - N8N_SECURE_COOKIE=false
+      # Pass-through Ollama model selection so workflows can read
+      # $env.OLLAMA_PRIMARY_MODEL / $env.OLLAMA_SECONDARY_MODEL instead of
+      # hardcoding the model tag. Swapping a model = .env edit + docker compose
+      # up -d. Zero workflow JSON edits. (Added 2026-05-26 for the dual-model
+      # architecture decision: Qwen 2.5 3B for fast/general + DeepSeek-R1-Distill
+      # Llama 8B for reasoning-focused.)
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - OLLAMA_PRIMARY_MODEL=${OLLAMA_PRIMARY_MODEL:-qwen2.5:3b-instruct-q4_K_M}
+      - OLLAMA_SECONDARY_MODEL=${OLLAMA_SECONDARY_MODEL:-deepseek-r1:8b-llama-distill-q4_K_M}
+    volumes:
+      - /volume1/docker/n8n-stack/n8n:/home/node/.n8n
+
+  # --- ntfy -------------------------------------------------------------------
+  # Self-hosted push notifications for family channels. Phones subscribe via
+  # the ntfy app: https://ntfy.sh/app. Topic-based — Darrell creates topics
+  # in the UI on first run; n8n posts via HTTP node.
+  #
+  # Port 8081 (not 80) to avoid the DSM Web Station collision.
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ntfy
+    restart: unless-stopped
+    command: serve
+    ports:
+      - "8081:80"
+    environment:
+      - TZ=America/Chicago
+      - NTFY_BEHIND_PROXY=false
+      - NTFY_AUTH_FILE=/var/lib/ntfy/user.db
+      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
+      - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
+      - NTFY_CACHE_DURATION=72h
+      - NTFY_ATTACHMENT_CACHE_DIR=/var/cache/ntfy/attachments
+      - NTFY_BASE_URL=${NTFY_BASE_URL:-http://localhost:8081}
+    volumes:
+      - /volume1/docker/n8n-stack/ntfy/cache:/var/cache/ntfy
+      - /volume1/docker/n8n-stack/ntfy/lib:/var/lib/ntfy
+
+  # --- Ollama -----------------------------------------------------------------
+  # Local LLM inference. CPU-only (no GPU on DS1621xs). Dual-model architecture
+  # (decision 2026-05-26) — two models in parallel:
+  #
+  #   PRIMARY:   qwen2.5:3b-instruct-q4_K_M     ~2 GB resident, 10-15 tok/sec
+  #              Fast/general. Summaries, classification, short-context routing.
+  #
+  #   SECONDARY: deepseek-r1:8b-llama-distill-q4_K_M     ~5 GB resident, 3-5 tok/sec
+  #              Reasoning-focused. Chain-of-thought analysis of change_requests,
+  #              trade-off weighing in projects, multi-step reasoning over
+  #              Scripture-grounded inputs.
+  #
+  # Both loaded simultaneously via OLLAMA_MAX_LOADED_MODELS=2.
+  #
+  # Memory cap: ~9 GB worst case for both models loaded (Qwen 2 GB + DeepSeek
+  # 5 GB + Ollama runtime ~2 GB). Capping at 12 GB leaves a 3 GB cushion for
+  # cold-pull bursts. Supabase Postgres is cloud-hosted (us-east-2), not on the
+  # Synology, so we don't need to reserve 4 GB for Postgres anymore. Rest of
+  # the budget: n8n 1-2 GB + ntfy 0.5 GB + DSM ~4 GB. Total at full load ~18-20
+  # GB. Fits 32 GB target with headroom; tight on 16 GB.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    environment:
+      - TZ=America/Chicago
+      - OLLAMA_KEEP_ALIVE=15m
+      - OLLAMA_MAX_LOADED_MODELS=2
+    volumes:
+      - /volume1/docker/n8n-stack/ollama:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 12g

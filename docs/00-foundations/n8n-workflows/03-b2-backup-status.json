@@ -1,0 +1,117 @@
+{
+  "name": "03 - Backblaze B2 Backup Status",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "cron-mon-6am",
+      "name": "Mondays at 6 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.backblazeb2.com/b2api/v3/b2_authorize_account",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": false,
+        "options": {}
+      },
+      "id": "b2-authorize",
+      "name": "B2 authorize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "b2-creds-placeholder",
+          "name": "Backblaze B2 (keyId + applicationKey)"
+        }
+      },
+      "notes": "Credential type: HTTP Basic Auth. Username = keyId from B2. Password = applicationKey from B2. Get both at https://secure.backblaze.com/b2_buckets.htm -> Application Keys."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.apiInfo.storageApi.apiUrl }}/b2api/v3/b2_list_file_versions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ $json.authorizationToken }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"bucketId\": \"PASTE_YOUR_B2_BUCKET_ID_HERE\",\n  \"maxFileCount\": 5\n}",
+        "options": {}
+      },
+      "id": "b2-list",
+      "name": "List recent backup files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check whether the most-recent file uploaded within the last 30 hours.\n// (Backup runs Sun 2AM; this workflow runs Mon 6AM = ~28h window.)\nconst data = $input.first().json;\nconst files = data.files || [];\nconst nowMs = Date.now();\nconst freshest = files[0]; // B2 returns most-recent first by default\nconst freshTimestampMs = freshest ? freshest.uploadTimestamp : 0;\nconst ageHours = freshest ? (nowMs - freshTimestampMs) / 3600000 : null;\nconst ok = ageHours !== null && ageHours <= 30;\nconst msg = ok\n  ? `B2 backup OK. Last file '${freshest.fileName}' uploaded ${ageHours.toFixed(1)}h ago.`\n  : (files.length === 0\n      ? 'B2 backup FAIL: bucket is EMPTY. Hyper Backup never ran or failed silently.'\n      : `B2 backup STALE: last file is ${ageHours.toFixed(1)}h old (expected <30h). Check Hyper Backup job in DSM.`);\nreturn [{ json: { ok, msg, ageHours, fileCount: files.length } }];"
+      },
+      "id": "evaluate",
+      "name": "Evaluate freshness",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pushover.net/1/messages.json",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "token",    "value": "PASTE_PUSHOVER_APP_TOKEN_HERE" },
+            { "name": "user",     "value": "PASTE_PUSHOVER_USER_KEY_HERE" },
+            { "name": "title",    "value": "={{ $json.ok ? 'B2 backup OK' : 'B2 BACKUP PROBLEM' }}" },
+            { "name": "message",  "value": "={{ $json.msg }}" },
+            { "name": "priority", "value": "={{ $json.ok ? '-1' : '1' }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pushover",
+      "name": "Pushover (success or alert)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 300]
+    }
+  ],
+  "connections": {
+    "Mondays at 6 AM": {
+      "main": [[{ "node": "B2 authorize", "type": "main", "index": 0 }]]
+    },
+    "B2 authorize": {
+      "main": [[{ "node": "List recent backup files", "type": "main", "index": 0 }]]
+    },
+    "List recent backup files": {
+      "main": [[{ "node": "Evaluate freshness", "type": "main", "index": 0 }]]
+    },
+    "Evaluate freshness": {
+      "main": [[{ "node": "Pushover (success or alert)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Monday 6 AM cron. Authorizes against Backblaze B2 API, lists recent files in the backup bucket, alerts Pushover if the most recent file is >30h old (means Sunday 2 AM Hyper Backup didn't run). Success: low-priority (-1) confirmation. Failure: high-priority (1) alert that bypasses quiet hours."
+  }
+}

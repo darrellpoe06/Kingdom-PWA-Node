@@ -1,0 +1,59 @@
+{
+  "name": "02 - Workflow Failure Alert",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "On Any Workflow Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// $json is n8n's standard error payload.\nconst e = $input.first().json;\nconst wf = e.workflow || {};\nconst exec = e.execution || {};\nconst err = e.error || {};\nconst when = (exec.startedAt || new Date().toISOString()).slice(0, 19).replace('T', ' ');\nconst msg = [\n  `n8n workflow FAILED: ${wf.name || 'unknown'}`,\n  `When: ${when}`,\n  `Execution: ${exec.id || 'n/a'}`,\n  `Error: ${err.message || err.name || JSON.stringify(err).slice(0, 200)}`,\n  exec.url ? `Open: ${exec.url}` : ''\n].filter(Boolean).join('\\n');\nreturn [{ json: { msg, wfName: wf.name || 'unknown' } }];"
+      },
+      "id": "format-error",
+      "name": "Format error message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pushover.net/1/messages.json",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "token",    "value": "PASTE_PUSHOVER_APP_TOKEN_HERE" },
+            { "name": "user",     "value": "PASTE_PUSHOVER_USER_KEY_HERE" },
+            { "name": "title",    "value": "={{ 'n8n FAIL: ' + $json.wfName }}" },
+            { "name": "message",  "value": "={{ $json.msg }}" },
+            { "name": "priority", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pushover-fail",
+      "name": "Pushover (high priority)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    }
+  ],
+  "connections": {
+    "On Any Workflow Error": {
+      "main": [[{ "node": "Format error message", "type": "main", "index": 0 }]]
+    },
+    "Format error message": {
+      "main": [[{ "node": "Pushover (high priority)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Single error-trigger workflow that catches errors from EVERY other workflow in the n8n instance (configure other workflows' Settings -> Error Workflow to point at this one). Sends Pushover at priority 1 (bypasses quiet hours)."
+  }
+}

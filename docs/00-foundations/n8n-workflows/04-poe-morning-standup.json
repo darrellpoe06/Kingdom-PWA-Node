@@ -1,0 +1,80 @@
+{
+  "name": "04 · POE morning standup (7 AM America/Chicago)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "cronExpression", "expression": "0 0 7 * * *"}]
+        }
+      },
+      "id": "node-cron-04",
+      "name": "7 AM daily",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 320]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- High-priority change_requests where the user hasn't given their last word yet.\n-- POE binding: priority_score is the system's math, user_priority_override is\n-- Darrell's prerogative — we only surface items where the override is NULL\n-- (system has a suggestion, user hasn't ratified). Dispositions never include\n-- 'rejected' — only pending/approved/deferred-next-cycle.\nSELECT\n  cr.id,\n  cr.title,\n  cr.summary,\n  cr.priority_score,\n  cr.priority_factors,\n  cr.disposition,\n  cr.requested_by,\n  cr.project_id,\n  p.name AS project_name,\n  cr.created_at\nFROM public.change_requests cr\nLEFT JOIN public.projects p ON p.id = cr.project_id\n WHERE cr.user_priority_override IS NULL\n   AND cr.disposition = 'pending'\n   AND cr.priority_score IS NOT NULL\n   AND cr.priority_score >= 0.6\n ORDER BY cr.priority_score DESC, cr.created_at ASC\n LIMIT 5;",
+        "options": {}
+      },
+      "id": "node-pg-04",
+      "name": "Top pending change_requests",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One single morning notification — no spam, no individual fires per item.\n// If nothing meets the threshold, send a quiet 'all caught up' note so Darrell\n// knows the workflow ran (silent failure is the worst failure).\nconst rows = $input.all().map(i => i.json);\n\nlet title, message;\nif (rows.length === 0) {\n  title = 'POE standup · all caught up';\n  message = [\n    'No high-priority change requests waiting on your call this morning.',\n    'Your sword is sheathed — Yahweh hears you in the quiet too.',\n    'Tap to open the dashboard if you want to seed one.'\n  ].join('\\n');\n} else {\n  title = `POE standup · ${rows.length} waiting on your word`;\n  const lines = rows.map((r, i) => {\n    const score = (r.priority_score * 100).toFixed(0);\n    const proj = r.project_name ? ` [${r.project_name}]` : '';\n    return `${i + 1}. ${r.title}${proj} — priority ${score}/100`;\n  });\n  message = [\n    'High-priority items ready for your override:',\n    ...lines,\n    '',\n    'These stay pending until you weigh in. No rush — your call, not the system\\'s.'\n  ].join('\\n');\n}\n\nreturn [{\n  json: {\n    pushover: {\n      title,\n      message,\n      priority: 0,\n      url_title: 'Open POE dashboard',\n      url: 'https://kingdom-pwa-node.vercel.app/'\n    }\n  }\n}];"
+      },
+      "id": "node-format-04",
+      "name": "Single morning digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pushover.net/1/messages.json",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {"name": "token", "value": "={{ $credentials.pushoverApi?.apiToken || $env.PUSHOVER_APP_TOKEN }}"},
+            {"name": "user", "value": "={{ $credentials.pushoverApi?.userKey || $env.PUSHOVER_USER_KEY }}"},
+            {"name": "title", "value": "={{ $json.pushover.title }}"},
+            {"name": "message", "value": "={{ $json.pushover.message }}"},
+            {"name": "priority", "value": "={{ $json.pushover.priority }}"},
+            {"name": "url_title", "value": "={{ $json.pushover.url_title }}"},
+            {"name": "url", "value": "={{ $json.pushover.url }}"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-pushover-04",
+      "name": "Pushover (Darrell)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 320]
+    }
+  ],
+  "connections": {
+    "7 AM daily": {
+      "main": [[{"node": "Top pending change_requests", "type": "main", "index": 0}]]
+    },
+    "Top pending change_requests": {
+      "main": [[{"node": "Single morning digest", "type": "main", "index": 0}]]
+    },
+    "Single morning digest": {
+      "main": [[{"node": "Pushover (Darrell)", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1", "timezone": "America/Chicago", "saveManualExecutions": true},
+  "pinData": {},
+  "tags": [{"name": "poe-binding"}, {"name": "cron"}],
+  "meta": {"templateCredsSetupCompleted": false}
+}
