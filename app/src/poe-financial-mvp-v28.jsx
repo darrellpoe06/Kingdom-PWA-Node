@@ -20,6 +20,7 @@ import { accountsSync } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
 import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync } from './lib/projects-sync.js';
+import { inquiriesSync } from './lib/inquiries-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
@@ -1032,6 +1033,7 @@ export default function PoeFinancialSystem() {
         { sync: debtsSync,        key: 'debts',        localList: latest.debts || [] },
         { sync: transactionsSync, key: 'transactions', localList: latest.transactions || [] },
         { sync: projectsSync,     key: 'projects',     localList: latest.projects || [] },
+        { sync: inquiriesSync,    key: 'inquiries',    localList: latest.inquiries || [] },
       ];
       for (const t of tables) {
         if (cancelled) return;
@@ -1321,12 +1323,61 @@ export default function PoeFinancialSystem() {
   const deleteRental = (id) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).filter(r => r.id !== id) } }));
   const addScope = (scope) => setData(d => ({ ...d, scopes: [...d.scopes, { ...scope, id: `sc-${Date.now()}`, createdAt: new Date().toISOString(), status: 'draft' }] }));
   const deleteScope = (id) => setData(d => ({ ...d, scopes: d.scopes.filter(s => s.id !== id) }));
-  const addInquiry = (item) => setData(d => ({ ...d, inquiries: [...(d.inquiries || []), { ...item, id: `inq-${Date.now()}`, receivedAt: new Date().toISOString(), status: 'new', statusHistory: [{ status: 'new', at: new Date().toISOString() }] }] }));
+  // 2026-05-25 — Inquiries CRUD wired for cross-device sync. Same gate as
+  // accounts/debts/transactions/projects: only push to Supabase once the user
+  // has completed the VerifyBalances walkthrough. Lets Christina enter a TLC
+  // inquiry on her laptop and see it on her phone (and vice versa).
+  const addInquiry = (item) => {
+    const nowIso = new Date().toISOString();
+    const seeded = { ...item, id: `inq-${Date.now()}`, receivedAt: nowIso, status: 'new', statusHistory: [{ status: 'new', at: nowIso }] };
+    setData(d => ({ ...d, inquiries: [...(d.inquiries || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      inquiriesSync.upload(seeded).catch(e => console.warn('[inquiries-sync] upload failed', e));
+    }
+  };
   // v28+ Session C: checkout intent logging
   const addCheckoutIntent = (item) => setData(d => ({ ...d, checkoutIntents: [...(d.checkoutIntents || []), { ...item, id: `ci-${Date.now()}`, at: new Date().toISOString() }] }));
   const deleteCheckoutIntent = (id) => setData(d => ({ ...d, checkoutIntents: (d.checkoutIntents || []).filter(i => i.id !== id) }));
-  const updateInquiry = (id, updates) => setData(d => ({ ...d, inquiries: (d.inquiries || []).map(i => i.id === id ? { ...i, ...updates, statusHistory: updates.status && updates.status !== i.status ? [...(i.statusHistory || []), { status: updates.status, at: new Date().toISOString(), notes: updates.statusNotes }] : i.statusHistory } : i) }));
-  const deleteInquiry = (id) => setData(d => ({ ...d, inquiries: (d.inquiries || []).filter(i => i.id !== id) }));
+  const updateInquiry = (id, updates) => {
+    setData(d => ({ ...d, inquiries: (d.inquiries || []).map(i => i.id === id ? { ...i, ...updates, statusHistory: updates.status && updates.status !== i.status ? [...(i.statusHistory || []), { status: updates.status, at: new Date().toISOString(), notes: updates.statusNotes }] : i.statusHistory } : i) }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.inquiries || []).find(i => i.id === id);
+      if (local && local.remoteUuid) {
+        const patch = {};
+        if (updates.firstName !== undefined)         patch.first_name         = updates.firstName;
+        if (updates.contactMethod !== undefined)     patch.contact_method     = updates.contactMethod;
+        if (updates.contactValue !== undefined)      patch.contact_value      = updates.contactValue;
+        if (updates.phone !== undefined && local.contactMethod !== 'email') patch.contact_value = updates.phone;
+        if (updates.email !== undefined && local.contactMethod === 'email') patch.contact_value = updates.email;
+        if (updates.interestArea !== undefined)      patch.interest_area      = updates.interestArea;
+        if (updates.hasInsurance !== undefined)      patch.has_insurance      = updates.hasInsurance;
+        if (updates.preferredProvider !== undefined) patch.preferred_provider = updates.preferredProvider;
+        if (updates.bestTimeToCall !== undefined)    patch.best_time_to_call  = updates.bestTimeToCall;
+        if (updates.source !== undefined)            patch.source             = updates.source;
+        if (updates.sourceDetail !== undefined)      patch.source_detail      = updates.sourceDetail;
+        if (updates.notes !== undefined)             patch.notes              = updates.notes;
+        if (updates.status !== undefined) {
+          patch.status = updates.status;
+          // Mirror the local status_history append so other devices see the new entry.
+          const nextHistory = updates.status !== local.status
+            ? [...(local.statusHistory || []), { status: updates.status, at: new Date().toISOString(), notes: updates.statusNotes }]
+            : (local.statusHistory || []);
+          patch.status_history = nextHistory;
+        }
+        if (updates.conversationLog !== undefined)   patch.conversation_log   = updates.conversationLog;
+        inquiriesSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[inquiries-sync] update failed', e));
+      }
+    }
+  };
+  const deleteInquiry = (id) => {
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.inquiries || []).find(i => i.id === id);
+      if (local && local.remoteUuid) {
+        inquiriesSync.deleteRow(local.remoteUuid).catch(e => console.warn('[inquiries-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, inquiries: (d.inquiries || []).filter(i => i.id !== id) }));
+  };
   const toggleModuleInterest = (moduleKey, priority) => setData(d => { const current = d.moduleInterest || {}; if (priority === null || priority === undefined) { const next = {...current}; delete next[moduleKey]; return { ...d, moduleInterest: next }; } return { ...d, moduleInterest: { ...current, [moduleKey]: { signedAt: new Date().toISOString(), priority } } }; });
   // v28+ MVP v1.5: Capex / Tools list CRUD (data lives in About > Capital Spend)
   const addCapexItem = (item) => setData(d => ({ ...d, capexItems: [...(d.capexItems || []), { ...item, id: `cx-${Date.now()}`, cost: parseFloat(item.cost) || 0, priority: parseInt(item.priority) || 3 }] }));
