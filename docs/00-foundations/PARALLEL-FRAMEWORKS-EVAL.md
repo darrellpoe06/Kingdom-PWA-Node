@@ -13,6 +13,15 @@
 > - **Vacation scope: Darrell-only week 1, family added week 2.** The 6-day install window only needs to support one user; family-onboarding work happens *after* return.
 > - **Cost discipline: minimize PERPETUAL cost.** One-time costs fine. Paid SaaS not recommended as default when a free self-hosted alternative does the job. Paid options allowed as "rent-then-own" if they cut vacation-week risk significantly, but the migration path to the free version must be documented. Every tier below carries a "Perpetual cost at typical family usage" line.
 >
+> **Decisions ratified by Darrell 2026-05-25 (responses to the open-decisions list at the bottom of this doc):**
+> 1. **Stack B selected** for vacation week.
+> 2. **n8n backend: isolated SQLite** for vacation week (smaller blast radius).
+> 3. **LLM-call routing week 1: n8n nodes** ("okay, whatever's possible") — Dispatch latitude.
+> 4. **Initial Ollama model: Qwen 2.5 3B Q4.**
+> 5. **Counseling PIN-encryption boundary: parked** (acknowledged as not blocking vacation; revisit before Phase 1 gateway ships).
+> 6. **GPU spend target: Q4-2026 OR Q1-2027** for the dual-3090 build per `_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md`.
+> 7. **Headscale migration: keep Tailscale-as-vendor for now**; Headscale stays in the Stack C roadmap, no hardened timeline.
+>
 > **Honesty notes baked into this eval:**
 > 1. The earlier `_future/AI-INFRASTRUCTURE-SYNOLOGY.md` workup is explicitly **UNRATIFIED / parking lot** and predates the n8n lock-in. The decisions above supersede the "thin Node.js or Python gateway" framing for the workflow surface — n8n is now the gateway for ops; a gateway *binary* is still needed only for the LLM-call edge (Anthropic / Ollama proxy with system-prompt enforcement). Two distinct things.
 > 2. The schema's app-layer triggers (Continual Improvement Loop §12.5, audit_log writes, link reconciliation, disclaimer acks) still live in Postgres + the React app. n8n sits *alongside* them — for external-facing flows (renter notifications, donor tax statements, Christina's marketing pipeline) — not as a replacement for in-database integrity.
@@ -470,17 +479,19 @@ Scoring rubric per tier candidate, 1-5:
 
 ---
 
-## Open decisions for Darrell
+## Decisions ratified by Darrell 2026-05-25
 
-Things this eval did NOT resolve, in order of how soon they matter:
+All seven questions answered. Decisions captured here for future-Dispatch reference.
 
-1. **Stack B or Stack A for vacation week?** Recommendation: Stack B (defer the LLM gateway binary, defer Uptime Kuma, defer in-app Dev/Ops dashboard build until post-vacation). Yes/no?
-2. **n8n backend: isolated SQLite or share Supabase Postgres?** Recommendation: isolated SQLite for vacation week (smaller blast radius if anything misconfigures). Switch to Supabase Postgres post-vacation when the schema has settled. Acceptable?
-3. **LLM-call routing in week 1: n8n's HTTP/AI nodes (Stack B) or a thin Node gateway (Stack A)?** Recommendation: n8n nodes for week 1; extract to Node gateway week 3+. Acceptable?
-4. **Initial Ollama model: Qwen 2.5 3B Q4 or Phi-3 Mini 3.8B Q4?** Both fit comfortably; Qwen is generally stronger on reasoning; Phi-3 is faster and tighter. Recommendation: Qwen 2.5 3B Q4. Acceptable?
-5. **Counseling-sub-tab PIN-encryption boundary** (open question #5 from the AI workup). Unresolved; affects whether the eventual gateway sees plaintext journal content. Doesn't block vacation week; needs deciding before Phase 1 gateway ships.
-6. **GPU spend timing.** The hardware-options doc parks the dual-3090 build at ~$2,000 behind MVP-1 stability. Do you want that recommendation hardened into a Q3-2026 purchase target, or kept indefinitely parked? Doesn't block vacation week.
-7. **Headscale vs. ongoing Tailscale-as-vendor.** Tailscale stays in all three stacks. Headscale is in Stack C. Acceptable to keep Tailscale-as-vendor indefinitely, or is the migration to Headscale a goal?
+1. **Stack for vacation week: Stack B.** Defer the LLM gateway binary, defer Uptime Kuma, defer in-app Dev/Ops dashboard build until post-vacation. Ship n8n + Ollama + Tailscale + Pushover + ntfy + the numeric-table sync work.
+2. **n8n backend: isolated SQLite** for vacation week. Switch to Supabase Postgres post-vacation when the schema has settled. Smaller blast radius if anything misconfigures during install.
+3. **LLM-call routing in week 1: n8n's HTTP/AI nodes** ("okay, whatever's possible" — Darrell's words). Dispatch latitude to extract to thin Node gateway week 3+ if Counseling traffic warrants it.
+4. **Initial Ollama model: Qwen 2.5 3B Q4.** Pull `qwen2.5:3b-instruct-q4_K_M`.
+5. **Counseling-sub-tab PIN-encryption boundary: parked.** Acknowledged as not blocking vacation week. Must be resolved before Phase 1 gateway ships (whether the Synology gateway sees plaintext journal content, or whether AES-GCM extends through the API call).
+6. **GPU spend timing: Q4-2026 OR Q1-2027 target** for the dual-3090 build per `_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md`. Hardware-options doc gets a follow-up note to harden this window in a separate session.
+7. **Headscale migration: keep Tailscale-as-vendor for now.** Headscale stays in the Stack C roadmap; no hardened migration timeline. Revisit if/when family-user count drives Tailscale pricing past the free tier.
+
+**Net effect on vacation week:** Stack B is the install target. Dispatch (or the next session) can proceed with the install order documented below without re-asking these questions.
 
 ---
 
