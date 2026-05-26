@@ -52,17 +52,25 @@ ALTER TABLE IF EXISTS tenants               RENAME TO instances;
 ALTER TABLE IF EXISTS tenant_members        RENAME TO instance_members;
 ALTER TABLE IF EXISTS tenant_invites        RENAME TO instance_invites;
 
--- Column renames on every v1 table that carried the FK
-ALTER TABLE entities             RENAME COLUMN tenant_id TO instance_id;
-ALTER TABLE accounts             RENAME COLUMN tenant_id TO instance_id;
-ALTER TABLE transactions         RENAME COLUMN tenant_id TO instance_id;
-ALTER TABLE debts                RENAME COLUMN tenant_id TO instance_id;
-ALTER TABLE projects             RENAME COLUMN tenant_id TO instance_id;
-ALTER TABLE feedback             RENAME COLUMN tenant_id TO instance_id;
-ALTER TABLE confessions          RENAME COLUMN tenant_id TO instance_id;
-ALTER TABLE user_telemetry       RENAME COLUMN tenant_id TO instance_id;
-ALTER TABLE instance_members     RENAME COLUMN tenant_id TO instance_id;
-ALTER TABLE instance_invites     RENAME COLUMN tenant_id TO instance_id;
+-- Column renames on every v1 table that carried the FK + every v1.2 table
+-- (rentals, incidents, inquiries, scopes — added by schema-v1.2-numeric-sync).
+-- DO block per-table so a missing v1.2 table doesn't abort the migration.
+DO $rename_cols$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'entities','accounts','transactions','debts','projects','feedback',
+    'confessions','user_telemetry','instance_members','instance_invites',
+    'rentals','incidents','inquiries','scopes'
+  ] LOOP
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = t AND column_name = 'tenant_id'
+    ) THEN
+      EXECUTE format('ALTER TABLE %I RENAME COLUMN tenant_id TO instance_id', t);
+    END IF;
+  END LOOP;
+END $rename_cols$;
 
 -- v1's user_tenant_settings renames table + column
 ALTER TABLE IF EXISTS user_tenant_settings RENAME COLUMN tenant_id TO instance_id;
@@ -79,10 +87,30 @@ BEGIN
   END IF;
 END $$;
 
--- Helper functions: drop the v1 names and recreate under the new names
-DROP FUNCTION IF EXISTS public.user_in_tenant(uuid);
-DROP FUNCTION IF EXISTS public.user_tenant_role(uuid);
-DROP FUNCTION IF EXISTS public.join_default_tenant(text);
+-- Helper functions: RENAME the v1 functions (preserves OIDs + every RLS
+-- policy that depends on them, including the v1.2 policies on rentals/
+-- incidents/inquiries/scopes). CREATE OR REPLACE below updates each
+-- renamed function's body to use the new column names. Plain DROP FUNCTION
+-- would fail with "cannot drop ... other objects depend on it" once v1.2
+-- policies exist.
+DO $rename_fns$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_proc p
+              JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE p.proname = 'user_in_tenant' AND n.nspname = 'public') THEN
+    ALTER FUNCTION public.user_in_tenant(uuid) RENAME TO user_in_instance;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_proc p
+              JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE p.proname = 'user_tenant_role' AND n.nspname = 'public') THEN
+    ALTER FUNCTION public.user_tenant_role(uuid) RENAME TO user_role_in_instance;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_proc p
+              JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE p.proname = 'join_default_tenant' AND n.nspname = 'public') THEN
+    ALTER FUNCTION public.join_default_tenant(text) RENAME TO join_default_instance;
+  END IF;
+END $rename_fns$;
 
 CREATE OR REPLACE FUNCTION public.user_in_instance(instance_uuid uuid)
 RETURNS boolean
@@ -690,6 +718,67 @@ CREATE POLICY instance_members_self_read ON instance_members FOR SELECT
 
 CREATE POLICY instance_invites_admin_read ON instance_invites FOR SELECT
   USING (user_role_in_instance(instance_id) IN ('owner','admin'));
+
+-- =====================================================================
+-- Update v1.2 trigger function bodies to use instance_id (post-rename).
+-- These triggers fire on every INSERT/UPDATE of accounts/debts/rentals/
+-- etc.; if their bodies still referenced NEW.tenant_id after the column
+-- rename, every write would error. CREATE OR REPLACE keeps the OID so
+-- the existing trigger bindings continue to call the updated function.
+-- =====================================================================
+
+CREATE OR REPLACE FUNCTION public.resolve_entity_slug_to_id()
+RETURNS TRIGGER AS $fn$
+BEGIN
+  IF NEW.entity_slug IS NOT NULL AND NEW.entity_id IS NULL THEN
+    SELECT id INTO NEW.entity_id
+      FROM entities
+     WHERE instance_id = NEW.instance_id AND slug = NEW.entity_slug
+     LIMIT 1;
+  END IF;
+  RETURN NEW;
+END;
+$fn$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.resolve_account_slug_to_id()
+RETURNS TRIGGER AS $fn$
+BEGIN
+  IF NEW.account_slug IS NOT NULL AND NEW.account_id IS NULL THEN
+    SELECT id INTO NEW.account_id
+      FROM accounts
+     WHERE instance_id = NEW.instance_id AND slug = NEW.account_slug
+     LIMIT 1;
+  END IF;
+  RETURN NEW;
+END;
+$fn$ LANGUAGE plpgsql;
+
+-- v1.2 created several *_tenant_slug_uidx indexes; rename for vocabulary
+-- consistency. Best-effort — skip silently if the index doesn't exist.
+DO $rename_idx$
+DECLARE pair RECORD;
+BEGIN
+  FOR pair IN
+    SELECT * FROM (VALUES
+      ('accounts_tenant_slug_uidx',     'accounts_instance_slug_uidx'),
+      ('debts_tenant_slug_uidx',        'debts_instance_slug_uidx'),
+      ('transactions_tenant_slug_uidx', 'transactions_instance_slug_uidx'),
+      ('projects_tenant_slug_uidx',     'projects_instance_slug_uidx'),
+      ('rentals_tenant_idx',            'rentals_instance_idx_v12'),
+      ('rentals_tenant_slug_uidx',      'rentals_instance_slug_uidx'),
+      ('incidents_tenant_idx',          'incidents_instance_idx_v12'),
+      ('incidents_tenant_slug_uidx',    'incidents_instance_slug_uidx'),
+      ('inquiries_tenant_idx',          'inquiries_instance_idx_v12'),
+      ('inquiries_tenant_slug_uidx',    'inquiries_instance_slug_uidx'),
+      ('scopes_tenant_idx',             'scopes_instance_idx_v12'),
+      ('scopes_tenant_slug_uidx',       'scopes_instance_slug_uidx')
+    ) AS t(old_name, new_name)
+  LOOP
+    IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = pair.old_name) THEN
+      EXECUTE format('ALTER INDEX %I RENAME TO %I', pair.old_name, pair.new_name);
+    END IF;
+  END LOOP;
+END $rename_idx$;
 
 COMMIT;
 

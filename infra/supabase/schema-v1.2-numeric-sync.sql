@@ -185,19 +185,19 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS %I_delete ON %I', t, t);
 
     EXECUTE format(
-      'CREATE POLICY %I_select ON %I FOR SELECT USING (is_tenant_member(tenant_id))',
+      'CREATE POLICY %I_select ON %I FOR SELECT USING (user_in_tenant(tenant_id))',
       t, t
     );
     EXECUTE format(
-      'CREATE POLICY %I_insert ON %I FOR INSERT WITH CHECK (is_tenant_member(tenant_id) AND created_by = auth.uid())',
+      'CREATE POLICY %I_insert ON %I FOR INSERT WITH CHECK (user_in_tenant(tenant_id) AND created_by = auth.uid())',
       t, t
     );
     EXECUTE format(
-      'CREATE POLICY %I_update ON %I FOR UPDATE USING (is_tenant_member(tenant_id))',
+      'CREATE POLICY %I_update ON %I FOR UPDATE USING (user_in_tenant(tenant_id))',
       t, t
     );
     EXECUTE format(
-      'CREATE POLICY %I_delete ON %I FOR DELETE USING (is_tenant_member(tenant_id))',
+      'CREATE POLICY %I_delete ON %I FOR DELETE USING (user_in_tenant(tenant_id))',
       t, t
     );
   END LOOP;
