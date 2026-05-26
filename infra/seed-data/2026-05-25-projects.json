@@ -1,0 +1,387 @@
+{
+  "$schema": "https://kingdom-pwa.dev/schemas/seed-projects/v1.json",
+  "seed_id": "2026-05-25-projects",
+  "generated_at": "2026-05-25T00:00:00Z",
+  "generated_by": "dogfood-seed (Dispatch session)",
+  "instance_slug": "poe-family",
+  "intent": "Populate the app's own projects + change_requests + cycle_items + notifications with the real workload Darrell and Christina are carrying on 2026-05-25. This is the §12.5 'PoeTech central runs the same loop on its own instance' pattern. UI consumers (mobile project-creation flow) read this file to let Christina or Darrell add similar items with a tap.",
+  "poe_binding": "The system ranks (priority_score, transparent via priority_factors); the human decides (user_priority_override remains null until Christina sets it). Dispositions stay in non-punitive vocabulary: 'pending', 'approved', 'deferred-next-cycle'. 'rejected' is NEVER used in seeded dispositions.",
+  "review_cadence": {
+    "cadence_name": "Vacation Prep (ad-hoc)",
+    "cadence_frequency": "ad-hoc",
+    "facilitator": "darrell",
+    "auto_cluster": true,
+    "auto_priority": true
+  },
+  "review_cycle": {
+    "label": "2026-05-25 — Vacation Prep",
+    "agenda_seed_marker": "[seed:2026-05-25-vacation-prep]",
+    "cycle_start_offset_days": 0,
+    "cycle_close_offset_days": 5,
+    "cycle_close_basis": "24 hours before Darrell departs for vacation (T+6 days)",
+    "status": "in-progress"
+  },
+  "projects": [
+    {
+      "slug": "synology-n8n-rollout-2026-05-25",
+      "title": "Synology n8n rollout",
+      "status": "active",
+      "domain": "family",
+      "hours_per_week": 10,
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": 5,
+      "description_md": "Self-host the PWA + Supabase + n8n + Ollama on the DS1621xs so Christina and the kids can install one PWA per device and feedback collects in one shared place.\n\nPlan: docs/00-foundations/_future/SYNOLOGY-DEPLOY-PLAN.md\nFrameworks eval: docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md\n\nVacation deadline: Darrell departs in 6 days; installable for Darrell-only access by then; family onboarding lands on return.",
+      "linked_docs": [
+        "docs/00-foundations/_future/SYNOLOGY-DEPLOY-PLAN.md",
+        "docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md"
+      ],
+      "cycle_item": {
+        "priority_score": 9.0,
+        "priority_factors": {
+          "urgency_score": 9,
+          "urgency_basis": "core vacation-week deliverable",
+          "dollar_friction": 1.0,
+          "dollar_basis": "time-only, no perpetual cost in chosen Stack B",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4"
+        },
+        "disposition": "approved",
+        "disposition_notes": "Plan ratified; Stack B chosen; execution underway"
+      }
+    },
+    {
+      "slug": "schema-v2-deployment-2026-05-25",
+      "title": "Schema v2 deployment",
+      "status": "active",
+      "domain": "tech-business",
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": 5,
+      "description_md": "Apply schema-v2.x migrations in order: v2.1-infra → v2.2-rentals → v2.3-therapy → v2.4-contractor → v2.6-legal → v2.7-church → v2.8-ops → v2.9-portal-rls.\n\nFiles live in infra/supabase/. v2.1-infra is the foundation; the rest light up domain modules incrementally. v1 surfaces keep working throughout (additive migration per §4.0 of the design doc).",
+      "linked_docs": [
+        "infra/supabase/schema-v2.1-infra.sql",
+        "infra/supabase/schema-v2.2-rentals.sql",
+        "infra/supabase/schema-v2.3-therapy.sql",
+        "infra/supabase/schema-v2.4-contractor.sql",
+        "infra/supabase/schema-v2.6-legal.sql",
+        "infra/supabase/schema-v2.7-church.sql",
+        "infra/supabase/schema-v2.8-ops.sql",
+        "infra/supabase/schema-v2.9-portal-rls.sql",
+        "docs/00-foundations/SCHEMA-V2-MULTI-DOMAIN-DRAFT.md"
+      ],
+      "cycle_item": {
+        "priority_score": 9.5,
+        "priority_factors": {
+          "urgency_score": 10,
+          "urgency_basis": "blocks every v2 capability including this very seed file",
+          "dollar_friction": 1.0,
+          "dollar_basis": "no cost; time-only",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4"
+        },
+        "disposition": "approved",
+        "disposition_notes": "v2.1-infra is the critical path; v2.2-v2.9 light up incrementally"
+      }
+    },
+    {
+      "slug": "react-rewire-instance-id-2026-05-25",
+      "title": "React rewire to instance_id",
+      "status": "active",
+      "domain": "tech-business",
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": 1,
+      "description_md": "Application-layer rename: tenant_id → instance_id across React sources and Supabase client calls. Work is done in repo but uncommitted; one cycle item remains to commit + push.\n\nFiles affected (per `git status` 2026-05-25): app/src/components/InputCenter.jsx, app/src/lib/{accounts,debts,entities,feedback,projects,table,transactions}-sync.js, app/src/poe-financial-mvp-v28.jsx.",
+      "cycle_item": {
+        "priority_score": 8.6,
+        "priority_factors": {
+          "urgency_score": 8,
+          "urgency_basis": "work is done; commit+push is small but needed before vacation",
+          "dollar_friction": 1.0,
+          "dollar_basis": "no cost",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4",
+          "task": "commit + push uncommitted React rename (Darrell owner)"
+        },
+        "disposition": "pending",
+        "disposition_notes": "Darrell to commit + push the staged React rename batch"
+      }
+    },
+    {
+      "slug": "verifybalances-numeric-sync-2026-05-24",
+      "title": "VerifyBalances + numeric sync",
+      "status": "done",
+      "domain": "tech-business",
+      "owner": "darrell",
+      "start_offset_days": -1,
+      "end_offset_days": 0,
+      "description_md": "v1.2 numeric-table sync (accounts, debts, transactions, projects) + VerifyBalances gate.\n\nStatus: SHIPPED. Captured here for honest history per §12.5. The restore-from-head batch + v1.2 SQL apply were the unblocks; both are complete (see SESSION-HANDOFF-2026-05-24.md).",
+      "cycle_item": {
+        "priority_score": 10.0,
+        "priority_factors": {
+          "urgency_score": 10,
+          "urgency_basis": "was blocking everything until shipped",
+          "dollar_friction": 1.0,
+          "dollar_basis": "no cost",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4",
+          "status_at_seed": "SHIPPED",
+          "historical_artifact": "_restore-from-head-2026-05-25.bat + schema-v1.2-numeric-sync.sql applied"
+        },
+        "disposition": "approved",
+        "disposition_notes": "SHIPPED — seeded as closed for honest history capture",
+        "closed_at_seed_time": true
+      }
+    },
+    {
+      "slug": "counseling-tab-mvp-2026-05-25",
+      "title": "Counseling tab MVP — Christina's 6 answers",
+      "status": "planning",
+      "domain": "therapy",
+      "owner": "christina",
+      "start_offset_days": 0,
+      "end_offset_days": null,
+      "description_md": "Counseling tab cannot ship until Christina answers six product-shape questions:\n  Q2 — voice/tone\n  Q3 — scripture posture\n  Q4 — model + system prompt\n  Q5 — triage / crisis routing\n  Q6 — disclaimer pattern\n  Q9 — counseling vocabulary\n\nOwner: Christina. Status: waiting on answers (non-blocking for vacation week — counseling tab is post-vacation work).",
+      "blocked_by_questions": ["Q2", "Q3", "Q4", "Q5", "Q6", "Q9"],
+      "cycle_item": {
+        "priority_score": 5.0,
+        "priority_factors": {
+          "urgency_score": 4,
+          "urgency_basis": "post-vacation work; Q-answers gating",
+          "dollar_friction": 1.0,
+          "dollar_basis": "no cost yet",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4",
+          "blocked_by": "6 product-shape answers from Christina (Q2,Q3,Q4,Q5,Q6,Q9)"
+        },
+        "disposition": "deferred-next-cycle",
+        "disposition_notes": "Non-blocking for vacation week; carried into post-vacation cycle"
+      }
+    },
+    {
+      "slug": "resend-smtp-setup-2026-05-25",
+      "title": "Resend SMTP setup",
+      "status": "active",
+      "domain": "tech-business",
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": 1,
+      "description_md": "Sign up at https://resend.com with darrellpoe06@gmail.com (60-sec signup), get the SMTP credentials, wire into Supabase Auth so magic-link emails actually deliver. The Resend session continues after Darrell completes signup.",
+      "cycle_item": {
+        "priority_score": 8.0,
+        "priority_factors": {
+          "urgency_score": 8,
+          "urgency_basis": "magic-link auth needs working SMTP",
+          "dollar_friction": 1.0,
+          "dollar_basis": "Resend free tier covers vacation-week volume",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4",
+          "task": "Darrell 60-sec signup at https://resend.com with darrellpoe06@gmail.com"
+        },
+        "disposition": "pending",
+        "disposition_notes": "Darrell to complete signup; Resend session continues after"
+      }
+    },
+    {
+      "slug": "trust-ownership-architecture-2026-05-25",
+      "title": "Trust ownership architecture",
+      "status": "active",
+      "domain": "legal",
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": null,
+      "description_md": "Q1 + Q2 v2-schema answer: TLC, Poe Properties, and PoeTech all carry parent_instance_id = trust.id. Trust is an instance of instance_type='trust'; operating companies hang under it via parent_instance_id. legal_structure_notes jsonb holds the non-privileged admin shape (trustees, successor trustee, EIN last 4, state of formation, registered agent).\n\nPrivileged legal content lives encrypted in the Legal domain (v2.6).",
+      "cycle_item": {
+        "priority_score": 6.0,
+        "priority_factors": {
+          "urgency_score": 5,
+          "urgency_basis": "post-vacation; lawyer verify needed before legal_structure_notes go live",
+          "dollar_friction": 1.0,
+          "dollar_basis": "no cost yet",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4",
+          "task": "user/lawyer verify legal structure notes per disclaimer pattern"
+        },
+        "disposition": "deferred-next-cycle",
+        "disposition_notes": "Architecture captured; lawyer verify is post-vacation work"
+      }
+    },
+    {
+      "slug": "parallel-frameworks-eval-2026-05-25",
+      "title": "Parallel frameworks evaluation",
+      "status": "active",
+      "domain": "tech-business",
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": 1,
+      "description_md": "Stack A / B / C evaluation of n8n + Ollama + Tailscale + ntfy + Pushover + Backblaze B2 against the DS1621xs 32 GB RAM ceiling and the 6-day vacation deadline.\n\nDoc: docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md\nTL;DR: Stack B (minimal-surface n8n) is the vacation-week answer.",
+      "linked_docs": [
+        "docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md"
+      ],
+      "cycle_item": {
+        "priority_score": 8.4,
+        "priority_factors": {
+          "urgency_score": 9,
+          "urgency_basis": "unblocks Stack B build sequence",
+          "dollar_friction": 1.0,
+          "dollar_basis": "doc work; no cost",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4",
+          "doc": "docs/00-foundations/PARALLEL-FRAMEWORKS-EVAL.md"
+        },
+        "disposition": "approved",
+        "disposition_notes": "Stack B is the chosen vacation-week path"
+      }
+    }
+  ],
+  "change_requests": [
+    {
+      "title": "Approve Pushover license ($5 one-time)",
+      "change_type": "standard",
+      "risk_level": "low",
+      "status": "proposed",
+      "lifecycle_phase": "pending-spouse-approval",
+      "assigned_to": "christina",
+      "linked_project_slug": "synology-n8n-rollout-2026-05-25",
+      "description_md": "Purchase Pushover license at https://pushover.net for Darrell's phone notifications during vacation week. $5 one-time per platform (iOS/Android, one-time). Best reliability for time-sensitive alerts (rent due, incident escalation, family emergencies).\n\nParallel-frameworks eval: locked-in (Tier F notifications, Pushover + ntfy dual-channel).",
+      "cycle_item": {
+        "priority_score": 9.4,
+        "priority_factors": {
+          "urgency_score": 9,
+          "urgency_basis": "vacation departure in 6 days; need reliable phone alerts",
+          "dollar_friction": 1.0,
+          "dollar_basis": "$5 one-time = trivial friction",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4"
+        },
+        "disposition": "pending",
+        "disposition_notes": "Awaiting Christina spouse-approval; Darrell flagged urgency=HIGH due to vacation deadline"
+      }
+    },
+    {
+      "title": "Approve USB external 4 TB drive ($50-80 one-time)",
+      "change_type": "standard",
+      "risk_level": "low",
+      "status": "proposed",
+      "lifecycle_phase": "pending-spouse-approval",
+      "assigned_to": "christina",
+      "linked_project_slug": "synology-n8n-rollout-2026-05-25",
+      "description_md": "4 TB USB external drive for offsite backup rotation (carry to parents' house monthly). Hardware redundancy for the Synology RAID. $50-80 one-time depending on model.\n\nParallel-frameworks eval: Tier F backup, budget alternative to Backblaze B2.",
+      "cycle_item": {
+        "priority_score": 7.0,
+        "priority_factors": {
+          "urgency_score": 7,
+          "urgency_basis": "nice before vacation but RAID gives some redundancy already",
+          "dollar_friction": 0.7,
+          "dollar_basis": "$50-80 modest friction at household tier",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4"
+        },
+        "disposition": "pending",
+        "disposition_notes": "Awaiting Christina spouse-approval"
+      }
+    },
+    {
+      "title": "Approve Synology RAM upgrade to 32 GB ECC (CONDITIONAL — $80-150 one-time)",
+      "change_type": "standard",
+      "risk_level": "low",
+      "status": "proposed",
+      "lifecycle_phase": "pending-darrell-verify-current-ram",
+      "assigned_to": "darrell-then-christina",
+      "conditional": true,
+      "condition": "current installed RAM on DS1621xs is less than 32 GB",
+      "linked_project_slug": "synology-n8n-rollout-2026-05-25",
+      "description_md": "IF currently installed RAM is < 32 GB ECC on the DS1621xs, upgrade to the 32 GB max so Postgres + Ollama + n8n + the app + everything else can share the pool without paging. Darrell to confirm current install before approving spend.\n\nConditional: change_request can be closed 'approved-no-cost' if current RAM is already 32 GB.",
+      "cycle_item": {
+        "priority_score": 5.4,
+        "priority_factors": {
+          "urgency_score": 6,
+          "urgency_basis": "depends on current RAM; only urgent if currently <32 GB",
+          "dollar_friction": 0.45,
+          "dollar_basis": "$80-150 mid-tier friction",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4",
+          "conditional": true,
+          "condition": "current installed RAM < 32 GB"
+        },
+        "disposition": "more-info-needed",
+        "disposition_notes": "Awaiting Darrell verify current RAM install before Christina routing"
+      }
+    },
+    {
+      "title": "Choose offsite backup path: $0 self-hosted OR paid object storage",
+      "change_type": "standard",
+      "risk_level": "low",
+      "status": "proposed",
+      "lifecycle_phase": "pending-spouse-approval",
+      "assigned_to": "christina",
+      "linked_project_slug": "synology-n8n-rollout-2026-05-25",
+      "description_md": "Pick the perpetual-cost path for offsite backup:\n  Option A — $0/mo: USB drive rotation only (Tier F budget option).\n  Option B — ~$6/mo: Backblaze B2 (default in PARALLEL-FRAMEWORKS-EVAL).\n  Option C — ~$5/mo: Cloudflare R2 (no egress fees, lock-in moderate).\n  Option D — €3.20/mo: Hetzner Storage Box (EU jurisdiction).\n\nDefault lean: Option A (USB only) to minimize perpetual cost per Darrell's standing rule. Christina to approve the chosen path.",
+      "cycle_item": {
+        "priority_score": 6.6,
+        "priority_factors": {
+          "urgency_score": 6,
+          "urgency_basis": "good to settle before vacation but USB rotation works as interim",
+          "dollar_friction": 0.85,
+          "dollar_basis": "$0-6/mo perpetual; default-lean Option A = $0",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4"
+        },
+        "disposition": "pending",
+        "disposition_notes": "Awaiting Christina spouse-approval; default lean = Option A ($0/mo USB-only)"
+      }
+    }
+  ],
+  "cycle_items_only": [
+    {
+      "kind": "ntfy-self-hosted",
+      "title": "Stand up ntfy on the Synology",
+      "cost_usd_one_time": 0,
+      "cost_usd_perpetual_monthly": 0,
+      "needs_approval": false,
+      "owner": "darrell",
+      "disposition": "approved",
+      "disposition_notes": "Zero-cost self-hosted; no approval needed",
+      "linked_project_slug": "synology-n8n-rollout-2026-05-25"
+    },
+    {
+      "kind": "tailscale-personal",
+      "title": "Wire Tailscale personal plan (free tier)",
+      "cost_usd_one_time": 0,
+      "cost_usd_perpetual_monthly": 0,
+      "needs_approval": false,
+      "owner": "darrell",
+      "disposition": "approved",
+      "disposition_notes": "Zero-cost; no approval needed",
+      "linked_project_slug": "synology-n8n-rollout-2026-05-25"
+    }
+  ],
+  "notifications": [
+    {
+      "target": "christina",
+      "kind": "cycle-board-ready",
+      "channel": "in-app",
+      "lead_times": ["immediate"],
+      "title": "Family project board: 3 items awaiting your approval",
+      "body": "Three change_requests are routed to you for spouse-approval as part of the 2026-05-25 Vacation Prep cycle:\n  • Pushover license ($5 one-time)\n  • USB external 4 TB drive ($50-80 one-time)\n  • Offsite backup path decision (default-lean $0/mo)\n\nSynology RAM upgrade is conditional and waiting on Darrell to verify current RAM.",
+      "priority": "high",
+      "action_label": "Open family project board",
+      "action_uri": "/projects?cycle=vacation-prep-2026-05-25",
+      "dedupe_key": "seed-2026-05-25-vacation-prep-christina-digest"
+    }
+  ],
+  "notification_channels": [
+    {
+      "target": "darrell",
+      "channel": "push",
+      "address": "pushover://PLACEHOLDER-user-key-replace-after-license",
+      "status": "paused",
+      "note": "Replace placeholder with real Pushover user-key after Christina approves the $5 license and Darrell licenses Pushover"
+    }
+  ],
+  "notification_preferences": [
+    {
+      "target": "christina",
+      "kind": "cycle-board-ready",
+      "channel": "in-app",
+      "lead_times": ["immediate"],
+      "enabled": true
+    },
+    {
+      "target": "darrell",
+      "kind": "change-due-soon",
+      "channel": "in-app",
+      "lead_times": ["immediate", "1h", "24h"],
+      "enabled": true
+    }
+  ]
+}
