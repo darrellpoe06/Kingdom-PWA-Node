@@ -3754,8 +3754,15 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
   // ---------------------------------------------------------------------------
   const [contribForm, setContribForm] = useState({ topic: '', text: '', link: '' });
   const [contribError, setContribError] = useState('');
-  const [showContribForm, setShowContribForm] = useState(false);
+  // Per Darrell 2026-05-25: the contribution form is the church tab's center of
+  // gravity — open by default so the prompt is one tap away ("speak / type / link"
+  // is the action, not a hidden affordance).
+  const [showContribForm, setShowContribForm] = useState(true);
   const [contributions, setContributions] = useState([]);  // local-only until v2.7 sync wires up
+  // Pagination — match the Queue / Feedback Log pattern: most-recent 5 on the
+  // page; older entries reachable with ← / → arrows.
+  const CONTRIB_PAGE_SIZE = 5;
+  const [contribPage, setContribPage] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
@@ -3921,28 +3928,6 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
-      <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-1">Home Church</div>
-        <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{c.name}</h2>
-        {c.nickname && <div className="text-base text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{c.nickname}</div>}
-        {c.tagline && <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{c.tagline}</p>}
-        {c.verse && (
-          <blockquote className="mt-3 border-l-2 border-[#B85838] pl-3 text-sm italic" style={{ fontFamily: '"Fraunces", serif' }}>
-            "{c.verse.text}" <span className="not-italic text-[#5A5751] text-xs"> — {c.verse.ref}</span>
-          </blockquote>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
-          {c.address && <div><div className={labelCls}>Location</div><div>{c.address}</div></div>}
-          {c.phone && <div><div className={labelCls}>Phone</div><a href={`tel:${c.phone.replace(/[^0-9]/g, '')}`} className="underline text-[#B85838] hover:text-[#1A1815]">{c.phone}</a></div>}
-          {c.officeHours && <div><div className={labelCls}>Office</div><div>{c.officeHours}</div></div>}
-        </div>
-        <div className="mt-3 flex gap-2 flex-wrap">
-          {c.site && <a href={c.site} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Visit Church Site →</a>}
-          {c.links?.about && <a href={c.links.about} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">About Us →</a>}
-        </div>
-      </section>
-
       {/* YAHWEH HEARS YOU — interactive contribution input (renamed 2026-05-25 per Darrell)
           The church tab's spiritual-surface name for the voice + link + text
           processing center. Per CLAUDE.md typographic theology (Yahweh always
@@ -4040,9 +4025,15 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
           </div>
         )}
 
-        {contributions.length > 0 && (
+        {contributions.length > 0 && (() => {
+          const totalPages = Math.max(1, Math.ceil(contributions.length / CONTRIB_PAGE_SIZE));
+          const safePage = Math.min(contribPage, totalPages - 1);
+          const start = safePage * CONTRIB_PAGE_SIZE;
+          const pageItems = contributions.slice(start, start + CONTRIB_PAGE_SIZE);
+          return (
+          <>
           <div className="mt-3 border border-[#1A1815]">
-            {contributions.map((entry, i, arr) => (
+            {pageItems.map((entry, i, arr) => (
               <div key={entry.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                   <div className="min-w-0 flex-1">
@@ -4094,7 +4085,34 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
               </div>
             ))}
           </div>
-        )}
+          {totalPages > 1 && (
+            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              <button
+                type="button"
+                onClick={() => setContribPage(p => Math.max(0, p - 1))}
+                disabled={safePage === 0}
+                aria-label="Previous page of notes"
+                className="px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                ← prev
+              </button>
+              <div>
+                Page {safePage + 1} of {totalPages} · {contributions.length} note{contributions.length === 1 ? '' : 's'}
+              </div>
+              <button
+                type="button"
+                onClick={() => setContribPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={safePage >= totalPages - 1}
+                aria-label="Next page of notes"
+                className="px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                next →
+              </button>
+            </div>
+          )}
+          </>
+          );
+        })()}
       </section>
 
       {/* SERVICE TIMES + SAVE TO CALENDAR */}
@@ -4229,6 +4247,30 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
             ))}
           </div>
         )}
+      </section>
+
+      {/* HEADER (moved to bottom 2026-05-25 per Darrell — the church-identity "ad"
+          lives below the spiritual + parish-life surfaces so the page opens with
+          the actions, not with the marquee). */}
+      <section className="bg-white border border-[#1A1815] p-5">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-1">Home Church</div>
+        <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{c.name}</h2>
+        {c.nickname && <div className="text-base text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{c.nickname}</div>}
+        {c.tagline && <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{c.tagline}</p>}
+        {c.verse && (
+          <blockquote className="mt-3 border-l-2 border-[#B85838] pl-3 text-sm italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            "{c.verse.text}" <span className="not-italic text-[#5A5751] text-xs"> — {c.verse.ref}</span>
+          </blockquote>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+          {c.address && <div><div className={labelCls}>Location</div><div>{c.address}</div></div>}
+          {c.phone && <div><div className={labelCls}>Phone</div><a href={`tel:${c.phone.replace(/[^0-9]/g, '')}`} className="underline text-[#B85838] hover:text-[#1A1815]">{c.phone}</a></div>}
+          {c.officeHours && <div><div className={labelCls}>Office</div><div>{c.officeHours}</div></div>}
+        </div>
+        <div className="mt-3 flex gap-2 flex-wrap">
+          {c.site && <a href={c.site} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Visit Church Site →</a>}
+          {c.links?.about && <a href={c.links.about} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">About Us →</a>}
+        </div>
       </section>
 
       <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
