@@ -1,0 +1,98 @@
+{
+  "name": "16 · Cross-verify engine (hourly · Gmail-claim ↔ bank-confirm reconciliation)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "cronExpression", "expression": "0 0 * * * *"}]
+        }
+      },
+      "id": "9f7e2a10-16a0-4160-8160-aaaaaaaaaa01",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reconcile Gmail-claimed financial events against bank-confirmed ones.\n//\n// Inputs:\n//   /data/finance-events/gmail/*.json — claims (\"Chase says you spent $X\")\n//   /data/finance-events/bank/<institution>/*.json — confirmations\n//\n// Output:\n//   For each Gmail event, look for a bank event with matching amount (within\n//   $0.50) and date (within 3 days). Tag the gmail record with reconciliation\n//   status: 'verified', 'unconfirmed', 'mismatched'. Write the verdict to\n//   /data/finance-events/reconciled/. Surface unconfirmed/mismatched to chat.\n//\n// Bank events with no matching Gmail claim are tagged 'unexplained' and also\n// flagged (silent money movements are exactly the thing the family wants to\n// know about).\n//\n// State file remembers what we've already reconciled so we don't re-alert\n// on every hourly tick.\n\nconst fs = require('fs');\nconst path = require('path');\n\nconst GMAIL_DIR = '/data/finance-events/gmail';\nconst BANK_ROOT = '/data/finance-events/bank';\nconst OUT_DIR = '/data/finance-events/reconciled';\nconst STATE_FILE = '/data/finance-events/_reconcile_state.json';\nfs.mkdirSync(OUT_DIR, { recursive: true });\n\nlet state = { reconciled_ids: {} };\ntry { state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch (_) {}\n\nfunction loadDir(dir) {\n  const items = [];\n  let entries;\n  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return items; }\n  for (const e of entries) {\n    if (e.name.startsWith('_')) continue;\n    const full = path.join(dir, e.name);\n    if (e.isDirectory()) {\n      items.push(...loadDir(full));\n    } else if (e.name.endsWith('.json')) {\n      try { items.push({ file: full, rec: JSON.parse(fs.readFileSync(full, 'utf8')) }); } catch (_) {}\n    }\n  }\n  return items;\n}\n\nconst gmail = loadDir(GMAIL_DIR);\nconst bank = loadDir(BANK_ROOT);\n\nfunction dayDiff(a, b) {\n  if (!a || !b) return Infinity;\n  const da = new Date(a).getTime();\n  const db = new Date(b).getTime();\n  if (Number.isNaN(da) || Number.isNaN(db)) return Infinity;\n  return Math.abs(da - db) / 86_400_000;\n}\n\nconst AMOUNT_TOL = 0.50;\nconst DATE_TOL_DAYS = 3;\n\nconst alerts = [];\nconst usedBankIds = new Set();\n\nfor (const g of gmail) {\n  const gid = g.rec.gmail_id;\n  if (state.reconciled_ids[gid]) continue;\n  const gAmount = g.rec.extracted && g.rec.extracted.amount;\n  const gDate = g.rec.internal_date;\n  if (gAmount == null) {\n    state.reconciled_ids[gid] = { status: 'no-amount', at: new Date().toISOString() };\n    continue;\n  }\n  let best = null;\n  let bestScore = Infinity;\n  for (const b of bank) {\n    const t = b.rec.transaction || {};\n    const bAmount = t.amount;\n    const bDate = t.posted;\n    if (bAmount == null) continue;\n    const amtDiff = Math.abs(Math.abs(bAmount) - Math.abs(gAmount));\n    const dDiff = dayDiff(gDate, bDate);\n    if (amtDiff > AMOUNT_TOL) continue;\n    if (dDiff > DATE_TOL_DAYS) continue;\n    const score = amtDiff + dDiff;\n    if (score < bestScore && !usedBankIds.has(b.file)) {\n      bestScore = score;\n      best = b;\n    }\n  }\n  let status = 'unconfirmed';\n  let bankRef = null;\n  if (best) {\n    status = 'verified';\n    usedBankIds.add(best.file);\n    bankRef = path.basename(best.file);\n  }\n  state.reconciled_ids[gid] = { status, at: new Date().toISOString(), bankRef };\n  if (status !== 'verified') {\n    alerts.push({\n      kind: 'unconfirmed-gmail-claim',\n      subject: g.rec.subject,\n      from: g.rec.from,\n      amount: gAmount,\n      direction: g.rec.extracted && g.rec.extracted.direction,\n      date: gDate\n    });\n  }\n}\n\nfor (const b of bank) {\n  if (usedBankIds.has(b.file)) continue;\n  const t = b.rec.transaction || {};\n  const bid = b.rec.institution + ':' + (t.fitid || (t.posted + '-' + t.amount + '-' + (t.name || '')));\n  if (state.reconciled_ids[bid]) continue;\n  // Don't alert on small auto-pay round-trip noise; threshold ~$5.\n  if (t.amount == null || Math.abs(t.amount) < 5) {\n    state.reconciled_ids[bid] = { status: 'noise-skip', at: new Date().toISOString() };\n    continue;\n  }\n  state.reconciled_ids[bid] = { status: 'unexplained', at: new Date().toISOString() };\n  alerts.push({\n    kind: 'unexplained-bank-tx',\n    institution: b.rec.institution,\n    amount: t.amount,\n    posted: t.posted,\n    name: t.name\n  });\n}\n\nfs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));\n\n// Persist the run summary even if no alerts (audit trail).\nconst runSummary = {\n  ran_at: new Date().toISOString(),\n  gmail_count: gmail.length,\n  bank_count: bank.length,\n  alert_count: alerts.length\n};\nconst safeTs = runSummary.ran_at.replace(/[:.]/g, '-');\nfs.writeFileSync(path.join(OUT_DIR, `${safeTs}__run.json`), JSON.stringify({ ...runSummary, alerts }, null, 2));\n\nif (alerts.length === 0) {\n  return [{ json: { skipped: true, reason: 'no-alerts', ...runSummary } }];\n}\n\n// Compose a chat message bundling all alerts from this run.\nconst lines = ['*Reconcile · ' + new Date(runSummary.ran_at).toLocaleString() + '*'];\nfor (const a of alerts.slice(0, 20)) {\n  if (a.kind === 'unconfirmed-gmail-claim') {\n    lines.push(`⚠️ Gmail claim with no bank match: $${a.amount} (${a.direction || 'unknown dir'}) — ${a.subject}`);\n  } else {\n    lines.push(`❓ Unexplained bank tx: ${a.institution} $${a.amount} on ${a.posted} — ${a.name || 'no description'}`);\n  }\n}\nif (alerts.length > 20) lines.push(`…and ${alerts.length - 20} more.`);\n\nreturn [{\n  json: {\n    chat_text: lines.join('\\n'),\n    ...runSummary\n  }\n}];"
+      },
+      "id": "9f7e2a10-16a0-4160-8160-aaaaaaaaaa02",
+      "name": "Reconcile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"version": 2, "caseSensitive": true, "typeValidation": "loose"},
+          "conditions": [
+            {"id": "has-alerts", "leftValue": "={{ $json.alert_count }}", "rightValue": 0, "operator": {"type": "number", "operation": "gt"}},
+            {"id": "url-set", "leftValue": "={{ $env.SYNOLOGY_CHAT_INCOMING_URL }}", "rightValue": "", "operator": {"type": "string", "operation": "notEmpty"}}
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f7e2a10-16a0-4160-8160-aaaaaaaaaa03",
+      "name": "Anything to alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [640, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SYNOLOGY_CHAT_INCOMING_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/x-www-form-urlencoded"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "=payload={{ encodeURIComponent(JSON.stringify({ text: $json.chat_text })) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "9f7e2a10-16a0-4160-8160-aaaaaaaaaa04",
+      "name": "Post reconcile alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 240],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [[{"node": "Reconcile", "type": "main", "index": 0}]]
+    },
+    "Reconcile": {
+      "main": [[{"node": "Anything to alert?", "type": "main", "index": 0}]]
+    },
+    "Anything to alert?": {
+      "main": [
+        [{"node": "Post reconcile alerts", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "cross-verify"},
+    {"name": "finance-reconcile"},
+    {"name": "sovereign-loop"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}

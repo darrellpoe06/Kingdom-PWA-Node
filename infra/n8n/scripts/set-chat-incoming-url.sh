@@ -38,24 +38,19 @@ sed -i '/SYNOLOGY_CHAT_INCOMING_URL/d' "$COMPOSE"
 
 echo
 echo "=== Insert new SYNOLOGY_CHAT_INCOMING_URL line ==="
-# Insert right after the n8n service's "environment:" key (matches the same
-# pattern as allow-fs-in-code-node.sh). Use a placeholder we substitute later
-# so awk doesn't have to interpolate the URL itself.
-awk '
+# Insert right after the n8n service's "environment:" key. Pass URL via an
+# awk variable (-v) so we don't have to escape & % ? = " in sed replacement.
+awk -v url="$URL" '
   /^  n8n:/ { in_n8n=1 }
   /^  [a-zA-Z]/ && !/^  n8n:/ { in_n8n=0 }
   in_n8n && /^    environment:/ {
     print
-    print "      - SYNOLOGY_CHAT_INCOMING_URL=__URL_PLACEHOLDER__"
+    print "      - SYNOLOGY_CHAT_INCOMING_URL=" url
     next
   }
   { print }
 ' "$COMPOSE" > "${COMPOSE}.new"
 mv "${COMPOSE}.new" "$COMPOSE"
-
-# Now substitute the placeholder with the real URL. Use | as sed delimiter
-# so URL slashes don't confuse it.
-sed -i "s|__URL_PLACEHOLDER__|${URL}|" "$COMPOSE"
 
 echo
 echo "=== Show n8n environment section ==="
