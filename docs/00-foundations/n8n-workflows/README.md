@@ -10,6 +10,8 @@ Per the Stack B lock-in ratified 2026-05-25 (`docs/00-foundations/PARALLEL-FRAME
 
 ## Naming convention
 
+docs: practiced mobile commit 
+
 ```
 <NN>-<short-description>.json
 ```
