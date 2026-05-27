@@ -41,8 +41,10 @@ async function currentSession() {
 }
 
 async function getTenantId() {
-  // Reuses the same join_default_tenant() RPC the feedback sync uses.
-  const { data, error } = await supabase.rpc('join_default_tenant', {
+  // Reuses the same join_default_instance() RPC the feedback sync uses.
+  // (Name kept as getTenantId for backward-compat with callers; the
+  // underlying RPC was renamed in v2.1-infra.)
+  const { data, error } = await supabase.rpc('join_default_instance', {
     display_name_in: null,
   });
   if (error) throw error;

@@ -47,7 +47,7 @@ export async function ensureTenantMembership(displayName) {
   const session = await currentSession();
   if (!session) throw new Error('ensureTenantMembership: not signed in');
 
-  const { data, error } = await supabase.rpc('join_default_tenant', {
+  const { data, error } = await supabase.rpc('join_default_instance', {
     display_name_in: displayName ?? null,
   });
   if (error) throw error;
