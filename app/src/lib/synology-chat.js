@@ -53,15 +53,17 @@ export async function postToChat(text) {
 
   try {
     const body = 'payload=' + encodeURIComponent(JSON.stringify({ text }));
-    const res = await fetch(BOT_URL, {
+    // no-cors mode: Synology Chat External webhook doesn't send CORS headers,
+    // so we fire-and-forget. The POST reaches the server normally; we just
+    // can't read the response from the browser. Acceptable for status posts —
+    // failures would surface as missing messages, which is the dominant
+    // signal anyway.
+    await fetch(BOT_URL, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
     });
-    if (!res.ok) {
-      console.warn('[synology-chat] post returned non-OK status:', res.status);
-      return { error: 'HTTP ' + res.status };
-    }
     return { posted: true };
   } catch (e) {
     console.warn('[synology-chat] post failed:', e);
