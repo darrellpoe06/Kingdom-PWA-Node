@@ -30,6 +30,7 @@
 // =============================================================================
 
 import supabase from './supabase.js';
+import { postToChat, formatFeedbackMessage } from './synology-chat.js';
 
 /** Get the current Supabase session, or null. */
 async function currentSession() {
@@ -94,6 +95,18 @@ export async function uploadFeedback(item, meta = {}) {
     console.warn('[feedback-sync] upload failed:', error);
     return { skipped: 'insert-error', error };
   }
+
+  // Best-effort native Synology Chat post — fire-and-forget. Never blocks
+  // or fails the upload. POE-bound message composed in formatFeedbackMessage.
+  postToChat(
+    formatFeedbackMessage({
+      displayName: row.display_name,
+      text: row.feedback_text,
+      sentiment: row.sentiment,
+      activeTab: row.which_tab,
+    })
+  );
+
   return { uploaded: true };
 }
 
