@@ -100,7 +100,7 @@
     },
     {
       "parameters": {
-        "fromEmail": "n8n@poetech.local",
+        "fromEmail": "darrellpoe06@gmail.com",
         "toEmail": "={{ $env.PUSHOVER_EMAIL_GATEWAY }}",
         "subject": "={{ $('Compose reflection prompt').item.json.email.subject }}",
         "text": "={{ $('Compose reflection prompt').item.json.email.text }}",

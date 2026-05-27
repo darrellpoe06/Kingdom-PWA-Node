@@ -73,6 +73,15 @@ services:
       # Switch back to true if/when we put TLS in front of n8n (Tailscale Funnel
       # or a reverse proxy).
       - N8N_SECURE_COOKIE=false
+      # Allow workflows to read $env.* in expressions. n8n's default
+      # (N8N_BLOCK_ENV_ACCESS_IN_NODE=true) blocks $env.PUSHOVER_APP_TOKEN
+      # and friends, which breaks our dual-path If node (Phase 1c) and any
+      # future $env-driven routing. Acceptable security tradeoff for a
+      # single-user self-hosted instance where only Darrell has workflow
+      # edit access. Re-evaluate if/when multi-user editing lands.
+      # (Added 2026-05-26 after Phase 3 end-to-end test surfaced
+      # "ExpressionError: access to env vars denied" on workflow 03.)
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
       # Pass-through Ollama model selection so workflows can read
       # $env.OLLAMA_PRIMARY_MODEL / $env.OLLAMA_SECONDARY_MODEL instead of
       # hardcoding the model tag. Swapping a model = .env edit + docker compose

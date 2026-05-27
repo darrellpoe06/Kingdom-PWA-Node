@@ -402,6 +402,28 @@ The install IS its own status report. In the live app at `https://kingdom-pwa-no
 
 This is the dogfood — the system tracks its own deployment.
 
+## Gotchas discovered during the 2026-05-26 rollout
+
+These bit us during install. Documenting so the next deploy (or a fresh re-install) skips the same hour-of-debugging.
+
+**1. `N8N_BLOCK_ENV_ACCESS_IN_NODE` defaults to `true`.** n8n blocks `$env.*` access from node expressions by default. Workflows referencing `{{ $env.PUSHOVER_APP_TOKEN }}` etc. will error with `ExpressionError: access to env vars denied` before any routing happens. Fix is in `docker-compose.yml`: `- N8N_BLOCK_ENV_ACCESS_IN_NODE=false`. Acceptable security tradeoff for single-user self-hosted; revisit if multi-user editing ever lands.
+
+**2. n8n 2.21 has a draft/published workflow model.** Setting `active=1` on `workflow_entity` via SQL is **not** sufficient — workflows also need a row in `workflow_published_version` pointing to a snapshot in `workflow_history`, plus a `webhook_entity` row per webhook node. The UI's Publish button handles this; programmatic activation needs `infra/n8n/scripts/publish-and-activate.py`. Symptom: 404 `webhook not registered` despite n8n showing the workflow as Active.
+
+**3. Vue Flow viewport renders imported workflows at negative screen coords.** When workflows are imported via the file-upload path (not manually built in the editor), Vue Flow places nodes at e.g. `translate(-2112px, -304px)`. The "Zoom to Fit" / `F` key / keyboard `1` doesn't bring them into view via Chrome MCP automation. Fix: edit the imported JSON files locally to use small positive coordinates, OR drive the binding via SQLite scripts (the path we ended up using). For manual UI work just press F at the keyboard physically — works fine outside automation.
+
+**4. n8n Community edition can't create scoped API keys.** The Settings → API Keys UI shows a scope dropdown with "No data" and the Save button stays greyed. Granular scopes are a Pro/Enterprise feature. Bypass: direct SQLite manipulation via the scripts in `infra/n8n/scripts/`, OR use the legacy `n8n` CLI inside the container (but the CLI tries to bind port 5678 so n8n must be stopped first).
+
+**5. Synology's `sudo` strips `PATH`; docker isn't on the secure_path.** `sudo docker` returns `sudo: docker: command not found`. Always use the absolute path: `/var/packages/ContainerManager/target/usr/bin/docker`. This applies to `docker exec`, `docker compose`, all of it.
+
+**6. PowerShell quoting × bash quoting × SSH × sudo bash -c "..."**. The combination is fragile. The reliable pattern is **PS outer double quotes + bash inner single quotes** with no nested `\"` or `||` operators inside (PS5 mis-parses `||`). For multi-line SQL or scripts, pipe via PS here-string `@'...'@ | ssh ...`. For commit messages, use `git commit -F messagefile` to bypass all quoting.
+
+**7. Sudo's `secure_path` doesn't carry through `sudo bash -c "..."` consistently on Synology.** Sometimes the inner commands run as `dpoe` not root. If docker calls fail with "permission denied on socket" inside a sudo bash -c, split into discrete ssh calls each prefixed with `sudo /var/packages/.../docker`.
+
+**8. Pushover Community-edition email-to-push works without app token but is sender-filtered.** Use `darrellpoe06@gmail.com` as the `fromEmail` on Email Send nodes — matches the Pushover account's registered email and matches the Gmail SMTP authenticated user. Placeholder addresses like `n8n@poetech.local` may be silently dropped by Pushover's gateway even when Gmail accepts the SMTP transaction.
+
+**9. ntfy in-container hostname.** Inside the n8n container, ntfy is reachable at `http://ntfy:80/<topic>` (Docker DNS). From outside (your laptop), use `http://192.168.1.26:8081/<topic>`. Don't mix them up.
+
 ## Troubleshooting
 
 See `README.md §Troubleshooting` — comprehensive list of n8n boot issues, ntfy auth, Ollama disk space, Tailscale connectivity.
