@@ -13,6 +13,7 @@ import { Rentals } from './components/Rentals.jsx';
 import { ProjectsWrapper, DateField } from './components/Projects.jsx';
 import { Opportunities } from './components/DevOps.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
+import NetworkStatus from './components/NetworkStatus.jsx';
 import { onAuthChange } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
@@ -1826,6 +1827,7 @@ html{scroll-padding-bottom:280px}
       <TTSControls />
       <InstallPrompt />
       <UpdatePrompt />
+      <NetworkStatus />
       {/* Round 15 — Persistent floating feedback button. Always reachable from
           any tab; pre-fills the current view. Sits above TTS controls in the
           stack. Hidden when the feedback modal is already open. */}

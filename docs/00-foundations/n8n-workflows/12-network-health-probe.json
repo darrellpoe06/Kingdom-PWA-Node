@@ -1,0 +1,110 @@
+{
+  "name": "12 · Network health probe (every 5 min · alerts #PoeTech-PWA on failure)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "cronExpression", "expression": "0 */5 * * * *"}]
+        }
+      },
+      "id": "9f7e2a10-12a0-4120-8120-aaaaaaaaaa01",
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Probe a list of targets in parallel and write a single combined record\n// to /data/chatin/_telemetry/. Pure native — node-fetch + fs. The probes are\n// FROM-THE-NAS — what the Synology can reach, not what the family devices\n// can reach (that's the PWA NetworkStatus component's job). Together they\n// tell us whether a failure is on the NAS side or the device side.\n\nconst fs = require('fs');\nconst path = require('path');\nconst http = require('http');\nconst https = require('https');\n\nconst TELEMETRY_DIR = '/data/chatin/_telemetry';\nfs.mkdirSync(TELEMETRY_DIR, { recursive: true });\n\nconst TIMEOUT_MS = 5000;\n\n// Targets we care about from the NAS's perspective.\n// Note: 'chat' uses the same SYNOLOGY_CHAT_INCOMING_URL env var the chat-post\n// nodes use, but we only HEAD/GET to avoid posting noise.\nconst targets = [\n  { key: 'internet', method: 'GET',  url: 'https://www.cloudflare.com/cdn-cgi/trace' },\n  { key: 'ollama',   method: 'GET',  url: (process.env.OLLAMA_BASE_URL || 'http://ollama:11434') + '/api/tags' },\n  { key: 'n8n_self', method: 'GET',  url: 'http://127.0.0.1:5678/healthz' },\n  { key: 'dsm',      method: 'GET',  url: 'http://192.168.1.26:5000/' }\n];\n\nfunction probe({ key, method, url }) {\n  return new Promise((resolve) => {\n    const started = Date.now();\n    try {\n      const u = new URL(url);\n      const lib = u.protocol === 'https:' ? https : http;\n      const req = lib.request({\n        method,\n        protocol: u.protocol,\n        hostname: u.hostname,\n        port: u.port || (u.protocol === 'https:' ? 443 : 80),\n        path: u.pathname + u.search,\n        timeout: TIMEOUT_MS,\n        rejectUnauthorized: false // tolerate Synology self-signed certs for internal probes\n      }, (res) => {\n        const ms = Date.now() - started;\n        // Drain to avoid leaving the socket half-open.\n        res.on('data', () => {});\n        res.on('end', () => {\n          resolve({ key, ok: res.statusCode >= 200 && res.statusCode < 500, status: res.statusCode, ms });\n        });\n      });\n      req.on('timeout', () => {\n        req.destroy(new Error('timeout'));\n      });\n      req.on('error', (err) => {\n        resolve({ key, ok: false, status: 0, ms: Date.now() - started, error: String(err && err.message || err) });\n      });\n      req.end();\n    } catch (err) {\n      resolve({ key, ok: false, status: 0, ms: Date.now() - started, error: String(err && err.message || err) });\n    }\n  });\n}\n\nreturn (async () => {\n  const probedAt = new Date().toISOString();\n  const results = await Promise.all(targets.map(probe));\n\n  const summary = {\n    probed_at: probedAt,\n    results,\n    any_failed: results.some(r => !r.ok),\n    failed: results.filter(r => !r.ok).map(r => r.key)\n  };\n\n  // Persist every run for later analysis (one file per run keeps it simple).\n  const safeTs = probedAt.replace(/[:.]/g, '-');\n  const filename = path.join(TELEMETRY_DIR, `${safeTs}__probe.json`);\n  try { fs.writeFileSync(filename, JSON.stringify(summary, null, 2)); } catch (_) {}\n\n  // Compose a chat message that's only meaningful when something is wrong.\n  const lines = ['*NAS-side health · ' + new Date(probedAt).toLocaleTimeString() + '*'];\n  for (const r of results) {\n    const icon = r.ok ? '🟢' : '🔴';\n    const ms = r.ms != null ? ` (${r.ms}ms)` : '';\n    const status = r.status ? ` [${r.status}]` : '';\n    lines.push(`${icon} ${r.key}${status}${ms}${r.error ? ' — ' + r.error : ''}`);\n  }\n\n  return [{\n    json: {\n      ...summary,\n      chat_text: lines.join('\\n'),\n      should_alert: summary.any_failed\n    }\n  }];\n})();"
+      },
+      "id": "9f7e2a10-12a0-4120-8120-aaaaaaaaaa02",
+      "name": "Run probes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"version": 2, "caseSensitive": true, "typeValidation": "loose"},
+          "conditions": [
+            {"id": "alert-on", "leftValue": "={{ $json.should_alert }}", "rightValue": true, "operator": {"type": "boolean", "operation": "true"}},
+            {"id": "url-set", "leftValue": "={{ $env.SYNOLOGY_CHAT_INCOMING_URL }}", "rightValue": "", "operator": {"type": "string", "operation": "notEmpty"}}
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f7e2a10-12a0-4120-8120-aaaaaaaaaa03",
+      "name": "Anything down?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [640, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SYNOLOGY_CHAT_INCOMING_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/x-www-form-urlencoded"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "=payload={{ encodeURIComponent(JSON.stringify({ text: $json.chat_text })) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "9f7e2a10-12a0-4120-8120-aaaaaaaaaa04",
+      "name": "Post alert to Synology Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 240],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// All probes green — quiet path. Return a no-op marker so the execution\n// log shows why we didn't post (and we can search for 'all-green' to see\n// healthy runs).\nreturn [{ json: { skipped: true, reason: 'all-green-or-url-missing', ...$input.first().json } }];"
+      },
+      "id": "9f7e2a10-12a0-4120-8120-aaaaaaaaaa05",
+      "name": "No-op (all green)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 400]
+    }
+  ],
+  "connections": {
+    "Every 5 minutes": {
+      "main": [[{"node": "Run probes", "type": "main", "index": 0}]]
+    },
+    "Run probes": {
+      "main": [[{"node": "Anything down?", "type": "main", "index": 0}]]
+    },
+    "Anything down?": {
+      "main": [
+        [{"node": "Post alert to Synology Chat", "type": "main", "index": 0}],
+        [{"node": "No-op (all green)", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "telemetry"},
+    {"name": "health-probe"},
+    {"name": "sovereign-loop"},
+    {"name": "path-b"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}
