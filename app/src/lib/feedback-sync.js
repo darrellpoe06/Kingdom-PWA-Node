@@ -75,6 +75,35 @@ export async function uploadFeedback(item, meta = {}) {
     return { skipped: 'no-tenant', error: e };
   }
 
+  // The FeedbackModal currently submits structured fields (rating + area +
+  // categories + whatsWorking/whatsNot/whatsMissing). Compose a single
+  // human-readable body from whichever fields are populated so the chat
+  // message and the DB row both carry the substance, not just a label.
+  const composedBody = (() => {
+    if (item.text) return item.text;
+    if (item.feedback_text) return item.feedback_text;
+    const parts = [];
+    if (item.whatsWorking) parts.push('Working: ' + item.whatsWorking);
+    if (item.whatsNot) parts.push('Not working: ' + item.whatsNot);
+    if (item.whatsMissing) parts.push('Missing: ' + item.whatsMissing);
+    if (Array.isArray(item.categories) && item.categories.length > 0) {
+      parts.push('[' + item.categories.join(', ') + ']');
+    }
+    if (parts.length === 0 && item.rating) {
+      parts.push('Rated: ' + item.rating);
+    }
+    return parts.join(' | ');
+  })();
+
+  // Map FeedbackModal ratings to sentiment if not already provided.
+  const sentimentFromRating = (() => {
+    if (item.sentiment) return item.sentiment;
+    if (item.category) return item.category;
+    if (item.rating === 'love' || item.rating === 'good') return 'positive';
+    if (item.rating === 'rough' || item.rating === 'broken') return 'negative';
+    return 'neutral';
+  })();
+
   const row = {
     // Let Postgres generate the UUID — the prototype's `fb-${Date.now()}`
     // local id is kept on the local copy only and isn't a valid uuid.
@@ -83,9 +112,9 @@ export async function uploadFeedback(item, meta = {}) {
     display_name: session.user.email?.split('@')[0] || 'Member',
     device_label: meta.deviceLabel || detectDeviceLabel(),
     app_version: meta.appVersion || null,
-    which_tab: meta.activeTab || item.currentView || null,
-    feedback_text: item.text || item.feedback_text || '',
-    sentiment: normalizeSentiment(item.sentiment || item.category),
+    which_tab: meta.activeTab || item.currentView || item.area || null,
+    feedback_text: composedBody,
+    sentiment: normalizeSentiment(sentimentFromRating),
     is_confidential: !!item.isConfidential,
     triage_status: 'new',
   };
