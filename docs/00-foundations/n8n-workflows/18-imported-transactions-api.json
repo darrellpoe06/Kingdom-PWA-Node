@@ -1,0 +1,75 @@
+{
+  "name": "18 · Imported transactions API (serves /data/finance-events to PWA)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "imported-transactions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9f7e2a10-18a0-4180-8180-aaaaaaaaaa01",
+      "name": "Webhook (PWA fetch)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320],
+      "webhookId": "imported-transactions"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all ingested finance data from disk and return it as a single\n// JSON response the PWA can render. Pure read-only — no mutations.\n//\n// Reads:\n//   /data/finance-events/bank/<institution-or-filename>/<txid>.json\n//   /data/finance-events/gmail/<id>.json\n//   /data/finance-events/reconciled/_reconcile_state.json (for status lookups)\n//   /data/chatin/_reconcile_state.json (alt location after the path fix)\n//\n// Output shape: { transactions: [...], gmail_events: [...], counts: {...} }\n// Query params (passed via $input.first().json.query):\n//   ?limit=500         (default 500, max 5000)\n//   ?offset=0\n//   ?institution=chase (filter)\n//   ?status=verified   (verified | unconfirmed | unexplained | all)\n//   ?since=2026-01-01  (only transactions on/after)\n\nconst fs = require('fs');\nconst path = require('path');\n\nconst BANK_ROOT = '/data/finance-events/bank';\nconst GMAIL_DIR = '/data/finance-events/gmail';\nconst RECONCILED_DIR = '/data/finance-events/reconciled';\nconst STATE_FILES = [\n  '/data/chatin/_reconcile_state.json',\n  '/data/finance-events/_reconcile_state.json'\n];\n\nconst input = $input.first().json || {};\nconst q = (input.query && typeof input.query === 'object') ? input.query : (input.body && input.body.query) || {};\nconst limit = Math.min(parseInt(q.limit || '500', 10) || 500, 5000);\nconst offset = parseInt(q.offset || '0', 10) || 0;\nconst institutionFilter = (q.institution || '').toLowerCase();\nconst statusFilter = (q.status || 'all').toLowerCase();\nconst sinceFilter = q.since ? new Date(q.since).getTime() : 0;\n\nfunction walk(dir, out, depth) {\n  if (depth > 4) return;\n  let entries;\n  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }\n  for (const e of entries) {\n    if (e.name.startsWith('_')) continue;\n    const full = path.join(dir, e.name);\n    if (e.isDirectory()) walk(full, out, depth + 1);\n    else if (e.name.endsWith('.json')) out.push(full);\n  }\n}\n\n// Load reconcile state for status lookups.\nlet reconcileState = { reconciled_ids: {} };\nfor (const sf of STATE_FILES) {\n  try {\n    reconcileState = JSON.parse(fs.readFileSync(sf, 'utf8'));\n    break;\n  } catch (_) {}\n}\n\nfunction lookupStatus(key) {\n  const r = reconcileState.reconciled_ids && reconcileState.reconciled_ids[key];\n  return (r && r.status) || 'unknown';\n}\n\n// Load bank transactions.\nconst bankFiles = [];\nwalk(BANK_ROOT, bankFiles, 0);\n\nconst bankTransactions = [];\nfor (const f of bankFiles) {\n  let rec;\n  try { rec = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (_) { continue; }\n  const t = rec.transaction || {};\n  const inst = (rec.institution || '').toLowerCase();\n  if (institutionFilter && inst.indexOf(institutionFilter) === -1) continue;\n  const posted = t.posted || rec.captured_at;\n  const postedMs = posted ? new Date(posted).getTime() : 0;\n  if (sinceFilter && postedMs < sinceFilter) continue;\n  const statusKey = inst + ':' + (t.fitid || (posted + '-' + t.amount + '-' + (t.name || '')));\n  const status = lookupStatus(statusKey);\n  if (statusFilter !== 'all' && status !== statusFilter) continue;\n  bankTransactions.push({\n    id: path.basename(f, '.json'),\n    source: 'bank',\n    institution: rec.institution,\n    source_file: rec.source_file,\n    posted: t.posted,\n    amount: t.amount,\n    name: t.name,\n    memo: t.memo,\n    type: t.type,\n    fitid: t.fitid,\n    status,\n    captured_at: rec.captured_at\n  });\n}\n\n// Load Gmail finance events.\nlet gmailFiles = [];\ntry {\n  gmailFiles = fs.readdirSync(GMAIL_DIR).filter(f => f.endsWith('.json')).map(f => path.join(GMAIL_DIR, f));\n} catch (_) {}\n\nconst gmailEvents = [];\nfor (const f of gmailFiles) {\n  let rec;\n  try { rec = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (_) { continue; }\n  const internalDate = rec.internal_date || rec.captured_at;\n  if (sinceFilter && internalDate && new Date(internalDate).getTime() < sinceFilter) continue;\n  const status = lookupStatus(rec.gmail_id);\n  if (statusFilter !== 'all' && status !== statusFilter && status !== 'unknown') continue;\n  gmailEvents.push({\n    id: rec.gmail_id || path.basename(f, '.json'),\n    source: 'gmail',\n    from: rec.from,\n    subject: rec.subject,\n    snippet: rec.snippet,\n    internal_date: internalDate,\n    amount: rec.extracted && rec.extracted.amount,\n    direction: rec.extracted && rec.extracted.direction,\n    status,\n    captured_at: rec.captured_at\n  });\n}\n\n// Sort: newest first.\nbankTransactions.sort((a, b) => (b.posted || '').localeCompare(a.posted || ''));\ngmailEvents.sort((a, b) => (b.internal_date || '').localeCompare(a.internal_date || ''));\n\nconst pagedBank = bankTransactions.slice(offset, offset + limit);\nconst pagedGmail = gmailEvents.slice(0, Math.min(200, gmailEvents.length));\n\n// Quick stats for the PWA's summary header.\nconst statusCounts = { verified: 0, unconfirmed: 0, unexplained: 0, unknown: 0 };\nfor (const t of bankTransactions) statusCounts[t.status] = (statusCounts[t.status] || 0) + 1;\n\nconst institutions = Array.from(new Set(bankTransactions.map(t => t.institution).filter(Boolean))).sort();\n\nreturn [{\n  json: {\n    served_at: new Date().toISOString(),\n    counts: {\n      total_bank: bankTransactions.length,\n      total_gmail: gmailEvents.length,\n      status_counts: statusCounts,\n      institutions\n    },\n    transactions: pagedBank,\n    gmail_events: pagedGmail,\n    page: { limit, offset, has_more: offset + limit < bankTransactions.length }\n  }\n}];"
+      },
+      "id": "9f7e2a10-18a0-4180-8180-aaaaaaaaaa02",
+      "name": "Aggregate finance data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Content-Type", "value": "application/json"},
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"},
+              {"name": "Cache-Control", "value": "no-store"}
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-18a0-4180-8180-aaaaaaaaaa03",
+      "name": "Respond with JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 320]
+    }
+  ],
+  "connections": {
+    "Webhook (PWA fetch)": {
+      "main": [[{"node": "Aggregate finance data", "type": "main", "index": 0}]]
+    },
+    "Aggregate finance data": {
+      "main": [[{"node": "Respond with JSON", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "pwa-api"},
+    {"name": "finance-read"},
+    {"name": "sovereign-loop"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}
