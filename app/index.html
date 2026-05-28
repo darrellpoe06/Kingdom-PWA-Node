@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Belt-and-suspenders no-cache for iOS Safari PWA. Bundle filenames are
+         content-hashed by Vite, so freshness is guaranteed even if these
+         headers are stripped somewhere upstream. -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>PoeTech Family OS</title>
     <meta name="description" content="Sovereign family stewardship — financial, household, ministry. Local-first by design." />
     <link rel="manifest" href="/manifest.webmanifest" />

@@ -1641,7 +1641,7 @@ html{scroll-padding-bottom:280px}
               screens where there's actually room. */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Family OS</div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Family OS <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}</span></div>
               <h1 className="text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Financial Control System</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
@@ -1672,6 +1672,12 @@ html{scroll-padding-bottom:280px}
               <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
                 <div className="font-medium">{data.meta.releaseLabel || `v${data.meta.appVersion}`}</div>
                 <div>{monthLabel(currentDate, 0)}</div>
+                {/* 2026-05-28 — Build marker so the user can verify at a glance
+                    whether the phone is on the latest deploy. iOS Safari has
+                    bitten us with stale HTML caching; this is the smoke-test
+                    surface. SHA comes from Vercel's VERCEL_GIT_COMMIT_SHA at
+                    build time (vite.config.js define block). */}
+                <div className="text-[#B85838] mt-0.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}</div>
               </div>
             </div>
           </div>
@@ -4359,6 +4365,51 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
   // current balance is slider-driven (continuous, live feedback).
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetDraft, setTargetDraft] = useState(bufferTarget);
+
+  // Phase 2B (2026-05-28) — pull per-institution bank balances + activity
+  // rollups from n8n workflow 18, augment each account row with the
+  // bank-authoritative LEDGERBAL when we can match an account by last4.
+  // Sovereign-loop: every byte comes from /volume1/PoeTech/finance-events/
+  // via the Tailscale Funnel — no SaaS in the loop.
+  const [ingestBalances, setIngestBalances] = useState({});
+  const [ingestMeta, setIngestMeta] = useState({ loaded: false, error: null, served_at: null });
+  useEffect(() => {
+    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    if (!base) {
+      setIngestMeta({ loaded: true, error: 'VITE_N8N_WEBHOOK_BASE not set — bank balance overlay disabled', served_at: null });
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const url = `${base.replace(/\/+$/, '')}/webhook/imported-transactions?limit=1`;
+        const r = await fetch(url, { headers: { Accept: 'application/json' }, mode: 'cors' });
+        if (!r.ok) throw new Error(`Workflow 18 returned ${r.status}`);
+        const json = await r.json();
+        if (cancelled) return;
+        setIngestBalances(json.bank_balances || {});
+        setIngestMeta({ loaded: true, error: null, served_at: json.served_at || null });
+      } catch (e) {
+        if (cancelled) return;
+        setIngestMeta({ loaded: true, error: `Could not reach workflow 18: ${e.message}`, served_at: null });
+      }
+    };
+    load();
+    const id = setInterval(load, 300_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  // Map an account → its matching institution slug in ingestBalances.
+  // QFX filenames embed last-4 of the account number; institution slug is
+  // the filename's first segment lowercased (e.g. "chase8168_activity_...").
+  // We match an account by extracting digits from a.fragment and finding the
+  // first institution slug that contains those digits.
+  const balanceFor = (acc) => {
+    const last4 = (acc.fragment || '').match(/(\d{4})/)?.[1];
+    if (!last4) return null;
+    const key = Object.keys(ingestBalances).find(k => k.includes(last4));
+    return key ? { inst: key, ...ingestBalances[key] } : null;
+  };
   // Suggested target = ~1 month of total rental P&I (covers timing gap for
   // a full month), rounded to nearest $500. Falls back to $5,000.
   const suggestedTarget = (() => {
@@ -4394,7 +4445,25 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
   const allAccounts = entityRollups.flatMap(r => r.accounts || []);
   // 2026-05-24: liquid = cash types AND not in legal. Credit cards and loans
   // no longer surface on this tab; their totals live on the Debts page.
-  const liquidTotal = allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
+  const liquidAccounts = allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal);
+  const liquidTotal = liquidAccounts.reduce((s, a) => s + (a.balance || 0), 0);
+
+  // Phase 2B — bank-derived totals for the same liquid set. Sums LEDGERBAL
+  // for each linked account, plus the manual balance for accounts that
+  // haven't been linked yet. This is the "what the bank actually says"
+  // number alongside the user's manual record-of-truth.
+  let bankLinkedCount = 0;
+  let bankDerivedLiquid = 0;
+  for (const a of liquidAccounts) {
+    const bal = balanceFor(a);
+    if (bal && typeof bal.ledger_balance === 'number') {
+      bankLinkedCount += 1;
+      bankDerivedLiquid += bal.ledger_balance;
+    } else {
+      bankDerivedLiquid += (a.balance || 0);
+    }
+  }
+  const bankDerivedDelta = +(bankDerivedLiquid - liquidTotal).toFixed(2);
   // Round 8 — netWorth no longer surfaced in the top card; net-position view
   // moves to the Big Picture dashboard where it belongs alongside debt totals.
   const bufferPct = bufferTarget > 0 ? Math.min(100, Math.round((bufferCurrent / bufferTarget) * 100)) : 0;
@@ -4422,12 +4491,35 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
           <h2 id="all-accounts-total-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">All Accounts · Total Cash</h2>
           <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Spendable: checking + savings + cash + investments.</p>
           <div className="mt-3 flex items-baseline justify-between">
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal).length} cash accounts</div>
+            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{liquidAccounts.length} cash accounts</div>
             <div className={`text-3xl ${liquidTotal < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>{fmt(liquidTotal)}</div>
           </div>
+          {/* Phase 2B — bank-derived total when any account is linked to a
+              QFX feed. Uses bank LEDGERBAL where available, manual balance
+              elsewhere, so the figure represents one consistent picture. */}
+          {bankLinkedCount > 0 && (
+            <div className="mt-2 pt-2 border-t border-[#E8E4DC] flex items-baseline justify-between">
+              <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" title="Sum of bank ledger balance for linked accounts plus manual balance for unlinked accounts.">
+                bank-derived · {bankLinkedCount} linked
+              </div>
+              <div className="text-right">
+                <div className={`text-lg ${bankDerivedLiquid < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(bankDerivedLiquid)}</div>
+                {Math.abs(bankDerivedDelta) >= 0.5 && (
+                  <div className={`text-[10px] uppercase tracking-wider ${bankDerivedDelta < 0 ? 'text-[#B85838]' : 'text-[#D97706]'}`} title="Difference between your manual cash total and what the banks say. Reconcile per-account on the rows below.">
+                    Δ {bankDerivedDelta > 0 ? '+' : ''}{fmt(bankDerivedDelta)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <p className="text-[10px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
             Credit cards and loans live on the <strong>Debts</strong> tab. Accounts under legal hold live in the <strong>Legal</strong> tab. Both are excluded from this cash total.
           </p>
+          {ingestMeta.error && (
+            <p className="text-[9px] text-[#B85838] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }} title={ingestMeta.error}>
+              Bank balance overlay offline · {ingestMeta.error.length > 60 ? ingestMeta.error.slice(0, 60) + '…' : ingestMeta.error}
+            </p>
+          )}
         </div>
 
         {/* Buffer Fund card — slider for current balance (live), target edit is deliberate. */}
@@ -4583,7 +4675,15 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
         // Bank accounts only (cash types), and only those NOT in legal status.
         const bankAccounts = r.accounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal);
         const bankTotal = bankAccounts.reduce((s, a) => s + (a.balance || 0), 0);
-        const renderRow = (a, i, arr) => (
+        const renderRow = (a, i, arr) => {
+          // Phase 2B — bank-side balance for this account, if we can match it.
+          const bal = balanceFor(a);
+          const hasBankBal = bal && typeof bal.ledger_balance === 'number';
+          const delta = hasBankBal ? +(bal.ledger_balance - (a.balance || 0)).toFixed(2) : null;
+          const deltaClass = delta === null ? '' :
+            Math.abs(delta) < 0.5 ? 'text-[#5A6E3D]' :
+            delta < 0 ? 'text-[#B85838]' : 'text-[#D97706]';
+          return (
           <div key={a.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
             <div className="flex justify-between items-baseline gap-3 flex-wrap">
               <div className="flex-1 min-w-0">
@@ -4591,8 +4691,30 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
                 <span className="text-xs text-[#5A5751] ml-2">{a.institution} {a.fragment}</span>
                 <span className="text-[9px] uppercase tracking-wider text-[#5A5751] ml-2">{a.type}</span>
                 {a.isPrimary && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold ml-2">★ primary</span>}
+                {bal && (
+                  <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                    style={{ backgroundColor: '#1F6FEB22', color: '#1F6FEB', border: '1px solid #1F6FEB' }}
+                    title={`Linked to QFX feed: ${bal.inst}${bal.tx_count ? ' · ' + bal.tx_count + ' transactions' : ''}`}>
+                    bank-linked
+                  </span>
+                )}
               </div>
-              <div className={`text-right ${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div>
+              <div className="text-right">
+                <div className={`${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div>
+                {hasBankBal && (
+                  <div className="text-[10px] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }} title={bal.balance_as_of ? `Bank ledger balance as of ${bal.balance_as_of}` : 'Bank ledger balance'}>
+                    <span className="text-[#5A5751] uppercase tracking-wider mr-1">bank:</span>
+                    <span className={bal.ledger_balance < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}>{fmt(bal.ledger_balance)}</span>
+                    {bal.balance_as_of && <span className="text-[#5A5751] ml-1">· {bal.balance_as_of.slice(5)}</span>}
+                  </div>
+                )}
+                {hasBankBal && delta !== null && Math.abs(delta) >= 0.5 && (
+                  <div className={`text-[9px] mt-0.5 uppercase tracking-wider ${deltaClass}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}
+                    title="Difference between your manual balance and the bank's ledger balance. Edit your account to reconcile.">
+                    Δ {delta > 0 ? '+' : ''}{fmt(delta)}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <button type="button" onClick={() => editingId === a.id ? cancel() : startEdit(a)} aria-expanded={editingId === a.id} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingId === a.id ? '× Cancel edit' : '✎ Edit'}</button>
@@ -4629,7 +4751,8 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
               </div>
             )}
           </div>
-        );
+          );
+        };
         return (
           <section key={r.entity.id} className="space-y-3">
             <h3 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.entity.name.split('(')[0].trim()}</h3>

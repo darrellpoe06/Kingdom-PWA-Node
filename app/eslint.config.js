@@ -30,6 +30,9 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
+        // Vite build-time injected constants (see vite.config.js define block).
+        __BUILD_TIME__: 'readonly',
+        __BUILD_SHA__: 'readonly',
       },
     },
     plugins: {
