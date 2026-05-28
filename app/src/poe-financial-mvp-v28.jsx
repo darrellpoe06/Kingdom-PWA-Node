@@ -1285,11 +1285,26 @@ export default function PoeFinancialSystem() {
     } catch (e) { return false; }
   })();
   const markLandingSeen = () => { try { localStorage.setItem('poe-landing-seen', '1'); } catch (e) {} };
-  // In picker mode, fall back to demo family data so anything behind the
-  // picker overlay is also sample data — never Darrell's seed entities.
+  // In picker mode OR on first-time bare-URL landing, fall back to demo
+  // family data so anything behind the picker overlay is also sample data —
+  // never Darrell's seed entities. Until Multi-user Layer B PIN auth ships,
+  // SEED_DATA must NEVER reach a viewer who hasn't established a saved
+  // profile, because SEED_DATA contains real business names, account
+  // fragments, balances, and addresses.
+  const isFirstTimeLandingBoot = (() => {
+    try {
+      if (!!demoPersona) return false;
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.toString() !== '') return false;
+      if (localStorage.getItem('poe-landing-seen')) return false;
+      if (localStorage.getItem('poe-current-profile')) return false;
+      return true;
+    } catch (e) { return false; }
+  })();
   const [data, setData] = useState(
     isDemoMode ? DEMO_DATA_BY_PERSONA[demoPersona]
       : isPickerMode ? DEMO_DATA_FAMILY_OF_4
+      : isFirstTimeLandingBoot ? DEMO_DATA_FAMILY_OF_4
       : SEED_DATA
   );
   const [pressure, setPressure] = useState(5);
@@ -2243,8 +2258,13 @@ html{scroll-padding-bottom:280px}
               <strong className="text-[#1A1815]">What's coming as the infrastructure ships:</strong> anonymous in-app access to specialists (therapy, legal, property, financial) so a person can read, listen, and message on their terms before revealing their identity. Multi-household co-auth so separated co-parents share one ledger of truth across two phones. IoT integration so smart-home spend flows in automatically. Modules layer on the same foundation as they ship — never another app to learn, just the same family OS getting wider.
             </div>
             <div className="flex gap-2 mt-4 flex-wrap">
-              <a href="/" onClick={markLandingSeen} className="flex-1 bg-[#1A1815] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Start your own setup →</a>
-              <a href="/?demo=family-of-4" onClick={markLandingSeen} className="flex-1 border border-[#1A1815] text-[#1A1815] py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Just show me the family one</a>
+              {/* "Start your own setup" was removed 2026-05-28 evening — the
+                  real app behind it would load Darrell's SEED_DATA (real
+                  entities, real accounts, real balances) until Multi-user
+                  Layer B PIN auth ships. Replacing with a waitlist surface
+                  that captures interest without exposing data. */}
+              <a href="mailto:darrellpoe06@gmail.com?subject=PoeTech%20Family%20OS%20-%20early%20access%20interest&body=Hi%20Darrell%2C%20I%27d%20like%20early%20access%20to%20PoeTech%20Family%20OS.%20" className="flex-1 bg-[#1A1815] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Sign up for early access</a>
+              <a href="/?demo=family-of-4" onClick={markLandingSeen} className="flex-1 border border-[#1A1815] text-[#1A1815] py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">See the family sample →</a>
             </div>
           </div>
         </div>
@@ -2302,7 +2322,7 @@ html{scroll-padding-bottom:280px}
           header. Blocks the whole UI so the user MUST pick before seeing data;
           TLC firewall depends on this gate, so it can't be dismissed without
           choosing. */}
-      {!currentProfile && !isAnyDemoMode && (
+      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815]/95 flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
