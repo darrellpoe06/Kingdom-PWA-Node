@@ -35,10 +35,15 @@ import { computeReserves } from './lib/financial-calcs.js';
 const SEED_DATA = {
   meta: { lastUpdated: '2026-05-17', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 0, appVersion: '28.1', releaseLabel: 'MVP v1.5', releaseNote: 'Real Estate ops (lease · tenant contact · equipment · rooms) + Buffer Fund widget + Capex list. WCAG 2.1 AA holds across new fields.', moduleSlug: 'financial', taxStructure: { filing: 'joint-1040', scheduleC: ['e-tlc', 'e-poetech'], scheduleE: ['e-poeprops'], sCorpElected: [], withholdingCoversFederal: true, withholdingCoversState: true, state: 'IL', county: 'Champaign', propertyTaxEscrowed: true }},
   entities: [
-    { id: 'e-personal', name: 'Personal (Darrell + Christina)', type: 'personal', notes: 'Joint household' },
-    { id: 'e-poeprops', name: 'Poe Properties LLC', type: 'business', notes: '11 rental doors' },
-    { id: 'e-poetech',  name: 'PoeTech LLC', type: 'business', notes: 'Tech consulting & products' },
-    { id: 'e-tlc',      name: 'TLC Therapy Solutions LLC', type: 'business', notes: "Christina's MSW practice" },
+    // Multi-user Layer A (2026-05-28) — `visibleTo` gates per-profile views.
+    // Layer A is UX privacy (client-side filter); Layer B will add sovereign
+    // auth via workflow 21 + session token. See
+    // docs/99-session-notes/2026-05-28-brief-multi-user-profiles.md.
+    // 'family' profile sees everything; 'guest' sees only personal totals.
+    { id: 'e-personal', name: 'Personal (Darrell + Christina)', type: 'personal', notes: 'Joint household', visibleTo: ['darrell', 'christina', 'family'] },
+    { id: 'e-poeprops', name: 'Poe Properties LLC', type: 'business', notes: '11 rental doors', visibleTo: ['darrell'] },
+    { id: 'e-poetech',  name: 'PoeTech LLC', type: 'business', notes: 'Tech consulting & products', visibleTo: ['darrell'] },
+    { id: 'e-tlc',      name: 'TLC Therapy Solutions LLC', type: 'business', notes: "Christina's MSW practice", visibleTo: ['darrell', 'christina'] },
   ],
   accounts: [
     { id: 'a-chase-pers-8168', entityId: 'e-personal', name: 'Chase Personal Checking', institution: 'Chase', type: 'checking', fragment: '...8168', balance: 4223 },
@@ -329,6 +334,327 @@ const SEED_DATA = {
     { id: 'sp-twin-son', name: 'Twin (son)', skills: 'tech support, networking, teen, neighborhood, lawn care', hoursPerWeek: 4, monthlyIncome: 0, location: 'Champaign, IL', techComfort: 4, notes: 'Apprenticeship in progress — Cable Scout curriculum + neighborhood route' },
     { id: 'sp-twin-dau', name: 'Twin (daughter)', skills: 'teaching, tutoring, teen, community, pet sitting', hoursPerWeek: 4, monthlyIncome: 0, location: 'Champaign, IL', techComfort: 3, notes: 'Discovering — possible tutoring + pet care' },
   ],
+};
+
+// =============================================================================
+// DEMO DATA — public-facing showcase loaded via ?demo=family URL param.
+//
+// Posture: this is a stewardship app. The demo speaks for itself by showing
+// what "providing for the people in your care" looks like with the books open.
+// The Big Picture, Books, and Debts tabs render with realistic-but-modest
+// family numbers — paycheck, rent, groceries, a buffer fund growing, a couple
+// of debts being chipped down — so a viewer immediately sees: "I could
+// actually use this for my household."
+//
+// What the demo deliberately shows:
+//   · Joint household (one entity, no business complexity) — accessible to
+//     anyone, not just multi-LLC owners.
+//   · Modest accounts: checking, savings, a single credit card, an auto loan.
+//   · 3 weeks of transactions with realistic descriptions + categories.
+//   · A Buffer Fund 72% funded — the "this is what it means to be ready
+//     before the 1st" story.
+//   · Recurring obligations pre-mapped so projection figures aren't blank.
+//   · Two debts on snowball so the Debts tab tells a payoff story.
+//
+// Demo mode also: disables localStorage saves, suppresses n8n ingest fetches,
+// skips the profile picker, and surfaces a header banner explaining the demo
+// and offering "start your own" CTA.
+// =============================================================================
+const DEMO_DATA_FAMILY_OF_4 = {
+  ...SEED_DATA,
+  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 2000, bufferCurrent: 1450, releaseLabel: 'Sample · Family of 4' },
+  entities: [
+    { id: 'e-family', name: 'The Reeves Family', type: 'personal', notes: 'Two parents, two kids in school', visibleTo: ['darrell', 'christina', 'family'] }
+  ],
+  accounts: [
+    { id: 'a-checking', entityId: 'e-family', name: 'Main Checking', institution: 'First National', type: 'checking', fragment: '...4521', balance: 3850, isPrimary: true },
+    { id: 'a-savings',  entityId: 'e-family', name: 'Family Savings', institution: 'First National', type: 'savings',  fragment: '...8819', balance: 7200 },
+    { id: 'a-cc-1',     entityId: 'e-family', name: 'Visa Rewards',   institution: 'Capital One',     type: 'credit',   fragment: '...3344', balance: -2150 },
+    { id: 'a-auto',     entityId: 'e-family', name: 'Auto Loan',      institution: 'Credit Union',    type: 'loan',     fragment: '...1290', balance: -8400 },
+  ],
+  transactions: [
+    { id: 'dt-1',  date: '2026-05-01', accountId: 'a-checking', amount: -1800, description: 'May rent',                    category: 'household' },
+    { id: 'dt-2',  date: '2026-05-01', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
+    { id: 'dt-3',  date: '2026-05-03', accountId: 'a-checking', amount: -180,  description: 'Aldi · weekly groceries',     category: 'groceries' },
+    { id: 'dt-4',  date: '2026-05-05', accountId: 'a-cc-1',     amount: -55,   description: 'Shell · gas',                 category: 'fuel' },
+    { id: 'dt-5',  date: '2026-05-06', accountId: 'a-checking', amount: -150,  description: 'State Farm · auto',           category: 'insurance' },
+    { id: 'dt-6',  date: '2026-05-08', accountId: 'a-checking', amount: -220,  description: 'ComEd + Ameren · utilities',  category: 'utilities' },
+    { id: 'dt-7',  date: '2026-05-10', accountId: 'a-checking', amount: -89,   description: 'Xfinity · internet',          category: 'utilities' },
+    { id: 'dt-8',  date: '2026-05-12', accountId: 'a-cc-1',     amount: -42,   description: 'Date night dinner',           category: 'dining' },
+    { id: 'dt-9',  date: '2026-05-15', accountId: 'a-checking', amount: 1400,  description: 'Spouse · part-time income',   category: 'salary' },
+    { id: 'dt-10', date: '2026-05-15', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
+    { id: 'dt-11', date: '2026-05-15', accountId: 'a-checking', amount: -200,  description: 'Church giving · tithe',       category: 'charitable' },
+    { id: 'dt-12', date: '2026-05-16', accountId: 'a-checking', amount: -340,  description: 'Auto loan payment',           category: 'debt-payment' },
+    { id: 'dt-13', date: '2026-05-17', accountId: 'a-cc-1',     amount: -85,   description: 'Aldi · weekly groceries',     category: 'groceries' },
+    { id: 'dt-14', date: '2026-05-20', accountId: 'a-checking', amount: -500,  description: 'Visa payment',                category: 'debt-payment' },
+    { id: 'dt-15', date: '2026-05-22', accountId: 'a-cc-1',     amount: -130,  description: 'Kids · clothes + supplies',   category: 'household' },
+    { id: 'dt-16', date: '2026-05-25', accountId: 'a-checking', amount: -65,   description: 'Phone bill',                  category: 'utilities' },
+    { id: 'dt-17', date: '2026-05-27', accountId: 'a-savings',  amount: 250,   description: 'Buffer fund · monthly add',   category: 'transfer' },
+    // Upcoming projections (future-dated rows surface in Big Picture / Tx upcoming view)
+    { id: 'dt-18', date: '2026-06-01', accountId: 'a-checking', amount: -1800, description: 'June rent',                   category: 'household' },
+    { id: 'dt-19', date: '2026-06-01', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
+    { id: 'dt-20', date: '2026-06-06', accountId: 'a-checking', amount: -150,  description: 'State Farm · auto',           category: 'insurance' },
+    { id: 'dt-21', date: '2026-06-10', accountId: 'a-checking', amount: -340,  description: 'Auto loan payment',           category: 'debt-payment' },
+    { id: 'dt-22', date: '2026-06-15', accountId: 'a-checking', amount: -200,  description: 'Church giving · tithe',       category: 'charitable' },
+  ],
+  contractors1099: [],
+  taxCalendar: [],
+  recurringObligations: [
+    { id: 'ro-rent',      name: 'Rent',                       amount: 1800, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-family', category: 'household',  enabled: true },
+    { id: 'ro-utilities', name: 'Electric + gas',             amount: 220,  frequency: 'monthly', nextDue: '2026-06-08', entityId: 'e-family', category: 'utilities',  enabled: true },
+    { id: 'ro-internet',  name: 'Internet',                   amount: 89,   frequency: 'monthly', nextDue: '2026-06-10', entityId: 'e-family', category: 'utilities',  enabled: true },
+    { id: 'ro-phone',     name: 'Phone',                      amount: 65,   frequency: 'monthly', nextDue: '2026-06-25', entityId: 'e-family', category: 'utilities',  enabled: true },
+    { id: 'ro-insurance', name: 'Auto insurance',             amount: 150,  frequency: 'monthly', nextDue: '2026-06-06', entityId: 'e-family', category: 'insurance',  enabled: true },
+    { id: 'ro-giving',    name: 'Tithe & charitable giving',  amount: 200,  frequency: 'monthly', nextDue: '2026-06-15', entityId: 'e-family', category: 'charitable', enabled: true },
+  ],
+  incidents: [],
+  scopes: [],
+  events: [],
+  projects: [],
+  subscriptions: [],
+  feedback: [],
+  welcomeDismissed: false,
+  checkoutIntents: [],
+  userTier: 'foundation',
+  inquiries: [],
+  moduleInterest: {},
+  inflows: {
+    salaries: [
+      { id: 'sal-1', who: 'You',    source: 'Primary salary',    expected: 3200, actual: 3200, entityId: 'e-family' },
+      { id: 'sal-2', who: 'Spouse', source: 'Part-time income',  expected: 1400, actual: 1400, entityId: 'e-family' },
+    ],
+    rentals: [],
+  },
+  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 1800, debtService: 1500, charitableGiving: 200 },
+  debts: [
+    { id: 'd-cc-1',  entityId: 'e-family', name: 'Visa',      balance: 2150, apr: 22.99, minPayment: 75,  payoffType: 'snowball' },
+    { id: 'd-auto',  entityId: 'e-family', name: 'Auto Loan', balance: 8400, apr: 6.50,  minPayment: 340, payoffType: 'snowball' },
+  ],
+  opportunities: [],
+  capexItems: [],
+  watchlist: ['spy.us', 'qqq.us'],
+  prayerRequests: [],
+  skillProfiles: [],
+};
+
+// -----------------------------------------------------------------------------
+// DEMO · SEPARATED CO-PARENTS
+// Two households, one shared child. Coordinating expenses + child support
+// without conflict, while preserving privacy from each other. The deep
+// scenario: "We don't agree on much, but we both love the kid; can this
+// system give us a fair shared truth?" Yes. Per-household entities, the
+// child's costs roll up across both. Anxiety-clarity: every shared expense
+// has an agreed-upon split, a due date, and a paid/unpaid flag.
+// -----------------------------------------------------------------------------
+const DEMO_DATA_SEPARATED = {
+  ...SEED_DATA,
+  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 1500, bufferCurrent: 850, releaseLabel: 'Sample · Separated co-parents' },
+  entities: [
+    { id: 'e-mom',    name: 'Maya (mom)',         type: 'personal', notes: 'Custodial parent · 60% time',       visibleTo: ['darrell', 'christina', 'family'] },
+    { id: 'e-dad',    name: 'Jordan (dad)',       type: 'personal', notes: 'Non-custodial parent · 40% time',   visibleTo: ['darrell', 'christina', 'family'] },
+    { id: 'e-shared', name: 'Shared · for Avery', type: 'personal', notes: 'Child expenses split per agreement', visibleTo: ['darrell', 'christina', 'family'] },
+  ],
+  accounts: [
+    { id: 'a-mom-chk',   entityId: 'e-mom',    name: 'Mom · Checking',   institution: 'Chase',  type: 'checking', fragment: '...2201', balance: 2150, isPrimary: true },
+    { id: 'a-mom-sav',   entityId: 'e-mom',    name: 'Mom · Savings',    institution: 'Chase',  type: 'savings',  fragment: '...8870', balance: 3400 },
+    { id: 'a-dad-chk',   entityId: 'e-dad',    name: 'Dad · Checking',   institution: 'BofA',   type: 'checking', fragment: '...9912', balance: 1820, isPrimary: true },
+    { id: 'a-dad-cc',    entityId: 'e-dad',    name: 'Dad · Credit',     institution: 'Capital One', type: 'credit', fragment: '...4490', balance: -1100 },
+    { id: 'a-shared',    entityId: 'e-shared', name: 'Shared · Avery',   institution: 'Ally',   type: 'savings',  fragment: '...5031', balance: 480, notes: 'For agreed split expenses' },
+  ],
+  transactions: [
+    { id: 'st-1',  date: '2026-05-01', accountId: 'a-mom-chk', amount: 2400, description: 'Mom · paycheck',                          category: 'salary' },
+    { id: 'st-2',  date: '2026-05-01', accountId: 'a-mom-chk', amount: -1450, description: 'Rent (mom\'s household)',                category: 'household' },
+    { id: 'st-3',  date: '2026-05-03', accountId: 'a-shared',  amount: 450, description: 'Child support · dad → shared',             category: 'transfer' },
+    { id: 'st-4',  date: '2026-05-04', accountId: 'a-shared',  amount: -185, description: 'Avery soccer fees (split agreement)',     category: 'household' },
+    { id: 'st-5',  date: '2026-05-05', accountId: 'a-mom-chk', amount: -135, description: 'Aldi groceries',                          category: 'groceries' },
+    { id: 'st-6',  date: '2026-05-06', accountId: 'a-dad-chk', amount: 1900, description: 'Dad · paycheck',                          category: 'salary' },
+    { id: 'st-7',  date: '2026-05-06', accountId: 'a-dad-chk', amount: -1100, description: 'Apt rent (dad\'s household)',            category: 'household' },
+    { id: 'st-8',  date: '2026-05-08', accountId: 'a-shared',  amount: -240, description: 'Avery doctor · co-pay (split 50/50)',     category: 'medical' },
+    { id: 'st-9',  date: '2026-05-10', accountId: 'a-dad-cc',  amount: -45, description: 'Dad · gas',                                category: 'fuel' },
+    { id: 'st-10', date: '2026-05-12', accountId: 'a-mom-chk', amount: -210, description: 'Utilities (mom)',                         category: 'utilities' },
+    { id: 'st-11', date: '2026-05-15', accountId: 'a-mom-chk', amount: 2400, description: 'Mom · paycheck',                          category: 'salary' },
+    { id: 'st-12', date: '2026-05-15', accountId: 'a-shared',  amount: -120, description: 'Avery school clothes (split)',            category: 'household' },
+    { id: 'st-13', date: '2026-05-18', accountId: 'a-dad-chk', amount: -150, description: 'Dad · auto insurance',                    category: 'insurance' },
+    { id: 'st-14', date: '2026-05-20', accountId: 'a-dad-chk', amount: 1900, description: 'Dad · paycheck',                          category: 'salary' },
+    { id: 'st-15', date: '2026-05-22', accountId: 'a-shared',  amount: 200, description: 'Dad → shared · extra agreed contribution', category: 'transfer' },
+    { id: 'st-16', date: '2026-05-25', accountId: 'a-mom-chk', amount: -190, description: 'Aldi groceries',                          category: 'groceries' },
+    { id: 'st-17', date: '2026-06-01', accountId: 'a-shared',  amount: 450, description: 'Child support · dad → shared (upcoming)',  category: 'transfer' },
+    { id: 'st-18', date: '2026-06-04', accountId: 'a-shared',  amount: -300, description: 'Avery summer camp deposit',               category: 'household' },
+  ],
+  contractors1099: [], taxCalendar: [], scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
+  recurringObligations: [
+    { id: 'ro-mom-rent',     name: 'Rent (mom)',                   amount: 1450, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-mom',    category: 'household',  enabled: true },
+    { id: 'ro-dad-rent',     name: 'Apt rent (dad)',               amount: 1100, frequency: 'monthly', nextDue: '2026-06-06', entityId: 'e-dad',    category: 'household',  enabled: true },
+    { id: 'ro-child-support',name: 'Child support · dad → shared', amount: 450,  frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-shared', category: 'transfer',   enabled: true },
+    { id: 'ro-avery-care',   name: 'Avery · childcare + activities', amount: 380, frequency: 'monthly', nextDue: '2026-06-10', entityId: 'e-shared', category: 'household',  enabled: true },
+  ],
+  incidents: [],
+  welcomeDismissed: false,
+  userTier: 'foundation',
+  moduleInterest: {},
+  inflows: {
+    salaries: [
+      { id: 'sal-mom', who: 'Maya',   source: 'Primary salary',  expected: 2400, actual: 2400, entityId: 'e-mom' },
+      { id: 'sal-dad', who: 'Jordan', source: 'Primary salary',  expected: 1900, actual: 1900, entityId: 'e-dad' },
+    ],
+    rentals: [],
+  },
+  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 2925, debtService: 0, charitableGiving: 0 },
+  debts: [
+    { id: 'd-dad-cc', entityId: 'e-dad', name: 'Capital One', balance: 1100, apr: 21.99, minPayment: 40, payoffType: 'snowball' },
+  ],
+  watchlist: ['spy.us'],
+};
+
+// -----------------------------------------------------------------------------
+// DEMO · SOLO PROFESSIONAL
+// Therapist / lawyer / consultant working alone. Personal income mixed with
+// business revenue, but kept clearly separate. The audience: "I run my own
+// practice. Can this system show me both sides without me drowning in
+// QuickBooks?" Personal household + one professional business entity. The
+// business has a 1099 contractor income flow (representative of a junior
+// associate, a clinical supervisee, a paralegal), recurring CEU/license fees,
+// and clean monthly distributions to the personal household.
+// -----------------------------------------------------------------------------
+const DEMO_DATA_PROFESSIONAL = {
+  ...SEED_DATA,
+  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 3200, releaseLabel: 'Sample · Solo professional' },
+  entities: [
+    { id: 'e-pers',     name: 'Sam (personal)',     type: 'personal', notes: 'Solo household',                           visibleTo: ['darrell', 'christina', 'family'] },
+    { id: 'e-practice', name: 'Sam · Practice LLC', type: 'business', notes: 'Therapist / lawyer / consultant practice', visibleTo: ['darrell', 'christina'] },
+  ],
+  accounts: [
+    { id: 'a-pers-chk',  entityId: 'e-pers',     name: 'Personal Checking',  institution: 'Chase',         type: 'checking', fragment: '...7711', balance: 4200, isPrimary: true },
+    { id: 'a-pers-sav',  entityId: 'e-pers',     name: 'Personal Savings',   institution: 'Chase',         type: 'savings',  fragment: '...3320', balance: 18500 },
+    { id: 'a-pract-op',  entityId: 'e-practice', name: 'Practice Operating', institution: 'Local CU',      type: 'checking', fragment: '...4490', balance: 9300, isPrimary: true },
+    { id: 'a-pract-tax', entityId: 'e-practice', name: 'Practice · Tax Set-aside', institution: 'Local CU', type: 'savings', fragment: '...4495', balance: 11200 },
+    { id: 'a-pers-cc',   entityId: 'e-pers',     name: 'Personal Visa',      institution: 'Capital One',   type: 'credit',   fragment: '...8821', balance: -1850 },
+  ],
+  transactions: [
+    { id: 'pt-1',  date: '2026-05-01', accountId: 'a-pract-op',  amount: 4200, description: 'Client retainer · Smith family',           category: 'business' },
+    { id: 'pt-2',  date: '2026-05-02', accountId: 'a-pract-op',  amount: -2200, description: 'Contractor pay · junior associate',       category: 'professional' },
+    { id: 'pt-3',  date: '2026-05-03', accountId: 'a-pract-op',  amount: -185, description: 'Office rent · suite share',                category: 'professional' },
+    { id: 'pt-4',  date: '2026-05-05', accountId: 'a-pract-op',  amount: -120, description: 'Malpractice insurance',                    category: 'insurance' },
+    { id: 'pt-5',  date: '2026-05-06', accountId: 'a-pract-tax', amount: 1400, description: 'Quarterly tax set-aside',                  category: 'transfer' },
+    { id: 'pt-6',  date: '2026-05-08', accountId: 'a-pract-op',  amount: 3800, description: 'Client retainer · Lopez',                  category: 'business' },
+    { id: 'pt-7',  date: '2026-05-10', accountId: 'a-pract-op',  amount: -3500, description: 'Owner draw → personal checking',          category: 'transfer' },
+    { id: 'pt-8',  date: '2026-05-10', accountId: 'a-pers-chk',  amount: 3500, description: 'Owner draw from practice',                 category: 'salary' },
+    { id: 'pt-9',  date: '2026-05-12', accountId: 'a-pers-chk',  amount: -1650, description: 'Rent (personal)',                         category: 'household' },
+    { id: 'pt-10', date: '2026-05-13', accountId: 'a-pers-chk',  amount: -190, description: 'Whole Foods groceries',                   category: 'groceries' },
+    { id: 'pt-11', date: '2026-05-15', accountId: 'a-pers-cc',   amount: -55, description: 'Gas + coffee',                              category: 'fuel' },
+    { id: 'pt-12', date: '2026-05-16', accountId: 'a-pract-op',  amount: 2400, description: 'Client retainer · Beth M.',                category: 'business' },
+    { id: 'pt-13', date: '2026-05-18', accountId: 'a-pract-op',  amount: -240, description: 'CEU course · annual',                      category: 'professional' },
+    { id: 'pt-14', date: '2026-05-20', accountId: 'a-pers-chk',  amount: -400, description: 'Visa payment',                             category: 'debt-payment' },
+    { id: 'pt-15', date: '2026-05-22', accountId: 'a-pract-op',  amount: -350, description: 'Software · practice management',          category: 'subscription' },
+    { id: 'pt-16', date: '2026-05-25', accountId: 'a-pers-chk',  amount: -200, description: 'Tithe · home church',                      category: 'charitable' },
+    { id: 'pt-17', date: '2026-05-28', accountId: 'a-pers-sav',  amount: 600, description: 'Personal savings · monthly',                category: 'transfer' },
+    { id: 'pt-18', date: '2026-06-01', accountId: 'a-pract-op',  amount: 4200, description: 'Client retainer · Smith family (upcoming)', category: 'business' },
+    { id: 'pt-19', date: '2026-06-02', accountId: 'a-pract-op',  amount: -2200, description: 'Contractor pay (upcoming)',               category: 'professional' },
+  ],
+  contractors1099: [
+    { id: 'pk1', direction: 'outbound', entityId: 'e-practice', name: 'Jordan (junior associate)', role: 'Contracted hours @ 25/hr', ytdPaid: 11000, monthly: 2200, status: 'active' },
+  ],
+  taxCalendar: [
+    { id: 'tx-q2', month: 6, day: 15, name: 'Q2 estimated tax', desc: 'Self-employment quarterly estimated tax', entityIds: ['e-practice'], applies: true },
+  ],
+  scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
+  recurringObligations: [
+    { id: 'ro-office',     name: 'Office suite share',     amount: 185,  frequency: 'monthly', nextDue: '2026-06-03', entityId: 'e-practice', category: 'professional', enabled: true },
+    { id: 'ro-malpractice',name: 'Malpractice insurance',  amount: 120,  frequency: 'monthly', nextDue: '2026-06-05', entityId: 'e-practice', category: 'insurance',    enabled: true },
+    { id: 'ro-software',   name: 'Practice mgmt software', amount: 350,  frequency: 'monthly', nextDue: '2026-06-22', entityId: 'e-practice', category: 'subscription', enabled: true },
+    { id: 'ro-rent',       name: 'Rent (personal)',        amount: 1650, frequency: 'monthly', nextDue: '2026-06-12', entityId: 'e-pers',     category: 'household',    enabled: true },
+    { id: 'ro-ceu',        name: 'CEUs · annual budget',   amount: 1200, frequency: 'annual',  nextDue: '2026-11-01', entityId: 'e-practice', category: 'professional', enabled: true },
+    { id: 'ro-license',    name: 'License renewal',        amount: 350,  frequency: 'biennial',nextDue: '2027-08-15', entityId: 'e-practice', category: 'professional', enabled: true },
+  ],
+  incidents: [],
+  welcomeDismissed: false,
+  userTier: 'foundation',
+  moduleInterest: {},
+  inflows: {
+    salaries: [
+      { id: 'sal-pers', who: 'Sam',      source: 'Owner draw (from practice)', expected: 3500, actual: 3500, entityId: 'e-pers' },
+      { id: 'sal-prac', who: 'Practice', source: 'Client retainers',           expected: 10000, actual: 10400, entityId: 'e-practice' },
+    ],
+    rentals: [],
+  },
+  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 1650, debtService: 400, charitableGiving: 200 },
+  debts: [
+    { id: 'd-pers-cc', entityId: 'e-pers', name: 'Visa', balance: 1850, apr: 19.99, minPayment: 60, payoffType: 'snowball' },
+  ],
+  watchlist: ['spy.us', 'vt.us'],
+};
+
+// -----------------------------------------------------------------------------
+// DEMO · LANDLORD (3 doors)
+// Small landlord with 3 rental units + a personal household. The deep
+// scenario: "I want to know per-property cash flow without spreadsheets, and
+// I want to see when a tenant goes late without finding out from a missed
+// deposit." Per-property accounts are stubbed; rental income lives in
+// inflows.rentals with a status field so the late one shows up red.
+// -----------------------------------------------------------------------------
+const DEMO_DATA_LANDLORD = {
+  ...SEED_DATA,
+  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 4000, bufferCurrent: 2300, releaseLabel: 'Sample · Landlord (3 doors)' },
+  entities: [
+    { id: 'e-pers',  name: 'The Reynolds household', type: 'personal', notes: 'Joint household',  visibleTo: ['darrell', 'christina', 'family'] },
+    { id: 'e-props', name: 'Reynolds Properties LLC', type: 'business', notes: '3 rental doors', visibleTo: ['darrell'] },
+  ],
+  accounts: [
+    { id: 'a-pers-chk',  entityId: 'e-pers',  name: 'Personal Checking',     institution: 'Chase',   type: 'checking', fragment: '...4421', balance: 3100, isPrimary: true },
+    { id: 'a-pers-sav',  entityId: 'e-pers',  name: 'Personal Savings',      institution: 'Chase',   type: 'savings',  fragment: '...9990', balance: 6800 },
+    { id: 'a-props-op',  entityId: 'e-props', name: 'Properties Operating',  institution: 'Local CU', type: 'checking', fragment: '...3318', balance: 8400, isPrimary: true },
+    { id: 'a-props-res', entityId: 'e-props', name: 'Properties · Capex Reserve', institution: 'Local CU', type: 'savings', fragment: '...3320', balance: 14200 },
+    { id: 'a-pers-cc',   entityId: 'e-pers',  name: 'Visa',                  institution: 'Capital One', type: 'credit', fragment: '...7711', balance: -2050 },
+  ],
+  transactions: [
+    { id: 'lt-1',  date: '2026-05-01', accountId: 'a-props-op', amount: 1200, description: 'Rent · Unit A (Hill St)',         category: 'rental-income' },
+    { id: 'lt-2',  date: '2026-05-01', accountId: 'a-props-op', amount: 1050, description: 'Rent · Unit B (Park Ave)',        category: 'rental-income' },
+    { id: 'lt-3',  date: '2026-05-02', accountId: 'a-props-op', amount: -680, description: 'Mortgage · Hill St',              category: 'debt-payment' },
+    { id: 'lt-4',  date: '2026-05-02', accountId: 'a-props-op', amount: -540, description: 'Mortgage · Park Ave',             category: 'debt-payment' },
+    { id: 'lt-5',  date: '2026-05-05', accountId: 'a-props-op', amount: -185, description: 'Plumber · Unit B sink leak',      category: 'household' },
+    { id: 'lt-6',  date: '2026-05-06', accountId: 'a-pers-chk', amount: 2900, description: 'Day-job paycheck',                category: 'salary' },
+    { id: 'lt-7',  date: '2026-05-07', accountId: 'a-props-op', amount: -120, description: 'Property insurance · Hill St',    category: 'insurance' },
+    { id: 'lt-8',  date: '2026-05-10', accountId: 'a-pers-chk', amount: -1700, description: 'Personal mortgage',              category: 'household' },
+    { id: 'lt-9',  date: '2026-05-12', accountId: 'a-pers-chk', amount: -210, description: 'Aldi groceries',                  category: 'groceries' },
+    { id: 'lt-10', date: '2026-05-15', accountId: 'a-pers-chk', amount: 2900, description: 'Day-job paycheck',                category: 'salary' },
+    { id: 'lt-11', date: '2026-05-15', accountId: 'a-pers-chk', amount: -250, description: 'Tithe',                           category: 'charitable' },
+    { id: 'lt-12', date: '2026-05-16', accountId: 'a-props-op', amount: -380, description: 'Property mgmt software annual',   category: 'subscription' },
+    { id: 'lt-13', date: '2026-05-18', accountId: 'a-props-op', amount: -560, description: 'Mortgage · Cedar (3rd unit)',     category: 'debt-payment' },
+    { id: 'lt-14', date: '2026-05-22', accountId: 'a-props-op', amount: -55, description: 'Tenant background check',          category: 'professional' },
+    { id: 'lt-15', date: '2026-05-25', accountId: 'a-props-res', amount: 500, description: 'Capex reserve monthly contribution', category: 'transfer' },
+    { id: 'lt-16', date: '2026-06-01', accountId: 'a-props-op', amount: 1200, description: 'Rent · Unit A (upcoming)',        category: 'rental-income' },
+    { id: 'lt-17', date: '2026-06-01', accountId: 'a-props-op', amount: 1050, description: 'Rent · Unit B (upcoming)',        category: 'rental-income' },
+    { id: 'lt-18', date: '2026-06-01', accountId: 'a-props-op', amount: 0,    description: 'Rent · Unit C (Cedar) — UNPAID',  category: 'rental-income' },
+  ],
+  contractors1099: [], taxCalendar: [], scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
+  recurringObligations: [
+    { id: 'ro-mort-1', name: 'Mortgage · Hill St',    amount: 680,  frequency: 'monthly', nextDue: '2026-06-02', entityId: 'e-props', category: 'debt-payment', enabled: true },
+    { id: 'ro-mort-2', name: 'Mortgage · Park Ave',   amount: 540,  frequency: 'monthly', nextDue: '2026-06-02', entityId: 'e-props', category: 'debt-payment', enabled: true },
+    { id: 'ro-mort-3', name: 'Mortgage · Cedar',      amount: 560,  frequency: 'monthly', nextDue: '2026-06-18', entityId: 'e-props', category: 'debt-payment', enabled: true },
+    { id: 'ro-mort-h', name: 'Personal mortgage',     amount: 1700, frequency: 'monthly', nextDue: '2026-06-10', entityId: 'e-pers',  category: 'household',    enabled: true },
+    { id: 'ro-ins',    name: 'Property insurance',    amount: 240,  frequency: 'monthly', nextDue: '2026-06-07', entityId: 'e-props', category: 'insurance',    enabled: true },
+  ],
+  incidents: [
+    { id: 'lin-late', date: '2026-06-01', amount: 950, category: 'tenant', entityId: 'e-props', description: 'Unit C (Cedar) tenant has not paid June rent', urgency: 'incident', status: 'open', dueDate: '2026-06-05' },
+  ],
+  welcomeDismissed: false,
+  userTier: 'foundation',
+  moduleInterest: {},
+  inflows: {
+    salaries: [
+      { id: 'sal-day', who: 'Owner', source: 'Day-job salary', expected: 5800, actual: 5800, entityId: 'e-pers' },
+    ],
+    rentals: [
+      { id: 'rl-a', name: 'Unit A · Hill St',   address: '210 Hill St',   city: 'Champaign', state: 'IL', tenantName: '', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-props', mortgage: { balance: 95000, rate: 6.5, monthlyPI: 680, escrow: 175, estimated: true } },
+      { id: 'rl-b', name: 'Unit B · Park Ave',  address: '88 Park Ave',   city: 'Champaign', state: 'IL', tenantName: '', rent: 1050, actual: 1050, status: 'paying', entityId: 'e-props', mortgage: { balance: 70000, rate: 6.5, monthlyPI: 540, escrow: 140, estimated: true } },
+      { id: 'rl-c', name: 'Unit C · Cedar',     address: '1402 Cedar',    city: 'Champaign', state: 'IL', tenantName: '', rent: 950,  actual: 0,    status: 'late',   entityId: 'e-props', mortgage: { balance: 80000, rate: 6.5, monthlyPI: 560, escrow: 150, estimated: true } },
+    ],
+  },
+  outflows: { rentalMortgages: 1780, propertyUtilities: 200, household: 1700, debtService: 1780, charitableGiving: 250 },
+  debts: [
+    { id: 'd-cc-r', entityId: 'e-pers', name: 'Visa', balance: 2050, apr: 21.99, minPayment: 65, payoffType: 'snowball' },
+  ],
+  watchlist: ['spy.us', 'iyr.us'],
 };
 
 // SCOPE_TEMPLATES moved to ./components/Projects.jsx (r41).
@@ -851,8 +1177,104 @@ function TierSwitcher({ userTier, setUserTier }) {
   );
 }
 
+// Demo mode helper — reads ?demo=<persona> from the URL on initial load.
+// Returns null for normal app loads. Special value 'picker' (also reached
+// via a bare ?demo with no value) opens the persona picker landing instead
+// of loading a specific persona.
+//
+// Stewardship posture: the demo isn't a sales funnel, it's a working sample
+// that lets a potential user see the shape of where this is going — even
+// while some of the deeper marketplace infrastructure (multi-household
+// co-auth, anonymous specialist messaging) is still in build.
+function getDemoPersona() {
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    if (!sp.has('demo')) return null;
+    const p = (sp.get('demo') || '').toLowerCase().trim();
+    // Bare `?demo` (no value) lands in the universal start: a family
+    // financial system. The app then teaches the viewer as they explore.
+    // The picker is reachable explicitly via `?demo=picker` for someone
+    // who wants the audience-cut menu.
+    if (!p) return 'family-of-4';
+    if (p === 'picker') return 'picker';
+    return ['family-of-4', 'separated', 'professional', 'landlord'].includes(p) ? p
+      // Shipped-soon personas land on the picker so the URL stays honest.
+      : ['family-of-1', 'family-of-2', 'family-of-3', 'family-of-5', 'family-of-7', 'community', 'church', 'lawyer', 'therapist'].includes(p) ? 'picker'
+      // Legacy alias for the first-cut family demo.
+      : p === 'family' ? 'family-of-4'
+      : 'picker';
+  } catch (e) { return null; }
+}
+const DEMO_DATA_BY_PERSONA = {
+  'family-of-4': DEMO_DATA_FAMILY_OF_4,
+  'separated':   DEMO_DATA_SEPARATED,
+  'professional':DEMO_DATA_PROFESSIONAL,
+  'landlord':    DEMO_DATA_LANDLORD,
+};
+// Persona-specific welcome copy. Each entry describes the audience and the
+// stewardship lens. The 'vision' line is honest about what's working today
+// vs what's still being built (per Darrell 2026-05-28).
+const DEMO_PERSONA_META = {
+  'family-of-4': {
+    label: 'Family of 4',
+    summary: 'Two parents, two kids in school.',
+    audience: 'Married couples with school-age children.',
+    pitch: 'See every dollar in one place. Know what\'s covered before the 1st. Watch debt come down month over month without guessing.',
+    vision: 'Multi-device per-profile views (Layer A) shipped — Christina, Darrell, and "Family" rollup all work today. Anonymous in-app specialist messaging is in design.',
+  },
+  'separated': {
+    label: 'Separated co-parents',
+    summary: 'Two households, one shared child, fair shared truth.',
+    audience: 'Co-parents who don\'t live together but co-fund the kids.',
+    pitch: 'Each household sees its own books. The shared-child entity rolls up costs both sides agreed to split, with paid/unpaid plain on the screen. You don\'t have to talk about money in front of the kids — the system shows the truth.',
+    vision: 'Today this is two profiles on one device. The cross-household sync (two phones, two logins, one shared-child ledger) is the next build. Anonymous coordinated counseling sits in the same workstream.',
+  },
+  'professional': {
+    label: 'Solo professional',
+    summary: 'Therapist, lawyer, or consultant running their own practice.',
+    audience: 'Solo practitioners juggling personal income with practice revenue.',
+    pitch: 'Practice and personal kept clearly separate. Tax set-aside running. Owner draw clean. CEUs and license renewals on the calendar so they never sneak up.',
+    vision: 'Today this is the financial backbone. The practice intake funnel + contractor 1099 management surfaces are in build. The marketplace that connects you to peer practitioners for consult is roadmap.',
+  },
+  'landlord': {
+    label: 'Landlord (3 doors)',
+    summary: 'Small landlord juggling rentals + a personal household.',
+    audience: 'Owner-operators with 1-10 rental units.',
+    pitch: 'Per-property cash flow without spreadsheets. When a tenant goes late, you know on the 1st — not at the end of the month when a deposit comes up short. Capex reserve auto-funded.',
+    vision: 'Today the rental tracking is here. The tenant portal + lease-doc workflow + maintenance request flow are in build. Specialist access (attorney, accountant, property manager) is roadmap.',
+  },
+};
+
 export default function PoeFinancialSystem() {
-  const [data, setData] = useState(SEED_DATA);
+  const demoPersona = getDemoPersona();
+  const isPickerMode = demoPersona === 'picker';
+  const isDemoMode = !!demoPersona && !isPickerMode;
+  // Suppress storage/save/network either way — picker is also a "demo" state.
+  const isAnyDemoMode = !!demoPersona;
+
+  // First-time landing: when someone hits the bare URL (poetech.us with no
+  // query params), no saved profile, no landing-seen flag — show the
+  // audience-cut picker as a friendly front door. This is the marketing-
+  // landing answer for the new poetech.us domain. Returning users with a
+  // profile or the flag go straight to the app.
+  const isFirstTimeLanding = (() => {
+    try {
+      if (isAnyDemoMode) return false;
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.toString() !== '') return false;
+      if (localStorage.getItem('poe-landing-seen')) return false;
+      if (localStorage.getItem('poe-current-profile')) return false;
+      return true;
+    } catch (e) { return false; }
+  })();
+  const markLandingSeen = () => { try { localStorage.setItem('poe-landing-seen', '1'); } catch (e) {} };
+  // In picker mode, fall back to demo family data so anything behind the
+  // picker overlay is also sample data — never Darrell's seed entities.
+  const [data, setData] = useState(
+    isDemoMode ? DEMO_DATA_BY_PERSONA[demoPersona]
+      : isPickerMode ? DEMO_DATA_FAMILY_OF_4
+      : SEED_DATA
+  );
   const [pressure, setPressure] = useState(5);
   const [view, setView] = useState('overview');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -878,6 +1300,36 @@ export default function PoeFinancialSystem() {
   const [authSession, setAuthSession] = useState(null);
   const [showVerifyBalances, setShowVerifyBalances] = useState(false);
 
+  // Multi-user Layer A (2026-05-28) — `currentProfile` gates which entities
+  // the user sees. Stored separately from `data` so it doesn't pollute the
+  // sync model; persists in localStorage so the picker only shows once.
+  // Layer B (workflow 21 + session token) will add real auth on top. See
+  // docs/99-session-notes/2026-05-28-brief-multi-user-profiles.md.
+  const [currentProfile, setCurrentProfile] = useState(() => {
+    if (isAnyDemoMode) return 'family'; // Demo + picker skip profile picker.
+    try { return localStorage.getItem('poe-current-profile') || null; }
+    catch (e) { return null; }
+  });
+  const setProfile = (p) => {
+    setCurrentProfile(p);
+    try { if (p) localStorage.setItem('poe-current-profile', p); else localStorage.removeItem('poe-current-profile'); }
+    catch (e) {}
+    // Reset entity filter when switching profiles so we never leave it
+    // pointing at an entity the new profile can't see.
+    setEntityFilter('all');
+  };
+  const PROFILES = [
+    { id: 'darrell', name: 'Darrell', sub: 'full owner view', accent: '#1A1815' },
+    { id: 'christina', name: 'Christina', sub: 'personal + TLC', accent: '#B85838' },
+    { id: 'family', name: 'Family', sub: 'household roll-up only', accent: '#5A6E3D' },
+  ];
+
+  // Demo welcome modal — only shown when ?demo=… is in the URL. Sets the
+  // viewer's expectation about what they're looking at and what they can do,
+  // then steps out of the way. Dismissing it shows the demo banner along the
+  // top instead, which stays put until they close the tab.
+  const [demoWelcomeOpen, setDemoWelcomeOpen] = useState(isDemoMode);
+
   // Phase 2B.2 (2026-05-28) — top-level fetch of all ingested finance data
   // from n8n workflow 18. Lifted up from BooksTransactions + BooksAccounts
   // so the whole app shares one feed: Tx tab, Accounts tab, Big Picture
@@ -898,6 +1350,7 @@ export default function PoeFinancialSystem() {
     meta: { loaded: false, error: null }
   });
   useEffect(() => {
+    if (isAnyDemoMode) { setIngestData(d => ({ ...d, meta: { loaded: true, error: null } })); return; } // Demo + picker never call n8n.
     const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
     if (!base) {
       setIngestData(d => ({ ...d, meta: { loaded: true, error: 'VITE_N8N_WEBHOOK_BASE not set — ingest overlay disabled' } }));
@@ -930,6 +1383,7 @@ export default function PoeFinancialSystem() {
   }, []);
 
   useEffect(() => {
+    if (isAnyDemoMode) { setLoaded(true); return; } // Demo + picker skip storage load entirely.
     (async () => {
       try {
         let saved = await window.storage.get('poe-financial-v28');
@@ -946,6 +1400,20 @@ export default function PoeFinancialSystem() {
           if (parsed.data) setData(d => ({
             ...d,
             ...parsed.data,
+            // Multi-user Layer A — backfill `visibleTo` on saved entities so
+            // existing devices loading old data continue working. Defaults
+            // match the seed: owner sees all, family-rollup includes business
+            // entities, TLC is christina-only.
+            entities: Array.isArray(parsed.data.entities)
+              ? parsed.data.entities.map(e => ({
+                  ...e,
+                  visibleTo: Array.isArray(e.visibleTo) && e.visibleTo.length > 0
+                    ? e.visibleTo
+                    : (e.id === 'e-tlc' ? ['darrell', 'christina']
+                       : e.id === 'e-personal' ? ['darrell', 'christina', 'family']
+                       : ['darrell']),
+                }))
+              : (d.entities || []),
             events: Array.isArray(parsed.data.events) ? parsed.data.events : (d.events || []),
             projects: Array.isArray(parsed.data.projects) ? parsed.data.projects : (d.projects || []),
             subscriptions: Array.isArray(parsed.data.subscriptions) ? parsed.data.subscriptions : (d.subscriptions || []),
@@ -993,8 +1461,9 @@ export default function PoeFinancialSystem() {
 
   useEffect(() => {
     if (!loaded) return;
+    if (isAnyDemoMode) return; // Demo + picker mode never write to localStorage.
     (async () => { try { await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme })); } catch (e) { console.error('Storage failed', e); } })();
-  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded]);
+  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode]);
 
   // Layer 2 — auth + feedback sync wiring.
   // On every auth state change: tear down any prior subscriptions, then
@@ -1519,11 +1988,23 @@ export default function PoeFinancialSystem() {
   //   · balance       = retained as the FULL sum for back-compat (anything that
   //                     used to read .balance still gets the old number), but
   //                     Cash UI tiles now read .cashBalance.
+  // Multi-user Layer A — `visibleEntities` is data.entities filtered to ones
+  // the current profile can see. If `currentProfile` is null (picker hasn't
+  // run yet), default to ALL entities so the app stays usable on first launch
+  // before the picker mounts. The picker triggers a re-render once a profile
+  // is set.
+  const visibleEntities = useMemo(() => {
+    if (!currentProfile) return data.entities;
+    return data.entities.filter(e => !e.visibleTo || e.visibleTo.includes(currentProfile));
+  }, [data.entities, currentProfile]);
+  const visibleEntityIds = useMemo(() => new Set(visibleEntities.map(e => e.id)), [visibleEntities]);
+
   const entityRollups = useMemo(() => {
     // 2026-05-24 — sort entities so personal types render first, then business
     // types. Keeps the Accounts tab's "your money first" ordering aligned with
     // the entity grouping. Within each type, preserve insertion order.
-    const sortedEntities = [...data.entities].sort((a, b) => {
+    // Multi-user Layer A — only roll up entities visible to current profile.
+    const sortedEntities = [...visibleEntities].sort((a, b) => {
       if (a.type === b.type) return 0;
       return a.type === 'personal' ? -1 : 1;
     });
@@ -1541,7 +2022,7 @@ export default function PoeFinancialSystem() {
       const debtBalance = debts.reduce((s, d) => s + d.balance, 0);
       return { entity, accounts, balance, cashBalance, creditBalance, inflow, debts, debtBalance };
     });
-  }, [data]);
+  }, [data, visibleEntities]);
 
   const flaggedRentals = data.inflows.rentals.filter((r) => r.status === 'late' && (r.rent || 0) > 0);
   const flaggedOpportunities = data.opportunities.filter((o) => o.flag);
@@ -1684,6 +2165,138 @@ html{scroll-padding-bottom:280px}
         />
       )}
 
+      {/* Persona picker — also serves as the first-time landing page for the
+          bare poetech.us URL. Opens via:
+            · ?demo=picker (explicit menu)
+            · "Try another scenario" button from any demo
+            · First visit with no profile saved and no demo param (front door)
+          Shows working personas alongside "coming soon" tiles for the rest
+          of the family sizes + stakeholder cuts, so the viewer sees both
+          what's shipped and what's vision. Per Darrell 2026-05-28: the
+          start position is the family financial system; this front door
+          appears only on first arrival. */}
+      {(isPickerMode || isFirstTimeLanding) && (
+        <div role="dialog" aria-modal="true" aria-labelledby="demo-picker-h" className="fixed inset-0 z-50 bg-[#1A1815]/95 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-3xl w-full p-6 sm:p-8 my-8">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
+            <h2 id="demo-picker-h" className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{isFirstTimeLanding ? 'A family financial system — built to lift the anxiety of providing.' : 'Which life is closest to yours?'}</h2>
+            <p className="text-sm text-[#5A5751] mb-5" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? 'Anxiety comes from not knowing what to do. This system answers four questions on every screen — what to do, when, why, and how — for the people in your care. The four working samples below let you walk through how it looks for a real life close to yours. Or jump straight into setting up your own.' : 'The system is one modular framework. The samples below are different lenses on it. The shipped ones run on real data right now; the coming-soon tiles are vision for the same framework — they ship as the underlying infrastructure does. Tap any to look around.'}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+              {Object.entries(DEMO_PERSONA_META).map(([key, meta]) => (
+                <a key={key} href={`/?demo=${key}`} onClick={markLandingSeen} className="block p-4 border border-[#1A1815] bg-white hover:bg-[#FAF8F4] hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  <div className="flex items-baseline justify-between mb-1">
+                    <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{meta.label}</div>
+                    <span className="text-[8px] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5">Working sample</span>
+                  </div>
+                  <div className="text-xs text-[#5A5751] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>{meta.summary}</div>
+                  <div className="text-[11px] text-[#1A1815] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{meta.pitch}</div>
+                </a>
+              ))}
+              {[
+                { key: 'family-of-1', label: 'Single person',          summary: 'One household, one income, simple books.' },
+                { key: 'family-of-2', label: 'Couple (no kids)',       summary: 'Two incomes, shared books, joint goals.' },
+                { key: 'family-of-3', label: 'Family of 3',            summary: 'First child, balancing income + childcare.' },
+                { key: 'family-of-5', label: 'Family of 5',            summary: 'Three kids, busier rhythm, same discipline.' },
+                { key: 'family-of-7', label: 'Family of 7',            summary: 'Large household, multiple needs, scaled view.' },
+                { key: 'community',   label: 'Community / school',     summary: 'Co-op, ministry, small org books.' },
+                { key: 'church',      label: 'Church books',           summary: 'Tithe inflow, ministry outflow, capex priorities.' },
+                { key: 'lawyer',      label: 'Solo lawyer',            summary: 'Practice mgmt + trust accounting (alias today: solo professional).' },
+                { key: 'therapist',   label: 'Solo therapist',         summary: 'Practice mgmt + CEU + supervision (alias today: solo professional).' },
+              ].map(s => (
+                <div key={s.key} className="block p-4 border border-dashed border-[#5A5751] bg-white/60 opacity-75">
+                  <div className="flex items-baseline justify-between mb-1">
+                    <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.label}</div>
+                    <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#5A5751] px-1.5 py-0.5">Vision · in build</span>
+                  </div>
+                  <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
+                </div>
+              ))}
+            </div>
+            <div className="bg-white border border-[#E8E4DC] p-3 text-xs text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+              <strong className="text-[#1A1815]">Vision in build:</strong> anonymous in-app access to specialists (therapy, legal, property, financial) so a person can read, listen, and message on their terms before revealing their identity. Multi-household co-auth so separated co-parents share a single ledger of truth. IoT integration so smart-home spend flows in automatically. Modules layer on the same foundation as they ship.
+            </div>
+            <div className="flex gap-2 mt-4 flex-wrap">
+              <a href="/" onClick={markLandingSeen} className="flex-1 bg-[#1A1815] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Start your own setup →</a>
+              <a href="/?demo=family-of-4" onClick={markLandingSeen} className="flex-1 border border-[#1A1815] text-[#1A1815] py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Just show me the family one</a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Demo welcome modal — frames what the viewer is looking at and what
+          this app is for. Persona-aware copy from DEMO_PERSONA_META. */}
+      {demoWelcomeOpen && isDemoMode && (() => {
+        const meta = DEMO_PERSONA_META[demoPersona] || DEMO_PERSONA_META['family-of-4'];
+        return (
+        <div role="dialog" aria-modal="true" aria-labelledby="demo-welcome-h" className="fixed inset-0 z-50 bg-[#1A1815]/95 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-lg w-full p-6 sm:p-8 my-8">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Sample · {meta.label}</div>
+            <h2 id="demo-welcome-h" className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Here's what providing for the people in your care looks like with the books open.</h2>
+            <div className="text-sm leading-relaxed space-y-3 mb-5" style={{ fontFamily: '"Fraunces", serif', color: '#1A1815' }}>
+              <p><strong>This sample:</strong> {meta.summary} {meta.audience}</p>
+              <p>{meta.pitch}</p>
+              <p className="text-[#5A5751]"><strong className="text-[#1A1815]">Vision in build:</strong> {meta.vision}</p>
+              <p className="text-[12px] italic text-[#5A5751]">Anxiety comes from not knowing what to do. The whole point of this is to give clarity — what, when, why, and how. With assistance and guidance, almost too much. Faith-expressed-in-works. His Will be done.</p>
+            </div>
+            <div className="bg-white border border-[#E8E4DC] p-3 mb-5 text-xs text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+              <strong className="text-[#1A1815]">Quick tour:</strong> <span className="text-[#1A1815]">Big Picture</span> = at-a-glance health · <span className="text-[#1A1815]">Books → Accounts</span> = who has what · <span className="text-[#1A1815]">Books → Tx</span> = every transaction · <span className="text-[#1A1815]">Debts</span> = payoff snowball. Tap around — nothing saves.
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button type="button" onClick={() => setDemoWelcomeOpen(false)} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Show me around
+              </button>
+              <a href="/?demo=picker" className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Try another scenario</a>
+            </div>
+            <p className="text-[10px] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Built by a family for families — and the businesses and communities they steward.</p>
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* Demo banner — thin strip across the top whenever in demo mode (not
+          picker). Stays visible the whole session. CTAs: switch persona, see
+          welcome modal again, or start your own. */}
+      {isDemoMode && !demoWelcomeOpen && (
+        <div className="bg-[#B85838] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="uppercase tracking-[0.2em] font-semibold">Sample · {DEMO_PERSONA_META[demoPersona]?.label || 'Family of 4'}</span>
+            <span className="opacity-90 hidden sm:inline" style={{ fontFamily: '"Fraunces", serif' }}>Nothing saves.</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button type="button" onClick={() => setDemoWelcomeOpen(true)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">What is this?</button>
+            <a href="/?demo=picker" className="text-[10px] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">Try another lens</a>
+            <a href="/" className="text-[10px] uppercase tracking-wider px-2 py-1 bg-white text-[#B85838] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-white font-semibold">Start your own →</a>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-user Layer A — profile picker overlay. Shows on first launch
+          (currentProfile === null) and via the "switch profile" button in the
+          header. Blocks the whole UI so the user MUST pick before seeing data;
+          TLC firewall depends on this gate, so it can't be dismissed without
+          choosing. */}
+      {!currentProfile && !isAnyDemoMode && (
+        <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815]/95 flex items-center justify-center p-4">
+          <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
+            <h2 id="profile-picker-h" className="text-2xl sm:text-3xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Who's using this device?</h2>
+            <p className="text-sm text-[#5A5751] mb-6" style={{ fontFamily: '"Fraunces", serif' }}>Pick a profile to see the views meant for you. TLC stays private to Christina; business entities stay with Darrell. You can switch any time from the header.</p>
+            <div className="space-y-2">
+              {PROFILES.map(p => (
+                <button key={p.id} type="button" onClick={() => setProfile(p.id)} className="w-full p-4 text-left border border-[#1A1815] hover:bg-white hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors flex items-baseline justify-between gap-3">
+                  <div>
+                    <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.name}</div>
+                    <div className="text-[11px] uppercase tracking-wider text-[#5A5751]">{p.sub}</div>
+                  </div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.accent }} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>Layer A · UX privacy. Layer B (sovereign PIN auth via workflow 21) ships separately. See vacation runbook.</p>
+          </div>
+        </div>
+      )}
+
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
@@ -1701,6 +2314,15 @@ html{scroll-padding-bottom:280px}
                   click and felt broken) with a controlled dropdown that closes
                   on selection and clicks outside, with a brief flash on change. */}
               <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />
+              {currentProfile && (() => {
+                const p = PROFILES.find(x => x.id === currentProfile);
+                return (
+                  <button type="button" onClick={() => setProfile(null)} title={`Currently viewing as ${p?.name || currentProfile}. Tap to switch profile.`} aria-label={`Switch profile (currently ${p?.name || currentProfile})`} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p?.accent || '#1A1815' }} aria-hidden="true" />
+                    {p?.name || currentProfile}
+                  </button>
+                );
+              })()}
               <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
                 💳 Subscribe
               </button>
@@ -1786,9 +2408,9 @@ html{scroll-padding-bottom:280px}
         {view === 'books' && (
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
-            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
+            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
             {booksView === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
-            {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} ingestData={ingestData} />}
+            {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} />}
             {booksView === 'imported' && <Imported />}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} />}
@@ -4860,7 +5482,7 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
-function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction, ingestData = null }) {
+function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction, ingestData = null, visibleEntities = null, visibleEntityIds = null }) {
   const [txView, setTxView] = useState('history');
   const [page, setPage] = useState(0);
   const pageSize = 25;
@@ -5050,7 +5672,16 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
   };
 
   const matchesEntity = (t) => {
-    if (entityFilter === 'all') return true;
+    // Multi-user Layer A — when 'all' is selected, only show transactions
+    // whose account belongs to a visible entity. Without this gate the
+    // 'all' view would leak every entity's transactions across profiles.
+    if (entityFilter === 'all') {
+      if (visibleEntityIds && t.accountId) {
+        const acc = data.accounts.find(a => a.id === t.accountId);
+        return acc ? visibleEntityIds.has(acc.entityId) : true;
+      }
+      return true;
+    }
     if (t.entityOverride) return t.entityOverride === entityFilter;
     const acc = data.accounts.find(a => a.id === t.accountId);
     if (acc) return acc.entityId === entityFilter;
@@ -5550,7 +6181,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
         <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
           <div className="flex gap-1 flex-wrap text-xs">
             <button type="button" onClick={() => setEntityFilter('all')} className={`px-3 py-1.5 border ${entityFilter === 'all' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
-            {data.entities.map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{e.name.split('(')[0].trim()}</button>)}
+            {(visibleEntities || data.entities).map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{e.name.split('(')[0].trim()}</button>)}
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setCsvOpen(true)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">📤 Import CSV</button>
