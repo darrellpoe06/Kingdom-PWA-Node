@@ -4668,6 +4668,91 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
   const pageSize = 25;
   useEffect(() => { setPage(0); }, [txView, entityFilter]);
 
+  // Phase 2A — merge ingested bank/Gmail transactions from n8n workflow 18
+  // alongside the manual entries. Sovereign-loop: data flows from
+  // /volume1/PoeTech/finance-events/ on the NAS, never from a SaaS.
+  //
+  // VITE_N8N_WEBHOOK_BASE points at the n8n external URL, e.g.
+  //   https://192-168-1-26.poetech.direct.quickconnect.to:4443
+  // If unset, the ingested merge silently no-ops and only manual entries show.
+  //
+  // Each ingested transaction is normalized to the same shape as a manual one,
+  // with extra metadata (_source, _status, _institution) so renderRow can
+  // surface the provenance + reconcile status as small badges per row.
+  // Deduplication: by FITID when both the manual entry and the ingested one
+  // carry one (rare today, but the manual entry model can be extended); else
+  // by a composite key (account-fragment + date + rounded amount + name-prefix)
+  // to catch cases where a user manually entered a transaction that the bank
+  // ingest later confirmed.
+  const [ingestedTx, setIngestedTx] = useState([]);
+  const [ingestStatus, setIngestStatus] = useState({ loaded: false, error: null, count: 0, served_at: null });
+
+  useEffect(() => {
+    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    if (!base) {
+      setIngestStatus({ loaded: true, error: 'VITE_N8N_WEBHOOK_BASE not set — ingest merge disabled', count: 0, served_at: null });
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const url = `${base.replace(/\/+$/, '')}/webhook/imported-transactions?limit=5000`;
+        const r = await fetch(url, { headers: { Accept: 'application/json' }, mode: 'cors' });
+        if (!r.ok) throw new Error(`Workflow 18 returned ${r.status}`);
+        const json = await r.json();
+        if (cancelled) return;
+        const txs = (json.transactions || []).map(rec => {
+          // Try to map institution + filename to a known account by fragment match.
+          // QFX filenames embed last-4 of account (e.g. "chase1818_..."). Pull the
+          // first 4-digit group out and try to match data.accounts[*].fragment.
+          const instStr = String(rec.institution || '');
+          const last4Match = instStr.match(/(\d{4})/);
+          const last4 = last4Match ? last4Match[1] : null;
+          let matchedAccountId = null;
+          if (last4 && Array.isArray(data.accounts)) {
+            const cand = data.accounts.find(a => (a.fragment || '').includes(last4));
+            if (cand) matchedAccountId = cand.id;
+          }
+          // Synthetic id includes source so dedupe works across sources.
+          const id = `ingest-${rec.id || (rec.fitid || rec.posted + '-' + rec.amount + '-' + rec.name)}`;
+          return {
+            id,
+            date: rec.posted || (rec.captured_at || '').slice(0, 10),
+            accountId: matchedAccountId,
+            amount: rec.amount,
+            description: rec.name || rec.memo || '(no description)',
+            category: 'imported',
+            // Provenance for renderRow + filters
+            _source: 'bank-ingest',
+            _institution: instStr,
+            _last4: last4,
+            _fitid: rec.fitid || null,
+            _status: rec.status || 'unknown',
+            _accountMatched: !!matchedAccountId,
+          };
+        });
+        setIngestedTx(txs);
+        setIngestStatus({ loaded: true, error: null, count: txs.length, served_at: json.served_at || null });
+      } catch (e) {
+        if (cancelled) return;
+        setIngestStatus({ loaded: true, error: `Could not reach workflow 18: ${e.message}`, count: 0, served_at: null });
+      }
+    };
+    load();
+    const id = setInterval(load, 300_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [data.accounts]);
+
+  // Dedupe key for matching a manual entry to an ingested one.
+  // Account match optional (a manual entry might predate the bank link).
+  const dedupeKey = (t) => {
+    const dt = (t.date || '').slice(0, 10);
+    const amt = Math.round((t.amount || 0) * 100); // cents, integer
+    const descPrefix = (t.description || '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 12);
+    const last4 = t._last4 || (t.accountId && (data.accounts.find(a => a.id === t.accountId)?.fragment || '').match(/\d{4}/)?.[0]) || '';
+    return `${last4}|${dt}|${amt}|${descPrefix}`;
+  };
+
   // v28+ Session B: funds-verify trigger + transfer popup
   const FUNDS_BUFFER = 200; // dollars - any projected balance below this triggers the cover prompt
   const [transferContext, setTransferContext] = useState(null); // { targetAccountId, shortfall, occasion }
@@ -4707,10 +4792,42 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
     if (entityFilter === 'all') return true;
     if (t.entityOverride) return t.entityOverride === entityFilter;
     const acc = data.accounts.find(a => a.id === t.accountId);
-    return acc && acc.entityId === entityFilter;
+    if (acc) return acc.entityId === entityFilter;
+    // Ingest entries with no mapped accountId: surface them under the
+    // "all" view only — they don't have an entity until you link the
+    // account in Books → Accounts. Filtered out of entity-scoped views
+    // so they don't muddle entity-specific totals.
+    return false;
   };
 
-  const allTx = (data.transactions || []).filter(matchesEntity);
+  // Phase 2A — merge manual transactions with ingested ones. Dedupe by
+  // composite key (last4 + date + cents + descPrefix). Manual entries always
+  // win when both exist for the same key — the user's record-of-truth is
+  // authoritative; the ingest is supporting evidence. Ingested entries that
+  // match a manual one get tagged onto the manual row's _ingestMatched flag
+  // so renderRow can show a "✓ Bank-confirmed" badge in-line.
+  const manualByKey = (() => {
+    const m = {};
+    for (const t of (data.transactions || [])) {
+      m[dedupeKey(t)] = t.id;
+    }
+    return m;
+  })();
+  const ingestedFiltered = ingestedTx.filter(t => {
+    // Drop ingest entries that already match a manual entry's dedupe key —
+    // the manual row will surface a "bank-confirmed" badge instead.
+    return !manualByKey[dedupeKey(t)];
+  });
+  // Mark manual rows that have an ingest match (for badge rendering).
+  const ingestMatchSet = new Set();
+  for (const t of ingestedTx) {
+    const k = dedupeKey(t);
+    if (manualByKey[k]) ingestMatchSet.add(manualByKey[k]);
+  }
+  const allTx = [
+    ...(data.transactions || []).map(t => ({ ...t, _ingestMatched: ingestMatchSet.has(t.id) })),
+    ...ingestedFiltered
+  ].filter(matchesEntity);
   const history = allTx.filter(t => t.date <= todayISO).sort((a, b) => b.date.localeCompare(a.date));
   const futureTx = allTx.filter(t => t.date > todayISO).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -4958,7 +5075,15 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
 
   const renderRow = (t) => {
     const acc = data.accounts.find(a => a.id === t.accountId);
-    const accLabel = acc ? `${acc.name}${acc.fragment ? ' ' + acc.fragment : ''}` : (t._source === 'recurring' ? 'Recurring obligation' : '—');
+    // Phase 2A — label for ingest entries that haven't been linked to an
+    // account yet: show the institution + last4 from the QFX so the user
+    // recognizes which account it came from.
+    const ingestLabel = t._source === 'bank-ingest'
+      ? `${(t._institution || 'imported').replace(/_.*$/,'').replace(/(\d{4})$/, ' ····$1')}${acc ? '' : ' · unlinked'}`
+      : null;
+    const accLabel = acc
+      ? `${acc.name}${acc.fragment ? ' ' + acc.fragment : ''}`
+      : (t._source === 'recurring' ? 'Recurring obligation' : (ingestLabel || '—'));
     const currentBal = acc ? balanceByAccount[acc.id] : null;
     const afterBal = txView === 'upcoming' && acc && projectedAfter[t.id] !== undefined ? projectedAfter[t.id] : null;
     return (
@@ -4972,6 +5097,40 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
             {currentBal !== null && <span className={`ml-1 ${currentBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>(now {fmt(currentBal)})</span>}
             {t.category && <span className="ml-2 uppercase tracking-wider">· {t.category}</span>}
             {t._source === 'recurring' && <span className="ml-2 text-[#B85838] uppercase tracking-wider">· recurring · {t._frequency}</span>}
+            {/* Phase 2A — ingest provenance + reconcile status pills. Stays
+                quiet on plain manual entries so the existing UX is unchanged. */}
+            {t._source === 'bank-ingest' && (
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                style={{ backgroundColor: '#1F6FEB22', color: '#1F6FEB', border: '1px solid #1F6FEB' }}
+                title={`Imported from bank QFX${t._fitid ? ' · FITID ' + t._fitid : ''}`}>
+                bank
+              </span>
+            )}
+            {t._source === 'gmail-ingest' && (
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                style={{ backgroundColor: '#DB444422', color: '#DB4444', border: '1px solid #DB4444' }}
+                title="Imported from Gmail finance event">
+                gmail
+              </span>
+            )}
+            {t._ingestMatched && (
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                style={{ backgroundColor: '#16A34A22', color: '#16A34A', border: '1px solid #16A34A' }}
+                title="A bank-ingested transaction matches this manual entry — verified.">
+                ✓ bank-confirmed
+              </span>
+            )}
+            {t._status && t._source === 'bank-ingest' && t._status !== 'unknown' && (
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                style={{
+                  backgroundColor: (t._status === 'verified' ? '#16A34A' : t._status === 'unexplained' ? '#DC2626' : '#D97706') + '22',
+                  color: t._status === 'verified' ? '#16A34A' : t._status === 'unexplained' ? '#DC2626' : '#D97706',
+                  border: `1px solid ${t._status === 'verified' ? '#16A34A' : t._status === 'unexplained' ? '#DC2626' : '#D97706'}`
+                }}
+                title={`Reconcile status: ${t._status}`}>
+                {t._status}
+              </span>
+            )}
           </div>
           {afterBal !== null && (() => {
             const short = shortfallFor(t);
