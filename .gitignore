@@ -65,3 +65,36 @@ app/.env.*.local
 
 # Stale / experimental build outputs — only app/dist is the canonical artifact
 app/dist-*/
+
+# ----------------------------------------------------------------------------
+# Working-directory cruft (added 2026-05-28)
+# One-off PowerShell / batch scripts from earlier sessions, installer binaries,
+# and git format-patch artifacts. None of these belong in source control.
+# ----------------------------------------------------------------------------
+# Git format-patch artifacts
+*.patch
+# Installers + binary packages (Claude desktop, Synology Drive Client, etc.)
+*.exe
+*.deb
+*.msi
+*.dmg
+*.pkg
+# One-off helper scripts dated by session — keep at root for the session that
+# created them, never commit. Excludes infra/n8n/scripts/* which is canonical.
+/auto-commit-*.ps1
+/commit-*.ps1
+/restore-*.ps1
+/restore-*.bat
+/_restore-*.ps1
+/_restore-*.bat
+/ship-*.ps1
+/stage-*.ps1
+/run-*.ps1
+/push-*.ps1
+/setup-*.ps1
+/deploy-*.ps1
+/apply-*.ps1
+# Sandbox test artifacts
+docs/.sandbox-write-test.md
+# Root-level read-aloud HTML (the canonical one is app/public/read-aloud.html)
+/read-aloud.html
