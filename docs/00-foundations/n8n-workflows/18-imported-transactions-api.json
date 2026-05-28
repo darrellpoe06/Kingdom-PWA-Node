@@ -1,5 +1,5 @@
 {
-  "name": "18 · Imported transactions API (serves /data/finance-events to PWA · Phase 2B: also exposes bank_balances)",
+  "name": "18 · Imported transactions API (Phase 2B · bank_balances)",
   "nodes": [
     {
       "parameters": {

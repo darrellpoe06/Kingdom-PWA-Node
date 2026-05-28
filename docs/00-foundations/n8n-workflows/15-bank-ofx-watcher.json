@@ -1,5 +1,5 @@
 {
-  "name": "15 · Bank OFX/QFX/CSV watcher (every 2 min · /volume1/PoeTech/bank-imports → /data/finance-events/bank · Phase 2B: also captures LEDGERBAL)",
+  "name": "15 · Bank OFX/QFX/CSV watcher (Phase 2B · LEDGERBAL)",
   "nodes": [
     {
       "parameters": {

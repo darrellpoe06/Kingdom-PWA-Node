@@ -878,6 +878,57 @@ export default function PoeFinancialSystem() {
   const [authSession, setAuthSession] = useState(null);
   const [showVerifyBalances, setShowVerifyBalances] = useState(false);
 
+  // Phase 2B.2 (2026-05-28) — top-level fetch of all ingested finance data
+  // from n8n workflow 18. Lifted up from BooksTransactions + BooksAccounts
+  // so the whole app shares one feed: Tx tab, Accounts tab, Big Picture
+  // dashboard, future surfaces all read the same `ingestData` shape. One
+  // network call per 5 minutes instead of three.
+  //
+  // Sovereign-loop: all data flows from /volume1/PoeTech/finance-events/
+  // via the Tailscale Funnel URL set in VITE_N8N_WEBHOOK_BASE.
+  //
+  // ingestData shape: {
+  //   transactions: [...], gmail_events: [...], bank_balances: {...},
+  //   counts: {...}, served_at, meta: { loaded, error }
+  // }
+  const [ingestData, setIngestData] = useState({
+    transactions: [], gmail_events: [], bank_balances: {},
+    counts: { total_bank: 0, total_gmail: 0, status_counts: {}, institutions: [] },
+    served_at: null,
+    meta: { loaded: false, error: null }
+  });
+  useEffect(() => {
+    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    if (!base) {
+      setIngestData(d => ({ ...d, meta: { loaded: true, error: 'VITE_N8N_WEBHOOK_BASE not set — ingest overlay disabled' } }));
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const url = `${base.replace(/\/+$/, '')}/webhook/imported-transactions?limit=5000`;
+        const r = await fetch(url, { headers: { Accept: 'application/json' }, mode: 'cors' });
+        if (!r.ok) throw new Error(`Workflow 18 returned ${r.status}`);
+        const json = await r.json();
+        if (cancelled) return;
+        setIngestData({
+          transactions: json.transactions || [],
+          gmail_events: json.gmail_events || [],
+          bank_balances: json.bank_balances || {},
+          counts: json.counts || { total_bank: 0, total_gmail: 0, status_counts: {}, institutions: [] },
+          served_at: json.served_at || null,
+          meta: { loaded: true, error: null }
+        });
+      } catch (e) {
+        if (cancelled) return;
+        setIngestData(d => ({ ...d, meta: { loaded: true, error: `Could not reach workflow 18: ${e.message}` } }));
+      }
+    };
+    load();
+    const id = setInterval(load, 300_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -1731,13 +1782,13 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} />}
+        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} />}
         {view === 'books' && (
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
-            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} />}
+            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={data.entities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
             {booksView === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
-            {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} />}
+            {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} ingestData={ingestData} />}
             {booksView === 'imported' && <Imported />}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} />}
@@ -2648,7 +2699,7 @@ function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFe
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [] }) {
+function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null }) {
   // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
   // item (if any) is currently expanded. Tapping the row body opens the full
   // details + lifecycle log + jump-link inline, so the user never loses
@@ -3092,6 +3143,57 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
         <CompactHero label="Consumer debt free" value={projection.debtFreeDate} sub={`${projection.debtFreeYears.toFixed(1)}yr · pressure ${pressure}`} />
         <CompactHero label="Rentals owned free" value={rentalSnowball.allClearedDate} sub={`${rentalSnowball.allClearedYears.toFixed(1)}yr · snowball`} />
       </section>
+
+      {/* Phase 2B.2 — Bank reconciliation status strip. Surfaces the same
+          ingest data that Tx + Accounts show, but as a Big-Picture-level
+          "here's what your books look like next to what the banks say."
+          Three cells, all clickable. Stays hidden until ingestData arrives
+          to avoid layout shift on slow networks. */}
+      {ingestData && ingestData.meta && ingestData.meta.loaded && Object.keys(ingestData.bank_balances || {}).length > 0 && (() => {
+        const allUserAccounts = entityRollups.flatMap(r => r.accounts || []);
+        let linkedCount = 0;
+        let bankCash = 0;
+        let manualCash = 0;
+        for (const a of allUserAccounts) {
+          if (!['checking','savings','cash','investment'].includes(a.type) || a.inLegal) continue;
+          manualCash += (a.balance || 0);
+          const last4 = (a.fragment || '').match(/(\d{4})/)?.[1];
+          if (!last4) { bankCash += (a.balance || 0); continue; }
+          const balKey = Object.keys(ingestData.bank_balances).find(k => k.includes(last4));
+          if (balKey && typeof ingestData.bank_balances[balKey].ledger_balance === 'number') {
+            linkedCount += 1;
+            bankCash += ingestData.bank_balances[balKey].ledger_balance;
+          } else {
+            bankCash += (a.balance || 0);
+          }
+        }
+        const sc = (ingestData.counts && ingestData.counts.status_counts) || {};
+        const needsAttention = (sc.unexplained || 0) + (sc.unconfirmed || 0);
+        const cashDelta = +(bankCash - manualCash).toFixed(2);
+        const totalInstitutions = (ingestData.counts && ingestData.counts.institutions || []).length;
+        return (
+          <section aria-labelledby="bank-recon-h">
+            <h2 id="bank-recon-h" className="sr-only">Bank reconciliation status</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+              <button type="button" onClick={() => { setView('books'); setBooksView && setBooksView('accounts'); }} className="bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751]">Bank cash · linked</div>
+                <div className={`text-lg ${bankCash < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtCompact(bankCash)}</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">{linkedCount} of {allUserAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal).length} accounts · {totalInstitutions} feeds</div>
+              </button>
+              <button type="button" onClick={() => { setView('books'); setBooksView && setBooksView('accounts'); }} className="bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751]">Manual vs bank</div>
+                <div className={`text-lg ${Math.abs(cashDelta) < 0.5 ? 'text-[#5A6E3D]' : cashDelta < 0 ? 'text-[#B85838]' : 'text-[#D97706]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{cashDelta >= 0 ? '+' : ''}{fmtCompact(cashDelta)}</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">{Math.abs(cashDelta) < 0.5 ? 'reconciled' : cashDelta < 0 ? 'bank lower than ledger' : 'bank higher than ledger'}</div>
+              </button>
+              <button type="button" onClick={() => { setView('books'); setBooksView && setBooksView('transactions'); }} className="bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" title="Books → Tx → tap the 'Needs attention' filter pill">
+                <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751]">Needs attention</div>
+                <div className={`text-lg ${needsAttention > 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{needsAttention}</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">{needsAttention > 0 ? 'ingest rows · review on Tx' : 'fully reconciled'}</div>
+              </button>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* v28+ MVP v1.5 — Cross-reference strip.
           Pulls live counts from Real Estate, Markets, and Capex so the
@@ -4360,44 +4462,17 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
 
 const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'loan', 'investment', 'cash', 'other'];
 
-function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, toggleAccountLegal, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {} }) {
+function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, toggleAccountLegal, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {}, ingestData = null }) {
   // v28+ MVP v1.5 round 4 — Buffer target editing is deliberate (modal-style),
   // current balance is slider-driven (continuous, live feedback).
   const [editingTarget, setEditingTarget] = useState(false);
   const [targetDraft, setTargetDraft] = useState(bufferTarget);
 
-  // Phase 2B (2026-05-28) — pull per-institution bank balances + activity
-  // rollups from n8n workflow 18, augment each account row with the
-  // bank-authoritative LEDGERBAL when we can match an account by last4.
-  // Sovereign-loop: every byte comes from /volume1/PoeTech/finance-events/
-  // via the Tailscale Funnel — no SaaS in the loop.
-  const [ingestBalances, setIngestBalances] = useState({});
-  const [ingestMeta, setIngestMeta] = useState({ loaded: false, error: null, served_at: null });
-  useEffect(() => {
-    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
-    if (!base) {
-      setIngestMeta({ loaded: true, error: 'VITE_N8N_WEBHOOK_BASE not set — bank balance overlay disabled', served_at: null });
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const url = `${base.replace(/\/+$/, '')}/webhook/imported-transactions?limit=1`;
-        const r = await fetch(url, { headers: { Accept: 'application/json' }, mode: 'cors' });
-        if (!r.ok) throw new Error(`Workflow 18 returned ${r.status}`);
-        const json = await r.json();
-        if (cancelled) return;
-        setIngestBalances(json.bank_balances || {});
-        setIngestMeta({ loaded: true, error: null, served_at: json.served_at || null });
-      } catch (e) {
-        if (cancelled) return;
-        setIngestMeta({ loaded: true, error: `Could not reach workflow 18: ${e.message}`, served_at: null });
-      }
-    };
-    load();
-    const id = setInterval(load, 300_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
+  // Phase 2B.2 (2026-05-28) — ingestData now comes from the top-level App
+  // component so Tx / Accounts / Big Picture all share one network feed.
+  // Falls back to empty shape if a parent forgot to pass it.
+  const ingestBalances = (ingestData && ingestData.bank_balances) || {};
+  const ingestMeta = (ingestData && ingestData.meta) || { loaded: false, error: null };
 
   // Map an account → its matching institution slug in ingestBalances.
   // QFX filenames embed last-4 of the account number; institution slug is
@@ -4785,86 +4860,56 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
-function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction }) {
+function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction, ingestData = null }) {
   const [txView, setTxView] = useState('history');
   const [page, setPage] = useState(0);
   const pageSize = 25;
-  useEffect(() => { setPage(0); }, [txView, entityFilter]);
+  // Phase 2C (2026-05-28) — reconcile-status filter. Lets the user narrow
+  // the merged Tx feed to just the rows that need attention.
+  // 'all' (default) shows everything; 'unexplained' is the most-useful
+  // surface for the workflow-16 reconcile data (1900+ unexplained rows).
+  const [statusFilter, setStatusFilter] = useState('all');
+  // Reset pagination whenever any filter changes so user lands on page 1.
+  useEffect(() => { setPage(0); }, [txView, entityFilter, statusFilter]);
 
   // Phase 2A — merge ingested bank/Gmail transactions from n8n workflow 18
   // alongside the manual entries. Sovereign-loop: data flows from
   // /volume1/PoeTech/finance-events/ on the NAS, never from a SaaS.
   //
-  // VITE_N8N_WEBHOOK_BASE points at the n8n external URL, e.g.
-  //   https://192-168-1-26.poetech.direct.quickconnect.to:4443
-  // If unset, the ingested merge silently no-ops and only manual entries show.
-  //
-  // Each ingested transaction is normalized to the same shape as a manual one,
-  // with extra metadata (_source, _status, _institution) so renderRow can
-  // surface the provenance + reconcile status as small badges per row.
-  // Deduplication: by FITID when both the manual entry and the ingested one
-  // carry one (rare today, but the manual entry model can be extended); else
-  // by a composite key (account-fragment + date + rounded amount + name-prefix)
-  // to catch cases where a user manually entered a transaction that the bank
-  // ingest later confirmed.
-  const [ingestedTx, setIngestedTx] = useState([]);
-  const [ingestStatus, setIngestStatus] = useState({ loaded: false, error: null, count: 0, served_at: null });
-
-  useEffect(() => {
-    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
-    if (!base) {
-      setIngestStatus({ loaded: true, error: 'VITE_N8N_WEBHOOK_BASE not set — ingest merge disabled', count: 0, served_at: null });
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const url = `${base.replace(/\/+$/, '')}/webhook/imported-transactions?limit=5000`;
-        const r = await fetch(url, { headers: { Accept: 'application/json' }, mode: 'cors' });
-        if (!r.ok) throw new Error(`Workflow 18 returned ${r.status}`);
-        const json = await r.json();
-        if (cancelled) return;
-        const txs = (json.transactions || []).map(rec => {
-          // Try to map institution + filename to a known account by fragment match.
-          // QFX filenames embed last-4 of account (e.g. "chase1818_..."). Pull the
-          // first 4-digit group out and try to match data.accounts[*].fragment.
-          const instStr = String(rec.institution || '');
-          const last4Match = instStr.match(/(\d{4})/);
-          const last4 = last4Match ? last4Match[1] : null;
-          let matchedAccountId = null;
-          if (last4 && Array.isArray(data.accounts)) {
-            const cand = data.accounts.find(a => (a.fragment || '').includes(last4));
-            if (cand) matchedAccountId = cand.id;
-          }
-          // Synthetic id includes source so dedupe works across sources.
-          const id = `ingest-${rec.id || (rec.fitid || rec.posted + '-' + rec.amount + '-' + rec.name)}`;
-          return {
-            id,
-            date: rec.posted || (rec.captured_at || '').slice(0, 10),
-            accountId: matchedAccountId,
-            amount: rec.amount,
-            description: rec.name || rec.memo || '(no description)',
-            category: 'imported',
-            // Provenance for renderRow + filters
-            _source: 'bank-ingest',
-            _institution: instStr,
-            _last4: last4,
-            _fitid: rec.fitid || null,
-            _status: rec.status || 'unknown',
-            _accountMatched: !!matchedAccountId,
-          };
-        });
-        setIngestedTx(txs);
-        setIngestStatus({ loaded: true, error: null, count: txs.length, served_at: json.served_at || null });
-      } catch (e) {
-        if (cancelled) return;
-        setIngestStatus({ loaded: true, error: `Could not reach workflow 18: ${e.message}`, count: 0, served_at: null });
+  // Phase 2B.2 — ingestData is now lifted to the top-level App component so
+  // Tx + Accounts + Big Picture share one feed. Falls back gracefully if a
+  // parent didn't pass it (e.g. during unit tests).
+  // Re-derive the same per-row shape Phase 2A built locally, but from the
+  // shared `ingestData.transactions` so we keep the dedupe + badge code below
+  // unchanged.
+  const ingestedTx = useMemo(() => {
+    const raw = (ingestData && ingestData.transactions) || [];
+    return raw.map(rec => {
+      const instStr = String(rec.institution || '');
+      const last4Match = instStr.match(/(\d{4})/);
+      const last4 = last4Match ? last4Match[1] : null;
+      let matchedAccountId = null;
+      if (last4 && Array.isArray(data.accounts)) {
+        const cand = data.accounts.find(a => (a.fragment || '').includes(last4));
+        if (cand) matchedAccountId = cand.id;
       }
-    };
-    load();
-    const id = setInterval(load, 300_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [data.accounts]);
+      const id = `ingest-${rec.id || (rec.fitid || rec.posted + '-' + rec.amount + '-' + rec.name)}`;
+      return {
+        id,
+        date: rec.posted || (rec.captured_at || '').slice(0, 10),
+        accountId: matchedAccountId,
+        amount: rec.amount,
+        description: rec.name || rec.memo || '(no description)',
+        category: 'imported',
+        _source: 'bank-ingest',
+        _institution: instStr,
+        _last4: last4,
+        _fitid: rec.fitid || null,
+        _status: rec.status || 'unknown',
+        _accountMatched: !!matchedAccountId,
+      };
+    });
+  }, [ingestData, data.accounts]);
 
   // Dedupe key for matching a manual entry to an ingested one.
   // Account match optional (a manual entry might predate the bank link).
@@ -4911,6 +4956,55 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
   };
   const confirmDelete = (t) => { if (confirm(`Delete transaction "${t.description}"?`)) deleteTransaction(t.id); };
 
+  // Phase 2E (2026-05-28) — accept an ingest row as a manual entry. Two
+  // ergonomic modes: 'review' opens the new-transaction form pre-filled so
+  // the user can adjust category/description before saving; 'quick' adds
+  // the entry immediately with the suggested category. The next ingest
+  // refresh dedupes — the manual entry and the bank row merge with a
+  // green "bank-confirmed" badge.
+  const suggestCategory = (description) => {
+    const d = (description || '').toLowerCase();
+    if (/payroll|deposit.*salary|direct deposit/.test(d)) return 'salary';
+    if (/zelle|venmo|cashapp|cash app/.test(d)) return 'transfer';
+    if (/uber|lyft|gas|shell|chevron|bp |arco|exxon|mobil/.test(d)) return 'fuel';
+    if (/whole foods|jewel|aldi|grocery|trader joe|kroger|walmart|target/.test(d)) return 'groceries';
+    if (/restaurant|cafe|coffee|starbucks|chipotle|mcdonald|dunkin/.test(d)) return 'dining';
+    if (/comed|nicor|water|gas company|electric|utility/.test(d)) return 'utilities';
+    if (/netflix|spotify|hulu|disney|apple\.com\/bill|prime|youtube/.test(d)) return 'subscription';
+    if (/state farm|geico|progressive|allstate|insurance/.test(d)) return 'insurance';
+    if (/medical|pharmacy|cvs|walgreens|hospital|clinic/.test(d)) return 'medical';
+    if (/auto|car wash|jiffy|mechanic/.test(d)) return 'vehicle';
+    if (/mortgage|rent payment/.test(d)) return 'debt-payment';
+    return 'other';
+  };
+  const acceptIngest = (t, mode = 'review') => {
+    // Find an account: matched by last4 if available; otherwise prompt user
+    // to pick during review. Quick-add requires a matched account.
+    const matchedAccountId = t.accountId || (t._last4 ? data.accounts.find(a => (a.fragment || '').includes(t._last4))?.id : null);
+    const prefill = {
+      date: t.date,
+      accountId: matchedAccountId || data.accounts[0]?.id || '',
+      amount: t.amount,
+      description: t.description,
+      category: suggestCategory(t.description),
+      entityOverride: '',
+    };
+    if (mode === 'quick') {
+      if (!prefill.accountId) {
+        alert('Cannot quick-add — no account matches this institution. Use Review instead.');
+        return;
+      }
+      const payload = { ...prefill, amount: parseFloat(prefill.amount) || 0 };
+      addTransaction(payload);
+      return;
+    }
+    // Review mode: open the form with the prefill and let the user adjust.
+    setForm(prefill);
+    setEditingId(null);
+    setShowForm(true);
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+  };
+
   const matchesEntity = (t) => {
     if (entityFilter === 'all') return true;
     if (t.entityOverride) return t.entityOverride === entityFilter;
@@ -4947,12 +5041,34 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
     const k = dedupeKey(t);
     if (manualByKey[k]) ingestMatchSet.add(manualByKey[k]);
   }
-  const allTx = [
+  const allTxBeforeStatusFilter = [
     ...(data.transactions || []).map(t => ({ ...t, _ingestMatched: ingestMatchSet.has(t.id) })),
     ...ingestedFiltered
   ].filter(matchesEntity);
+  // Phase 2C — apply the reconcile-status filter. Manual entries pass through
+  // any status filter (they're authoritative). Ingest rows get filtered by
+  // their reconcile-status. "needs-attention" is a synthetic filter that
+  // combines unexplained + unconfirmed since both want the user's eye.
+  const allTx = allTxBeforeStatusFilter.filter(t => {
+    if (statusFilter === 'all') return true;
+    if (t._source !== 'bank-ingest') return true; // manual entries always show
+    if (statusFilter === 'needs-attention') return t._status === 'unexplained' || t._status === 'unconfirmed';
+    return t._status === statusFilter;
+  });
   const history = allTx.filter(t => t.date <= todayISO).sort((a, b) => b.date.localeCompare(a.date));
   const futureTx = allTx.filter(t => t.date > todayISO).sort((a, b) => a.date.localeCompare(b.date));
+  // Counts for the filter dropdown — built from the pre-filter set so each
+  // pill always shows the true count regardless of which filter is active.
+  const statusCounts = (() => {
+    const c = { all: 0, 'needs-attention': 0, unexplained: 0, unconfirmed: 0, verified: 0, 'noise-skip': 0 };
+    for (const t of allTxBeforeStatusFilter) {
+      c.all += 1;
+      if (t._source !== 'bank-ingest') continue;
+      if (t._status === 'unexplained' || t._status === 'unconfirmed') c['needs-attention'] += 1;
+      if (Object.prototype.hasOwnProperty.call(c, t._status)) c[t._status] += 1;
+    }
+    return c;
+  })();
 
   const recurringUpcoming = (data.recurringObligations || [])
     .filter(r => r.enabled !== false && r.nextDue && r.nextDue > todayISO)
@@ -5274,7 +5390,19 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
         </td>
         <td className={`p-2 text-right whitespace-nowrap ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.amount > 0 ? '+' : ''}{fmt(t.amount)}</td>
         <td className="p-2 text-right whitespace-nowrap">
-          {t._source !== 'recurring' && (
+          {t._source === 'bank-ingest' ? (
+            // Phase 2E — ingest rows are read-only on the NAS side, but the
+            // user can promote them into the manual ledger. Two flows: Review
+            // (open prefilled form to adjust category) and Quick (file as-is
+            // with the suggested category). Once accepted, the next ingest
+            // refresh tags the ingest row's dedupe key against the new
+            // manual entry and the bank-confirmed badge appears.
+            <span className="inline-flex items-center gap-1">
+              <button type="button" onClick={() => acceptIngest(t, 'review')} aria-label={`Review and accept ${t.description} as manual entry`} className="text-xs uppercase tracking-wider text-[#1F6FEB] hover:bg-[#1F6FEB] hover:text-white border border-[#1F6FEB] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Review</button>
+              <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
+              <button type="button" onClick={() => acceptIngest(t, 'quick')} aria-label={`Quick accept ${t.description} as manual entry with suggested category`} title={`File as manual entry · category guess: ${suggestCategory(t.description)}`} className="text-xs uppercase tracking-wider text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white border border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✓ Accept</button>
+            </span>
+          ) : t._source !== 'recurring' && (
             <span className="inline-flex items-center gap-1">
               <button type="button" onClick={() => editingId === t.id ? cancel() : startEdit(t)} aria-expanded={editingId === t.id} aria-label={editingId === t.id ? `Cancel edit for ${t.description}` : `Edit transaction ${t.description}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingId === t.id ? '× Cancel' : '✎ Edit'}</button>
               <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
@@ -5373,6 +5501,26 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
             <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
           </div>
         </div>
+
+        {/* Phase 2C — reconcile-status pills. Only show when there are
+            ingest rows in the merged feed; otherwise this is just clutter. */}
+        {statusCounts.all > (data.transactions || []).length && (
+          <div className="mb-3 flex items-center gap-1 flex-wrap text-[10px]">
+            <span className="uppercase tracking-wider text-[#5A5751] mr-1">Filter</span>
+            {[
+              ['all', `All · ${statusCounts.all}`, '#1A1815'],
+              ['needs-attention', `Needs attention · ${statusCounts['needs-attention']}`, '#B85838'],
+              ['unexplained', `Unexplained · ${statusCounts.unexplained}`, '#DC2626'],
+              ['unconfirmed', `Unconfirmed · ${statusCounts.unconfirmed}`, '#D97706'],
+              ['verified', `Verified · ${statusCounts.verified}`, '#16A34A'],
+              ['noise-skip', `Noise · ${statusCounts['noise-skip']}`, '#5A5751'],
+            ].map(([id, label, color]) => (
+              <button key={id} type="button" onClick={() => setStatusFilter(id)} className={`px-2 py-1 border uppercase tracking-wider ${statusFilter === id ? 'text-white' : 'text-[#5A5751]'}`} style={{ backgroundColor: statusFilter === id ? color : 'transparent', borderColor: statusFilter === id ? color : '#E8E4DC' }} title={`Show ${id === 'all' ? 'all rows' : id === 'needs-attention' ? 'unexplained + unconfirmed bank rows' : id + ' bank rows'} (manual entries always shown)`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* r32 — Top form for Add only; edit happens inline under the row. */}
         {showForm && !editingId && (
