@@ -4977,6 +4977,50 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
     if (/mortgage|rent payment/.test(d)) return 'debt-payment';
     return 'other';
   };
+  // Phase 2F (2026-05-28) — mark a bank-ingest row as noise. Posts the
+  // institution + fitid to n8n workflow 19, which writes 'noise-skip' into
+  // the reconcile state file. Workflow 18's next 5-min refresh sees the
+  // updated state and the row drops off "Needs attention" forever.
+  // We also hold a local Set of just-marked fitids so the row vanishes
+  // immediately, before the network round-trip; vital for grinding through
+  // a few hundred rows on the plane without 5-min waits between each.
+  const [noisedLocally, setNoisedLocally] = useState(new Set());
+  const markNoise = async (t) => {
+    if (!t || t._source !== 'bank-ingest') return;
+    const inst = t._institution || '';
+    const fitid = t._fitid || '';
+    if (!inst || !fitid) {
+      alert('Cannot mark as noise — this row is missing institution or FITID.');
+      return;
+    }
+    // Optimistic: hide it from the merged feed right away.
+    setNoisedLocally(prev => {
+      const next = new Set(prev);
+      next.add(fitid);
+      return next;
+    });
+    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    if (!base) return; // local-only optimism; state will not persist
+    try {
+      const url = `${base.replace(/\/+$/, '')}/webhook/mark-noise`;
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify({ institution: inst, fitid, reason: 'pwa-tx-mark-noise' })
+      });
+      if (!r.ok) throw new Error('Mark-noise endpoint returned ' + r.status);
+    } catch (e) {
+      // Revert optimism on failure so the user knows it didn't stick.
+      setNoisedLocally(prev => {
+        const next = new Set(prev);
+        next.delete(fitid);
+        return next;
+      });
+      alert('Could not save noise marking: ' + e.message);
+    }
+  };
+
   const acceptIngest = (t, mode = 'review') => {
     // Find an account: matched by last4 if available; otherwise prompt user
     // to pick during review. Quick-add requires a matched account.
@@ -5031,6 +5075,11 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
     return m;
   })();
   const ingestedFiltered = ingestedTx.filter(t => {
+    // Phase 2F — optimistic hide for rows the user just marked noise.
+    // Persists locally until the next n8n refresh reflects the state-file
+    // update; after that, workflow 18 returns status='noise-skip' and the
+    // statusFilter pills already partition it correctly.
+    if (t._fitid && noisedLocally.has(t._fitid)) return false;
     // Drop ingest entries that already match a manual entry's dedupe key —
     // the manual row will surface a "bank-confirmed" badge instead.
     return !manualByKey[dedupeKey(t)];
@@ -5397,10 +5446,17 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
             // with the suggested category). Once accepted, the next ingest
             // refresh tags the ingest row's dedupe key against the new
             // manual entry and the bank-confirmed badge appears.
-            <span className="inline-flex items-center gap-1">
+            // Phase 2F — third action: mark as noise. Writes back to the
+            // workflow-16 state file via workflow 19, then the row stays
+            // suppressed across refreshes. Used for fee reversals, internal
+            // transfers, and other junk that shouldn't surface in the work
+            // queue but isn't really worth a manual ledger entry either.
+            <span className="inline-flex items-center gap-1 flex-wrap justify-end">
               <button type="button" onClick={() => acceptIngest(t, 'review')} aria-label={`Review and accept ${t.description} as manual entry`} className="text-xs uppercase tracking-wider text-[#1F6FEB] hover:bg-[#1F6FEB] hover:text-white border border-[#1F6FEB] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Review</button>
               <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
               <button type="button" onClick={() => acceptIngest(t, 'quick')} aria-label={`Quick accept ${t.description} as manual entry with suggested category`} title={`File as manual entry · category guess: ${suggestCategory(t.description)}`} className="text-xs uppercase tracking-wider text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white border border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✓ Accept</button>
+              <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
+              <button type="button" onClick={() => { if (confirm(`Mark "${t.description}" as noise? It will stop appearing in 'Needs attention' across all devices.`)) markNoise(t); }} aria-label={`Mark ${t.description} as noise and hide from needs-attention`} title="Mark as noise — fee reversal, internal transfer, or other non-actionable row" className="text-xs uppercase tracking-wider text-[#5A5751] hover:bg-[#5A5751] hover:text-white border border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">🗑 Noise</button>
             </span>
           ) : t._source !== 'recurring' && (
             <span className="inline-flex items-center gap-1">

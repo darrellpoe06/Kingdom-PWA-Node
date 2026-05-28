@@ -1,0 +1,75 @@
+{
+  "name": "19 · Mark-noise API (PWA writes back reconcile state)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mark-noise",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9f7e2a10-19a0-4190-8190-aaaaaaaaaa01",
+      "name": "Webhook (mark-noise)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320],
+      "webhookId": "mark-noise"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Phase 2F (2026-05-28) — let the PWA write back to the reconcile state\n// file so user-marked-as-noise rows stop surfacing in the 'Needs attention'\n// view. Workflow 18 reads the same state file, so a 5-min refresh in the\n// PWA picks up the change.\n//\n// POST body shape (from PWA): {\n//   institution: 'chase8168_activity_20260527.qfx',\n//   fitid: '202605260'\n// }\n//\n// Action: read whichever reconcile state file exists, add or update the\n// reconciled_ids[<institution>:<fitid>] entry with status='noise-skip', and\n// write back to the same path. Two state-file paths supported because the\n// path was migrated mid-build; this workflow heals either.\n\nconst fs = require('fs');\n\nconst STATE_FILES = [\n  '/data/chatin/_reconcile_state.json',\n  '/data/finance-events/_reconcile_state.json'\n];\n\nconst input = $input.first().json || {};\nconst body = (input.body && typeof input.body === 'object') ? input.body : input;\nconst institution = (body.institution || '').toString().trim().toLowerCase();\nconst fitid = (body.fitid || '').toString().trim();\nconst reason = (body.reason || 'user-marked').toString();\n\nif (!institution || !fitid) {\n  return [{ json: { ok: false, error: 'institution and fitid are required' } }];\n}\n\nconst key = institution + ':' + fitid;\n\nlet statePath = null;\nlet state = { reconciled_ids: {} };\nfor (const p of STATE_FILES) {\n  try {\n    state = JSON.parse(fs.readFileSync(p, 'utf8'));\n    statePath = p;\n    break;\n  } catch (_) {}\n}\n// If neither path existed, default to /data/chatin/ which is the path the\n// PWA's path-fix migration moved everything to.\nif (!statePath) statePath = STATE_FILES[0];\nif (!state.reconciled_ids) state.reconciled_ids = {};\n\nconst prev = state.reconciled_ids[key];\nstate.reconciled_ids[key] = {\n  status: 'noise-skip',\n  at: new Date().toISOString(),\n  marked_by: 'pwa-user',\n  reason,\n  prev_status: prev ? prev.status : null\n};\n\ntry { fs.writeFileSync(statePath, JSON.stringify(state, null, 2)); }\ncatch (e) { return [{ json: { ok: false, error: 'write failed: ' + String(e) } }]; }\n\nreturn [{ json: { ok: true, key, statePath, prev_status: prev ? prev.status : null } }];"
+      },
+      "id": "9f7e2a10-19a0-4190-8190-aaaaaaaaaa02",
+      "name": "Mark noise in state",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Content-Type", "value": "application/json"},
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"},
+              {"name": "Cache-Control", "value": "no-store"}
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-19a0-4190-8190-aaaaaaaaaa03",
+      "name": "Respond with JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 320]
+    }
+  ],
+  "connections": {
+    "Webhook (mark-noise)": {
+      "main": [[{"node": "Mark noise in state", "type": "main", "index": 0}]]
+    },
+    "Mark noise in state": {
+      "main": [[{"node": "Respond with JSON", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "pwa-api"},
+    {"name": "finance-write"},
+    {"name": "sovereign-loop"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}
