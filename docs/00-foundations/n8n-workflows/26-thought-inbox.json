@@ -1,0 +1,128 @@
+{
+  "name": "26 · Thought inbox (Darrell → n8n → next Claude session)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thought",
+        "responseMode": "responseNode",
+        "options": {"rawBody": false}
+      },
+      "id": "9f7e2a10-26a0-4260-8260-aaaaaaaaaa01",
+      "name": "Webhook (capture thought)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 240],
+      "webhookId": "thought"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Thought inbox — capture endpoint.\n//\n// Darrell sends text from anywhere while no Claude session is live. n8n\n// stores it on disk; the next session that calls /webhook/briefing sees it\n// FIRST in the response payload, before anything else.\n//\n// Accepts JSON body or plain text:\n//   POST /webhook/thought\n//   { \"text\": \"...\", \"tags\": [\"vacation\"], \"priority\": \"low\" }\n//\n// Or as plain text body (Content-Type doesn't matter; we coalesce):\n//   curl -X POST -d \"fix the iOS PWA cache thing\" https://.../webhook/thought\n//\n// Stored at /data/poetech-briefing/inbox/<iso-timestamp>.json with shape:\n//   { id, captured_at, text, tags, priority, ack_at: null }\n//\n// Per AI-FOUNDATION-INTERNAL-OPERATIONS: this is the persistent memory\n// bridge between sessions. Future Claude reads thoughts from here, acts on\n// them, then POSTs to /webhook/thought/ack with the id to mark done.\n\nconst fs = require('fs');\nconst path = require('path');\n\nconst INBOX_DIR = '/data/poetech-briefing/inbox';\ntry { fs.mkdirSync(INBOX_DIR, { recursive: true }); } catch (_) {}\n\nconst input = $input.first().json || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\n\n// Pull text from JSON `text`, or from a raw body, or from a `data` field.\nlet text = '';\nif (typeof body === 'string') text = body;\nelse if (typeof body.text === 'string') text = body.text;\nelse if (typeof body.data === 'string') text = body.data;\nelse if (input.bodyText) text = String(input.bodyText);\nelse text = JSON.stringify(body);\n\ntext = text.trim();\nif (!text) {\n  return [{ json: { ok: false, error: 'empty thought; provide JSON { text: \"...\" } or POST raw text' } }];\n}\n\nconst tags = Array.isArray(body.tags) ? body.tags.map(String) : [];\nconst priority = (body.priority || 'normal').toString();\n\nconst capturedAt = new Date().toISOString();\nconst id = 'th-' + capturedAt.replace(/[:.]/g, '-') + '-' + Math.floor(Math.random() * 10000);\nconst record = { id, captured_at: capturedAt, text, tags, priority, ack_at: null };\n\nconst safeFn = id + '.json';\ntry {\n  fs.writeFileSync(path.join(INBOX_DIR, safeFn), JSON.stringify(record, null, 2));\n} catch (e) {\n  return [{ json: { ok: false, error: 'failed to write: ' + String(e) } }];\n}\n\nreturn [{ json: { ok: true, id, captured_at: capturedAt, queued_for_next_session: true } }];"
+      },
+      "id": "9f7e2a10-26a0-4260-8260-aaaaaaaaaa02",
+      "name": "Store thought to inbox",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Content-Type", "value": "application/json"},
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"},
+              {"name": "Cache-Control", "value": "no-store"}
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-26a0-4260-8260-aaaaaaaaaa03",
+      "name": "Respond (capture)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 240]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thought-ack",
+        "responseMode": "responseNode",
+        "options": {"rawBody": false}
+      },
+      "id": "9f7e2a10-26a0-4260-8260-aaaaaaaaaa04",
+      "name": "Webhook (ack thought)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 460],
+      "webhookId": "thought-ack"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Thought-ack endpoint — a Claude session marks a thought as 'read' after\n// it has incorporated the thought into a brief/action.\n//\n// POST /webhook/thought-ack  body: { id: 'th-...', note: 'shipped X' }\n\nconst fs = require('fs');\nconst path = require('path');\n\nconst INBOX_DIR = '/data/poetech-briefing/inbox';\nconst input = $input.first().json || {};\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst id = (body.id || '').toString();\nconst note = (body.note || '').toString();\nif (!id) return [{ json: { ok: false, error: 'id required' } }];\n\nconst p = path.join(INBOX_DIR, id + '.json');\nlet rec;\ntry { rec = JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) {\n  return [{ json: { ok: false, error: 'thought not found: ' + id } }];\n}\nrec.ack_at = new Date().toISOString();\nif (note) rec.ack_note = note;\ntry { fs.writeFileSync(p, JSON.stringify(rec, null, 2)); }\ncatch (e) { return [{ json: { ok: false, error: 'write failed: ' + String(e) } }]; }\nreturn [{ json: { ok: true, id, ack_at: rec.ack_at } }];"
+      },
+      "id": "9f7e2a10-26a0-4260-8260-aaaaaaaaaa05",
+      "name": "Mark thought ack",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 460]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Content-Type", "value": "application/json"},
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"},
+              {"name": "Cache-Control", "value": "no-store"}
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-26a0-4260-8260-aaaaaaaaaa06",
+      "name": "Respond (ack)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 460]
+    }
+  ],
+  "connections": {
+    "Webhook (capture thought)": {
+      "main": [[{"node": "Store thought to inbox", "type": "main", "index": 0}]]
+    },
+    "Store thought to inbox": {
+      "main": [[{"node": "Respond (capture)", "type": "main", "index": 0}]]
+    },
+    "Webhook (ack thought)": {
+      "main": [[{"node": "Mark thought ack", "type": "main", "index": 0}]]
+    },
+    "Mark thought ack": {
+      "main": [[{"node": "Respond (ack)", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "ai-foundation"},
+    {"name": "briefing"},
+    {"name": "inbox"},
+    {"name": "sovereign-loop"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}

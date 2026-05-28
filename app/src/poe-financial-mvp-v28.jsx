@@ -1214,34 +1214,51 @@ const DEMO_DATA_BY_PERSONA = {
 // Persona-specific welcome copy. Each entry describes the audience and the
 // stewardship lens. The 'vision' line is honest about what's working today
 // vs what's still being built (per Darrell 2026-05-28).
+// Persona metadata — rewritten 2026-05-28 evening to lead with VALUE
+// OUTCOME rather than persona description. Per Darrell: "The website options
+// should explain this in a way that multiple users can understand the value
+// of the PoeTech app right away." Each tile now opens with the change the
+// user gets, not the demographic label.
+//
+// Structure per persona:
+//   label    — short audience name shown on the tile
+//   headline — one-line value promise (the lead)
+//   summary  — concrete scenario in their own words
+//   audience — who this is exactly
+//   pitch    — what changes in their week when they use it
+//   vision   — honest about what's working today vs in build
 const DEMO_PERSONA_META = {
   'family-of-4': {
-    label: 'Family of 4',
+    label: 'For your family',
+    headline: 'Know what\'s covered before the 1st — without guessing.',
     summary: 'Two parents, two kids in school.',
     audience: 'Married couples with school-age children.',
-    pitch: 'See every dollar in one place. Know what\'s covered before the 1st. Watch debt come down month over month without guessing.',
-    vision: 'Multi-device per-profile views (Layer A) shipped — Christina, Darrell, and "Family" rollup all work today. Anonymous in-app specialist messaging is in design.',
+    pitch: 'Every dollar in one place. Bills, paycheck, tithe, groceries, debt. On every screen the system tells you what to do, when, why, and how. The 1st stops being a scramble.',
+    vision: 'Multi-device per-profile views shipped — Christina, Darrell, and "Family" rollup all work today. Anonymous in-app specialist messaging is in design.',
   },
   'separated': {
-    label: 'Separated co-parents',
-    summary: 'Two households, one shared child, fair shared truth.',
+    label: 'For co-parents apart',
+    headline: 'A fair shared truth so money stops being the fight.',
+    summary: 'Two households, one shared child.',
     audience: 'Co-parents who don\'t live together but co-fund the kids.',
-    pitch: 'Each household sees its own books. The shared-child entity rolls up costs both sides agreed to split, with paid/unpaid plain on the screen. You don\'t have to talk about money in front of the kids — the system shows the truth.',
-    vision: 'Today this is two profiles on one device. The cross-household sync (two phones, two logins, one shared-child ledger) is the next build. Anonymous coordinated counseling sits in the same workstream.',
+    pitch: 'Each household sees its own books. The shared-child entity rolls up costs both sides agreed to split, with paid/unpaid plain on the screen. You don\'t have to argue about it in front of the kids — the system shows the truth.',
+    vision: 'Today this is two profiles on one device. Cross-household sync (two phones, two logins, one shared-child ledger) is the next build. Anonymous coordinated counseling sits in the same workstream.',
   },
   'professional': {
-    label: 'Solo professional',
+    label: 'For solo practice owners',
+    headline: 'Practice clean, personal clean, tax set-aside running.',
     summary: 'Therapist, lawyer, or consultant running their own practice.',
     audience: 'Solo practitioners juggling personal income with practice revenue.',
-    pitch: 'Practice and personal kept clearly separate. Tax set-aside running. Owner draw clean. CEUs and license renewals on the calendar so they never sneak up.',
-    vision: 'Today this is the financial backbone. The practice intake funnel + contractor 1099 management surfaces are in build. The marketplace that connects you to peer practitioners for consult is roadmap.',
+    pitch: 'No more "which money is whose." Owner draw clean. Quarterly tax set aside. CEUs and license renewals on the calendar so they never sneak up. Your books match what the IRS thinks they should be.',
+    vision: 'Today this is the financial backbone. Practice intake funnel + contractor 1099 management surfaces are in build. The marketplace that connects you to peer practitioners is roadmap.',
   },
   'landlord': {
-    label: 'Landlord (3 doors)',
+    label: 'For landlords',
+    headline: 'Know on the 1st — not at month-end when a deposit comes up short.',
     summary: 'Small landlord juggling rentals + a personal household.',
     audience: 'Owner-operators with 1-10 rental units.',
-    pitch: 'Per-property cash flow without spreadsheets. When a tenant goes late, you know on the 1st — not at the end of the month when a deposit comes up short. Capex reserve auto-funded.',
-    vision: 'Today the rental tracking is here. The tenant portal + lease-doc workflow + maintenance request flow are in build. Specialist access (attorney, accountant, property manager) is roadmap.',
+    pitch: 'Per-property cash flow without spreadsheets. Late tenants flagged on the 1st. Mortgage timing protected. Capex reserve auto-funded. The portfolio runs itself; you decide.',
+    vision: 'Today the rental tracking is here. Tenant portal + lease-doc workflow + maintenance request flow are in build. Specialist access (attorney, accountant, property manager) is roadmap.',
   },
 };
 
@@ -2179,41 +2196,51 @@ html{scroll-padding-bottom:280px}
         <div role="dialog" aria-modal="true" aria-labelledby="demo-picker-h" className="fixed inset-0 z-50 bg-[#1A1815]/95 flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-3xl w-full p-6 sm:p-8 my-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
-            <h2 id="demo-picker-h" className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{isFirstTimeLanding ? 'A family financial system — built to lift the anxiety of providing.' : 'Which life is closest to yours?'}</h2>
-            <p className="text-sm text-[#5A5751] mb-5" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? 'Anxiety comes from not knowing what to do. This system answers four questions on every screen — what to do, when, why, and how — for the people in your care. The four working samples below let you walk through how it looks for a real life close to yours. Or jump straight into setting up your own.' : 'The system is one modular framework. The samples below are different lenses on it. The shipped ones run on real data right now; the coming-soon tiles are vision for the same framework — they ship as the underlying infrastructure does. Tap any to look around.'}</p>
+            <h2 id="demo-picker-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{isFirstTimeLanding ? 'Know what to do today — for everyone in your house.' : 'Which life is closest to yours?'}</h2>
+            <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? 'PoeTech is the family financial system that lifts anxiety by answering — every day, on every screen — what to do, when, why, and how.' : 'One modular framework, multiple lenses. The shipped tiles run on real data right now; the coming-soon tiles are vision for the same framework — they ship as the infrastructure does.'}</p>
+            {isFirstTimeLanding && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 text-[10px] uppercase tracking-wider text-[#5A5751]">
+                <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">What</span> Today's next action</div>
+                <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">When</span> Date · deadline · clock</div>
+                <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">Why</span> Reason it matters</div>
+                <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">How</span> Step-by-step you can follow</div>
+              </div>
+            )}
+            <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? "Pick the life closest to yours and walk through how the system works for that family. Tap any tile — nothing saves; it's a sample." : 'Tap any to look around.'}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
               {Object.entries(DEMO_PERSONA_META).map(([key, meta]) => (
                 <a key={key} href={`/?demo=${key}`} onClick={markLandingSeen} className="block p-4 border border-[#1A1815] bg-white hover:bg-[#FAF8F4] hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
-                  <div className="flex items-baseline justify-between mb-1">
-                    <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{meta.label}</div>
-                    <span className="text-[8px] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5">Working sample</span>
+                  <div className="flex items-baseline justify-between mb-1.5 gap-2">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold">{meta.label}</div>
+                    <span className="text-[8px] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 whitespace-nowrap">Working sample</span>
                   </div>
-                  <div className="text-xs text-[#5A5751] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>{meta.summary}</div>
-                  <div className="text-[11px] text-[#1A1815] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{meta.pitch}</div>
+                  <div className="text-sm text-[#1A1815] mb-1.5 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{meta.headline}</div>
+                  <div className="text-[11px] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{meta.pitch}</div>
                 </a>
               ))}
               {[
-                { key: 'family-of-1', label: 'Single person',          summary: 'One household, one income, simple books.' },
-                { key: 'family-of-2', label: 'Couple (no kids)',       summary: 'Two incomes, shared books, joint goals.' },
-                { key: 'family-of-3', label: 'Family of 3',            summary: 'First child, balancing income + childcare.' },
-                { key: 'family-of-5', label: 'Family of 5',            summary: 'Three kids, busier rhythm, same discipline.' },
-                { key: 'family-of-7', label: 'Family of 7',            summary: 'Large household, multiple needs, scaled view.' },
-                { key: 'community',   label: 'Community / school',     summary: 'Co-op, ministry, small org books.' },
-                { key: 'church',      label: 'Church books',           summary: 'Tithe inflow, ministry outflow, capex priorities.' },
-                { key: 'lawyer',      label: 'Solo lawyer',            summary: 'Practice mgmt + trust accounting (alias today: solo professional).' },
-                { key: 'therapist',   label: 'Solo therapist',         summary: 'Practice mgmt + CEU + supervision (alias today: solo professional).' },
+                { key: 'family-of-1', label: 'For singles starting out',        headline: 'One income, one budget, no guessing.',                       summary: 'One household, one income, simple books.' },
+                { key: 'family-of-2', label: 'For couples (no kids yet)',       headline: 'Two incomes pulling in one direction.',                       summary: 'Two incomes, shared books, joint goals.' },
+                { key: 'family-of-3', label: 'For new parents',                 headline: 'First child without losing track of the rest.',               summary: 'Childcare costs, salary changes, fresh discipline.' },
+                { key: 'family-of-5', label: 'For families of 5+',              headline: 'Three kids, busier rhythm — same clarity.',                   summary: 'More mouths, more dates, same four questions.' },
+                { key: 'family-of-7', label: 'For large households',            headline: 'Big family, big load, lifted by the system.',                  summary: 'Five+ kids, complex schedules, scaled views.' },
+                { key: 'community',   label: 'For community + school orgs',     headline: 'Kitchen-table discipline at the board table.',                 summary: 'Co-op, ministry, small-org books.' },
+                { key: 'church',      label: 'For church leadership',           headline: 'Tithe in, ministry out, capex visible.',                        summary: 'Stewardship surface for a congregation.' },
+                { key: 'lawyer',      label: 'For solo lawyers',                headline: 'Practice + trust accounting kept clean.',                     summary: 'Today: alias of Solo professional; trust-account ledger in build.' },
+                { key: 'therapist',   label: 'For solo therapists',             headline: 'Practice + CEU + supervision tracked.',                       summary: 'Today: alias of Solo professional; clinical-side tier in build.' },
               ].map(s => (
-                <div key={s.key} className="block p-4 border border-dashed border-[#5A5751] bg-white/60 opacity-75">
-                  <div className="flex items-baseline justify-between mb-1">
-                    <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.label}</div>
-                    <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#5A5751] px-1.5 py-0.5">Vision · in build</span>
+                <div key={s.key} className="block p-4 border border-dashed border-[#5A5751] bg-white/60 opacity-80">
+                  <div className="flex items-baseline justify-between mb-1.5 gap-2">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">{s.label}</div>
+                    <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#5A5751] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
                   </div>
-                  <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
+                  <div className="text-sm text-[#1A1815] mb-1 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.headline}</div>
+                  <div className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
                 </div>
               ))}
             </div>
             <div className="bg-white border border-[#E8E4DC] p-3 text-xs text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-              <strong className="text-[#1A1815]">Vision in build:</strong> anonymous in-app access to specialists (therapy, legal, property, financial) so a person can read, listen, and message on their terms before revealing their identity. Multi-household co-auth so separated co-parents share a single ledger of truth. IoT integration so smart-home spend flows in automatically. Modules layer on the same foundation as they ship.
+              <strong className="text-[#1A1815]">What's coming as the infrastructure ships:</strong> anonymous in-app access to specialists (therapy, legal, property, financial) so a person can read, listen, and message on their terms before revealing their identity. Multi-household co-auth so separated co-parents share one ledger of truth across two phones. IoT integration so smart-home spend flows in automatically. Modules layer on the same foundation as they ship — never another app to learn, just the same family OS getting wider.
             </div>
             <div className="flex gap-2 mt-4 flex-wrap">
               <a href="/" onClick={markLandingSeen} className="flex-1 bg-[#1A1815] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Start your own setup →</a>
@@ -2231,10 +2258,10 @@ html{scroll-padding-bottom:280px}
         <div role="dialog" aria-modal="true" aria-labelledby="demo-welcome-h" className="fixed inset-0 z-50 bg-[#1A1815]/95 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-lg w-full p-6 sm:p-8 my-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Sample · {meta.label}</div>
-            <h2 id="demo-welcome-h" className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Here's what providing for the people in your care looks like with the books open.</h2>
+            <h2 id="demo-welcome-h" className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{meta.headline || 'Here\'s what providing for the people in your care looks like with the books open.'}</h2>
             <div className="text-sm leading-relaxed space-y-3 mb-5" style={{ fontFamily: '"Fraunces", serif', color: '#1A1815' }}>
-              <p><strong>This sample:</strong> {meta.summary} {meta.audience}</p>
               <p>{meta.pitch}</p>
+              <p className="text-[#5A5751]"><strong className="text-[#1A1815]">This sample:</strong> {meta.summary} {meta.audience}</p>
               <p className="text-[#5A5751]"><strong className="text-[#1A1815]">Vision in build:</strong> {meta.vision}</p>
               <p className="text-[12px] italic text-[#5A5751]">Anxiety comes from not knowing what to do. The whole point of this is to give clarity — what, when, why, and how. With assistance and guidance, almost too much. Faith-expressed-in-works. His Will be done.</p>
             </div>

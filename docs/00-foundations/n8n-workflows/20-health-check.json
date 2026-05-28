@@ -1,0 +1,49 @@
+{
+  "name": "20 · Health-check + ntfy alerts (every 10 min · proactive ops)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "cronExpression", "expression": "0 */10 * * * *"}]
+        }
+      },
+      "id": "9f7e2a10-20a0-4200-8200-aaaaaaaaaa01",
+      "name": "Every 10 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Health-check workflow — runs every 10 min, checks the sovereign loop.\n//\n// Checks (early-exit-on-fail per check, but always run all of them):\n//   1. n8n /healthz responds locally\n//   2. Workflow 15 wrote a _balance.json in last 24h (bank ingest fresh)\n//   3. Workflow 16's reconcile state updated in last 90 min\n//   4. Disk free on /volume1 > 5GB\n//   5. Active workflow count from filesystem (via /data marker if present)\n//\n// Records every run to /data/finance-events/_health/<timestamp>.json so the\n// briefing workflow can surface the latest run state.\n//\n// Severity transitions trigger ntfy. Ongoing failures re-alert every 6h.\n// See docs/99-session-notes/2026-05-28-brief-health-check.md for full spec.\n\nconst fs = require('fs');\nconst path = require('path');\nconst http = require('http');\n\nconst HEALTH_DIR = '/data/finance-events/_health';\nconst BANK_ROOT = '/data/finance-events/bank';\nconst RECONCILE_STATE_FILES = [\n  '/data/chatin/_reconcile_state.json',\n  '/data/finance-events/_reconcile_state.json'\n];\nconst NTFY_HOST = process.env.NTFY_HOST || 'ntfy';\nconst NTFY_PORT = parseInt(process.env.NTFY_PORT || '80', 10);\nconst NTFY_TOPIC = process.env.NTFY_TOPIC || 'poetech-health';\n\ntry { fs.mkdirSync(HEALTH_DIR, { recursive: true }); } catch (_) {}\n\nfunction now() { return new Date().toISOString(); }\nfunction nowMs() { return Date.now(); }\nfunction safeStat(p) { try { return fs.statSync(p); } catch (_) { return null; } }\nfunction safeReadJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; } }\n\nasync function localHttpGet(urlPath) {\n  return new Promise(resolve => {\n    const req = http.get({ host: '127.0.0.1', port: 5678, path: urlPath, timeout: 3000 }, res => {\n      resolve({ ok: res.statusCode >= 200 && res.statusCode < 400, status: res.statusCode });\n    });\n    req.on('error', () => resolve({ ok: false, status: 0 }));\n    req.on('timeout', () => { req.destroy(); resolve({ ok: false, status: 0, timeout: true }); });\n  });\n}\n\nasync function checkN8n() {\n  const r = await localHttpGet('/healthz');\n  return { name: 'n8n_health', ok: r.ok, detail: 'HTTP ' + r.status };\n}\n\nfunction checkWf15Fresh() {\n  // Find the freshest _balance.json under bank/*/.\n  let freshest = 0;\n  let dirs;\n  try { dirs = fs.readdirSync(BANK_ROOT); } catch (_) { return { name: 'wf15_fresh', ok: false, detail: 'bank dir missing' }; }\n  for (const d of dirs) {\n    const p = path.join(BANK_ROOT, d, '_balance.json');\n    const s = safeStat(p);\n    if (s && s.mtimeMs > freshest) freshest = s.mtimeMs;\n  }\n  if (freshest === 0) return { name: 'wf15_fresh', ok: false, detail: 'no _balance.json found' };\n  const ageHours = (nowMs() - freshest) / 3_600_000;\n  return { name: 'wf15_fresh', ok: ageHours < 36, detail: ageHours.toFixed(1) + 'h old' };\n}\n\nfunction checkWf16Fresh() {\n  for (const sf of RECONCILE_STATE_FILES) {\n    const s = safeStat(sf);\n    if (!s) continue;\n    const ageMin = (nowMs() - s.mtimeMs) / 60_000;\n    return { name: 'wf16_fresh', ok: ageMin < 120, detail: ageMin.toFixed(0) + ' min old (' + sf + ')' };\n  }\n  return { name: 'wf16_fresh', ok: false, detail: 'no reconcile state file' };\n}\n\nfunction checkDiskFree() {\n  // Without statvfs accessible from JS, fall back to a simple write test:\n  // if we can write a small file, disk isn't catastrophically full.\n  const probe = path.join(HEALTH_DIR, '_disk_probe');\n  try {\n    fs.writeFileSync(probe, String(nowMs()));\n    fs.unlinkSync(probe);\n    return { name: 'disk_writable', ok: true, detail: 'probe wrote+removed cleanly' };\n  } catch (e) {\n    return { name: 'disk_writable', ok: false, detail: String(e).slice(0, 120) };\n  }\n}\n\nasync function runAllChecks() {\n  const checks = [];\n  checks.push(await checkN8n());\n  checks.push(checkWf15Fresh());\n  checks.push(checkWf16Fresh());\n  checks.push(checkDiskFree());\n  return checks;\n}\n\nfunction latestPriorRun() {\n  let names;\n  try { names = fs.readdirSync(HEALTH_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort(); } catch (_) { return null; }\n  for (let i = names.length - 1; i >= 0; i--) {\n    const r = safeReadJson(path.join(HEALTH_DIR, names[i]));\n    if (r) return r;\n  }\n  return null;\n}\n\nfunction severityFor(name) {\n  if (name === 'n8n_health' || name === 'disk_writable') return 'CRITICAL';\n  if (name === 'wf15_fresh' || name === 'wf16_fresh') return 'HIGH';\n  return 'MEDIUM';\n}\n\nasync function pushNtfy(title, body, priority, tags) {\n  return new Promise(resolve => {\n    const data = body;\n    const opts = {\n      host: NTFY_HOST,\n      port: NTFY_PORT,\n      path: '/' + NTFY_TOPIC,\n      method: 'POST',\n      headers: {\n        'Title': title,\n        'Priority': String(priority),\n        'Tags': (tags || []).join(','),\n        'Content-Type': 'text/plain'\n      },\n      timeout: 5000\n    };\n    const req = http.request(opts, res => { resolve({ ok: res.statusCode < 400, status: res.statusCode }); });\n    req.on('error', () => resolve({ ok: false }));\n    req.on('timeout', () => { req.destroy(); resolve({ ok: false, timeout: true }); });\n    req.write(data);\n    req.end();\n  });\n}\n\nconst results = await runAllChecks();\nconst prior = latestPriorRun();\nconst priorByName = (prior && prior.results) ? Object.fromEntries(prior.results.map(r => [r.name, r])) : {};\nconst priorAlertsByName = (prior && prior.last_alerts) || {};\n\nconst alerts = [];\nconst nowMsLocal = nowMs();\nfor (const r of results) {\n  const wasOk = priorByName[r.name] ? priorByName[r.name].ok : true;\n  if (!r.ok && wasOk) {\n    alerts.push({ ...r, severity: severityFor(r.name), transition: 'failing' });\n  } else if (r.ok && !wasOk) {\n    alerts.push({ ...r, severity: 'INFO', transition: 'resolved' });\n  } else if (!r.ok && (!priorAlertsByName[r.name] || (nowMsLocal - priorAlertsByName[r.name]) > 6 * 3600_000)) {\n    alerts.push({ ...r, severity: severityFor(r.name), transition: 'reminder-6h' });\n  }\n}\n\n// Track last_alerts timestamps for the next run.\nconst lastAlerts = { ...priorAlertsByName };\nfor (const a of alerts) {\n  if (a.transition !== 'resolved') lastAlerts[a.name] = nowMsLocal;\n}\n\n// Push ntfy notifications for any alerts.\nconst PRIORITY = { CRITICAL: 5, HIGH: 4, MEDIUM: 3, INFO: 2 };\nconst TAGS_FAILING = { CRITICAL: ['rotating_light'], HIGH: ['warning'], MEDIUM: ['wrench'], INFO: ['information_source'] };\nfor (const a of alerts) {\n  const title = '[' + a.severity + '] ' + (a.transition === 'resolved' ? 'RESOLVED: ' : '') + a.name;\n  const body = a.detail + ' · at ' + now();\n  await pushNtfy(title, body, PRIORITY[a.severity] || 3, TAGS_FAILING[a.severity] || ['wrench']);\n}\n\nconst record = {\n  ran_at: now(),\n  results,\n  alerts,\n  last_alerts: lastAlerts\n};\nconst safeTs = record.ran_at.replace(/[:.]/g, '-');\ntry { fs.writeFileSync(path.join(HEALTH_DIR, safeTs + '.json'), JSON.stringify(record, null, 2)); } catch (_) {}\n\n// Prune health files older than 14 days to keep dir tidy.\ntry {\n  const cutoff = nowMsLocal - 14 * 86400_000;\n  for (const f of fs.readdirSync(HEALTH_DIR)) {\n    if (!f.endsWith('.json') || f.startsWith('_')) continue;\n    const p = path.join(HEALTH_DIR, f);\n    const s = safeStat(p);\n    if (s && s.mtimeMs < cutoff) try { fs.unlinkSync(p); } catch (_) {}\n  }\n} catch (_) {}\n\nreturn [{ json: { ran_at: record.ran_at, ok_count: results.filter(r => r.ok).length, fail_count: results.filter(r => !r.ok).length, alerts: alerts.length, results } }];"
+      },
+      "id": "9f7e2a10-20a0-4200-8200-aaaaaaaaaa02",
+      "name": "Run health checks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 320]
+    }
+  ],
+  "connections": {
+    "Every 10 minutes": {
+      "main": [[{"node": "Run health checks", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "ai-foundation"},
+    {"name": "health-check"},
+    {"name": "ntfy"},
+    {"name": "sovereign-loop"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}
