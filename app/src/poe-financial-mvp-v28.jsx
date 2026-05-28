@@ -435,6 +435,33 @@ const DEMO_DATA_FAMILY_OF_4 = {
   watchlist: ['spy.us', 'qqq.us'],
   prayerRequests: [],
   skillProfiles: [],
+  // Sanitized 2026-05-28 evening — these top-level fields were leaking
+  // through from SEED_DATA because they weren't overridden. The viewer would
+  // see Darrell's real church name + address visible in the dim background
+  // behind the welcome modal. Per the SEED-DATA-AS-ASPIRATION foundation,
+  // demo data must contain NO real personal information.
+  church: {
+    name: 'Your home church',
+    nickname: '',
+    site: '',
+    address: '',
+    phone: '',
+    officeHours: '',
+    contactEmail: '',
+    services: [],
+    media: {},
+    links: {},
+    tagline: 'Where your family worships and serves',
+    verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' },
+  },
+  voiceOps: {
+    apiUrl: '',
+    apiToken: '',
+    rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 },
+    numbersConfigured: 0,
+    budgetAlertMonthly: 30,
+  },
+  pressureMappings: { ...SEED_DATA.pressureMappings },
 };
 
 // -----------------------------------------------------------------------------
@@ -504,6 +531,9 @@ const DEMO_DATA_SEPARATED = {
     { id: 'd-dad-cc', entityId: 'e-dad', name: 'Capital One', balance: 1100, apr: 21.99, minPayment: 40, payoffType: 'snowball' },
   ],
   watchlist: ['spy.us'],
+  church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
+  voiceOps: { apiUrl: '', apiToken: '', rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 }, numbersConfigured: 0, budgetAlertMonthly: 30 },
+  pressureMappings: { ...SEED_DATA.pressureMappings },
 };
 
 // -----------------------------------------------------------------------------
@@ -582,6 +612,9 @@ const DEMO_DATA_PROFESSIONAL = {
     { id: 'd-pers-cc', entityId: 'e-pers', name: 'Visa', balance: 1850, apr: 19.99, minPayment: 60, payoffType: 'snowball' },
   ],
   watchlist: ['spy.us', 'vt.us'],
+  church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
+  voiceOps: { apiUrl: '', apiToken: '', rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 }, numbersConfigured: 0, budgetAlertMonthly: 30 },
+  pressureMappings: { ...SEED_DATA.pressureMappings },
 };
 
 // -----------------------------------------------------------------------------
@@ -655,6 +688,9 @@ const DEMO_DATA_LANDLORD = {
     { id: 'd-cc-r', entityId: 'e-pers', name: 'Visa', balance: 2050, apr: 21.99, minPayment: 65, payoffType: 'snowball' },
   ],
   watchlist: ['spy.us', 'iyr.us'],
+  church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
+  voiceOps: { apiUrl: '', apiToken: '', rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 }, numbersConfigured: 0, budgetAlertMonthly: 30 },
+  pressureMappings: { ...SEED_DATA.pressureMappings },
 };
 
 // SCOPE_TEMPLATES moved to ./components/Projects.jsx (r41).
