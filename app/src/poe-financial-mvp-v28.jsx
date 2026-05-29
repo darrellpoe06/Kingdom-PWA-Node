@@ -1398,11 +1398,16 @@ export default function PoeFinancialSystem() {
   // top instead, which stays put until they close the tab.
   const [demoWelcomeOpen, setDemoWelcomeOpen] = useState(isDemoMode);
 
-  // Waitlist intake modal — 2026-05-28 evening. Replaces the mailto button
-  // with a real form that POSTs to n8n workflow 29. Per Darrell's direction
-  // and the Marketing-Surfaces-Follow-Pipeline-Readiness principle: capture
-  // interest now even though we're not yet activating; the Governor decides
-  // when to engage based on opportunities + capacity.
+  // Waitlist intake modal — 2026-05-28 evening, vacation-mode pivot.
+  // Originally pointed at n8n workflow 29 on the NAS, but that path requires
+  // a bind mount we can't add before Darrell leaves for Hawaii. Switched to
+  // formsubmit.co — they email darrellpoe06@gmail.com on every signup, zero
+  // NAS dependency, works from anywhere. First time anyone signs up Darrell
+  // will get a "confirm subscription" email from formsubmit; one click and
+  // every subsequent signup flows to his Gmail inbox. Post-vacation we move
+  // back to n8n once the bind mount + bearer auth land. Per Darrell:
+  // "this is a once in a lifetime opportunity I might meet the person who
+  // makes a good fit for our services. I want to prove our MVP."
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   const [waitlistForm, setWaitlistForm] = useState({ name: '', email: '', phone: '', interest: '', notes: '' });
   const [waitlistState, setWaitlistState] = useState({ submitting: false, success: false, error: null, id: null });
@@ -1412,27 +1417,38 @@ export default function PoeFinancialSystem() {
       return;
     }
     setWaitlistState({ submitting: true, success: false, error: null, id: null });
-    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
-    if (!base) {
-      setWaitlistState({ submitting: false, success: false, error: 'Signup is temporarily offline — please email darrellpoe06@gmail.com directly. We apologize.', id: null });
-      return;
-    }
+    // Client-side id for the user-facing confirmation. formsubmit doesn't
+    // return one of its own, but the user expects to see a confirmation ref.
+    const localId = 'wl-' + new Date().toISOString().replace(/[:.]/g, '-') + '-' + Math.floor(Math.random() * 10000);
     try {
-      const url = `${base.replace(/\/+$/, '')}/webhook/waitlist`;
-      const r = await fetch(url, {
+      const r = await fetch('https://formsubmit.co/ajax/darrellpoe06@gmail.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ ...waitlistForm, source: 'poetech.us · picker' })
+        body: JSON.stringify({
+          _subject: 'PoeTech waitlist · new signup',
+          _captcha: 'false',
+          _template: 'table',
+          confirmation_id: localId,
+          name: waitlistForm.name || '(no name)',
+          email: waitlistForm.email,
+          phone: waitlistForm.phone || '(none)',
+          interest: waitlistForm.interest || '(not specified)',
+          notes: waitlistForm.notes || '(none)',
+          source: 'poetech.us · picker',
+          captured_at: new Date().toISOString(),
+        })
       });
       const json = await r.json().catch(() => ({}));
-      if (!r.ok || json.ok === false) {
-        setWaitlistState({ submitting: false, success: false, error: json.error || `Submission failed (HTTP ${r.status}). Please try again.`, id: null });
+      // formsubmit returns { success: 'true'|'false' OR true|false, message }.
+      // Treat anything non-2xx OR success === 'false' as failure.
+      const succeeded = r.ok && json.success !== 'false' && json.success !== false;
+      if (!succeeded) {
+        setWaitlistState({ submitting: false, success: false, error: (json.message || `Submission failed (HTTP ${r.status}). Please try again or email darrellpoe06@gmail.com.`), id: null });
         return;
       }
-      setWaitlistState({ submitting: false, success: true, error: null, id: json.id || null });
+      setWaitlistState({ submitting: false, success: true, error: null, id: localId });
     } catch (e) {
-      setWaitlistState({ submitting: false, success: false, error: `Could not reach the signup endpoint: ${e.message}`, id: null });
+      setWaitlistState({ submitting: false, success: false, error: `Could not reach the signup endpoint: ${e.message}. Please email darrellpoe06@gmail.com directly.`, id: null });
     }
   };
 
