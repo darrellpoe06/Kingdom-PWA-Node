@@ -1398,6 +1398,44 @@ export default function PoeFinancialSystem() {
   // top instead, which stays put until they close the tab.
   const [demoWelcomeOpen, setDemoWelcomeOpen] = useState(isDemoMode);
 
+  // Waitlist intake modal — 2026-05-28 evening. Replaces the mailto button
+  // with a real form that POSTs to n8n workflow 29. Per Darrell's direction
+  // and the Marketing-Surfaces-Follow-Pipeline-Readiness principle: capture
+  // interest now even though we're not yet activating; the Governor decides
+  // when to engage based on opportunities + capacity.
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [waitlistForm, setWaitlistForm] = useState({ name: '', email: '', phone: '', interest: '', notes: '' });
+  const [waitlistState, setWaitlistState] = useState({ submitting: false, success: false, error: null, id: null });
+  const submitWaitlist = async () => {
+    if (!waitlistForm.email || !waitlistForm.email.includes('@')) {
+      setWaitlistState({ submitting: false, success: false, error: 'A valid email is required so we can reach you.', id: null });
+      return;
+    }
+    setWaitlistState({ submitting: true, success: false, error: null, id: null });
+    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    if (!base) {
+      setWaitlistState({ submitting: false, success: false, error: 'Signup is temporarily offline — please email darrellpoe06@gmail.com directly. We apologize.', id: null });
+      return;
+    }
+    try {
+      const url = `${base.replace(/\/+$/, '')}/webhook/waitlist`;
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify({ ...waitlistForm, source: 'poetech.us · picker' })
+      });
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok || json.ok === false) {
+        setWaitlistState({ submitting: false, success: false, error: json.error || `Submission failed (HTTP ${r.status}). Please try again.`, id: null });
+        return;
+      }
+      setWaitlistState({ submitting: false, success: true, error: null, id: json.id || null });
+    } catch (e) {
+      setWaitlistState({ submitting: false, success: false, error: `Could not reach the signup endpoint: ${e.message}`, id: null });
+    }
+  };
+
   // Phase 2B.2 (2026-05-28) — top-level fetch of all ingested finance data
   // from n8n workflow 18. Lifted up from BooksTransactions + BooksAccounts
   // so the whole app shares one feed: Tx tab, Accounts tab, Big Picture
@@ -2299,7 +2337,7 @@ html{scroll-padding-bottom:280px}
                   entities, real accounts, real balances) until Multi-user
                   Layer B PIN auth ships. Replacing with a waitlist surface
                   that captures interest without exposing data. */}
-              <a href="mailto:darrellpoe06@gmail.com?subject=PoeTech%20Family%20OS%20-%20early%20access%20interest&body=Hi%20Darrell%2C%20I%27d%20like%20early%20access%20to%20PoeTech%20Family%20OS.%20" className="flex-1 bg-[#1A1815] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Sign up for early access</a>
+              <button type="button" onClick={() => { setWaitlistOpen(true); setWaitlistState({ submitting: false, success: false, error: null, id: null }); }} className="flex-1 bg-[#1A1815] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Sign up for early access</button>
               <a href="/?demo=family-of-4" onClick={markLandingSeen} className="flex-1 border border-[#1A1815] text-[#1A1815] py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">See the family sample →</a>
             </div>
           </div>
@@ -2335,6 +2373,77 @@ html{scroll-padding-bottom:280px}
         </div>
         );
       })()}
+
+      {/* Waitlist signup modal — opens from the "Sign up for early access"
+          button in the picker. POSTs to n8n workflow 29 which writes to
+          /data/waitlist/ and pings ntfy. Per BUSINESS-PROCESS-CONNECTIONS:
+          this isn't a form, it's the wired connection between marketing
+          surface (picker) and intake pipeline (n8n + ntfy + Governor). */}
+      {waitlistOpen && (
+        <div role="dialog" aria-modal="true" aria-labelledby="waitlist-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8 my-8">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Early access</div>
+            {!waitlistState.success ? (
+              <>
+                <h2 id="waitlist-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Tell us how to reach you when this opens up.</h2>
+                <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>No promises on a date — we engage based on opportunities + capacity. Your spot is held in order received. You can tell us as much or as little as you want.</p>
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="wl-name" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Your name</label>
+                    <input id="wl-name" type="text" autoComplete="name" value={waitlistForm.name} onChange={e => setWaitlistForm({ ...waitlistForm, name: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="First + last (or whatever feels right)" />
+                  </div>
+                  <div>
+                    <label htmlFor="wl-email" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Email <span className="text-[#B85838]">*</span></label>
+                    <input id="wl-email" type="email" autoComplete="email" required value={waitlistForm.email} onChange={e => setWaitlistForm({ ...waitlistForm, email: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="you@email.com" />
+                  </div>
+                  <div>
+                    <label htmlFor="wl-phone" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Phone (optional)</label>
+                    <input id="wl-phone" type="tel" autoComplete="tel" value={waitlistForm.phone} onChange={e => setWaitlistForm({ ...waitlistForm, phone: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="(217) 555-0100" />
+                  </div>
+                  <div>
+                    <label htmlFor="wl-interest" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Which fits best?</label>
+                    <select id="wl-interest" value={waitlistForm.interest} onChange={e => setWaitlistForm({ ...waitlistForm, interest: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]">
+                      <option value="">(pick one)</option>
+                      <option value="family">My family</option>
+                      <option value="co-parents">Separated co-parents</option>
+                      <option value="solo-practice">Solo practice (therapist / lawyer / consultant)</option>
+                      <option value="landlord">Landlord</option>
+                      <option value="church">Church or ministry</option>
+                      <option value="community">Community / school / co-op</option>
+                      <option value="business">Business owner</option>
+                      <option value="other">Other / not sure yet</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="wl-notes" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Anything you want us to know (optional)</label>
+                    <textarea id="wl-notes" rows="3" value={waitlistForm.notes} onChange={e => setWaitlistForm({ ...waitlistForm, notes: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="What problem are you hoping this solves? When could you use it?" />
+                  </div>
+                </div>
+                {waitlistState.error && (
+                  <div className="mt-3 p-3 bg-[#DC2626]/10 border border-[#DC2626] text-xs text-[#DC2626]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {waitlistState.error}
+                  </div>
+                )}
+                <div className="flex gap-2 mt-5 flex-wrap">
+                  <button type="button" disabled={waitlistState.submitting} onClick={submitWaitlist} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">{waitlistState.submitting ? 'Adding you…' : 'Add me to the waitlist'}</button>
+                  <button type="button" disabled={waitlistState.submitting} onClick={() => setWaitlistOpen(false)} className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
+                </div>
+                <p className="text-[10px] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Your info goes to a private inbox we run on our own infrastructure. No third-party trackers. No newsletter. Just a real human reaching out when there's a fit.</p>
+              </>
+            ) : (
+              <>
+                <h2 id="waitlist-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>You're on the list.</h2>
+                <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Thanks, {waitlistForm.name || 'friend'}. We received your interest at {waitlistForm.email}. When opportunities + capacity line up with your scenario, a real human reaches out — usually within a couple weeks, sometimes longer. No spam in the meantime.</p>
+                <p className="text-sm text-[#5A5751] mb-5" style={{ fontFamily: '"Fraunces", serif' }}>Confirmation ID: <span className="font-mono text-[10px]">{waitlistState.id || '(saved)'}</span>. If you change your mind or want to update what you told us, reply to the email we send and we'll handle it.</p>
+                <div className="flex gap-2 flex-wrap">
+                  <button type="button" onClick={() => { setWaitlistOpen(false); setWaitlistForm({ name: '', email: '', phone: '', interest: '', notes: '' }); }} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Close</button>
+                  <a href="/?demo=family-of-4" onClick={() => { setWaitlistOpen(false); markLandingSeen(); }} className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">See a sample while you wait</a>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Demo banner — thin strip across the top whenever in demo mode (not
           picker). Stays visible the whole session. CTAs: switch persona, see
