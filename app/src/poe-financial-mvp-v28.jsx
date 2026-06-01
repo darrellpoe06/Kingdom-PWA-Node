@@ -1452,6 +1452,177 @@ export default function PoeFinancialSystem() {
     }
   };
 
+  // Family Suggest button — 2026-05-29. Floating button visible on every
+  // screen. Opens a small modal where any family member can drop feedback
+  // (bug / feature / copy edit / question / strategic). POSTs to n8n
+  // workflow 30 (/webhook/family-feedback) which writes to
+  // /data/finance-events/family-feedback/ and pushes ntfy. Foundation
+  // Agent's 7am cron (workflow 31, queued) summarizes for the morning
+  // digest. Per BUSINESS-PROCESS-CONNECTIONS Family-Voice-Is-The-Connection
+  // extension: family voice is wired within 24 hours, every time.
+  //
+  // The sender is read from the current profile in localStorage. Falls
+  // back to 'unknown' if no profile is set (demo mode visitors).
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestForm, setSuggestForm] = useState({ type: '', message: '' });
+  const [suggestState, setSuggestState] = useState({ submitting: false, success: false, error: null, id: null });
+  const submitSuggest = async () => {
+    if (!suggestForm.message || suggestForm.message.trim().length < 3) {
+      setSuggestState({ submitting: false, success: false, error: 'Tell us what you noticed - a sentence or two is plenty.', id: null });
+      return;
+    }
+    setSuggestState({ submitting: true, success: false, error: null, id: null });
+    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    if (!base) {
+      setSuggestState({ submitting: false, success: false, error: 'Feedback channel is temporarily offline. Please try again later or email darrellpoe06@gmail.com.', id: null });
+      return;
+    }
+    let senderHandle = 'unknown';
+    try {
+      const prof = (typeof window !== 'undefined' && window.localStorage)
+        ? window.localStorage.getItem('poe-current-profile')
+        : null;
+      if (prof === 'darrell') senderHandle = 'dpoe';
+      else if (prof === 'christina') senderHandle = 'cpoe';
+      else if (prof === 'christiana') senderHandle = 'christiana';
+      else if (prof === 'christian') senderHandle = 'christian'; // twin son, 10
+      else if (prof === 'christyn') senderHandle = 'christyn';   // twin daughter, 10
+      else if (prof === 'family') senderHandle = 'dpoe';
+    } catch (_) { /* localStorage blocked or unavailable */ }
+    const screenContext = {
+      path: (typeof window !== 'undefined' && window.location) ? window.location.pathname + window.location.search : '/',
+      tab: (typeof activeTab === 'string') ? activeTab : (typeof tab === 'string' ? tab : null),
+      persona: (typeof demoPersona === 'string') ? demoPersona : null,
+      is_demo: typeof isDemoMode === 'boolean' ? isDemoMode : null
+    };
+    try {
+      const url = `${base.replace(/\/+$/, '')}/webhook/family-feedback`;
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify({
+          sender: senderHandle,
+          type: suggestForm.type || 'other',
+          message: suggestForm.message.trim(),
+          screen_context: screenContext,
+          user_agent: (typeof navigator !== 'undefined') ? navigator.userAgent : '',
+          source: 'poetech.us'
+        })
+      });
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok || json.ok === false) {
+        setSuggestState({ submitting: false, success: false, error: json.error || `Submission failed (HTTP ${r.status}). Please try again.`, id: null });
+        return;
+      }
+      setSuggestState({ submitting: false, success: true, error: null, id: json.id || null });
+      // Auto-close success state after 3s so the floating button doesn't
+      // stay obtrusive after a successful submission.
+      setTimeout(() => {
+        setSuggestOpen(false);
+        setSuggestForm({ type: '', message: '' });
+        setSuggestState({ submitting: false, success: false, error: null, id: null });
+      }, 3000);
+    } catch (e) {
+      setSuggestState({ submitting: false, success: false, error: `Could not reach the feedback endpoint: ${e.message}.`, id: null });
+    }
+  };
+
+  // Data-dump release (Layers 1-3) — 2026-05-29. The five-layer spec's
+  // user-facing entry. Drop a bank file, see your money in our lens, see
+  // your stewardship skill profile, see matched services. Session-only;
+  // nothing persists. Per data-dump-to-matched-services session note.
+  // Wires to workflows 33 (data-upload) → 34 (skill-analytics) → 35
+  // (matched-services). All sovereign on NAS via Ollama 14b.
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadStage, setUploadStage] = useState('idle'); // idle|parsing|parsed|analyzing|profile|matching|matched|error
+  const [uploadResult, setUploadResult] = useState({ transactions: [], summary: null, format: '', profile: null, stats: null, matches: [], error: null });
+  const resetUpload = () => {
+    setUploadStage('idle');
+    setUploadResult({ transactions: [], summary: null, format: '', profile: null, stats: null, matches: [], error: null });
+  };
+  const handleUploadFile = async (file) => {
+    if (!file) return;
+    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    if (!base) {
+      setUploadStage('error');
+      setUploadResult(prev => ({ ...prev, error: 'Upload endpoint not configured. Set VITE_N8N_WEBHOOK_BASE.' }));
+      return;
+    }
+    setUploadStage('parsing');
+    setUploadResult(prev => ({ ...prev, error: null }));
+    try {
+      const text = await file.text();
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const format = (ext === 'qfx' || ext === 'ofx' || ext === 'csv') ? ext : 'auto';
+      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/data-upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify({ format, content: text, filename: file.name })
+      });
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok || json.ok === false) {
+        setUploadStage('error');
+        setUploadResult(prev => ({ ...prev, error: json.error || `Parse failed (HTTP ${r.status})` }));
+        return;
+      }
+      setUploadStage('parsed');
+      setUploadResult(prev => ({ ...prev, transactions: json.transactions || [], summary: json.summary || null, format: json.format_detected || format }));
+    } catch (e) {
+      setUploadStage('error');
+      setUploadResult(prev => ({ ...prev, error: `Could not read file: ${e.message}` }));
+    }
+  };
+  const runSkillAnalytics = async () => {
+    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    if (!base) return;
+    setUploadStage('analyzing');
+    try {
+      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/skill-analytics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify({ transactions: uploadResult.transactions })
+      });
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok || json.ok === false) {
+        setUploadStage('error');
+        setUploadResult(prev => ({ ...prev, error: json.error || `Analytics failed (HTTP ${r.status})` }));
+        return;
+      }
+      setUploadStage('profile');
+      setUploadResult(prev => ({ ...prev, profile: { diagnostic_summary: json.diagnostic_summary, strengths: json.strengths, gaps_to_consider: json.gaps_to_consider, profile: json.profile }, stats: json.stats }));
+    } catch (e) {
+      setUploadStage('error');
+      setUploadResult(prev => ({ ...prev, error: `Analytics call failed: ${e.message}` }));
+    }
+  };
+  const runMatchedServices = async () => {
+    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    if (!base) return;
+    setUploadStage('matching');
+    try {
+      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/matched-services`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify({ profile: (uploadResult.profile && uploadResult.profile.profile) || {}, transactions: uploadResult.transactions, stats: uploadResult.stats || {} })
+      });
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok || json.ok === false) {
+        setUploadStage('error');
+        setUploadResult(prev => ({ ...prev, error: json.error || `Matching failed (HTTP ${r.status})` }));
+        return;
+      }
+      setUploadStage('matched');
+      setUploadResult(prev => ({ ...prev, matches: json.matches || [] }));
+    } catch (e) {
+      setUploadStage('error');
+      setUploadResult(prev => ({ ...prev, error: `Matching call failed: ${e.message}` }));
+    }
+  };
+
   // Phase 2B.2 (2026-05-28) — top-level fetch of all ingested finance data
   // from n8n workflow 18. Lifted up from BooksTransactions + BooksAccounts
   // so the whole app shares one feed: Tx tab, Accounts tab, Big Picture
@@ -2347,6 +2518,12 @@ html{scroll-padding-bottom:280px}
             <div className="bg-white border border-[#E8E4DC] p-3 text-xs text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
               <strong className="text-[#1A1815]">What's coming as the infrastructure ships:</strong> anonymous in-app access to specialists (therapy, legal, property, financial) so a person can read, listen, and message on their terms before revealing their identity. Multi-household co-auth so separated co-parents share one ledger of truth across two phones. IoT integration so smart-home spend flows in automatically. Modules layer on the same foundation as they ship — never another app to learn, just the same family OS getting wider.
             </div>
+            {/* Drop your bank file - 2026-05-29 data-dump release Layer 1.
+                Most powerful invitation on the landing: their own money in
+                our lens, no signup, no commitment. Per data-dump-to-matched-
+                services spec session note. */}
+            <button type="button" onClick={() => { setUploadOpen(true); resetUpload(); }} className="w-full bg-[#B85838] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] mt-4 mb-2">Drop your bank file → see your money here</button>
+            <p className="text-[10px] text-[#5A5751] italic text-center mb-3" style={{ fontFamily: '"Fraunces", serif' }}>OFX, QFX, or CSV. Reads in your browser. Never saved. Gone when you close the tab.</p>
             <div className="flex gap-2 mt-4 flex-wrap">
               {/* "Start your own setup" was removed 2026-05-28 evening — the
                   real app behind it would load Darrell's SEED_DATA (real
@@ -2455,6 +2632,208 @@ html{scroll-padding-bottom:280px}
                   <button type="button" onClick={() => { setWaitlistOpen(false); setWaitlistForm({ name: '', email: '', phone: '', interest: '', notes: '' }); }} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Close</button>
                   <a href="/?demo=family-of-4" onClick={() => { setWaitlistOpen(false); markLandingSeen(); }} className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">See a sample while you wait</a>
                 </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Family Suggest button — 2026-05-29. Floating lower-right on every
+          screen. Always visible for family members to drop feedback as they
+          notice things. POSTs to n8n workflow 30 (/webhook/family-feedback).
+          Per BUSINESS-PROCESS-CONNECTIONS Family-Voice-Is-The-Connection
+          extension. Hidden during the picker landing to avoid cluttering
+          the first impression. */}
+      {!isFirstTimeLanding && !suggestOpen && (
+        <button
+          type="button"
+          onClick={() => setSuggestOpen(true)}
+          aria-label="Send feedback or suggestion"
+          className="fixed bottom-4 right-4 z-40 bg-[#B85838] hover:bg-[#1A1815] text-white text-xs uppercase tracking-wider font-semibold px-3 py-2 shadow-lg focus:outline focus:outline-2 focus:outline-[#1A1815]"
+          style={{ fontFamily: '"Fraunces", serif' }}
+        >
+          Suggest
+        </button>
+      )}
+
+      {suggestOpen && (
+        <div role="dialog" aria-modal="true" aria-labelledby="suggest-h" className="fixed inset-0 z-50 bg-[#1A1815]/90 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-5 sm:p-6">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Your voice</div>
+            {!suggestState.success ? (
+              <>
+                <h2 id="suggest-h" className="text-xl sm:text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>What do you see?</h2>
+                <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Bug, idea, copy edit, question - all welcome. Family voices ship within a day.</p>
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="sg-type" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Kind (optional)</label>
+                    <select id="sg-type" value={suggestForm.type} onChange={e => setSuggestForm({ ...suggestForm, type: e.target.value })} className="w-full p-2 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]">
+                      <option value="">(pick one or leave blank)</option>
+                      <option value="bug">Bug - something is broken</option>
+                      <option value="feature">Feature - I wish it did X</option>
+                      <option value="copy">Copy edit - the words read off</option>
+                      <option value="question">Question - I don't understand X</option>
+                      <option value="strategic">Strategic - bigger direction note</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="sg-message" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">What you noticed <span className="text-[#B85838]">*</span></label>
+                    <textarea id="sg-message" rows="4" value={suggestForm.message} onChange={e => setSuggestForm({ ...suggestForm, message: e.target.value })} className="w-full p-2 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="A sentence or two is plenty. Specifics help us ship faster." autoFocus />
+                  </div>
+                </div>
+                {suggestState.error && (
+                  <div className="mt-3 p-2 bg-[#DC2626]/10 border border-[#DC2626] text-xs text-[#DC2626]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {suggestState.error}
+                  </div>
+                )}
+                <div className="flex gap-2 mt-4 flex-wrap">
+                  <button type="button" disabled={suggestState.submitting} onClick={submitSuggest} className="flex-1 bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">{suggestState.submitting ? 'Sending…' : 'Send to the team'}</button>
+                  <button type="button" disabled={suggestState.submitting} onClick={() => { setSuggestOpen(false); setSuggestState({ submitting: false, success: false, error: null, id: null }); }} className="px-3 py-2 border border-[#1A1815] text-[#1A1815] text-xs uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
+                </div>
+                <p className="text-[9px] text-[#5A5751] italic text-center mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Goes to a private inbox on our own infrastructure. We see it within minutes.</p>
+              </>
+            ) : (
+              <>
+                <h2 id="suggest-h" className="text-xl sm:text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>We hear you.</h2>
+                <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Your note is captured. The team reviews family voices first - usually within a day.</p>
+                <p className="text-[10px] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Confirmation ID: <span className="font-mono">{suggestState.id || '(saved)'}</span></p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Data-dump release modal — 2026-05-29. Layer 1+2+3 sequenced as a
+          multi-step modal. Upload → parsed view → analytics → profile →
+          matched services. Session-only state per the spec. */}
+      {uploadOpen && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-[#1A1815] flex items-start sm:items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-2xl w-full p-5 sm:p-6 my-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Your money · Layer {uploadStage === 'idle' || uploadStage === 'parsing' || uploadStage === 'parsed' ? '1' : (uploadStage === 'analyzing' || uploadStage === 'profile' ? '2' : '3')} of 3</div>
+              <button type="button" onClick={() => setUploadOpen(false)} aria-label="Close" className="text-[#5A5751] hover:text-[#1A1815] text-lg">×</button>
+            </div>
+            {uploadStage === 'idle' && (
+              <>
+                <h2 className="text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Drop your bank file.</h2>
+                <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>OFX, QFX, or CSV from your bank's export. We read it in your browser. Nothing saves. Gone when you close this tab.</p>
+                <label className="block w-full border-2 border-dashed border-[#1A1815] p-8 text-center cursor-pointer hover:bg-white" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <input type="file" accept=".ofx,.qfx,.csv,.OFX,.QFX,.CSV" className="hidden" onChange={e => { const f = e.target.files && e.target.files[0]; if (f) handleUploadFile(f); }} />
+                  <div className="text-sm text-[#1A1815] font-semibold uppercase tracking-wider">Click to choose a file</div>
+                  <div className="text-xs text-[#5A5751] mt-1">or drag and drop coming in next ship</div>
+                </label>
+              </>
+            )}
+            {uploadStage === 'parsing' && (
+              <div className="text-center py-8">
+                <h2 className="text-xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Reading your file…</h2>
+                <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>This takes a second or two.</p>
+              </div>
+            )}
+            {uploadStage === 'parsed' && uploadResult.summary && (
+              <>
+                <h2 className="text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Here's what we see in your money.</h2>
+                <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{uploadResult.summary.transaction_count} transactions · {uploadResult.summary.date_range} · {uploadResult.format.toUpperCase()} format</p>
+                <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+                  <div className="bg-white border border-[#E8E4DC] p-2">
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">Income</div>
+                    <div className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>${(uploadResult.summary.credits_total || 0).toFixed(0)}</div>
+                  </div>
+                  <div className="bg-white border border-[#E8E4DC] p-2">
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">Spend</div>
+                    <div className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>${Math.abs(uploadResult.summary.debits_total || 0).toFixed(0)}</div>
+                  </div>
+                  <div className="bg-white border border-[#E8E4DC] p-2">
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">Net</div>
+                    <div className={`text-base font-semibold ${(uploadResult.summary.net || 0) >= 0 ? 'text-[#1A1815]' : 'text-[#B85838]'}`} style={{ fontFamily: '"Fraunces", serif' }}>${(uploadResult.summary.net || 0).toFixed(0)}</div>
+                  </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto border border-[#E8E4DC] bg-white mb-3">
+                  <table className="w-full text-xs">
+                    <thead className="bg-[#FAF8F4] sticky top-0">
+                      <tr><th className="text-left p-2">Date</th><th className="text-left p-2">Description</th><th className="text-right p-2">Amount</th></tr>
+                    </thead>
+                    <tbody>
+                      {uploadResult.transactions.slice(0, 50).map((t, i) => (
+                        <tr key={i} className="border-t border-[#E8E4DC]">
+                          <td className="p-2 text-[#5A5751]">{t.date}</td>
+                          <td className="p-2 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{(t.description || '').slice(0, 60)}</td>
+                          <td className={`p-2 text-right font-mono ${(t.amount || 0) < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`}>{(t.amount || 0).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {uploadResult.transactions.length > 50 && (
+                    <div className="p-2 text-center text-[10px] text-[#5A5751] italic">Showing first 50 of {uploadResult.transactions.length} transactions.</div>
+                  )}
+                </div>
+                <button type="button" onClick={runSkillAnalytics} className="w-full bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">What does this say about your stewardship? →</button>
+              </>
+            )}
+            {uploadStage === 'analyzing' && (
+              <div className="text-center py-8">
+                <h2 className="text-xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Reading your stewardship pattern…</h2>
+                <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>This runs on our own AI on our own infrastructure. ~30 seconds.</p>
+              </div>
+            )}
+            {uploadStage === 'profile' && uploadResult.profile && (
+              <>
+                <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Your stewardship profile.</h2>
+                <p className="text-sm text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{uploadResult.profile.diagnostic_summary}</p>
+                {Array.isArray(uploadResult.profile.strengths) && uploadResult.profile.strengths.length > 0 && (
+                  <div className="mb-3">
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Strengths</div>
+                    <ul className="text-sm text-[#1A1815] space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {uploadResult.profile.strengths.map((s, i) => <li key={i}>· {s}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {Array.isArray(uploadResult.profile.gaps_to_consider) && uploadResult.profile.gaps_to_consider.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Worth considering</div>
+                    <ul className="text-sm text-[#1A1815] space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {uploadResult.profile.gaps_to_consider.map((g, i) => <li key={i}>· {g}</li>)}
+                    </ul>
+                  </div>
+                )}
+                <button type="button" onClick={runMatchedServices} className="w-full bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Which services would actually help you most? →</button>
+              </>
+            )}
+            {uploadStage === 'matching' && (
+              <div className="text-center py-8">
+                <h2 className="text-xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Matching services to your pattern…</h2>
+              </div>
+            )}
+            {uploadStage === 'matched' && (
+              <>
+                <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Services that fit your pattern.</h2>
+                {uploadResult.matches.length === 0 ? (
+                  <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No close matches yet from our current catalog. Get on the general waitlist and we'll reach out when something fits.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {uploadResult.matches.map((m, i) => (
+                      <div key={i} className="border border-[#E8E4DC] bg-white p-3">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{m.service.name}</div>
+                          <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold whitespace-nowrap">fit {m.fit_score}/100</div>
+                        </div>
+                        <div className="text-xs text-[#5A5751] mb-2 italic" style={{ fontFamily: '"Fraunces", serif' }}>{m.fit_reason}</div>
+                        <div className="text-xs text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>For:</strong> {m.service.audience}</div>
+                        <div className="text-xs text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>Timeline:</strong> {m.service.timeline}</div>
+                        <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{m.service.promise}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button type="button" onClick={() => { setUploadOpen(false); setWaitlistOpen(true); }} className="w-full mt-4 bg-[#B85838] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]">Get on a waitlist →</button>
+              </>
+            )}
+            {uploadStage === 'error' && (
+              <>
+                <h2 className="text-xl mb-2 text-[#B85838]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Something went wrong.</h2>
+                <p className="text-sm text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{uploadResult.error}</p>
+                <button type="button" onClick={resetUpload} className="w-full bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838]">Try again</button>
               </>
             )}
           </div>

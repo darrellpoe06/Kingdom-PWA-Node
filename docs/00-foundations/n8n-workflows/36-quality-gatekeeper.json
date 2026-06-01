@@ -1,0 +1,76 @@
+{
+  "name": "36 · Quality Gatekeeper (Role 10 · runs foundation checks on PR diff → pass/fail with rationale)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quality-gatekeeper",
+        "responseMode": "responseNode",
+        "options": {"rawBody": false}
+      },
+      "id": "9f7e2a10-36a0-4360-8360-aaaaaaaaaa01",
+      "name": "Webhook (gatekeeper)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320],
+      "webhookId": "quality-gatekeeper"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Quality Gatekeeper — Role 10 per AI-TEAM-DISTRIBUTION. Pre-merge gate\n// for any PR that touches a visible surface (PWA component, public\n// endpoint, marketing copy, demo data). Runs the binding-foundation\n// checks via Ollama 14b and returns a structured pass/fail with\n// rationale.\n//\n// Per SYSTEM-SKILLS-INVENTORY skill F.8 Testing Discipline.\n// Per BUSINESS-PROCESS-CONNECTIONS five-question test for visible\n// surfaces. Per typographic theology rules in CLAUDE.md.\n//\n// POST body shape:\n//   { pr_number?, pr_title, diff_text, files_changed: [{path, ...}],\n//     touches_visible_surface?: boolean }\n//\n// Returns:\n//   { ok, pass: boolean, checks: { foundation_screen, typographic_theology,\n//     excellence_standard, business_process_connections, scripture_citation },\n//     rationale, must_fix?: [...], suggestions?: [...] }\n\nconst OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://ollama:11434';\nconst OLLAMA_MODEL = process.env.OLLAMA_GATEKEEPER_MODEL || 'qwen2.5:14b-instruct-q4_K_M';\n\nconst input = $input.first().json || {};\nconst body = (input.body && typeof input.body === 'object') ? input.body : input;\n\nconst prTitle = (body.pr_title || '').toString();\nconst diffText = (body.diff_text || '').toString();\nconst filesChanged = Array.isArray(body.files_changed) ? body.files_changed : [];\nconst touchesVisible = body.touches_visible_surface === true || filesChanged.some(f => /\\.(jsx|tsx|html|md)$/i.test((f && f.path) || ''));\n\nif (!diffText) {\n  return [{ json: { ok: false, error: 'diff_text is required' } }];\n}\n\n// Deterministic checks first — these don't need an LLM.\nfunction checkTypographicTheology(text) {\n  // Per CLAUDE.md: lucifer/satan/devil/dragon/adversary/accuser/deceiver\n  // are NEVER capitalized. Yahweh/Jesus/Holy Spirit/Father/Son ALWAYS\n  // capitalized as proper names; pronouns (He/His/Him/Himself) capitalized\n  // when referring to God.\n  const violations = [];\n  // Adversary names that should never be capitalized at start of word.\n  const adversaryRe = /\\b(Lucifer|Satan|Devil|Dragon|Adversary|Accuser|Deceiver)\\b/g;\n  const advMatches = text.match(adversaryRe);\n  if (advMatches) violations.push('adversary names capitalized: ' + Array.from(new Set(advMatches)).join(', '));\n  // God-name lowercase violations (lowercase 'yahweh', 'jesus', 'holy spirit' in narrative text)\n  // Only flag in NEW content (added lines starting with +).\n  const addedLines = text.split('\\n').filter(l => l.startsWith('+') && !l.startsWith('+++'));\n  const addedText = addedLines.join('\\n');\n  const godLowerRe = /\\b(yahweh|jesus christ|holy spirit)\\b/g;\n  const godMatches = addedText.match(godLowerRe);\n  if (godMatches) violations.push('God-name not capitalized in added text: ' + Array.from(new Set(godMatches)).join(', '));\n  return { pass: violations.length === 0, violations };\n}\n\nconst typographicTheology = checkTypographicTheology(diffText);\n\n// Light foundation principle checks via Ollama 14b.\nconst prompt = `You are the Quality Gatekeeper for the PoeTech Family OS. You review PR diffs against the project's binding foundation principles before merge.\n\nPrinciples to check (these come from foundation docs - judge the diff against each):\n\n1. FOUNDATION-SCREEN — Does the change respect the project's foundation docs? Look for changes to demo data, marketing copy, public surfaces, or principle docs themselves.\n\n2. TYPOGRAPHIC-THEOLOGY — Yahweh/Jesus/Holy Spirit/Father/Son ALWAYS capitalized; lucifer/satan/devil/adversary/accuser/deceiver NEVER capitalized.\n\n3. EXCELLENCE-STANDARD — Religion AND relationship. Does new copy have backbone (scripture-grounded, structurally sound) AND warmth (meets reader where they are)? Cold legalism fails. Sentimental drift fails.\n\n4. BUSINESS-PROCESS-CONNECTIONS — For any new visible surface, does the diff demonstrate awareness of the five questions: invites / pipeline / governor / promise / timeline?\n\n5. SCRIPTURE-CITATION (only if scripture appears) — ESV primary, KJV secondary. Pattern: **ESV - Book Chapter:Verse:** *\"text\"*. No improvised translations.\n\nFor each principle, judge PASS / FAIL / NOT_APPLICABLE.\n\nReturn ONLY a JSON object with this exact shape:\n\n{\n  \"foundation_screen\": \"pass\" | \"fail\" | \"not_applicable\",\n  \"excellence_standard\": \"pass\" | \"fail\" | \"not_applicable\",\n  \"business_process_connections\": \"pass\" | \"fail\" | \"not_applicable\",\n  \"scripture_citation\": \"pass\" | \"fail\" | \"not_applicable\",\n  \"rationale\": \"2-3 sentences explaining the call. Specific. No filler.\",\n  \"must_fix\": [\"any specific items that must change before merge\"],\n  \"suggestions\": [\"any optional improvements\"]\n}\n\nPR title: ${prTitle}\nTouches visible surface: ${touchesVisible}\nFiles changed: ${filesChanged.map(f => (f && f.path) || '').join(', ')}\n\nDiff (truncated to first 8000 chars):\n${diffText.slice(0, 8000)}\n\nReturn ONLY the JSON. No preamble, no markdown.`;\n\nlet checks = null;\nlet rawResponse = '';\ntry {\n  const r = await fetch(OLLAMA_BASE + '/api/generate', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ model: OLLAMA_MODEL, prompt, stream: false, options: { temperature: 0.2, num_predict: 1200 } }),\n    signal: AbortSignal.timeout(180000)\n  });\n  const data = await r.json();\n  rawResponse = (data.response || '').trim();\n  const m = rawResponse.match(/\\{[\\s\\S]*\\}/);\n  if (m) { try { checks = JSON.parse(m[0]); } catch (_) {} }\n} catch (e) {\n  return [{ json: { ok: false, error: 'gatekeeper LLM call failed: ' + String(e), typographic_theology: typographicTheology } }];\n}\n\nif (!checks) {\n  return [{ json: { ok: false, error: 'could not parse gatekeeper output', raw: rawResponse.slice(0, 2000), typographic_theology: typographicTheology } }];\n}\n\n// Combine deterministic + LLM checks. Any 'fail' anywhere = overall fail.\nconst allChecks = {\n  foundation_screen: checks.foundation_screen || 'not_applicable',\n  typographic_theology: typographicTheology.pass ? 'pass' : 'fail',\n  excellence_standard: checks.excellence_standard || 'not_applicable',\n  business_process_connections: checks.business_process_connections || 'not_applicable',\n  scripture_citation: checks.scripture_citation || 'not_applicable'\n};\n\nconst anyFail = Object.values(allChecks).some(v => v === 'fail');\nconst rationale = checks.rationale || '';\nconst must_fix = Array.isArray(checks.must_fix) ? checks.must_fix.slice() : [];\nif (typographicTheology.violations.length) {\n  must_fix.push('Typographic theology: ' + typographicTheology.violations.join('; '));\n}\n\nreturn [{ json: { ok: true, pass: !anyFail, checks: allChecks, rationale, must_fix, suggestions: checks.suggestions || [] } }];"
+      },
+      "id": "9f7e2a10-36a0-4360-8360-aaaaaaaaaa02",
+      "name": "Run gatekeeper checks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Content-Type", "value": "application/json"},
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"},
+              {"name": "Cache-Control", "value": "no-store"}
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-36a0-4360-8360-aaaaaaaaaa03",
+      "name": "Respond with JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 320]
+    }
+  ],
+  "connections": {
+    "Webhook (gatekeeper)": {
+      "main": [[{"node": "Run gatekeeper checks", "type": "main", "index": 0}]]
+    },
+    "Run gatekeeper checks": {
+      "main": [[{"node": "Respond with JSON", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "ai-foundation"},
+    {"name": "quality-gatekeeper"},
+    {"name": "role-10"},
+    {"name": "sovereign-loop"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}

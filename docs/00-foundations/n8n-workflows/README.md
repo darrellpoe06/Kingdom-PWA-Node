@@ -118,6 +118,16 @@ Body:   {
 
 **DeepSeek-R1 chain-of-thought note:** the secondary model emits visible reasoning between `<think>...</think>` tags. Workflows that surface output to the user (notifications, app inserts) should strip the `<think>` block before delivery — a small n8n Code node with `text.replace(/<think>[\s\S]*?<\/think>/g, '').trim()` handles it.
 
+### Re-pulling the secondary model (DeepSeek R1 Distill 8B)
+
+The initial pull of `deepseek-r1:8b-llama-distill-q4_K_M` during the 2026-05-26 n8n install was interrupted by an n8n container restart. A paste-ready re-pull script lives at `infra/n8n/scripts/pull-deepseek-r1.sh` (bash, runs inside the Synology) with a PowerShell wrapper at `infra/n8n/scripts/pull-deepseek-r1.ps1` (Darrell runs it from his laptop, the wrapper pipes the bash script over SSH and prints the result).
+
+What the script does in order: pre-flight that the Ollama container is up; check if the model is already present and skip if so; pull with a 30-minute `timeout` so a hang can't silently consume a session; verify the model appears in `ollama list`; run a smoke generation that strips the `<think>` block and confirms a usable reply. Any failure exits non-zero with a specific message. Re-runs are idempotent.
+
+Run with: `.\infra\n8n\scripts\pull-deepseek-r1.ps1` from repo root. Defaults work for the current Synology (`dpoe@192.168.1.26`, container name `ollama`). Override with `-SynologyHost`, `-PullTimeoutSec`, or `-OllamaContainer` as needed. If the pull hangs on a slow link, re-run with `-PullTimeoutSec 3600`.
+
+The Sovereignty-First binding (see `docs/00-foundations/SOVEREIGNTY-FIRST-INSTALL-PATTERN.md`) treats secondary-model availability as part of the autonomy gate for any workflow that needs chain-of-thought — without the secondary model, the workflow has to fall back to the primary model and lose accuracy. We close the gate first, then build on top.
+
 ## Cron schedule summary (America/Chicago)
 
 ```

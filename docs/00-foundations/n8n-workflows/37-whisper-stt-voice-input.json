@@ -1,0 +1,76 @@
+{
+  "name": "37 · Whisper STT voice input (voice memo → transcript → routes to @nas inbox)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "voice-thought",
+        "responseMode": "responseNode",
+        "options": {"rawBody": false}
+      },
+      "id": "9f7e2a10-37a0-4370-8370-aaaaaaaaaa01",
+      "name": "Webhook (voice thought)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320],
+      "webhookId": "voice-thought"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Whisper STT voice input — accepts a voice memo upload, transcribes\n// via Ollama-hosted Whisper (or external Whisper-compatible endpoint),\n// then writes the transcript to /data/chatin/ in the same shape as\n// workflow 08 captures from Synology Chat. Foundation Agent picks it up\n// on the next cron run as a regular @nas thought.\n//\n// Per AI-FOUNDATION-INTERNAL-OPERATIONS: voice in, text out, route\n// through existing pipeline. Browsers are for humans; this turns the\n// phone microphone into a sovereign capture surface.\n//\n// Per TLC firewall: voice memos may contain clinical content. The\n// Whisper instance MUST be local-hosted on NAS, never cloud. Failure\n// to reach local Whisper = capture saves the audio raw and surfaces a\n// ntfy alert; never falls back to cloud STT.\n//\n// POST body shape:\n//   { sender, audio_base64, mime_type?, source? }\n// audio_base64 is the recorded audio file (typical: webm or wav).\n//\n// Returns:\n//   { ok, id, transcript, captured_at }\n\nconst fs = require('fs');\nconst path = require('path');\n\nconst CHATIN_DIR = '/data/chatin';\nconst WHISPER_URL = process.env.WHISPER_BASE_URL || 'http://whisper:9000/asr';\nconst NTFY_BASE = process.env.NTFY_BASE || 'http://ntfy:80';\nconst NTFY_TOPIC = process.env.NTFY_VOICE_TOPIC || 'poetech-voice';\n\ntry { fs.mkdirSync(CHATIN_DIR, { recursive: true }); } catch (_) {}\n\nconst input = $input.first().json || {};\nconst body = (input.body && typeof input.body === 'object') ? input.body : input;\n\nconst sender = (body.sender || 'unknown').toString().trim().toLowerCase();\nconst audioB64 = (body.audio_base64 || '').toString();\nconst mimeType = (body.mime_type || 'audio/webm').toString();\nconst source = (body.source || 'voice-memo').toString();\n\nif (!audioB64 || audioB64.length < 100) {\n  return [{ json: { ok: false, error: 'audio_base64 is required (or audio too short)' } }];\n}\n\nconst audioBuf = Buffer.from(audioB64, 'base64');\nconst capturedAt = new Date().toISOString();\nconst id = 'v-' + capturedAt.replace(/[:.]/g, '-') + '-' + Math.floor(Math.random() * 10000);\n\n// Transcribe via local Whisper instance.\n// Whisper-ASR-Webservice (common Docker image) accepts multipart/form-data.\n// Local-only; never falls back to cloud.\nlet transcript = '';\nlet whisperOk = false;\ntry {\n  const formData = new FormData();\n  const blob = new Blob([audioBuf], { type: mimeType });\n  formData.append('audio_file', blob, 'voice.webm');\n  const r = await fetch(WHISPER_URL + '?task=transcribe&output=json', {\n    method: 'POST',\n    body: formData,\n    signal: AbortSignal.timeout(120000)\n  });\n  if (r.ok) {\n    const data = await r.json();\n    transcript = (data.text || '').trim();\n    whisperOk = transcript.length > 0;\n  }\n} catch (e) {\n  // Local Whisper unreachable. Per TLC firewall, do NOT fall back to cloud.\n  // Save the raw audio for later transcription and surface an alert.\n}\n\nif (!whisperOk) {\n  // Save raw audio to chatin so it's not lost. Filename signals it needs\n  // manual transcription.\n  const audioFn = path.join(CHATIN_DIR, id + '.audio.' + (mimeType.split('/')[1] || 'webm'));\n  try { fs.writeFileSync(audioFn, audioBuf); } catch (_) {}\n  try {\n    await fetch(NTFY_BASE + '/' + NTFY_TOPIC, {\n      method: 'POST',\n      headers: { 'Title': 'Voice capture - transcription pending', 'Priority': '3', 'Tags': 'microphone', 'Content-Type': 'text/plain' },\n      body: 'Voice memo from ' + sender + ' saved to ' + audioFn + '. Local Whisper unreachable; will retry on next attempt.',\n      signal: AbortSignal.timeout(5000)\n    });\n  } catch (_) {}\n  return [{ json: { ok: false, error: 'whisper unreachable; audio saved for later', id, audio_path: audioFn } }];\n}\n\n// Write transcript to /data/chatin/ in the same shape workflow 08 uses.\n// This lets Foundation Agent (workflow 27) pick it up on next cron as if\n// it were a regular @nas chat message.\nconst chatinFn = id + '__' + sender + '__voice.json';\nconst record = {\n  source: 'voice-memo',\n  captured_at: capturedAt,\n  sender,\n  channel: 'voice',\n  text: transcript,\n  raw_text: transcript,\n  file: chatinFn\n};\ntry { fs.writeFileSync(path.join(CHATIN_DIR, chatinFn), JSON.stringify(record, null, 2)); }\ncatch (e) { return [{ json: { ok: false, error: 'write failed: ' + String(e) } }]; }\n\nreturn [{ json: { ok: true, id, transcript, captured_at: capturedAt, message: 'Captured. Foundation Agent will process on next cron.' } }];"
+      },
+      "id": "9f7e2a10-37a0-4370-8370-aaaaaaaaaa02",
+      "name": "Transcribe + route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Content-Type", "value": "application/json"},
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"},
+              {"name": "Cache-Control", "value": "no-store"}
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-37a0-4370-8370-aaaaaaaaaa03",
+      "name": "Respond with JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 320]
+    }
+  ],
+  "connections": {
+    "Webhook (voice thought)": {
+      "main": [[{"node": "Transcribe + route", "type": "main", "index": 0}]]
+    },
+    "Transcribe + route": {
+      "main": [[{"node": "Respond with JSON", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "ai-foundation"},
+    {"name": "whisper"},
+    {"name": "voice"},
+    {"name": "sovereign-loop"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}

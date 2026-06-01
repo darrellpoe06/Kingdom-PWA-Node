@@ -127,3 +127,13 @@ Christina's notification rows only insert if her `user_id` is resolvable in `ins
 ## What this enables next
 
 Once the seed runs, every other Dispatch / Claude session in this window can read the live cycle board to know what's outstanding, what's done, what's waiting on Christina, and where the priority math lives — instead of reconstructing that state from chat scrollback. The app's own state becomes the source of truth for "what's on Darrell's plate today." That is the §12.5 loop closing on its own instance.
+
+---
+
+## Update 2026-05-26 — feedback is now actively ingested
+
+Workflow 06 (`docs/00-foundations/n8n-workflows/06-situational-analysis-and-mutation-cron.json`, design at `docs/00-foundations/SITUATIONAL-ANALYSIS-DESIGN.md`) treats the `feedback` table as a first-class input every 4 hours. Each new row is classified (bug, feature-request, process-improvement, priority-change, kudo, question, clinical-note) and routed: bugs become draft change_requests with `disposition='more-info-needed'`, feature-requests become next-cycle cycle_items, process-improvements append to the active report_run's learnings, priority-change suggestions go into the human-gated markdown output, kudos land in the new `ai_kudos` table, questions route to the right person (Christina for TLC/family-care, Darrell otherwise), clinical-notes stay encrypted on the TLC instance and never travel.
+
+Every action logs the source feedback row in `audit_log.note` for POE attribution — Darrell or Christina can always ask "why did the system act this way?" and get an answer that points back to a specific piece of feedback.
+
+For the eight seeded projects this means: the feedback any of Darrell or Christina drops in the app becomes part of the next cycle's input automatically, with non-punitive vocabulary (`acted` / `deferred-next-cycle` / `more-info-needed` — never `rejected` or `wontfix`). The dogfood loop closes on the system itself.

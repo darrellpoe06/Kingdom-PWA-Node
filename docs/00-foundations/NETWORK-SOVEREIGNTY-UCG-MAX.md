@@ -85,6 +85,83 @@ UCG-Max work is **deferred to post-vacation**. The Tailscale + Synology QuickCon
 
 Single exception worth considering NOW: **DNS-level malware blocking** is a 10-minute toggle in the UniFi controller. Protects every family device immediately. Low risk, high value, no other changes.
 
+## Camera infrastructure (added 2026-05-29 per Darrell)
+
+The home has multiple existing camera brands deployed for security + family awareness:
+
+- **Wyze cameras** — multiple units around the home (front yard area where Christyn plays basketball, others). Affordable, established, RTSP capability on some V3 firmware. Currently the primary camera fleet.
+- **Ring cameras** — at least one (doorbell or wired). AWS-cloud-tied by default; sovereignty story weaker than Wyze; works for the "front-door visitor awareness" use case.
+- **One additional brand (name TBD — Darrell to confirm)** — third camera fleet on the property. Pending identification.
+
+All three brands currently run on the flat home network (VLAN to be established at IoT VLAN 40 per the topology above). Each brand has its own cloud dependency, each has its own quirks.
+
+### The upgrade trajectory
+
+**Eventual target: Ubiquiti 4K AI cameras (hardwired).** Same vendor family as the UCG-Max. Benefits:
+
+- Hardwired PoE — no wireless dropouts, no battery management
+- 4K resolution — better for AI vision analysis (Christyn's basketball coaching, etc.)
+- Built-in AI features (person/vehicle/package detection without cloud roundtrip)
+- Native UniFi Protect integration — local storage on the UCG-Max or Synology, no cloud dependency
+- Eliminates Wyze/Ring/3rd-party clouds entirely — one ecosystem, one sovereign storage path
+- Better evidence quality for any security incidents
+
+**The transition strategy** (post-vacation, paced over months not days):
+
+1. **Phase 0 (now):** Inventory all existing cameras. Brand, model, location, current footage destination. Identify the unnamed third brand.
+2. **Phase 1:** Add all current cameras to VLAN 40 (IoT) when the VLAN ships. Walled off from family laptops + NAS internals; can write to a designated `/volume1/PoeTech/camera-footage/<brand>/<camera>/` share.
+3. **Phase 2:** For Wyze specifically, evaluate the RTSP-firmware path so footage flows to NAS in real time. Same for Ring if their API allows.
+4. **Phase 3:** First Ubiquiti AI camera purchased — typically a high-value angle (front door, driveway, basketball area). Wired in. Validates the workflow.
+5. **Phase 4:** Old cameras replaced one-by-one as each Ubiquiti unit ships. Old units retire (or get repurposed elsewhere — garage, shop, away-property).
+6. **Phase 5:** Single-vendor camera fleet. UniFi Protect manages everything. Backup to Synology continues.
+
+### Bridge layer (multi-brand period — months, not weeks)
+
+While multiple brands coexist, a bridge workflow normalizes their footage into a single shape the AI pipeline can consume:
+
+**New workflow proposal (post-vacation): workflow 40 — Camera bridge.**
+
+POST `/webhook/camera-event` accepting events from any brand (Wyze webhook, Ring webhook, third-brand webhook). Workflow normalizes the payload into a standard shape:
+
+```
+{
+  brand: 'wyze' | 'ring' | '<third>' | 'ubiquiti',
+  camera_id: '<brand-specific-id>',
+  camera_label: 'front-yard' | 'doorbell' | etc.,
+  event_type: 'motion' | 'person' | 'package' | 'sound' | etc.,
+  captured_at: '<ISO>',
+  clip_path: '/volume1/PoeTech/camera-footage/<brand>/<camera>/<timestamp>.mp4' | null,
+  thumbnail_path: '...' | null,
+  raw_event: <original>
+}
+```
+
+Downstream workflows (basketball coaching, security alerting, visitor recognition) consume the normalized shape regardless of brand. When Ubiquiti replaces a Wyze, no downstream workflow changes — only the bridge entry updates.
+
+### Camera privacy + family-voice integration
+
+Per `PERPETUAL-PIPELINE-HEALTH.md` and the TLC firewall logic extended to family privacy:
+
+- Camera footage stays on the NAS. Never auto-uploaded to cloud vision unless cropped + de-identified.
+- AI analysis of footage (basketball coaching, security tagging) runs on local Ollama with LLaVA or Qwen-VL.
+- Family members can OPT OUT of AI analysis of their own footage. Christyn agrees to coaching; Christian or Christina could decline.
+- No facial recognition, no biometric tracking, no medical-adjacent inference.
+- Parental visibility on all minor-attributed footage.
+- Quarterly camera audit: what's recording, where it goes, who has access. Read by family.
+
+### Storage budget
+
+Estimated camera footage volume:
+
+- 8 cameras × 1080p × motion-only recording × 30-day retention = ~500-800 GB
+- 8 Ubiquiti 4K AI cameras × motion-only × 30-day retention = ~1.5-2.5 TB
+
+The NAS has 15 TB available per the n8n rollout plan. Camera footage fits comfortably. Retention can extend to 90 days for the Ubiquiti tier if storage allows.
+
+### Connection to Christyn's basketball coaching (workflow 38/39)
+
+The basketball coaching spec (`docs/99-session-notes/2026-05-29-christyn-basketball-coaching-spec.md`) currently assumes Wyze cameras. Once the camera bridge (workflow 40) ships, the coaching workflow becomes brand-agnostic — it just consumes the normalized event stream + the clip path, regardless of which camera captured the play. When Ubiquiti replaces Wyze, basketball coaching keeps working without any change to workflows 38/39.
+
 ## Post-vacation rollout sequence (recommended)
 
 1. **DNS filtering** (10 min, immediate family safety win)

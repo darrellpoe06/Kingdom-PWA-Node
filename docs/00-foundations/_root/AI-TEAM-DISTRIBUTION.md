@@ -6,7 +6,7 @@ Per GOVERNANCE-EXECUTION-ADVISORY: this is how the Foundation distributes its ow
 
 ## The team
 
-Seven functional roles. Some are filled by the same underlying tool; that's fine — the role describes the job, not the model.
+Ten functional roles. Some are filled by the same underlying tool; that's fine — the role describes the job, not the model.
 
 ### Role 1 — Inbox Sorter
 
@@ -97,6 +97,46 @@ Role 4 is about *reasoning across documents to answer a question*. Role 7 is abo
 A session where Darrell asks "what do our foundation docs say about X" is Role 4. A session where Darrell proposes "ship a public roadmap page" is Role 7 — Claude's first move should be the four-question audit, not the page itself.
 
 **Companion to Role 6 (Browser Operator):** when Role 6 is asked to drive a browser to ship something public, Role 7 runs the four-question test first. If the answer is "this surface is not wired", Role 6 does not ship and instead surfaces the gap to the Governor.
+
+### Role 8 — Test Author (added 2026-05-29)
+
+**Job:** After every Code Generator (Role 3) session, generate the unit + integration + end-to-end tests for the new code. Test fixtures use synthetic data for all six baseline personas per SEED-DATA-AS-ASPIRATION (Family of 4, Separated, Solo Practice, Landlord, Church-Connected, Region-Anchored). Output: failing tests committed alongside the implementation PR; passing tests after implementation lands.
+
+**Default tool:** Claude. Test authoring requires frontier capability — bad tests are worse than no tests because they create false confidence.
+**Fallback:** Gemini for bulk fixture generation when sovereignty isn't required and the test shape is mechanical (e.g., 100 variants of valid bank export data).
+**Why not Ollama:** Ollama 14b can write SIMPLE tests, but the discriminating taste required to test the right things — edge cases, foundation-principle compliance, persona-specific assertions — favors Claude.
+
+**Standing authority:** Writes tests. Does not implement. Cannot bypass tests for any code that touches a visible surface or a persistence layer.
+
+**Companion to Role 3 (Code Generator):** Test Author runs IN PARALLEL with Code Generator. Same Dispatch session can hold both roles — Code Generator writes implementation in one worktree while Test Author writes tests in another, both reviewing each other's work before the combined PR.
+
+### Role 9 — Test Runner / Failure Triage (added 2026-05-29)
+
+**Job:** CI runs the test suite on every PR. When tests fail, this role reads the output, classifies the failure (real bug / flaky / environmental), and either proposes a fix patch or escalates back to Code Generator (Role 3).
+
+**Default tool:** Ollama 14b for triage and classification (free, fast, runs on every PR without cost concerns).
+**Escalate to:** Claude for fix patches when the failure is a real bug, especially when the fix requires cross-document reasoning about why the test exists.
+**Fallback:** Gemini via workflow 17 if Ollama 14b is unavailable.
+
+**Standing authority:** Triage + classification + escalation. Does not merge. Cannot mark a test "flaky" without recording the triage rationale on the PR.
+
+### Role 10 — Quality Gatekeeper (added 2026-05-29)
+
+**Job:** Pre-merge gate. For any PR that touches a visible surface (PWA component, public endpoint, marketing copy, demo data), run the binding-foundation checks: Foundation-screen (F.1) + EXCELLENCE-STANDARD religion-and-relationship + BUSINESS-PROCESS-CONNECTIONS five-question test + SEED-DATA-AS-ASPIRATION four-question test (if seed data changes) + typographic-theology compliance (CLAUDE.md). Refuses merge if any check fails. Records the decision rationale on the PR.
+
+**Default tool:** Ollama 14b on NAS. Free per call, runs in seconds, doesn't slow PRs.
+**Why Ollama and not Claude:** at the volume of PRs this gate would run (potentially dozens per week), per-token cost matters. Ollama 14b is adequate for the binary "does this artifact pass the foundation checks" question — the checks are explicit, not generative.
+**Escalate to:** Claude when Ollama 14b reports a borderline pass/fail and human-grade judgment is needed.
+
+**Standing authority:** Refuses merge. The only role with merge-blocking authority beyond Darrell. Governor can override the Gatekeeper's refusal, but the override is recorded.
+
+**Why three separate roles for testing instead of one:** Test Author writes the tests; Test Runner reads results and triages; Quality Gatekeeper enforces foundation compliance. Collapsing them into one role would either over-burden Claude (expensive on every PR) or under-deliver (Ollama can't write good tests, but it CAN triage and enforce). Splitting lets each role use its right-sized tool.
+
+### Cross-role coordination for the testing roles
+
+Code Generator (Role 3) writes implementation. Test Author (Role 8) writes tests for that implementation. They commit together in the same PR. CI runs tests. Test Runner (Role 9) triages any failures and either patches or escalates. Quality Gatekeeper (Role 10) runs foundation checks on the diff. If all checks pass, the PR is ready for Governor review.
+
+The Governor (Darrell) reviews PRs with pre-attached: passing test results, Gatekeeper-passed badge, list of foundation principles applied, triage rationale for any flaky tests. The Governor's review becomes a quality decision, not a discovery process.
 
 ## Cross-role coordination
 

@@ -175,10 +175,40 @@ Each row has a date, a definition, an audience, and a connection. The dates can 
 - **ANXIETY-CLARITY-PRINCIPLE** — the audience reading "Q4 2027" is no longer anxious about whether this service is real; they're informed about whether they want to wait or look elsewhere. Clarity is honored.
 - **EXCELLENCE-STANDARD** — the craftsman pattern. Religion (the timeline is a commitment we own) AND relationship (the commitment is made warmly to a specific audience, not as legalese).
 
+## The Family-Voice-Is-The-Connection extension (added 2026-05-29, by Darrell)
+
+Direct quote from Darrell, 2026-05-29 morning while traveling, via @nas:
+
+> "I would like to see changes daily based on feedback and inputs from our family. So the website updates and other updates are fast."
+
+This extends the five-question test inward. The principle so far has been about external connections — every visible surface needs an external pipeline + governor + promise + timeline. But the most important connection in this system runs internally: family voice → product change. If that connection isn't wired, the family stops giving feedback, and the system drifts away from the people it serves.
+
+### Family voice as a first-class business-process connection
+
+Every voice from a family member — Darrell, Christina, Christiana, future family — is one end of a connection. The other end must be wired before the surface (the PWA, any module, any service) can be honestly called "built for the family."
+
+The five-question test applied to family voice:
+
+1. **What does this voice invite?** A change to the product, a bug report, a strategic input, a question, a feature request.
+2. **What pipeline carries that voice?** Workflow 27 (Foundation Agent) classification → workflow 30 (family feedback intake) capture → Code Generator queue → Test Author tests → Quality Gatekeeper review → Governor merge → Vercel deploy.
+3. **Who is the Governor for the incoming volume?** Darrell governs merge decisions. Christina governs brand/UX. Christiana governs mobile/next-gen usability. Sender-trust-tier informs prioritization.
+4. **What's the visible promise?** Within 24 hours, every family voice is acknowledged in the morning digest (workflow 31); within 24 hours, actionable items show up in the evening ship summary (workflow 32) OR are explicitly carried forward with reason.
+5. **What's the timeline commitment?** Daily cadence: 7am digest, throughout-day classification, 5pm review window, 9pm ship summary. First daily-cadence day ships ~3 weeks post-vacation (2026-06-22 target).
+
+### Why this matters for the external promise
+
+The Family-Voice extension is also the proof that the rest of the principle is real. If we cannot wire our own family's voice into the product within a day, we have no credibility promising external users their voices will land. The internal cadence is the rehearsal for the external commitment.
+
+Once daily cadence is operational for family, the SAME shape extends to external users (post-Phase 4 multi-tenant). External user voices route to a different queue with a different SLA — explicitly weighted lower than family per SKOS family-first principle — but the connection is wired, the Governor exists, the timeline is honest.
+
+### Captured in detail at
+
+[`2026-05-29-daily-family-feedback-shipping-cadence.md`](../../99-session-notes/2026-05-29-daily-family-feedback-shipping-cadence.md) — the operational spec for Week 1-3 post-vacation buildout.
+
 ## Closing posture
 
-Marketing is a check the system writes on the operations account. The check clears only if operations have funds. Every visible surface is an obligation. Every connection is a process. Every promise is a timeline.
+Marketing is a check the system writes on the operations account. The check clears only if operations have funds. Every visible surface is an obligation. Every connection is a process. Every promise is a timeline. Every family voice is the most important connection.
 
-The Foundation's job is to wire processes before the marketing surfaces draw on them, and to track the realistic timeline for every service-in-buildout. The Governor's job is to approve surfaces only when the processes are ready, and to commit publicly to timelines only when the Advisor's confidence + the Foundation's capacity make the commitment honest. Claude's job is to name the connection gap before it becomes a broken promise, and to draft timeline estimates the Governor can stand behind.
+The Foundation's job is to wire processes before the marketing surfaces draw on them, to track the realistic timeline for every service-in-buildout, and to honor family voice within 24 hours as the binding internal cadence. The Governor's job is to approve surfaces only when the processes are ready, to commit publicly to timelines only when the Advisor's confidence + the Foundation's capacity make the commitment honest, and to govern the family-voice queue with attention. Claude's job is to name the connection gap before it becomes a broken promise, to draft timeline estimates the Governor can stand behind, and to never let a family voice drop unacknowledged.
 
-Wire before you write. Process before you promise. Timeline before you market. We all win. And we create. Amen.
+Wire before you write. Process before you promise. Timeline before you market. Family voice before all of it. We all win. And we create. Amen.

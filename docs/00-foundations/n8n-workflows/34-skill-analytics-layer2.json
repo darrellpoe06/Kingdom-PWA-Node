@@ -1,0 +1,77 @@
+{
+  "name": "34 · Skill analytics Layer 2 (parsed transactions → Ollama 14b stewardship profile)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "skill-analytics",
+        "responseMode": "responseNode",
+        "options": {"rawBody": false}
+      },
+      "id": "9f7e2a10-34a0-4340-8340-aaaaaaaaaa01",
+      "name": "Webhook (skill analytics)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320],
+      "webhookId": "skill-analytics"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Layer 2 — Skill analytics. Takes the parsed transactions from\n// workflow 33 (Layer 1) and runs them through Ollama 14b with a\n// structured prompt to produce a stewardship skill profile.\n//\n// Per data-dump-to-matched-services spec session note (2026-05-28):\n// diagnostic and warm, never judgmental. The user reads the profile back\n// and recognizes themselves — strengths AND gaps.\n//\n// Per EXCELLENCE-STANDARD: religion AND relationship. Structured\n// assessment (religion) delivered in warm language (relationship).\n// Per TLC firewall: family-private content never leaves NAS; this entire\n// workflow runs on Ollama locally.\n//\n// POST body shape:\n//   { transactions: [...], months_of_history?: number, persona_hint?: string }\n// Transactions in the shape returned by workflow 33.\n//\n// Returns:\n//   { ok, profile: { budgeting_consistency, tithe_rhythm, debt_posture,\n//     buffer_fund_discipline, income_stability, alignment },\n//     diagnostic_summary, strengths, gaps_to_consider }\n\nconst OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://ollama:11434';\nconst OLLAMA_MODEL = process.env.OLLAMA_ANALYTICS_MODEL || 'qwen2.5:14b-instruct-q4_K_M';\n\nconst input = $input.first().json || {};\nconst body = (input.body && typeof input.body === 'object') ? input.body : input;\n\nconst transactions = Array.isArray(body.transactions) ? body.transactions : [];\nconst monthsOfHistory = parseInt(body.months_of_history || 0, 10);\nconst personaHint = (body.persona_hint || '').toString();\n\nif (transactions.length === 0) {\n  return [{ json: { ok: false, error: 'no transactions provided for analytics' } }];\n}\n\n// Compute deterministic stats first. These ground the LLM's narrative.\nconst totalAmount = transactions.reduce((s, t) => s + (t.amount || 0), 0);\nconst credits = transactions.filter(t => (t.amount || 0) > 0);\nconst debits = transactions.filter(t => (t.amount || 0) < 0);\nconst income = credits.reduce((s, t) => s + t.amount, 0);\nconst spend = Math.abs(debits.reduce((s, t) => s + t.amount, 0));\n\n// Detect tithe/charitable giving by keyword.\nconst titheKeywords = /tithe|church|ministry|first[\\s-]?fruits|offering|donation|charity|nonprofit/i;\nconst titheTxns = transactions.filter(t => titheKeywords.test(t.description || ''));\nconst titheTotal = Math.abs(titheTxns.reduce((s, t) => s + t.amount, 0));\nconst titheRate = income > 0 ? (titheTotal / income) : 0;\n\n// Detect debt payments by keyword.\nconst debtKeywords = /loan|mortgage|credit\\s?card payment|cc payment|chase\\s+card|amex|discover|capital one|student loan|auto loan/i;\nconst debtTxns = transactions.filter(t => debtKeywords.test(t.description || ''));\nconst debtTotal = Math.abs(debtTxns.reduce((s, t) => s + t.amount, 0));\n\n// Detect savings/transfers (buffer fund proxy).\nconst saveKeywords = /transfer|savings|investment|brokerage|vanguard|fidelity|robinhood|emergency fund|buffer/i;\nconst saveTxns = transactions.filter(t => saveKeywords.test(t.description || ''));\nconst saveTotal = Math.abs(saveTxns.reduce((s, t) => s + t.amount, 0));\n\n// Date range for context.\nconst dates = transactions.map(t => t.date).filter(Boolean).sort();\nconst dateRange = dates.length ? (dates[0] + ' to ' + dates[dates.length - 1]) : '(unknown)';\n\nconst stats = {\n  transaction_count: transactions.length,\n  date_range: dateRange,\n  income_total: income.toFixed(2),\n  spend_total: spend.toFixed(2),\n  net: totalAmount.toFixed(2),\n  tithe_total: titheTotal.toFixed(2),\n  tithe_count: titheTxns.length,\n  tithe_rate_pct: (titheRate * 100).toFixed(1),\n  debt_payment_total: debtTotal.toFixed(2),\n  debt_payment_count: debtTxns.length,\n  savings_transfer_total: saveTotal.toFixed(2),\n  savings_transfer_count: saveTxns.length\n};\n\nconst prompt = `You are the Skill Analytics module for the PoeTech Family OS. You read a household's bank transactions and produce a stewardship skill profile.\n\nYour tone: diagnostic and warm. Never judgmental. The reader is a real family looking at their own money. Speak as a trusted advisor who can see the patterns, name them honestly, and point toward growth without shame.\n\nReligion AND relationship per the EXCELLENCE-STANDARD foundation. Structured assessment (religion) in warm language (relationship).\n\nReturn a JSON object with this exact shape:\n\n{\n  \"profile\": {\n    \"budgeting_consistency\": \"strong\" | \"emerging\" | \"weak\",\n    \"tithe_rhythm\": \"consistent\" | \"intermittent\" | \"absent\",\n    \"debt_posture\": \"paying_down\" | \"steady\" | \"growing\" | \"none_visible\",\n    \"buffer_fund_discipline\": \"building\" | \"steady\" | \"draining\" | \"none_visible\",\n    \"income_stability\": \"steady\" | \"variable\" | \"volatile\",\n    \"alignment\": \"high\" | \"moderate\" | \"low\"\n  },\n  \"diagnostic_summary\": \"3-5 sentences. Tell the family what you see. Name strengths first. Then name 1-2 areas worth growing into. Warm tone.\",\n  \"strengths\": [\"2-3 specific things this family is doing well, named concretely\"],\n  \"gaps_to_consider\": [\"1-2 areas where the foundation principles suggest there is room to grow. Phrased as invitations not failures.\"]\n}\n\nGround your assessment in the deterministic stats below — do NOT invent numbers, only interpret these:\n\n${JSON.stringify(stats, null, 2)}\n\nPersona hint (may be empty): ${personaHint || '(none)'}\nMonths of history declared: ${monthsOfHistory || '(unknown)'}\nFirst 30 transactions for context:\n${JSON.stringify(transactions.slice(0, 30).map(t => ({ date: t.date, amount: t.amount, description: (t.description || '').slice(0, 80) })), null, 2)}\n\nReturn ONLY the JSON object. No markdown, no preamble, no closing remarks.`;\n\nlet profileText = '';\ntry {\n  const r = await fetch(OLLAMA_BASE + '/api/generate', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ model: OLLAMA_MODEL, prompt, stream: false, options: { temperature: 0.3, num_predict: 1000 } }),\n    signal: AbortSignal.timeout(180000)\n  });\n  const data = await r.json();\n  profileText = (data.response || '').trim();\n} catch (e) {\n  return [{ json: { ok: false, error: 'ollama call failed: ' + String(e), stats } }];\n}\n\n// Try to extract pure JSON from the response (model sometimes wraps in code fences).\nlet profile = null;\nconst jsonMatch = profileText.match(/\\{[\\s\\S]*\\}/);\nif (jsonMatch) {\n  try { profile = JSON.parse(jsonMatch[0]); } catch (_) {}\n}\nif (!profile) {\n  return [{ json: { ok: false, error: 'could not parse profile JSON from model output', raw_response: profileText.slice(0, 2000), stats } }];\n}\n\nreturn [{ json: { ok: true, stats, ...profile } }];"
+      },
+      "id": "9f7e2a10-34a0-4340-8340-aaaaaaaaaa02",
+      "name": "Generate skill profile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Content-Type", "value": "application/json"},
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"},
+              {"name": "Cache-Control", "value": "no-store"}
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-34a0-4340-8340-aaaaaaaaaa03",
+      "name": "Respond with JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 320]
+    }
+  ],
+  "connections": {
+    "Webhook (skill analytics)": {
+      "main": [[{"node": "Generate skill profile", "type": "main", "index": 0}]]
+    },
+    "Generate skill profile": {
+      "main": [[{"node": "Respond with JSON", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "ai-foundation"},
+    {"name": "skill-analytics"},
+    {"name": "layer-2"},
+    {"name": "pwa-api"},
+    {"name": "sovereign-loop"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}

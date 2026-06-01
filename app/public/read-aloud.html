@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Read Aloud — Git Explanation</title>
+<style>
+  body{background:#111;color:#eee;font-family:system-ui,-apple-system,sans-serif;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:20px;padding:20px;text-align:center}
+  h1{font-weight:600;margin:0}
+  button{font-size:24px;padding:18px 36px;border-radius:12px;border:0;background:#B85838;color:#fff;cursor:pointer;font-weight:600}
+  button:hover{background:#d06b4a}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .status{opacity:.7;font-size:14px;min-height:20px}
+  .controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .controls button{font-size:16px;padding:10px 20px;background:#333}
+  select{font-size:14px;padding:8px;border-radius:6px;background:#222;color:#eee;border:1px solid #444}
+  label{font-size:14px;opacity:.8}
+</style>
+</head>
+<body>
+  <h1>Click to Hear the Git Explanation</h1>
+  <button id="play">▶ Play</button>
+  <div class="status" id="status">Ready</div>
+  <div class="controls">
+    <button id="pause">⏸ Pause</button>
+    <button id="resume">⏵ Resume</button>
+    <button id="stop">⏹ Stop</button>
+  </div>
+  <div>
+    <label for="rate">Speed: </label>
+    <select id="rate">
+      <option value="0.85">Slower (0.85×)</option>
+      <option value="1" selected>Normal (1×)</option>
+      <option value="1.25">Faster (1.25×)</option>
+      <option value="1.5">Fastest (1.5×)</option>
+    </select>
+    &nbsp;&nbsp;
+    <label for="voice">Voice: </label>
+    <select id="voice"></select>
+  </div>
+<script>
+const TXT = `Here is the git explanation, read aloud.
+
+Good question. Git has a weird mental model, and most explanations assume you already know it. Here is the version that should click, given your project management background.
+
+The four places your work lives. When you are editing files in the Kingdom-PWA-Node folder on your computer, that is your working directory. The actual file you can open and change. As you edit, git is watching that folder but does not automatically save snapshots. To save a snapshot, you go through two steps. First you stage the change: I want this in my next snapshot. Then you commit: take the snapshot now. The commit lives in your local repository. A folder of every past snapshot, stored inside the hidden dot-git subfolder on your computer. Nothing has touched GitHub yet at this point. Push is the separate, fifth thing. It uploads your local commits to GitHub, which is just a copy of the same repo hosted on github dot com, so other people, or your phone, or me from a different machine, can see it. So: working directory, to staging area, to local commit, to GitHub. Four hops. Three of them on your laptop. The last one over the internet.
+
+Why we do it this way. It separates I am experimenting with edits, from this is a real save point I want preserved, from this is ready for the world to see. You can edit recklessly without polluting the snapshot history. You can stage just some of your changes and commit them while leaving other changes still in progress. You can commit five things locally and only push them to GitHub later when you are ready.
+
+What you actually ran this morning, in order. First you cleared a stale lock file. This is defensive. Git puts a temporary lock in dot git slash index dot lock while it is working, and sometimes that file gets left behind if a previous git command crashed. Then you touched two files modification times. A workaround for a Windows quirk where git on a network or synced folder sometimes misses changes until the file timestamp gets bumped. Then git status dash dash short, to see what git thought had changed. It showed two modified files and one untracked file. Then git add the files, to stage two of those files. Git commit dash m, to snapshot them locally as one commit. Then git add the task card, to stage the third file. Another git commit dash m, to snapshot it as a second commit. Then git push origin docs slash skos dash foundations, to upload both commits to GitHub. That is the line where the output said: Writing objects, 100 percent. Finally, gh pr edit four, updated the description text of pull request number four on GitHub. This uses the GitHub C L I tool, separate from git itself. gh is a separate program that talks to GitHub web A P I, useful for things like editing pull requests without opening a browser.
+
+Branches. When you see docs slash skos dash foundations in those commands, that is a branch. A named line of work, like a labeled folder of commits, separate from main. Branches let multiple parallel streams of changes coexist. One person can work on the cert fix on a branch called feat slash cert dash fix, while another works on docs on docs slash skos dash foundations, with no collisions. Today, most of the file edits I am making land on the docs slash skos dash foundations branch by default, because that is where your git checkout HEAD currently is. The PROJECT FRAMEWORK markdown spine has a section five that tracks which branch is active at any moment, which is part of why we update it at end of session.
+
+How this connects to the Synology deploy. Git and GitHub is one half of the picture. Deploying to your Synology is the other half. Right now they are separate steps. You commit and push to GitHub for preservation and visibility, so I can see the latest, so your phone can read the docs via the GitHub web URL, so a year from now you have history. Then you separately run the deploy to Synology batch file for making the app live, which does not care about git at all. It just builds the React app from your current working directory and copies the build to your N A S. Eventually we will wire them together with a GitHub Action so pushing to a certain branch automatically triggers a deploy. But for now, they are two separate human initiated steps.
+
+Your typical daily flow going forward, the cheat sheet version. One: git status, to see what has changed in your working directory. Two: git add, the files you want to commit, or git add dot, to stage everything. Three: git commit dash m, short title, dash m, longer explanation of why, to snapshot. Four: git push origin, then the branch name, to upload to GitHub. Five: if you also want the app live, run deploy to Synology batch file separately. If you ever get stuck mid-command and PowerShell shows the double arrow continuation prompt, hit Control C to abort and start over.
+
+That is the whole model. Everything else, rebasing, merging, conflict resolution, and so on, is variations on those same five concepts. Ask anytime you hit a git situation that does not make sense, and I will translate.`;
+
+const statusEl = document.getElementById('status');
+const playBtn = document.getElementById('play');
+const pauseBtn = document.getElementById('pause');
+const resumeBtn = document.getElementById('resume');
+const stopBtn = document.getElementById('stop');
+const rateSel = document.getElementById('rate');
+const voiceSel = document.getElementById('voice');
+
+function loadVoices() {
+  const voices = speechSynthesis.getVoices();
+  voiceSel.innerHTML = '';
+  const opt0 = document.createElement('option');
+  opt0.value = '';
+  opt0.textContent = 'Default';
+  voiceSel.appendChild(opt0);
+  voices.forEach(v => {
+    if (!v.lang.startsWith('en')) return;
+    const o = document.createElement('option');
+    o.value = v.name;
+    o.textContent = v.name + ' (' + v.lang + ')';
+    voiceSel.appendChild(o);
+  });
+  // Pre-select a nicer voice if available
+  const preferred = voices.find(v => v.name.includes('Zira'))
+    || voices.find(v => v.name.includes('Google US English'));
+  if (preferred) voiceSel.value = preferred.name;
+}
+
+speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+function speak() {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(TXT);
+  u.rate = parseFloat(rateSel.value);
+  const voiceName = voiceSel.value;
+  if (voiceName) {
+    const v = speechSynthesis.getVoices().find(x => x.name === voiceName);
+    if (v) u.voice = v;
+  }
+  u.onstart = () => statusEl.textContent = 'Speaking... (' + Math.round(TXT.length / (180 * u.rate)) + ' min estimated)';
+  u.onend = () => statusEl.textContent = 'Done';
+  u.onerror = (e) => statusEl.textContent = 'Error: ' + e.error;
+  speechSynthesis.speak(u);
+}
+
+playBtn.addEventListener('click', speak);
+pauseBtn.addEventListener('click', () => { speechSynthesis.pause(); statusEl.textContent = 'Paused'; });
+resumeBtn.addEventListener('click', () => { speechSynthesis.resume(); statusEl.textContent = 'Speaking...'; });
+stopBtn.addEventListener('click', () => { speechSynthesis.cancel(); statusEl.textContent = 'Stopped'; });
+</script>
+</body>
+</html>

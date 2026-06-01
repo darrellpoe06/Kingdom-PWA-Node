@@ -232,7 +232,23 @@ If any answer is missing or "we'll figure it out", surface it as a blocker befor
 
 **Why it's separate from F.6 Workflow-First:** Workflow-First is about *internal* automation — replacing clicks with crons. Connection-Thinking is about *external* obligation — auditing what the visible surface promises and confirming the obligation can be honored. Workflow-First serves the system; Connection-Thinking serves the strangers who trust the surface.
 
-### F.8 Governance-Execution-Advisory role discipline
+### F.8 Testing Discipline (added 2026-05-29)
+
+**The move:** every code change ships with tests. Every visible-surface change passes the Quality Gatekeeper check before merge. Every PR triggers automated test runs across all six baseline personas (Family of 4, Separated, Solo Practice, Landlord, Church-Connected, Region-Anchored). Visual regression catches UI drift; load tests catch performance regressions; synthetic fixtures keep tests deterministic.
+
+The sequence:
+
+1. Code Generator (Role 3) writes implementation + Test Author (Role 8) writes the tests in the same PR. Failing tests committed first; passing tests after implementation lands.
+2. CI runs the test suite on every PR (unit, integration, end-to-end, visual regression, load).
+3. Test Runner (Role 9) triages any failures — classifies (real bug / flaky / environmental) and either proposes a fix patch or escalates to Code Generator.
+4. Quality Gatekeeper (Role 10) runs Foundation-screen + EXCELLENCE-STANDARD + BUSINESS-PROCESS-CONNECTIONS five-question test on any visible-surface change. Refuses merge if any check fails.
+5. Governor (Darrell) reviews the PR with the Gatekeeper's pass + test results already attached.
+
+**Who practices it:** Test Author, Test Runner, Quality Gatekeeper roles per AI-TEAM-DISTRIBUTION. Code Generator collaborates with Test Author on every substantive PR.
+
+**Why it's separate from F.6 Workflow-First and F.7 Connection-Thinking:** Workflow-First is about replacing clicks with crons. Connection-Thinking is about auditing external obligations of visible surfaces. Testing-Discipline is about internal correctness — does the code do what it claims, across the personas we serve, under realistic load. All three serve different sides of "ship something we'd stake the family on."
+
+### F.9 Governance-Execution-Advisory role discipline
 
 **The move:** before taking any action, identify which of the three roles applies — Governor (Darrell decides), Executor (Foundation acts within standing authority), Advisor (Claude drafts + recommends). Do not collapse roles.
 

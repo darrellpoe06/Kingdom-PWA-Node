@@ -1,0 +1,271 @@
+{
+  "name": "06 · Situational analysis + auto-mutation (every 4h)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "cronExpression", "expression": "0 0 */4 * * *"}]
+        }
+      },
+      "id": "node-cron-06",
+      "name": "Every 4 hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [120, 320]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Pre-flight: read workflow_settings + workflow_state for the analyzer\n-- and decide whether to proceed.\nWITH s AS (\n  SELECT *\n    FROM workflow_settings\n   WHERE workflow_key = 'situational-analyzer-v0'\n   LIMIT 1\n),\nt AS (\n  SELECT *\n    FROM workflow_state\n   WHERE workflow_key = 'situational-analyzer-v0'\n   LIMIT 1\n)\nSELECT\n  s.enabled,\n  s.dry_run,\n  s.daily_budget_cents,\n  s.per_run_budget_cents,\n  s.max_runs_per_day,\n  s.min_minutes_between_runs,\n  t.last_run_at,\n  t.current_day_utc,\n  t.runs_today,\n  t.cost_cents_today,\n  -- gating booleans\n  COALESCE(s.enabled, false) AS gate_enabled,\n  COALESCE(t.cost_cents_today, 0) < COALESCE(s.daily_budget_cents, 500) AS gate_budget,\n  COALESCE(t.runs_today, 0) < COALESCE(s.max_runs_per_day, 6) AS gate_rate_count,\n  (t.last_run_at IS NULL OR t.last_run_at < (now() - make_interval(mins => s.min_minutes_between_runs))) AS gate_rate_time\nFROM s LEFT JOIN t ON true;",
+        "options": {}
+      },
+      "id": "node-preflight-06",
+      "name": "Pre-flight: read settings + state",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"version": 2, "caseSensitive": true, "typeValidation": "loose"},
+          "conditions": [
+            {"id": "g-en", "leftValue": "={{ $json.gate_enabled }}", "rightValue": true, "operator": {"type": "boolean", "operation": "true"}},
+            {"id": "g-bg", "leftValue": "={{ $json.gate_budget }}",  "rightValue": true, "operator": {"type": "boolean", "operation": "true"}},
+            {"id": "g-rc", "leftValue": "={{ $json.gate_rate_count }}", "rightValue": true, "operator": {"type": "boolean", "operation": "true"}},
+            {"id": "g-rt", "leftValue": "={{ $json.gate_rate_time }}",  "rightValue": true, "operator": {"type": "boolean", "operation": "true"}}
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-gates-06",
+      "name": "All gates green?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [520, 320]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- LOOP 1.1 — recompute priority_score on open cycle_items.\n-- The math stays auditable; user_priority_override is NEVER touched.\n-- DRY-RUN flag flips the UPDATE to a SELECT (returning would-have-mutated rows).\nWITH s AS (SELECT dry_run FROM workflow_settings WHERE workflow_key='situational-analyzer-v0' LIMIT 1)\nSELECT\n  ci.id,\n  ci.priority_score AS prev_score,\n  ROUND(\n    COALESCE((ci.priority_factors->>'urgency')::numeric, 0) * 0.6\n    + COALESCE((ci.priority_factors->>'dollar_friction')::numeric, 0) * 10 * 0.4\n    + COALESCE((ci.priority_factors->>'deadline_pressure')::numeric, 0),\n    2\n  ) AS new_score,\n  (SELECT dry_run FROM s) AS dry_run\nFROM cycle_items ci\nWHERE (ci.disposition IS NULL OR ci.disposition = 'pending')\n  AND ci.priority_factors <> '{}'::jsonb;",
+        "options": {}
+      },
+      "id": "node-loop1-1-06",
+      "name": "Loop 1.1 · priority_score recompute (DRY-aware preview)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [720, 220]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- LOOP 1.2 — roll forward past-cycle items to deferred-next-cycle.\n-- POE binding: never 'rejected', always 'deferred-next-cycle'.\n-- DRY-RUN-aware: when dry_run, skip the UPDATE and return a preview.\nWITH s AS (SELECT dry_run FROM workflow_settings WHERE workflow_key='situational-analyzer-v0' LIMIT 1),\ncandidates AS (\n  SELECT ci.id, ci.disposition AS prev_disposition, rc.cycle_end\n    FROM cycle_items ci\n    JOIN review_cycles rc ON rc.id = ci.cycle_id\n   WHERE rc.cycle_end < now()\n     AND rc.status IN ('completed','skipped')\n     AND (ci.disposition IS NULL OR ci.disposition = 'pending')\n     AND EXISTS (\n       SELECT 1 FROM review_cycles rc2\n        WHERE rc2.cadence_id = rc.cadence_id\n          AND rc2.cycle_start > now()\n     )\n)\nSELECT id, prev_disposition, cycle_end, (SELECT dry_run FROM s) AS dry_run FROM candidates;",
+        "options": {}
+      },
+      "id": "node-loop1-2-06",
+      "name": "Loop 1.2 · roll forward past-cycle items (DRY-aware preview)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [720, 320]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- LOOP 1.3 — mark projects stale or active based on activity recency.\n-- Stale is a UI surface only; nothing destructive.\nWITH s AS (SELECT dry_run FROM workflow_settings WHERE workflow_key='situational-analyzer-v0' LIMIT 1)\nSELECT\n  p.id,\n  p.status AS prev_status,\n  CASE\n    WHEN p.updated_at > (now() - interval '24 hours') THEN 'active'\n    WHEN p.updated_at < (now() - interval '7 days') AND p.status = 'in-progress' THEN 'stale'\n    ELSE p.status\n  END AS new_status,\n  (SELECT dry_run FROM s) AS dry_run\nFROM projects p\nWHERE p.status IN ('active','in-progress','stale');",
+        "options": {}
+      },
+      "id": "node-loop1-3-06",
+      "name": "Loop 1.3 · stale/active project marker (DRY-aware preview)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [720, 420]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- FEEDBACK INGESTION 2.1 — pull new feedback since last run.\n-- triage_status 'declined' is intentionally excluded (a future migration will drop it).\nSELECT f.id, f.tenant_id AS instance_id, f.user_id, f.display_name, f.feedback_text,\n       f.sentiment, f.submitted_at, f.triage_status, f.is_confidential, f.which_tab\n  FROM feedback f, workflow_state t\n WHERE t.workflow_key = 'situational-analyzer-v0'\n   AND f.submitted_at > COALESCE(t.last_run_at, now() - interval '4 hours')\n   AND f.triage_status IN ('new','needs-info')\n ORDER BY f.submitted_at ASC;",
+        "options": {}
+      },
+      "id": "node-feedback-pull-06",
+      "name": "Feedback ingestion · pull new rows",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [920, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OLLAMA_BASE_URL }}/api/generate",
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $env.OLLAMA_PRIMARY_MODEL }}\",\n  \"stream\": false,\n  \"options\": {\"temperature\": 0.1, \"num_predict\": 32},\n  \"prompt\": \"Classify the following user feedback into EXACTLY ONE of: bug, feature-request, process-improvement, priority-change, kudo, question, clinical-note. Reply with the single word only, no explanation.\\n\\nFEEDBACK: \\\"\" + ($json.feedback_text || \"\").replace(/\\\\\"/g, \"'\") + \"\\\"\\n\\nCLASSIFICATION:\"\n}",
+        "options": {"timeout": 30000}
+      },
+      "id": "node-feedback-classify-06",
+      "name": "Feedback ingestion · classify via Qwen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the Ollama classification reply, sanitize it, attach to the\n// original feedback row, and decide the routing action.\n// Allowed classes (anything else falls back to 'question').\nconst ALLOWED = new Set(['bug','feature-request','process-improvement','priority-change','kudo','question','clinical-note']);\n\n// strip <think>...</think> blocks (DeepSeek pattern), trim, lowercase, take first token\nfunction sanitize(reply) {\n  if (!reply) return 'question';\n  let r = String(reply).replace(/<think>[\\s\\S]*?<\\/think>/g, '').trim().toLowerCase();\n  r = r.split(/[\\s\\n,.]/)[0];\n  return ALLOWED.has(r) ? r : 'question';\n}\n\nconst items = $input.all();\nconst out = items.map(it => {\n  const j = it.json || {};\n  const cls = sanitize(j.response);\n  const orig = j.__orig || {}; // carries forward the feedback row\n  // Domain-authority weight (Christina vs Darrell heuristic on display_name)\n  const submitter = (orig.display_name || '').toLowerCase();\n  let route_recipient = 'darrell';\n  if (cls === 'question' || cls === 'clinical-note') {\n    route_recipient = submitter.includes('christina') ? 'darrell' : 'christina';\n  }\n  return {\n    json: {\n      feedback_id: orig.id,\n      submitter: orig.display_name,\n      classification: cls,\n      route_recipient,\n      feedback_text: orig.feedback_text,\n      original: orig,\n    },\n  };\n});\nreturn out;"
+      },
+      "id": "node-feedback-route-06",
+      "name": "Feedback ingestion · sanitize + route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 320]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- LOOP 2.1 setup — assemble per-project Done/Doing/Stale signals for the\n-- Anthropic call. We don't make the Anthropic call here in the JSON itself;\n-- a downstream HTTP node calls Anthropic and the markdown is assembled.\n-- This query is the data the Anthropic prompt is built from.\nSELECT p.id, p.name, p.description, p.status, p.updated_at,\n  COALESCE((SELECT json_agg(json_build_object('title', ci.title, 'at', ci.disposition_at))\n              FROM cycle_items ci\n             WHERE ci.item_id = p.id AND ci.disposition = 'approved'\n             ORDER BY ci.disposition_at DESC LIMIT 5\n          ), '[]'::json) AS done,\n  COALESCE((SELECT json_agg(json_build_object('title', ci.title, 'priority', ci.priority_score))\n              FROM cycle_items ci\n             WHERE ci.item_id = p.id AND COALESCE(ci.disposition, 'pending') = 'pending'\n             ORDER BY COALESCE(ci.user_priority_override, ci.priority_score) DESC LIMIT 3\n          ), '[]'::json) AS doing\n FROM projects p\nWHERE p.status IN ('active','in-progress','stale')\nORDER BY p.updated_at DESC;",
+        "options": {}
+      },
+      "id": "node-loop2-1-06",
+      "name": "Loop 2.1 · assemble Done/Doing per project",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1520, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the markdown for docs/00-foundations/ai-suggestions/YYYY-MM-DD-HHmm.md\n// In dry-run mode the path is .../ai-suggestions/dry-run/YYYY-MM-DD-HHmm.md\nconst now = new Date();\nconst pad = n => String(n).padStart(2, '0');\nconst stamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;\n\n// pull dry_run flag from earlier node\nconst preflight = $items('Pre-flight: read settings + state')[0]?.json || {};\nconst dry = !!preflight.dry_run;\n\nconst projects = $input.all().map(i => i.json);\nlet body = `# AI suggestions — ${stamp}\\n\\n`;\nif (dry) body += `> **DRY-RUN.** No mutations landed. This is the would-have-done report.\\n\\n`;\n\nbody += `## Per-project state\\n\\n`;\nprojects.slice(0, 12).forEach(p => {\n  body += `### ${p.name}\\n`;\n  body += `Status: ${p.status} · Last activity: ${p.updated_at}\\n\\n`;\n  const done = (p.done || []).map(d => `- ${d.title} (${d.at})`).join('\\n') || '- (none in window)';\n  const doing = (p.doing || []).map(d => `- ${d.title} (priority ${d.priority})`).join('\\n') || '- (none pending)';\n  body += `**Done (last 5 approved)**\\n${done}\\n\\n`;\n  body += `**Doing (top 3 pending)**\\n${doing}\\n\\n`;\n  body += `**Next for sustainability** *(would be Anthropic-generated when budget allows; placeholder for v0)*\\n`;\n  body += `- Consider one or two pieces of work that keep this project viable long-term.\\n\\n`;\n});\n\nconst folder = dry ? 'docs/00-foundations/ai-suggestions/dry-run' : 'docs/00-foundations/ai-suggestions';\nreturn [{ json: { path: `${folder}/${stamp}.md`, content: body, stamp, dry } }];"
+      },
+      "id": "node-build-md-06",
+      "name": "Build suggestions markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1720, 220]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/darrellpoe06/Kingdom-PWA-Node/contents/{{ $json.path }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "=Bearer {{ $env.GITHUB_PAT }}"},
+            {"name": "Accept",        "value": "application/vnd.github+json"},
+            {"name": "User-Agent",    "value": "n8n-situational-analyzer-v0"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={\n  \"message\": \"chore(ai): situational analysis \" + $json.stamp + ($json.dry ? \" (DRY-RUN)\" : \"\"),\n  \"content\": Buffer.from($json.content, 'utf8').toString('base64'),\n  \"committer\": { \"name\": \"Dispatch\", \"email\": \"dispatch@poetech.local\" }\n}",
+        "options": {"timeout": 20000}
+      },
+      "id": "node-commit-md-06",
+      "name": "Commit markdown to GitHub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1920, 220]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- POST-RUN — update workflow_state and write a final audit_log row.\nWITH d AS (SELECT (now() AT TIME ZONE 'UTC')::date AS today)\nINSERT INTO workflow_state\n  (workflow_key, last_run_at, last_run_status, last_run_summary,\n   current_day_utc, runs_today, cost_cents_today, last_ntfy_ping_at, updated_at)\nVALUES\n  ('situational-analyzer-v0', now(), 'ok',\n   'see audit_log for details',\n   (SELECT today FROM d), 1, 0, now(), now())\nON CONFLICT (workflow_key) DO UPDATE\n   SET last_run_at        = EXCLUDED.last_run_at,\n       last_run_status    = EXCLUDED.last_run_status,\n       last_run_summary   = EXCLUDED.last_run_summary,\n       runs_today         = CASE\n                              WHEN workflow_state.current_day_utc = EXCLUDED.current_day_utc\n                              THEN workflow_state.runs_today + 1\n                              ELSE 1 END,\n       current_day_utc    = EXCLUDED.current_day_utc,\n       cost_cents_today   = CASE\n                              WHEN workflow_state.current_day_utc = EXCLUDED.current_day_utc\n                              THEN workflow_state.cost_cents_today\n                              ELSE 0 END,\n       last_ntfy_ping_at  = EXCLUDED.last_ntfy_ping_at,\n       updated_at         = EXCLUDED.updated_at\n RETURNING runs_today, cost_cents_today;",
+        "options": {}
+      },
+      "id": "node-postrun-state-06",
+      "name": "Post-run · update workflow_state",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2120, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ntfy.sh/family-ops",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawBody": "=situational-analyzer alive at {{ $now.format('yyyy-MM-dd HH:mm') }} · runs_today={{ $json.runs_today }} · ok",
+        "options": {}
+      },
+      "id": "node-postrun-ntfy-06",
+      "name": "Post-run · ntfy health ping",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2320, 220]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Exit-early path: write a 'disabled' / 'budget-exhausted' / 'rate-limited' row.\nUPDATE workflow_state\n   SET last_run_at = now(),\n       last_run_status = CASE\n         WHEN NOT (SELECT enabled FROM workflow_settings WHERE workflow_key='situational-analyzer-v0') THEN 'disabled'\n         ELSE 'rate-limited' END,\n       updated_at = now()\n WHERE workflow_key = 'situational-analyzer-v0'\n RETURNING last_run_status;",
+        "options": {}
+      },
+      "id": "node-postrun-exitearly-06",
+      "name": "Post-run · exit-early state",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [720, 520]
+    }
+  ],
+  "connections": {
+    "Every 4 hours": {
+      "main": [[{"node": "Pre-flight: read settings + state", "type": "main", "index": 0}]]
+    },
+    "Pre-flight: read settings + state": {
+      "main": [[{"node": "All gates green?", "type": "main", "index": 0}]]
+    },
+    "All gates green?": {
+      "main": [
+        [
+          {"node": "Loop 1.1 · priority_score recompute (DRY-aware preview)", "type": "main", "index": 0},
+          {"node": "Loop 1.2 · roll forward past-cycle items (DRY-aware preview)", "type": "main", "index": 0},
+          {"node": "Loop 1.3 · stale/active project marker (DRY-aware preview)", "type": "main", "index": 0}
+        ],
+        [{"node": "Post-run · exit-early state", "type": "main", "index": 0}]
+      ]
+    },
+    "Loop 1.1 · priority_score recompute (DRY-aware preview)": {
+      "main": [[{"node": "Feedback ingestion · pull new rows", "type": "main", "index": 0}]]
+    },
+    "Loop 1.2 · roll forward past-cycle items (DRY-aware preview)": {
+      "main": [[{"node": "Feedback ingestion · pull new rows", "type": "main", "index": 0}]]
+    },
+    "Loop 1.3 · stale/active project marker (DRY-aware preview)": {
+      "main": [[{"node": "Feedback ingestion · pull new rows", "type": "main", "index": 0}]]
+    },
+    "Feedback ingestion · pull new rows": {
+      "main": [[{"node": "Feedback ingestion · classify via Qwen", "type": "main", "index": 0}]]
+    },
+    "Feedback ingestion · classify via Qwen": {
+      "main": [[{"node": "Feedback ingestion · sanitize + route", "type": "main", "index": 0}]]
+    },
+    "Feedback ingestion · sanitize + route": {
+      "main": [[{"node": "Loop 2.1 · assemble Done/Doing per project", "type": "main", "index": 0}]]
+    },
+    "Loop 2.1 · assemble Done/Doing per project": {
+      "main": [[{"node": "Build suggestions markdown", "type": "main", "index": 0}]]
+    },
+    "Build suggestions markdown": {
+      "main": [[{"node": "Commit markdown to GitHub", "type": "main", "index": 0}]]
+    },
+    "Commit markdown to GitHub": {
+      "main": [[{"node": "Post-run · update workflow_state", "type": "main", "index": 0}]]
+    },
+    "Post-run · update workflow_state": {
+      "main": [[{"node": "Post-run · ntfy health ping", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago"
+  },
+  "tags": [
+    {"name": "situational-analysis"},
+    {"name": "auto-mutation"},
+    {"name": "feedback-ingestion"},
+    {"name": "POE-bound"}
+  ],
+  "meta": {
+    "design_doc": "docs/00-foundations/SITUATIONAL-ANALYSIS-DESIGN.md",
+    "schema": "infra/supabase/schema-v2.10-ai-workflow-state.sql",
+    "version": "v0",
+    "ratified": "2026-05-26",
+    "dry_run_default": true
+  }
+}
