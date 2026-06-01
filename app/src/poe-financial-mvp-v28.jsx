@@ -2521,9 +2521,14 @@ html{scroll-padding-bottom:280px}
             {/* Drop your bank file - 2026-05-29 data-dump release Layer 1.
                 Most powerful invitation on the landing: their own money in
                 our lens, no signup, no commitment. Per data-dump-to-matched-
-                services spec session note. */}
-            <button type="button" onClick={() => { setUploadOpen(true); resetUpload(); }} className="w-full bg-[#B85838] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] mt-4 mb-2">Drop your bank file → see your money here</button>
-            <p className="text-[10px] text-[#5A5751] italic text-center mb-3" style={{ fontFamily: '"Fraunces", serif' }}>OFX, QFX, or CSV. Reads in your browser. Never saved. Gone when you close the tab.</p>
+                services spec session note.
+                2026-06-01: Temporarily routed to waitlist modal until
+                workflows 33/34/35 (data-upload Layer 1 pipeline) deploy
+                to n8n. Honest copy holds the promise — the surface invites,
+                the waitlist is what's wired. Restore the upload onClick
+                when wf33 lands in active list. */}
+            <button type="button" onClick={() => { setWaitlistOpen(true); setWaitlistState({ submitting: false, success: false, error: null, id: null }); }} className="w-full bg-[#B85838] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] mt-4 mb-2">Drop your bank file → join the waitlist (real-data view ships late June)</button>
+            <p className="text-[10px] text-[#5A5751] italic text-center mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Browser-only file reading is in build. Sign up — we'll email when OFX, QFX, or CSV uploads go live. Your data never leaves your device.</p>
             <div className="flex gap-2 mt-4 flex-wrap">
               {/* "Start your own setup" was removed 2026-05-28 evening — the
                   real app behind it would load Darrell's SEED_DATA (real
