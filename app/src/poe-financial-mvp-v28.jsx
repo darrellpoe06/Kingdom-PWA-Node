@@ -28,6 +28,7 @@ import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
 import { Queue } from './components/Queue.jsx';
 import { computeReserves } from './lib/financial-calcs.js';
+import { N8N_BASE } from './lib/n8n-base.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -1491,7 +1492,7 @@ export default function PoeFinancialSystem() {
       return;
     }
     setSuggestState({ submitting: true, success: false, error: null, id: null });
-    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    const base = N8N_BASE;
     if (!base) {
       setSuggestState({ submitting: false, success: false, error: 'Feedback channel is temporarily offline. Please try again later or email darrellpoe06@gmail.com.', id: null });
       return;
@@ -1562,7 +1563,7 @@ export default function PoeFinancialSystem() {
   };
   const handleUploadFile = async (file) => {
     if (!file) return;
-    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    const base = N8N_BASE;
     if (!base) {
       setUploadStage('error');
       setUploadResult(prev => ({ ...prev, error: 'Upload endpoint not configured. Set VITE_N8N_WEBHOOK_BASE.' }));
@@ -1594,7 +1595,7 @@ export default function PoeFinancialSystem() {
     }
   };
   const runSkillAnalytics = async () => {
-    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    const base = N8N_BASE;
     if (!base) return;
     setUploadStage('analyzing');
     try {
@@ -1618,7 +1619,7 @@ export default function PoeFinancialSystem() {
     }
   };
   const runMatchedServices = async () => {
-    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    const base = N8N_BASE;
     if (!base) return;
     setUploadStage('matching');
     try {
@@ -1663,7 +1664,7 @@ export default function PoeFinancialSystem() {
   });
   useEffect(() => {
     if (isAnyDemoMode) { setIngestData(d => ({ ...d, meta: { loaded: true, error: null } })); return; } // Demo + picker never call n8n.
-    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    const base = N8N_BASE;
     if (!base) {
       setIngestData(d => ({ ...d, meta: { loaded: true, error: 'VITE_N8N_WEBHOOK_BASE not set — ingest overlay disabled' } }));
       return;
@@ -6232,7 +6233,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
       next.add(fitid);
       return next;
     });
-    const base = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+    const base = N8N_BASE;
     if (!base) return; // local-only optimism; state will not persist
     try {
       const url = `${base.replace(/\/+$/, '')}/webhook/mark-noise`;

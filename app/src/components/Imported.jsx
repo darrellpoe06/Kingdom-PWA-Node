@@ -9,16 +9,15 @@
 // component via a single read-only HTTP endpoint. No Supabase involvement —
 // the PWA reads sovereign data directly from the family's own infrastructure.
 //
-// REQUIRES env var VITE_N8N_WEBHOOK_BASE to be set in Vercel, e.g.:
-//   https://192-168-1-26.poetech.direct.quickconnect.to:4443
-//
-// Falls back gracefully with a clear "configure VITE_N8N_WEBHOOK_BASE" hint
-// if the env var isn't set, so we don't show a confusing fetch error.
+// The n8n base URL is resolved by lib/n8n-base.js. By default it is the
+// same-origin "/n8n" path, which the Vercel rewrite (app/vercel.json) proxies
+// to the Tailscale Funnel. Routing same-origin avoids the Funnel relay's
+// cross-origin throttling — see
+// docs/99-session-notes/2026-06-01-research-review-wf18-unreachable.md.
 // =============================================================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-
-const N8N_BASE = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
+import { N8N_BASE } from '../lib/n8n-base.js';
 
 const STATUS_BADGE = {
   verified:    { color: '#16A34A', label: '✓ Verified',     hint: 'Matched a Gmail-claimed event within tolerance' },
@@ -50,11 +49,6 @@ export default function Imported() {
   const [filters, setFilters] = useState({ institution: '', status: 'all', since: '', search: '' });
 
   const fetchData = async () => {
-    if (!N8N_BASE) {
-      setError('VITE_N8N_WEBHOOK_BASE env var is not set. Add it to Vercel (and rebuild) pointing at your n8n base URL — e.g., https://192-168-1-26.poetech.direct.quickconnect.to:4443 — so this view can fetch from workflow 18.');
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
