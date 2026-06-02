@@ -12,10 +12,10 @@ const PROJECT_DOMAINS = [
   { key: 'family', label: 'Family', color: '#B85838' },
   { key: 'friends', label: 'Friends · Community', color: '#8B6F47' },
   { key: 'church', label: 'Church · Ministry', color: '#7A5A8E' },
-  { key: 'business-poetech', label: 'PoeTech', color: '#1A1815' },
-  { key: 'business-poeprops', label: 'Poe Properties', color: '#5A4A2E' },
-  { key: 'business-tlc', label: 'TLC Therapy', color: '#3E6E78' },
-  { key: 'business-uiuc', label: 'UIUC · Day Job', color: '#4A4A4A' },
+  { key: 'business-poetech', label: 'Cornerstone Tech', color: '#1A1815' },
+  { key: 'business-poeprops', label: 'Steward Real Estate', color: '#5A4A2E' },
+  { key: 'business-tlc', label: 'Wellness Practice', color: '#3E6E78' },
+  { key: 'business-uiuc', label: 'Regional University · Day Job', color: '#4A4A4A' },
   { key: 'tech', label: 'Tech · Repair · Build', color: '#2A5A8E' },
   { key: 'other', label: 'Other', color: '#5A5751' },
 ];
@@ -33,9 +33,9 @@ const CAPEX_STATUSES = ['planned','researching','wishlist','on-hold','purchased'
 const CAPEX_CATEGORIES = ['Networking','Tools','Storage','Home','Office','Vehicle','Software','Other'];
 
 const SCOPE_TEMPLATES = [
-  { id: 'tmpl-msw', name: 'MSW Clinical Contractor', type: 'clinical', description: 'For licensed clinical contractors joining TLC Therapy Solutions', entityId: 'e-tlc',
-    defaults: { title: 'Clinical Contractor Agreement', scopeOfWork: 'Provide licensed clinical mental health services to assigned clients of TLC Therapy Solutions LLC.', deliverables: '• Documented clinical sessions within 48 hours\n• Monthly caseload report\n• Quarterly case review participation', materials: 'TLC provides: EHR access, billing infrastructure, referral pipeline.\nContractor provides: Personal LCSW license, individual malpractice coverage.', schedule: 'Minimum 15 client hours/week. Maximum 30/week.', paymentTerms: '60/40 split. Paid bi-monthly via 1099. W-9 required.', acceptanceCriteria: 'Sessions documented per Illinois LCSW standards.', requirements: '• Active Illinois LCSW license\n• Individual professional liability insurance\n• W-9 on file\n• HIPAA training current', warranty: 'Services meet Illinois LCSW standards of care.', terminationClause: '30-day notice from either party.' }},
-  { id: 'tmpl-prop', name: 'Property Contractor', type: 'property', description: 'For tradespeople servicing Poe Properties LLC rentals', entityId: 'e-poeprops',
+  { id: 'tmpl-msw', name: 'MSW Clinical Contractor', type: 'clinical', description: 'For licensed clinical contractors joining the wellness practice', entityId: 'e-tlc',
+    defaults: { title: 'Clinical Contractor Agreement', scopeOfWork: 'Provide licensed clinical mental health services to assigned clients of the practice.', deliverables: '• Documented clinical sessions within 48 hours\n• Monthly caseload report\n• Quarterly case review participation', materials: 'Practice provides: EHR access, billing infrastructure, referral pipeline.\nContractor provides: Personal LCSW license, individual malpractice coverage.', schedule: 'Minimum 15 client hours/week. Maximum 30/week.', paymentTerms: '60/40 split. Paid bi-monthly via 1099. W-9 required.', acceptanceCriteria: 'Sessions documented per state LCSW standards.', requirements: '• Active state LCSW license\n• Individual professional liability insurance\n• W-9 on file\n• HIPAA training current', warranty: 'Services meet state LCSW standards of care.', terminationClause: '30-day notice from either party.' }},
+  { id: 'tmpl-prop', name: 'Property Contractor', type: 'property', description: 'For tradespeople servicing the real estate portfolio', entityId: 'e-poeprops',
     defaults: { title: 'Property Service Agreement', scopeOfWork: '[Describe specific work — what gets done, where, with what materials]', deliverables: '• Work meeting Illinois code\n• Photos of completed work\n• Final walkthrough', materials: '[Specify who provides what]', schedule: 'Start: [date]. Completion: [date].', paymentTerms: '50% deposit upon acceptance. 50% upon completion. Paid via 1099 if > $600/yr.', acceptanceCriteria: 'Work passes inspection. All systems function.', requirements: '• Active Illinois trade license\n• General liability insurance $1M+\n• W-9 on file', warranty: 'Labor warranty: 1 year. Materials per manufacturer.', terminationClause: '7 days written notice with cure opportunity.' }},
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
@@ -237,7 +237,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Projects · Timeline · Workload</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>See your whole life at once.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Personal projects · family commitments · friend time · church work · day job · PoeTech · Poe Properties · TLC · tech repairs. Every project has a start, an end, and a weekly load. Track them all in one place so you can see when things are heavy and when they ease up. Coordinate, not just survive.
+          Personal projects · family commitments · friend time · church work · day job · tech consulting · rental real estate · clinical practice · tech repairs. Every project has a start, an end, and a weekly load. Track them all in one place so you can see when things are heavy and when they ease up. Coordinate, not just survive.
         </p>
       </section>
 
@@ -336,7 +336,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity (optional)</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}>
-                  <option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option>
+                  <option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option>
                 </select>
               </div>
             </div>
@@ -378,12 +378,12 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             </p>
             <button type="button" onClick={() => {
               const examples = [
-                { title: 'PoeTech v1 Public Launch · Loved Ones cohort', startDate: '2026-05-16', endDate: '2026-09-30', status: 'active', domain: 'business-poetech', description: 'Foundation launch through Church of the Living God. Onboard first 100 founding families. Validate pricing tiers and core Financial module.', hoursPerWeek: 20, entityId: 'e-poetech' },
-                { title: 'Christiana college transition', startDate: '2026-05-16', endDate: '2026-08-25', status: 'active', domain: 'family', description: 'Visits, paperwork, dorm prep, financial aid coordination, the goodbye conversations that matter.', hoursPerWeek: 4, entityId: 'e-personal' },
+                { title: 'Cornerstone Tech v1 Public Launch · Loved Ones cohort', startDate: '2026-05-16', endDate: '2026-09-30', status: 'active', domain: 'business-poetech', description: 'Foundation launch through Cornerstone Community Church. Onboard first 100 founding families. Validate pricing tiers and core Financial module.', hoursPerWeek: 20, entityId: 'e-poetech' },
+                { title: 'Hannah college transition', startDate: '2026-05-16', endDate: '2026-08-25', status: 'active', domain: 'family', description: 'Visits, paperwork, dorm prep, financial aid coordination, the goodbye conversations that matter.', hoursPerWeek: 4, entityId: 'e-personal' },
                 { title: 'Sponsor outreach Q3 — first cohort', startDate: '2026-06-01', endDate: '2026-08-31', status: 'planning', domain: 'business-poetech', description: 'Reach out to Tier B + C targets. Sign 1 Module Sponsor + 2 Directory Partners by Sept.', hoursPerWeek: 5, entityId: 'e-poetech' },
-                { title: '1508 Holly Hill — resolve LATE rent', startDate: '2026-05-16', endDate: '2026-06-15', status: 'ending-soon', domain: 'business-poeprops', description: 'Tenant conversation, payment plan or escalation. Recover $850 gap or transition unit.', hoursPerWeek: 3, entityId: 'e-poeprops' },
-                { title: 'TLC — add 1-2 MSW contractors', startDate: '2026-06-01', endDate: '2026-09-15', status: 'planning', domain: 'business-tlc', description: 'Recruit through Christina\'s clinical network. Each contractor = ~$2K/mo additional revenue.', hoursPerWeek: 4, entityId: 'e-tlc' },
-                { title: 'Holy Spirit Integration Worldview · finish + KDP', startDate: '2026-05-16', endDate: '2026-11-30', status: 'active', domain: 'business-poetech', description: 'Complete the book. KDP submission. Print proof. Launch alongside Spiritual Life module.', hoursPerWeek: 6, entityId: 'e-poetech' },
+                { title: '1521 Oak Ave — resolve LATE rent', startDate: '2026-05-16', endDate: '2026-06-15', status: 'ending-soon', domain: 'business-poeprops', description: 'Tenant conversation, payment plan or escalation. Recover $850 gap or transition unit.', hoursPerWeek: 3, entityId: 'e-poeprops' },
+                { title: 'Wellness Practice — add 1-2 MSW contractors', startDate: '2026-06-01', endDate: '2026-09-15', status: 'planning', domain: 'business-tlc', description: 'Recruit through Naomi\'s clinical network. Each contractor = ~$2K/mo additional revenue.', hoursPerWeek: 4, entityId: 'e-tlc' },
+                { title: 'Worldview teaching book · finish + publish', startDate: '2026-05-16', endDate: '2026-11-30', status: 'active', domain: 'business-poetech', description: 'Complete the book. Publishing submission. Print proof. Launch alongside Spiritual Life module.', hoursPerWeek: 6, entityId: 'e-poetech' },
               ];
               examples.forEach(ex => addProject(ex));
             }} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
@@ -478,7 +478,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Hours / week</label><input type="number" min="0" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.hoursPerWeek} onChange={e => setNewProject({...newProject, hoursPerWeek: parseInt(e.target.value) || 0})} /></div>
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}><option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option></select></div>
+                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></select></div>
                       </div>
                       <div>
                         <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned</label>

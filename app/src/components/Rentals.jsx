@@ -838,7 +838,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>Own each property outright within seven years, so the seventh year is real rest.</p>
       </section>
       <section>
-        <SectionTitle>11 Doors · Poe Properties LLC</SectionTitle>
+        <SectionTitle>11 Doors · Steward Real Estate LLC</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-4">
           <MetricCell label="Mortgage debt" value={fmtCompact(totals.totalRentalDebt)} sub="est." small accent="rust" />
           <MetricCell label="Monthly P&I" value={fmt(totals.totalRentalPI)} small />
@@ -860,7 +860,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
             <div>
               <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
-              <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="123 Main St, Champaign" value={propForm.address} onChange={e => { setPropForm({ ...propForm, address: e.target.value }); fetchSuggestions(e.target.value); }} />
+              <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="123 Main St, Cedar Heights" value={propForm.address} onChange={e => { setPropForm({ ...propForm, address: e.target.value }); fetchSuggestions(e.target.value); }} />
               {suggestLoading && <div className="text-[10px] text-[#5A5751] italic mt-1">Searching...</div>}
               {suggestions.length > 0 && (
                 <div className="border border-[#E8E4DC] bg-white mt-1 max-h-48 overflow-y-auto">
@@ -1198,7 +1198,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                               </div>
                               <div>
                                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Vendor</label>
-                                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Reyes Roofing" value={maintForm.vendor} onChange={e => setMaintForm({ ...maintForm, vendor: e.target.value })} />
+                                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Roofing Contractor" value={maintForm.vendor} onChange={e => setMaintForm({ ...maintForm, vendor: e.target.value })} />
                               </div>
                             </div>
                             <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="What was done? (required)" value={maintForm.description} onChange={e => setMaintForm({ ...maintForm, description: e.target.value })} />
@@ -1442,7 +1442,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       </section>
 
       <section>
-        <SectionTitle>Property Map · Champaign-Urbana</SectionTitle>
+        <SectionTitle>Property Map · Cedar Heights area</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-3">
           <div ref={mapRef} style={{ height: '360px', width: '100%' }} aria-label="Map of rental properties" />
           <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>

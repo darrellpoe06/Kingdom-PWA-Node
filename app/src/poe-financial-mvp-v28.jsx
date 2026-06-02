@@ -31,37 +31,56 @@ import { computeReserves } from './lib/financial-calcs.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
+//
+// SEED_DATA — SANITIZED ASPIRATIONAL FAMILY (2026-06-01).
+//
+// This is NOT real Poe family data. It models a generic well-stewarded
+// family profile for public-demo visitors to poetech.us. Addresses, LLC
+// names, creditor names, family member names, and dollar amounts are all
+// composites designed to demonstrate good-credit, multi-generational,
+// non-blood-family-collaboration stewardship patterns per the binding
+// SEED-DATA-AS-ASPIRATION + DATA-AS-EMPOWERMENT foundation docs.
+//
+// Real Poe family data lives in the Poe-family-configured instance only,
+// never the public default seed.
+//
+// Phase 2 (post-vacation, with full research-review per
+// feedback-research-first): replace this single-persona aspirational
+// seed with a good/better/best multi-persona system showing different
+// maturity levels + non-blood-family collaboration models. See
+// docs/00-foundations/_root/SEED-DATA-AS-ASPIRATION.md +
+// agent/memory/project_seed_data_aspirational_families.md.
 // =============================================================================
 const SEED_DATA = {
-  meta: { lastUpdated: '2026-05-17', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 0, appVersion: '28.1', releaseLabel: 'MVP v1.5', releaseNote: 'Real Estate ops (lease · tenant contact · equipment · rooms) + Buffer Fund widget + Capex list. WCAG 2.1 AA holds across new fields.', moduleSlug: 'financial', taxStructure: { filing: 'joint-1040', scheduleC: ['e-tlc', 'e-poetech'], scheduleE: ['e-poeprops'], sCorpElected: [], withholdingCoversFederal: true, withholdingCoversState: true, state: 'IL', county: 'Champaign', propertyTaxEscrowed: true }},
+  meta: { lastUpdated: '2026-05-17', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 0, appVersion: '28.1', releaseLabel: 'MVP v1.5', releaseNote: 'Real Estate ops (lease · tenant contact · equipment · rooms) + Buffer Fund widget + Capex list. WCAG 2.1 AA holds across new fields.', moduleSlug: 'financial', taxStructure: { filing: 'joint-1040', scheduleC: ['e-tlc', 'e-poetech'], scheduleE: ['e-poeprops'], sCorpElected: [], withholdingCoversFederal: true, withholdingCoversState: true, state: 'IL', county: 'Cedar Heights', propertyTaxEscrowed: true }},
   entities: [
     // Multi-user Layer A (2026-05-28) — `visibleTo` gates per-profile views.
     // Layer A is UX privacy (client-side filter); Layer B will add sovereign
     // auth via workflow 21 + session token. See
     // docs/99-session-notes/2026-05-28-brief-multi-user-profiles.md.
     // 'family' profile sees everything; 'guest' sees only personal totals.
-    { id: 'e-personal', name: 'Personal (Darrell + Christina)', type: 'personal', notes: 'Joint household', visibleTo: ['darrell', 'christina', 'family'] },
-    { id: 'e-poeprops', name: 'Poe Properties LLC', type: 'business', notes: '11 rental doors', visibleTo: ['darrell'] },
-    { id: 'e-poetech',  name: 'PoeTech LLC', type: 'business', notes: 'Tech consulting & products', visibleTo: ['darrell'] },
-    { id: 'e-tlc',      name: 'TLC Therapy Solutions LLC', type: 'business', notes: "Christina's MSW practice", visibleTo: ['darrell', 'christina'] },
+    { id: 'e-personal', name: 'Personal (Adam + Naomi)', type: 'personal', notes: 'Joint household', visibleTo: ['darrell', 'christina', 'family'] },
+    { id: 'e-poeprops', name: 'Steward Real Estate LLC', type: 'business', notes: '11 rental doors', visibleTo: ['darrell'] },
+    { id: 'e-poetech',  name: 'Cornerstone Tech LLC', type: 'business', notes: 'Tech consulting & products', visibleTo: ['darrell'] },
+    { id: 'e-tlc',      name: 'Wellness Counseling Practice LLC', type: 'business', notes: "Naomi's MSW practice", visibleTo: ['darrell', 'christina'] },
   ],
   accounts: [
-    { id: 'a-chase-pers-8168', entityId: 'e-personal', name: 'Chase Personal Checking', institution: 'Chase', type: 'checking', fragment: '...8168', balance: 4223 },
-    { id: 'a-chase-pers-3322', entityId: 'e-personal', name: 'Chase Personal Checking 2', institution: 'Chase', type: 'checking', fragment: '...3322', balance: 1200 },
-    { id: 'a-cc-amex-dp', entityId: 'e-personal', name: 'AMEX Darrell', institution: 'AMEX', type: 'credit', fragment: '...DP', balance: -19811 },
-    { id: 'a-cc-chase-freedom', entityId: 'e-personal', name: 'Chase Freedom', institution: 'Chase', type: 'credit', fragment: '', balance: -12992 },
-    { id: 'a-cc-chase-sapph', entityId: 'e-personal', name: 'Chase Sapphire', institution: 'Chase', type: 'credit', fragment: '', balance: -29948 },
-    { id: 'a-poeprops-op', entityId: 'e-poeprops', name: 'Poe Props Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0 },
-    { id: 'a-poetech-op', entityId: 'e-poetech', name: 'PoeTech Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0 },
-    { id: 'a-poetech-cc', entityId: 'e-poetech', name: '1st Mid CC Business', institution: '1st Mid', type: 'credit', fragment: '...6281', balance: -7308 },
-    { id: 'a-tlc-op', entityId: 'e-tlc', name: 'TLC Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0 },
+    { id: 'a-chase-pers-8168', entityId: 'e-personal', name: 'Personal Checking A', institution: 'Bank A', type: 'checking', fragment: '...8168', balance: 4223 },
+    { id: 'a-chase-pers-3322', entityId: 'e-personal', name: 'Personal Checking B', institution: 'Bank A', type: 'checking', fragment: '...3322', balance: 1200 },
+    { id: 'a-cc-amex-dp', entityId: 'e-personal', name: 'Card J (Adam)', institution: 'Card J', type: 'credit', fragment: '...AD', balance: -19811 },
+    { id: 'a-cc-chase-freedom', entityId: 'e-personal', name: 'Card F (Rewards)', institution: 'Bank A', type: 'credit', fragment: '', balance: -12992 },
+    { id: 'a-cc-chase-sapph', entityId: 'e-personal', name: 'Card F (Travel)', institution: 'Bank A', type: 'credit', fragment: '', balance: -29948 },
+    { id: 'a-poeprops-op', entityId: 'e-poeprops', name: 'Steward RE Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0 },
+    { id: 'a-poetech-op', entityId: 'e-poetech', name: 'Cornerstone Tech Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0 },
+    { id: 'a-poetech-cc', entityId: 'e-poetech', name: 'Business Card A', institution: 'Bank B', type: 'credit', fragment: '...6281', balance: -7308 },
+    { id: 'a-tlc-op', entityId: 'e-tlc', name: 'Wellness Practice Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0 },
   ],
   transactions: [
     { id: 't1', date: '2026-05-01', accountId: 'a-chase-pers-8168', amount: 500.00, description: 'Online Transfer from CHK ...8168', category: 'transfer', isTransfer: true },
-    { id: 't5', date: '2026-05-04', accountId: 'a-chase-pers-8168', amount: 1150.00, description: 'Zelle from DELLORES TRACY (rent)', category: 'rental-income', entityOverride: 'e-poeprops' },
-    { id: 't7', date: '2026-05-06', accountId: 'a-chase-pers-8168', amount: 2099.93, description: 'UIUC Payroll', category: 'salary' },
-    { id: 't11', date: '2026-05-14', accountId: 'a-chase-pers-8168', amount: 2865.53, description: 'State of IL Payroll (Christina)', category: 'salary' },
-    { id: 't13', date: '2026-05-15', accountId: 'a-chase-pers-8168', amount: 550.00, description: 'Zelle from DETASHA (rent)', category: 'rental-income', entityOverride: 'e-poeprops' },
+    { id: 't5', date: '2026-05-04', accountId: 'a-chase-pers-8168', amount: 1150.00, description: 'Zelle from TENANT A (rent)', category: 'rental-income', entityOverride: 'e-poeprops' },
+    { id: 't7', date: '2026-05-06', accountId: 'a-chase-pers-8168', amount: 2099.93, description: 'Regional University Payroll', category: 'salary' },
+    { id: 't11', date: '2026-05-14', accountId: 'a-chase-pers-8168', amount: 2865.53, description: 'State Payroll (Naomi)', category: 'salary' },
+    { id: 't13', date: '2026-05-15', accountId: 'a-chase-pers-8168', amount: 550.00, description: 'Zelle from TENANT B (rent)', category: 'rental-income', entityOverride: 'e-poeprops' },
   ],
   contractors1099: [
     { id: 'k1', direction: 'outbound', entityId: 'e-tlc', name: 'MSW Contractor 1', role: 'Licensed clinical contractor', ytdPaid: 8400, monthly: 2800, status: 'active' },
@@ -71,9 +90,9 @@ const SEED_DATA = {
     // ($25K-$75K/mo retainers, $400-$800/hr senior rate). Old conservative
     // placeholders ($1.5K, $800, $1K) were leftover from a "side gig" framing
     // that contradicted the rest of the Dev/Ops messaging.
-    { id: 'k4', direction: 'inbound', entityId: 'e-poetech', name: 'Federal Companies', role: 'Enterprise network architecture · OT-IT integration', ytdReceived: 0, monthlyExpected: 25000, status: 'pipeline' },
+    { id: 'k4', direction: 'inbound', entityId: 'e-poetech', name: 'Regional Enterprise Client A', role: 'Enterprise network architecture · OT-IT integration', ytdReceived: 0, monthlyExpected: 25000, status: 'pipeline' },
     { id: 'k5', direction: 'inbound', entityId: 'e-poetech', name: 'Mid-market churches · AV + streaming systems', role: 'Multi-site AV install + ongoing managed services retainer', ytdReceived: 0, monthlyExpected: 4500, status: 'pipeline' },
-    { id: 'k6', direction: 'inbound', entityId: 'e-poetech', name: 'UIUC F&S (1099)', role: 'BAS / Siemens controls consulting — senior architect rate', ytdReceived: 0, monthlyExpected: 12000, status: 'possible' },
+    { id: 'k6', direction: 'inbound', entityId: 'e-poetech', name: 'Regional University Facilities (1099)', role: 'BAS / Siemens controls consulting — senior architect rate', ytdReceived: 0, monthlyExpected: 12000, status: 'possible' },
   ],
   taxCalendar: [
     { id: 'tx-1099-nec', month: 1, day: 31, name: '1099-NEC issuance', desc: 'Issue 1099-NEC to all contractors paid ≥ $600', entityIds: ['e-tlc'], applies: true },
@@ -85,8 +104,8 @@ const SEED_DATA = {
   recurringObligations: [
     { id: 'ro-il-llc-3', name: 'Illinois LLC annual reports (3 LLCs)', amount: 225, frequency: 'annual', nextDue: '2026-08-01', entityId: 'e-poeprops', category: 'compliance', enabled: true },
     { id: 'ro-veh-reg-2', name: 'Vehicle registration (2 vehicles)', amount: 302, frequency: 'annual', nextDue: '2026-12-01', entityId: 'e-personal', category: 'vehicle', enabled: true },
-    { id: 'ro-msw-license', name: 'Christina MSW license renewal', amount: 208, frequency: 'biennial', nextDue: '2027-11-30', entityId: 'e-tlc', category: 'professional', enabled: true },
-    { id: 'ro-ceu-msw', name: 'CEU costs (Christina MSW)', amount: 500, frequency: 'annual', nextDue: '2026-11-01', entityId: 'e-tlc', category: 'professional', enabled: true },
+    { id: 'ro-msw-license', name: 'Naomi MSW license renewal', amount: 208, frequency: 'biennial', nextDue: '2027-11-30', entityId: 'e-tlc', category: 'professional', enabled: true },
+    { id: 'ro-ceu-msw', name: 'CEU costs (Naomi MSW)', amount: 500, frequency: 'annual', nextDue: '2026-11-01', entityId: 'e-tlc', category: 'professional', enabled: true },
     { id: 'ro-state-farm', name: 'State Farm — home + auto', amount: 823, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-personal', category: 'insurance', enabled: true },
   ],
   // Round 10 — incidents extended with ITSM urgency taxonomy. Old records
@@ -96,29 +115,29 @@ const SEED_DATA = {
   // maintenance, prayer requests with action needed, etc.) flows through this
   // same shape so the Action Queue can show them in one consolidated view.
   incidents: [
-    { id: 'in1', date: '2026-05-01', amount: 300.00, category: 'vehicle', entityId: 'e-personal', description: 'Tatmans Towing', urgency: 'incident', status: 'resolved', dueDate: '2026-05-01', resolvedAt: '2026-05-01' },
-    { id: 'in3', date: '2026-05-06', amount: 500.00, category: 'property', entityId: 'e-poeprops', description: 'Animal Damage Control', urgency: 'incident', status: 'resolved', dueDate: '2026-05-09', resolvedAt: '2026-05-06' },
-    { id: 'in5', date: '2026-05-13', amount: 363.00, category: 'medical', entityId: 'e-personal', description: 'Robert W Shafer Orthodontics', urgency: 'incident', status: 'resolved', dueDate: '2026-05-16', resolvedAt: '2026-05-13' },
+    { id: 'in1', date: '2026-05-01', amount: 300.00, category: 'vehicle', entityId: 'e-personal', description: 'Local Towing Service', urgency: 'incident', status: 'resolved', dueDate: '2026-05-01', resolvedAt: '2026-05-01' },
+    { id: 'in3', date: '2026-05-06', amount: 500.00, category: 'property', entityId: 'e-poeprops', description: 'Pest / wildlife control', urgency: 'incident', status: 'resolved', dueDate: '2026-05-09', resolvedAt: '2026-05-06' },
+    { id: 'in5', date: '2026-05-13', amount: 363.00, category: 'medical', entityId: 'e-personal', description: 'Family orthodontics visit', urgency: 'incident', status: 'resolved', dueDate: '2026-05-16', resolvedAt: '2026-05-13' },
     // Active items so the Action Queue renders something meaningful on first load.
-    { id: 'in-tenant-late', date: '2026-05-15', amount: 850.00, category: 'tenant', entityId: 'e-poeprops', description: 'Tenant at 1508 Holly Hill behind on rent', urgency: 'incident', status: 'open', dueDate: '2026-05-18', linkedTo: { type: 'rental', id: 'r3' } },
-    { id: 'in-hvac-down', date: '2026-05-16', amount: 0, category: 'maintenance', entityId: 'e-poeprops', description: '805 Apt 2 furnace blowing cold air', urgency: 'change', status: 'open', dueDate: '2026-05-16', linkedTo: { type: 'rental', id: 'r5' } },
+    { id: 'in-tenant-late', date: '2026-05-15', amount: 850.00, category: 'tenant', entityId: 'e-poeprops', description: 'Tenant at 1521 Oak Ave behind on rent', urgency: 'incident', status: 'open', dueDate: '2026-05-18', linkedTo: { type: 'rental', id: 'r3' } },
+    { id: 'in-hvac-down', date: '2026-05-16', amount: 0, category: 'maintenance', entityId: 'e-poeprops', description: '240 Cedar Ln Apt 2 furnace blowing cold air', urgency: 'change', status: 'open', dueDate: '2026-05-16', linkedTo: { type: 'rental', id: 'r5' } },
   ],
   scopes: [
     // v28+ Example scope — visible in Projects > Scopes tab so users see what a
     // filled-out contractor agreement looks like before they write their first.
     {
-      id: 'sc-example-roof-1508',
+      id: 'sc-example-roof-1521',
       templateType: 'property',
       templateName: 'Property Contractor',
-      title: '1508 Holly Hill — Roof Replacement',
+      title: '1521 Oak Ave — Roof Replacement',
       entityId: 'e-poeprops',
       projectId: 'pr-example-4',
-      contractorName: 'Tomas Reyes',
-      contractorEmail: 'tomas@reyesroofing-cu.example',
-      contractorPhone: '(217) 555-0119',
-      scopeOfWork: 'Complete tear-off of existing 3-tab asphalt shingle roof at 1508 Holly Hill Dr, Champaign IL. Replace decking where needed (estimated 4 sheets). Install 30-year architectural shingles (CertainTeed Landmark or equivalent), new underlayment, ice & water shield on eaves and valleys, new pipe boots, new ridge vent, new drip edge. Haul off all debris. Final inspection walk with owner.',
-      deliverables: '• Existing roof torn off to deck and disposed of\n• Replacement decking installed where rotted or soft\n• New underlayment + ice & water shield per Illinois code\n• 30-year architectural shingles installed manufacturer-spec\n• New pipe boots, ridge vent, drip edge\n• Site cleaned of nails, shingles, debris\n• Photos of each stage (decking, underlayment, finished)\n• Manufacturer warranty paperwork delivered to owner',
-      materials: 'Reyes Roofing provides: shingles, underlayment, ice & water, drip edge, ridge vent, nails, pipe boots, dumpster, magnetic nail sweep.\nPoe Properties provides: power and water access during work.\nAny decking replacement beyond 4 sheets billed at $65/sheet supplied + installed.',
+      contractorName: 'Sample Contractor',
+      contractorEmail: 'sample@example-roofing.example',
+      contractorPhone: '(555) 555-0119',
+      scopeOfWork: 'Complete tear-off of existing 3-tab asphalt shingle roof at 1521 Oak Ave, Cedar Heights IL. Replace decking where needed (estimated 4 sheets). Install 30-year architectural shingles (manufacturer equivalent), new underlayment, ice & water shield on eaves and valleys, new pipe boots, new ridge vent, new drip edge. Haul off all debris. Final inspection walk with owner.',
+      deliverables: '• Existing roof torn off to deck and disposed of\n• Replacement decking installed where rotted or soft\n• New underlayment + ice & water shield per code\n• 30-year architectural shingles installed manufacturer-spec\n• New pipe boots, ridge vent, drip edge\n• Site cleaned of nails, shingles, debris\n• Photos of each stage (decking, underlayment, finished)\n• Manufacturer warranty paperwork delivered to owner',
+      materials: 'Contractor provides: shingles, underlayment, ice & water, drip edge, ridge vent, nails, pipe boots, dumpster, magnetic nail sweep.\nProperty owner provides: power and water access during work.\nAny decking replacement beyond 4 sheets billed at $65/sheet supplied + installed.',
       schedule: 'Start: 2026-06-09 (weather permitting). Substantial completion: 2026-06-12. Final walkthrough: 2026-06-13.',
       paymentTerms: '50% deposit ($4,400) on materials delivery. Balance ($4,400) within 7 days of acceptance walkthrough. Paid via 1099 (W-9 on file). Decking overage invoiced separately at completion.',
       acceptanceCriteria: 'No visible defects from ground. No exposed nails. Ridge vent installed straight. All penetrations sealed. Owner walks roof line with contractor and signs acceptance sheet. 1-day rain test before final payment is released.',
@@ -131,12 +150,12 @@ const SEED_DATA = {
   ],
   events: [], // v7: events array — user adds these
   projects: [
-    { id: 'pr-example-1', title: 'PoeTech v1 Public Launch · Loved Ones cohort', startDate: '2026-05-16', endDate: '2026-09-30', status: 'active', domain: 'business-poetech', description: 'Foundation launch through Church of the Living God. Onboard first 100 founding families. Validate pricing tiers and core Financial module.', hoursPerWeek: 20, entityId: 'e-poetech', createdAt: '2026-05-16T00:00:00.000Z' },
-    { id: 'pr-example-2', title: 'Christiana college transition', startDate: '2026-05-16', endDate: '2026-08-25', status: 'active', domain: 'family', description: 'Visits, paperwork, dorm prep, financial aid coordination, the goodbye conversations that matter.', hoursPerWeek: 4, entityId: 'e-personal', createdAt: '2026-05-16T00:00:00.000Z' },
+    { id: 'pr-example-1', title: 'Cornerstone Tech v1 Public Launch · Loved Ones cohort', startDate: '2026-05-16', endDate: '2026-09-30', status: 'active', domain: 'business-poetech', description: 'Foundation launch through Cornerstone Community Church. Onboard first 100 founding families. Validate pricing tiers and core Financial module.', hoursPerWeek: 20, entityId: 'e-poetech', createdAt: '2026-05-16T00:00:00.000Z' },
+    { id: 'pr-example-2', title: 'Hannah college transition', startDate: '2026-05-16', endDate: '2026-08-25', status: 'active', domain: 'family', description: 'Visits, paperwork, dorm prep, financial aid coordination, the goodbye conversations that matter.', hoursPerWeek: 4, entityId: 'e-personal', createdAt: '2026-05-16T00:00:00.000Z' },
     { id: 'pr-example-3', title: 'Sponsor outreach Q3 — first cohort', startDate: '2026-06-01', endDate: '2026-08-31', status: 'planning', domain: 'business-poetech', description: 'Reach out to Tier B + C targets. Sign 1 Module Sponsor + 2 Directory Partners by Sept. Per sponsorship-ops brief.', hoursPerWeek: 5, entityId: 'e-poetech', createdAt: '2026-05-16T00:00:00.000Z' },
-    { id: 'pr-example-4', title: '1508 Holly Hill — resolve LATE rent', startDate: '2026-05-16', endDate: '2026-06-15', status: 'ending-soon', domain: 'business-poeprops', description: 'Tenant conversation, payment plan or escalation per scope. Recover $850 gap or transition unit.', hoursPerWeek: 3, entityId: 'e-poeprops', createdAt: '2026-05-16T00:00:00.000Z' },
-    { id: 'pr-example-5', title: 'TLC — add 1-2 MSW contractors', startDate: '2026-06-01', endDate: '2026-09-15', status: 'planning', domain: 'business-tlc', description: 'Recruit through Christina\'s clinical network. New scope agreements. Onboard via Practice Operations. Each contractor = ~$2K/mo additional revenue.', hoursPerWeek: 4, entityId: 'e-tlc', createdAt: '2026-05-16T00:00:00.000Z' },
-    { id: 'pr-example-6', title: 'Holy Spirit Integration Worldview · finish + KDP', startDate: '2026-05-16', endDate: '2026-11-30', status: 'active', domain: 'business-poetech', description: 'Complete the book. KDP submission. Print proof. Launch alongside Spiritual Life module.', hoursPerWeek: 6, entityId: 'e-poetech', createdAt: '2026-05-16T00:00:00.000Z' },
+    { id: 'pr-example-4', title: '1521 Oak Ave — resolve LATE rent', startDate: '2026-05-16', endDate: '2026-06-15', status: 'ending-soon', domain: 'business-poeprops', description: 'Tenant conversation, payment plan or escalation per scope. Recover $850 gap or transition unit.', hoursPerWeek: 3, entityId: 'e-poeprops', createdAt: '2026-05-16T00:00:00.000Z' },
+    { id: 'pr-example-5', title: 'Wellness Practice — add 1-2 MSW contractors', startDate: '2026-06-01', endDate: '2026-09-15', status: 'planning', domain: 'business-tlc', description: 'Recruit through Naomi\'s clinical network. New scope agreements. Onboard via Practice Operations. Each contractor = ~$2K/mo additional revenue.', hoursPerWeek: 4, entityId: 'e-tlc', createdAt: '2026-05-16T00:00:00.000Z' },
+    { id: 'pr-example-6', title: 'Worldview teaching book · finish + publish', startDate: '2026-05-16', endDate: '2026-11-30', status: 'active', domain: 'business-poetech', description: 'Complete the book. Publishing submission. Print proof. Launch alongside Spiritual Life module.', hoursPerWeek: 6, entityId: 'e-poetech', createdAt: '2026-05-16T00:00:00.000Z' },
   ], // v17/v22: project timelines with start/end dates — workload coordination · examples to show usage
   subscriptions: [], // v18: recurring monthly purchases · cart · subscription audit
   feedback: [], // v24: tester feedback collection · MVP
@@ -144,68 +163,68 @@ const SEED_DATA = {
   checkoutIntents: [], // v28+ Session C: cart intents (tier selected, action taken)
   userTier: 'foundation', // v28+ free entry tier; flips when a paid subscription is processed
   inquiries: [
-    { id: 'inq-ex1', firstName: 'Maya R.', contactMethod: 'phone', phone: '(217) 555-0142', interestArea: 'individual', hasInsurance: 'Y', preferredProvider: 'Christina Poe', bestTimeToCall: 'Weekday evenings', source: 'church', sourceDetail: 'COLG referral', notes: 'Seeking faith-integrated therapy, recommended by pastor.', status: 'new', receivedAt: '2026-05-14T14:30:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-14T14:30:00.000Z' }] },
-    { id: 'inq-ex2', firstName: 'James T.', contactMethod: 'email', email: 'jt****@example.com', interestArea: 'couples', hasInsurance: 'unsure', preferredProvider: 'any', bestTimeToCall: 'Lunch hour', source: 'google', sourceDetail: 'Searched faith-based therapy Champaign', notes: 'Wife and I both want to try counseling.', status: 'attempting-contact', receivedAt: '2026-05-13T09:15:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-13T09:15:00.000Z' }, { status: 'attempting-contact', at: '2026-05-14T10:00:00.000Z' }] },
-    { id: 'inq-ex3', firstName: 'Tasha W.', contactMethod: 'phone', phone: '(217) 555-0189', interestArea: 'family', hasInsurance: 'Y', preferredProvider: 'Sheronda Smith-Williams', bestTimeToCall: 'After 6pm', source: 'instagram', sourceDetail: 'TLC IG post', notes: 'Family conflict, three teens.', status: 'scheduled-intake', receivedAt: '2026-05-10T11:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-10T11:00:00.000Z' }, { status: 'contacted', at: '2026-05-11T15:00:00.000Z' }, { status: 'scheduled-intake', at: '2026-05-12T14:00:00.000Z', notes: 'Intake scheduled in Acuity for 5/19' }] },
-    { id: 'inq-ex4', firstName: 'Marcus L.', contactMethod: 'phone', phone: '(217) 555-0201', interestArea: 'individual', hasInsurance: 'N', preferredProvider: 'any', bestTimeToCall: 'Morning', source: 'word-of-mouth', sourceDetail: 'Friend referral', notes: 'Self-pay, working through grief.', status: 'contacted', receivedAt: '2026-05-12T16:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-12T16:00:00.000Z' }, { status: 'contacted', at: '2026-05-13T11:00:00.000Z' }] },
-    { id: 'inq-ex5', firstName: 'Rev. K.', contactMethod: 'email', email: 'pastor****@example.org', interestArea: 'consultation', hasInsurance: 'unsure', preferredProvider: 'Christina Poe', bestTimeToCall: 'Tuesdays', source: 'church', sourceDetail: 'Pastor at sister church', notes: 'Clinical consultation for congregant referrals.', status: 'scheduled-intake', receivedAt: '2026-05-08T13:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-08T13:00:00.000Z' }, { status: 'contacted', at: '2026-05-09T10:00:00.000Z' }, { status: 'scheduled-intake', at: '2026-05-10T09:00:00.000Z' }] },
-    { id: 'inq-ex6', firstName: 'Aaliyah B.', contactMethod: 'phone', phone: '(217) 555-0234', interestArea: 'child', hasInsurance: 'Y', preferredProvider: 'Carolyn Nicole Johnson', bestTimeToCall: 'School hours', source: 'facebook', sourceDetail: 'TLC FB post about adolescent therapy', notes: '13yo daughter, anxiety + school refusal.', status: 'new', receivedAt: '2026-05-15T10:30:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-15T10:30:00.000Z' }] },
-    { id: 'inq-ex7', firstName: 'Wendell S.', contactMethod: 'email', email: 'ws****@example.com', interestArea: 'individual', hasInsurance: 'Y', preferredProvider: 'any', bestTimeToCall: 'Anytime', source: 'website', sourceDetail: 'TLC contact form', notes: 'PTSD, Vet, prefer VA-accepting clinician.', status: 'scheduled-intake', receivedAt: '2026-05-09T08:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-09T08:00:00.000Z' }, { status: 'contacted', at: '2026-05-09T14:00:00.000Z' }, { status: 'scheduled-intake', at: '2026-05-10T11:00:00.000Z' }] },
-    { id: 'inq-ex8', firstName: 'Lakeisha M.', contactMethod: 'phone', phone: '(217) 555-0267', interestArea: 'individual', hasInsurance: 'unsure', preferredProvider: 'Christina Poe', bestTimeToCall: 'Lunch', source: 'church', sourceDetail: 'COLG women\'s ministry', notes: 'Marriage difficulty, considering separation.', status: 'declined', receivedAt: '2026-05-06T15:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-06T15:00:00.000Z' }, { status: 'contacted', at: '2026-05-07T10:00:00.000Z' }, { status: 'declined', at: '2026-05-08T16:00:00.000Z', notes: 'Husband not ready to participate' }] },
-  ], // v9/v23: practice inquiries — Christina logs these · examples show realistic pipeline
+    { id: 'inq-ex1', firstName: 'Sample R.', contactMethod: 'phone', phone: '(555) 555-0142', interestArea: 'individual', hasInsurance: 'Y', preferredProvider: 'Naomi (lead clinician)', bestTimeToCall: 'Weekday evenings', source: 'church', sourceDetail: 'Local church referral', notes: 'Seeking faith-integrated therapy, recommended by pastor.', status: 'new', receivedAt: '2026-05-14T14:30:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-14T14:30:00.000Z' }] },
+    { id: 'inq-ex2', firstName: 'Sample T.', contactMethod: 'email', email: 'jt****@example.com', interestArea: 'couples', hasInsurance: 'unsure', preferredProvider: 'any', bestTimeToCall: 'Lunch hour', source: 'google', sourceDetail: 'Searched faith-based therapy locally', notes: 'Wife and I both want to try counseling.', status: 'attempting-contact', receivedAt: '2026-05-13T09:15:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-13T09:15:00.000Z' }, { status: 'attempting-contact', at: '2026-05-14T10:00:00.000Z' }] },
+    { id: 'inq-ex3', firstName: 'Sample W.', contactMethod: 'phone', phone: '(555) 555-0189', interestArea: 'family', hasInsurance: 'Y', preferredProvider: 'Clinician A', bestTimeToCall: 'After 6pm', source: 'instagram', sourceDetail: 'Practice IG post', notes: 'Family conflict, three teens.', status: 'scheduled-intake', receivedAt: '2026-05-10T11:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-10T11:00:00.000Z' }, { status: 'contacted', at: '2026-05-11T15:00:00.000Z' }, { status: 'scheduled-intake', at: '2026-05-12T14:00:00.000Z', notes: 'Intake scheduled in scheduling tool for 5/19' }] },
+    { id: 'inq-ex4', firstName: 'Sample L.', contactMethod: 'phone', phone: '(555) 555-0201', interestArea: 'individual', hasInsurance: 'N', preferredProvider: 'any', bestTimeToCall: 'Morning', source: 'word-of-mouth', sourceDetail: 'Friend referral', notes: 'Self-pay, working through grief.', status: 'contacted', receivedAt: '2026-05-12T16:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-12T16:00:00.000Z' }, { status: 'contacted', at: '2026-05-13T11:00:00.000Z' }] },
+    { id: 'inq-ex5', firstName: 'Rev. K.', contactMethod: 'email', email: 'pastor****@example.org', interestArea: 'consultation', hasInsurance: 'unsure', preferredProvider: 'Naomi (lead clinician)', bestTimeToCall: 'Tuesdays', source: 'church', sourceDetail: 'Pastor at sister church', notes: 'Clinical consultation for congregant referrals.', status: 'scheduled-intake', receivedAt: '2026-05-08T13:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-08T13:00:00.000Z' }, { status: 'contacted', at: '2026-05-09T10:00:00.000Z' }, { status: 'scheduled-intake', at: '2026-05-10T09:00:00.000Z' }] },
+    { id: 'inq-ex6', firstName: 'Sample B.', contactMethod: 'phone', phone: '(555) 555-0234', interestArea: 'child', hasInsurance: 'Y', preferredProvider: 'Clinician B', bestTimeToCall: 'School hours', source: 'facebook', sourceDetail: 'Practice FB post about adolescent therapy', notes: '13yo daughter, anxiety + school refusal.', status: 'new', receivedAt: '2026-05-15T10:30:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-15T10:30:00.000Z' }] },
+    { id: 'inq-ex7', firstName: 'Sample S.', contactMethod: 'email', email: 'ws****@example.com', interestArea: 'individual', hasInsurance: 'Y', preferredProvider: 'any', bestTimeToCall: 'Anytime', source: 'website', sourceDetail: 'Practice contact form', notes: 'PTSD, Vet, prefer VA-accepting clinician.', status: 'scheduled-intake', receivedAt: '2026-05-09T08:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-09T08:00:00.000Z' }, { status: 'contacted', at: '2026-05-09T14:00:00.000Z' }, { status: 'scheduled-intake', at: '2026-05-10T11:00:00.000Z' }] },
+    { id: 'inq-ex8', firstName: 'Sample M.', contactMethod: 'phone', phone: '(555) 555-0267', interestArea: 'individual', hasInsurance: 'unsure', preferredProvider: 'Naomi (lead clinician)', bestTimeToCall: 'Lunch', source: 'church', sourceDetail: 'Local church women\'s ministry', notes: 'Marriage difficulty, considering separation.', status: 'declined', receivedAt: '2026-05-06T15:00:00.000Z', statusHistory: [{ status: 'new', at: '2026-05-06T15:00:00.000Z' }, { status: 'contacted', at: '2026-05-07T10:00:00.000Z' }, { status: 'declined', at: '2026-05-08T16:00:00.000Z', notes: 'Husband not ready to participate' }] },
+  ], // v9/v23: practice inquiries — clinician logs these · examples show realistic pipeline
   moduleInterest: {}, // v10: family signals interest in upcoming modules { moduleKey: ISO timestamp }
   inflows: {
     salaries: [
-      { id: 'd-uiuc', who: 'Darrell', source: 'UIUC salary', expected: 4200, actual: 4200, entityId: 'e-personal' },
-      { id: 'd-church', who: 'Darrell', source: 'Church stipend', expected: 480, actual: 480, entityId: 'e-personal' },
-      { id: 'c-state', who: 'Christina', source: 'State (Guardianship)', expected: 5731, actual: 5731, entityId: 'e-personal' },
-      { id: 'c-church', who: 'Christina', source: 'Church stipend', expected: 436, actual: 436, entityId: 'e-personal' },
-      { id: 'c-tlc', who: 'Christina', source: 'TLC Therapy Solutions', expected: 2200, actual: 4283, entityId: 'e-tlc' },
+      { id: 'd-uiuc', who: 'Adam', source: 'Regional University salary', expected: 4200, actual: 4200, entityId: 'e-personal' },
+      { id: 'd-church', who: 'Adam', source: 'Church stipend', expected: 480, actual: 480, entityId: 'e-personal' },
+      { id: 'c-state', who: 'Naomi', source: 'State (Guardianship)', expected: 5731, actual: 5731, entityId: 'e-personal' },
+      { id: 'c-church', who: 'Naomi', source: 'Church stipend', expected: 436, actual: 436, entityId: 'e-personal' },
+      { id: 'c-tlc', who: 'Naomi', source: 'Wellness Counseling Practice', expected: 2200, actual: 4283, entityId: 'e-tlc' },
     ],
     rentals: [
-      { id: 'r1', name: '1508 Williamsburg', address: '1508 Williamsburg', city: 'Champaign', state: 'IL', tenantName: '', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.50, monthlyPI: 556, escrow: 180, estimated: true } },
-      { id: 'r2', name: '1513 Holly Hill', address: '1513 Holly Hill', city: 'Champaign', state: 'IL', tenantName: '', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.50, monthlyPI: 556, escrow: 180, estimated: true } },
-      { id: 'r3', name: '1508 Holly Hill', address: '1508 Holly Hill', city: 'Champaign', state: 'IL', tenantName: '', rent: 1400, actual: 550, status: 'late', entityId: 'e-poeprops', mortgage: { balance: 110000, rate: 6.50, monthlyPI: 695, escrow: 220, estimated: true } },
-      { id: 'r4', name: '805 Apt 1', address: '805 Apt 1', city: 'Champaign', state: 'IL', tenantName: '', rent: 850, actual: 850, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
-      { id: 'r5', name: '805 Apt 2', address: '805 Apt 2', city: 'Champaign', state: 'IL', tenantName: '', rent: 950, actual: 950, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
-      { id: 'r6', name: '805 Apt 3', address: '805 Apt 3', city: 'Champaign', state: 'IL', tenantName: '', rent: 900, actual: 900, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
-      { id: 'r7', name: '805 Apt 4', address: '805 Apt 4', city: 'Champaign', state: 'IL', tenantName: '', rent: 1000, actual: 1000, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
-      { id: 'r8', name: '440 South Street', address: '440 South Street', city: 'Champaign', state: 'IL', tenantName: '', rent: 950, actual: 950, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.50, monthlyPI: 506, escrow: 170, estimated: true } },
-      { id: 'r9', name: '1003 Koehn', address: '1003 Koehn', city: 'Champaign', state: 'IL', tenantName: '', rent: 1250, actual: 1250, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 100000, rate: 6.50, monthlyPI: 632, escrow: 200, estimated: true } },
-      { id: 'r10', name: '1213 Koehn', address: '1213 Koehn', city: 'Champaign', state: 'IL', tenantName: '', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 95000, rate: 6.50, monthlyPI: 600, escrow: 195, estimated: true } },
-      { id: 'r11', name: '709 Commercial', address: '709 Commercial', city: 'Champaign', state: 'IL', tenantName: '', rent: 1000, actual: 1000, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.50, monthlyPI: 506, escrow: 170, estimated: true } },
-      // v28+ Personal residence — Talans Way. Mortgage figures are placeholder PITI; edit in Real Estate.
-      { id: 'home-talans', name: '2111 Talans Way', address: '2111 Talans Way', city: 'Champaign', state: 'IL', zip: '', tenantName: '', propertyType: 'primary-home', rent: 0, actual: 0, status: 'owner-occupied', entityId: 'e-personal', mortgage: { balance: 0, rate: 0, monthlyPI: 2400, escrow: 223, estimated: true }, notes: 'Primary residence. Fill in mortgage balance + rate from your latest statement; PITI is roughly $2,623/mo.' },
+      { id: 'r1', name: '1402 Maple St', address: '1402 Maple St', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.50, monthlyPI: 556, escrow: 180, estimated: true } },
+      { id: 'r2', name: '1517 Oak Ave', address: '1517 Oak Ave', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.50, monthlyPI: 556, escrow: 180, estimated: true } },
+      { id: 'r3', name: '1521 Oak Ave', address: '1521 Oak Ave', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1400, actual: 550, status: 'late', entityId: 'e-poeprops', mortgage: { balance: 110000, rate: 6.50, monthlyPI: 695, escrow: 220, estimated: true } },
+      { id: 'r4', name: '240 Cedar Ln Apt 1', address: '240 Cedar Ln Apt 1', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 850, actual: 850, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
+      { id: 'r5', name: '240 Cedar Ln Apt 2', address: '240 Cedar Ln Apt 2', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 950, actual: 950, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
+      { id: 'r6', name: '240 Cedar Ln Apt 3', address: '240 Cedar Ln Apt 3', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 900, actual: 900, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
+      { id: 'r7', name: '240 Cedar Ln Apt 4', address: '240 Cedar Ln Apt 4', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1000, actual: 1000, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 70000, rate: 6.50, monthlyPI: 442, escrow: 150, estimated: true } },
+      { id: 'r8', name: '312 Willow Ln', address: '312 Willow Ln', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 950, actual: 950, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.50, monthlyPI: 506, escrow: 170, estimated: true } },
+      { id: 'r9', name: '818 Birch St', address: '818 Birch St', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1250, actual: 1250, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 100000, rate: 6.50, monthlyPI: 632, escrow: 200, estimated: true } },
+      { id: 'r10', name: '821 Birch St', address: '821 Birch St', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 95000, rate: 6.50, monthlyPI: 600, escrow: 195, estimated: true } },
+      { id: 'r11', name: '506 Main Commercial Bldg', address: '506 Main Commercial Bldg', city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1000, actual: 1000, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.50, monthlyPI: 506, escrow: 170, estimated: true } },
+      // v28+ Personal residence — primary home. Mortgage figures are placeholder PITI; edit in Real Estate.
+      { id: 'home-talans', name: '1108 Sycamore Dr', address: '1108 Sycamore Dr', city: 'Cedar Heights', state: 'IL', zip: '', tenantName: '', propertyType: 'primary-home', rent: 0, actual: 0, status: 'owner-occupied', entityId: 'e-personal', mortgage: { balance: 0, rate: 0, monthlyPI: 2400, escrow: 223, estimated: true }, notes: 'Primary residence. Fill in mortgage balance + rate from your latest statement; PITI is roughly $2,623/mo.' },
     ],
   },
   outflows: { rentalMortgages: 7595, propertyUtilities: 2638, household: 2176, debtService: 8155, charitableGiving: 2700 },
   debts: [
-    { id: 'd1', name: 'UMB', minPayment: 100, rate: 34.99, balance: 1563, entityId: 'e-personal' },
-    { id: 'd2', name: 'Avant', minPayment: 30, rate: 30.0, balance: 967, entityId: 'e-personal' },
-    { id: 'd3', name: 'Credit One', minPayment: 60, rate: 27.0, balance: 558, entityId: 'e-personal' },
-    { id: 'd4', name: 'Synchrony', minPayment: 34, rate: 27.0, balance: 956, entityId: 'e-personal' },
-    { id: 'd5', name: '1st Mid CC Biz', minPayment: 224, rate: 25.49, balance: 7308, entityId: 'e-poetech' },
-    { id: 'd6', name: 'AMEX (small)', minPayment: 86, rate: 24.74, balance: 1608, entityId: 'e-personal' },
-    { id: 'd7', name: 'UIECU', minPayment: 300, rate: 22.3, balance: 13102, flag: 'ATTACK FIRST', entityId: 'e-personal' },
-    { id: 'd8', name: 'Chase', minPayment: 285, rate: 22.0, balance: 9948, entityId: 'e-personal' },
-    { id: 'd9', name: 'Citi', minPayment: 34, rate: 22.0, balance: 600, entityId: 'e-personal' },
-    { id: 'd10', name: 'Discover', minPayment: 215, rate: 18.0, balance: 8961, entityId: 'e-personal' },
-    { id: 'd11', name: 'US Bank Biz', minPayment: 86, rate: 18.0, balance: 2000, entityId: 'e-poetech' },
-    { id: 'd12', name: 'Busey', minPayment: 85, rate: 18.0, balance: 1920, entityId: 'e-personal' },
-    { id: 'd13', name: 'Upgrade', minPayment: 644, rate: 14.0, balance: 18000, entityId: 'e-personal' },
-    { id: 'd14', name: 'Figure', minPayment: 748, rate: 11.0, balance: 52000, entityId: 'e-personal' },
-    { id: 'd15', name: 'Light Stream', minPayment: 603, rate: 10.0, balance: 18491, note: 'Ends 9/2028', entityId: 'e-personal' },
-    { id: 'd16', name: 'AMEX (B)', minPayment: 124, rate: 9.99, balance: 3548, entityId: 'e-poetech' },
-    { id: 'd17', name: 'AMEX', minPayment: 24, rate: 9.99, balance: 558, entityId: 'e-personal' },
-    { id: 'd18', name: 'Empower', minPayment: 169, rate: 8.0, balance: 5000, entityId: 'e-personal' },
-    { id: 'd19', name: 'Car payment', minPayment: 772, rate: 7.25, balance: 40544, entityId: 'e-personal' },
-    { id: 'd20', name: 'Good Leap (solar)', minPayment: 485, rate: 2.0, balance: 102000, note: 'Leave alone — ends 2047', leaveAlone: true, entityId: 'e-personal' },
-    { id: 'd21', name: 'SBA Loan', minPayment: 100, rate: 1.0, balance: 9000, note: 'Leave alone — ends 2050', leaveAlone: true, entityId: 'e-poetech' },
-    { id: 'd22', name: 'Aunt Leah', minPayment: 250, rate: 0, balance: 3000, entityId: 'e-personal' },
-    { id: 'd23', name: 'Affirm', minPayment: 200, rate: 0, balance: 1056, entityId: 'e-personal' },
-    { id: 'd24', name: 'AMEX DP', minPayment: 650, rate: 0, balance: 18813, note: '0% × 36 months', entityId: 'e-personal' },
-    { id: 'd25', name: 'COT CC Biz', minPayment: 905, rate: 0, balance: 9000, entityId: 'e-poetech' },
-    { id: 'd26', name: 'Divvy CC Biz', minPayment: 300, rate: 0, balance: 6000, entityId: 'e-poetech' },
+    { id: 'd1', name: 'Card A', minPayment: 100, rate: 34.99, balance: 1563, entityId: 'e-personal' },
+    { id: 'd2', name: 'Card B', minPayment: 30, rate: 30.0, balance: 967, entityId: 'e-personal' },
+    { id: 'd3', name: 'Card C', minPayment: 60, rate: 27.0, balance: 558, entityId: 'e-personal' },
+    { id: 'd4', name: 'Card D', minPayment: 34, rate: 27.0, balance: 956, entityId: 'e-personal' },
+    { id: 'd5', name: 'Business Card A', minPayment: 224, rate: 25.49, balance: 7308, entityId: 'e-poetech' },
+    { id: 'd6', name: 'Card E', minPayment: 86, rate: 24.74, balance: 1608, entityId: 'e-personal' },
+    { id: 'd7', name: 'Personal Line A', minPayment: 300, rate: 22.3, balance: 13102, flag: 'ATTACK FIRST', entityId: 'e-personal' },
+    { id: 'd8', name: 'Card F', minPayment: 285, rate: 22.0, balance: 9948, entityId: 'e-personal' },
+    { id: 'd9', name: 'Card G', minPayment: 34, rate: 22.0, balance: 600, entityId: 'e-personal' },
+    { id: 'd10', name: 'Card H', minPayment: 215, rate: 18.0, balance: 8961, entityId: 'e-personal' },
+    { id: 'd11', name: 'Business Card B', minPayment: 86, rate: 18.0, balance: 2000, entityId: 'e-poetech' },
+    { id: 'd12', name: 'Card I', minPayment: 85, rate: 18.0, balance: 1920, entityId: 'e-personal' },
+    { id: 'd13', name: 'Personal Loan A', minPayment: 644, rate: 14.0, balance: 18000, entityId: 'e-personal' },
+    { id: 'd14', name: 'HELOC', minPayment: 748, rate: 11.0, balance: 52000, entityId: 'e-personal' },
+    { id: 'd15', name: 'Personal Loan B', minPayment: 603, rate: 10.0, balance: 18491, note: 'Ends 9/2028', entityId: 'e-personal' },
+    { id: 'd16', name: 'Business Card C', minPayment: 124, rate: 9.99, balance: 3548, entityId: 'e-poetech' },
+    { id: 'd17', name: 'Card J', minPayment: 24, rate: 9.99, balance: 558, entityId: 'e-personal' },
+    { id: 'd18', name: 'Personal Loan C', minPayment: 169, rate: 8.0, balance: 5000, entityId: 'e-personal' },
+    { id: 'd19', name: 'Auto Loan', minPayment: 772, rate: 7.25, balance: 40544, entityId: 'e-personal' },
+    { id: 'd20', name: 'Solar Financing', minPayment: 485, rate: 2.0, balance: 102000, note: 'Leave alone — ends 2047', leaveAlone: true, entityId: 'e-personal' },
+    { id: 'd21', name: 'Small Business Loan', minPayment: 100, rate: 1.0, balance: 9000, note: 'Leave alone — ends 2050', leaveAlone: true, entityId: 'e-poetech' },
+    { id: 'd22', name: 'Family Loan (Auntie M)', minPayment: 250, rate: 0, balance: 3000, entityId: 'e-personal' },
+    { id: 'd23', name: 'BNPL A', minPayment: 200, rate: 0, balance: 1056, entityId: 'e-personal' },
+    { id: 'd24', name: '0-percent Promotional Loan', minPayment: 650, rate: 0, balance: 18813, note: '0% × 36 months', entityId: 'e-personal' },
+    { id: 'd25', name: 'Business Card D', minPayment: 905, rate: 0, balance: 9000, entityId: 'e-poetech' },
+    { id: 'd26', name: 'Business Card E', minPayment: 300, rate: 0, balance: 6000, entityId: 'e-poetech' },
   ],
   pressureMappings: {
     1: { discretionaryCut: 5, rentGapClosure: 10, stress: 'Loose', desc: 'Maintenance mode' },
@@ -220,7 +239,7 @@ const SEED_DATA = {
     10: { discretionaryCut: 50, rentGapClosure: 80, stress: '5-yr sprint', desc: 'Maximum discipline' },
   },
   // Round 10 fix — opportunity figures realigned to the published Dev/Ops tier
-  // pricing. The original placeholders (e.g., Federal Companies at $1,500/mo
+  // pricing. The original placeholders (e.g., Regional Enterprise Client at $1,500/mo
   // when Enterprise retainers are $25K-$75K/mo) made the pipeline look like a
   // side-gig instead of the senior-architect consulting practice the rest of
   // the page describes. Numbers below match the Services Portfolio bands:
@@ -228,23 +247,23 @@ const SEED_DATA = {
   //   · Enterprise retainer:     $25K-$75K/mo
   //   · Enterprise project rate: $400-$800/hr
   opportunities: [
-    { id: 'o1', person: 'Family', skill: 'Property management', what: 'Self-manage 1508 Holly Hill turnover', monthly: 1400, hours: 0, status: 'Priority', flag: true },
-    { id: 'o2', person: 'Family', skill: 'Rent collection', what: 'Recover 805 Apt 3 (or evict/re-rent)', monthly: 350, hours: 0, status: 'Priority', flag: true },
-    { id: 'o3', person: 'Darrell', skill: 'Network / OT-IT', what: 'PoeTech client #1 (Federal Companies) · enterprise network architecture retainer', monthly: 25000, hours: 10, status: 'Pipeline', flag: true },
-    { id: 'o4', person: 'Darrell', skill: 'PWA / React dev', what: 'Small-business PWA build contracts · $15K-$45K projects', monthly: 12000, hours: 15, status: 'Building' },
-    { id: 'o5', person: 'Darrell', skill: 'BAS / Siemens', what: 'UIUC F&S consulting (1099) · senior architect rate', monthly: 12000, hours: 12, status: 'Possible' },
-    { id: 'o6', person: 'Darrell', skill: 'Church tech', what: 'Multi-site church AV install + ongoing managed services', monthly: 4500, hours: 8, status: 'Pipeline' },
-    { id: 'o7', person: 'Christina', skill: 'Therapy practice', what: 'Add 1-2 more MSW contractors', monthly: 2000, hours: 0, status: 'Decision' },
-    { id: 'o8', person: 'Christina', skill: 'Guardianship', what: 'Speaking / training (community)', monthly: 500, hours: 2, status: 'Possible' },
-    { id: 'o9', person: 'PoeTech Services', skill: 'Consulting + build', what: 'Warm Prospect A · Small-business package · 6-month engagement', monthly: 8000, hours: 12, status: 'Active conversation', flag: true },
-    { id: 'o10', person: 'PoeTech Services', skill: 'Consulting + build', what: 'Warm Prospect B · Small-business package · 6-month engagement', monthly: 8000, hours: 12, status: 'Active conversation', flag: true },
-    { id: 'o11', person: 'PoeTech Services', skill: 'Revenue share build', what: 'Equity-split engagement on warm prospect business', monthly: 5000, hours: 12, status: 'Possible structure' },
+    { id: 'o1', person: 'Family', skill: 'Property management', what: 'Self-manage 1521 Oak Ave turnover', monthly: 1400, hours: 0, status: 'Priority', flag: true },
+    { id: 'o2', person: 'Family', skill: 'Rent collection', what: 'Recover 240 Cedar Ln Apt 3 (or evict/re-rent)', monthly: 350, hours: 0, status: 'Priority', flag: true },
+    { id: 'o3', person: 'Adam', skill: 'Network / OT-IT', what: 'Cornerstone Tech client #1 (Regional Enterprise Client A) · enterprise network architecture retainer', monthly: 25000, hours: 10, status: 'Pipeline', flag: true },
+    { id: 'o4', person: 'Adam', skill: 'PWA / React dev', what: 'Small-business PWA build contracts · $15K-$45K projects', monthly: 12000, hours: 15, status: 'Building' },
+    { id: 'o5', person: 'Adam', skill: 'BAS / Siemens', what: 'Regional University Facilities consulting (1099) · senior architect rate', monthly: 12000, hours: 12, status: 'Possible' },
+    { id: 'o6', person: 'Adam', skill: 'Church tech', what: 'Multi-site church AV install + ongoing managed services', monthly: 4500, hours: 8, status: 'Pipeline' },
+    { id: 'o7', person: 'Naomi', skill: 'Therapy practice', what: 'Add 1-2 more MSW contractors', monthly: 2000, hours: 0, status: 'Decision' },
+    { id: 'o8', person: 'Naomi', skill: 'Guardianship', what: 'Speaking / training (community)', monthly: 500, hours: 2, status: 'Possible' },
+    { id: 'o9', person: 'Cornerstone Tech Services', skill: 'Consulting + build', what: 'Warm Prospect A · Small-business package · 6-month engagement', monthly: 8000, hours: 12, status: 'Active conversation', flag: true },
+    { id: 'o10', person: 'Cornerstone Tech Services', skill: 'Consulting + build', what: 'Warm Prospect B · Small-business package · 6-month engagement', monthly: 8000, hours: 12, status: 'Active conversation', flag: true },
+    { id: 'o11', person: 'Cornerstone Tech Services', skill: 'Revenue share build', what: 'Equity-split engagement on warm prospect business', monthly: 5000, hours: 12, status: 'Possible structure' },
     { id: 'o12', person: 'Family Educators', skill: 'K-12 teaching online', what: 'Principal Family Member A — online tutoring for homeschool families', monthly: 3000, hours: 10, status: 'Interested', flag: true },
     { id: 'o13', person: 'Family Educators', skill: 'K-12 teaching online', what: 'Principal Family Member B — online tutoring + curriculum support', monthly: 3000, hours: 10, status: 'Interested', flag: true },
     { id: 'o14', person: 'Family Educators', skill: 'Special-needs support', what: 'Specialized homeschool support for bullied / special-needs kids', monthly: 2000, hours: 8, status: 'Build', flag: true },
-    { id: 'o15', person: 'PoeTech Services', skill: 'Elder care platform', what: 'Elder Care Coordination — adult children managing aging parents', monthly: 2500, hours: 6, status: 'Possible market' },
-    { id: 'o16', person: 'PoeTech Services', skill: 'Caregiver marketplace', what: 'Elder Care 1099 caregiver platform — Care.com alternative', monthly: 4000, hours: 10, status: 'Vision · large market' },
-    { id: 'o17', person: 'Poe Properties', skill: 'Ethical home acquisition', what: 'Home Legacy Program — purchase from elderly with no heirs (with attorney + integrity)', monthly: 0, hours: 4, status: 'Relationship building' },
+    { id: 'o15', person: 'Cornerstone Tech Services', skill: 'Elder care platform', what: 'Elder Care Coordination — adult children managing aging parents', monthly: 2500, hours: 6, status: 'Possible market' },
+    { id: 'o16', person: 'Cornerstone Tech Services', skill: 'Caregiver marketplace', what: 'Elder Care 1099 caregiver platform — alternative marketplace', monthly: 4000, hours: 10, status: 'Vision · large market' },
+    { id: 'o17', person: 'Steward Real Estate', skill: 'Ethical home acquisition', what: 'Home Legacy Program — purchase from elderly with no heirs (with attorney + integrity)', monthly: 0, hours: 4, status: 'Relationship building' },
   ],
   // v28+ MVP v1.5: Capex / Tools priority list — replaces the standalone
   // Darrell_Tech_Tools_Priority_List.xlsx. Lives in About > Capital Spend.
@@ -275,35 +294,35 @@ const SEED_DATA = {
   // from `data.church` so users can add multiple congregations later without
   // a schema migration. Today this is keyed to the family's home church.
   church: {
-    name: 'The Church Of The Living God',
-    nickname: 'The Love Corner',
-    site: 'https://www.thechurchofthelivinggod.com/',
-    address: '312 E. Bradley Ave, Champaign, IL 61820 (Rear Door E)',
-    phone: '217-359-6920',
-    officeHours: 'Mon–Fri · 11:00 am – 6:00 pm',
-    contactEmail: '', // intentionally blank — site uses an obfuscated link, user can fill in
+    name: 'Cornerstone Community Church',
+    nickname: 'Your Local Church',
+    site: '',
+    address: 'Local address (edit on Church tab)',
+    phone: '(555) 555-0100',
+    officeHours: 'Mon-Fri · 11:00 am - 6:00 pm',
+    contactEmail: '', // intentionally blank — user can fill in
     services: [
-      { id: 'svc-sun', day: 'Sunday',    time: '11:00 AM', label: 'Worship Experience', online: true },
-      { id: 'svc-wed1', day: 'Wednesday', time: '1:00 PM', label: 'Bible Study',         online: true },
-      { id: 'svc-wed2', day: 'Wednesday', time: '6:00 PM', label: 'Bible Study',         online: true },
+      { id: 'svc-sun', day: 'Sunday',    time: '11:00 AM', label: 'Worship Service', online: true },
+      { id: 'svc-wed1', day: 'Wednesday', time: '1:00 PM', label: 'Bible Study',     online: true },
+      { id: 'svc-wed2', day: 'Wednesday', time: '6:00 PM', label: 'Bible Study',     online: true },
     ],
     media: {
-      youtube:   'https://www.youtube.com/channel/UC821pJh7YR5llBNnWUJj-ZA',
-      facebook:  'https://www.facebook.com/lovecornerlive/',
-      instagram: 'https://www.instagram.com/tlcexperience/',
-      broadcast: 'https://www.thechurchofthelivinggod.com/broadcast.html',
+      youtube:   '',
+      facebook:  '',
+      instagram: '',
+      broadcast: '',
     },
     links: {
-      give:        'https://www.thechurchofthelivinggod.com/tithesofferinggifts.html',
-      giversCreed: 'https://www.thechurchofthelivinggod.com/givers-creed.html',
-      calendar:    'https://www.thechurchofthelivinggod.com/calendar.html',
-      ministries:  'https://www.thechurchofthelivinggod.com/ministry-opportunities.html',
-      bibleChallenge: 'https://www.thechurchofthelivinggod.com/bible-reading-challenge-2026.html',
-      classPoints: 'https://www.thechurchofthelivinggod.com/bible-study-class-points.html',
-      lettersFromBG: 'https://www.thechurchofthelivinggod.com/letters-from-bg1.html',
-      stayConnected: 'https://www.thechurchofthelivinggod.com/stay-connected.html',
-      about: 'https://www.thechurchofthelivinggod.com/about-us.html',
-      assembly: 'https://www.thechurchofthelivinggod.com/77th-national-assembly.html',
+      give:        '',
+      giversCreed: '',
+      calendar:    '',
+      ministries:  '',
+      bibleChallenge: '',
+      classPoints: '',
+      lettersFromBG: '',
+      stayConnected: '',
+      about: '',
+      assembly: '',
     },
     tagline: 'Reviving Faith · Restoring Hope · Rebuilding Communities',
     verse: { ref: 'Psalm 34:3', text: 'O magnify the LORD with me, and let us exalt His name together.' },
@@ -322,17 +341,17 @@ const SEED_DATA = {
       perTranscriptMinute: 0.05,
       perNumberMonthly: 1.15,
     },
-    numbersConfigured: 2, // Poe Properties + PoeTech in Phase 1
+    numbersConfigured: 2, // Steward Real Estate + Cornerstone Tech in Phase 1
     budgetAlertMonthly: 30, // dollars — surface a warning at this threshold
   },
   // v28+ MVP v1.5 round 6 — Dev/Ops skill profiles. Each profile feeds the
   // opportunity matcher. Seeded from the existing `opportunities[]` so the
   // matcher renders something meaningful on first load.
   skillProfiles: [
-    { id: 'sp-darrell',  name: 'Darrell',  skills: 'network architecture, OT-IT, BAS, Siemens, PWA, React, javascript, church AV, streaming, real estate, property management', hoursPerWeek: 20, monthlyIncome: 4680, location: 'Champaign, IL', techComfort: 5, notes: 'PoeTech LLC tech consulting · Poe Properties self-mgmt · Church of the Living God AV' },
-    { id: 'sp-christina',name: 'Christina',skills: 'therapy, clinical, LCSW, MSW, faith, christian counseling, music, choir, vocal, guardianship, social work', hoursPerWeek: 30, monthlyIncome: 6167, location: 'Champaign, IL', techComfort: 3, notes: 'TLC Therapy Solutions LLC owner · Church of the Living God Choir Director' },
-    { id: 'sp-twin-son', name: 'Twin (son)', skills: 'tech support, networking, teen, neighborhood, lawn care', hoursPerWeek: 4, monthlyIncome: 0, location: 'Champaign, IL', techComfort: 4, notes: 'Apprenticeship in progress — Cable Scout curriculum + neighborhood route' },
-    { id: 'sp-twin-dau', name: 'Twin (daughter)', skills: 'teaching, tutoring, teen, community, pet sitting', hoursPerWeek: 4, monthlyIncome: 0, location: 'Champaign, IL', techComfort: 3, notes: 'Discovering — possible tutoring + pet care' },
+    { id: 'sp-darrell',  name: 'Adam',  skills: 'network architecture, OT-IT, BAS, Siemens, PWA, React, javascript, church AV, streaming, real estate, property management', hoursPerWeek: 20, monthlyIncome: 4680, location: 'Cedar Heights, IL', techComfort: 5, notes: 'Cornerstone Tech LLC tech consulting · Steward Real Estate self-mgmt · Local church AV' },
+    { id: 'sp-christina',name: 'Naomi',skills: 'therapy, clinical, LCSW, MSW, faith, christian counseling, music, choir, vocal, guardianship, social work', hoursPerWeek: 30, monthlyIncome: 6167, location: 'Cedar Heights, IL', techComfort: 3, notes: 'Wellness Counseling Practice LLC owner · Local church Choir Director' },
+    { id: 'sp-twin-son', name: 'Caleb', skills: 'tech support, networking, teen, neighborhood, lawn care', hoursPerWeek: 4, monthlyIncome: 0, location: 'Cedar Heights, IL', techComfort: 4, notes: 'Apprenticeship in progress — Cable Scout curriculum + neighborhood route' },
+    { id: 'sp-twin-dau', name: 'Esther', skills: 'teaching, tutoring, teen, community, pet sitting', hoursPerWeek: 4, monthlyIncome: 0, location: 'Cedar Heights, IL', techComfort: 3, notes: 'Discovering — possible tutoring + pet care' },
   ],
 };
 
@@ -437,7 +456,7 @@ const DEMO_DATA_FAMILY_OF_4 = {
   skillProfiles: [],
   // Sanitized 2026-05-28 evening — these top-level fields were leaking
   // through from SEED_DATA because they weren't overridden. The viewer would
-  // see Darrell's real church name + address visible in the dim background
+  // see the family's real church name + address visible in the dim background
   // behind the welcome modal. Per the SEED-DATA-AS-ASPIRATION foundation,
   // demo data must contain NO real personal information.
   church: {
@@ -678,9 +697,9 @@ const DEMO_DATA_LANDLORD = {
       { id: 'sal-day', who: 'Owner', source: 'Day-job salary', expected: 5800, actual: 5800, entityId: 'e-pers' },
     ],
     rentals: [
-      { id: 'rl-a', name: 'Unit A · Hill St',   address: '210 Hill St',   city: 'Champaign', state: 'IL', tenantName: '', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-props', mortgage: { balance: 95000, rate: 6.5, monthlyPI: 680, escrow: 175, estimated: true } },
-      { id: 'rl-b', name: 'Unit B · Park Ave',  address: '88 Park Ave',   city: 'Champaign', state: 'IL', tenantName: '', rent: 1050, actual: 1050, status: 'paying', entityId: 'e-props', mortgage: { balance: 70000, rate: 6.5, monthlyPI: 540, escrow: 140, estimated: true } },
-      { id: 'rl-c', name: 'Unit C · Cedar',     address: '1402 Cedar',    city: 'Champaign', state: 'IL', tenantName: '', rent: 950,  actual: 0,    status: 'late',   entityId: 'e-props', mortgage: { balance: 80000, rate: 6.5, monthlyPI: 560, escrow: 150, estimated: true } },
+      { id: 'rl-a', name: 'Unit A · Hill St',   address: '210 Hill St',   city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-props', mortgage: { balance: 95000, rate: 6.5, monthlyPI: 680, escrow: 175, estimated: true } },
+      { id: 'rl-b', name: 'Unit B · Park Ave',  address: '88 Park Ave',   city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1050, actual: 1050, status: 'paying', entityId: 'e-props', mortgage: { balance: 70000, rate: 6.5, monthlyPI: 540, escrow: 140, estimated: true } },
+      { id: 'rl-c', name: 'Unit C · Cedar',     address: '1402 Cedar',    city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 950,  actual: 0,    status: 'late',   entityId: 'e-props', mortgage: { balance: 80000, rate: 6.5, monthlyPI: 560, escrow: 150, estimated: true } },
     ],
   },
   outflows: { rentalMortgages: 1780, propertyUtilities: 200, household: 1700, debtService: 1780, charitableGiving: 250 },
@@ -1270,7 +1289,7 @@ const DEMO_PERSONA_META = {
     summary: 'Two parents, two kids in school.',
     audience: 'Married couples with school-age children.',
     pitch: 'Every dollar in one place. Bills, paycheck, tithe, groceries, debt. On every screen the system tells you what to do, when, why, and how. The 1st stops being a scramble.',
-    vision: 'Multi-device per-profile views shipped — Christina, Darrell, and "Family" rollup all work today. Anonymous in-app specialist messaging is in design.',
+    vision: 'Multi-device per-profile views shipped — Naomi, Adam, and "Family" rollup all work today. Anonymous in-app specialist messaging is in design.',
   },
   'separated': {
     label: 'For co-parents apart',
@@ -1387,8 +1406,8 @@ export default function PoeFinancialSystem() {
     setEntityFilter('all');
   };
   const PROFILES = [
-    { id: 'darrell', name: 'Darrell', sub: 'full owner view', accent: '#1A1815' },
-    { id: 'christina', name: 'Christina', sub: 'personal + TLC', accent: '#B85838' },
+    { id: 'darrell', name: 'Adam', sub: 'full owner view', accent: '#1A1815' },
+    { id: 'christina', name: 'Naomi', sub: 'personal + practice', accent: '#B85838' },
     { id: 'family', name: 'Family', sub: 'household roll-up only', accent: '#5A6E3D' },
   ];
 
@@ -2872,7 +2891,7 @@ html{scroll-padding-bottom:280px}
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
             <h2 id="profile-picker-h" className="text-2xl sm:text-3xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Who's using this device?</h2>
-            <p className="text-sm text-[#5A5751] mb-6" style={{ fontFamily: '"Fraunces", serif' }}>Pick a profile to see the views meant for you. TLC stays private to Christina; business entities stay with Darrell. You can switch any time from the header.</p>
+            <p className="text-sm text-[#5A5751] mb-6" style={{ fontFamily: '"Fraunces", serif' }}>Pick a profile to see the views meant for you. The practice stays private to its owner; business entities stay with the principal. You can switch any time from the header.</p>
             <div className="space-y-2">
               {PROFILES.map(p => (
                 <button key={p.id} type="button" onClick={() => setProfile(p.id)} className="w-full p-4 text-left border border-[#1A1815] hover:bg-white hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors flex items-baseline justify-between gap-3">
@@ -4074,7 +4093,7 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
                 { icon: '📊', label: 'Big Picture', desc: 'You\'re here — household snapshot · 3 hero metrics, pressure slider' },
                 { icon: '💸', label: 'Debts → snowball slider', desc: 'Drag it · watch interest savings move · "YOU SAVE" updates live' },
                 { icon: '🏠', label: 'Rentals → snowball cascade', desc: 'See which properties pay off when · 7-year debt freedom target' },
-                { icon: '🩺', label: 'Practice tab', desc: 'Your TLC pipeline · 8 sample inquiries · direct Acuity booking links' },
+                { icon: '🩺', label: 'Practice tab', desc: 'Your practice pipeline · 8 sample inquiries · direct booking links' },
                 { icon: '📅', label: 'Projects → workload bars', desc: 'See when heavy months are coming · 6 example projects loaded' },
                 { icon: '🎨', label: 'Theme swatches (top right)', desc: 'Try them — midnight is the default, easy on the eyes' },
                 { icon: '🔊', label: 'Read aloud (bottom right)', desc: 'Tap the speaker — reads any page aloud · 4 speed options for accessibility' },
@@ -4151,7 +4170,7 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
               </div>
               <div>
                 <label htmlFor="aq-desc" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">What's the issue or work?</label>
-                <input id="aq-desc" autoFocus className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., Furnace died at 805 Apt 4 · Replace front door lock · File quarterly taxes" value={queueForm.description} onChange={e => setQueueForm({ ...queueForm, description: e.target.value })} />
+                <input id="aq-desc" autoFocus className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., Furnace died at 240 Cedar Ln Apt 4 · Replace front door lock · File quarterly taxes" value={queueForm.description} onChange={e => setQueueForm({ ...queueForm, description: e.target.value })} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
@@ -4823,7 +4842,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
             </div>
             <div className="grid grid-cols-2 gap-2">
               <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.entityId} onChange={e => setNewRecur({...newRecur, entityId: e.target.value})}>
-                <option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option>
+                <option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option>
               </select>
               <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.category} onChange={e => setNewRecur({...newRecur, category: e.target.value})}>
                 <option value="compliance">Compliance</option><option value="vehicle">Vehicle</option><option value="insurance">Insurance</option><option value="professional">Professional</option><option value="business">Business</option><option value="housing">Housing</option><option value="health">Health</option><option value="subscription">Subscription</option><option value="other">Other</option>
@@ -4858,7 +4877,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Frequency</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.frequency} onChange={e => setEditRecurForm({ ...editRecurForm, frequency: e.target.value })}><option value="monthly">monthly</option><option value="quarterly">quarterly</option><option value="semi-annual">semi-annual</option><option value="annual">annual</option><option value="biennial">biennial</option></select></div>
                     <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.category} onChange={e => setEditRecurForm({ ...editRecurForm, category: e.target.value })}><option value="compliance">compliance</option><option value="vehicle">vehicle</option><option value="insurance">insurance</option><option value="professional">professional</option><option value="business">business</option><option value="housing">housing</option><option value="health">health</option><option value="subscription">subscription</option><option value="other">other</option></select></div>
-                    <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.entityId} onChange={e => setEditRecurForm({ ...editRecurForm, entityId: e.target.value })}><option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option></select></div>
+                    <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.entityId} onChange={e => setEditRecurForm({ ...editRecurForm, entityId: e.target.value })}><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></select></div>
                   </div>
                   <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Next due date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.nextDue} onChange={e => setEditRecurForm({ ...editRecurForm, nextDue: e.target.value })} /></div>
                   <div className="flex gap-2">
@@ -4886,7 +4905,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
             </div>
             <div className="grid grid-cols-2 gap-2">
               <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newIncident.entityId} onChange={e => setNewIncident({...newIncident, entityId: e.target.value})}>
-                <option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option>
+                <option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option>
               </select>
               <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newIncident.category} onChange={e => setNewIncident({...newIncident, category: e.target.value})}>
                 <option value="vehicle">Vehicle</option><option value="medical">Medical</option><option value="property">Property repair</option><option value="travel">Travel</option><option value="legal">Legal</option><option value="other">Other</option>
@@ -4974,7 +4993,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Description / notes" value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} />
             <div className="grid grid-cols-2 gap-2">
               <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newEvent.entityId} onChange={e => setNewEvent({...newEvent, entityId: e.target.value})}>
-                <option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option>
+                <option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option>
               </select>
               <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newEvent.category} onChange={e => setNewEvent({...newEvent, category: e.target.value})}>
                 {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -5764,7 +5783,7 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Accounts · Add · Edit · Delete</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Every account, every entity, every balance.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Add the checking, savings, credit, and loan accounts that hold the household's cash flow. Each account belongs to an entity (Personal, Poe Properties, PoeTech, TLC). Balances feed every rollup, projection, and the funds-available check on upcoming transactions.
+          Add the checking, savings, credit, and loan accounts that hold the household's cash flow. Each account belongs to an entity (Personal, Steward Real Estate, Cornerstone Tech, Wellness Practice). Balances feed every rollup, projection, and the funds-available check on upcoming transactions.
         </p>
       </section>
 

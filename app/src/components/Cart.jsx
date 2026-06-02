@@ -136,7 +136,7 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newSub.entityId} onChange={e => setNewSub({...newSub, entityId: e.target.value})}>
-                  {entities.length > 0 ? entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>) : <><option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option></>}
+                  {entities.length > 0 ? entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>) : <><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></>}
                 </select>
               </div>
             </div>
@@ -208,7 +208,7 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})}>{SUB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                      <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.entityId} onChange={e => setEditForm({...editForm, entityId: e.target.value})}>{entities.length > 0 ? entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>) : <><option value="e-personal">Personal</option><option value="e-poeprops">Poe Properties</option><option value="e-poetech">PoeTech</option><option value="e-tlc">TLC Therapy</option></>}</select></div>
+                      <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.entityId} onChange={e => setEditForm({...editForm, entityId: e.target.value})}>{entities.length > 0 ? entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>) : <><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></>}</select></div>
                     </div>
                     <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes" value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} />
                     <div className="flex gap-2">

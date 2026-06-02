@@ -117,7 +117,7 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
     }
   };
 
-  const lineLabel = (l) => l === 'poe-properties' ? 'Poe Properties' : l === 'poetech' ? 'PoeTech' : l || '—';
+  const lineLabel = (l) => l === 'poe-properties' ? 'Steward Real Estate' : l === 'poetech' ? 'Cornerstone Tech' : l || '—';
 
   return (
     <div className="space-y-6">
@@ -125,7 +125,7 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Inbound · Voicemails &amp; Call Notes</div>
         <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>What came in while you were busy.</h2>
         <p className="text-sm leading-relaxed mt-2 text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
-          Phase 1 routing for Poe Properties + PoeTech business lines. Each voicemail is auto-transcribed by Twilio, stored in your own Cloudflare Worker (free tier), and shown here for triage. Convert each one into an Incident, Practice Inquiry, or Project — the original recording stays archived. <strong>TLC is not routed here</strong> — that line keeps its current setup until the Phase 3 HIPAA-clean stack ships. <a href="https://github.com/darrellpoe06/Kingdom-PWA-Node/blob/main/backend/voice-worker/README.md" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">Setup runbook →</a>
+          Phase 1 routing for Steward Real Estate + Cornerstone Tech business lines. Each voicemail is auto-transcribed by Twilio, stored in your own Cloudflare Worker (free tier), and shown here for triage. Convert each one into an Incident, Practice Inquiry, or Project — the original recording stays archived. <strong>The clinical practice is not routed here</strong> — that line keeps its current setup until the Phase 3 HIPAA-clean stack ships. <a href="https://github.com/darrellpoe06/Kingdom-PWA-Node/blob/main/backend/voice-worker/README.md" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">Setup runbook →</a>
         </p>
       </section>
 
@@ -160,7 +160,7 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
             <h3 id="ib-list-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Inbox · {rows.length} {filterStatus === 'new' ? 'new' : filterStatus}</h3>
             <div className="flex items-center gap-2 flex-wrap text-[10px] uppercase tracking-wider">
               <div className="flex gap-1">
-                {[['all','All lines'],['poe-properties','Poe Properties'],['poetech','PoeTech']].map(([k, l]) => (
+                {[['all','All lines'],['poe-properties','Steward Real Estate'],['poetech','Cornerstone Tech']].map(([k, l]) => (
                   <button key={k} type="button" onClick={() => setFilterLine(k)} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${filterLine === k ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{l}</button>
                 ))}
               </div>
