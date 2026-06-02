@@ -758,7 +758,13 @@ const TIER_ORDER = ['foundation', 'poetech-plus', 'family', 'premium', 'business
 const TIER_LABEL = {
   'foundation':   'Foundation (free)',
   'poetech-plus': 'PoeTech+ ($39/mo)',
-  'family':       'Family ($89/mo)',
+  // 2026-06-02 rename per tier-review (commits d3733f5 / 4cb55b9): "Family" read as
+  // the default/for-everyone tier and bounced a single-adult beta user (Freddie) who
+  // saw $89 as the headline price. "Household" keeps the warmth while dropping the
+  // "this is the multi-person family tier" misread — it is the multi-module tier for
+  // multi-entity households, landlords, or solo pros. Internal key stays 'family' so
+  // TIER_ORDER, aliases, and all gating are untouched.
+  'family':       'Household ($89/mo)',
   'premium':      'Premium ($149/mo)',
   'business':     'PoeTech Business ($249/mo)',
 };

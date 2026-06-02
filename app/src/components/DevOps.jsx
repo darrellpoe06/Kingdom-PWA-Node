@@ -417,12 +417,18 @@ function LowHangingFruit() {
       detail: 'Productize the contractor scope templates as standalone PDF downloads. $19-49 each. Sold to non-subscribers who want the document without the app. Gumroad or PoeTech Bookstore. Drives subscription upgrades.',
     },
     {
-      name: 'Small Landlord Tier ($99/mo)',
-      effort: 'Low (already built)',
-      revenue: 'Fills gap between $89-$149',
+      // 2026-06-02 refactored per tier-review Decision 3 (commit 4cb55b9). The
+      // originally-proposed "Small Landlord $99/mo" tier was a price-value inversion:
+      // it would sit ABOVE Household ($89, which already gives unlimited properties +
+      // Projects + Legal) while offering LESS. Do NOT ship it as a tier. The real seam
+      // is the $39->$89 jump for the 4-10-door landlord who does not want Legal/Projects
+      // -- served by a per-property add-on on PoeTech+, not a new overshooting tier.
+      name: 'PoeTech+ Per-Property Add-On',
+      effort: 'Low (add-on, not a new tier)',
+      revenue: '+$8/door above 3 (PoeTech+ extension)',
       window: 'Phase 5 (with billing)',
       who: 'Product',
-      detail: 'Add a $99/mo "Small Landlord" tier between Family and Premium. For people with 1-5 rentals who need property tracking but not full business features. PoeTech\'s Rentals + Books + Projects modules without Practice. Captures landlords who find the Premium tier overshoots.',
+      detail: 'Serve the 4-10-door landlord who has outgrown PoeTech+ (3 properties) but does not need Household\'s Legal Matters / Projects. Instead of a "Small Landlord" tier that would cost more than Household for fewer features, add a metered +$8/door add-on on top of PoeTech+ ($39). Keeps the flat-vs-per-unit moat intact: a 6-door landlord pays $39 + 3x$8 = $63, still well under Household $89, and steps up to Household only when they want the document vault or multi-domain Projects.',
     },
   ];
 

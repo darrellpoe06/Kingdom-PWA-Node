@@ -16,20 +16,30 @@ function MarketCard({ title, need, have }) {
   );
 }
 
-function PricingTier({ name, tagline, monthly, annual, features, replaces, highlight, community, business, onChoose }) {
+function PricingTier({ name, tagline, monthly, annual, features, availableNow, shipsLater, shipsTarget, bestFor, badge, replaces, highlight, community, business, onChoose }) {
   const borderClass = highlight ? 'border-[#5A6E3D] border-2' : community ? 'border-[#B85838] border-2' : business ? 'border-[#1A1815] border-2' : 'border-[#1A1815]';
   const isFree = monthly === '0';
   const buttonLabel = isFree ? 'Claim it →' : 'Subscribe →';
   const buttonColor = highlight ? 'bg-[#5A6E3D] hover:bg-[#1A1815]' : community ? 'bg-[#B85838] hover:bg-[#1A1815]' : business ? 'bg-[#1A1815] hover:bg-[#B85838]' : 'bg-[#1A1815] hover:bg-[#B85838]';
+  const bullet = highlight ? 'text-[#5A6E3D]' : business ? 'text-[#1A1815]' : 'text-[#B85838]';
+  // 2026-06-02 per tier-review (commits d3733f5 / 4cb55b9): a card may split its
+  // features into "Available now" (verified-shipped today) and "Ships next"
+  // (vision-in-build, founding-member pricing locks in now) so the price stays
+  // honest about what is live. Tiers that still pass a flat `features` array
+  // render the original single list. onChoose always gets a combined array.
+  const allFeatures = features || [...(availableNow || []), ...(shipsLater || [])];
   return (
     <div className={`bg-white border ${borderClass} p-5`}>
       <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
         <div>
-          <h3 className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{name}</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{name}</h3>
+            {badge && <span className="text-[8px] uppercase tracking-[0.15em] text-white bg-[#5A6E3D] px-2 py-0.5 font-semibold whitespace-nowrap">{badge}</span>}
+          </div>
           <div className="text-xs text-[#5A5751] mt-0.5">{tagline}</div>
         </div>
         <div className="text-right shrink-0">
-          {monthly === '0' ? (
+          {isFree ? (
             <div className="text-2xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Free</div>
           ) : (
             <>
@@ -39,17 +49,42 @@ function PricingTier({ name, tagline, monthly, annual, features, replaces, highl
           )}
         </div>
       </div>
+      {bestFor && (
+        <div className="mb-3 text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="uppercase tracking-[0.15em] text-[#B85838] font-semibold text-[10px]">Best for </span>
+          <span className="text-[#5A5751]">{bestFor}</span>
+        </div>
+      )}
       {replaces && (
         <div className="mb-3 px-3 py-2 bg-[#FAF8F4] border-l-2 border-[#5A6E3D]">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-medium mb-0.5">Replaces</div>
           <div className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{replaces}</div>
         </div>
       )}
-      <ul className="text-xs text-[#1A1815] space-y-1 mt-3">
-        {features.map((f, i) => <li key={i} className="flex gap-2"><span className={highlight ? 'text-[#5A6E3D]' : business ? 'text-[#1A1815]' : 'text-[#B85838]'}>·</span><span>{f}</span></li>)}
-      </ul>
+      {availableNow ? (
+        <>
+          <div className="mt-3 text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Available now</div>
+          <ul className="text-xs text-[#1A1815] space-y-1 mt-1">
+            {availableNow.map((f, i) => <li key={i} className="flex gap-2"><span className="text-[#5A6E3D] shrink-0">✓</span><span>{f}</span></li>)}
+          </ul>
+          {shipsLater && shipsLater.length > 0 && (
+            <>
+              <div className="mt-3 text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">
+                {shipsTarget ? `Ships ${shipsTarget}` : 'Ships next'} <span className="normal-case tracking-normal text-[#5A5751] font-normal">· founding-member pricing locks in now</span>
+              </div>
+              <ul className="text-xs text-[#5A5751] space-y-1 mt-1">
+                {shipsLater.map((f, i) => <li key={i} className="flex gap-2"><span className="text-[#5A5751] shrink-0">○</span><span>{f}</span></li>)}
+              </ul>
+            </>
+          )}
+        </>
+      ) : (
+        <ul className="text-xs text-[#1A1815] space-y-1 mt-3">
+          {allFeatures.map((f, i) => <li key={i} className="flex gap-2"><span className={bullet}>·</span><span>{f}</span></li>)}
+        </ul>
+      )}
       {onChoose && (
-        <button onClick={() => onChoose({ name, tagline, monthly, annual, features, replaces })} className={`mt-4 w-full text-white text-xs uppercase tracking-wider py-2.5 font-semibold ${buttonColor}`}>{buttonLabel}</button>
+        <button onClick={() => onChoose({ name, tagline, monthly, annual, features: allFeatures, replaces })} className={`mt-4 w-full text-white text-xs uppercase tracking-wider py-2.5 font-semibold ${buttonColor}`}>{buttonLabel}</button>
       )}
     </div>
   );
