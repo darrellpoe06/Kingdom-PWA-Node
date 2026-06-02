@@ -107,7 +107,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
             hit the $89 tier first and balked; Foundation now leads, the paid ladder
             follows, and the two free-justice layers are surfaced above the ladder. */}
         <p className="text-sm text-[#5A5751] leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-          The Financial Control System is <strong>free for every family, forever — no card, no trial clock.</strong> The paid tiers below add the ecosystem layer (tenant / contractor / client portals, multi-entity, Projects) for those who need it — each one replaces several SaaS subscriptions. Paid tiers are options, not the gate.
+          Two things are <strong>free forever — no card, no trial clock</strong>: the <strong>Financial System for Families</strong> and the <strong>Spiritual Module for the edification of the Body</strong>. The paid tiers below add the ecosystem layer (tenant / contractor / client portals, multi-entity, Projects) for the businesses, professionals, and landlords who need it — each one replaces several SaaS subscriptions. Paid tiers are options, not the gate.
         </p>
 
         {/* START HERE — Foundation FREE leads, visually dominant, above the paid ladder. */}
@@ -123,11 +123,16 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
           </div>
         </div>
 
-        {/* Free at two layers for the work of justice — surfaced above the paid ladder. */}
+        {/* Four free pathways — surfaced above the paid ladder. Per Darrell
+            2026-06-02: what is actually free is (1) the Financial System for
+            Families and (2) the Spiritual Module for the edification of the
+            Body — free for everyone, forever. Two more cohorts open the door
+            for those the work of justice names: Loved Ones (COLG) and
+            Community (sponsored families in need). Four pathways, each scoped. */}
         <div className="mb-5 px-4 py-3 bg-white border-2 border-[#B85838]">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Free at two layers for the work of justice</div>
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Four free pathways · each with a specific scope</div>
           <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-            Two more ways in are <strong>always free</strong>: <strong>Loved Ones · Founding Family</strong> (free PoeTech+ for life — first 100 families through Church of the Living God or by direct invitation) and <strong>Community · Families in Need</strong> (free access through partner churches and 501(c)(3)s, sponsored by paying subscribers). See the cards below the paid ladder.
+            Two are <strong>free for everyone, forever</strong>: the <strong>Financial System for Families</strong> (the Foundation tier above) and the <strong>Spiritual Module for the edification of the Body</strong> (Scripture, the Godhead Study Platform, and worship surfaces — free on every tier, no upgrade). Two more open the door for those the work of justice names: <strong>Loved Ones · Founding Family</strong> (free PoeTech+ for life — first 100 families through Church of the Living God or by direct invitation) and <strong>Community · Families in Need</strong> (free access through partner churches and 501(c)(3)s, sponsored by paying subscribers). See the cards below the paid ladder.
           </p>
         </div>
 

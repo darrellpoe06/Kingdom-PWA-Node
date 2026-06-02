@@ -1291,6 +1291,7 @@ const DEMO_DATA_BY_PERSONA = {
 //   vision   — honest about what's working today vs in build
 const DEMO_PERSONA_META = {
   'family-of-4': {
+    free: true,
     label: 'For your family',
     headline: 'Know what\'s covered before the 1st — without guessing.',
     summary: 'Two parents, two kids in school.',
@@ -1299,14 +1300,16 @@ const DEMO_PERSONA_META = {
     vision: 'Multi-device per-profile views shipped — Naomi, Adam, and "Family" rollup all work today. Anonymous in-app specialist messaging is in design.',
   },
   'separated': {
+    free: true,
     label: 'For co-parents apart',
     headline: 'A fair shared truth so money stops being the fight.',
     summary: 'Two households, one shared child.',
     audience: 'Co-parents who don\'t live together but co-fund the kids.',
-    pitch: 'Each household sees its own books. The shared-child entity rolls up costs both sides agreed to split, with paid/unpaid plain on the screen. You don\'t have to argue about it in front of the kids — the system shows the truth.',
+    pitch: 'Each household sees its own books. The shared-child entity rolls up costs both sides agreed to split, with paid/unpaid plain on the screen. He didn\'t show up for the exchange? The timestamp is in the log. She says you missed a payment? The receipt\'s right there. You don\'t have to argue about it in front of the kids — the system shows the truth.',
     vision: 'Today this is two profiles on one device. Cross-household sync (two phones, two logins, one shared-child ledger) is the next build. Anonymous coordinated counseling sits in the same workstream.',
   },
   'professional': {
+    free: false,
     label: 'For solo practice owners',
     headline: 'Practice clean, personal clean, tax set-aside running.',
     summary: 'Therapist, lawyer, or consultant running their own practice.',
@@ -1315,6 +1318,7 @@ const DEMO_PERSONA_META = {
     vision: 'Today this is the financial backbone. Practice intake funnel + contractor 1099 management surfaces are in build. The marketplace that connects you to peer practitioners is roadmap.',
   },
   'landlord': {
+    free: false,
     label: 'For landlords',
     headline: 'Know on the 1st — not at month-end when a deposit comes up short.',
     summary: 'Small landlord juggling rentals + a personal household.',
@@ -2499,6 +2503,12 @@ html{scroll-padding-bottom:280px}
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-3xl w-full p-6 sm:p-8 my-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
             <h2 id="demo-picker-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{isFirstTimeLanding ? 'Know what to do today — for everyone in your house.' : 'Which life is closest to yours?'}</h2>
+            {isFirstTimeLanding && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-white bg-[#5A6E3D] px-2 py-1 font-semibold">Free forever · Financial System for Families</span>
+                <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-white bg-[#5A6E3D] px-2 py-1 font-semibold">Free forever · Spiritual Module for the Body</span>
+              </div>
+            )}
             <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? 'PoeTech is the family financial system that lifts anxiety by answering — every day, on every screen — what to do, when, why, and how.' : 'One modular framework, multiple lenses. The shipped tiles run on real data right now; the coming-soon tiles are vision for the same framework — they ship as the infrastructure does.'}</p>
             {isFirstTimeLanding && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 text-[10px] uppercase tracking-wider text-[#5A5751]">
@@ -2517,32 +2527,81 @@ html{scroll-padding-bottom:280px}
                     <span className="text-[8px] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 whitespace-nowrap">Working sample</span>
                   </div>
                   <div className="text-sm text-[#1A1815] mb-1.5 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{meta.headline}</div>
-                  <div className="text-[11px] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{meta.pitch}</div>
+                  <div className="text-[11px] text-[#5A5751] leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{meta.pitch}</div>
+                  {meta.free
+                    ? <span className="inline-block text-[8px] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
+                    : <span className="inline-block text-[8px] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
                 </a>
               ))}
+            </div>
+            {/* Coming-next staging (per Darrell "I love the cards" 2026-06-02):
+                the lifecycle cards are a FEATURE, not clutter — each lets a
+                visitor see their own life in the system. Working samples lead;
+                the full lens set flows below as "Coming next," always visible
+                (no collapse). Every card grounds in a specific real-life
+                tension and shows data-as-proof resolving it. Family-financial
+                lifecycle cards carry the Free tag; org/professional cards show
+                the paid tier. */}
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] font-semibold mb-1 mt-5">Coming next · more lives the same system holds</div>
+            <p className="text-[11px] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Every one of these is the same framework with a different lens — they ship as the modules do. Same family OS, never another app to learn. Each one turns a recurring money tension into a shared record, so the data holds when memory fails.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
               {[
-                { key: 'family-of-1', label: 'For singles starting out',        headline: 'One income, one budget, no guessing.',                       summary: 'One household, one income, simple books.' },
-                { key: 'family-of-2', label: 'For couples (no kids yet)',       headline: 'Two incomes pulling in one direction.',                       summary: 'Two incomes, shared books, joint goals.' },
-                { key: 'family-of-3', label: 'For new parents',                 headline: 'First child without losing track of the rest.',               summary: 'Childcare costs, salary changes, fresh discipline.' },
-                { key: 'family-of-5', label: 'For families of 5+',              headline: 'Three kids, busier rhythm — same clarity.',                   summary: 'More mouths, more dates, same four questions.' },
-                { key: 'family-of-7', label: 'For large households',            headline: 'Big family, big load, lifted by the system.',                  summary: 'Five+ kids, complex schedules, scaled views.' },
-                { key: 'community',   label: 'For community + school orgs',     headline: 'Kitchen-table discipline at the board table.',                 summary: 'Co-op, ministry, small-org books.' },
-                { key: 'church',      label: 'For church leadership',           headline: 'Tithe in, ministry out, capex visible.',                        summary: 'Stewardship surface for a congregation.' },
-                { key: 'lawyer',      label: 'For solo lawyers',                headline: 'Practice + trust accounting kept clean.',                     summary: 'Today: alias of Solo professional; trust-account ledger in build.' },
-                { key: 'therapist',   label: 'For solo therapists',             headline: 'Practice + CEU + supervision tracked.',                       summary: 'Today: alias of Solo professional; clinical-side tier in build.' },
+                { key: 'young-adults-launching',     free: true,  label: 'For young adults launching',        headline: 'First apartment, first paycheck, first 401(k).',          summary: "First apartment, first paycheck, first 401(k). When mom and dad help with first month's rent, the gift-or-loan question gets settled in writing. If support changes, it's logged — not 'I thought you said.'" },
+                { key: 'family-of-1',                free: true,  label: 'For singles starting out',          headline: 'One income, one budget, no guessing.',                    summary: "One household, one income, simple books. Every subscription and 'where did it go' is on the screen, not in your head." },
+                { key: 'engaged-pre-marriage',       free: true,  label: 'For engaged couples · before marriage', headline: 'Build the financial system before the vows.',          summary: "The conversation about money before the vows — clear, not awkward. Joint vs. separate logged in writing. If one stops contributing, the data shows it before resentment does. Two budgets becoming one — data as the prenup-conversation starter." },
+                { key: 'family-of-2',                free: true,  label: 'For couples (no kids yet)',         headline: 'Two incomes pulling in one direction.',                   summary: "Two incomes, shared books, joint goals. Who-paid-what logged, so 'I covered more' is a number, not a feeling." },
+                { key: 'family-of-3',                free: true,  label: 'For new parents',                   headline: 'First child without losing track of the rest.',           summary: 'Childcare costs, salary changes, fresh discipline. The new line items are tracked the day they start.' },
+                { key: 'family-of-5',                free: true,  label: 'For families of 5+',                headline: 'Three kids, busier rhythm — same clarity.',               summary: "More mouths, more dates, same four questions. Every kid's costs visible, nothing slips." },
+                { key: 'family-of-7',                free: true,  label: 'For large households',              headline: 'Big family, big load, lifted by the system.',             summary: 'Five+ kids, complex schedules, scaled views. The load is real; the record keeps it honest.' },
+                { key: 'empty-nesters',              free: true,  label: 'For empty nesters',                 headline: 'Last kid out, attention to retirement.',                  summary: "When grown kids ask for help, you have data, not just generosity. Here's what we gave over the years, here's the picture. Retirement runway, adult-children support logged, legacy planning — all data-driven." },
+                { key: 'widowed-or-divorced-restart',free: true,  label: 'For widowed or divorced restarting',headline: 'Rebuilding the financial picture after a life change.',    summary: "You don't rebuild from memory after a loss. The system already holds the history — every shared expense, every transfer, every receipt. Estate and benefits paperwork starts with data, not 'where did I put that.'" },
+                { key: 'community',   free: false, label: 'For community + school orgs',     headline: 'Kitchen-table discipline at the board table.',                 summary: 'Co-op, ministry, small-org books. Every shared cost agreed and recorded, so the board votes on numbers, not memory.' },
+                { key: 'church',      free: false, label: 'For church leadership',           headline: 'Tithe in, ministry out, capex visible.',                        summary: 'Stewardship surface for a congregation. (The spiritual module for the Body is free; church org books are the paid stewardship tier.)' },
+                { key: 'lawyer',      free: false, label: 'For solo lawyers',                headline: 'Practice + trust accounting kept clean.',                     summary: 'Today: alias of Solo professional; trust-account ledger in build. Every client transfer recorded, so the trust balance is provable.' },
+                { key: 'therapist',   free: false, label: 'For solo therapists',             headline: 'Practice + CEU + supervision tracked.',                       summary: 'Today: alias of Solo professional; clinical-side tier in build. CEUs and supervision hours logged as the record, not the memory.' },
               ].map(s => (
-                <div key={s.key} className="block p-4 border border-dashed border-[#5A5751] bg-white/60 opacity-80">
+                <div key={s.key} className="block p-4 border border-dashed border-[#5A5751] bg-white/70">
                   <div className="flex items-baseline justify-between mb-1.5 gap-2">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">{s.label}</div>
                     <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#5A5751] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
                   </div>
                   <div className="text-sm text-[#1A1815] mb-1 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.headline}</div>
-                  <div className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
+                  <div className="text-[11px] text-[#5A5751] mb-2 leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
+                  {s.free
+                    ? <span className="inline-block text-[8px] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
+                    : <span className="inline-block text-[8px] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
                 </div>
               ))}
             </div>
             <div className="bg-white border border-[#E8E4DC] p-3 text-xs text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
               <strong className="text-[#1A1815]">What's coming as the infrastructure ships:</strong> anonymous in-app access to specialists (therapy, legal, property, financial) so a person can read, listen, and message on their terms before revealing their identity. Multi-household co-auth so separated co-parents share one ledger of truth across two phones. IoT integration so smart-home spend flows in automatically. Modules layer on the same foundation as they ship — never another app to learn, just the same family OS getting wider.
+            </div>
+            {/* Pricing glimpse strip (per Freddie audit d3733f5/4cb55b9): a
+                visitor with 5 seconds should know the model — FREE entry, a
+                paid ladder for multi-module needs, free programs for COLG +
+                need-based. FREE labels use the working-sample green (#5A6E3D).
+                "See pricing" marks the landing seen and opens the About view. */}
+            <div className="border border-[#E8E4DC] bg-white px-3 py-3 mt-3 mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="text-[11px] text-[#1A1815] mb-1.5 leading-snug">
+                <span className="text-[9px] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free forever</span> <span className="font-semibold">Financial System for Families</span> + <span className="font-semibold">Spiritual Module for the Body</span> — no credit card.
+              </div>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px] text-[#1A1815]">
+                <span className="text-[#5A5751]">Paid for businesses, professionals + landlords:</span>
+                <span><span className="font-semibold">from $39</span> PoeTech+</span>
+                <span className="text-[#5A5751]">·</span>
+                <span><span className="font-semibold">$89</span> Household</span>
+                <span className="text-[#5A5751]">·</span>
+                <span><span className="font-semibold">$149</span> Premium</span>
+                <span className="text-[#5A5751]">·</span>
+                <span><span className="font-semibold">$249</span> Business</span>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[10px] text-[#5A5751]">
+                <span><span className="text-[#5A6E3D] font-semibold">Free for Loved Ones</span> (COLG)</span>
+                <span>·</span>
+                <span>Sponsored for families in need</span>
+                <span>·</span>
+                <button type="button" onClick={() => { markLandingSeen(); setView('about'); }} className="underline text-[#B85838] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">See pricing →</button>
+              </div>
             </div>
             {/* Drop your bank file - 2026-05-29 data-dump release Layer 1.
                 Most powerful invitation on the landing: their own money in
