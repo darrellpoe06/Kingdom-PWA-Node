@@ -274,7 +274,7 @@ function PoeTechDifferentiation() {
     {
       kind: 'Authenticity',
       title: 'Vertical integration with real businesses',
-      detail: 'Vertical integration with real family-owned businesses across real estate (multi-property rental management), a multi-clinician faith-integrated counseling practice, and active church ministry operations. Every workflow tested on actual family businesses before it ships. Competitors would need to start parallel businesses to match this provenance.',
+      detail: 'Poe Properties (11 rentals · real management), TLC Therapy Solutions (real clinical practice · 7 clinicians), Church of the Living God (real ministry · Tech Director). Every workflow tested on actual family businesses before shipped. Competitors would need to start parallel businesses to match this provenance.',
       strength: 'Strong'
     },
     {
@@ -365,16 +365,16 @@ function LowHangingFruit() {
       effort: 'Low',
       revenue: '$10-18K/yr',
       window: 'Quarter 1',
-      who: 'Practice partner',
-      detail: 'Group therapy is already listed on partner practice sites. Run 4-6 cohorts/year, 6-8 weeks each, 6-8 participants. At $200-400 total per participant, each cohort = $2-3K. Higher margin than 1:1. Real clinical impact at scale.',
+      who: 'Christina',
+      detail: 'Group therapy is already listed on TLC site. Run 4-6 cohorts/year, 6-8 weeks each, 6-8 participants. At $200-400 total per participant, each cohort = $2-3K. Higher margin than 1:1. Real clinical impact at scale.',
     },
     {
-      name: 'Partner Church Faith + Finance Workshop',
+      name: 'COLG Faith + Finance Workshop',
       effort: 'Low',
       revenue: '$5-15K/yr',
       window: 'Quarter 1-2',
-      who: 'Founder',
-      detail: 'Operators already teaching at a partner church. Quarterly workshop series on faith-integrated stewardship. Love offering $25-50 × 20-50 attendees × 4 events/yr. Also drives Loved Ones tier sign-ups and warm market for PoeTech.',
+      who: 'Darrell',
+      detail: 'You already teach at COLG. Quarterly workshop series on faith-integrated stewardship. Love offering $25-50 × 20-50 attendees × 4 events/yr. Also drives Loved Ones tier sign-ups and warm market for PoeTech.',
     },
     {
       name: 'Affiliate revenue from tools we recommend',
@@ -393,20 +393,20 @@ function LowHangingFruit() {
       detail: 'Repurpose strategic briefs into weekly Substack/Beehiiv content. Faith + finance + family-led business. Build free audience first. Add paid tier ($5-10/mo) when 1K+ subscribers. Drives platform discovery.',
     },
     {
-      name: 'Pre-Marital Bundle (Counseling + Finance partners)',
+      name: 'Pre-Marital Bundle (Christina + Darrell)',
       effort: 'Medium',
       revenue: '$1-3K/mo',
       window: 'Quarter 2',
       who: 'Both',
-      detail: '6-session package: couples counseling (Wellness Counseling partner) + financial planning (PoeTech founder) + faith curriculum + planning workbook. $499-999 one-time. 2-3 couples/month from partner church referrals + counseling pipeline. Unique combined offering.',
+      detail: '6-session package: couples counseling (Christina) + financial planning (Darrell) + faith curriculum + planning workbook. $499-999 one-time. 2-3 couples/month from COLG referrals + TLC pipeline. Unique combined offering.',
     },
     {
       name: 'MSW Supervision Hours',
       effort: 'Low (within Christina\'s practice)',
       revenue: '$1-5K/mo',
       window: 'Quarter 1',
-      who: 'Lead clinician (or senior contractors)',
-      detail: 'New LCSWs need 100+ supervision hours from senior clinicians. Lead clinician supervises 2-4 supervisees at $75-150/hr × 4-8 hrs/wk. Adjacent revenue to existing clinical practice. Helps grow the partner practice team simultaneously.',
+      who: 'Christina (or senior contractors)',
+      detail: 'New LCSWs need 100+ supervision hours from senior clinicians. Christina supervises 2-4 supervisees at $75-150/hr × 4-8 hrs/wk. Adjacent revenue to existing clinical practice. Helps grow TLC team simultaneously.',
     },
     {
       name: 'Scope Template Downloads',
@@ -437,7 +437,7 @@ function LowHangingFruit() {
     <section>
       <SectionTitle eyebrow="Low-Hanging Fruit">Revenue Not Yet On The Radar</SectionTitle>
       <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-        Eight near-term revenue streams using existing assets — partner clinical practice, partner church teaching access, scope templates, content. Most require setup once and produce recurring revenue. Conservative aggregate: <strong>~${(totalLow/1000).toFixed(0)}K-${(totalLow * 2 / 1000).toFixed(0)}K Year 1</strong> beyond the subscription business.
+        Eight near-term revenue streams using existing assets — TLC clinical practice, COLG teaching access, scope templates, content. Most require setup once and produce recurring revenue. Conservative aggregate: <strong>~${(totalLow/1000).toFixed(0)}K-${(totalLow * 2 / 1000).toFixed(0)}K Year 1</strong> beyond the subscription business.
       </p>
       <div className="space-y-2">
         {opportunities.map((o, i) => (
@@ -554,7 +554,7 @@ function PoeTechServicesPortfolio() {
           <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-4">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">Family · Small Business · Founders</div>
             <p className="text-sm mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              Accessible by design. Foundation tier free forever. Loved Ones free PoeTech+ for life (first 100 partner-church families). Subscriptions $39–$249/mo. Community tier free for families in need (sponsor-funded).
+              Accessible by design. Foundation tier free forever. Loved Ones free PoeTech+ for life (first 100 COLG families). Subscriptions $39–$249/mo. Community tier free for families in need (sponsor-funded).
             </p>
             <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               No one is priced out of stewardship.

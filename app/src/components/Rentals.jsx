@@ -108,12 +108,12 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   const addressQuery = [rental.address, rental.city, rental.state, rental.zip].filter(Boolean).join(', ');
   const quoted = `"${addressQuery}"`;
   // Address slug for Zillow: lowercase, alphanumeric + dashes, all parts joined by dashes.
-  // e.g., "1402 Maple St, Cedar Heights, IL 60001" -> "1402-maple-st-cedar-heights-il-60001"
+  // e.g., "1508 Holly Hill Dr, Champaign, IL 61821" -> "1508-holly-hill-dr-champaign-il-61821"
   const zillowSlug = [rental.address, rental.city, rental.state, rental.zip]
     .filter(Boolean).join(' ').toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
   // Realtor uses underscores between address parts, dashes within each part.
-  // e.g., "1402-Maple-St_Cedar-Heights_IL_60001"
+  // e.g., "1508-Holly-Hill-Dr_Champaign_IL_61821"
   const slugifyPart = (s) => (s || '').trim().replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-');
   const realtorSlug = [slugifyPart(rental.address), slugifyPart(rental.city), slugifyPart(rental.state), slugifyPart(rental.zip)]
     .filter(Boolean).join('_');

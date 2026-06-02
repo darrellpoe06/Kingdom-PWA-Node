@@ -3209,7 +3209,7 @@ export function SalesFooterBanner({ currentView, setView }) {
 }
 
 
-// Shows partner ministries + practice partners + family businesses on Foundation (free) tier
+// Shows COLG + TLC + family businesses on Foundation (free) tier
 // Paid tiers won't see this (per sponsorship ethics policy)
 // =============================================================================
 // TherapyReminder — always-visible mental-health support footer.
@@ -3221,19 +3221,19 @@ export function SalesFooterBanner({ currentView, setView }) {
 function TherapyReminder() {
   return (
     <section className="bg-white border-l-4 border border-[#E8E4DC] mt-6 print:hidden" style={{ borderLeftColor: '#5A6E3D' }}>
-      <a href="#wellness-counseling-partners" className="block p-4 hover:bg-[#FAF8F4] transition-colors">
+      <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="block p-4 hover:bg-[#FAF8F4] transition-colors">
         <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🌿 Need someone to talk to?</div>
           <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">For every family · every tier</div>
         </div>
-        <h3 className="text-base sm:text-lg mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.01em' }}>Wellness Counseling Partners · Faith-integrated therapy</h3>
+        <h3 className="text-base sm:text-lg mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.01em' }}>TLC Therapy Solutions · Real solutions for real life</h3>
         <p className="text-sm mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
           Money stress. Family stress. Marriage stress. Grief. Parenting hard seasons. You don't have to carry it alone — and you don't have to wait until it's a crisis to reach out.
         </p>
         <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Faith-integrated practices using PoeTech for sovereign records · multi-clinician teams · multiple insurance carriers accepted · online and in-person.
+          Faith-integrated therapy · 7-clinician team · accepts BCBS, Aetna, UHC, VA, Cigna · online and in-person.
         </p>
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[#5A6E3D]">Find a partner practice →</div>
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-[#5A6E3D]">Book a session →</div>
       </a>
     </section>
   );
@@ -3241,66 +3241,58 @@ function TherapyReminder() {
 
 function AdvisementBanner() {
   const [index, setIndex] = useState(0);
-  // Sanitized 2026-06-01 evening: advisement entries are now generic
-  // community-partner category placeholders rather than specific real
-  // family businesses. Per the data-leak escalation: even close-to-real
-  // identifying business details should not appear on the public PWA.
-  // When a real PoeTech partner subscriber configures their own instance,
-  // their advisements get populated from THEIR configured partners --
-  // never from the default seed. This default array is the aspirational
-  // shape, not actual partners.
   const advisements = [
     {
-      brand: 'Community Church Partners',
-      tagline: 'Local congregations served through PoeTech Community tier',
-      detail: 'Worship times and locations show up here once your church partners with PoeTech.',
-      cta: 'Learn about church partnerships',
-      url: '#community-partners',
+      brand: 'The Church of the Living God',
+      tagline: 'RESET! Reviving Faith · Restoring Hope · Rebuilding Communities',
+      detail: 'Sunday Worship 11AM · Wed Bible Study 1PM & 6PM · 312 E. Bradley Ave, Champaign IL',
+      cta: 'Visit thechurchofthelivinggod.com',
+      url: 'https://thechurchofthelivinggod.com',
       tag: 'Faith Community',
       accent: '#B85838',
     },
     {
-      brand: 'Wellness Counseling Partners',
-      tagline: 'Faith-integrated therapy practices on the PoeTech platform',
-      detail: 'Counseling practices using PoeTech for intake + scope + sovereign records show up here.',
-      cta: 'Learn about practice partnerships',
-      url: '#practice-partners',
+      brand: 'TLC Therapy Solutions',
+      tagline: 'Real Solutions for Real Life · Faith-integrated therapy',
+      detail: 'Online & in-person · Accepts BCBS, Aetna, UHC, VA, Cigna · 7-clinician team',
+      cta: 'Book a Session →',
+      url: 'https://tlctherapysolutions-scheduleappointment.as.me/',
       tag: 'Mental Health',
       accent: '#5A6E3D',
     },
     {
-      brand: 'Faith Live Stream Partners',
-      tagline: 'Worship from anywhere',
-      detail: 'Partner ministries streaming Sunday service appear here for their PoeTech community.',
-      cta: 'Learn about stream partnerships',
-      url: '#stream-partners',
+      brand: 'COLG · YouTube Live',
+      tagline: 'Worship from anywhere · The Love Corner experience',
+      detail: 'Sunday service streams live · Subscribe to be notified',
+      cta: 'Watch on YouTube →',
+      url: 'https://www.youtube.com/channel/UC821pJh7YR5llBNnWUJj-ZA',
       tag: 'Live Worship',
       accent: '#B85838',
     },
     {
-      brand: 'Family Properties Partners',
-      tagline: 'Family-owned rentals managed through PoeTech Real Estate',
-      detail: 'Properties run by partner families using PoeTech for tenant + lease + maintenance ops.',
-      cta: 'Learn about Real Estate module',
-      url: '#real-estate',
+      brand: 'Poe Properties LLC',
+      tagline: 'Quality rentals in Champaign-Urbana · Owner-managed',
+      detail: '11 rental homes · Faith-led ownership · Community-rooted',
+      cta: 'Inquire about availability',
+      url: 'mailto:contact@poetech.us?subject=Poe Properties Rental Inquiry',
       tag: 'Housing',
       accent: '#5A6E3D',
     },
     {
-      brand: 'Annual Faith Conference Partners',
-      tagline: 'Yearly gatherings · faith, fellowship, growth',
-      detail: 'Partner churches highlight their annual events here for their PoeTech community.',
-      cta: 'Learn about event partnerships',
-      url: '#event-partners',
+      brand: 'COLG · 77th National Assembly',
+      tagline: 'Annual gathering · Faith, fellowship, growth',
+      detail: 'Find dates and registration on the church site',
+      cta: 'Learn more →',
+      url: 'https://www.thechurchofthelivinggod.com/77th-national-assembly.html',
       tag: 'Event',
       accent: '#B85838',
     },
     {
-      brand: 'Bible Study Partners',
-      tagline: 'Year-round scripture study through partner churches',
-      detail: 'Partner ministries highlight their study tracks here for their PoeTech community.',
-      cta: 'Learn about discipleship partnerships',
-      url: '#discipleship-partners',
+      brand: 'COLG · Bible Reading Challenge 2026',
+      tagline: 'Read through with the church · Discussion guides included',
+      detail: 'Wednesday Bible Study 1PM & 6PM · Join in-person or online',
+      cta: 'See the reading plan →',
+      url: 'https://www.thechurchofthelivinggod.com/bible-reading-challenge-2026.html',
       tag: 'Discipleship',
       accent: '#B85838',
     },
@@ -5128,13 +5120,11 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
 
 // =============================================================================
 // v28+ MVP v1.5 — CHURCH · Home-church tab.
-// Surfaces configured-instance info from the partner church (service times,
+// Surfaces real info pulled from thechurchofthelivinggod.com (service times,
 // broadcast/social, tithes, ministry sign-up, Bible reading) and adds
 // parishioner-friendly extras: prayer request log (local-first, sent to
 // the office via mailto when the user chooses), one-tap reminder save to
 // the existing Calendar events, ministry-interest sign-up.
-// Real church-instance subscribers configure their own data here; the
-// default public seed shows generic placeholders only (sanitized 2026-06-01).
 // FUTURE-MODULE HOOK: hands off to the planned `spiritual` module once it
 // ships — same data shape, just more views over it.
 // WCAG 2.1 AA: <label>'d inputs, focus rings, descriptive aria-labels,
@@ -7188,7 +7178,7 @@ export function Pressure({ pressure, setPressure, totals, pressureCalc, reserves
 // ABOUT — v7 with PRICING + STRONGHOLD MISSION
 // =============================================================================
 // =============================================================================
-// PRACTICE — v9 NEW: Inquiry management for Wellness Counseling partners
+// PRACTICE — v9 NEW: Inquiry management for TLC Therapy Solutions
 // Lead capture / inquiry tracking · pre-patient · NO PHI
 // =============================================================================
 // INQUIRY_SOURCES + INQUIRY_INTERESTS moved to ./components/Practice.jsx (r31/r41).

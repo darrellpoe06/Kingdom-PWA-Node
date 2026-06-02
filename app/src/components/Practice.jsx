@@ -60,7 +60,7 @@ const INQUIRY_INTERESTS = [
 ];
 
 // Health insurance carriers commonly used in US mental health billing.
-// `accepted: true` marks the carriers a partner Wellness Counseling practice has contracted
+// `accepted: true` marks the carriers TLC Therapy Solutions has contracted
 // with per the homepage advisement (BCBS, Aetna, UHC, Cigna, VA). They
 // surface first in the dropdown with a checkmark.
 const INSURANCE_CARRIERS = [
@@ -156,31 +156,28 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
 
   return (
     <div className="space-y-5">
-      {/* Wellness Counseling Partner integration banner — sanitized 2026-06-01
-          per data-leak directive: no specific real partner practice details
-          visible in default public seed. Real configured-instance subscribers
-          see their own partner practice here. */}
+      {/* TLC Therapy Solutions integration banner */}
       <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
           <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Wellness Counseling Partner</div>
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions</div>
             <h2 className="text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Real Solutions for Real Life.</h2>
-            <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Faith-integrated therapy. Online & in-person. Multi-clinician team.</p>
+            <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Faith-integrated therapy. Online & in-person. Christina Poe, LCSW + clinical team.</p>
           </div>
-          <a href="#wellness-counseling-partners" className="bg-[#1A1815] text-[#FAF8F4] px-4 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] whitespace-nowrap">📅 Book a Session →</a>
+          <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="bg-[#1A1815] text-[#FAF8F4] px-4 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] whitespace-nowrap">📅 Book a Session →</a>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-          <a href="#wellness-counseling-partners" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
+          <a href="https://tlctherapysolutions.me/" target="_blank" rel="noopener noreferrer" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
             <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Site</div>
-            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Practice site →</div>
+            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>tlctherapysolutions.com →</div>
           </a>
-          <a href="#wellness-counseling-partners" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
+          <a href="https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities" target="_blank" rel="noopener noreferrer" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
             <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Match a Therapist</div>
             <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Find Your Therapist →</div>
           </a>
-          <a href="#wellness-counseling-partners" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
+          <a href="mailto:contact@tlctherapysolutions.com" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
             <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direct Contact</div>
-            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Contact partner practice</div>
+            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>contact@tlctherapysolutions.com</div>
           </a>
         </div>
       </section>
@@ -200,7 +197,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
             <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
               <div className="flex items-baseline justify-between gap-2 mb-1">
                 <h4 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h4>
-                <a href="#wellness-counseling-partners" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
+                <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
               </div>
               <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
               <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.for}</p>
@@ -214,28 +211,16 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
         <SectionTitle eyebrow="Clinical Team">Match a Preferred Provider</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[
-            // Sanitized 2026-06-01: clinician roster placeholders. Real
-            // configured-instance subscribers (a partner practice using
-            // PoeTech for their own ops) see their own clinician roster
-            // populated from THEIR data, not from the default public seed.
-            // Photos removed (third-party CDN URLs pointed at real clinician
-            // headshots); each row uses a generic initials avatar instead.
-            { name: 'Founder, LCSW', role: 'Founder · Lead Clinician', specialty: 'Adult · couples · faith integration · clinical consult', url: '#wellness-counseling-partners', photo: '' },
-            { name: 'Specialist A, LCSW', role: 'Specialist', specialty: 'Multicultural therapy · individual & family', url: '#wellness-counseling-partners', photo: '' },
-            { name: 'Specialist B, LCSW', role: 'Specialist', specialty: 'Child & adolescent · trauma-informed', url: '#wellness-counseling-partners', photo: '' },
-            { name: 'Specialist C, LCSW', role: 'Specialist', specialty: 'Multicultural therapy', url: '#wellness-counseling-partners', photo: '' },
-            { name: 'Specialist D, LCSW', role: 'Specialist', specialty: 'Multicultural therapy', url: '#wellness-counseling-partners', photo: '' },
-            { name: 'Specialist E, PhD', role: 'Specialist', specialty: 'Clinical specialty services', url: '#wellness-counseling-partners', photo: '' },
-            { name: 'Specialist F, LCSW', role: 'Specialist', specialty: 'Multicultural therapy', url: '#wellness-counseling-partners', photo: '' },
+            { name: 'Christina Poe, LCSW', role: 'Founder · Lead Clinician', specialty: 'Adult · couples · faith integration · clinical consult', url: 'https://tlctherapysolutions.me/christina-poe', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---christina-poe-AR01LXjXPBFJOGxN.jpg' },
+            { name: 'Sheronda Smith-Williams', role: 'Specialist', specialty: 'Multicultural therapy · individual & family', url: 'https://tlctherapysolutions.me/sheronda-smith-williams', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---sheronda-smith-williams-ALp2egQZ9wS64pPW.jpg' },
+            { name: 'Carolyn Nicole Johnson', role: 'Specialist', specialty: 'Child & adolescent · trauma-informed', url: 'https://tlctherapysolutions.me/carolyn-nicole-johnson', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---nicole-johnson-AR01N41P9Es3Xrb8.png' },
+            { name: 'Candace Godbolt', role: 'Specialist', specialty: 'Multicultural therapy', url: 'https://tlctherapysolutions.me/candace-godbolt', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---candace-godbolt-m7VDvBz2n5te0wrl.jpeg' },
+            { name: 'Wamaitha Sullivan', role: 'Specialist', specialty: 'Multicultural therapy', url: 'https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/headshot---wamaitha-sullivan-dJoPzQZMVaIJMPKW.jpg' },
+            { name: 'Dr. Candace Gwin', role: 'Specialist', specialty: 'Clinical specialty services', url: 'https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---dr-candace-gwin-YD0ElbPRqnHxZqlv.jpg' },
+            { name: 'Carileigh Jones', role: 'Specialist', specialty: 'Multicultural therapy', url: 'https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---carileigh-jones-m7VD3Xex4RUPGEwn.jpg' },
           ].map(c => (
             <a key={c.name} href={c.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors flex gap-3 items-start">
-              {c.photo ? (
-                <img src={c.photo} alt={c.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 object-cover border border-[#E8E4DC] shrink-0" />
-              ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center shrink-0 text-base text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} aria-label={c.name}>
-                  {(c.name || '').split(/[\s,]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·'}
-                </div>
-              )}
+              <img src={c.photo} alt={c.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 object-cover border border-[#E8E4DC] shrink-0" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2 mb-0.5">
                   <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-sm">{c.name}</span>
