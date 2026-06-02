@@ -2,6 +2,38 @@
 
 These rules apply to every action taken by Claude Code in this repository: every file edit, every commit message, every response to the user, every summary, every artifact. They are not stylistic preferences. They are non-negotiable constraints.
 
+## This Document Is Layer 0 (ICM)
+
+This file is **Layer 0 of the Interpretable Context Methodology** (ICM; Van Clief & McDermott 2026, arXiv:2603.16021) as applied to this repository. ICM treats the filesystem itself as the orchestration architecture: a single agent reads the right context layer at the right time instead of relying on an external orchestration framework. Layer 0 is the global identity file that every agent loads first, before anything else. That is what `CLAUDE.md` is here. Read this file first; everything below is binding before any other context is consulted.
+
+### The worldview lens
+
+Layer 0 is not read in a vacuum. It is read **through** the worldview spine declared in `docs/00-foundations/_root/THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md` — the source of answers declared by Darrell (see "The Source of Answers" section below). All answers come from that biblical source. The identity in this file and the lens in that document are read together: the rules here are the *what*; the Worldview is the *why* and the *posture*. When the two must be reconciled, the binding rules in this file govern operationally while the Worldview governs doctrinally.
+
+### The binding-principle memory files future sessions inherit
+
+Future sessions load the auto-memory index at `memory/MEMORY.md`. These are the binding-principle memories in force, with their pairing context. They are inherited identity, not optional preference:
+
+- **project_skos_foundations_branch** — foundation work historically lived on `docs/skos-foundations`, not `main`. (Verify the active branch per session; this repo is currently operated on `main`.)
+- **feedback_binding_rules_typography** — capitalize God references, lowercase adversary names; applies to every artifact, every response. Pairs with the Typographic Theology section below.
+- **feedback_surface_premise_conflicts** — when a step-by-step plan rests on a verifiably-wrong premise, stop before irreversible steps and offer options instead of executing as written.
+- **feedback_no_coauthor_trailer** — this repo's commits use plain subjects, no Claude co-author trailer; match the existing pre-Claude commit style.
+- **feedback_auto_push_after_commit** — every commit is immediately followed by a push to the working branch unless the user says "commit only, don't push."
+- **feedback_desktop_paste_instructions** — for any action Darrell does at his desktop, always give plain instructions PLUS a ready-to-paste PowerShell block. Pairs with the "PowerShell Commands -- Self-Contained From Anywhere" rule below.
+- **project_n8n_same_origin_rewrite** — the PWA reaches n8n webhooks via the same-origin `/n8n` Vercel rewrite, never the absolute Tailscale Funnel URL (it throttles cross-origin).
+
+When a recalled memory names a file, function, or flag, verify it still exists before relying on it; memories reflect what was true when written.
+
+### The foundation-doc layers
+
+The repository's context is layered per ICM. Name the layer when locating or placing context:
+
+- **Layer 0 (identity):** this file, `CLAUDE.md` — the global binding rules every agent loads first.
+- **Layer 1 (routing):** `docs/CONTEXT.md` — the top-level router that points to the right stage/workspace. *Pending* (not yet created); reference it as pending until it lands.
+- **Layer 2 (stage contract):** the per-workspace stage `CONTEXT.md` inside each ICM workspace — the contract for a single stage of a single workflow. Created per-workspace as the WORKFLOW-MODULE-LIBRARY workspaces are built out.
+- **Layer 3 (reference):** `docs/00-foundations/_root/*.md` — the authoritative foundation documents (THE-WAY, MIND-OF-CHRIST, the Worldview spine, the governance and mission foundations). Reference material the agent reads before generating substantive content.
+- **Layer 4 (working):** `docs/99-session-notes/*.md` — the dated working artifacts: research-reviews, session snapshots, audits, and the consolidated extracts that feed the next build.
+
 ## Typographic Theology
 
 **Always capitalized**, including in pronoun references:

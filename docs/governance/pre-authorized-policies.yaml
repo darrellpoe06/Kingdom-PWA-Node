@@ -1,0 +1,341 @@
+# pre-authorized-policies.yaml
+# Repo source of truth. Deploys to /volume1/PoeTech/governance/pre-authorized-policies.yaml on the NAS.
+# NAS-resident governance config per project_nas_as_governance_point.
+# Read by wf27 (Foundation Agent), wf36 (Quality Gatekeeper), and every
+# per-industry team's OPA Rego policy file.
+# Version: v1 (post-vacation Day 1 draft)
+# Last updated: 2026-06-02
+# Updated by: Claude as Advisor, reviewed by Darrell as Governor.
+
+meta:
+  version: v1
+  effective_date: 2026-06-02
+  governor: Darrell Poe
+  co_governors:
+    - Christina Poe (TLC clinical domain)
+    - Bishop Gwin (COLG / Church domain, once relationship is established)
+  authority_chain:
+    - CLAUDE.md (binding rules at repo level)
+    - docs/00-foundations/_root/*.md (foundation principles)
+    - memory/*.md (declared bindings from prior sessions)
+    - this file (operational pre-authorization)
+
+# ===========================================================================
+# Tier 0 -- BRIGHT LINES (never auto-promote, regardless of approval history)
+# ===========================================================================
+bright_lines:
+  - id: tlc_clinical_data
+    description: "Anything touching TLC clinical data, PHI, or Christina's clinical work"
+    enforcement: deny_always
+    requires_governor: Christina Poe
+    notes: "PHI stays in Acuity; never leaves NAS; never to cloud LLMs."
+
+  - id: money_movement
+    description: "Anything moving money -- trades, transfers, ACH initiation, payment processing"
+    enforcement: deny_always
+    requires_governor: Darrell Poe
+    notes: "Per CLAUDE.md Financial Actions rule."
+
+  - id: credential_vault
+    description: "Anything touching auth credentials, API tokens, the credential vault"
+    enforcement: deny_always
+    requires_governor: Darrell Poe
+
+  - id: irreversible_os
+    description: "rm -rf, drop table, registrar DNS root changes, container destroy"
+    enforcement: deny_always
+    requires_governor: Darrell Poe
+
+  - id: minor_data
+    description: "Anything touching minor / child data per DATA-AS-EMPOWERMENT minor protections"
+    enforcement: deny_always
+    requires_governor: Darrell Poe + Christina Poe
+
+  - id: theology_voice
+    description: "AI-generated content fronting the family's voice on substantive theological work"
+    enforcement: deny_always
+    requires_governor: Darrell Poe + Bishop Gwin (for COLG-fronted content)
+    notes: "Per AI-MEDIA-PRODUCTION-PLATFORM-VISION Pillar 3 -- AI is the production tool, not the speaker."
+
+# ===========================================================================
+# Tier 1 -- PRE-AUTHORIZED FIX CLASSES (execute now, log Event, no escalation)
+# ===========================================================================
+pre_authorized_fix_classes:
+
+  - id: process_env_to_literal_default
+    description: "Replace n8n Code-node process.env.X with literal default per known sandbox-block bug"
+    pattern: "process.env\\.\\w+ \\|\\| '([^']+)'"
+    fix_pattern: "'$1'"
+    teams_authorized: [devops]
+    auto_commit: true
+    auto_push: false
+    requires_smoke_test: true
+    rollback_on_failure: true
+    notes: "Per workflow-audit Section 2; canonical fix pattern from commit 1edb8e1."
+
+  - id: hardcoded_value_to_set_node_config
+    description: "Lift hardcoded path / URL / model-name to upstream Config Set node per n8n-fix-patterns Decision 1"
+    teams_authorized: [devops]
+    auto_commit: true
+    auto_push: false
+    requires_smoke_test: true
+    rollback_on_failure: true
+    notes: "Tier-1 to Tier-2 promotion path; first applied to wf30/31/32 as Family-Voice-Loop module."
+
+  - id: missing_error_workflow_setting
+    description: "Set 'Error Workflow = 02-Workflow-Failure-Alert' on any active workflow that lacks one"
+    teams_authorized: [devops]
+    auto_apply: true
+    requires_smoke_test: false
+    notes: "Per n8n-fix-patterns Decision 2."
+
+  - id: typographic_theology_violation
+    description: "Lower-case the adversary's names (satan/lucifer/the-devil/the-adversary/the-accuser/the-deceiver/the-dragon) in generated content"
+    pattern: "\\b(Satan|Lucifer|Devil|Adversary|Accuser|Deceiver|Dragon)\\b"
+    fix_logic: "lowercase if not at sentence start; flag for review if at sentence start"
+    teams_authorized: [devops, church, online]
+    auto_apply: true
+    notes: "Per CLAUDE.md typographic theology binding. Never auto-lowercases God references."
+
+  - id: missing_scripture_translation_badge
+    description: "Add ESV/KJV/NIV translation badge to bare scripture citations in generated content"
+    pattern: "\"[A-Z][^\"]+\" \\(([A-Z][a-z]+ \\d+:\\d+)\\)"
+    teams_authorized: [church]
+    auto_apply: true
+    notes: "Per SCRIPTURE-REFERENCE-STANDARD. ESV primary."
+
+  - id: seed_data_real_value_leak
+    description: "Replace identified real-Poe-family seed values with SEED-DATA-AS-ASPIRATION values in public PWA"
+    teams_authorized: [devops]
+    auto_apply: false
+    requires_governor_review: true
+    notes: "Per seed-data-urgent-sanitization-retroactive; brand-vs-data distinction REQUIRED before any change."
+
+# ===========================================================================
+# Tier 2 -- PRE-AUTHORIZED DRAFTING (LLM team drafts, ntfy queues for one-tap)
+# ===========================================================================
+pre_authorized_drafts:
+
+  - id: weekly_bulletin_draft
+    description: "Draft COLG weekly bulletin from sermon archive + announcement queue"
+    teams_authorized: [church]
+    target: bishop_gwin_review_queue
+    cadence: weekly_monday_8am
+    notes: "Per Pilot 4 -- Church-Ops Sermon + Announcement."
+
+  - id: sermon_summary_3channel_draft
+    description: "Draft 3-channel (SMS / email / app notification) sermon summary"
+    teams_authorized: [church]
+    target: colg_deacon_approval_queue
+    cadence: monday_after_sunday_sermon
+
+  - id: family_finance_monthly_digest
+    description: "Draft monthly Family Finance digest with transaction tagging + jubilee progress"
+    teams_authorized: [family_finance]
+    target: darrell_christina_review_queue
+    cadence: monthly_first_of_month
+
+  - id: weekly_ship_summary
+    description: "wf32 daily ship summary draft"
+    teams_authorized: [devops]
+    target: ntfy_poetech_ship_summary
+    cadence: daily_9pm_central
+    auto_publish: true
+    notes: "Already operational per wf32."
+
+  - id: morning_digest
+    description: "wf31 daily standup digest draft"
+    teams_authorized: [devops]
+    target: ntfy_poetech_morning_digest
+    cadence: daily_7am_central
+    auto_publish: true
+    notes: "Already operational per wf31."
+
+# ===========================================================================
+# Tier 3 -- ESCALATION PATTERNS (always queue, never auto-execute)
+# ===========================================================================
+escalations:
+
+  - id: theological_publishing
+    description: "Any public-facing theological content"
+    target: darrell_christina_bishop_gwin_review
+    ntfy_topic: poetech-theology-review
+    timeout_hours: 48
+    fallback: hold_indefinitely
+
+  - id: external_communications
+    description: "Any communication sent in Darrell's name or on behalf of Poe Properties / TLC / COLG"
+    target: darrell_review
+    ntfy_topic: poetech-comms-review
+    timeout_hours: 24
+
+  - id: real_estate_transactions
+    description: "Any Real Estate decision involving money or contracts"
+    target: darrell_review
+    ntfy_topic: poetech-real-estate
+    timeout_hours: 24
+
+  - id: tenant_eviction_path
+    description: "Any tenant-facing communication that approaches eviction or 5-day notice"
+    target: darrell_christina_review
+    ntfy_topic: poetech-tenant-care
+    timeout_hours: 12
+    notes: "Pastoral first per Holly Hill tenant resolution. Christina's clinical context is required."
+
+  - id: new_workflow_activation
+    description: "Activating any new workflow"
+    target: darrell_review
+    ntfy_topic: poetech-workflow-activation
+    timeout_hours: 12
+
+# ===========================================================================
+# Per-team configuration -- the four teams from sovereign-LLM-teams architecture
+# ===========================================================================
+teams:
+
+  - id: devops
+    name: Dev/Ops Foundation Team
+    base_model: qwen2.5:14b-instruct-q4_K_M
+    router_model: phi-3-mini
+    vector_store: qdrant://team-devops
+    corpus_path: /data/teams/devops/corpus/
+    system_prompt_path: /data/teams/devops/system.md
+    allowed_providers: [ollama, claude, gemini]
+    allowed_tools:
+      - read_git_status
+      - read_n8n_executions
+      - run_smoke_test
+      - propose_commit
+      - read_workflow_json
+      - check_pipeline_health
+    pre_authorized_actions:
+      - process_env_to_literal_default
+      - hardcoded_value_to_set_node_config
+      - missing_error_workflow_setting
+    escalation_policy: any_action_outside_allowlist
+    observability_topic: poetech-team-devops
+    notes: "Pilot 2 -- silent-failure surfacing. Highest leverage of the four teams."
+
+  - id: family_finance
+    name: Family Finance Team
+    base_model: qwen2.5:14b-instruct-q4_K_M
+    vector_store: qdrant://team-family-finance
+    corpus_path: /data/teams/family-finance/corpus/
+    system_prompt_path: /data/teams/family-finance/system.md
+    allowed_providers: [ollama]
+    allowed_tools:
+      - read_finance_events
+      - compute_amortization
+      - draft_appraisal_scenario
+      - produce_monthly_digest
+      - read_property_records
+      - check_holly_hill_comps
+    pre_authorized_actions:
+      - family_finance_monthly_digest
+    escalation_policy: any_money_movement_or_decision
+    observability_topic: poetech-team-family-finance
+    notes: "Pilot 1 -- Holly Hill equity-out + Christina's appraisal request. Christina's voice required on covered-entity adjacency."
+
+  - id: counseling
+    name: Counseling Intake Team
+    base_model: qwen2.5:14b-instruct-q4_K_M
+    vector_store: qdrant://team-counseling
+    corpus_path: /data/teams/counseling/corpus/
+    system_prompt_path: /data/teams/counseling/system.md
+    allowed_providers: [ollama]
+    allowed_tools:
+      - capture_intake_notes_sovereign
+      - surface_scripture
+      - tts_reply
+      - archive_sovereign_storage
+    pre_authorized_actions: []
+    escalation_policy: anything_touching_clinical_data
+    bright_line_overrides:
+      - tlc_clinical_data
+    observability_topic: poetech-team-counseling
+    notes: "Pilot 3 -- Council Chamber. NEVER routes to vendor LLMs. TLC firewall is inviolable."
+
+  - id: church_colg
+    name: Church Operations Team (COLG)
+    base_model: qwen2.5:14b-instruct-q4_K_M
+    vector_store: qdrant://team-church-colg
+    corpus_path: /data/teams/church-colg/corpus/
+    system_prompt_path: /data/teams/church-colg/system.md
+    allowed_providers: [ollama]
+    allowed_tools:
+      - read_membership_directory
+      - read_calendar
+      - draft_communication_broadcast
+      - read_sermon_archive
+      - run_whisper_transcription
+      - draft_announcement_3channel
+      - propose_clip_selection
+    pre_authorized_actions:
+      - weekly_bulletin_draft
+      - sermon_summary_3channel_draft
+      - typographic_theology_violation
+      - missing_scripture_translation_badge
+    escalation_policy: any_giving_data_or_pastoral_care
+    co_governor: bishop_gwin
+    observability_topic: poetech-team-church-colg
+    notes: "Pilot 4 -- Sermon + Announcement. COLG-first per COMMUNITY-FIRST-MISSION."
+
+# ===========================================================================
+# Routing policy (Tier 0 / Tier 1 / Tier 2 per sovereign-LLM-teams Section F.5)
+# ===========================================================================
+routing:
+
+  tier_0_sensitivity_firewall:
+    pattern: "tlc|therapy|counsel|clinical|patient|client session|christina'?s clinical|christina'?s patients"
+    action: force_ollama_only
+    fail_mode: fail_closed
+    notes: "Inviolable. Per TLC firewall in wf27."
+
+  tier_1_per_team_allowed_providers:
+    rule: "Each team's allowed_providers list governs which provider it can call."
+
+  tier_2_task_classifier:
+    routes:
+      - condition: "simple OR routine"
+        target: sovereign_team
+      - condition: "heavy_reasoning OR architecture OR long_context"
+        target: claude
+      - condition: "fresh_knowledge OR current_events"
+        target: gemini
+      - condition: "explicit_@claude_token"
+        target: claude
+      - condition: "explicit_@gemini_token"
+        target: gemini
+
+# ===========================================================================
+# Adaptation loop -- the weekly policy review
+# ===========================================================================
+adaptation:
+  cadence: weekly_sunday_evening
+  digest_topic: poetech-policy-proposals
+  governor: Darrell Poe
+  diff_format: git_pr
+  thresholds:
+    promote_to_pre_authorized: action escalated 9+ times always approved
+    demote_to_escalate: action approved then rolled back 3+ times
+    ban_action: action class causes critical alerts 2+ times
+  notes: "Quality Gatekeeper (wf36) produces the digest. Darrell approves diff in one tap. Diff lands as new policy version."
+
+# ===========================================================================
+# Observability -- per project-execution-outcome-observability
+# ===========================================================================
+observability:
+  every_action_emits_event: true
+  events_log_path: /data/events/
+  ntfy_topics:
+    - poetech-team-devops
+    - poetech-team-family-finance
+    - poetech-team-counseling
+    - poetech-team-church-colg
+    - poetech-foundation-agent
+    - poetech-workflow-failure
+  alert_classes:
+    - silent_failure_detected
+    - pre_authorized_action_rollback
+    - escalation_queued
+    - bright_line_attempt_blocked
