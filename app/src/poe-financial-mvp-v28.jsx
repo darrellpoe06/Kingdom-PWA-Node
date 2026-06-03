@@ -52,6 +52,57 @@ import { N8N_BASE } from './lib/n8n-base.js';
 // docs/00-foundations/_root/SEED-DATA-AS-ASPIRATION.md +
 // agent/memory/project_seed_data_aspirational_families.md.
 // =============================================================================
+
+// =============================================================================
+// COLG_DEFAULT_CHURCH — the platform's DEFAULT CHURCH HOME (D21).
+// The Church of the Living God ("The Love Corner"), Champaign IL, is the named
+// FIRST community per COMMUNITY-FIRST-MISSION.md and the binding spec
+// project_church_tab_directory_love_corner_default. Every user who has not set
+// their own church home in Settings lands here: the unchurched get access to
+// OUR church (the Father's Business anchor). This is the anchor entry of the
+// multi-church PoeTech partner directory.
+//
+// PRIVACY NOTE: COLG's directory facts below (public church name, public
+// address, public service times, the giving link the church already publishes)
+// are PUBLIC-by-design — public information about a public institution, the
+// platform's anchor community. This is a DIFFERENT category from the family's
+// private financial seed that the 2026-05-28 demo-background sanitization
+// guards. COLG-as-home-instance-default is established design intent
+// (docs/01-architecture/task-cards/2026-05-22-counseling-subtab-inside-church.md).
+// All facts verified against the COLG site + the Bishop Gwin migration brief
+// (docs/99-session-notes/2026-06-03-bishop-gwin-colg-migration-brief.md):
+// founded July 1946, Sunday Worship 11 AM, Wed Bible Study 1 PM + 6 PM,
+// 312 E. Bradley Ave, giving runs through the church's own secure page.
+// =============================================================================
+const COLG_SITE = 'https://thechurchofthelivinggod.com';
+const COLG_DEFAULT_CHURCH = {
+  name: 'The Church of the Living God',
+  nickname: 'Also known as The Love Corner — Champaign IL',
+  site: COLG_SITE,
+  address: '312 E. Bradley Ave, Champaign, IL',
+  phone: '',
+  officeHours: '',
+  contactEmail: '',
+  services: [
+    { id: 'svc-sun',  day: 'Sunday',    time: '11:00 AM', label: 'Sunday Worship', online: true },
+    { id: 'svc-wed1', day: 'Wednesday', time: '1:00 PM',  label: 'Bible Study',    online: true },
+    { id: 'svc-wed2', day: 'Wednesday', time: '6:00 PM',  label: 'Bible Study',    online: true },
+  ],
+  media: {},
+  links: {
+    // Giving runs through the church's own secure page. The exact giving
+    // deep-link is confirmed with the church office and swapped in (V1); the
+    // site root carries the published giving link today, so the Give button is
+    // accurate (no payment data touches this app).
+    give: COLG_SITE,
+    about: COLG_SITE,
+  },
+  tagline: 'Reviving Faith · Restoring Hope · Rebuilding Communities',
+  verse: { ref: 'Psalm 34:3', text: 'O magnify the LORD with me, and let us exalt His name together.' },
+  isDefaultHome: true,
+};
+
+// =============================================================================
 const SEED_DATA = {
   meta: { lastUpdated: '2026-05-17', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 0, appVersion: '28.1', releaseLabel: 'MVP v1.5', releaseNote: 'Real Estate ops (lease · tenant contact · equipment · rooms) + Buffer Fund widget + Capex list. WCAG 2.1 AA holds across new fields.', moduleSlug: 'financial', taxStructure: { filing: 'joint-1040', scheduleC: ['e-tlc', 'e-poetech'], scheduleE: ['e-poeprops'], sCorpElected: [], withholdingCoversFederal: true, withholdingCoversState: true, state: 'IL', county: 'Cedar Heights', propertyTaxEscrowed: true }},
   entities: [
@@ -294,40 +345,11 @@ const SEED_DATA = {
   // FUTURE-MODULE HOOK: the `spiritual` and future `ministry` modules read
   // from `data.church` so users can add multiple congregations later without
   // a schema migration. Today this is keyed to the family's home church.
-  church: {
-    name: 'Cornerstone Community Church',
-    nickname: 'Your Local Church',
-    site: '',
-    address: 'Local address (edit on Church tab)',
-    phone: '(555) 555-0100',
-    officeHours: 'Mon-Fri · 11:00 am - 6:00 pm',
-    contactEmail: '', // intentionally blank — user can fill in
-    services: [
-      { id: 'svc-sun', day: 'Sunday',    time: '11:00 AM', label: 'Worship Service', online: true },
-      { id: 'svc-wed1', day: 'Wednesday', time: '1:00 PM', label: 'Bible Study',     online: true },
-      { id: 'svc-wed2', day: 'Wednesday', time: '6:00 PM', label: 'Bible Study',     online: true },
-    ],
-    media: {
-      youtube:   '',
-      facebook:  '',
-      instagram: '',
-      broadcast: '',
-    },
-    links: {
-      give:        '',
-      giversCreed: '',
-      calendar:    '',
-      ministries:  '',
-      bibleChallenge: '',
-      classPoints: '',
-      lettersFromBG: '',
-      stayConnected: '',
-      about: '',
-      assembly: '',
-    },
-    tagline: 'Reviving Faith · Restoring Hope · Rebuilding Communities',
-    verse: { ref: 'Psalm 34:3', text: 'O magnify the LORD with me, and let us exalt His name together.' },
-  },
+  // Default church home = The Church of the Living God / The Love Corner (D21).
+  // COLG is the Poe family's home church AND the platform's named first
+  // community; the canonical public directory entry lives in
+  // COLG_DEFAULT_CHURCH above so every default surface stays in sync.
+  church: COLG_DEFAULT_CHURCH,
   prayerRequests: [], // local prayer-request log; user controls send-out via mailto button
   // Round 14 — Voice Ops (Phase 1) — config for the Cloudflare Worker backend.
   // User fills in API endpoint + token on the 📞 Inbound tab; both saved locally
@@ -5261,6 +5283,21 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
   const [showMinistryForm, setShowMinistryForm] = useState(false);
   const [ministryNote, setMinistryNote] = useState('');
 
+  // D21 — Multi-church directory "invite your church" form (skeleton; full
+  // partner-onboarding flow ships V2). Local-only, no backend — submit shows an
+  // inline confirmation, matching the existing local-first contribution pattern.
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ churchName: '', city: '', contactName: '', email: '', note: '' });
+  const [inviteSent, setInviteSent] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+
+  // D21 — Testimony Diary PIN-locked entry point (the diary MVP V0 ships later
+  // per project_testimony_diary_glory_to_glory; this is the door). PIN is held
+  // on-device only; nothing leaves the browser.
+  const [diaryPin, setDiaryPin] = useState('');
+  const [diaryUnlocked, setDiaryUnlocked] = useState(false);
+  const [diaryError, setDiaryError] = useState('');
+
   // ---------------------------------------------------------------------------
   // ADD YOUR VOICE — interactive contribution input (2026-05-25, per Darrell):
   // parishioners speak (Web Speech API) or paste a link to drop a note about
@@ -5365,8 +5402,8 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
       (contrib.topic ? `About: ${contrib.topic}\n\n` : '') +
       (contrib.text  ? `Note:\n${contrib.text}\n\n` : '') +
       (contrib.link  ? `Link: ${contrib.link}\n` : '');
-    if (church?.contactEmail) return `mailto:${church.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    return church?.links?.stayConnected || church?.site || '#';
+    if (c.contactEmail) return `mailto:${c.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return c.links?.stayConnected || c.site || '#';
   };
 
   const markContributionSent = (id) => {
@@ -5378,7 +5415,17 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
     setContributions(prev => prev.filter(c => c.id !== id));
   };
 
-  const c = church || {};
+  // Default church home (D21): COLG / The Love Corner is the platform default
+  // that every user lands on until they set their own church home in Settings
+  // (the Father's Business anchor — the unchurched get access to OUR church).
+  // A user who has set a real custom church home sees that instead; a demo
+  // viewer's anonymized 'Your home church' placeholder resolves to the COLG
+  // public directory entry. COLG directory info is public-by-design (the named
+  // first community per COMMUNITY-FIRST-MISSION), distinct from private seed.
+  const c = (church && church.name && church.name !== 'Your home church')
+    ? church
+    : COLG_DEFAULT_CHURCH;
+  const showingDefaultHome = c.isDefaultHome === true;
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
 
@@ -5447,6 +5494,49 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
 
   return (
     <div className="space-y-6">
+      {/* DEFAULT CHURCH HOME NOTE (D21) — shown when the user has not set their
+          own church home; COLG / The Love Corner is the platform default (the
+          Father's Business anchor). Mars Hill Option B: the visitor who
+          navigates to this tab is opted-in to deeper engagement. */}
+      {showingDefaultHome && (
+        <p className="text-[11px] text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          This is your default church home. If you have a church home, you can set it in{' '}
+          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>.
+        </p>
+      )}
+
+      {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
+          a post-vacation build; this is the entry point + placeholder. */}
+      <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4">
+        <h3 id="sermons-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Pastoral Content · Bishop Gwin</h3>
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          Sermons coming soon. Bishop Gwin's messages will be captioned, archived, and searchable here as the Sermon-to-Content pipeline comes online. The church owns every master file.
+        </p>
+      </section>
+
+      {/* TESTIMONY DIARY — PIN-locked entry point (D21). The diary MVP V0 ships
+          later (project_testimony_diary_glory_to_glory); this is the door. */}
+      <section aria-labelledby="diary-h" className="bg-white border border-[#1A1815] p-4">
+        <h3 id="diary-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Testimony Diary · Glory to Glory 🔒</h3>
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          A private place to record what Yahweh has done — kept on your device, locked behind a PIN you set. "And we all... are being transformed... from one degree of glory to another" (2 Corinthians 3:18, ESV).
+        </p>
+        {!diaryUnlocked ? (
+          <div className="mt-3 flex items-end gap-2 flex-wrap">
+            <div>
+              <label htmlFor="diary-pin" className={labelCls}>Set / enter your PIN</label>
+              <input id="diary-pin" type="password" inputMode="numeric" className={`${fieldCls} max-w-[8rem]`} value={diaryPin} onChange={e => { setDiaryPin(e.target.value); setDiaryError(''); }} placeholder="4+ digits" />
+            </div>
+            <button type="button" onClick={() => { if ((diaryPin || '').length < 4) { setDiaryError('Use at least 4 digits.'); return; } setDiaryError(''); setDiaryUnlocked(true); }} className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Unlock</button>
+            {diaryError && <span role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{diaryError}</span>}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm bg-[#FAF8F4] border border-[#B85838] p-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            Your testimony diary is being prepared (V0 ships soon). Your PIN is held on this device only — nothing is sent anywhere. Come back to begin recording, from glory to glory.
+          </p>
+        )}
+      </section>
+
       {/* YAHWEH HEARS YOU — interactive contribution input (renamed 2026-05-25 per Darrell)
           The church tab's spiritual-surface name for the voice + link + text
           processing center. Per CLAUDE.md typographic theology (Yahweh always
@@ -5790,6 +5880,50 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
           {c.site && <a href={c.site} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Visit Church Site →</a>}
           {c.links?.about && <a href={c.links.about} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">About Us →</a>}
         </div>
+      </section>
+
+      {/* MULTI-CHURCH DIRECTORY (D21, skeleton) — one church today (COLG, the
+          public anchor entry); grows as partners join. Partner-church alignment
+          is Word-first + non-denominational + Christ-confessing (Q8 framework
+          per project_non_denominational_word_first_body_undivided). Full
+          partner-onboarding flow ships V2. */}
+      <section aria-labelledby="dir-h" className="bg-white border border-[#1A1815] p-4">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2 pb-2 border-b border-[#1A1815]">
+          <h3 id="dir-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Church Directory</h3>
+          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>
+        </div>
+        <div className="border border-[#E8E4DC]">
+          <div className="p-3 flex items-center justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>The Church of the Living God</div>
+              <div className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Love Corner · Champaign, IL · your default church home</div>
+            </div>
+            <span className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] shrink-0">Default</span>
+          </div>
+        </div>
+        <p className="text-xs text-[#5A5751] mt-3" style={{ fontFamily: '"Fraunces", serif' }}>More churches coming as they join PoeTech.</p>
+        <div className="mt-2">
+          <button type="button" onClick={() => { setShowInviteForm(!showInviteForm); setInviteSent(false); setInviteError(''); }} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">{showInviteForm ? '× Close' : 'Your church not here? Invite them'}</button>
+        </div>
+        {showInviteForm && !inviteSent && (
+          <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
+            <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Tell us about your church home and we'll reach out about joining the PoeTech partner directory.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div><label htmlFor="inv-church" className={labelCls}>Church name</label><input id="inv-church" className={fieldCls} value={inviteForm.churchName} onChange={e => setInviteForm({ ...inviteForm, churchName: e.target.value })} /></div>
+              <div><label htmlFor="inv-city" className={labelCls}>City / state</label><input id="inv-city" className={fieldCls} value={inviteForm.city} onChange={e => setInviteForm({ ...inviteForm, city: e.target.value })} /></div>
+              <div><label htmlFor="inv-name" className={labelCls}>Your name</label><input id="inv-name" className={fieldCls} value={inviteForm.contactName} onChange={e => setInviteForm({ ...inviteForm, contactName: e.target.value })} /></div>
+              <div><label htmlFor="inv-email" className={labelCls}>Email (so we can reply)</label><input id="inv-email" type="email" className={fieldCls} value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} /></div>
+            </div>
+            <div><label htmlFor="inv-note" className={labelCls}>Anything else? (optional)</label><textarea id="inv-note" rows="2" className={fieldCls} value={inviteForm.note} onChange={e => setInviteForm({ ...inviteForm, note: e.target.value })} /></div>
+            <button type="button" onClick={() => { if (!inviteForm.churchName || !inviteForm.email) { setInviteError('Add at least your church name and an email.'); return; } setInviteError(''); setInviteSent(true); }} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Send invite</button>
+            {inviteError && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{inviteError}</p>}
+          </div>
+        )}
+        {inviteSent && (
+          <p className="mt-3 text-sm bg-[#FAF8F4] border border-[#5A6E3D] p-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            Thank you — we'll reach out about joining the PoeTech partner directory. Partner churches are Word-first, non-denominational in posture, and Christ-confessing.
+          </p>
+        )}
       </section>
 
       <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
