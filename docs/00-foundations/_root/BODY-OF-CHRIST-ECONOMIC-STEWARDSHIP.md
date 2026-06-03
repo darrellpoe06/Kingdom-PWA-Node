@@ -151,7 +151,7 @@ The order is deliberate. Understanding (Proverbs 4:7) is the deliverable. The so
 
 The Black Church is studied closely here because it is the clearest worked example of the Body's economic witness under sustained pressure. It is not a community that needs to be told it can build economic institutions. It is a community whose church *has been* the bank, the insurer, the college founder, and the mutual-aid network for over two centuries — precisely because the mainstream financial industry and the government refused to serve it (Sections 6-7). The mission does not teach economics from zero. It hands a documented tradition better tools, inside the larger Body identity.
 
-The historical facts below are web-verified (Section 12), not synthesized from memory.
+The historical facts below are web-verified (Section 14, Sources), not synthesized from memory.
 
 ### Mutual aid as the founding form — the Free African Society (1787)
 
@@ -300,7 +300,7 @@ The Church of the Living God — pastored by **Bishop Gwin** (Darrell's father i
 Concrete implications:
 
 - **COLG members default to the Loved Ones tier.** The first 100 COLG families are the founding Loved Ones cohort; onboarding them is the first ministry of this mission, and it is relational.
-- **The Sermon-to-Content pipeline starts with Bishop Gwin's sermons** (AI Media Production Platform; planned workflow 52). Transcription, captioning, archiving, optional publishing — with his approval per piece. Crediting is an open question (Section 12... see Section "Open Questions").
+- **The Sermon-to-Content pipeline starts with Bishop Gwin's sermons** (AI Media Production Platform; planned workflow 52). Transcription, captioning, archiving, optional publishing — with his approval per piece. Crediting is an open question (see "Open Questions for Darrell + Bishop Gwin," below).
 - **The Church Tab inbound capture is COLG-first** (COUNCIL-CHAMBER + INTAKE-AND-FIT). The shipped Church tab is the single-congregation parishioner surface; the dedicated multi-tenant, COLG-first inbound-capture surface is a known gap (Section 10).
 
 COLG is the proof, not the market. What serves COLG well — measured by the family-and-church voices who actually use it (Commitment 7 of `COMMUNITY-FIRST-MISSION.md`) — generalizes to other congregations across the Body.
@@ -336,16 +336,73 @@ The mission is pro-prosperity in exactly the sense 3 John 1:2 is pro-prosperity,
 
 ---
 
-## 12. Concrete Product Bindings
+## 12. The Tithe — The 10% Baseline Discipline
+
+**Binding position (declared by Darrell, 2026-06-03): the Church module's tithing standard is the traditional 10% tithe.** Ten percent is the floor and the discipline of stewardship — the historical Hebrew and Christian practice across both testaments, affirmed in Christ's own teaching. Giving above 10% is generosity, sowing, mission support, and mutual aid. The Church module teaches the 10% tithe as the baseline congregational stewardship discipline and surfaces it as a configurable household line item.
+
+### The 10% across both testaments — the scriptural anchors
+
+**The pre-Mosaic pattern (tithe precedes the Law):**
+
+**ESV — Genesis 14:18-20:** *"And Melchizedek king of Salem brought out bread and wine. (He was priest of God Most High.) And he blessed him and said, 'Blessed be Abram by God Most High, Possessor of heaven and earth; and blessed be God Most High, who has delivered your enemies into your hand!' And Abram gave him a tenth of everything."*
+
+> Abram tithes to Melchizedek *before* Sinai. The tithe is not a Mosaic invention; it is a pattern Abram practiced toward the priest of God Most High (a type of Christ, Hebrews 7). The 10% has roots older than the Law.
+
+**ESV — Genesis 28:22:** *"and this stone, which I have set up for a pillar, shall be God's house. And of all that you give me I will give a full tenth to you."*
+
+> Jacob's vow — *a full tenth* — confirms the pattern in the patriarchs.
+
+**The Law:**
+
+**ESV — Leviticus 27:30:** *"Every tithe of the land, whether of the seed of the land or of the fruit of the trees, is the LORD's; it is holy to the LORD."*
+
+**ESV — Deuteronomy 14:22-23:** *"You shall tithe all the yield of your seed that comes from the field year by year. And before the LORD your God, in the place that he will choose, to make his name dwell there, you shall eat the tithe of your grain, of your wine, and of your oil, and the firstborn of your herd and flock, that you may learn to fear the LORD your God always."*
+
+**The prophets:**
+
+**ESV — Malachi 3:8-10:** *"Will man rob God? Yet you are robbing me. But you say, 'How have we robbed you?' In your tithes and contributions. You are cursed with a curse, for you are robbing me, the whole nation of you. Bring the full tithe into the storehouse, that there may be food in my house. And thereby put me to the test, says the LORD of hosts, if I will not open the windows of heaven for you and pour down for you a blessing until there is no more need."*
+
+**Christ's affirmation:**
+
+**ESV — Matthew 23:23:** *"Woe to you, scribes and Pharisees, hypocrites! For you tithe mint and dill and cumin, and have neglected the weightier matters of the law: justice and mercy and faithfulness. These you ought to have done, without neglecting the others."*
+
+> Yahshua does not abolish the tithe — *"these you ought to have done"* — He orders it *under* the weightier matters of justice, mercy, and faithfulness. The tithe stands, in Christ's own words, while never becoming a substitute for the heart. Genesis 14 to Malachi 3 to Matthew 23 hold the line on the practice across both testaments.
+
+### Above 10% — generosity, sowing, mutual aid (the heart posture)
+
+**ESV — 2 Corinthians 9:7:** *"Each one must give as he has decided in his heart, not reluctantly or under compulsion, for God loves a cheerful giver."*
+
+**ESV — Luke 6:38:** *"Give, and it will be given to you. Good measure, pressed down, shaken together, running over, will be put into your lap. For with the measure you use it will be measured back to you."*
+
+**ESV — Acts 2:44-45:** *"And all who believed were together and had all things in common. And they were selling their possessions and belongings and distributing the proceeds to all, as any had need."*
+
+> The 10% is the floor; above it is the open field of generosity, sowing, mission support, and mutual aid. Acts 2:44-45 is the mutual-aid pattern beyond the tithe — the Free African Society (Section 4) is Acts 2 lived. 2 Corinthians 9:7 holds the line on the heart: *decided in his heart, not under compulsion.* The practice is real and bounded (10%); the heart is cheerful and free (above it).
+
+### Tithing as a data-driven outcome (the accountability that holds both lines)
+
+Tithing is one of the measured outcomes of Section 8. The household's tithe history is visible in the family books; the congregation's aggregate giving and ministry deployment is visible where the church chooses to surface it. This data accountability is the firewall on both sides:
+
+- It prevents **prosperity-gospel manipulation** ("sow your seed for a hundredfold return") — because the data shows giving as faithful discipline, not a transaction with a promised yield (the bright line, Section 11; faithfulness, not yield, Matthew 25:21).
+- It prevents **Western secular individualism** ("my money is my money") — because the tithe is named as *the LORD's* (Leviticus 27:30), and the Body's giving is visible and accountable, not privatized.
+
+Genesis 14 to Malachi 3 to Matthew 23 hold the practice; 2 Corinthians 9 holds the heart; the data holds the accountability.
+
+### Giving platform (resolved)
+
+The Church module **integrates with the congregation's chosen giving platform; it does not impose a new one.** COLG already has a working online giving link wired today, so no giving-platform decision is needed in this mission. (The earlier "Givelify vs sovereign vs phased" question is closed — the congregation's current path holds; the module connects to it.)
+
+---
+
+## 13. Concrete Product Bindings
 
 This document governs the following surfaces. Any change to these surfaces is checked against this doctrine; any new Body/Church-touching surface adopts it.
 
 - **About page — Church / Spiritual section** (`app/src/components/About.jsx`) — names the Body of Christ (multi-racial, royal priesthood) as the community PoeTech serves, with the Black Church as exemplar, the 3 John 1:2 + Matthew 25:21 anchor, the soul-first order, and the engineered-gap / understanding frame. (Shipped with this revision.)
 - **About page — Loved Ones tier card** — carries the soul-first stewardship line. (Shipped.)
 - **Landing — Church persona card** (`app/src/poe-financial-mvp-v28.jsx`, the `church` persona) — applies the data-as-proof lens and the stewardship-genealogy framing within the Body identity. (Shipped.)
-- **Church module / Church tab** — the parishioner-facing surface; governed going forward.
-- **Sermon-to-Content pipeline** (planned workflow 52) — starts with Bishop Gwin's sermons; governed for theological review.
-- **Body/Church LLM team config** (Section 10).
+- **Church module / Church tab** — the parishioner-facing surface; governed going forward. Teaches the **10% tithe** (Section 12) as the baseline congregational stewardship discipline and surfaces it as a configurable household line item; integrates with the congregation's existing giving platform (COLG's is already wired).
+- **Sermon-to-Content pipeline** (planned workflow 52) — starts with Bishop Gwin's sermons; governed for theological review. The RAG seed inherits the **10% tithe** position (Section 12) and the bright line (Section 11).
+- **Body/Church LLM team config** (Section 10). The team's system prompt carries the **10% tithe** baseline (Section 12): 10% as floor and discipline across both testaments, above-10% as generosity (2 Corinthians 8-9; Acts 2:44-45; Luke 6:38), with the data-accountability framing that refuses both prosperity-gospel manipulation and secular individualism.
 - **Persona cards touching Church Leadership / COLG / congregational economy** — carry the soul-first framing.
 - **Marketing surfaces for partner congregations** — adopt this doctrine; marketing follows pipeline readiness (`BUSINESS-PROCESS-CONNECTIONS.md`).
 
@@ -362,14 +419,15 @@ True judgment calls only — surfaced as governance questions, not asked of anyo
 1. **Denominational + multi-racial RAG corpus weighting.** Which traditions (AME / AME Zion / CME / National Baptist / COGIC-Pentecostal / non-denominational / Black liberation / prosperity) and which multi-racial Body sources get explicit weighting, and in what proportion? COLG's non-denominational tradition is the natural anchor; the broader Body weighting is a governance call.
 2. **Sermon-to-Content crediting.** How is Bishop Gwin credited and COLG's ownership honored when his sermons feed the pipeline? (Touches `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md` + a pastoral question that is Darrell's and Bishop Gwin's directly.)
 3. **Free-tier parity across the Body.** Do partner congregations of any ethnicity that genuinely share the soul-first stewardship vision receive the same founding free-cohort treatment as the COLG anchor, or enter through the standard Community-Partner tier? (A Body-scope decision; the multi-racial frame of this revision makes it sharper.)
+4. **Community-free sponsorship math.** The cross-subsidy ratio that keeps the free tiers truly free — how many paying subscribers sustain how many sponsored Community / Loved Ones families — is still open. It rides as a separate financial-modeling decision, not resolved here. (The giving-platform question, by contrast, is closed: COLG's link is wired and the module integrates with it — Section 12.)
 
 *Per drive-don't-delegate: these are surfaced, not asked. Bishop Gwin's briefing is a separate, post-vacation step.*
 
 ---
 
-## 13. Sources
+## 14. Sources
 
-**Scripture** (ESV primary per `SCRIPTURE-REFERENCE-STANDARD.md`; KJV secondary where cited): Proverbs 4:7; 1 Peter 2:9; 2 Corinthians 5:17; Galatians 3:28; Colossians 3:11; Ephesians 2:14-16; Exodus 12:38; Acts 2:5-11; Revelation 7:9; Numbers 12:1, 9-10; 3 John 1:2; Deuteronomy 8:18; Joshua 1:8; Proverbs 22:7; Proverbs 13:22; Luke 16:11; Matthew 25:14-30; 2 Corinthians 9:6-11; John 15:19; 1 John 2:15-17; James 4:4. Longer passages verified against ESV via Bible Gateway (Matthew 25:14-30; 2 Corinthians 9:6-11; Ephesians 2:14-16; Acts 2:5-11; Numbers 12).
+**Scripture** (ESV primary per `SCRIPTURE-REFERENCE-STANDARD.md`; KJV secondary where cited): Proverbs 4:7; 1 Peter 2:9; 2 Corinthians 5:17; Galatians 3:28; Colossians 3:11; Ephesians 2:14-16; Exodus 12:38; Acts 2:5-11; Revelation 7:9; Numbers 12:1, 9-10; 3 John 1:2; Deuteronomy 8:18; Joshua 1:8; Proverbs 22:7; Proverbs 13:22; Luke 16:11; Matthew 25:14-30; 2 Corinthians 9:6-11; John 15:19; 1 John 2:15-17; James 4:4. Tithe doctrine (Section 12): Genesis 14:18-20; Genesis 28:22; Leviticus 27:30; Deuteronomy 14:22-23; Malachi 3:8-10; Matthew 23:23; 2 Corinthians 9:7; Luke 6:38; Acts 2:44-45. Longer / tithe passages verified against ESV via Bible Gateway (Matthew 25:14-30; 2 Corinthians 9:6-11; Ephesians 2:14-16; Acts 2:5-11; Numbers 12; Genesis 14:18-20; Genesis 28:22; Matthew 23:23; Acts 2:44-45; Luke 6:38).
 
 **Mission declaration:** Darrell Poe, 2026-06-02 (declared) + 2026-06-03 (refined), discussed in YouTube `Cm_FQXuT76Y` — https://www.youtube.com/watch?v=Cm_FQXuT76Y
 
