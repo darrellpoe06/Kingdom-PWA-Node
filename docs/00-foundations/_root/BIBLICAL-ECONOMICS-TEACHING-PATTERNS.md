@@ -2,6 +2,7 @@
 
 **Layer:** 3 (reference / design input). **Status:** design input, NOT a doctrinal source.
 **Added:** 2026-06-02. **Origin:** research-review of "God's Wealth Plan: The Financial Blueprint Every Family Needs w/ Lee Jenkins" (Earn Your Leisure, 2026-05-14) -- see `docs/99-session-notes/2026-06-02-research-review-youtube-Cm_FQXuT76Y.md`.
+**Governed by:** the binding mission memory `project_black_church_economic_powerhouse_mission` (`agent/memory/`, outside the repo mount) and the foundation doc `docs/00-foundations/_root/BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md` (dispatched separately). This doc is subordinate design input to both.
 
 ---
 
@@ -47,22 +48,37 @@ Honest framing for the guidance copy: "the steps are simple, but following them 
 
 ### 4. Church-as-economic-engine framing for the Church Module
 
-A church that teaches financial stewardship as part of discipleship -- not a separate secular track. The Church Module can carry a financial-literacy teaching track generalized from COLG's needs (`COMMUNITY-FIRST-MISSION.md` Commitment 6, train-the-community).
+A church that teaches financial stewardship as part of discipleship -- not a separate secular track. The Church Module can carry a financial-literacy teaching track generalized from COLG's needs (`COMMUNITY-FIRST-MISSION.md` Commitment 6, train-the-community). The mission is a RETURN to a two-century inheritance: the Black Church was an economic engine by necessity and design (the Free African Society's 1787 mutual-aid model, the AME's institutional economy, HBCUs built on church capital, Civil-Rights-era congregational funding). PoeTech teaching the Black Church to be good with money restores an inheritance; it does not import a foreign idea. (Full history + Scripture: `BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md`.)
 
 ---
+
+## The bright line: orthodox stewardship, NOT prosperity gospel (binding)
+
+The senior screen on all biblical-economics content. **Orthodox stewardship** (Matt 25 / Luke 16:11 / 2 Cor 9 -- obedience-rooted faithfulness, sufficiency-for-good-works, soul-first per 3 John 1:2) is the mission. **Prosperity-gospel drift** (faith as a guaranteed lever on material wealth, divorced from holiness, often with a sow-a-seed transaction) is NOT, and must be named at the line wherever it appears. Keep the soul-first order: outward provision tracks the prosperity of the soul; wealth is fruit and means, never goal and never a guarantee of God's favor. Re-anchor any wealth-accumulation framing borrowed from secular platforms under this order before it reaches a family- or church-facing surface.
 
 ## Guardrails (binding)
 
 - **Doctrine flows from the Worldview + Scripture, never from an external teacher.** Cite our source; corroborate, do not canonize.
 - **Discern prosperity-adjacency.** PoeTech's posture is stewardship-and-sufficiency under The Way -- never wealth-as-proof-of-favor. Reject the prosperity-gospel distortion AND the poverty-equals-holiness distortion.
 - **Discern tithing positions against the Worldview**, not against any single teacher.
-- **No upsell.** The Financial System for Families stays free (`project-what-is-actually-free`). Empowerment message yes; extractive monetization model no (`DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`).
+- **No upsell.** The Financial System for Families stays free (`project-what-is-actually-free`). Give the teaching as a gift in the lineage of the Free African Society's mutual aid -- never a product sold back to the Body (`DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`).
 - **Religion AND Relationship.** Backbone and warmth together (`EXCELLENCE-STANDARD.md`).
+
+---
+
+## Concrete surface bindings (where these patterns land)
+
+1. **About page Church/COLG section** (`app/src/components/About.jsx`) -- the historical Black-Church economic inheritance + soul-first order, COLG-first voice.
+2. **Church module copy** -- financial-literacy-as-discipleship track opening from soul-first order and the five purposes; debt-freedom step anchored on Proverbs 22:7.
+3. **Sermon-to-Content pipeline RAG corpus seed** -- seed with the validated Scripture set and the orthodox-stewardship bright line so generated content inherits the line by construction.
+4. **Church LLM team system prompt** (`project-sovereign-llm-teams-per-industry`) -- bake in soul-first order, the orthodox-vs-prosperity bright line, ESV-primary citation, and the historical inheritance as background knowledge.
 
 ---
 
 ## Pairs with
 
+- `project_black_church_economic_powerhouse_mission` (binding memory, `agent/memory/`) -- the authoritative mission this doc serves
+- `BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md` -- the foundation formalization (Scripture + history + COLG application + product bindings); dispatched separately
 - `THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md` -- the authoritative source; biblical-economics scope
 - `COMMUNITY-FIRST-MISSION.md` -- COLG-first; the financial-literacy audience is the named community
 - `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md` -- empowerment yes, extraction no

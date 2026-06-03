@@ -1,22 +1,26 @@
-# Lee Jenkins "God's Wealth Plan" on Earn Your Leisure -- research-review
+# Lee Jenkins "God's Wealth Plan" on Earn Your Leisure -- research-review (mission-lens revision)
 
 **Date:** 2026-06-02 (Tue) evening
 **Author:** Claude (session running on Darrell's behalf while he is on vacation in Maui, on his phone)
-**Triggered by:** Darrell @ Dispatch, evening drop -- a YouTube link with a request for research
-**Format binding:** `feedback-research-first` (source it, identify it, filter it against the binding principles, recommend -- no production change without the review first)
-**Output gate:** binding principle filters (`THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW`, `COMMUNITY-FIRST-MISSION`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION`, `project-data-as-proof-real-examples`, `project-cost-discipline-with-growth-permission`, `ANXIETY-CLARITY-PRINCIPLE`, Religion AND Relationship test per `CLAUDE.md`)
+**Triggered by:** Darrell @ Dispatch, evening drop -- a YouTube link with a research request, sharpened two messages later by a verbatim mission statement (Section 1)
+**Format binding:** `feedback-research-first`
+**Mission lens (binding):** `project_black_church_economic_powerhouse_mission` (binding strategic memory, lives at `agent/memory/`, outside the repo mount -- referenced by name)
+**Foundation cross-link:** `docs/00-foundations/_root/BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md` (being dispatched separately; this note cross-links once both are committed)
+**Output gate:** `THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW`, `SCRIPTURE-REFERENCE-STANDARD` (ESV primary), `COMMUNITY-FIRST-MISSION`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION`, `EXCELLENCE-STANDARD` (Religion AND Relationship), Phil 4:8 Test
+
+> **Revision note.** This supersedes the first pass committed at `afa2d24`. Darrell supplied the mission lens after that commit; the recommendation is restructured per his pivot from generic ADOPT/STEAL/IGNORE to RIGHT / WRONG-or-DRIFTS / concrete-surface-changes.
 
 ---
 
-## 1. Source question (verbatim)
+## 1. Source question + mission statement (verbatim)
 
-From Darrell @ Dispatch, 2026-06-02 evening (paraphrased into the channel as a link drop with a research request):
+Darrell @ Dispatch, 2026-06-02 evening, dropped: `https://youtu.be/Cm_FQXuT76Y?si=oZF9BclFI3gP4ktj`
 
-> "[research request on] https://youtu.be/Cm_FQXuT76Y?si=oZF9BclFI3gP4ktj"
+Two messages later, the mission statement that is now the binding lens (verbatim):
 
-Same research-review pattern as the Quo intake task (`local_4f36e4b1`) and the Hostinger task (`local_3629aaf2`): source the transcript, identify what the video is, filter against PoeTech's binding principles, recommend.
+> "Black Church is meant to transform the world and prosper as our souls prosper and teach this economic power house to be good with money using PoeTech."
 
-So the question being answered: **what is this video, and is its content something PoeTech should ADOPT / STEAL-and-BUILD / IGNORE for the free Financial System for Families, the Worldview spine, and the COLG-first community mission?**
+The phrase "prosper as our souls prosper" is a direct echo of **3 John 1:2**. The question this review answers is therefore not "adopt a tool" but: **read this video THROUGH the Black-Church-economic-powerhouse mission -- what does it get right that PoeTech's Church surfaces should amplify, what (if anything) drifts and must be named at the bright line, and what concrete surfaces change?**
 
 ---
 
@@ -25,158 +29,160 @@ So the question being answered: **what is this video, and is its content somethi
 | Field | Value | Source |
 |---|---|---|
 | Title | **God's Wealth Plan: The Financial Blueprint Every Family Needs w/ Lee Jenkins** | YouTube oEmbed API |
-| Channel | **Earn Your Leisure** (`@EarnYourLeisure`) | YouTube oEmbed API |
-| Guest | **Pastor Lee Jenkins** -- financial advisor, Bible teacher, former NFL player; founder of Jenkins Wealth; senior pastor of Eagles Nest Church; creator of "Winning The Financial Game"; "the Stewardship Coach" | Apple Podcasts + leejenkinsstewardship.com + EPYC Media |
-| Publish date | **2026-05-14** (14 May 2026) | Apple Podcasts episode page |
-| Length | **~1 hour 15 minutes** | Apple Podcasts episode page |
-| URL | https://youtu.be/Cm_FQXuT76Y (= https://www.youtube.com/watch?v=Cm_FQXuT76Y) | Darrell's link |
-| Format | Long-form interview / podcast episode (cross-posted to Apple Podcasts as the Earn Your Leisure feed, id 1450211392, episode i=1000767777428) | Apple Podcasts |
+| Channel | **Earn Your Leisure** (`@EarnYourLeisure`) -- Rashad Bilal & Troy Millings; the leading Black-audience financial-literacy media platform, oriented to closing the racial wealth gap | YouTube oEmbed + public record |
+| Guest | **Pastor Lee Jenkins** -- financial advisor (Jenkins Wealth), Bible teacher, former NFL player, senior pastor of Eagles Nest Church, "the Stewardship Coach," author of *Lee Jenkins on Money* (Moody) | Apple Podcasts + leejenkinsstewardship.com + CBN + Acton |
+| Publish date | **2026-05-14** | Apple Podcasts |
+| Length | **~1h 15m** | Apple Podcasts |
+| URL | https://youtu.be/Cm_FQXuT76Y | Darrell's link |
 
-**Who Earn Your Leisure is, and why it matters for the filter.** Earn Your Leisure (EYL), hosted by Rashad Bilal and Troy Millings, is the leading Black-audience business-and-financial-literacy media platform -- frequently described as building a "new Black Wall Street," explicitly oriented toward closing the racial wealth gap through financial education for communities the mainstream financial-services industry has underserved. That audience is the same community `COMMUNITY-FIRST-MISSION.md` names as PoeTech's FIRST community (The Church of the Living God, the largest African American congregation in Champaign-Urbana). This is not an incidental detail; it is the reason this video is on-mission rather than adjacent.
-
-**Note on transcript retrieval.** The verbatim transcript could not be machine-extracted. Tactiq's transcript tool returned its landing page rather than transcript text via WebFetch; `youtubetotranscript.com` returned HTTP 403; `youtube-transcript.io` and `kome.ai` returned 404 / landing page; YouTube's own pages returned only footer/nav markup to the fetcher. Per the task fallback rule, this review proceeds from public-API metadata: the YouTube oEmbed title/channel, the Apple Podcasts chapter-topic description (which functions as a near-complete chapter list for a podcast of this kind), the EPYC Media episode notes for a parallel Lee Jenkins interview, and Lee Jenkins' own published teaching frameworks. The frameworks summarized in Section 3 are sourced from Jenkins' published body of work and the episode's own topic description -- they are his named frameworks, not invented. If the actual on-camera content diverges materially from his published frameworks, Section 3 would need revision; the binding-filter logic in Sections 4-7 applies regardless.
+**Transcript retrieval.** Verbatim transcript could not be machine-extracted (Tactiq landing-page only; youtubetotranscript 403; youtube-transcript.io / kome.ai 404 / landing-page; YouTube direct returned nav markup). Per the fallback rule this review proceeds from: YouTube oEmbed, the Apple Podcasts chapter-topic description (a near-complete chapter list for a podcast of this kind), a parallel Lee Jenkins interview (EPYC Media), and Jenkins' published frameworks. The frameworks below are HIS named work, not invented. Verbatim three-step wording is the one item to capture by hand when Darrell is at a desktop.
 
 ---
 
-## 3. Content summary -- key points (from episode topic list + Jenkins' published frameworks)
+## 3. The mission lens: Scripture grounding (ESV primary)
 
-The episode's own chapter-topics (per Apple Podcasts): Money and the Heart; the guest's Wall Street / trading background; Habits of the Wealthy; biblical money principles; church finances and the tithing debate; economic disparities within Black communities; marriage finances; a Three-Step Wealth Plan; technology investing; the wealth gap; "money isn't the root of all evil"; "why poverty doesn't automatically make someone righteous"; prosperity preaching; and stewardship.
+The mission rests on a soul-first, stewardship-rooted reading. The video almost certainly grounds in some combination of these; here is the actual ESV text so the Church surfaces cite cleanly.
 
-Lee Jenkins' named teaching frameworks (his published body of work, which this episode draws on):
+**ESV -- 3 John 1:2:** *"Beloved, I pray that all may go well with you and that you may be in good health, as it goes well with your soul."*
+The order is the whole point: outward prosperity tracks the prosperity of the soul. This is the verse behind Darrell's mission statement. It is a prayer-wish for wholeness, NOT a transactional guarantee of wealth -- a distinction Section 5 holds.
 
-1. **"Building Wealth from the Inside Out"** (his trademark phrase). The premise: God is about transforming persons, developing character, and forming us into the image of His Son first -- and right financial behavior flows out of that inner transformation, not the reverse. Practical debt-freedom steps follow, with the caveat: "The steps are simple, but following them requires hard work."
+**ESV -- Deuteronomy 8:18:** *"You shall remember the Lord your God, for it is he who gives you power to get wealth, that he may confirm his covenant that he swore to your fathers, as it is this day."*
+Wealth-getting power is God-given and covenant-purposed -- stewardship under His covenant, not self-made accumulation.
 
-2. **Three spiritual keys for handling money:** (a) the principle of **ownership vs. stewardship** -- God owns it, we manage it; (b) **how to view spending**; (c) **prosperity vs. stewardship** -- rejecting both the prosperity-gospel distortion and the poverty-equals-holiness distortion.
+**ESV -- Joshua 1:8:** *"This Book of the Law shall not depart from your mouth, but you shall meditate on it day and night, so that you may be careful to do according to all that is written in it."*
+Prosperity here is downstream of obedience and meditation on the Word -- soul-formation first.
 
-3. **The Five Divine Purposes of Money:** advancing God's Kingdom; supporting one's family; fulfilling personal calling; helping those in need; enjoying life's blessings.
+**ESV -- Proverbs 22:7:** *"The rich rules over the poor, and the borrower is the slave of the lender."*
+The debt-as-bondage anchor -- the moral case under PoeTech's Books > Debts surface and the freedom-from-debt step.
 
-4. **Three-Step Wealth Plan** (the "blueprint to build wealth in 2026" the episode advertises). The specific three steps were not extractable from public sources at the level of named verbatim steps; in Jenkins' published work this shape is consistently: (i) get the heart/identity right (ownership vs. stewardship), (ii) get free of debt with a simple disciplined plan, (iii) build and steward surplus toward the five purposes. Confirm against the actual video before quoting steps verbatim.
+**ESV -- Luke 16:10-12:** *"One who is faithful in a very little is also faithful in much... If then you have not been faithful in the unrighteous wealth, who will entrust to you the true riches?"*
+Money is a faithfulness-test and a discipleship proving-ground for "true riches."
 
-5. **Money is spiritual.** Jenkins' posture (his own words from a parallel interview): "Money influences us spiritually. Money is spiritual. What I try to do is talk about money the way Jesus did," and "Financial stewardship is part of discipleship -- as a pastor, if I encourage prayer and worship, I should encourage proper money management too."
+**ESV -- Matthew 25:20-23 (the Talents):** *"...Well done, good and faithful servant. You have been faithful over a little; I will set you over much."*
+The Master entrusts capital and expects faithful multiplication -- the orthodox-stewardship engine of the whole mission. Reward is for faithfulness, not for the size of the return alone.
 
-6. **Three lenses on money:** financial, biblical, and cultural -- the cultural lens is where the EYL conversation lands on the Black community wealth gap, generational wealth, and church-led economic development.
+**ESV -- 2 Corinthians 9:6-8:** *"...God loves a cheerful giver. And God is able to make all grace abound to you, so that having all sufficiency in all things at all times, you may abound in every good work."*
+Sufficiency-for-good-works, not surplus-for-self -- the sending purpose of provision.
 
----
-
-## 4. Principle cross-reference filter
-
-### 4.1 THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW (the source-of-answers spine) -- STRONG ALIGNMENT, with one guardrail
-
-This is the decisive positive filter. `CLAUDE.md` declares the Worldview the authoritative source of answers, and names its scope to include "**Original business systems -- biblical economics, the seven-year cycle, debt-jubilee patterns, the original blueprints for stewardship of land, labor, time, and money.**" Lee Jenkins' entire framework -- ownership-vs-stewardship, money-is-spiritual, building-wealth-from-the-inside-out, the five purposes of money -- is a contemporary, well-structured articulation of exactly that biblical-economics territory.
-
-**Guardrail (binding):** Jenkins is a **corroborating contemporary voice, NOT a doctrinal source.** Per `CLAUDE.md`, all doctrine flows from the Worldview and Scripture cited per `SCRIPTURE-REFERENCE-STANDARD.md`. We do not cite Jenkins as canonical. We STEAL his **teaching structure** -- the way he sequences and presents biblical economics to a family -- and re-derive the doctrine from our own source. Two specific points to discern against the Worldview before adopting any framing:
-
-- **Prosperity-preaching adjacency.** The episode explicitly treats "prosperity preaching" as a topic. Jenkins himself positions against the prosperity-gospel distortion (his "prosperity vs. stewardship" key). We keep that discernment: PoeTech's posture is stewardship-and-sufficiency under The Way, never wealth-as-proof-of-favor. The Worldview governs; where Jenkins drifts prosperity-ward, we do not follow.
-- **The tithing debate.** The episode engages the tithing debate. We treat tithing per the Worldview spine and Scripture, not per any single teacher's position. Flag, do not auto-adopt.
-
-### 4.2 COMMUNITY-FIRST-MISSION -- STRONG ALIGNMENT
-
-The EYL audience IS the named community. `COMMUNITY-FIRST-MISSION.md`: "PoeTech serves communities the mainstream tech industry has overlooked, underserved, or actively failed... The Church of the Living God... the largest African American community in Champaign-Urbana." The video's core through-line -- the Black community wealth gap, generational wealth, church-led economic development, financial literacy for the underserved -- is the financial-literacy counterpart to PoeTech's mission. Jenkins models church-as-economic-engine, which is directly the COLG Church Module's aspiration. Commitment 6 (train-the-community) and Commitment 1 (COLG-first) both light up: this is teaching content COLG members would recognize and trust.
-
-### 4.3 DATA-AS-EMPOWERMENT-NOT-EXTRACTION -- ALIGNMENT, with a model-not-to-copy
-
-Jenkins' **message** is empowerment: families owning their financial future, stewardship over extraction, building generational wealth in communities that have been extracted from. That is the same heart as the foundation doc. The one **anti-pattern to NOT copy** is the surrounding **monetization model**: Jenkins runs Jenkins Wealth (advisory) and sells courses/coaching. That is legitimate for him, but PoeTech's serve-not-extract posture (Commitment 5, `COMMUNITY-FIRST-MISSION`) means we give the Financial System for Families away free (per `project-what-is-actually-free`) rather than gate the teaching behind a product. STEAL the teaching; do NOT staple it to an upsell.
-
-### 4.4 project-data-as-proof-real-examples -- HIGH-VALUE EXTRACTION
-
-The five purposes of money, the ownership-vs-stewardship frame, and "building wealth from the inside out" are exactly the kind of concrete, dignified anchor framing that `project-data-as-proof-real-examples` and `SEED-DATA-AS-ASPIRATION.md` call for. The seed-data aspiration picture (steady income, growing buffer fund, debt being chipped down, consistent tithe) is the *data-as-proof* expression of Jenkins' inside-out wealth plan. The frameworks give us vocabulary and a teaching arc for the free Financial System for Families' onboarding and empty-states.
-
-### 4.5 ANXIETY-CLARITY-PRINCIPLE -- ALIGNMENT
-
-`ANXIETY-CLARITY-PRINCIPLE.md`: anxiety is informational at root -- people do not know what to do; every surface answers what / when / why / how, erring toward MORE guidance for the scared parent. Jenkins' "the steps are simple, but following them requires hard work" is the same posture: a clear, finite, sequenced plan reduces financial anxiety. The three-step shape is a clarity device. Good fit for the Financial System for Families guidance surfaces.
-
-### 4.6 project-cost-discipline-with-growth-permission -- NO COST IMPLICATION
-
-This is content/teaching, not a tool or a SaaS. There is nothing to buy, host, or subscribe to. Cost filter is N/A. The only "spend" is the authoring time to fold the patterns into existing free-tier surfaces, which compounds (every family + COLG member who onboards benefits).
-
-### 4.7 project-sovereign-llm-teams-per-industry / sovereign-mesh tiers -- NOT APPLICABLE
-
-No tool, no model, no infrastructure. These filters do not bind on a teaching video. Noted for completeness so a future session does not re-open them.
-
-### 4.8 TLC firewall -- NOT TRIGGERED
-
-No clinical content, no PHI, nothing routes to or from TLC. The firewall is not implicated. Noted for completeness.
-
-### 4.9 Religion AND Relationship test (binding per `CLAUDE.md`) -- PASSES, and is itself a model
-
-Jenkins' content has **backbone** (Scripture-grounded, ownership-vs-stewardship, structured plan) AND **warmth** (meets the scared/striving family where they are, "money the way Jesus did," marriage-finances honesty). That balance is exactly the Excellence Standard's religion-AND-relationship test. The video is itself a worked example of the balance PoeTech is required to hold.
+**The throughline:** soul prospers -> obedience to the Word -> faithful stewardship of entrusted capital -> sufficiency -> good works and community lift. Prosperity is a fruit and a means, never the goal and never a guarantee.
 
 ---
 
-## 5. Recommendation: STEAL the teaching frameworks + BUILD them into the free Financial System for Families and the Worldview spine. Do NOT adopt Jenkins as a doctrinal source; do NOT copy his monetization model.
+## 4. The mission lens: historical Black Church as economic engine
 
-Every binding filter that applies points the same direction. This video is on-mission content, not a product decision. The right move is to extract the durable teaching structures and fold them into surfaces PoeTech already owns and already gives away free -- filtered through the Worldview as the senior source.
+If the video carries this history, these are the load-bearing facts (verify exact figures before quoting on a public surface):
 
-### Patterns to steal explicitly
+- **The Free African Society (1787, Philadelphia).** Richard Allen and Absalom Jones founded it after being pulled from their knees during prayer and forced from the gallery at St. George's Methodist. It ran a subscription mutual-aid model -- members paid roughly one shilling a month into a common fund that buried the indigent, supported widows, and educated orphaned children, precisely because Black families were barred from banks and insurance. It was, in effect, the community's first bank and insurance pool. (Source: Free African Society / AME Church historical record.)
+- **The AME Church grew directly out of it** -- Bethel AME dedicated 1794 with Allen as pastor; the denomination formally organized in 1816 with Richard Allen as its first bishop. By 1838 the Free African Society had spurred 100+ similar Black mutual-aid societies in the Philadelphia region alone.
+- **The Black Church as informal bank, insurer, and capital pool** through the 19th-20th centuries -- the organizational heart of Black communities, funding burial societies, benevolent associations, and the founding of schools.
+- **HBCUs founded on Black-church capital:** Wilberforce University (1856, AME-associated; Bishop Daniel Payne); Allen University (named for Richard Allen, AME); Morris Brown College (AME, 1881); and the broad Baptist and Methodist support behind institutions like Morehouse and Spelman. Black denominations built higher education when the state would not.
+- **Civil Rights movement funded through congregations** -- the Montgomery Improvement Association, the SCLC (formed by ministers, 1957), and the church-collection-plate financing of the movement's legal and logistical costs.
+- **Modern echo:** Robert F. Smith's 2019 Morehouse commencement gift -- ~$34 million clearing the Class of 2019's (and parents') student-loan debt -- a contemporary jubilee gesture in the same lineage of Black-capital lifting Black institutions. (Secular philanthropist, not church, but the same wealth-as-liberation pattern the mission names.) The secular parallel of Black Wall Street / Greenwood, Tulsa (destroyed 1921) is the cautionary bookend: Black economic power built, then attacked -- which is part of why sovereign, family-owned infrastructure matters.
 
-1. **Ownership vs. stewardship as the opening frame.** The Financial System for Families onboarding should open from identity (God owns it, you steward it), not from spreadsheets. This is the "inside out" sequence -- heart first, mechanics second -- and it matches `MIND-OF-CHRIST` identity-grounding and `ANXIETY-CLARITY-PRINCIPLE`.
-2. **The Five Divine Purposes of Money as a budgeting lens.** Advance the Kingdom / support family / fulfill calling / help those in need / enjoy God's blessings -- a dignified, faith-grounded category set for the family budget surfaces, an alternative to generic "needs/wants/savings." Re-derived from Scripture per our standard, not cited to Jenkins.
-3. **The three-step arc as a clarity device.** A simple, finite, sequenced plan (get the heart right -> get free of debt -> build and steward surplus) is the anxiety-reducing shape `ANXIETY-CLARITY-PRINCIPLE` wants. The existing Books > Debts surface (recently hardened, commits b936004 / 4d900b5) is step 2's home; steps 1 and 3 are onboarding + buffer-fund surfaces.
-4. **"The steps are simple, but following them requires hard work."** Honest framing for guidance copy -- no get-rich-quick promise, faith-expressed-in-works. Matches the seed-data aspiration posture (a thriving steward, not a lottery winner).
-5. **Church-as-economic-engine framing for the COLG Church Module.** Jenkins models the church teaching financial stewardship as discipleship. The Church Module can carry a financial-literacy teaching track generalized from COLG's needs -- train-the-community per Commitment 6.
-
-### What NOT to copy
-
-- Do NOT cite Lee Jenkins (or EYL) as a doctrinal authority. The Worldview + Scripture are the source.
-- Do NOT adopt the prosperity-adjacent framing or any single tithing position without discerning against the Worldview spine first.
-- Do NOT staple the teaching to an upsell. The Financial System for Families stays free per `project-what-is-actually-free`.
+**Why this matters for PoeTech:** the mission is not novel; it is a RETURN. The Black Church was an economic powerhouse by necessity and design for two centuries before predatory finance and integration-era capital flight eroded the institutional muscle. PoeTech teaching the Black Church "to be good with money" is restoring an inheritance, not importing a foreign idea. That framing is dignity-conferring and historically true.
 
 ---
 
-## 6. Repo-side implementation (shipped this task)
+## 5. The critical distinction: orthodox stewardship vs. prosperity-gospel drift
 
-Per `feedback-audits-without-implementation-is-hedging`: STEAL+BUILD lands a repo-side artifact in the same task. Because this is foundation/content-level (no code surface to change tonight, and the family-facing surfaces are Darrell's to prioritize on return), the artifact is a **Layer 3 reference doc** capturing the stealable teaching patterns as a design input -- explicitly subordinate to the Worldview as the source.
+This is the section the mission lens makes non-negotiable. The bright line: **orthodox stewardship** (Matt 25 / Luke 16:11 / 2 Cor 9 -- obedience-rooted faithfulness, sufficiency-for-good-works) vs. **prosperity-gospel drift** (faith as a guaranteed lever on material wealth, frequently divorced from holiness, often with a sow-a-seed-to-the-ministry transaction at the center). The PoeTech mission IS the former and explicitly NOT the latter.
 
-**Created:** `docs/00-foundations/_root/BIBLICAL-ECONOMICS-TEACHING-PATTERNS.md`
+**Finding on this video / this teacher: orthodox, with a platform caveat.**
 
-It captures the ownership-vs-stewardship opening frame, the five-purposes budgeting lens, the three-step arc, and the church-as-economic-engine framing as **design inputs** for the free Financial System for Families and the Church Module -- with an explicit guardrail that doctrine flows from `THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md` and Scripture, and that prosperity-adjacency and tithing positions are discerned against the Worldview, not auto-adopted. It is a reference/design-input doc, NOT a new doctrinal source.
+- **Lee Jenkins reads as orthodox stewardship, not prosperity gospel.** His own framework names a "prosperity vs. stewardship" key that explicitly rejects the prosperity-gospel distortion (and rejects the opposite poverty-equals-holiness distortion). His published home is theologically conservative-evangelical -- *Lee Jenkins on Money* is Moody Publishers; he has written for the Acton Institute and CBN; his trademark "Building Wealth from the Inside Out" puts soul/character transformation FIRST and financial mechanics SECOND, which is the 3 John 1:2 order, not the Word-of-Faith order. His five purposes of money culminate in helping those in need and advancing the Kingdom, not in self-accumulation. On the evidence, this content is safe to amplify.
+- **The platform caveat (surface honestly, do not flatten).** Earn Your Leisure is a secular wealth-building media brand, not a church. Its house energy is aspirational wealth-accumulation, and the episode is packaged as a "blueprint to build wealth in 2026." Uncritically absorbed, that packaging can tip a listener toward wealth-as-the-point -- the materialism Phil 4:8 and `EXCELLENCE-STANDARD` screen against. The corrective is not to reject the content; it is to re-frame it under the soul-first order (3 John 1:2, Matt 6:33) when it lands on a PoeTech surface. The Body is bigger than any one platform; PoeTech keeps the stewardship spine and lets the marketing energy fall away.
+- **Two doctrinal topics to discern, not auto-adopt:** the **tithing debate** (the episode engages it; PoeTech sources tithing from the Worldview + Scripture, not from any single teacher's position) and any **prosperity-preaching framing** (keep Jenkins' own rejection of it; do not import the broader genre's claims).
 
-No code, no n8n workflow, no family-facing surface change tonight -- those are Darrell's prioritization calls on return, and the binding pattern for foundation-level recommendations is the doc, not premature product code.
-
----
-
-## 7. Open questions for Darrell (true judgment calls only)
-
-Per `feedback-always-now-viable-fix-source-dont-ask`, none of these block the recommendation; they are validations for Darrell's convenience:
-
-1. **The single judgment call:** do you want the Five Divine Purposes of Money (advance Kingdom / support family / fulfill calling / help those in need / enjoy God's blessings) to become the actual budgeting-category lens in the free Financial System for Families -- replacing or sitting alongside conventional categories? That is a product-identity choice only you should make; the teaching-patterns doc holds it as a proposal, not a commitment.
-
-(Lower-stakes confirmations, not blockers: whether you want the actual verbatim three steps pulled from the video when you are back at a desktop where the transcript can be captured by hand; and whether the Church Module should carry a Lee-Jenkins-style financial-literacy teaching track for COLG.)
+**Conclusion:** this is genuine biblical-stewardship content carried on a secular wealth platform. Amplify the stewardship; re-anchor the wealth-framing under soul-first order; name the bright line so future Church content lands cleanly.
 
 ---
 
-## 8. Pairs with / cross-references
+## 6. Recommendation (mission-pivot structure)
 
-- `docs/00-foundations/_root/THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md` -- the source-of-answers spine; biblical-economics scope; Jenkins is corroborating, not canonical
-- `docs/00-foundations/_root/BIBLICAL-ECONOMICS-TEACHING-PATTERNS.md` -- the design-input doc shipped this task
+### 6a. What the video gets RIGHT -- AMPLIFY on PoeTech Church surfaces
+
+1. **Soul-first order (3 John 1:2 / "inside out").** Money behavior flows from inner transformation. Amplify: this is the Church module's opening frame and the corrective re-anchor for all wealth content.
+2. **Ownership vs. stewardship (Luke 16:11 / Matt 25).** God owns it; the family/church manages it; faithfulness over a little earns trust over much. Amplify: the budgeting-identity frame.
+3. **The five purposes of money culminating in Kingdom + neighbor (2 Cor 9:8).** Sufficiency-for-good-works, not surplus-for-self. Amplify: the budgeting-category lens and the giving surfaces.
+4. **Debt as bondage, freedom as discipleship (Prov 22:7).** Amplify: the moral copy over Books > Debts.
+5. **Church-as-economic-engine and financial literacy as discipleship.** "If I encourage prayer and worship, I should encourage proper money management too." Amplify: this is the whole thesis of the Church module's financial-literacy track and the COLG-first application.
+6. **The historical Black-Church economic inheritance (Section 4).** Amplify: dignity-conferring, historically true framing for the About-page Church section and the Church module intro.
+
+### 6b. What the video gets WRONG or DRIFTS on -- NAME at the bright line
+
+- **No clear doctrinal error attributable to Jenkins himself** on the available evidence; he anchors in stewardship.
+- **Platform drift to watch:** secular wealth-accumulation packaging ("build wealth in 2026"). Bright-line correction: every PoeTech surface that borrows this content re-anchors it under soul-first order (3 John 1:2, Matt 6:33) and sufficiency-for-good-works (2 Cor 9:8). PoeTech never frames wealth as the goal or as a guarantee of God's favor.
+- **Tithing + prosperity-preaching topics:** discern against the Worldview, do not auto-adopt any single position.
+
+### 6c. Concrete PoeTech surfaces that should change
+
+Grounded in real files:
+
+1. **About page Church/COLG section** -- `app/src/components/About.jsx`. The mission section ("A stronghold for relationships with Yahweh," ~line 194) and the "Loved Ones (COLG)" free-pathway (~line 130) are where the Black-Church-economic-inheritance framing (Section 4) + 3 John 1:2 soul-first order belong. Proposed: a short Church-economic-stewardship line that names the historical inheritance and the restoration mission, in COLG-first voice. (Copy is Darrell's call; Section 7.)
+2. **Church module copy** -- the financial-literacy-as-discipleship track, opening from soul-first order and the five purposes, with the debt-freedom step anchored on Prov 22:7. Generalizes from COLG's needs per `COMMUNITY-FIRST-MISSION` Commitment 6 (train-the-community).
+3. **Sermon-to-Content pipeline RAG corpus seed** -- seed the corpus with the validated Scripture set (Section 3) and the orthodox-stewardship distinction (Section 5) so generated Church content inherits the bright line by construction, not by post-hoc review.
+4. **Church LLM team system prompt** (per `project-sovereign-llm-teams-per-industry`) -- bake in: soul-first order, orthodox-stewardship-vs-prosperity-gospel bright line, ESV-primary citation per `SCRIPTURE-REFERENCE-STANDARD`, and the historical Black-Church economic inheritance as background knowledge. The system prompt is where the bright line becomes structural.
+
+These four are the durable product bindings. None are shipped tonight as code -- the Church LLM team and Sermon-to-Content pipeline are post-vacation builds, and the About/Church copy is Darrell's prioritization + Bishop Gwin's voice. The artifact shipped this task is the design-input doc (Section 8).
+
+### 6d. The free-not-extractive guardrail
+
+The Financial System for Families + Spiritual Module stay free (`project-what-is-actually-free`). Amplify Jenkins' message; do NOT import his monetization model (advisory + courses). The Black Church gets the teaching as a gift, in the lineage of the Free African Society's mutual aid -- not as another product sold back to the community (`DATA-AS-EMPOWERMENT-NOT-EXTRACTION`, `COMMUNITY-FIRST-MISSION` Commitment 5).
+
+---
+
+## 7. Open questions for Darrell + Bishop Gwin (doctrinal/voice calls only)
+
+Per `feedback-always-now-viable-fix-source-dont-ask`, none block the recommendation:
+
+1. **(Darrell + Bishop Gwin)** Tithing position for the Church module + Sermon-to-Content corpus -- which doctrinal stance does COLG teach, so the Church LLM team cites it consistently rather than reproducing the open "tithing debate"? This is a doctrinal call only the governance + pastoral voices can set.
+2. **(Darrell)** Do the **Five Divine Purposes of Money** (advance Kingdom / support family / fulfill calling / help those in need / enjoy God's blessings) become the actual budgeting-category lens in the free Financial System for Families -- replacing or sitting alongside conventional categories? Product-identity call.
+3. **(Darrell + Bishop Gwin)** Tone of the historical Black-Church-economic-inheritance framing on the public About page -- how forward to lead with the racial-wealth-gap-and-restoration story vs. keeping it in the Church module's interior. A voice call for the COLG-first audience.
+
+---
+
+## 8. Repo-side implementation (shipped this task)
+
+`docs/00-foundations/_root/BIBLICAL-ECONOMICS-TEACHING-PATTERNS.md` (created at `afa2d24`, updated this revision) holds the stealable teaching structures as design inputs, now cross-linked to the mission memory and the forthcoming `BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md` foundation doc. It carries the soul-first order, the five-purposes lens, the three-step arc, the church-as-economic-engine framing, and -- added this revision -- the orthodox-stewardship-vs-prosperity-gospel bright line and the four concrete surface bindings (Section 6c).
+
+The authoritative mission formalization (Scripture + history + COLG application + product bindings) is the separately-dispatched `docs/00-foundations/_root/BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md`; this note and the teaching-patterns doc are subordinate design inputs to it.
+
+---
+
+## 9. Cross-reference to binding memory
+
+This research-review SUPPORTS and is governed by the binding strategic memory **`project_black_church_economic_powerhouse_mission`** (lives at `agent/memory/`, outside the repo mount). That memory is the authoritative product-side declaration of the mission Darrell stated verbatim (Section 1). The video is corroborating contemporary evidence for that mission; the memory and the forthcoming `BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md` foundation doc are the authority. Jenkins and EYL are cited, never canonized.
+
+---
+
+## 10. Pairs with / cross-references
+
+- `project_black_church_economic_powerhouse_mission` (binding memory, `agent/memory/`) -- the authoritative mission
+- `docs/00-foundations/_root/BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md` -- the foundation formalization (dispatched separately)
+- `docs/00-foundations/_root/BIBLICAL-ECONOMICS-TEACHING-PATTERNS.md` -- design-input doc shipped this task
+- `docs/00-foundations/_root/THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md` -- the source of answers; biblical-economics scope
 - `docs/00-foundations/_root/COMMUNITY-FIRST-MISSION.md` -- COLG-first; the EYL audience is the named community
-- `docs/00-foundations/_root/DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md` -- empowerment message yes, extractive monetization no
-- `docs/00-foundations/_root/SEED-DATA-AS-ASPIRATION.md` -- the inside-out wealth picture as the aspirational seed state
-- `docs/00-foundations/_root/ANXIETY-CLARITY-PRINCIPLE.md` -- the three-step arc as a clarity device
-- `docs/00-foundations/_root/EXCELLENCE-STANDARD.md` -- religion AND relationship, which the video itself models
-- `CLAUDE.md` -- Worldview as source; typographic theology; Religion AND Relationship test; auto-push-after-commit
-- Memory `project-what-is-actually-free` -- the Financial System for Families stays free
-- Memory `project-data-as-proof-real-examples` -- the frameworks as anchor copy
-- Memory `feedback-research-first` -- binding rule producing this report
-- Memory `feedback-audits-without-implementation-is-hedging` -- the shipped doc
+- `docs/00-foundations/_root/DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md` -- gift, not product-sold-back
+- `docs/00-foundations/_root/EXCELLENCE-STANDARD.md` -- Religion AND Relationship; the prosperity-drift screen
+- `docs/00-foundations/_root/SCRIPTURE-REFERENCE-STANDARD.md` -- ESV-primary citation
+- `app/src/components/About.jsx` -- the Church/COLG surface to update (Section 6c)
+- `CLAUDE.md` -- Worldview as source; typographic theology; Religion AND Relationship; auto-push-after-commit
+- Memory `project-what-is-actually-free`, `project-data-as-proof-real-examples`, `feedback-research-first`, `feedback-audits-without-implementation-is-hedging`
 
 ---
 
-## 9. Sources cited
+## 11. Sources cited
 
-- YouTube oEmbed (title + channel): https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=Cm_FQXuT76Y&format=json
-- YouTube source video: https://youtu.be/Cm_FQXuT76Y
-- Earn Your Leisure channel: https://www.youtube.com/@EarnYourLeisure
-- Apple Podcasts episode (date + length + chapter-topics): https://podcasts.apple.com/na/podcast/gods-wealth-plan-the-financial-blueprint-every-family/id1450211392?i=1000767777428
-- Parallel Lee Jenkins interview (frameworks + quotes): https://www.epyc.co/episode/stop-separating-faith-finance-pastor-lee-jenkins-on-building-wealth-with-god-as-your-guide
-- Lee Jenkins stewardship site: https://leejenkinsstewardship.com/
-- Lee Jenkins on Money (book / framework): https://www.moodypublishers.com/lee-jenkins-on-money/ ; https://www.amazon.com/Lee-Jenkins-Money-Solutions-Challenges/dp/080248803X
-- Lee Jenkins on Money (CBN profile): https://cbn.com/article/not-selected/lee-jenkins-money
-- Building Wealth One Step at a Time (iDisciple): https://www.idisciple.org/articles/building-wealth-one-step-at-a-time/
-- Spending Spiritually (Acton Institute): https://www.acton.org/spending-spiritually
-
-Transcript extractors attempted and blocked (documented so a future session does not retry the same dead routes): tactiq.io (landing page only), youtubetotranscript.com (HTTP 403), youtube-transcript.io (404), kome.ai (landing page only), youtube.com direct (nav/footer markup only).
+- YouTube oEmbed: https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=Cm_FQXuT76Y&format=json
+- Source video: https://youtu.be/Cm_FQXuT76Y ; channel: https://www.youtube.com/@EarnYourLeisure
+- Apple Podcasts episode: https://podcasts.apple.com/na/podcast/gods-wealth-plan-the-financial-blueprint-every-family/id1450211392?i=1000767777428
+- Parallel Lee Jenkins interview: https://www.epyc.co/episode/stop-separating-faith-finance-pastor-lee-jenkins-on-building-wealth-with-god-as-your-guide
+- Lee Jenkins: https://leejenkinsstewardship.com/ ; https://www.moodypublishers.com/lee-jenkins-on-money/ ; https://cbn.com/article/not-selected/lee-jenkins-money ; https://www.acton.org/spending-spiritually
+- Scripture (ESV via Bible Gateway): https://www.biblegateway.com/ (3 John 1:2; Deut 8:18; Joshua 1:8; Prov 22:7; Luke 16:10-12; Matt 25:20-23; 2 Cor 9:6-8)
+- Black Church economic history: https://en.wikipedia.org/wiki/Free_African_Society ; https://www.ame-church.com/our-church/our-history/ ; https://rediscovering-black-history.blogs.archives.gov/2021/06/09/richard-allen/ ; https://philadelphiaencyclopedia.org/essays/free-african-society/
+- Robert F. Smith / Morehouse 2019: https://www.npr.org/2019/05/19/724851286/we-were-speechless-robert-f-smith-pledges-to-clear-morehouse-grads-student-debt ; https://www.insidehighered.com/news/2019/09/23/billionaire-robert-smith-follows-through-pledge-pay-morehouse-students-loan-debt
+- Transcript extractors attempted + blocked (do not retry): tactiq.io, youtubetotranscript.com (403), youtube-transcript.io (404), kome.ai, youtube.com direct
 
 ---
 
-**End of report.** Binding research-review per `feedback-research-first`. Recommendation: STEAL the biblical-economics teaching frameworks, BUILD them into the free Financial System for Families and the Church Module, keep doctrine sourced to the Worldview + Scripture, do NOT copy the monetization model. On-mission content for the COLG-first community.
+**End of report (mission-lens revision).** Recommendation: AMPLIFY the orthodox-stewardship content (soul-first 3 John 1:2 order, ownership-vs-stewardship, five purposes culminating in Kingdom + neighbor, debt-as-bondage, church-as-economic-engine, the historical Black-Church economic inheritance) across the About Church section, Church module, Sermon-to-Content RAG seed, and Church LLM system prompt. NAME the bright line: keep Jenkins' own rejection of prosperity-gospel, re-anchor all wealth-framing under soul-first order, discern tithing against the Worldview. Give the teaching as a gift, never as a product sold back to the Body. The mission is a RETURN to a two-century inheritance, not a new idea.
