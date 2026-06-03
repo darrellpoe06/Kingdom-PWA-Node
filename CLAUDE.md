@@ -103,6 +103,7 @@ The following foundation documents in `docs/00-foundations/_root/` are authorita
 - `MODE-ROUTING.md` — Classifier spec, single source of truth for routing UX shared by Counseling and Dev/Ops.
 - `INTAKE-AND-FIT.md` — The Dev/Ops counterpart; the system deduces between the two modes by input analysis.
 - `ACCESS-TO-THE-HUMAN-MIND.md` — Response-tuning source for what Scripture says about influence on the mind, divine and adversarial.
+- `LESSONS-LEARNED.md` — Comprehensive historical record. Every incident, near-miss, surprise, and discovery — distilled to extracted principles + forward architectural fix. Layer 3 foundation per Darrell 2026-06-03 evening ("lessons learned area for comprehensive historical records"). Companion to EXECUTION-OUTCOME-OBSERVABILITY (catches failures) and INSTITUTIONAL-MEMORY-EVENTS (structures them as data). Read this BEFORE designing new surfaces so prior failures don't recur. First entry: 2026-06-03 localStorage hydration leak. (Added 2026-06-03.)
 ## Terminology Bindings
 When referring to these concepts in any generated content, use the canonical capitalization:
 - **The Way** (with definite article, both words capitalized) — the early believer self-designation; the SKOS meta-frame
