@@ -447,8 +447,8 @@ const DEMO_DATA_FAMILY_OF_4 = {
   },
   outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 1800, debtService: 1500, charitableGiving: 200 },
   debts: [
-    { id: 'd-cc-1',  entityId: 'e-family', name: 'Visa',      balance: 2150, apr: 22.99, minPayment: 75,  payoffType: 'snowball' },
-    { id: 'd-auto',  entityId: 'e-family', name: 'Auto Loan', balance: 8400, apr: 6.50,  minPayment: 340, payoffType: 'snowball' },
+    { id: 'd-cc-1',  entityId: 'e-family', name: 'Visa',      balance: 2150, rate: 22.99, minPayment: 75,  payoffType: 'snowball' },
+    { id: 'd-auto',  entityId: 'e-family', name: 'Auto Loan', balance: 8400, rate: 6.50,  minPayment: 340, payoffType: 'snowball' },
   ],
   opportunities: [],
   capexItems: [],
@@ -548,7 +548,7 @@ const DEMO_DATA_SEPARATED = {
   },
   outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 2925, debtService: 0, charitableGiving: 0 },
   debts: [
-    { id: 'd-dad-cc', entityId: 'e-dad', name: 'Capital One', balance: 1100, apr: 21.99, minPayment: 40, payoffType: 'snowball' },
+    { id: 'd-dad-cc', entityId: 'e-dad', name: 'Capital One', balance: 1100, rate: 21.99, minPayment: 40, payoffType: 'snowball' },
   ],
   watchlist: ['spy.us'],
   church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
@@ -629,7 +629,7 @@ const DEMO_DATA_PROFESSIONAL = {
   },
   outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 1650, debtService: 400, charitableGiving: 200 },
   debts: [
-    { id: 'd-pers-cc', entityId: 'e-pers', name: 'Visa', balance: 1850, apr: 19.99, minPayment: 60, payoffType: 'snowball' },
+    { id: 'd-pers-cc', entityId: 'e-pers', name: 'Visa', balance: 1850, rate: 19.99, minPayment: 60, payoffType: 'snowball' },
   ],
   watchlist: ['spy.us', 'vt.us'],
   church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
@@ -705,7 +705,7 @@ const DEMO_DATA_LANDLORD = {
   },
   outflows: { rentalMortgages: 1780, propertyUtilities: 200, household: 1700, debtService: 1780, charitableGiving: 250 },
   debts: [
-    { id: 'd-cc-r', entityId: 'e-pers', name: 'Visa', balance: 2050, apr: 21.99, minPayment: 65, payoffType: 'snowball' },
+    { id: 'd-cc-r', entityId: 'e-pers', name: 'Visa', balance: 2050, rate: 21.99, minPayment: 65, payoffType: 'snowball' },
   ],
   watchlist: ['spy.us', 'iyr.us'],
   church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
