@@ -1409,25 +1409,21 @@ export default function PoeFinancialSystem() {
   const [loaded, setLoaded] = useState(false);
   const firedRemindersRef = useRef(new Set());
   const currentDate = useMemo(() => new Date(2026, 4, 15), []);
-  // D20 — Top-right header date is a LIVE CLOCK, not the snapshot anchor.
-  // `currentDate` above is the demo SNAPSHOT anchor (May 2026): all the seed
-  // financial projections (debt snowball, cash-flow, rental math) are authored
-  // against it and must stay frozen so the sample numbers are stable. The
-  // top-right header date was reusing that frozen anchor, so it showed "May '26"
-  // for everyone, every day — the bug Darrell reported. Split the concern:
-  //   - Demo / picker / first-time-landing: show the snapshot label, because the
-  //     sample data IS a May 2026 snapshot (intentional, now documented).
-  //   - Live user (own saved profile): show today's actual date, in the user's
-  //     own timezone, recomputed each session mount.
-  const isSnapshotMode = isAnyDemoMode || isFirstTimeLandingBoot;
+  // D20b — Top-right header date is ALWAYS today, for EVERYONE, every mode.
+  // Per Darrell's 2026-06-03 callout: the date in the header was still showing
+  // the snapshot anchor "May '26" on poetech.us because the prior D20 split
+  // kept the snapshot label for demo / picker / first-time-landing modes.
+  // That was wrong. The header date is the "system is alive RIGHT NOW" signal —
+  // it must ALWAYS reflect today regardless of demo state. The financial
+  // projection horizon stays anchored to `currentDate` (May 2026) so the seed
+  // sample numbers stay stable; the header is independent of that anchor.
   const headerDateLabel = useMemo(() => {
-    if (isSnapshotMode) return monthLabel(currentDate, 0);
     try {
       return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date());
     } catch (e) {
       return monthLabel(new Date(), 0);
     }
-  }, [isSnapshotMode, currentDate]);
+  }, []);
 
   // Layer 2 — cross-device feedback sync. Local feedback (data.feedback)
   // stays in localStorage; remote-authored feedback from other devices
