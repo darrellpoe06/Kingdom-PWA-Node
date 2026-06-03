@@ -5,7 +5,7 @@
 **Triggered by:** Darrell @ Dispatch, evening drop -- a YouTube link with a research request, sharpened two messages later by a verbatim mission statement (Section 1)
 **Format binding:** `feedback-research-first`
 **Mission lens (binding):** `project_black_church_economic_powerhouse_mission` (binding strategic memory, lives at `agent/memory/`, outside the repo mount -- referenced by name)
-**Foundation cross-link:** `docs/00-foundations/_root/BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md` (being dispatched separately; this note cross-links once both are committed)
+**Foundation cross-link:** `docs/00-foundations/_root/BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md` (committed; renamed from the working title BLACK-CHURCH-... to the broader multi-racial Body-of-Christ frame per Darrell's 2026-06-03 refinement)
 **Output gate:** `THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW`, `SCRIPTURE-REFERENCE-STANDARD` (ESV primary), `COMMUNITY-FIRST-MISSION`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION`, `EXCELLENCE-STANDARD` (Religion AND Relationship), Phil 4:8 Test
 
 > **Revision note.** This supersedes the first pass committed at `afa2d24`. Darrell supplied the mission lens after that commit; the recommendation is restructured per his pivot from generic ADOPT/STEAL/IGNORE to RIGHT / WRONG-or-DRIFTS / concrete-surface-changes.
@@ -145,7 +145,7 @@ Per `feedback-always-now-viable-fix-source-dont-ask`, none block the recommendat
 
 `docs/00-foundations/_root/BIBLICAL-ECONOMICS-TEACHING-PATTERNS.md` (created at `afa2d24`, updated this revision) holds the stealable teaching structures as design inputs, now cross-linked to the mission memory and the forthcoming `BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md` foundation doc. It carries the soul-first order, the five-purposes lens, the three-step arc, the church-as-economic-engine framing, and -- added this revision -- the orthodox-stewardship-vs-prosperity-gospel bright line and the four concrete surface bindings (Section 6c).
 
-The authoritative mission formalization (Scripture + history + COLG application + product bindings) is the separately-dispatched `docs/00-foundations/_root/BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md`; this note and the teaching-patterns doc are subordinate design inputs to it.
+The authoritative mission formalization (Scripture + history + COLG application + product bindings) is the separately-dispatched `docs/00-foundations/_root/BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md`; this note and the teaching-patterns doc are subordinate design inputs to it.
 
 ---
 
@@ -158,7 +158,7 @@ This research-review SUPPORTS and is governed by the binding strategic memory **
 ## 10. Pairs with / cross-references
 
 - `project_black_church_economic_powerhouse_mission` (binding memory, `agent/memory/`) -- the authoritative mission
-- `docs/00-foundations/_root/BLACK-CHURCH-ECONOMIC-STEWARDSHIP.md` -- the foundation formalization (dispatched separately)
+- `docs/00-foundations/_root/BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md` -- the foundation formalization (dispatched separately)
 - `docs/00-foundations/_root/BIBLICAL-ECONOMICS-TEACHING-PATTERNS.md` -- design-input doc shipped this task
 - `docs/00-foundations/_root/THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md` -- the source of answers; biblical-economics scope
 - `docs/00-foundations/_root/COMMUNITY-FIRST-MISSION.md` -- COLG-first; the EYL audience is the named community
