@@ -1387,6 +1387,25 @@ export default function PoeFinancialSystem() {
   const [loaded, setLoaded] = useState(false);
   const firedRemindersRef = useRef(new Set());
   const currentDate = useMemo(() => new Date(2026, 4, 15), []);
+  // D20 — Top-right header date is a LIVE CLOCK, not the snapshot anchor.
+  // `currentDate` above is the demo SNAPSHOT anchor (May 2026): all the seed
+  // financial projections (debt snowball, cash-flow, rental math) are authored
+  // against it and must stay frozen so the sample numbers are stable. The
+  // top-right header date was reusing that frozen anchor, so it showed "May '26"
+  // for everyone, every day — the bug Darrell reported. Split the concern:
+  //   - Demo / picker / first-time-landing: show the snapshot label, because the
+  //     sample data IS a May 2026 snapshot (intentional, now documented).
+  //   - Live user (own saved profile): show today's actual date, in the user's
+  //     own timezone, recomputed each session mount.
+  const isSnapshotMode = isAnyDemoMode || isFirstTimeLandingBoot;
+  const headerDateLabel = useMemo(() => {
+    if (isSnapshotMode) return monthLabel(currentDate, 0);
+    try {
+      return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date());
+    } catch (e) {
+      return monthLabel(new Date(), 0);
+    }
+  }, [isSnapshotMode, currentDate]);
 
   // Layer 2 — cross-device feedback sync. Local feedback (data.feedback)
   // stays in localStorage; remote-authored feedback from other devices
@@ -3032,7 +3051,7 @@ html{scroll-padding-bottom:280px}
               </div>
               <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
                 <div className="font-medium">{data.meta.releaseLabel || `v${data.meta.appVersion}`}</div>
-                <div>{monthLabel(currentDate, 0)}</div>
+                <div title={isSnapshotMode ? 'Sample snapshot date (demo data is a May 2026 snapshot)' : "Today's date"}>{headerDateLabel}</div>
                 {/* 2026-05-28 — Build marker so the user can verify at a glance
                     whether the phone is on the latest deploy. iOS Safari has
                     bitten us with stale HTML caching; this is the smoke-test
