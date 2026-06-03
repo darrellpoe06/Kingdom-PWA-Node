@@ -2596,7 +2596,7 @@ html{scroll-padding-bottom:280px}
                 <span><span className="font-semibold">$249</span> Business</span>
               </div>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[10px] text-[#5A5751]">
-                <span><span className="text-[#5A6E3D] font-semibold">Free for Loved Ones</span> (COLG)</span>
+                <span><span className="text-[#5A6E3D] font-semibold">Free for Loved Ones</span> (COLG + chosen family)</span>
                 <span>·</span>
                 <span>Sponsored for families in need</span>
                 <span>·</span>
