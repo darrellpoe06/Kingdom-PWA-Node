@@ -17,21 +17,37 @@
 // =============================================================================
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { N8N_BASE } from '../lib/n8n-base.js';
+import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
 
 // Security self-guard: this view surfaces real bank + Gmail PII from n8n
-// workflow 18. The parent already hides the tab and renders a guard instead of
-// this component unless the viewer is the family on their own device, but we
-// re-derive that authorization straight from the browser here too so the fetch
-// can never fire from any unauthorized context regardless of how the component
-// gets mounted. Authorized == NOT in any ?demo / picker state AND an
-// established saved profile (poe-current-profile) exists. That key is null for
-// every public / incognito / returning-but-unauthenticated visitor and forced
-// to a demo value in any ?demo state. Mirrors importedAllowed in
-// poe-financial-mvp-v28.jsx.
+// workflow 18. Mirrors importedAllowed in poe-financial-mvp-v28.jsx so the
+// fetch can never fire from any unauthorized context regardless of how the
+// component gets mounted.
+//
+// 2026-06-03 hardening: localStorage alone is defeatable on the owner's own
+// device. Public domains (poetech.us, *.vercel.app, any non-local host) now
+// NEVER pass this gate regardless of localStorage state. Family accesses real
+// data via the Tailscale-internal URL only.
+function isPublicHostBrowser() {
+  try {
+    if (typeof window === 'undefined') return true;
+    const host = window.location.hostname || '';
+    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0') return false;
+    if (host.startsWith('100.')) return false; // Tailscale CGNAT
+    if (host.endsWith('.ts.net')) return false; // Tailscale magic DNS
+    if (host.endsWith('.local')) return false; // mDNS LAN
+    if (/^192\.168\./.test(host)) return false; // RFC1918 LAN
+    if (/^10\./.test(host)) return false; // RFC1918 LAN
+    return true; // PUBLIC
+  } catch {
+    return true; // Fail closed.
+  }
+}
+
 function isImportedViewAuthorized() {
   try {
     if (typeof window === 'undefined') return false;
+    if (isPublicHostBrowser()) return false; // Public domain = NEVER show real PII.
     if (new URLSearchParams(window.location.search).has('demo')) return false;
     return !!localStorage.getItem('poe-current-profile');
   } catch {
@@ -84,7 +100,9 @@ export default function Imported() {
       if (filters.since) params.set('since', filters.since);
       params.set('limit', '1000');
       const url = `${N8N_BASE.replace(/\/+$/, '')}/webhook/imported-transactions?${params.toString()}`;
-      const r = await fetch(url, { headers: { Accept: 'application/json' }, mode: 'cors' });
+      // L16: this fetch is reached only past isImportedViewAuthorized(), so the
+      // bearer is attached here and never on a demo / profileless load.
+      const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) }, mode: 'cors' });
       if (!r.ok) throw new Error(`Workflow 18 returned ${r.status}`);
       const json = await r.json();
       setData(json);

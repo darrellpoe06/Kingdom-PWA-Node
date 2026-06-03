@@ -1350,6 +1350,26 @@ const DEMO_PERSONA_META = {
   },
 };
 
+// Hostname gate — public domains (poetech.us, *.vercel.app, any host that's
+// not localhost / Tailscale-internal) must NEVER unlock Imported PII surfaces
+// regardless of localStorage state. Family accesses real data via Tailscale.
+// Returns true on any "public" host; default is SAFE (treat unknown as public).
+function isPublicHost() {
+  try {
+    if (typeof window === 'undefined') return true;
+    const host = window.location.hostname || '';
+    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0') return false;
+    if (host.startsWith('100.')) return false; // Tailscale CGNAT (100.64.0.0/10)
+    if (host.endsWith('.ts.net')) return false; // Tailscale magic DNS
+    if (host.endsWith('.local')) return false; // mDNS LAN
+    if (/^192\.168\./.test(host)) return false; // RFC1918 LAN
+    if (/^10\./.test(host)) return false; // RFC1918 LAN
+    return true; // poetech.us, *.vercel.app, anything else = PUBLIC
+  } catch (e) {
+    return true; // Fail closed.
+  }
+}
+
 export default function PoeFinancialSystem() {
   const demoPersona = getDemoPersona();
   const isPickerMode = demoPersona === 'picker';
@@ -1465,10 +1485,18 @@ export default function PoeFinancialSystem() {
   // the family on their own device viewing their own data" is an established
   // saved profile (poe-current-profile). It is null for every public /
   // incognito / returning-but-unauthenticated visitor to poetech.us, and
-  // forced to a demo value in any ?demo / picker state. So real imported
-  // transactions render ONLY when not in any demo state AND a real profile is
-  // set. Everyone else gets the tab hidden + a guard instead of the fetch.
-  const importedAllowed = !isAnyDemoMode && !!currentProfile;
+  // forced to a demo value in any ?demo / picker state.
+  //
+  // 2026-06-03 hardening: localStorage alone is defeatable on the owner's own
+  // device (a non-incognito tab carries the saved profile, which would unlock
+  // Imported on poetech.us itself). The PUBLIC DOMAIN must NEVER render real
+  // PII regardless of localStorage state. Layered gate now requires ALL of:
+  //   1. Host is NOT public (must be localhost / Tailscale-internal)
+  //   2. NOT in any demo / picker state
+  //   3. A saved profile exists
+  // The family accesses real imported data via the Tailscale-internal URL only.
+  // poetech.us / *.vercel.app are PUBLIC-FRONT-DOOR only — no PII ever.
+  const importedAllowed = !isPublicHost() && !isAnyDemoMode && !!currentProfile;
 
   // Demo welcome modal — only shown when ?demo=… is in the URL. Sets the
   // viewer's expectation about what they're looking at and what they can do,
