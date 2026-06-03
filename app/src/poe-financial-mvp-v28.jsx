@@ -1409,8 +1409,14 @@ export default function PoeFinancialSystem() {
       return true;
     } catch (e) { return false; }
   })();
+  // 2026-06-03 SECURITY: on public host, NEVER seed from SEED_DATA (which has
+  // the real Poe-family ops shape even when entity NAMES were anonymized — real
+  // property addresses, real project titles, real business operations could
+  // still surface in the Action Queue / Big Picture). The aspirational Reeves-
+  // family DEMO_DATA_FAMILY_OF_4 is the only safe seed for the public domain.
   const [data, setData] = useState(
-    isDemoMode ? DEMO_DATA_BY_PERSONA[demoPersona]
+    isPublicHost() ? DEMO_DATA_FAMILY_OF_4
+      : isDemoMode ? DEMO_DATA_BY_PERSONA[demoPersona]
       : isPickerMode ? DEMO_DATA_FAMILY_OF_4
       : isFirstTimeLandingBoot ? DEMO_DATA_FAMILY_OF_4
       : SEED_DATA
@@ -1462,6 +1468,7 @@ export default function PoeFinancialSystem() {
   // docs/99-session-notes/2026-05-28-brief-multi-user-profiles.md.
   const [currentProfile, setCurrentProfile] = useState(() => {
     if (isAnyDemoMode) return 'family'; // Demo + picker skip profile picker.
+    if (isPublicHost()) return null; // SECURITY: public host never reads saved profile.
     try { return localStorage.getItem('poe-current-profile') || null; }
     catch (e) { return null; }
   });
@@ -1785,6 +1792,21 @@ export default function PoeFinancialSystem() {
 
   useEffect(() => {
     if (isAnyDemoMode) { setLoaded(true); return; } // Demo + picker skip storage load entirely.
+    // 2026-06-03 SECURITY: PUBLIC DOMAIN MUST NOT HYDRATE FROM LOCAL STORAGE.
+    // The previous gate stopped the wf18 webhook fetch but localStorage could
+    // still hydrate the entire app with the family's REAL ops data on a non-
+    // incognito tab opened on poetech.us from the family's own device — the
+    // Big Picture dashboard then surfaced real entity names, property
+    // addresses, project titles ("1508 Holly Hill," "Christiana college
+    // transition") to whatever tab was open. On any public host (poetech.us,
+    // *.vercel.app), force the seed sample data + skip localStorage hydration
+    // entirely. Real ops data is accessible only via Tailscale-internal
+    // hostnames (where the gate stays open).
+    if (isPublicHost()) {
+      setData(DEMO_DATA_FAMILY_OF_4);
+      setLoaded(true);
+      return;
+    }
     (async () => {
       try {
         let saved = await window.storage.get('poe-financial-v28');
@@ -1863,6 +1885,7 @@ export default function PoeFinancialSystem() {
   useEffect(() => {
     if (!loaded) return;
     if (isAnyDemoMode) return; // Demo + picker mode never write to localStorage.
+    if (isPublicHost()) return; // SECURITY: public domain never persists data.
     (async () => { try { await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme })); } catch (e) { console.error('Storage failed', e); } })();
   }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode]);
 
