@@ -1422,6 +1422,17 @@ export default function PoeFinancialSystem() {
     { id: 'family', name: 'Family', sub: 'household roll-up only', accent: '#5A6E3D' },
   ];
 
+  // Security gate for the Books -> Imported subview, which surfaces real bank +
+  // Gmail PII from n8n workflow 18 (Chase payees, Zelle recipients, Cash App).
+  // Until Multi-user Layer B PIN auth ships, the closest signal for "this is
+  // the family on their own device viewing their own data" is an established
+  // saved profile (poe-current-profile). It is null for every public /
+  // incognito / returning-but-unauthenticated visitor to poetech.us, and
+  // forced to a demo value in any ?demo / picker state. So real imported
+  // transactions render ONLY when not in any demo state AND a real profile is
+  // set. Everyone else gets the tab hidden + a guard instead of the fetch.
+  const importedAllowed = !isAnyDemoMode && !!currentProfile;
+
   // Demo welcome modal — only shown when ?demo=… is in the URL. Sets the
   // viewer's expectation about what they're looking at and what they can do,
   // then steps out of the way. Dismissing it shows the demo banner along the
@@ -1673,7 +1684,7 @@ export default function PoeFinancialSystem() {
     meta: { loaded: false, error: null }
   });
   useEffect(() => {
-    if (isAnyDemoMode) { setIngestData(d => ({ ...d, meta: { loaded: true, error: null } })); return; } // Demo + picker never call n8n.
+    if (!importedAllowed) { setIngestData(d => ({ ...d, meta: { loaded: true, error: null } })); return; } // Only the family on their own device (not demo / picker / profileless public) calls the wf18 PII webhook.
     const base = N8N_BASE;
     if (!base) {
       setIngestData(d => ({ ...d, meta: { loaded: true, error: 'VITE_N8N_WEBHOOK_BASE not set — ingest overlay disabled' } }));
@@ -3066,7 +3077,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal','🔒 Legal']].map(([id, label]) => (
+                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal','🔒 Legal']].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -3088,7 +3099,9 @@ html{scroll-padding-bottom:280px}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
             {booksView === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
             {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} />}
-            {booksView === 'imported' && <Imported />}
+            {booksView === 'imported' && (importedAllowed
+              ? <Imported />
+              : <ImportedDemoGuard setBooksView={setBooksView} />)}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
@@ -3213,6 +3226,31 @@ html{scroll-padding-bottom:280px}
 // SALES FOOTER BANNER — v28 · Subtle PoeTech Services promotion
 // Shows at bottom of working pages (not dashboard) · rotating sales angles
 // Out-of-the-way but discoverable — surfaces the "Pay us to get done now" offer
+// =============================================================================
+// ImportedDemoGuard — security gate for the Books -> Imported subview.
+// =============================================================================
+// The Imported subview (components/Imported.jsx) fetches real bank + Gmail
+// transactions from n8n workflow 18 (PII: Chase payees, Zelle recipients,
+// Cash App entries) and is for an authenticated family member viewing their
+// OWN sovereign data only. On the public poetech.us demo / picker state every
+// visitor would otherwise see Darrell's real transaction stream. This guard
+// renders INSTEAD of <Imported /> whenever isAnyDemoMode is true: it never
+// imports the component, never fires the /n8n/webhook/imported-transactions
+// fetch, and redirects the subview back to a safe tab. Defense in depth pairs
+// with hiding the tab from the demo subnav.
+function ImportedDemoGuard({ setBooksView }) {
+  useEffect(() => {
+    // Redirect any direct landing on the imported subview away from real data.
+    setBooksView('calendar');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div className="text-[12px] text-[#5A5751] p-4">
+      Imported transactions are private to each family and shown only when you are signed in with your own data loaded.
+    </div>
+  );
+}
+
 // =============================================================================
 // Preparatory scaffolding — per MVP-1-HARDENING-PLAN.md step 2.3 this re-wires
 // onto About + Opportunities (selectively, not every working tab). Exported so

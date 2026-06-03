@@ -19,6 +19,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { N8N_BASE } from '../lib/n8n-base.js';
 
+// Security self-guard: this view surfaces real bank + Gmail PII from n8n
+// workflow 18. The parent already hides the tab and renders a guard instead of
+// this component unless the viewer is the family on their own device, but we
+// re-derive that authorization straight from the browser here too so the fetch
+// can never fire from any unauthorized context regardless of how the component
+// gets mounted. Authorized == NOT in any ?demo / picker state AND an
+// established saved profile (poe-current-profile) exists. That key is null for
+// every public / incognito / returning-but-unauthenticated visitor and forced
+// to a demo value in any ?demo state. Mirrors importedAllowed in
+// poe-financial-mvp-v28.jsx.
+function isImportedViewAuthorized() {
+  try {
+    if (typeof window === 'undefined') return false;
+    if (new URLSearchParams(window.location.search).has('demo')) return false;
+    return !!localStorage.getItem('poe-current-profile');
+  } catch {
+    return false;
+  }
+}
+
 const STATUS_BADGE = {
   verified:    { color: '#16A34A', label: '✓ Verified',     hint: 'Matched a Gmail-claimed event within tolerance' },
   unconfirmed: { color: '#D97706', label: '⚠ Unconfirmed', hint: 'Gmail mentioned it but no bank match yet'        },
@@ -49,6 +69,12 @@ export default function Imported() {
   const [filters, setFilters] = useState({ institution: '', status: 'all', since: '', search: '' });
 
   const fetchData = async () => {
+    // Hard stop: never reach the PII webhook from an unauthorized (public /
+    // demo / profileless) load.
+    if (!isImportedViewAuthorized()) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -74,12 +100,22 @@ export default function Imported() {
   };
 
   useEffect(() => {
+    if (!isImportedViewAuthorized()) { setLoading(false); return; }
     fetchData();
     // Refresh every 5 min while this view is open.
     const id = setInterval(fetchData, 300_000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.institution, filters.status, filters.since]);
+
+  // Unauthorized guard: render a notice, never the real transaction stream.
+  if (!isImportedViewAuthorized()) {
+    return (
+      <div className="text-[12px] text-[#5A5751] p-4">
+        Imported transactions are private to each family and shown only when you are signed in with your own data loaded.
+      </div>
+    );
+  }
 
   const filtered = useMemo(() => {
     if (!data || !data.transactions) return [];
