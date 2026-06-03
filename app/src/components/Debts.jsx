@@ -6,6 +6,10 @@ import { MetricCell, SectionTitle } from './shared.jsx';
 
 // Local helpers.
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
+// Defensive: a debt row missing `rate` (e.g. seed data that used `apr`, or a
+// partially-loaded record) must never white-screen the whole tab. Coerce to a
+// number and render 0% when absent rather than calling .toFixed on undefined.
+const pct = (r) => { const n = Number(r); if (!isFinite(n) || n === 0) return '0%'; return `${n.toFixed(2).replace(/\.00$/, '')}%`; };
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
 const MONTHS_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(d, offset) { const x = new Date(d.getFullYear(), d.getMonth() + offset, 1); return `${MONTHS_ABBR[x.getMonth()]} '${String(x.getFullYear()).slice(2)}`; }
@@ -102,7 +106,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                   <tr key={d.id} className={`border-b border-[#E8E4DC] ${d.flag ? 'bg-[#FAF8F4]' : ''} ${d.leaveAlone ? 'opacity-60' : ''}`}>
                     <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[10px] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
                     <td className="p-3 text-xs text-[#5A5751] hidden sm:table-cell">{ent(d.entityId)?.name.split('(')[0].trim() || '—'}</td>
-                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{d.rate === 0 ? '0%' : `${d.rate.toFixed(2).replace(/\.00$/, '')}%`}</td>
+                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{pct(d.rate)}</td>
                     <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.minPayment)}</td>
                     <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.balance)}</td>
                     <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{payoff}</td>
@@ -234,7 +238,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
               <div className="mt-2 space-y-1 text-xs">
                 {[...debts].filter(d => !d.leaveAlone).sort((a, b) => b.balance - a.balance).slice(0, 8).map(d => (
                   <div key={d.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
-                    <span style={{ fontFamily: '"Fraunces", serif' }}>{d.name} <span className="text-[#5A5751]">· {d.rate}%</span></span>
+                    <span style={{ fontFamily: '"Fraunces", serif' }}>{d.name} <span className="text-[#5A5751]">· {pct(d.rate)}</span></span>
                     <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.balance)}</span>
                   </div>
                 ))}
@@ -272,7 +276,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                       <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{monthLabel(currentDate, d.clearedAtMonth)}</div>
                     </div>
                     <div className="text-xs text-[#5A5751] mt-1">
-                      Cleared in {yearsAndMonths(d.clearedAtMonth)} · {fmt(d.balance)} balance · {d.rate}% rate · Frees {fmt(d.minPayment)}/mo
+                      Cleared in {yearsAndMonths(d.clearedAtMonth)} · {fmt(d.balance)} balance · {pct(d.rate)} rate · Frees {fmt(d.minPayment)}/mo
                     </div>
                     <div className="text-xs text-[#5A6E3D] mt-1">
                       Snowball after this clears: <strong>{fmt(debtSnowballExtra + freedSoFar)}/mo</strong> attacking the next debt
