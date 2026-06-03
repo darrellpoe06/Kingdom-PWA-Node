@@ -28,7 +28,7 @@ import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
 import { Queue } from './components/Queue.jsx';
 import { computeReserves } from './lib/financial-calcs.js';
-import { N8N_BASE } from './lib/n8n-base.js';
+import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -1735,7 +1735,9 @@ export default function PoeFinancialSystem() {
     const load = async () => {
       try {
         const url = `${base.replace(/\/+$/, '')}/webhook/imported-transactions?limit=5000`;
-        const r = await fetch(url, { headers: { Accept: 'application/json' }, mode: 'cors' });
+        // L16: reached only past the importedAllowed guard above, so the bearer
+        // is attached here and never sent on a demo / profileless load.
+        const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) }, mode: 'cors' });
         if (!r.ok) throw new Error(`Workflow 18 returned ${r.status}`);
         const json = await r.json();
         if (cancelled) return;
@@ -2556,9 +2558,17 @@ html{scroll-padding-bottom:280px}
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
             <h2 id="demo-picker-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{isFirstTimeLanding ? 'Know what to do today — for everyone in your house.' : 'Which life is closest to yours?'}</h2>
             {isFirstTimeLanding && (
-              <div className="flex flex-wrap gap-1.5 mb-3">
+              {/* Per Option B Mars Hill progressive-disclosure
+                 (project-progressive-disclosure-mars-hill-engagement):
+                 the Family-Financial badge leads (universal stewardship
+                 value, foreground hierarchy); the Spiritual-Module-for-the-
+                 Body badge stays PRESENT (plain disclosure of what's free)
+                 but visually SECONDARY at first-glance (outlined, not
+                 filled). Anyone who looks sees both; the casual visitor's
+                 eye anchors on the universal-value hook first. */}
+              <div className="flex flex-wrap gap-1.5 mb-3 items-center">
                 <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-white bg-[#5A6E3D] px-2 py-1 font-semibold">Free forever · Financial System for Families</span>
-                <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-white bg-[#5A6E3D] px-2 py-1 font-semibold">Free forever · Spiritual Module for the Body</span>
+                <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] bg-transparent border border-[#5A6E3D] px-2 py-1 font-medium">Free forever · Spiritual Module for the Body</span>
               </div>
             )}
             <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? 'PoeTech is the family financial system that lifts anxiety by answering — every day, on every screen — what to do, when, why, and how.' : 'One modular framework, multiple lenses. The shipped tiles run on real data right now; the coming-soon tiles are vision for the same framework — they ship as the infrastructure does.'}</p>
