@@ -2609,7 +2609,7 @@ html{scroll-padding-bottom:280px}
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[10px] text-[#5A5751]">
                 <span><span className="text-[#5A6E3D] font-semibold">Free for Loved Ones</span> (COLG + chosen family)</span>
                 <span>·</span>
-                <span>Sponsored for families in need</span>
+                <span>Sponsored for families in need (aligned-brand partners, not your data)</span>
                 <span>·</span>
                 <button type="button" onClick={() => { markLandingSeen(); setView('about'); }} className="underline text-[#B85838] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">See pricing →</button>
               </div>

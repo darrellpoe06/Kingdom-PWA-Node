@@ -192,9 +192,9 @@ Per `memory/project_what_is_actually_free.md`, exactly two things are free for e
 
 These two are the on-ramps because they are the two halves of the mission — wisdom upstream (the Spiritual Module) and understanding in all your getting (the Financial System), fulfilling Proverbs 4:7's order.
 
-### The paid tiers are the cross-subsidy that keeps the free truly free
+### The cross-subsidy that keeps the free truly free
 
-The paid ladder and sponsor tiers fund the free tiers — 2 Corinthians 9:11 as a business model: *enriched in every way to be generous in every way*. The free tier is not a loss leader to be eliminated later; it is the telos the paid tiers serve.
+The paid ladder sustains the platform itself, and the **Community-free families in genuine need are funded by aligned-brand partners** — vetted, fully disclosed sponsorships from open-source tools, data-sovereignty hardware, and family-stewardship-aligned services we genuinely recommend, **never by selling family data and never by skimming a paying family's subscription against their will**. This is 2 Corinthians 9:11 as a business model: *enriched in every way to be generous in every way* — the generosity flows from partners whose values already align with the mission, not from surveillance or extraction. The free tier is not a loss leader to be eliminated later; it is the telos the whole structure serves. (Q3/Q4 closed 2026-06-03 — the aligned-brand sponsorship model, per `project_community_free_funded_by_aligned_brand_sponsorship`.)
 
 ### The Loved Ones cohort is the warm circle
 
@@ -419,7 +419,7 @@ True judgment calls only — surfaced as governance questions, not asked of anyo
 1. **Denominational + multi-racial RAG corpus weighting.** Which traditions (AME / AME Zion / CME / National Baptist / COGIC-Pentecostal / non-denominational / Black liberation / prosperity) and which multi-racial Body sources get explicit weighting, and in what proportion? COLG's non-denominational tradition is the natural anchor; the broader Body weighting is a governance call.
 2. **Sermon-to-Content crediting.** How is Bishop Gwin credited and COLG's ownership honored when his sermons feed the pipeline? (Touches `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md` + a pastoral question that is Darrell's and Bishop Gwin's directly.)
 3. **Free-tier parity across the Body.** Do partner congregations of any ethnicity that genuinely share the soul-first stewardship vision receive the same founding free-cohort treatment as the COLG anchor, or enter through the standard Community-Partner tier? (A Body-scope decision; the multi-racial frame of this revision makes it sharper.)
-4. **Community-free sponsorship math.** The cross-subsidy ratio that keeps the free tiers truly free — how many paying subscribers sustain how many sponsored Community / Loved Ones families — is still open. It rides as a separate financial-modeling decision, not resolved here. (The giving-platform question, by contrast, is closed: COLG's link is wired and the module integrates with it — Section 12.)
+4. **Community-free sponsorship math.** ~~The cross-subsidy ratio that keeps the free tiers truly free — how many paying subscribers sustain how many sponsored Community / Loved Ones families.~~ **RESOLVED 2026-06-03 (Darrell, Q3/Q4 close):** Community-free families are funded by **aligned-brand partners** — vetted, fully-disclosed sponsorships from open-source tools, data-sovereignty hardware, and family-stewardship-aligned services we genuinely recommend, never by selling family data. The funding source is partner sponsorship, not a skim on paying subscribers; the exact ratio rides as ordinary financial modeling against the aligned-brand sponsor roster (see About Sponsor Tiers + `project_community_free_funded_by_aligned_brand_sponsorship`). (The giving-platform question, by contrast, was closed earlier: COLG's link is wired and the module integrates with it — Section 12.)
 
 *Per drive-don't-delegate: these are surfaced, not asked. Bishop Gwin's briefing is a separate, post-vacation step.*
 
