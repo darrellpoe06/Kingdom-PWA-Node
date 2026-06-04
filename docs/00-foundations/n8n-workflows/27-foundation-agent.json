@@ -4,11 +4,11 @@
     {
       "parameters": {
         "rule": {
-          "interval": [{"field": "cronExpression", "expression": "0 0 7,12,17,21 * * *"}]
+          "interval": [{"field": "cronExpression", "expression": "0 */5 * * * *"}]
         }
       },
       "id": "9f7e2a10-27a0-4270-8270-aaaaaaaaaa01",
-      "name": "Scheduled (7am · 12pm · 5pm · 9pm)",
+      "name": "Scheduled (every 5 min · continuous feedback reel)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [200, 240]
@@ -58,7 +58,7 @@
     }
   ],
   "connections": {
-    "Scheduled (7am · 12pm · 5pm · 9pm)": {
+    "Scheduled (every 5 min · continuous feedback reel)": {
       "main": [[{"node": "Process inbox + route", "type": "main", "index": 0}]]
     },
     "Webhook (fire immediately)": {
