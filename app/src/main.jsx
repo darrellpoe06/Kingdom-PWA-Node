@@ -3,21 +3,14 @@ import ReactDOM from 'react-dom/client';
 import { storage } from './shims/storage.js';
 import './index.css';
 import PoeFinancialSystem from './poe-financial-mvp-v28.jsx';
-import DispatchStatus from './components/DispatchStatus.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 
 window.storage = storage;
 
-// Additive route branch: the family-private live readout surface mounts at
-// "/dispatch-status" (hostname-gated inside the component). Everything else
-// loads the main financial system app unchanged.
-const isDispatchRoute = typeof window !== 'undefined'
-  && /\/dispatch-status\/?$/.test(window.location.pathname || '');
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      {isDispatchRoute ? <DispatchStatus /> : <PoeFinancialSystem />}
+      <PoeFinancialSystem />
     </ErrorBoundary>
   </React.StrictMode>
 );

@@ -1,0 +1,116 @@
+{
+  "name": "Dispatch status PAGE (NAS-hosted live readout HTML)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dispatch-status-page",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9f7e2a10-d5a0-45a0-85a0-aaaaaaaaaa01",
+      "name": "Webhook (dispatch-status-page)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        320
+      ],
+      "webhookId": "dispatch-status-page"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dispatch status PAGE -- serves the full self-contained live-readout HTML\n// (inline CSS + JS, one CDN script for the ntfy QR). Sovereign: served from\n// the NAS n8n instance itself, not Vercel. The page fetches its data from the\n// sibling wf-dispatch-status endpoints (/webhook/dispatch-status?section=...)\n// on the same origin. Access control = the NAS being Tailscale/LAN-only.\nconst html = \"<!doctype html>\\n<html lang=\\\"en\\\">\\n<head>\\n<meta charset=\\\"utf-8\\\">\\n<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1, viewport-fit=cover\\\">\\n<title>PoeTech Dispatch Status</title>\\n<style>\\n  :root { color-scheme: dark; }\\n  * { box-sizing: border-box; }\\n  body { margin:0; background:#1A1815; color:#FAF8F4; font-family: system-ui, -apple-system, \\\"Segoe UI\\\", Roboto, sans-serif; }\\n  .wrap { max-width: 720px; margin:0 auto; padding: 16px; }\\n  h1 { font-family: \\\"Fraunces\\\", Georgia, serif; font-size: 1.6rem; margin:0; }\\n  h2 { font-family: \\\"Fraunces\\\", Georgia, serif; font-size: .8rem; text-transform:uppercase; letter-spacing:.08em; color:#C9C3B8; margin:0; }\\n  .sub { color:#8A857C; font-size:.72rem; margin-top:4px; }\\n  section { border:1px solid #3A352E; background:#211E1A; border-radius:8px; padding:16px; margin-bottom:20px; }\\n  .row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; flex-wrap:wrap; }\\n  .meta { font-size:.62rem; color:#8A857C; }\\n  .badge { font-size:.6rem; text-transform:uppercase; letter-spacing:.08em; padding:2px 6px; border-radius:4px; color:#fff; font-weight:600; }\\n  .chip { font-size:.6rem; text-transform:uppercase; letter-spacing:.08em; padding:2px 6px; border-radius:4px; font-weight:600; }\\n  ul { list-style:none; margin:0; padding:0; }\\n  .reel { max-height:55vh; overflow-y:auto; }\\n  .entry { border-left:2px solid #6B7280; padding:8px 0 8px 10px; cursor:pointer; }\\n  .entry:hover { background:#26221D; }\\n  .entry .top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }\\n  .entry .t { font-size:.6rem; color:#8A857C; font-family:ui-monospace, monospace; min-width:56px; }\\n  .entry .summary { font-size:.75rem; color:#FAF8F4; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }\\n  pre { margin:8px 0 0; font-size:.62rem; color:#C9C3B8; background:#1A1815; border:1px solid #3A352E; border-radius:6px; padding:8px; overflow-x:auto; white-space:pre-wrap; word-break:break-all; }\\n  .task { border:1px solid #3A352E; background:#1A1815; border-radius:6px; padding:12px; margin-bottom:8px; }\\n  .task .title { font-family:\\\"Fraunces\\\", Georgia, serif; font-size:.9rem; color:#FAF8F4; }\\n  .task .act { font-size:.72rem; color:#C9C3B8; margin-top:4px; }\\n  .task .seen { font-size:.6rem; color:#8A857C; margin-top:4px; }\\n  .empty { font-size:.72rem; color:#8A857C; text-align:center; padding:24px 0; }\\n  a { color:#E0A86B; }\\n  .qr { background:#FAF8F4; padding:8px; border-radius:6px; display:inline-block; min-width:60px; min-height:60px; }\\n  .mono { font-family:ui-monospace, monospace; }\\n  .offline { opacity:.55; }\\n  footer { font-size:.6rem; color:#8A857C; text-align:center; padding:8px 0 32px; }\\n</style>\\n</head>\\n<body>\\n<div class=\\\"wrap\\\">\\n  <header style=\\\"margin-bottom:20px\\\">\\n    <h1>PoeTech dispatch status</h1>\\n    <div class=\\\"sub\\\">Live readout - reel + Code Tasks refresh every 10s. Served from the NAS. Open and watch; no interaction needed.</div>\\n  </header>\\n\\n  <section>\\n    <h2>Subscribe to the reel on your phone</h2>\\n    <div style=\\\"display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; margin-top:12px\\\">\\n      <div id=\\\"qr\\\" class=\\\"qr\\\" aria-label=\\\"ntfy subscription QR code\\\"></div>\\n      <div style=\\\"font-size:.72rem; color:#C9C3B8; line-height:1.5\\\">\\n        <p style=\\\"margin:0 0 8px\\\">Scan with the <b style=\\\"color:#FAF8F4\\\">ntfy</b> app to subscribe in one tap.</p>\\n        <p style=\\\"margin:0 0 4px\\\"><span style=\\\"color:#8A857C\\\">Topic:</span> <span class=\\\"mono\\\" style=\\\"color:#FAF8F4\\\" id=\\\"ntfy-topic\\\"></span></p>\\n        <p style=\\\"margin:0 0 4px; word-break:break-all\\\"><span style=\\\"color:#8A857C\\\">Deep link:</span> <a class=\\\"mono\\\" id=\\\"ntfy-deep\\\"></a></p>\\n        <p style=\\\"margin:0; word-break:break-all\\\"><span style=\\\"color:#8A857C\\\">Web:</span> <a class=\\\"mono\\\" id=\\\"ntfy-web\\\" target=\\\"_blank\\\" rel=\\\"noreferrer\\\"></a></p>\\n      </div>\\n    </div>\\n  </section>\\n\\n  <section id=\\\"reel-sec\\\">\\n    <div class=\\\"row\\\"><h2>Workflow reel</h2><span class=\\\"meta\\\" id=\\\"reel-status\\\">loading...</span></div>\\n    <ul id=\\\"reel\\\" class=\\\"reel\\\"></ul>\\n    <div class=\\\"empty\\\" id=\\\"reel-empty\\\">Loading reel...</div>\\n  </section>\\n\\n  <section id=\\\"tasks-sec\\\">\\n    <div class=\\\"row\\\"><h2>Code task snapshot</h2><span class=\\\"meta\\\" id=\\\"tasks-status\\\">loading...</span></div>\\n    <ul id=\\\"tasks\\\"></ul>\\n    <div class=\\\"empty\\\" id=\\\"tasks-empty\\\">Loading tasks...</div>\\n  </section>\\n\\n  <footer>Family-internal surface - served from the NAS over Tailscale / LAN. Not publicly exposed.</footer>\\n</div>\\n\\n<script src=\\\"https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js\\\"></script>\\n<script>\\n(function(){\\n  var NTFY_SERVER = 'poetech.tail5a2f35.ts.net';\\n  var NTFY_TOPIC = 'poetech-reel';\\n  var NTFY_WEB = 'https://' + NTFY_SERVER + '/' + NTFY_TOPIC;\\n  var NTFY_DEEP = 'ntfy://' + NTFY_SERVER + '/' + NTFY_TOPIC;\\n  var POLL_MS = 10000;\\n  var TASKS_STALE_MS = 90000;\\n  // Same-origin data endpoints (served by the wf-dispatch-status workflow on\\n  // the same n8n instance / origin as this page).\\n  var DATA_BASE = '/webhook/dispatch-status';\\n\\n  document.getElementById('ntfy-topic').textContent = NTFY_TOPIC;\\n  var dl = document.getElementById('ntfy-deep'); dl.textContent = NTFY_DEEP; dl.href = NTFY_DEEP;\\n  var wl = document.getElementById('ntfy-web'); wl.textContent = NTFY_WEB; wl.href = NTFY_WEB;\\n  try {\\n    if (typeof qrcode === 'function') {\\n      var qr = qrcode(0, 'M'); qr.addData(NTFY_DEEP); qr.make();\\n      document.getElementById('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2 });\\n      var svg = document.querySelector('#qr svg'); if (svg) { svg.style.width = '150px'; svg.style.height = '150px'; }\\n    }\\n  } catch (e) { /* QR is best-effort; text links below always work */ }\\n\\n  var EVENT_COLORS = { error:'#DC2626', fail:'#DC2626', warn:'#D97706', warning:'#D97706', alert:'#D97706', ship:'#16A34A', success:'#16A34A', done:'#16A34A', ok:'#16A34A', info:'#2563EB', build:'#7C3AED', feedback:'#0891B2' };\\n  var WF_COLORS = { wf04:'#0891B2', wf05:'#0891B2', wf08:'#0891B2', wf12:'#2563EB', wf13:'#2563EB', wf18:'#7C3AED', wf27:'#16A34A', wf30:'#16A34A', wf31:'#16A34A', wf32:'#16A34A', wf36:'#D97706' };\\n  function evColor(t) { return EVENT_COLORS[String(t || '').toLowerCase()] || '#6B7280'; }\\n  function wfColor(w) { var k = String(w || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return WF_COLORS[k] || '#5A5751'; }\\n  function pick(o, keys, fb) { for (var i = 0; i < keys.length; i++) { var k = keys[i]; if (o && o[k] !== undefined && o[k] !== null && o[k] !== '') return o[k]; } return fb; }\\n  function esc(s) { return String(s).replace(/[&<>\\\"']/g, function(c) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '\\\"':'&quot;', \\\"'\\\":'&#39;' }[c]; }); }\\n  function relTime(v) {\\n    if (!v) return '';\\n    var ms; if (typeof v === 'number') ms = v < 1e12 ? v * 1000 : v; else ms = Date.parse(v);\\n    if (!ms || isNaN(ms)) return String(v);\\n    var d = Date.now() - ms; if (d < 0) return 'just now';\\n    var s = Math.floor(d / 1000); if (s < 60) return s + 's ago';\\n    var m = Math.floor(s / 60); if (m < 60) return m + 'm ago';\\n    var h = Math.floor(m / 60); if (h < 24) return h + 'h ago';\\n    return Math.floor(h / 24) + 'd ago';\\n  }\\n  function nowLabel() { try { return new Date().toLocaleTimeString(); } catch (e) { return ''; } }\\n\\n  var reelCount = 0;\\n  function loadReel() {\\n    fetch(DATA_BASE + '?section=reel', { headers: { 'Accept':'application/json' }, cache:'no-store' })\\n      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })\\n      .then(function(data) {\\n        var arr = Array.isArray(data) ? data : (data && Array.isArray(data.entries) ? data.entries : []);\\n        var ul = document.getElementById('reel'); var empty = document.getElementById('reel-empty');\\n        document.getElementById('reel-status').textContent = 'refreshed ' + nowLabel();\\n        if (!arr.length) { ul.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'No reel events yet. Waiting for the first workflow to fire.'; reelCount = 0; return; }\\n        empty.style.display = 'none';\\n        var html = '';\\n        for (var i = 0; i < arr.length; i++) {\\n          var e = arr[i];\\n          var ts = pick(e, ['ts','at','time','timestamp','when'], '');\\n          var wf = pick(e, ['wf','workflow','source','origin'], '');\\n          var type = pick(e, ['type','event','level','kind'], '');\\n          var summary = pick(e, ['summary','msg','message','text','detail','title'], '(no summary)');\\n          var c = evColor(type);\\n          html += '<li class=\\\"entry\\\" style=\\\"border-left-color:' + c + '\\\" data-json=\\\"' + esc(JSON.stringify(e)) + '\\\">'\\n            + '<div class=\\\"top\\\">'\\n            + '<span class=\\\"t\\\">' + esc(relTime(ts)) + '</span>'\\n            + (wf ? '<span class=\\\"badge\\\" style=\\\"background:' + wfColor(wf) + '\\\">' + esc(wf) + '</span>' : '')\\n            + (type ? '<span class=\\\"chip\\\" style=\\\"color:' + c + '; border:1px solid ' + c + '\\\">' + esc(type) + '</span>' : '')\\n            + '<span class=\\\"summary\\\">' + esc(summary) + '</span>'\\n            + '<span class=\\\"t\\\" style=\\\"min-width:auto\\\">json</span>'\\n            + '</div></li>';\\n        }\\n        var newCount = arr.length;\\n        ul.innerHTML = html;\\n        if (newCount > reelCount) { try { ul.scrollTop = 0; } catch (e) {} }\\n        reelCount = newCount;\\n      })\\n      .catch(function() {\\n        document.getElementById('reel-status').textContent = 'error - retrying - ' + nowLabel();\\n        var empty = document.getElementById('reel-empty');\\n        if (!document.getElementById('reel').children.length) { empty.style.display = 'block'; empty.textContent = 'Reel endpoint unreachable. Retrying every 10s.'; }\\n      });\\n  }\\n  document.getElementById('reel').addEventListener('click', function(ev) {\\n    var li = ev.target.closest('.entry'); if (!li) return;\\n    var existing = li.querySelector('pre');\\n    if (existing) { existing.remove(); return; }\\n    var pre = document.createElement('pre');\\n    try { pre.textContent = JSON.stringify(JSON.parse(li.getAttribute('data-json')), null, 2); }\\n    catch (e) { pre.textContent = li.getAttribute('data-json'); }\\n    li.appendChild(pre);\\n  });\\n\\n  function loadTasks() {\\n    fetch(DATA_BASE + '?section=tasks', { headers: { 'Accept':'application/json' }, cache:'no-store' })\\n      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })\\n      .then(function(data) { renderTasks(data, true); })\\n      .catch(function() { renderTasks(null, false); });\\n  }\\n  function renderTasks(data, reachable) {\\n    var sec = document.getElementById('tasks-sec'); var ul = document.getElementById('tasks'); var empty = document.getElementById('tasks-empty');\\n    var snapshotAt = data ? pick(data, ['snapshot_at','snapshotAt','at'], null) : null;\\n    var tasks = (data && Array.isArray(data.tasks)) ? data.tasks : [];\\n    var snapMs = snapshotAt ? Date.parse(snapshotAt) : NaN;\\n    var stale = !snapshotAt || isNaN(snapMs) || (Date.now() - snapMs) > TASKS_STALE_MS;\\n    var offline = !reachable || stale;\\n    sec.className = offline ? 'offline' : '';\\n    document.getElementById('tasks-status').textContent = offline\\n      ? ('Orchestrator offline - last refreshed at ' + nowLabel())\\n      : ('snapshot ' + relTime(snapshotAt) + ' - refreshed ' + nowLabel());\\n    if (!tasks.length) { ul.innerHTML = ''; empty.style.display = 'block'; empty.textContent = offline ? 'No live snapshot. The orchestrator session is not currently reporting.' : 'No running Code Tasks right now.'; return; }\\n    empty.style.display = 'none';\\n    var html = '';\\n    for (var i = 0; i < tasks.length; i++) {\\n      var t = tasks[i];\\n      var title = pick(t, ['title','name','subject'], '(untitled task)');\\n      var turns = pick(t, ['turns','turn_count','turnCount'], null);\\n      var act = pick(t, ['latest','activity','last_activity','note'], '');\\n      var seen = pick(t, ['last_seen','lastSeen','seen_at','at'], null);\\n      html += '<li class=\\\"task\\\"><div class=\\\"row\\\" style=\\\"margin:0\\\"><span class=\\\"title\\\">' + esc(title) + '</span>'\\n        + (turns !== null ? '<span class=\\\"chip\\\" style=\\\"background:#3A352E; color:#C9C3B8\\\">' + esc(turns) + ' turns</span>' : '')\\n        + '</div>'\\n        + (act ? '<div class=\\\"act\\\">' + esc(act) + '</div>' : '')\\n        + (seen ? '<div class=\\\"seen\\\">last seen ' + esc(relTime(seen)) + '</div>' : '')\\n        + '</li>';\\n    }\\n    ul.innerHTML = html;\\n  }\\n\\n  loadReel(); loadTasks();\\n  setInterval(loadReel, POLL_MS);\\n  setInterval(loadTasks, POLL_MS);\\n})();\\n</script>\\n</body>\\n</html>\\n\";\nreturn [{ json: { html } }];"
+      },
+      "id": "9f7e2a10-d5a0-45a0-85a0-aaaaaaaaaa02",
+      "name": "Build page HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-d5a0-45a0-85a0-aaaaaaaaaa03",
+      "name": "Respond with HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (dispatch-status-page)": {
+      "main": [
+        [
+          {
+            "node": "Build page HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build page HTML": {
+      "main": [
+        [
+          {
+            "node": "Respond with HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "pwa-api"
+    },
+    {
+      "name": "dispatch-status"
+    },
+    {
+      "name": "nas-sovereign"
+    },
+    {
+      "name": "sovereign-loop"
+    }
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}
