@@ -1370,6 +1370,90 @@ function isPublicHost() {
   }
 }
 
+// Initial view from the URL query. Supports deep-links like ?view=admin — the
+// footer "Admin" link's shareable target (Darrell opens https://poetech.us/?view=admin
+// on his phone to find the NAS dispatch-status URL). Unknown/absent param falls
+// back to the normal overview boot.
+function getInitialView() {
+  try {
+    if (typeof window === 'undefined') return 'overview';
+    const sp = new URLSearchParams(window.location.search);
+    const v = (sp.get('view') || '').toLowerCase().trim();
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','admin'];
+    return VALID.includes(v) ? v : 'overview';
+  } catch (e) { return 'overview'; }
+}
+
+// Admin — quiet utility surface, NOT a marketing surface. Reached via the
+// footer "Admin" link (every page) or the ?view=admin deep-link. Renders two
+// branches off the existing isPublicHost() gate (reused, not re-implemented):
+// on the public host (poetech.us / *.vercel.app) it shows the NAS Tailscale +
+// LAN URLs to switch to; on a Tailscale/LAN host it shows the live internal
+// surfaces list. Tailscale IS the access control — this route is a navigation
+// aid, not an auth boundary, so no real auth is added here.
+function Admin() {
+  const TS_URL = 'https://poetech.tail5a2f35.ts.net/webhook/dispatch-status-page';
+  const LAN_URL = 'http://192.168.1.26:5678/webhook/dispatch-status-page';
+  const cardCls = "max-w-2xl mx-auto bg-[#1A1815] text-[#FAF8F4] border border-[#5A5751] p-5 sm:p-6 mt-6";
+  const serif = { fontFamily: '"Fraunces", serif' };
+  const codeCls = "block bg-black/30 border border-[#5A5751] px-3 py-2 text-xs text-[#FAF8F4] break-all";
+  const codeStyle = { fontFamily: 'monospace' };
+  const linkCls = "inline-block mt-1.5 text-xs text-[#B85838] underline underline-offset-4 hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]";
+
+  if (isPublicHost()) {
+    return (
+      <div className={cardCls} style={serif}>
+        <h2 className="text-xl mb-1" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.01em' }}>Admin — family-private surfaces</h2>
+        <p className="text-sm text-[#FAF8F4] opacity-80 mb-5 leading-relaxed">These surfaces live on the family NAS. You need to be connected to the Poe family Tailscale network to reach them. Once on Tailscale, switch to the Tailscale hostname below.</p>
+
+        <div className="mb-5">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1.5">Dispatch Status — Tailscale</div>
+          <code className={codeCls} style={codeStyle}>{TS_URL}</code>
+          <a href={TS_URL} className={linkCls}>Open via Tailscale →</a>
+        </div>
+
+        <div className="mb-5">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1.5">Dispatch Status — LAN (at home)</div>
+          <code className={codeCls} style={codeStyle}>{LAN_URL}</code>
+          <a href={LAN_URL} className={linkCls}>Open on home network →</a>
+        </div>
+
+        <div className="border-t border-[#5A5751] pt-4">
+          <a href="https://tailscale.com" target="_blank" rel="noopener noreferrer" className={linkCls + " mt-0"}>What is Tailscale? →</a>
+          <p className="text-[11px] text-[#5A5751] mt-3 leading-relaxed">Admin access expanding to family + dev team as the system matures. Today: Darrell only.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Tailscale / LAN host branch (isPublicHost() === false). Internal surfaces list.
+  return (
+    <div className={cardCls} style={serif}>
+      <h2 className="text-xl mb-4" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.01em' }}>Admin — Internal Surfaces</h2>
+      <ul className="space-y-3">
+        <li className="border-b border-[#5A5751] pb-3">
+          <a href="/webhook/dispatch-status-page" className="text-base text-[#B85838] underline underline-offset-4 hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Dispatch Status</a>
+          <div className="text-[11px] text-[#5A5751] mt-0.5"><code style={codeStyle}>/webhook/dispatch-status-page</code> on this NAS</div>
+          <p className="text-xs text-[#FAF8F4] opacity-80 mt-1 leading-relaxed">Live workflow reel + Code Task snapshot + ntfy QR subscription. Bookmark this URL for always-on visibility.</p>
+        </li>
+      </ul>
+      {/* TODO: future internal admin surfaces — queued per project-continuous-feedback-reel
+          (TIER 2+3). Add each as a <li> above as it ships, with its NAS webhook/path:
+            - Family Money-Date Packet
+            - Property Operations dashboard
+            - Foundation Agent Self-Health
+            - Bishop Gwin pastoral dashboard
+            - COLG congregation surface
+            - Sponsor / Partner pipeline
+            - Sermon-to-Content production
+            - Loved Ones cohort admin
+            - Quality Gatekeeper outputs
+          Keep this branch a quiet functional list — no hero, no images. */}
+      <p className="text-[11px] text-[#5A5751] mt-4 leading-relaxed">Admin access expanding to family + dev team as the system matures. Today: Darrell only.</p>
+    </div>
+  );
+}
+
 export default function PoeFinancialSystem() {
   const demoPersona = getDemoPersona();
   const isPickerMode = demoPersona === 'picker';
@@ -1422,7 +1506,7 @@ export default function PoeFinancialSystem() {
       : SEED_DATA
   );
   const [pressure, setPressure] = useState(5);
-  const [view, setView] = useState('overview');
+  const [view, setView] = useState(getInitialView());
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [booksView, setBooksView] = useState('calendar');
   const [entityFilter, setEntityFilter] = useState('all');
@@ -2604,15 +2688,15 @@ html{scroll-padding-bottom:280px}
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-3xl w-full p-6 sm:p-8 my-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
             <h2 id="demo-picker-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{isFirstTimeLanding ? 'Know what to do today — for everyone in your house.' : 'Which life is closest to yours?'}</h2>
+            {/* Per Option B Mars Hill progressive-disclosure
+                (project-progressive-disclosure-mars-hill-engagement):
+                the Family-Financial badge leads (universal stewardship
+                value, foreground hierarchy); the Spiritual-Module-for-the-
+                Body badge stays PRESENT (plain disclosure of what's free)
+                but visually SECONDARY at first-glance (outlined, not
+                filled). Anyone who looks sees both; the casual visitor's
+                eye anchors on the universal-value hook first. */}
             {isFirstTimeLanding && (
-              {/* Per Option B Mars Hill progressive-disclosure
-                 (project-progressive-disclosure-mars-hill-engagement):
-                 the Family-Financial badge leads (universal stewardship
-                 value, foreground hierarchy); the Spiritual-Module-for-the-
-                 Body badge stays PRESENT (plain disclosure of what's free)
-                 but visually SECONDARY at first-glance (outlined, not
-                 filled). Anyone who looks sees both; the casual visitor's
-                 eye anchors on the universal-value hook first. */}
               <div className="flex flex-wrap gap-1.5 mb-3 items-center">
                 <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-white bg-[#5A6E3D] px-2 py-1 font-semibold">Free forever · Financial System for Families</span>
                 <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] bg-transparent border border-[#5A6E3D] px-2 py-1 font-medium">Free forever · Spiritual Module for the Body</span>
@@ -3061,7 +3145,11 @@ html{scroll-padding-bottom:280px}
           header. Blocks the whole UI so the user MUST pick before seeing data;
           TLC firewall depends on this gate, so it can't be dismissed without
           choosing. */}
-      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && (
+      {/* Admin is a navigation aid (NAS URLs only — no family data), so it
+          bypasses the profile-picker gate: the deep-link poetech.us/?view=admin
+          must land straight on the panel, not behind a "who's using this device"
+          modal. The TLC-firewall data gate is unaffected for every data view. */}
+      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
@@ -3130,7 +3218,7 @@ html{scroll-padding-bottom:280px}
               </div>
               <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
                 <div className="font-medium">{data.meta.releaseLabel || `v${data.meta.appVersion}`}</div>
-                <div title={isSnapshotMode ? 'Sample snapshot date (demo data is a May 2026 snapshot)' : "Today's date"}>{headerDateLabel}</div>
+                <div title="Today's date">{headerDateLabel}</div>
                 {/* 2026-05-28 — Build marker so the user can verify at a glance
                     whether the phone is on the latest deploy. iOS Safari has
                     bitten us with stale HTML caching; this is the smoke-test
@@ -3281,10 +3369,13 @@ html{scroll-padding-bottom:280px}
           : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} />}
+        {view === 'admin' && <Admin />}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
           <button type="button" onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
+          <span className="mx-2 text-[10px] text-[#5A5751]" aria-hidden="true">·</span>
+          <button type="button" onClick={() => { setView('admin'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4" title="Internal / Tailscale-hosted admin surfaces">Admin</button>
         </footer>
         {view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mt-6">
