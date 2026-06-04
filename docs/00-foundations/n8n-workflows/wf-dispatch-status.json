@@ -1,0 +1,75 @@
+{
+  "name": "Dispatch status API (live readout: reel + Code Task snapshot)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dispatch-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9f7e2a10-d570-4570-8570-aaaaaaaaaa01",
+      "name": "Webhook (dispatch-status)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320],
+      "webhookId": "dispatch-status"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dispatch status API -- serves the family-private live readout PWA at\n// /dispatch-status. ONE GET webhook (path 'dispatch-status') branches on the\n// ?section= query param:\n//   section=reel  -> last 50 entries of /data/poetech-briefing/_reel.jsonl,\n//                    newest-first, returned as a JSON array. Missing file =>\n//                    empty array (NOT an error).\n//   section=tasks -> /data/poetech-briefing/_dispatch_state.json verbatim.\n//                    Missing file => { snapshot_at: null, tasks: [] }.\n//\n// The orchestrator writes both files (the reel via the continuous-feedback-reel\n// flow; _dispatch_state.json via a separate tasks-feed flow). This endpoint is\n// read-only and never throws on missing input.\n//\n// Returns a single item { json: { payload } }; the Respond node serializes\n// $json.payload directly so the HTTP body is the raw array (reel) or object\n// (tasks).\n\nconst fs = require('fs');\n\nconst BRIEFING_DIR = '/data/poetech-briefing';\nconst REEL_FILE = BRIEFING_DIR + '/_reel.jsonl';\nconst STATE_FILE = BRIEFING_DIR + '/_dispatch_state.json';\nconst MAX_ENTRIES = 50;\n\nconst input = $input.first().json || {};\nconst query = (input.query && typeof input.query === 'object') ? input.query : {};\nconst section = String(query.section || 'reel').toLowerCase();\n\nfunction readReel() {\n  let raw;\n  try {\n    raw = fs.readFileSync(REEL_FILE, 'utf8');\n  } catch (e) {\n    return []; // Missing file is the normal cold-start state.\n  }\n  const lines = raw.split('\\n').map(l => l.trim()).filter(l => l.length > 0);\n  // Newest-first: reel is append-only (oldest first on disk), so take the tail\n  // then reverse.\n  const tail = lines.slice(-MAX_ENTRIES).reverse();\n  const out = [];\n  for (const line of tail) {\n    try { out.push(JSON.parse(line)); }\n    catch (e) { out.push({ ts: null, type: 'parse-error', summary: line.slice(0, 200) }); }\n  }\n  return out;\n}\n\nfunction readTasks() {\n  try {\n    const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));\n    if (parsed && typeof parsed === 'object') {\n      if (!Array.isArray(parsed.tasks)) parsed.tasks = [];\n      if (parsed.snapshot_at === undefined) parsed.snapshot_at = null;\n      return parsed;\n    }\n    return { snapshot_at: null, tasks: [] };\n  } catch (e) {\n    return { snapshot_at: null, tasks: [] };\n  }\n}\n\nlet payload;\nif (section === 'tasks') payload = readTasks();\nelse payload = readReel();\n\nreturn [{ json: { payload } }];"
+      },
+      "id": "9f7e2a10-d570-4570-8570-aaaaaaaaaa02",
+      "name": "Read section",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Content-Type", "value": "application/json"},
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "GET, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type, Accept"},
+              {"name": "Cache-Control", "value": "no-store"}
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-d570-4570-8570-aaaaaaaaaa03",
+      "name": "Respond with JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 320]
+    }
+  ],
+  "connections": {
+    "Webhook (dispatch-status)": {
+      "main": [[{"node": "Read section", "type": "main", "index": 0}]]
+    },
+    "Read section": {
+      "main": [[{"node": "Respond with JSON", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "pwa-api"},
+    {"name": "dispatch-status"},
+    {"name": "sovereign-loop"}
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}
