@@ -35,14 +35,18 @@ Until then, these are reference material for the rebuild, not deployable scripts
 | `nas-update-wf27-wf31-keepalive.sh` | Sets Ollama `keep_alive: '30m'` on wf27/wf31 and restarts n8n. | Pins a ~9 GB 14B model resident; on a GPU-less NAS that is sustained CPU + memory pressure under frequent cron triggers. |
 | `42-batch-research-queue.json` | n8n workflow; 11pm cron submits an Anthropic Message Batches API call for the day's queue. | Auto-calls a paid API on a timer with no spend ceiling. |
 | `nas-update-wf42-batch-research-queue.sh` | `wget … \| sudo sh` apply: bind mount, force-recreate, **activates** wf42, restarts n8n. | One paste re-activates the batch queue live. |
+| `nas-update-wf27-evening-only-cron.sh` | `wget … \| sudo sh` apply for the wf27 evening-only cron. Already self-disabled (`exit 1`, marked SUPERSEDED — DO NOT RUN). | Quarantined 2026-06-08 for consistency with the bright line — it is a wf27 *cron* (timer) apply script. Defanged, but parked with the family rather than left loose in `scripts/`. |
 
 ## Not quarantined (intentionally left in place)
 
-- **`scripts/nas-update-wf27-evening-only-cron.sh`** — already self-disabled (`exit 1`, marked
-  SUPERSEDED — DO NOT RUN). Not a live gun; left as a paper-trail.
 - **wf36 Quality Gatekeeper, wf99 global Error Workflow, the wf18 bearer guard** — these are
   *safety / defense-in-depth* surfaces, not autonomous compute loops. They stay in their normal
   locations.
+
+  (Note: `nas-update-wf27-evening-only-cron.sh`, previously listed here as "left in place,"
+  was moved INTO this quarantine on 2026-06-08 — it is a wf27 cron apply script, and parking it
+  with the family is more consistent than leaving a timer script loose, even though it is already
+  self-disabled. See the table above.)
 
 ## When the time comes
 

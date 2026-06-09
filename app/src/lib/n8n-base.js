@@ -53,3 +53,33 @@ const THROTTLED_FUNNEL = /tail5a2f35\.ts\.net/i;
 export const N8N_BASE = (RAW && !THROTTLED_FUNNEL.test(RAW))
   ? RAW.replace(/\/+$/, '')
   : '/n8n';
+
+// =============================================================================
+// L16 — Bearer header for the wf18 imported-transactions PII webhook.
+// =============================================================================
+// wf18 serves real bank + Gmail PII (~2,020 Chase rows incl. Cash App / Zelle).
+// Behind the D17 client gate, the NAS-side wf18 "Bearer check" node (L16)
+// returns 401 unless the request carries this shared secret. Only an authorized
+// load (family device, real saved profile) attaches it; the public demo /
+// profileless state never sends it and stays 401-gated server-side even if the
+// client gate were ever bypassed. Defense in depth: either gate alone fails
+// closed.
+//
+// VITE_N8N_BEARER is a build-time Vite var, set in the Vercel project env to
+// the SAME value the NAS apply script writes to /data/secrets/n8n-webhook-
+// bearer.txt. IMPORTANT: VITE_-prefixed vars are inlined into the public client
+// bundle and are therefore NOT a true secret -- this is a shared-secret speed
+// bump that pairs with the D17 gate, not per-user cryptographic auth. True
+// per-session secrecy arrives with the multi-user auth layer (L12 / Layer B),
+// which will mint a per-session token fetched at runtime instead of a build-
+// time constant. Full rationale + rotation steps: N8N-WEBHOOK-AUTH-PATTERN.md.
+const N8N_BEARER = (import.meta.env?.VITE_N8N_BEARER || '').trim();
+
+// Returns the Authorization header object ONLY when a bearer is configured AND
+// the caller is authorized to fetch PII. Otherwise returns {} so the demo /
+// profileless path sends nothing and the server gate denies it. Always spread
+// the result into an existing headers object: { ...n8nAuthHeaders(allowed) }.
+export function n8nAuthHeaders(authorized) {
+  if (authorized && N8N_BEARER) return { Authorization: `Bearer ${N8N_BEARER}` };
+  return {};
+}

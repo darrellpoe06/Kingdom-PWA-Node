@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PoeTech Dispatch Status</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#1A1815; color:#FAF8F4; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 720px; margin:0 auto; padding: 16px; }
+  h1 { font-family: "Fraunces", Georgia, serif; font-size: 1.6rem; margin:0; }
+  h2 { font-family: "Fraunces", Georgia, serif; font-size: .8rem; text-transform:uppercase; letter-spacing:.08em; color:#C9C3B8; margin:0; }
+  .sub { color:#8A857C; font-size:.72rem; margin-top:4px; }
+  section { border:1px solid #3A352E; background:#211E1A; border-radius:8px; padding:16px; margin-bottom:20px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .meta { font-size:.62rem; color:#8A857C; }
+  .badge { font-size:.6rem; text-transform:uppercase; letter-spacing:.08em; padding:2px 6px; border-radius:4px; color:#fff; font-weight:600; }
+  .chip { font-size:.6rem; text-transform:uppercase; letter-spacing:.08em; padding:2px 6px; border-radius:4px; font-weight:600; }
+  ul { list-style:none; margin:0; padding:0; }
+  .reel { max-height:55vh; overflow-y:auto; }
+  .entry { border-left:2px solid #6B7280; padding:8px 0 8px 10px; cursor:pointer; }
+  .entry:hover { background:#26221D; }
+  .entry .top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .entry .t { font-size:.6rem; color:#8A857C; font-family:ui-monospace, monospace; min-width:56px; }
+  .entry .summary { font-size:.75rem; color:#FAF8F4; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  pre { margin:8px 0 0; font-size:.62rem; color:#C9C3B8; background:#1A1815; border:1px solid #3A352E; border-radius:6px; padding:8px; overflow-x:auto; white-space:pre-wrap; word-break:break-all; }
+  .task { border:1px solid #3A352E; background:#1A1815; border-radius:6px; padding:12px; margin-bottom:8px; }
+  .task .title { font-family:"Fraunces", Georgia, serif; font-size:.9rem; color:#FAF8F4; }
+  .task .act { font-size:.72rem; color:#C9C3B8; margin-top:4px; }
+  .task .seen { font-size:.6rem; color:#8A857C; margin-top:4px; }
+  .empty { font-size:.72rem; color:#8A857C; text-align:center; padding:24px 0; }
+  a { color:#E0A86B; }
+  .qr { background:#FAF8F4; padding:8px; border-radius:6px; display:inline-block; min-width:60px; min-height:60px; }
+  .mono { font-family:ui-monospace, monospace; }
+  .offline { opacity:.55; }
+  footer { font-size:.6rem; color:#8A857C; text-align:center; padding:8px 0 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="margin-bottom:20px">
+    <h1>PoeTech dispatch status</h1>
+    <div class="sub">Live readout - reel + Code Tasks refresh every 10s. Served from the NAS. Open and watch; no interaction needed.</div>
+  </header>
+
+  <section>
+    <h2>Subscribe to the reel on your phone</h2>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; margin-top:12px">
+      <div id="qr" class="qr" aria-label="ntfy subscription QR code"></div>
+      <div style="font-size:.72rem; color:#C9C3B8; line-height:1.5">
+        <p style="margin:0 0 8px">Scan with the <b style="color:#FAF8F4">ntfy</b> app to subscribe in one tap.</p>
+        <p style="margin:0 0 4px"><span style="color:#8A857C">Topic:</span> <span class="mono" style="color:#FAF8F4" id="ntfy-topic"></span></p>
+        <p style="margin:0 0 4px; word-break:break-all"><span style="color:#8A857C">Deep link:</span> <a class="mono" id="ntfy-deep"></a></p>
+        <p style="margin:0; word-break:break-all"><span style="color:#8A857C">Web:</span> <a class="mono" id="ntfy-web" target="_blank" rel="noreferrer"></a></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="reel-sec">
+    <div class="row"><h2>Workflow reel</h2><span class="meta" id="reel-status">loading...</span></div>
+    <ul id="reel" class="reel"></ul>
+    <div class="empty" id="reel-empty">Loading reel...</div>
+  </section>
+
+  <section id="tasks-sec">
+    <div class="row"><h2>Code task snapshot</h2><span class="meta" id="tasks-status">loading...</span></div>
+    <ul id="tasks"></ul>
+    <div class="empty" id="tasks-empty">Loading tasks...</div>
+  </section>
+
+  <footer>Family-internal surface - served from the NAS over Tailscale / LAN. Not publicly exposed.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(function(){
+  var NTFY_SERVER = 'poetech.tail5a2f35.ts.net';
+  var NTFY_TOPIC = 'poetech-reel';
+  var NTFY_WEB = 'https://' + NTFY_SERVER + '/' + NTFY_TOPIC;
+  var NTFY_DEEP = 'ntfy://' + NTFY_SERVER + '/' + NTFY_TOPIC;
+  var POLL_MS = 10000;
+  var TASKS_STALE_MS = 90000;
+  // Same-origin data endpoints (served by the wf-dispatch-status workflow on
+  // the same n8n instance / origin as this page).
+  var DATA_BASE = '/webhook/dispatch-status';
+
+  document.getElementById('ntfy-topic').textContent = NTFY_TOPIC;
+  var dl = document.getElementById('ntfy-deep'); dl.textContent = NTFY_DEEP; dl.href = NTFY_DEEP;
+  var wl = document.getElementById('ntfy-web'); wl.textContent = NTFY_WEB; wl.href = NTFY_WEB;
+  try {
+    if (typeof qrcode === 'function') {
+      var qr = qrcode(0, 'M'); qr.addData(NTFY_DEEP); qr.make();
+      document.getElementById('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2 });
+      var svg = document.querySelector('#qr svg'); if (svg) { svg.style.width = '150px'; svg.style.height = '150px'; }
+    }
+  } catch (e) { /* QR is best-effort; text links below always work */ }
+
+  var EVENT_COLORS = { error:'#DC2626', fail:'#DC2626', warn:'#D97706', warning:'#D97706', alert:'#D97706', ship:'#16A34A', success:'#16A34A', done:'#16A34A', ok:'#16A34A', info:'#2563EB', build:'#7C3AED', feedback:'#0891B2' };
+  var WF_COLORS = { wf04:'#0891B2', wf05:'#0891B2', wf08:'#0891B2', wf12:'#2563EB', wf13:'#2563EB', wf18:'#7C3AED', wf27:'#16A34A', wf30:'#16A34A', wf31:'#16A34A', wf32:'#16A34A', wf36:'#D97706' };
+  function evColor(t) { return EVENT_COLORS[String(t || '').toLowerCase()] || '#6B7280'; }
+  function wfColor(w) { var k = String(w || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return WF_COLORS[k] || '#5A5751'; }
+  function pick(o, keys, fb) { for (var i = 0; i < keys.length; i++) { var k = keys[i]; if (o && o[k] !== undefined && o[k] !== null && o[k] !== '') return o[k]; } return fb; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function(c) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+  function relTime(v) {
+    if (!v) return '';
+    var ms; if (typeof v === 'number') ms = v < 1e12 ? v * 1000 : v; else ms = Date.parse(v);
+    if (!ms || isNaN(ms)) return String(v);
+    var d = Date.now() - ms; if (d < 0) return 'just now';
+    var s = Math.floor(d / 1000); if (s < 60) return s + 's ago';
+    var m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
+    var h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
+    return Math.floor(h / 24) + 'd ago';
+  }
+  function nowLabel() { try { return new Date().toLocaleTimeString(); } catch (e) { return ''; } }
+
+  var reelCount = 0;
+  function loadReel() {
+    fetch(DATA_BASE + '?section=reel', { headers: { 'Accept':'application/json' }, cache:'no-store' })
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(data) {
+        var arr = Array.isArray(data) ? data : (data && Array.isArray(data.entries) ? data.entries : []);
+        var ul = document.getElementById('reel'); var empty = document.getElementById('reel-empty');
+        document.getElementById('reel-status').textContent = 'refreshed ' + nowLabel();
+        if (!arr.length) { ul.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'No reel events yet. Waiting for the first workflow to fire.'; reelCount = 0; return; }
+        empty.style.display = 'none';
+        var html = '';
+        for (var i = 0; i < arr.length; i++) {
+          var e = arr[i];
+          var ts = pick(e, ['ts','at','time','timestamp','when'], '');
+          var wf = pick(e, ['wf','workflow','source','origin'], '');
+          var type = pick(e, ['type','event','level','kind'], '');
+          var summary = pick(e, ['summary','msg','message','text','detail','title'], '(no summary)');
+          var c = evColor(type);
+          html += '<li class="entry" style="border-left-color:' + c + '" data-json="' + esc(JSON.stringify(e)) + '">'
+            + '<div class="top">'
+            + '<span class="t">' + esc(relTime(ts)) + '</span>'
+            + (wf ? '<span class="badge" style="background:' + wfColor(wf) + '">' + esc(wf) + '</span>' : '')
+            + (type ? '<span class="chip" style="color:' + c + '; border:1px solid ' + c + '">' + esc(type) + '</span>' : '')
+            + '<span class="summary">' + esc(summary) + '</span>'
+            + '<span class="t" style="min-width:auto">json</span>'
+            + '</div></li>';
+        }
+        var newCount = arr.length;
+        ul.innerHTML = html;
+        if (newCount > reelCount) { try { ul.scrollTop = 0; } catch (e) {} }
+        reelCount = newCount;
+      })
+      .catch(function() {
+        document.getElementById('reel-status').textContent = 'error - retrying - ' + nowLabel();
+        var empty = document.getElementById('reel-empty');
+        if (!document.getElementById('reel').children.length) { empty.style.display = 'block'; empty.textContent = 'Reel endpoint unreachable. Retrying every 10s.'; }
+      });
+  }
+  document.getElementById('reel').addEventListener('click', function(ev) {
+    var li = ev.target.closest('.entry'); if (!li) return;
+    var existing = li.querySelector('pre');
+    if (existing) { existing.remove(); return; }
+    var pre = document.createElement('pre');
+    try { pre.textContent = JSON.stringify(JSON.parse(li.getAttribute('data-json')), null, 2); }
+    catch (e) { pre.textContent = li.getAttribute('data-json'); }
+    li.appendChild(pre);
+  });
+
+  function loadTasks() {
+    fetch(DATA_BASE + '?section=tasks', { headers: { 'Accept':'application/json' }, cache:'no-store' })
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(data) { renderTasks(data, true); })
+      .catch(function() { renderTasks(null, false); });
+  }
+  function renderTasks(data, reachable) {
+    var sec = document.getElementById('tasks-sec'); var ul = document.getElementById('tasks'); var empty = document.getElementById('tasks-empty');
+    var snapshotAt = data ? pick(data, ['snapshot_at','snapshotAt','at'], null) : null;
+    var tasks = (data && Array.isArray(data.tasks)) ? data.tasks : [];
+    var snapMs = snapshotAt ? Date.parse(snapshotAt) : NaN;
+    var stale = !snapshotAt || isNaN(snapMs) || (Date.now() - snapMs) > TASKS_STALE_MS;
+    var offline = !reachable || stale;
+    sec.className = offline ? 'offline' : '';
+    document.getElementById('tasks-status').textContent = offline
+      ? ('Orchestrator offline - last refreshed at ' + nowLabel())
+      : ('snapshot ' + relTime(snapshotAt) + ' - refreshed ' + nowLabel());
+    if (!tasks.length) { ul.innerHTML = ''; empty.style.display = 'block'; empty.textContent = offline ? 'No live snapshot. The orchestrator session is not currently reporting.' : 'No running Code Tasks right now.'; return; }
+    empty.style.display = 'none';
+    var html = '';
+    for (var i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      var title = pick(t, ['title','name','subject'], '(untitled task)');
+      var turns = pick(t, ['turns','turn_count','turnCount'], null);
+      var act = pick(t, ['latest','activity','last_activity','note'], '');
+      var seen = pick(t, ['last_seen','lastSeen','seen_at','at'], null);
+      html += '<li class="task"><div class="row" style="margin:0"><span class="title">' + esc(title) + '</span>'
+        + (turns !== null ? '<span class="chip" style="background:#3A352E; color:#C9C3B8">' + esc(turns) + ' turns</span>' : '')
+        + '</div>'
+        + (act ? '<div class="act">' + esc(act) + '</div>' : '')
+        + (seen ? '<div class="seen">last seen ' + esc(relTime(seen)) + '</div>' : '')
+        + '</li>';
+    }
+    ul.innerHTML = html;
+  }
+
+  loadReel(); loadTasks();
+  setInterval(loadReel, POLL_MS);
+  setInterval(loadTasks, POLL_MS);
+})();
+</script>
+</body>
+</html>
