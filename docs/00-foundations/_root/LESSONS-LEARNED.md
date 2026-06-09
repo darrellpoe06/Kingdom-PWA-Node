@@ -53,10 +53,56 @@ These are the distilled, binding lessons. Each links back to the dated incident(
 - **P7 — Research before shipping; don't interpret-and-ship.** When a user message is short, the temptation to interpret quickly and ship a code change is the failure mode `feedback-research-first` was written to prevent. Confirm the interpretation, surface the alternatives, then ship. (Extracted: 2026-06-03 wf27 evening-only misinterpretation; reinforces existing feedback memory.)
 - **P8 — `default-now-asap` for outbound communication; research-first for code changes.** These two binding principles don't conflict — send the user what's ready immediately, BUT before generating new code changes, research the actual user intent + the existing system state. The asymmetry: communication latency hurts the user's 5-minute windows; code-change latency saves the user from interpret-and-ship regressions. (Extracted: 2026-06-03 same-day pairing of `feedback-default-now-asap` + `feedback-research-first` reinforcement.)
 - **P9 — Distinguish data leaks from brand presence.** Real-ops-data (real entity names, addresses, project titles in app state) is a leak. Real-business-brand advertising (Poe Properties / TLC Therapy Solutions in the family-ministries carousel) is intentional. Sanitization passes must NOT touch brand surfaces; only data surfaces. (Extracted: 2026-06-03 localStorage leak; reinforces `feedback-distinguish-data-from-brand`.)
+- **P10 — Autonomous timer-driven automation needs three brakes before it ships active: a budget, a concurrency lock, and a kill-switch.** A token/turn/wall-clock ceiling per run, single-instance locking so a new fire skips rather than stacks on a hung one, and a dead-man's-switch that auto-pauses on overrun instead of auto-continuing. Without all three, a hung or looping run burns compute until a human kills it by hand. (Extracted: 2026-06-06 autonomous-automation runaway.)
+- **P11 — Nothing self-activates unattended, least of all while the principal is away.** Automation that spawns more automation — or more Claude/compute — on a clock is shipped inactive and turned on only with someone watching. "Ship it live" during a vacation window is the exact condition that converts a small loop into an unrecoverable runaway. (Extracted: 2026-06-06 autonomous-automation runaway.)
+- **P12 — Automation that consumes compute on a timer is Tier C, never Tier A.** The "NAS-only sovereign surface = Tier A" and "additive = Tier A" shortcuts do not apply to anything that runs on a schedule; sovereignty of location and additiveness of code do not bound cost or blast radius. (Extracted: 2026-06-06 autonomous-automation runaway.)
 
 ---
 
 ## Incident Log (chronological — newest first)
+
+### 2026-06-06 — Autonomous timer-driven automation ran away and required a manual shutdown
+
+**Trigger:** A fleet of always-on, timer-driven automation shipped `active` on 2026-06-02/03 right before Darrell left for Maui — the wf27+wf31 continuous-feedback reel (5-minute cron, commit `e969693` / fix-list D23), the wf-autonomous-builder (`active: true`, 30-minute cron, whose purpose is to start Cowork/Claude build sessions), the Ollama `keep_alive` model-pin, the wf42 batch queue, plus five scheduled Cowork tasks (hourly snapshot + four check-ins, each spawning a Claude session). All left running with no one watching.
+
+**Detection path:** Darrell, after the fact ("Claude had to be manually shut down"). No automated monitor, budget cap, or kill-switch caught it; the runaway was stopped by hand by deleting the scheduled Cowork task fleet.
+
+**Detection delay:** ~hours-to-days. The `poetech-hourly-snapshot` task wrote a file every hour through 2026-06-06 13:10 Central, then stopped cold — no 06-07 or 06-08 snapshot exists. That gap is the failure window; awareness came only once the runaway was already bad enough to require a manual kill.
+
+**Investigation steps (this session, 2026-06-08):**
+1. Repo + snapshot review showed the hourly-snapshot heartbeat stopping at 06-06 13:10 Central with a ~2.3-day gap.
+2. Identified the suspect surface from the working tree: the 5-min reel, the autonomous builder (active), the keepalive model-pin, the batch queue, and the five scheduled tasks — all designed to run unattended on timers.
+3. Confirmed the failure mode from Darrell: runaway compute + looping/repeating + hung — NOT rogue infra actions (no unwanted changes to the NAS/n8n).
+4. `list_scheduled_tasks` returned zero tasks → the fleet had already been torn down by hand. That deletion WAS the "manual shutdown."
+
+**Root cause(s):**
+1. **Primary: autonomous timer-driven automation shipped with none of the three brakes** — no token/turn/wall-clock budget (a hung run burned indefinitely), no single-instance concurrency lock (a new timer fire could stack on top of a hung one), no kill-switch / dead-man's-switch (the fleet auto-continued when it should have auto-paused).
+2. **Secondary: the automation was a compute multiplier** — it spawned more Claude work on a clock (the builder starts build sessions; the snapshot + check-ins each start a session) with no aggregate ceiling.
+3. **Tertiary: shipped active during a vacation window** — the one person who would notice was traveling. The 2026-06-02 "ship it live" directive removed the human supervisor at exactly the wrong moment.
+4. **Quaternary: treated as low-risk / Tier A** — "NAS-only sovereign" + "additive" reasoning routed compute-on-a-timer changes straight to active with no soak and no budget.
+
+**What worked:** Manual deletion of the scheduled-task fleet stopped the runaway. Read-only forensics (snapshot gap + working-tree artifacts + scheduler state) reconstructed the mechanism after the fact.
+
+**What didn't work:** Nothing automated stopped it — there was no budget cap, no lock, no auto-pause. The every-5-min wf27 cron had ALREADY been reverted once on 06-03 (commit `d3657d6`) for being too aggressive; the pressure returned via the keepalive model-pin and the still-active builder. A one-off revert did not generalize into a standing rule, so the class of failure recurred.
+
+**Principle(s) extracted:** P10, P11, P12 (see Principles index above).
+
+**Forward architectural fix:**
+1. **Binding guardrail (shipped with this entry):** no autonomous timer-driven automation ships without a budget + concurrency lock + kill-switch; that class is Tier C, never Tier A. Added to `CLAUDE.md` ("Autonomous Automation Requires Three Brakes") and `RELEASE-TIERS.md` (Tier C list + flowchart Q1).
+2. **Quarantine (shipped with this entry):** the uncommitted re-arm artifacts (`wf-autonomous-builder.json`, `42-batch-research-queue.json`, and the builder/keepalive/batch apply scripts) moved to `docs/00-foundations/_quarantine/` with a README; NOT to be applied until the Cage (PR #5) is merged AND each carries the three brakes.
+3. **The Cage (PR #5, 2026-06-09 blueprint)** already encodes the right enforcement primitives — allowlist, append-only audit ledger, health-gate + 120s auto-rollback. Extend that same budget / health-gate / auto-stop discipline to the Claude-orchestration layer (scheduled tasks + the autonomous builder), not only to network/VLAN actions.
+4. **Single-instance lock + max-runtime on every scheduled task** before any of them is recreated: a new fire that finds a prior run still going skips rather than stacks, and a run that overruns its window terminates.
+
+**Observability gap:** No budget/cost monitor and no "task overran its window" alert existed. The snapshot heartbeat stopping was the only signal, and it was passive (an absent file), not an alert. A dead-man's-switch that fires when the heartbeat stops, plus an aggregate compute/cost ceiling that auto-pauses the fleet, are the missing pieces.
+
+**Cross-refs:**
+- Memory: `project-continuous-feedback-reel`, `feedback-risk-clarify-before-change`, `project-execution-outcome-observability`, `feedback-research-first`
+- Foundation: `RELEASE-TIERS.md` (Tier C clause added with this entry), `AUTONOMOUS-BUILDER-LIFECYCLE.md` (the shipped-active design), `CLAUDE.md` (guardrail clause)
+- Commits: `e969693` (D23 5-min reel), `d3657d6` (first wf27 cron revert), `e5abb83` / PR #5 (the Cage blueprint)
+- Quarantine: `docs/00-foundations/_quarantine/README.md`
+- Master fix list: `docs/99-session-notes/2026-06-02-fix-master-list.md` (D23 reel; L-series autonomous-builder)
+
+---
 
 ### 2026-06-03 — Real ops data leaked to poetech.us via localStorage hydration
 

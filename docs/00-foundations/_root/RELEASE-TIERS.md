@@ -70,6 +70,13 @@ real — it taxes every shipper and trains the team to route around the gate.
   directory addition)
 - Any change that involves real money flow (Stripe Connect, sponsor payments, marketplace
   transactions)
+- Any autonomous, timer-driven, or self-triggering automation — a scheduled Cowork task, an
+  n8n cron workflow, the autonomous builder, or any loop that spawns more work or more
+  Claude/compute on a clock. This class ships ONLY with a budget + concurrency lock +
+  kill-switch (see CLAUDE.md "Autonomous Automation Requires Three Brakes"), and is Tier C
+  regardless of "NAS-only sovereign" or "additive" reasoning — sovereignty of location does
+  not bound cost or blast radius. (Added 2026-06-08 post-incident; LESSONS-LEARNED.md
+  2026-06-06, P10 / P11 / P12.)
 
 ---
 
@@ -80,8 +87,11 @@ This should take about ten seconds.
 
 1. Does the change touch real money flow, a new module/API, the front-door/About/mission
    identity, sponsor-alignment criteria, Family Voice Loop integrity, a COLG-facing surface,
-   or the first onboarding of a new family/community?
-   -> **YES = Tier C.** Stop here.
+   the first onboarding of a new family/community, OR does it ship autonomous timer-driven /
+   self-triggering automation (a scheduled task, a cron workflow, the autonomous builder, any
+   loop that spawns more work or compute on a clock)?
+   -> **YES = Tier C.** Stop here. (Automation in this class also requires a budget +
+   concurrency lock + kill-switch before it ships active — see CLAUDE.md.)
 
 2. Is it user-trust-bearing in some other way — a new product feature, a visible visual
    change, persona-card additions, a workflow refactor (cron/state-model), or tier/pricing copy?

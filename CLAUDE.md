@@ -248,4 +248,20 @@ Every PowerShell command the agent gives Darrell must work regardless of his cur
 
 ---
 
+## Autonomous Automation Requires Three Brakes (added 2026-06-08)
+
+**Binding rule, post-incident.** On 2026-06-06 a fleet of autonomous, timer-driven automation — the wf27+wf31 five-minute feedback reel, the autonomous builder (shipped `active`), the Ollama `keep_alive` model-pin, the wf42 batch queue, plus five scheduled Cowork tasks — was left running unattended while Darrell traveled. It went into runaway compute, looping, and hung, and had to be **shut down by hand** (the scheduled-task fleet was deleted to stop it). Full write-up: `docs/00-foundations/_root/LESSONS-LEARNED.md` (2026-06-06 entry; principles P10 / P11 / P12).
+
+No autonomous, timer-driven, or self-triggering automation — scheduled Cowork tasks, n8n cron workflows, the autonomous builder, any loop that spawns more work or more Claude/compute on a clock — ships `active` without ALL THREE of these brakes:
+
+1. **A budget** — a token / turn / wall-clock ceiling per run. A run that reaches the ceiling terminates itself; it does not continue.
+2. **A concurrency lock** — single-instance. A new fire that finds a prior run still in progress SKIPS; it does not stack on top of it.
+3. **A kill-switch** — a dead-man's-switch / auto-pause. On overrun, repeated failure, or a missed heartbeat the automation PAUSES itself; it never auto-continues into a runaway.
+
+**This class of change is Tier C, never Tier A** (see `docs/00-foundations/_root/RELEASE-TIERS.md`). "NAS-only sovereign surface" and "additive" do NOT downgrade it — sovereignty of location does not bound cost or blast radius. Nothing in this class self-activates unattended, and never while the principal is traveling: ship it inactive, turn it on only with someone watching.
+
+Pairs with: RELEASE-TIERS.md (Tier C), LESSONS-LEARNED.md (P10 / P11 / P12), the Cage (PR #5) enforcement primitives, and `project-continuous-feedback-reel` (the reel rides this rule — "material-only-fire" is not a substitute for a kill-switch).
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
