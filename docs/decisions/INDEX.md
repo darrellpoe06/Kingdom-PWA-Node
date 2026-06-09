@@ -23,4 +23,23 @@
 
 **Provenance:** DR-0001…DR-0010 are the retrofit of items A–J from the 2026-06-08 church-LLM research-review (`docs/99-session-notes/2026-06-08-research-review-church-network-llm-eval-and-app-review.md`). A=DR-0001, B=DR-0002, C=DR-0003, D=DR-0004, E=DR-0005, F=DR-0006, G=DR-0007, H=DR-0008, I=DR-0009, J=DR-0010.
 
-**Next ID:** DR-0017. To add a decision: copy the template in `README.md`, assign the next ID, add a row here. To change a decision: write a new DR, set `supersedes:`, flip the old row's status to `superseded`.
+---
+
+## 2026-06-09 strategy / PMO / architecture / roadmap chain (DR-0017–DR-0026)
+
+These records came from the 2026-06-09 documentation chain (PoeTech market strategy + Legal Module, the PMO + Industry/Role Module Template, Architecture Principles, and the Build Roadmap). They were originally numbered DR-001… in a separate three-digit lineage and were **renumbered +16 to continue this ledger’s single sequential numbering on landing (2026-06-09)** — e.g. former DR-001 → DR-0017. They retain their source schema (Owner + Source doc) because they reference Layer-4 source docs rather than per-DR files; normalizing them into the Tier/Entities/Grounds columns above is a later, optional pass.
+
+| # | Date | Decision (one line) | Owner | Status | Source doc |
+|---|---|---|---|---|---|
+| **DR-0017** | 2026-06-09 | Build the **Workforce Layer** (guided tasks + LLM QA gate + 1099 payouts) as PoeTech's delivery engine and market centerpiece — encoding Darrell's expertise so the hiring bar becomes capacity, not credentials. | Darrell (governs) | Accepted | `2026-06-09-poetech-market-strategy-workforce-three-ring.md` |
+| **DR-0018** | 2026-06-09 | Pursue a **three-ring market** — Ring 1 COLG (gift/reference), Ring 2 other churches (productized sovereign node / managed IT), Ring 3 businesses (paid tiers) — with **paid rings subsidizing the free mission tier.** | Darrell (governs) | Accepted | `2026-06-09-poetech-market-strategy-workforce-three-ring.md` |
+| **DR-0019** | 2026-06-09 | **Do NOT build a money rail.** Integrate an established contractor-payments platform (payouts, W-9, 1099-NEC, milestone/escrow) as an accepted, swappable vendor dependency; LLMs orchestrate logic, platform owns compliance. | Darrell (vendor) + platform (compliance) | Accepted | `2026-06-09-poetech-market-strategy-workforce-three-ring.md` |
+| **DR-0020** | 2026-06-09 | **Quality is gated by the LLM Quality Gatekeeper** against explicit per-task acceptance criteria; payout follows a QA pass; rework loop; reputation compounds; high-stakes escalates behind the Cage; **no rubber-stamping.** | Darrell (bar) + Gatekeeper (exec) | Accepted | `2026-06-09-poetech-market-strategy-workforce-three-ring.md` |
+| **DR-0021** | 2026-06-09 | **Worker classification (1099 vs employee) routes to an employment/labor attorney, NOT to Trevor (real-estate).** Start clearly-1099; Illinois has its own rules. *(Not legal advice.)* | Employment attorney (owns) | Accepted | `2026-06-09-poetech-market-strategy-workforce-three-ring.md` |
+| **DR-0022** | 2026-06-09 | The **first concrete Ring-3 tenant is a law firm running its practice on PoeTech**, which also serves **PoeTech's own legal needs (dogfood).** | Darrell (governs) | Accepted | `2026-06-09-legal-module-spec.md` |
+| **DR-0023** | 2026-06-09 | Legal Module **confidentiality = HIGHEST tier** (privilege treated like the TLC HIPAA tier: per-client + per-matter segregation + conflict checks); **sovereignty is the selling point** (client data never leaves the firm's control — a claim no cloud SaaS can match). | Darrell (governs) | Accepted | `2026-06-09-legal-module-spec.md` |
+| **DR-0024** | 2026-06-09 | Legal Module **LLM assist behind heavy guardrails:** lawyer owns all advice/output; no unauthorized practice of law; LLM never advises clients directly; mandatory human review; no client data crosses matters/clients. | Darrell (governs) + reviewing attorney | Accepted | `2026-06-09-legal-module-spec.md` |
+| **DR-0025** | 2026-06-09 | Build a **reusable SKOS "law firm" role-module template** (config-driven; legal-specific extensions written once) so the next firm onboards in days. | Darrell (governs) | Accepted | `2026-06-09-legal-module-spec.md` |
+| **DR-0026** | 2026-06-09 | Route the **real-estate / Poe Properties flows** and the **contractor-agreement form** to Trevor (real-estate counsel); **explicitly exclude worker classification** from his scope; request a referral to employment counsel. | Darrell (governs) | Accepted | `2026-06-09-trevor-real-estate-lawyer-review-package.md` |
+
+**Next ID:** DR-0027. To add a decision: assign the next ID and add a row (top table = per-DR-file ledger; chain table = source-doc ledger). To change a decision: write a new DR, set `supersedes:`, flip the old row’s status to `superseded`.
