@@ -41,6 +41,11 @@
 
 **The "4070's" question — flagged for confirmation.** **A (likely, per the Cage): two separate boxes**, each 1× 12 GB → **14B ceiling**. **B: two cards in one box** → ~24 GB → unlocks **30B-A3B / 27–32B / Devstral**. **Variant:** 4070 Ti SUPER = 16 GB. Cage `docker-compose.yml`: *"One 14B resident at a time on a 4070. Never pull 32B+ here."*
 
+> **RATIFIED 2026-06-09 (Darrell, delegated to Claude) — see [DR-0012].** The 4070 lives in **Darrell's creative workstation**, which runs heavy CUDA apps (Adobe Premiere / After Effects, Cinema 4D, Photoshop, OBS). **The GPU is shared with creative production, and creative work has absolute priority.** Therefore:
+> - **Design for the conservative single-4070 envelope (~12 GB, 1 card assumed).** 2× / Ti SUPER are documented as **upgrade paths only**, not assumed.
+> - **Daily reasoner is locked to a 14B-class model that fits ~12 GB quantized and unloads instantly** — `qwen2.5-coder:14b` (Q5_K_M) or `qwen3:14b` (Q4) (S1). 30B-A3B and above stay strictly on the upgrade paths.
+> - **The exact card (1 vs 2, base vs Ti SUPER) can be auto-detected later via `nvidia-smi` from a session on that box to refine the choice — this does NOT block.** The conservative design holds regardless of what detection finds.
+
 ### Sovereignty-tier scale (defined for this eval)
 
 - **S1 — Fully sovereign / air-gap capable:** open weights, permissive (Apache-2.0/MIT), one 4070 or the NAS, zero callback.
@@ -129,11 +134,11 @@ Everything rides behind **the Cage** (`infra/ai-orchestrator/`): guarded-action 
 
 ## 4. GPU scheduling — three layers of yield (first-class)
 
-The fleet shares CUDA GPUs with **humans** and **church A/V**; it is always the lowest-priority tenant. **Human beats service-window beats Sabbath beats the job.**
+The fleet shares CUDA GPUs with **humans**, **creative production**, and **church A/V**; it is always the lowest-priority tenant. **Creative/human use beats service-window beats Sabbath beats the job.** Per [DR-0012], the 4070 lives in Darrell's creative workstation (Premiere / After Effects / Cinema 4D / Photoshop / OBS) — so creative work has absolute priority and the reasoner must be evictable in ~1 s.
 
-### (a) Human-presence preemption — the primary ask ("even better")
+### (a) Human-presence + creative-app preemption — the primary ask ("even better")
 
-**Whenever a human is actively using the system, LLM background processes immediately yield CUDA bandwidth and resume after.** The **4th brake — a human-demand kill-switch.** Demand sensor (~1–5 s): non-Ollama CUDA process (`nvidia-smi --query-compute-apps`), active desktop session / input on Node 1, or a live PWA "human-active" ping. Yield (~1 s): **pause** (cancel-and-requeue or `SIGSTOP`) + **free VRAM** (`OLLAMA_KEEP_ALIVE=0`). Resume after ~5 min of no demand (hysteresis), re-checking blackout + Sabbath first.
+**Whenever a human is actively using the system — OR any creative/CUDA app is active — LLM background processes immediately yield CUDA bandwidth and resume after.** The **4th brake — a human-demand kill-switch.** Per [DR-0012], **creative apps / ANY non-Ollama CUDA process are a first-class, absolute-priority preemption trigger** — the reasoner yields the moment they appear, not only on session/PWA activity. Demand sensor (~1–5 s): **any non-Ollama CUDA process** (`nvidia-smi --query-compute-apps` — e.g. Premiere/AE/C4D/Photoshop/OBS/a game), active desktop session / input on the box, or a live PWA "human-active" ping. Yield (~1 s): **pause** (cancel-and-requeue or `SIGSTOP`) + **free VRAM** (`OLLAMA_KEEP_ALIVE=0`) so the full ~12 GB goes to creative work. Resume after ~5 min of no demand (hysteresis), re-checking blackout + Sabbath first. **Net rule: an LLM job never competes with creative production — it fills the gaps around it.**
 
 ### (b) Service-window blackout — calendar-driven
 
@@ -158,13 +163,14 @@ The fleet shares CUDA GPUs with **humans** and **church A/V**; it is always the 
 
 ```
 may_run() =
-  NOT human_present()           # (4a) real-time preempt -- highest priority, ~1s
-  AND NOT in_service_blackout() # (4b) +/-1h around each service (service-calendar.json, kept live by G)
-  AND NOT in_sabbath_window()   # (4c) Sun 00:00-12:00 Central
-  AND brakes_ok()               # (1) budget  (2) no other instance  (3) watchdog healthy
+  NOT human_or_creative_cuda_active()  # (4a) creative app / any non-Ollama CUDA proc / human -- absolute priority, ~1s
+  AND NOT in_service_blackout()        # (4b) +/-1h around each service (service-calendar.json, kept live by G)
+  AND NOT in_sabbath_window()          # (4c) Sun 00:00-12:00 Central
+  AND off_hours()                      # heavy eval/review batched to off-hours; never on creative-production hours
+  AND brakes_ok()                      # (1) budget  (2) no other instance  (3) watchdog healthy
   -> else: PAUSE, free VRAM, requeue, re-check next tick
 
-Priority ladder:  1. HUMAN -> 2. service +/-1h -> 3. Sabbath -> 4. review/support/execute job (lowest)
+Priority ladder:  1. CREATIVE app / HUMAN CUDA -> 2. service +/-1h -> 3. Sabbath -> 4. LLM review/eval job (lowest)
 ```
 
 Net: ≤156 h/week (24×6.5), minus blackouts, minus every moment a human wants the GPU.
@@ -301,11 +307,11 @@ The human gate is reserved for **irreducible judgment**, never for toil. A human
 
 ## 10. Timelines — living projection, anchored to 2026-06-08
 
-> First-pass estimates (§9). Assumes go-ahead and Node 1 on hand; else add ~1 week standup.
+> First-pass estimates (§9). Assumes go-ahead and Node 1 on hand; else add ~1 week standup. **Per [DR-0012], eval proceeds NOW on the conservative single-4070 envelope — it does NOT wait on card-topology confirmation; `nvidia-smi` auto-detection can refine the model choice later without blocking.** Heavy eval/review runs are batched to **off-hours** so they never collide with creative-production days.
 
 | Track | Scope | Window (first-pass) |
 |---|---|---|
-| **(a) LLM evaluation** | Harness + eval set → benchmark → pick (§3) | **2026-06-09 → ~2026-07-11** (CPU-only: +2–4 wk) |
+| **(a) LLM evaluation** | Harness + eval set → benchmark → pick a 14B-class daily reasoner on the **conservative single-4070** envelope (§3, [DR-0012]); off-hours batching | **2026-06-09 → ~2026-07-11** (CPU-only: +2–4 wk) |
 | **(b) App-reviewer MVP** | Reviewer config + repo RAG + **GPU-yield/blackout scheduler** + four brakes; ship inactive → read-only → one 24/6.5 week | **→ live ~2026-07-27** (read-only; Node 1's 4070; $0 marg.) |
 | **(e) Multi-site review (F)** | Extend engine to live-site change-detection + per-entity objectives; PoeTech → Church (doctrine) → TLC public surface (firewall) | **~2026-08 → 2026-10** |
 | **(f) Calendar pipeline (G)** | Meeting-notes → decision-extraction → staff green-light → `service-calendar.json` (feeds §4b) | **~2026-08 → 2026-09** (high value early) |
