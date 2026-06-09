@@ -19,7 +19,8 @@
 3. **Ten capabilities** make it exceed any static report: living/auto-updating, signal-generated, closed-loop, capacity/dependency-aware, audience-adaptive, predictive, governance-native, cross-entity, self-documenting, and mission-lensed. (§3)
 4. **It builds almost nothing net-new.** Boards, issues, automation, scheduling, decisions, risks, action execution, QA, roles, audit, and roll-up all **federate existing systems.** **The only net-new component is the thin LLM synthesis/orchestration layer** on top. (§4)
 5. **PM-as-automation is a first-class design goal:** a **non-PM manages at PM quality** via **GUIDE + ENFORCE + ESCALATE.** A church or SMB runs enterprise-grade PM **without hiring a PM** — the same "replaces the network engineer" economics as Ring 2. It's a prebuilt SKOS "Project Manager" role module. (§5)
-6. **This is a PLAN.** No code, no purchases. The eventual build's autonomous pieces are Tier C and need all three brakes. (§7)
+6. **Success metric = the Want-To-Use Bar (§6):** the module is good when the operator **voluntarily prefers** it — pull, not push — judged by preference, not feature-completeness. It clears the bar on five properties (better-at-PM / does-the-toil / near-zero-friction / meets-you-where-you-are / earns-trust) and **gets more preferred over time** as it learns from feedback (the flywheel, template doc §4).
+7. **This is a PLAN.** No code, no purchases. The eventual build's autonomous pieces are Tier C and need all three brakes. (§8)
 
 ---
 
@@ -128,7 +129,27 @@ This is recorded as **DR-013.**
 
 ---
 
-## 6. Where this sits in the pattern
+## 6. Success Metric — The Want-To-Use Bar
+
+> Darrell, 2026-06-09: *"Whenever I do any role, I want to want to use PoeTech — that's how good I want this at supporting the user."*
+
+The senior acceptance test for this module — and for every role module (see the template doc, `2026-06-09-industry-role-module-template-spec.md` §3, DR-017) — is **voluntary use:** the PM (or non-PM operator) must **prefer** reaching for the PMO module over their current way of running projects — **pull, not push.** The module is judged good when the operator *wants* to use it, not when its feature list is complete.
+
+How the PMO module is built to clear the bar, against the five binding properties:
+
+1. **Makes the operator BETTER at PM** — the GUIDE prompts (§5.1) surface the decisions a seasoned PM would catch, so the operator runs a *better* portfolio, not merely a documented one.
+2. **Does the toil** — status sync, dependency math, report assembly, action-item routing, and the living overview are all generated (§3, §4); the operator's overhead goes **down**, not up.
+3. **Near-zero friction** — the overview is **auto-generated from signals the project already emits** (§3 capability 2), so there is no separate data-entry chore; and access stays frictionless (same-origin, no login wall to clear — the n8n login-wall friction is the cautionary counter-example, `project_n8n_same_origin_rewrite`). Setup / access UX is part of the bar.
+4. **Meets the operator where they are** — anxiety-clarity what / when / why / how (§5.1); **no PM methodology is required in the operator's head** — the module carries the discipline.
+5. **Earns trust** — the Quality Gatekeeper (wf36) and the Cage's append-only ledger (§3 capability 7) make the output reliable enough to depend on without re-checking.
+
+The module also **gets more preferred over time** as it learns from feedback — the Continuous-Improvement Flywheel that every module inherits (template doc §4, DR-018): user corrections and where-they-got-stuck flow back through events-as-data and sharpen the GUIDE prompts and templates. A PMO module that confused one operator stops confusing the next.
+
+This bar is a **merge gate** for the PMO module alongside the Tier-C / three-brakes discipline (§8 guardrails): feature-complete but not *preferred* = not done. It is the same Want-To-Use Bar made binding for all modules in DR-017.
+
+---
+
+## 7. Where this sits in the pattern
 
 This PMO module is **instance #1** of the Industry/Role Module pattern abstracted in the companion doc (`2026-06-09-industry-role-module-template-spec.md`). Reading the pattern's five-part template against this module:
 
@@ -140,7 +161,7 @@ This PMO module is **instance #1** of the Industry/Role Module pattern abstracte
 
 ---
 
-## 7. Guardrails on this document
+## 8. Guardrails on this document
 
 - **This is a PLAN / spec.** No code, no purchases, no money movement, no autonomous execution flow from it.
 - **Federation, not reinvention, is a hard requirement.** No net-new board / issue / scheduling / payments system gets built — the module wires to the existing systems and adds only the LLM synthesis layer. Building a parallel board engine would violate `MODULAR-EXTENSIBILITY.md` and the "build on what exists" thesis.
