@@ -277,10 +277,10 @@ Darrell: *"we have Church Plus on the NAS at church."* This is potentially the *
 - **Converge later:** once the mirror is clean, stand up a **sovereign registration form** (own IDP/identity layer (I)); flip `ingestion_sources.is_source_of_truth` to the sovereign surface; the Google Sheet becomes a legacy read.
 
 ### 4b. Weekly schedule (services + events)
-- **Source of truth:** **`service-calendar.json`, maintained by loop (G)** (PR #8 §6.2) — this is the already-decided answer to the static-JPG problem; we do **not** invent a second mechanism. Reconciliation order: loop (G)'s staff-green-lit decisions **win**; the JPG and the hardcoded `COLG_DEFAULT_CHURCH.services` seed are **deprecated** in favor of it.
-- **Upstream sources — confirmed EXTERNAL (2026-06-09 inventory, §3.0):** the schedule is **not in any Google Calendar** (none church-owned are connected). It lives in **ConvertKit** (comms) + **Zoom** (the monthly National Assembly). The §3.1.5 ConvertKit + Zoom adapters feed loop (G), which folds them into `service-calendar.json`.
-- **Flow:** ConvertKit/Zoom delta → (G) reconciles → emits `service-calendar.json` → ingest into `events` rows (recurring services as `recurrence_rule`; one-offs as dated rows) → the **same `events` table** feeds (1) the PWA weekly-schedule surface and (2) the **GPU blackout scheduler** (one source of truth for both). If the church ever publishes a real iCal, the source flips to a subscribed feed (the `ingestion_sources` row just changes `source_system`).
-- **Confirmed cadence to reconcile against (2026-06-09):** **Sun Worship 11 AM; Wed Bible Study + Bible Trivia; monthly Zoom National Assembly 2nd Monday 7:30 PM CT** (Senior Bishop Lloyd E. Gwin); office hours M–F 11 AM–6 PM. **No iCal feed and no church Google Calendar exist** — ConvertKit + Zoom are the upstream truth.
+- **Source of truth (REDESIGNED — see §17):** **a dead-simple staff-facing calendar in the exclusive church app is the single source of truth.** Staff add/edit events through a friendly form (or approve LLM-extracted events from meeting notes — item G); the **system auto-generates everything downstream** — the public Church-tab calendar, `service-calendar.json` (the GPU blackout scheduler), reminders, **and an iCal/ICS export the system produces** (the church never hand-edits a feed). This **supersedes** the old "ask the church to publish iCal" recommendation (§8/§17) — *no one at the church understands iCal, which is exactly why they fall back to posting calendar images.* The JPG and the hardcoded `COLG_DEFAULT_CHURCH.services` seed are **deprecated.**
+- **Upstream sources — confirmed EXTERNAL (2026-06-09 inventory, §3.0):** historically the schedule has lived in **ConvertKit** (comms) + **Zoom** (the monthly National Assembly), **not** a Google Calendar. The §3.1.5 ConvertKit + Zoom adapters **seed** the new staff calendar (so staff don't re-enter what already exists), then the staff calendar (§17) becomes the forward source of truth.
+- **Flow:** staff form/approval (or ConvertKit/Zoom seed) → `events` rows (recurring as `recurrence_rule` **generated from the friendly form, never hand-typed**; one-offs as dated rows) → the **same `events` table** auto-publishes to (1) the public Church-tab calendar, (2) the **GPU blackout scheduler** via `service-calendar.json`, (3) reminders/notifications (OTT, §13), (4) **a generated iCal/ICS feed** for anyone who wants one. One source, many generated artifacts — no drift, no hand-edited feed.
+- **Confirmed cadence to reconcile against (2026-06-09):** **Sun Worship 11 AM; Wed Bible Study + Bible Trivia; monthly Zoom National Assembly 2nd Monday 7:30 PM CT** (Senior Bishop Lloyd E. Gwin); office hours M–F 11 AM–6 PM. Pre-loaded as the starter recurring events so the calendar is useful on day one.
 - **Surfaced:** the Church tab weekly schedule reads `events`, not the hardcoded seed.
 
 ### 4c. Annual results + giving + financial reporting (year-over-year outcomes)
@@ -331,7 +331,7 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 | **⭐ P0a — Locate + read Church Plus on the CHURCH NAS (PRIMARY, §3.1.6)** | The church NAS (separate on-site device, name ~"TLC…", **not yet located** — NOT the home `192.168.1.26` box) hosts member data + monthly reports (confirmed). **Darrell locates it on the church network + does a DSM login** to read the Church Plus package + data model + resolve where giving lives; then design the church-NAS-local adapter. | **Darrell: locate + DSM login** (agent will not); church-LAN/site-to-site access | **immediate — the primary path** |
 | **P0b — Google grant + adapters (SECONDARY/supplementary)** | Read-only **service-account grant on `@thechurchofthelivinggod.com` via `info@` + Forms API scope**, + **ConvertKit + Zoom read-only API keys** — for the genuinely-Google surfaces (Form, ConvertKit, Zoom). | **Darrell/church-admin (`info@`) grant**; n8n creds | **~2–4 days** (gated on grant) |
 | **P1 — Schema seed + read-only mirror** | **Seed the schema NOW** from the two readable assets (TCOTLG form + Gwin Home-going sheet); land the §2 tables + the §3.1.5 adapters **+ the §3.1.6 Church Plus adapter if confirmed (NAS-local)**; ingest participants/members/**giving** **read-only** behind the Cage; ship **inactive → watched**. | P0a/P0b (schema seed needs neither); the Cage brakes | **~2–3 wk** (schema seed starts immediately) |
-| **P2 — Weekly schedule surfacing** | Wire `service-calendar.json` → `events` → PWA + GPU scheduler; deprecate the hardcoded seed. | **loop (G)** (PR #8 ~2026-08–09) | **rides (G), ~2026-08–09** |
+| **P2 — Staff-friendly calendar system (§17) + weekly schedule surfacing** | Build the dead-simple staff calendar in Surface B (friendly form w/ plain-language recurrence + approve-LLM-extracted events); single source → auto-publish to public calendar + `service-calendar.json` (GPU scheduler) + reminders + **generated iCal/ICS feed**; deprecate the hardcoded seed + the image workflow. Ship the **church-facing explainer** to staff. | **loop (G)** (PR #8 ~2026-08–09); `events` table | **rides (G), ~2026-08–09** |
 | **P3 — Event-center bookings + availability** | `event_center_resources`/`bookings`; conflict check; availability view; request→approve flow. | P1; resource/room list | **~2026-09** |
 | **P4 — Annual results + financial reporting** | Ingest the **monthly financial reports** (Church Plus/NAS, §4c) → transactional tables → computed `annual_results_snapshots`; **staff-gated dashboard, never public/seed**; historical backfill. | Church Plus reach (P0a) or report exports; `service_offerings` | **~2026-09–10** |
 | **P5 — Sovereign converge + Module packaging** | Sovereign registration form (identity layer **I**); flip source-of-truth; Tier-2 validation gate + library index entry. | identity layer (I) (PR #8 ~2026-09–11) | **~2026-10–11** |
@@ -364,7 +364,7 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 5. **DO let LLMs do the extraction/normalization/dedup end-to-end; reserve staff for the ISO-2 green-light only.** *Because* PR #8 §8 — brakes prevent runaway, human gates are for judgment (doctrine/publish), not toil.
 6. **DO hold PII consent-gated, ISO-2-isolated, never sold, never on the TLC path.** *Because* binding (`DATA-AS-EMPOWERMENT`, the TLC firewall, "we do not sell data").
 7. **DO package Tier-2 with a validation gate and Events-as-data from day one.** *Because* the next church in the network should get this by config, and the wf30 silent-fail lesson says nothing flips `active` un-smoke-tested.
-8. **DO surface the weekly schedule through loop (G)'s `service-calendar.json`, one source of truth for both the PWA and the GPU scheduler.** *Because* a second calendar mechanism would re-create the static-JPG divergence PR #8 already solved.
+8. **DO build a staff-friendly calendar that the church fills via a form, and have the SYSTEM generate everything downstream — including the iCal feed (§17).** *Because* the church posts calendar **images** precisely because iCal is out of reach; the fix is to remove iCal from their job, not assign it. One friendly input (form or approve-LLM-extracted, item G) → auto-published public calendar + `service-calendar.json` (GPU scheduler) + reminders + a **generated** iCal/ICS feed. **This supersedes "ask them to publish iCal."** Ship the plain-language church-facing explainer ([sibling doc](2026-06-09-church-calendar-explainer-for-staff.md)) alongside it.
 
 **DO NOT:**
 - **DO NOT** fabricate church data or assume shapes — **the 2026-06-09 inventory replaced assumptions with facts** (§3.0): seed from the real TCOTLG form + Gwin Home-going sheet; the rest waits on the grant. The schedule is **ConvertKit + Zoom**, not a Google calendar — don't design a Google-calendar sync that doesn't exist.
@@ -761,6 +761,57 @@ Tenants authenticate via the **member multi-anchor + consumer-OIDC** path (§14.
 ### 16.4 Why this is a near-term quick win (independent of the church grant)
 
 The Poe Properties tenant MVP **does NOT depend on the §3.0 church Workspace grant** — it rides **existing repo schema** (`rentals`/`maintenance_requests`), the **existing messaging substrate** (§13), and the **member identity path** (§14.1b/c). It can ship on its own ASAP track (§7, "Poe Properties tenant MVP"), behind the Cage, **ahead of the church ingestion work.**
+
+---
+
+## 17. The calendar system, redesigned (item G) — a staff-friendly single source that auto-publishes everywhere (Darrell 2026-06-09)
+
+> **Directive:** *don't just "ask the church to publish iCal" — no one there understands iCal, which is exactly why they fall back to posting calendar IMAGES. Design a better system they can actually use, and write them a plain-language explainer.* This **supersedes** the earlier "ask them to publish iCal / subscribe to their feed" line (§4b/§8). **The church fills a form; the SYSTEM produces the feed.**
+
+### 17.1 The problem with the old recommendation
+
+"Publish an iCal feed" puts the burden on non-technical, elderly church staff to operate a format they've never heard of. When the tech feels out of reach, they fall back to what works — **posting a picture of the calendar.** A static image can't update everywhere, can't be searched, can't send a reminder, can't be read by a screen reader, and goes stale the moment anything changes. **The fix is not to teach them iCal; it's to remove iCal from their job entirely.**
+
+### 17.2 The design — one friendly input, everything else generated
+
+**Input (the only thing staff touch): a dead-simple calendar in the exclusive church app (Surface B, §10).** Two ways in, both zero-jargon:
+1. **A friendly "Add / edit an event" form** — title, date, time, location, "who's it for," optional description. **Recurrence is plain-language, not RRULE:** chips/dropdowns like *"every Sunday,"* *"every Wednesday,"* *"2nd Monday each month,"* *"one time only"* — the system translates these into the `events.recurrence_rule` (RRULE) behind the scenes; **staff never see or type a recurrence string.** Templates pre-load the known services (Sun 11 AM Worship; Wed Bible Study + Bible Trivia; monthly Zoom National Assembly 2nd Mon 7:30 PM CT) so the calendar is correct on day one and staff just tweak.
+2. **Approve LLM-extracted events (item G):** the LLM reads meeting notes / announcements and **proposes** calendar entries; a staff member taps **Approve** (the item-G green-light, §6.2 of PR #8). No typing at all in the common case.
+
+Both paths are **mobile-friendly**, show a **plain preview** ("Here's what people will see"), and require **no knowledge of feeds, formats, or sync.**
+
+**The system is the single source of truth and AUTO-PUBLISHES everywhere (all generated, never hand-edited):**
+
+```
+   STAFF (friendly form  OR  approve LLM-extracted events — item G green-light)
+                              │   the ONLY human touchpoint
+                              ▼
+                   events table  (single source of truth; recurrence generated, not typed)
+                              │
+        ┌──────────────┬──────────────┬───────────────┬─────────────────────┐
+        ▼              ▼              ▼               ▼                     ▼
+  Public Church-tab   service-       Reminders /     Generated iCal/ICS    (future) any
+  calendar (Surface   calendar.json  notifications   FEED endpoint —       new surface,
+  A) — always         (GPU service-  (OTT in-app +   the system EMITS      free, because
+  current             blackout)      ntfy, §13)      .ics; church never    it reads the
+                                                     hand-edits a feed     one source
+```
+
+- **The iCal/ICS feed is an OUTPUT, not an input.** Anyone who *wants* a subscribable feed (a member who likes Google/Apple Calendar) gets one — the system **generates** `/calendar.ics` from the `events` table (an app endpoint or n8n workflow). **The church never creates, edits, or understands it.** This is the inversion of the old recommendation.
+- **One source, many generated artifacts ⇒ no drift.** Change a service time once in the form → the public calendar, the GPU blackout (`service-calendar.json`), the reminders, and the iCal feed all update together. No re-posting a picture; no second calendar to keep in sync.
+- **Reconciliation / governance:** unchanged from item G — the **staff green-light is the gate** (§6.2, an §8 irreducible final green-light); everything downstream is a **derived artifact**, so there is nothing to hand-reconcile. Behind the Cage; church = ISO-2; doctrine/публish gate applies to any public copy change.
+
+### 17.3 Builds on what exists
+- **`events` table** (`schema-v2.8-ops.sql:215`) with `recurrence_rule` — the form **generates** the RRULE; the table is unchanged.
+- **`service-calendar.json` + loop (G)** — now *fed by the staff calendar* instead of waiting on the church to publish anything.
+- **OTT messaging (§13)** for reminders; **Surface A/B (§10)** for the public view + the staff editor; **Module-Library Tier 2** so any partner church gets the same friendly calendar.
+
+### 17.4 The church-facing explainer (B) — a shareable one-pager
+A plain-language, no-jargon explainer for church staff/leadership — *why this replaces posting calendar images*, in their terms — lives as a **separate, shareable sibling doc** so it can be handed to the church directly:
+
+> **[`docs/99-session-notes/2026-06-09-church-calendar-explainer-for-staff.md`](2026-06-09-church-calendar-explainer-for-staff.md)**
+
+It is written warmly and simply (for people who currently use images because the tech felt out of reach) and is **church-facing content (ISO-2)** — screened against the Religion-AND-Relationship test (backbone + warmth) per `CLAUDE.md`.
 
 ---
 
