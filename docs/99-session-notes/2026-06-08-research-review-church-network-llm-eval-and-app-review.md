@@ -384,6 +384,88 @@ Ties §2 (entities), §6 (F/G/H), §7 (first-party data + identity), §8 (bounde
 
 ---
 
+## 14. Sovereignty roadmap — when are we vendor-OPTIONAL? + hardware procurement plan
+
+> **Decisions: [DR-0013] (roadmap) + [DR-0014] (2026-06-09 budget directive).** First-pass / living per §9. **PLAN only — specs what to buy and what it unlocks; no purchase is executed. Darrell procures.** Pricing is June-2026, cited in Sources; re-verify at order time.
+
+### 14.1 The key distinction — "vendor-optional" is not one date
+
+There are **two** milestones, and conflating them overpromises:
+- **(a) Daily/routine work fully sovereign, vendor reserved-but-optional** — achievable **sooner**, software + the single 4070.
+- **(b) Zero dependence even for the hardest reasoning** — **hardware-gated**: a 12 GB 4070 cannot sustain a frontier-adjacent model, so closing the last capability gap needs a bigger local model (70B-class) → more VRAM.
+
+**Binding architecture (never locked in):** vendor LLMs ride a **swappable router lane** (`CLAUDE-TOOL-ROUTING.md` Tier 1/2 escalation). From Phase 2 on, *"no vendor unless we want to"* is **structurally true** — the only question is when the sovereign side is good enough that you'd *choose* not to escalate.
+
+### 14.2 Phased roadmap (original, single-4070 path)
+
+| Phase | Milestone | Date (first-pass) | Dependency |
+|---|---|---|---|
+| **1 — Foundation** | Cage merged ✅; run the eval (conservative single-4070, §1/[DR-0012]); pick the daily reasoner; prove read-only review behind the Cage | **now → ~Jul 2026** | eval track (a) |
+| **2 — Daily-work sovereignty (vendor-optional for routine ops)** | Sovereign reasoner handles review/tagging/drafting/routine ingestion; router defaults local, vendor on explicit escalation only. **"We don't NEED vendor for normal operations."** (milestone *a*) | **~Q3 2026** | Phase 1 |
+| **3 — Majority sovereignty + scoped autonomous execution** | Per-surface autonomy proven ([DR-0010]); sovereign handles the large majority; vendor reserved **by choice** for the hardest reasoning | **~Q4 2026** | Phase 2 + the Cage proving safe |
+| **4 — Full vendor-optional incl. heavy reasoning** | True zero-dependence (milestone *b*) — needs a 70B-class local model → **more VRAM than a 12 GB 4070** | **originally 2027 (hardware-gated)** | a GPU upgrade |
+
+Honest read on the single-4070 path: Q4 2026 gets us **~90% vendor-optional**; the last ~10% (the heaviest reasoning) was a 2027 hardware decision **— until the 2026-06-09 budget directive below collapses it.**
+
+### 14.3 The recompression — 2026-06-09 budget directive (Darrell)
+
+Darrell is **funding hardware now** to collapse Phase 4 into the near term: **PoeTech $5,000** for a business-systems **farm** (sovereign inference + the build/automation loop + business-systems hosting), and **Church ≥ $5,000** for the COLG sovereign node. Goal: **independence ASAP.**
+
+### 14.4 PoeTech $5k business-systems farm — BOM options
+
+VRAM is the binding constraint for big-model reasoning; for inference, *if a model doesn't fit in VRAM, speed doesn't matter*. VRAM → model class: **24 GB → ~32B**; **48 GB → 70B-class Q4 (frontier-adjacent)**; **96 GB → 70B Q8 / ~120B Q4**.
+
+| Option | Core | VRAM → model class | ~Build cost (June 2026) | Trade-off |
+|---|---|---|---|---|
+| **A — Dual RTX 3090 (RECOMMENDED)** | 2× used 3090 ($600–900 ea) + workstation base, 128 GB RAM, 1300 W PSU, NVMe | **48 GB → 70B-class Q4 (frontier-adjacent)**; parallel multi-model | **~$2,800–4,200** | Best $/VRAM; ~700 W GPU draw (1200 W+ PSU); leaves CPU/RAM headroom for n8n/Cage/CI-CD/hosting; **3rd-card lane → 72 GB** |
+| **B — Single RTX 5090 (32 GB)** | 1× 5090 ($2,300 used – $3,800 new) + base | 32 GB → ~32B at top speed; **70B does NOT fit Q4** (needs ~40 GB) | ~$3,800–5,800 | Fastest single-model, new warranty, ~500 W; **no 70B headroom → not frontier-adjacent on heaviest reasoning** |
+| **C — Unified-memory mini** | Framework Desktop Ryzen AI Max+ 395 128 GB (~$2,566) or NVIDIA DGX Spark 128 GB ($4,699) | **128 GB → 70B unsharded**, but **low throughput** (~14 tok/s, Strix Halo) | $2,566 / $4,699 | Huge capacity, near-silent, low power; **weak for the concurrent multi-purpose FARM role**; Strix Halo = x86/Linux (sovereign-friendly), DGX Spark = ARM/CUDA |
+| **D — Quad RTX 3090 (96 GB)** | 4× 3090 (~$2,800–3,200 GPUs) + heavy base/PSU/cooling | **96 GB → 70B Q8 / ~120B Q4** (closest to frontier) | ~$4,600–5,400 (tight) | Max capability; ~1400 W+, 20 A circuit, loud, complex — reserve as the upgrade lane, not the first build |
+
+**Recommendation — Option A (dual RTX 3090, 48 GB), chassis/PSU sized to accept a 3rd card later.** *Because:* best VRAM-per-dollar, runs 70B-class (frontier-adjacent) **now**, and — critically — leaves budget **and** CPU/RAM/storage to run the actual *farm* (n8n + Cage jobs + CI/CD + business-systems hosting) concurrently, all on an open Linux+Docker stack with no vendor lock (portable to any host). **Not B** (can't hold 70B, worse $/VRAM). **Not C** (mini-PC is weak for the multi-purpose farm and low-throughput, though Strix Halo is a tempting *inference-only* sidecar). **Not D now** (power/heat/complexity — it's the upgrade lane). **Honest caveat:** 48 GB runs 70B dense Q4 + many MoE at aggressive quant ≈ 90–95% of frontier for our tasks; the very newest frontier-open MoE (GLM-5.1 / DeepSeek V4 full) may want **72–96 GB** → that is a **card-add, not a 2027 wait.**
+
+### 14.5 Church ≥ $5k node (COLG sovereign node — separate on-site box)
+
+The church node is **the church's own on-site device** (ISO-2, doctrine-tier; separate from Darrell's PoeTech farm and from TLC ISO-1), tied to the existing church Synology and the PR #8 Cage architecture (registry Postgres+pgvector on the NAS; inference on the GPU box; guarded-action + ledger + health-gate). Part of the COLG seven-layer build.
+
+| Layer | Spec (scaled to ≥$5k) | ~Cost |
+|---|---|---|
+| **Inference** | Dual RTX 3090 (48 GB) box mirroring the PoeTech farm → same 70B-class capability for church-ops/content (ISO-2, doctrine-gated) | ~$2,800–3,500 |
+| **NAS / registry** | Use the existing church Synology if sufficient (add drives + backup) **or** a DS-class NAS + drives; hosts Church Plus member data + financial reports — sovereign, **staff-gated**, never public | ~$500–2,000 |
+| **Network** | Managed switch + firewall / Tailscale node + UPS | ~$600–1,000 |
+| | **Total (scaled to budget)** | **~$5,000–6,500** |
+
+Scale to the confirmed budget; if the church NAS already covers registry/storage, weight the spend toward the inference box + network hardening. (Church NAS exact model still **UNCONFIRMED** per the parallel conference-ingestion work — confirm before ordering.)
+
+### 14.6 Recompressed timeline — Phase 4 from 2027 → weeks-after-procurement
+
+With hardware ordered now (used-3090 path), bring-up from "go":
+
+| Step | Estimate |
+|---|---|
+| Order → delivery (used 3090s + parts; sourcing variance) | ~1–2 wk |
+| Assemble + Linux/CUDA/driver | ~1–3 days |
+| Deploy Cage stack (Ollama + n8n + Uptime Kuma + Postgres/pgvector) | ~1–2 days |
+| Load 70B-class model + smoke test | ~1 day |
+| Re-run the §3 eval at the 48 GB envelope | ~1–2 wk |
+| Router cutover (heavy reasoning defaults local; vendor → optional) + soak | ~few days |
+| **Total from procurement go** | **~3–5 weeks** |
+
+**New "fully vendor-optional unless we choose otherwise" date:** if ordered ~mid-June 2026, **~mid-to-late July 2026**, conservative band **July–August 2026** — collapsing the old 2027 Phase 4 to **~6–8 weeks out**, overlapping the Phase-1 eval. *Caveats (honest):* used-GPU sourcing variance, and the last capability gap to the very top vendor models may still favor the 72–96 GB upgrade lane. First-pass/living per §9.
+
+### 14.7 Cost screen / break-even / lean alternative
+
+- **Unit cost:** rec. PoeTech farm ~$3,500 (within the $5k); church node ~$5–6.5k.
+- **Break-even vs vendor spend — stated honestly:** the vendor cap is **$25/mo soft, $50/mo hard** (`COST-DISCIPLINE`). A $3,500 farm vs even $50/mo is **~70 months** — so the farm does **NOT** pay back as API-cost arbitrage. **It is a sovereignty + capability + data-control + multi-purpose-compute purchase** (the farm also runs n8n/Cage/CI-CD/hosting that would otherwise need cloud), not a way to beat a small API bill. We do not overstate the financial case.
+- **Power:** dual 3090 ~700 W under load; with the off-hours + creative-preemption duty cycle ([DR-0012]) realistically **~$10–30/mo** electricity. Factor it in.
+- **Lean alternative:** stay on the single 4070 + capped vendor escalation ($0–50/mo) and **defer the farm** — cheapest, but it **keeps the heavy-reasoning vendor dependence Darrell wants gone.** The farm is the price of *independence now*; the church node is a *COLG-first mission* investment (`COMMUNITY-FIRST`), not arbitrage.
+
+### 14.8 Swappable-router framing (carried)
+
+At every phase, vendor LLMs sit on the **swappable Tier-1/2 router lane** — we are **never locked in**. Procuring the farm does not change that; it makes the *sovereign* lane good enough that escalation becomes a rare *choice*, not a need. **"Without vendor unless we want to" is structurally true from Phase 2; the farm brings milestone (b) — zero dependence even for the hardest reasoning — into July–August 2026.**
+
+---
+
 ## Sources
 
 **COLG service schedule (fetched 2026-06-08):**
@@ -417,6 +499,14 @@ Ties §2 (entities), §6 (F/G/H), §7 (first-party data + identity), §8 (bounde
 - the Bishop Gwin / COLG migration brief — the COLG alignment gate
 - memory: `project-continuous-feedback-reel`, `INPUT-VISIBILITY-TO-CLAUDE`, `BUSINESS-PROCESS-CONNECTIONS`, `INSTITUTIONAL-MEMORY-EVENTS`, `EXECUTION-OUTCOME-OBSERVABILITY`, `WORKFLOW-MODULE-LIBRARY`, `project-brand-surface-hosting-map`, `project-non-denominational-word-first-body-undivided`, `project-community-free-funded-by-aligned-brand-sponsorship`, `project-what-is-actually-free`, `project-freddie-taylor-beta-user`, `feedback-autonomous-automation-three-brakes`
 - `CLAUDE.md` — "Autonomous Automation Requires Three Brakes"
+
+**Hardware pricing (June 2026 — re-verify at order time; §14):**
+- [RTX 5090 vs 4090 vs used 3090 for local LLMs — hostrunway.com](https://www.hostrunway.com/blog/rtx-5090-vs-rtx-4090-used-3090-in-2026-is-the-upgrade-worth-it-for-local-llms/) — used 3090 ~$600–800; 4090/5090 >$2,000 each; 5090 ~$3,800 new.
+- [Used RTX 3090 still the best value for local AI — XDA](https://www.xda-developers.com/used-rtx-3090-still-best-for-local-ai-in-value/)
+- [RTX 5090 vs dual RTX 3090 for local AI — BSWEN](https://docs.bswen.com/blog/2026-03-15-rtx-5090-vs-dual-3090-local-ai/) — 5090 32 GB can't fit 70B Q4 (~40 GB needed); dual 3090 = 48 GB; ~700 W → 1200 W+ PSU.
+- [Multi-GPU local LLM setup 2026 (70B–405B) — Compute Market](https://www.compute-market.com/blog/multi-gpu-local-llm-setup-guide-2026) — 4× 3090 = 96 GB → 70B Q8 / ~120B Q4.
+- [NVIDIA DGX Spark $4,699 (128 GB unified) — Constellation Research / OC3D](https://www.constellationr.com/insights/news/nvidia-dgx-spark-now-available-3999-real-impact-will-be-ai-edge) — launched $3,999, raised +$700 to $4,699 (Feb 2026).
+- [AMD Ryzen AI Max+ 395 / Framework Desktop 128 GB ~$2,566 — ToolHalla / AMD](https://toolhalla.ai/blog/amd-strix-halo-local-llm-guide-2026) — 128 GB unified, 70B BF16 unsharded ~14 tok/s, x86/Linux.
 
 ---
 
