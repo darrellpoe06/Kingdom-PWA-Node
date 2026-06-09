@@ -17,6 +17,7 @@
 | R9 | Conference Module + Event Center | blocked-on | PR #9 | Church Plus schema (R7), Wyze counts, NAS bays; merge | Claude + Darrell |
 | R10 | Sovereignty roadmap (Phase 1–4) | decided | DR-013 | sequencing only; rides R4/R5/R6 (~Jul–Aug 2026) | Darrell + Claude |
 | R11 | Module specs built (PMO, template, Want-To-Use, Flywheel, HumDev, Growth, Self-Extending, Cohort, Auto-Tagging) | decided | DR-011…024 | R4 runner; build per Composable Spine (DR-023) | Claude + Darrell |
+| R12 | Self-serve status dashboard — owned observability (extends NAS dispatch-status: node/LLM health, build queue, Cage-ledger events, ntfy push; removes Claude as single source of truth) | planned | DR-024; `EXECUTION-OUTCOME-OBSERVABILITY.md`; part of R4 | R4 runner; enable dispatch-status (an R8 safe-21) | Claude + Darrell |
 
 † No hardware-specific DR yet; DR-014/015 are the module-template decisions, not BOMs. Writing the BOM docs (and optional hardware DRs) is part of R5/R6.
 
