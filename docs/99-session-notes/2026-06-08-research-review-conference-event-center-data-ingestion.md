@@ -31,6 +31,8 @@
 12. **In-app group chat, NO phone number (§13) — largely already built.** `IN-APP-MESSAGING-LAYER-1-DESIGN.md` (schema-v2.10-messaging) already defines `conversations`/`messages`/group chats, **ntfy** as the self-hosted push substrate on the DS1621xs, and **Matrix (Synapse) as the Layer-4 sovereignty-max** option. A ministry-unit chat is a `conversations` row `kind='group'` linked to a unit; **identity = the app login (SSO), not a phone number**; SMS is only an opt-in Layer-2 fallback. **Recommendation: reuse the existing Layer-1 design + ntfy; do NOT bolt on a heavy third-party chat SDK; keep Matrix as the deferred Layer-4.**
 13. **Domain-based multi-entity identity (§14):** the PR #8 identity layer **I** is **multi-domain** — Church staff/leaders on **`@thechurchofthelivingGod.com`** (e.g. `bg@thechurchofthelivingGod.com`, Bishop Gwin), TLC on `@tlctherapysolutions.com`, PoeTech on `@poetech.us`. **Staff/unit-leader SSO + group-chat identity key off these domain emails** — that is the no-phone anchor. **Open current-state question:** is `thechurchofthelivingGod.com` mail on Google Workspace today or elsewhere (the site is Turbify-hosted)? **Recommend: federate/SSO-bridge during MVP, sovereign multi-domain mail on the NAS as the long-arc** — don't block MVP on full sovereign mail (MVP-pragmatism). Church identities = ISO-2; **TLC-domain identities = ISO-1, PHI-walled.**
 14. **All of Part II is reusable per the Module Library** — "ministry-units + unit-chat" and "front-door-tab + gated-deeper-app" are **configurable modules / a per-entity instance shape**, not a COLG one-off; a partner church (or any business) drops into the same shape as its own sovereign node/instance.
+15. **Maximum-inclusion comms — no single credential required (§13.5 / §14.5):** the layer must reach a member whether they have **email-only, phone-only, both, or neither** (app-only handle). **Identity is multi-anchor** (email OR phone OR app-handle, any one suffices); **delivery is OTT** — in-app + Web Push + ntfy **over data, no carrier needed** ("text over the internet"). An **optional SMS bridge** is a deferred, opt-in, **budget-capped, explicitly non-sovereign** edge to pull in phone-only people not yet in the app (the one unavoidable external touchpoint — flagged, costed, **TLC-excluded**). **PWA-first** so it runs on any browser + internet.
+16. **SSO as consented data-enrichment, governed not bolted-on (§14.6):** SSO login doubles as a first-party data + profile-enrichment vector (capture at login, bootstrap/cross-reference at onboarding, keep current) feeding **D + H** of PR #8 — **under five binding guardrails: consent + transparency (opt-out-able); internal-only, NEVER sold; TLC ISO-1 = NO enrichment ever (PHI-walled); values-aligned + non-creepy; Cage-gated + audit-logged.**
 
 ---
 
@@ -241,6 +243,10 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 | **PIV — Ministry units + unit leadership** | `ministry_units` + `ministry_unit_members` + unit-leader scope; unit-leader view in the exclusive app. | role/scope model | **~2026-09–10** |
 | **PV — In-app group chat (no phone)** | Realize the already-designed Layer-1 messaging (schema-v2.10) for ministry-unit group chat; ntfy push; identity = SSO. | identity layer **I**; messaging Layer-1 (already designed, post-vacation weeks 1–4) | **~2026-09–10 (chat infra largely pre-designed)** |
 | **PVI — Multi-domain identity / SSO** | Multi-domain sovereign IDP/SSO (church/TLC/PoeTech domains); staff domain-email anchor; federate-bridge MVP → sovereign mail long-arc. | PR #8 layer **I**; Workspace current-state answer | **MVP bridge ~2026-09; sovereign mail long-arc** |
+| **PVII — Multi-anchor identity (incl. app-handle)** | Email OR phone OR app-only handle, any one suffices; promote IDENTITY-ROLES-AUDIT Phase-2 local profile to a real account; PWA-first. | identity layer **I** | **~2026-09 (rides PVI)** |
+| **PVIII — OTT delivery ladder** | In-app store + PWA Web Push + ntfy over data (Tiers 1–2, sovereign); optional email digest (Tier 3). | messaging Layer-1 (designed); ntfy (running) | **~2026-09–10 (largely pre-designed)** |
+| **PIX — SMS bridge (deferred edge)** | Opt-in, budget-capped outbound/inbound SMS to pull in phone-only people; prefer self-hosted GSM gateway, else low-cost API; **TLC-excluded**. | A2P/10DLC or GSM gateway; budget cap | **deferred; opt-in, post-MVP** |
+| **PX — SSO data-enrichment (governed)** | Consented capture-at-login + onboarding cross-reference + periodic refresh; Cage-gated Tier-C jobs, audit-logged; feeds D + H; **TLC excluded**. | SSO live (PVI); consent UX; the Cage | **~2026-Q4 (after SSO proven; consent UX first)** |
 
 **Hard dependencies:** (1) the **Google Workspace read access grant** (only Darrell/admin can give it); (2) **loop (G)** for the weekly-schedule truth; (3) the **Cage** four brakes proven; (4) the **identity layer (I)** for the sovereign converge; (5) **subscription-tier caps** (`checkout_intents` tiers) for who can host what size event.
 
@@ -303,6 +309,8 @@ These unknowns are resolved by **P0 discovery** (§7) the moment a read-only Wor
 - **The church-staff/leadership roster + their domain-email accounts** (who is staff, who leads which unit) — needed to seed roles/scopes.
 - **The ministry → unit breakdown** (which ministries have which units, and current unit leaders) — the church's own org structure; ingest or capture in Surface B.
 - **Whether Darrell ratifies the two-surface pattern as the general shape** (§15) — explicitly his decision, left open.
+- **The SMS-bridge build choice** (self-hosted GSM gateway vs. low-cost SMS API) + its US A2P/10DLC registration path and budget cap (§13.5) — deferred edge; decide if/when phone-only outreach volume justifies it.
+- **The exact OAuth providers** members will use for SSO-enrichment and the **consent-UX copy** disclosing what is captured/enriched (§14.6) — design + legal-tone pass needed before enrichment ships.
 
 ---
 
@@ -388,7 +396,9 @@ All additive, all `instance_id`-scoped + RLS, all following `MODULAR-EXTENSIBILI
 - **Church = ISO-2; off the TLC PHI path** (units are a church-domain construct; TLC never appears here).
 - **Reusable (Module Library, Tier 2):** "Ministry Units + Unit Group Chat" is a configurable module; generalized, it is the **team/sub-group structure** any business's instance can adopt (a trades crew, a practice's care-team, a department) — consistent with the "works best for all businesses" generalization.
 
-## 13. Messaging architecture — in-app group chat with NO phone number
+## 13. Messaging architecture — maximum-inclusion comms: OTT-first, multi-anchor, no single credential required
+
+> **THE INCLUSION PRINCIPLE (binding, declared by Darrell 2026-06-08):** *the comms layer must reach a member whether they have **email-only, phone-only, both, or neither** (an app-only handle).* **No single credential is required — nobody is excluded for lacking email OR a phone number OR a carrier SMS plan.** Messaging is **OTT (over-the-top): delivered over the internet/data via the app** — "text over internet connection" — not dependent on a carrier SMS plan. **PWA-first** so it works on any device with a browser + internet. (This generalizes the earlier "group chat without a phone number" to its full form.)
 
 ### 13.1 The big finding: this is largely already designed
 
@@ -414,7 +424,29 @@ All additive, all `instance_id`-scoped + RLS, all following `MODULAR-EXTENSIBILI
 
 A unit group chat is a `conversations` row (`kind='group'`, `linked_entity_kind='ministry_unit'`). Membership = `ministry_unit_members` → `conversation_members`. **Unit leaders manage their unit's conversation (owner role); members participate; non-members can't see it** — the RLS conversation-membership gate (`IN-APP-MESSAGING` §RLS) + the per-unit scope (§12). **Church ISO-2; TLC clinical conversations stay on the separate `is_clinical` isolation path and never mix in.**
 
-## 14. Domain-based multi-entity identity (the SSO + group-chat anchor)
+### 13.5 Maximum-inclusion delivery — OTT-first, with an optional SMS bridge at the edge
+
+**The delivery ladder (data/OTT first; carrier SMS only as a last-resort edge):**
+
+| Tier | Channel | Reaches | Carrier dependency? | Sovereign? |
+|---|---|---|---|---|
+| **1 — OTT in-app (default)** | The PWA message store (Supabase `messages`) read live in-app | Anyone with the app open on **any device with a browser + internet** | **None** | ✅ Yes |
+| **2 — OTT push** | **PWA Web Push** (service worker) + **ntfy** (self-hosted on DS1621xs) | Anyone who installed the PWA / subscribed a topic — over data/Wi-Fi | **None** (data only) | ✅ Yes |
+| **3 — OTT email digest (optional)** | Self-hostable email (Resend now → sovereign mail long-arc) | People who gave an email and want digests | None (data) | ✅/▲ |
+| **4 — SMS bridge (edge fallback ONLY)** | Outbound/inbound SMS gateway | People who have **only a phone**, no app yet, no email | **Yes — a carrier/3rd-party touchpoint** | ❌ **not fully sovereign — flagged** |
+
+**Tiers 1–2 are the product; they need no phone number and no carrier plan** — "text over the internet connection" is exactly Web Push + ntfy + the in-app store over data. A member with **neither email nor phone** uses an **app-only handle/passcode** (§14.5) and is fully reachable on Tiers 1–2. This is the inclusion principle realized: **email-only → Tiers 1–3; phone-only → Tier 4 in, Tiers 1–2 once they install; both → all tiers; neither → Tiers 1–2 via app handle.**
+
+**The SMS bridge — honest trade-off (the one place sovereignty bends):**
+- **Why it exists:** to reach someone who has *only* a phone and is *not yet in the app* — an outreach/onboarding edge (invite them, they reply, they get pulled into OTT). Inbound SMS can post into a `conversations` thread; outbound sends a notification + an install link.
+- **Sovereignty screen (don't pretend it's sovereign):** SMS **requires** a carrier or an SMS-API vendor — this is **the one unavoidable external touchpoint** in the comms layer. Options, sovereignty-screened:
+  - **Self-hosted GSM gateway** (a SIM + a modem/Android-SMS-gateway/`gammu` on the LAN) — *most sovereign*, lowest per-message cost (just the SIM plan), but operational burden (hardware, deliverability, throughput limits, A2P/10DLC registration headaches in the US). Best for **low-volume** church outreach.
+  - **Low-cost SMS API** (Twilio / Telnyx / Plivo / Vonage) — fastest, reliable deliverability, but a **3rd-party touchpoint + per-message cost** (~$0.0075–0.01/msg US) and the data transits a vendor. Pick the cheapest with acceptable terms; **never route TLC/PHI through it.**
+- **Recommendation:** **build Tiers 1–3 first (fully sovereign, no carrier); treat the SMS bridge as a deferred, opt-in, budget-capped edge** — and when built, prefer the **self-hosted GSM gateway for low-volume church use**, falling back to a low-cost SMS API only if deliverability/scale demands it. **Budget-cap it** (the existing messaging-doc Layer-2 cap: default $5/mo per instance, hard cutoff → digest). **SMS is excluded entirely for TLC** (`is_clinical=true` check constraint already forbids external transports — PR #8 / `IN-APP-MESSAGING` §6).
+
+> Net: the comms layer is **sovereign and carrier-free for the overwhelming majority** (OTT Tiers 1–3) and includes a **clearly-flagged, budget-capped, non-sovereign SMS edge** only to *pull in* phone-only people who aren't in the app yet. No member is excluded; the one external dependency is named, costed, and walled off from TLC.
+
+## 14. Multi-anchor, domain-based multi-entity identity (the SSO + group-chat anchor)
 
 ### 14.1 The model: one substrate, many domains
 
@@ -452,9 +484,41 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 - **TLC-domain identities = ISO-1, PHI-walled** — login/SSO for the public practice surface may exist, but **its clinical data and PHI never enter the shared analytics/identity decision-loop, never touch a vendor model** (PR #8 §2.2 / §7). The identity substrate is shared *as code*; the **TLC data is isolated by `instance_id` + `is_clinical` + separate keys**, never pooled.
 - **No cross-instance role bleed** (`IDENTITY-ROLES-AUDIT` anti-pattern): a leader on the church instance does not auto-inherit rights on TLC or PoeTech, even with a similar email.
 
+### 14.5 Multi-anchor identity — no single credential required (the inclusion principle in the identity layer)
+
+**Binding (Darrell 2026-06-08):** *"want it to work without an email also, just SMS or text over internet connection somehow."* Combined with "group chat without a phone number," the rule is: **identity must work with ANY ONE of several anchors — nobody is excluded for lacking email OR phone OR a carrier plan.**
+
+| Anchor | Who it's for | Auth method | Notes |
+|---|---|---|---|
+| **(a) Domain email** | **Staff / leaders** (`@thechurchofthelivingGod.com`, etc.) | SSO / OIDC (§14.1–14.3) | The legible audit + green-light anchor; the enrichment vector (§14.6). |
+| **(b) Phone number** | Members who have a phone | OTP/passkey; SMS OTP only if they have carrier service, else WhatsApp/OTT or the app | A phone is **sufficient but not required**. |
+| **(c) App-only handle + passcode** | **Anyone with neither email nor phone** | A chosen handle + PIN/passkey on the device (the `IDENTITY-ROLES-AUDIT` Phase-2 local-profile pattern, promoted to a real account) | **The pure-inclusion path** — works on any browser + internet, no email, no phone, no carrier. |
+
+- **Any one anchor suffices to create a real account.** All three resolve to the same `instance_members.user_id` (the chat + audit identity). A member can **add** anchors later (claim an email, link a phone) — additive, never required.
+- **PWA-first** so the app-handle path works on any device with a browser; no app-store gate, no SIM, no inbox needed.
+- **Per-entity isolation holds:** **staff/leaders are domain-email accounts** (legibility + enrichment); **members may use any anchor**; **TLC** identities stay ISO-1 and PHI-walled regardless of anchor.
+- This is the `IDENTITY-ROLES-AUDIT` phased model extended: Phase 2 local profiles → Phase 3 cloud auth (passkey / magic-link / OAuth) → Phase 4 SSO — **with the app-handle anchor making Phase 3 reachable for the email-less and phone-less.**
+
+### 14.6 SSO as consented data-enrichment — capability + BINDING guardrails (governed, not bolted on)
+
+**Capability (Darrell 2026-06-08):** *"SSO is a great way to get user data and also create profiles from online information to cross-reference users initially and keep up to date."* Used through anchor (a)/(b) where the user signs in with OAuth (e.g., a Google/social SSO they choose), SSO is a **first-party data + profile-enrichment vector**:
+- **(a) Capture consented profile data at login** — the scopes the user grants at the OAuth consent screen (name, email, photo, basic profile) flow into their profile.
+- **(b) Bootstrap / cross-reference at onboarding** — reconcile the new account against existing records (dedupe a participant against a parishioner; merge a speaker's known bio) and, where legitimately available and consented, enrich from public/online information to pre-fill a fuller profile.
+- **(c) Keep profiles current over time** — periodic, consented refresh so contact info and roles don't go stale; feeds **D (data-driven decisions, PR #8 §9)** and **H (the outcome-driven funnel, PR #8 §6.3)** with accurate first-party signal.
+
+> **This capability is powerful and is therefore GOVERNED, not bolted on. The following guardrails are binding and stated here in the body, not a footnote:**
+
+1. **Consent + transparency (non-negotiable).** The user is told **what is captured and what is enriched**, at the moment it happens; **enrichment is disclosed and opt-out-able**; **PIN-optional / community-default privacy is honored**; **no dark UX, no consent fatigue** (`DATA-AS-EMPOWERMENT`). Enrichment defaults to **off** for a profile until the user consents.
+2. **Internal decisions only — NEVER sold (item I binding).** Enrichment serves **better service + opportunity-spotting (D + H) only** — never resale, never an ad model, never engagement-extraction. The structural refusal to sell **is** the moat (PR #8 §7).
+3. **Per-entity isolation is SENIOR.** **TLC (ISO-1): NO online-profile enrichment — ever.** Clinical/therapy identities are **never** cross-referenced against online information; PHI-walled, sovereign-only. **Church (ISO-2) / PoeTech (ISO-3) enrichment is allowed under consent**, doctrine/Cage gates intact.
+4. **Values-aligned + non-creepy.** Enrichment is scoped to **legitimate ministry/business purposes** (reach a member, serve them, spot a real opportunity) — **no surveillance-grade profiling**, no buying broker data, no inference the user would find invasive. If it would feel creepy to the member, it does not ship.
+5. **Behind the Cage, with audit transparency.** Every enrichment / cross-reference action is a **Cage-gated job, Tier C** (all four brakes), and writes to the **append-only, hash-chained ledger** — who enriched what, from where, under which consent. The user can **see and export their own enrichment log** (`IDENTITY-ROLES-AUDIT` "every change attributable") and **request deletion** (immediate + verifiable).
+
+**Connection to the loop:** SSO-enrichment is a **primary fuel for D (§9) and H (§6.3) of PR #8** — accurate, consented first-party profiles are what let the LLMs "make better decisions continuously" and tune the funnel — **and it never leaves the sovereign loop, and it is never sold.**
+
 ## 15. Part II recommendation + rationale (what / not-what / because) — Darrell's to ratify
 
-**Recommendation: adopt the two-surface model (public front-door tab + exclusive gated deeper app) as ONE candidate instance of a GENERAL multi-entity pattern that holds for Church, TLC, and PoeTech at their own isolation tiers; realize ministry-units + the already-designed in-app group chat (ntfy, no phone number); and anchor staff/leader identity to per-entity domain emails through a multi-domain SSO, bridged for MVP and sovereign long-arc. Darrell ratifies the pattern; the agent does not lock it.**
+**Recommendation: adopt the two-surface model (public front-door tab + exclusive gated deeper app) as ONE candidate instance of a GENERAL multi-entity pattern that holds for Church, TLC, and PoeTech at their own isolation tiers; realize ministry-units + the already-designed in-app group chat; make identity multi-anchor (email OR phone OR app-handle) and comms OTT-first (carrier-free) with a deferred, capped, TLC-excluded SMS bridge at the edge; anchor staff/leader identity to per-entity domain emails through a multi-domain SSO (bridged MVP → sovereign long-arc) that doubles as a CONSENTED, GUARDRAILED enrichment vector for D + H — never sold, never TLC. Darrell ratifies the pattern; the agent does not lock it.**
 
 1. **DO present the two-surface split as a general pattern, not a church one-off** — *because* Darrell said "or whatever we decide works best for all businesses," and `MODULAR-EXTENSIBILITY` + `MULTI-INSTANCE-STRATEGY` already commit the platform to one-codebase-many-instances. The Church/Conference module is the **first realization**, not the only shape.
 2. **DO extend the existing Church Tab as Surface A** (don't build a new front door) and **build Surface B as the gated depth one login deeper** — *because* `CHURCH-TAB-DIRECTORY.md` already establishes the front-door + Mars Hill progressive-disclosure posture; Surface B just continues it one level.
@@ -463,13 +527,17 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 5. **DO realize the already-designed Layer-1 messaging (Postgres + ntfy) for unit group chat; keep Matrix as the deferred Layer-4; reject heavy third-party chat SDKs** — *because* it's approved, partially built, sovereign, phone-number-free, and the lightest primitive that meets the need (dependency-skepticism + sustainability-beats-convenience).
 6. **DO make identity multi-domain and anchor staff/leaders to their entity's domain email** (`@thechurchofthelivingGod.com`, `@tlctherapysolutions.com`, `@poetech.us`) — *because* it is the no-phone anchor, makes the audit trail and green-light authority legible, and is the natural Phase-3→4 SSO path.
 7. **DO bridge mail for MVP, converge to sovereign NAS mail long-arc** — *because* MVP-pragmatism: don't block login on standing up sovereign mail; the domain email is the anchor either way, only the hosting moves. Screen the sovereign-mail step against the sustainability rule before committing.
+8. **DO make identity multi-anchor — email OR phone OR app-only handle, any one suffices (§14.5)** — *because* the inclusion principle is binding: nobody is excluded for lacking email or phone or a carrier plan. The app-handle anchor is the pure-inclusion path on any browser + internet.
+9. **DO make comms OTT-first (in-app + Web Push + ntfy over data), with the SMS bridge as a deferred, opt-in, budget-capped, clearly-non-sovereign edge (§13.5)** — *because* "text over the internet" is Web Push/ntfy over data, which needs no carrier; SMS is only to *pull in* phone-only people not yet in the app, and it's the one external touchpoint — named, costed, capped, and TLC-excluded.
+10. **DO use SSO as a consented data-enrichment vector for D + H, under the five binding guardrails (§14.6)** — *because* accurate consented first-party profiles fuel better continuous decisions and funnel tuning. **Consent + transparency; internal-only never sold; TLC NO enrichment ever; values-aligned non-creepy; Cage-gated + audit-logged.** The capability is powerful, so it is governed in the body, not bolted on.
 
 **DO NOT:**
 - **DO NOT** let the two-surface pattern imply one shared database across entities — **TLC stays its own isolated `instance_id` with `is_clinical` + separate keys; no PHI ever enters the shared substrate** (§10.4). The pattern is a shape, not a data pool.
 - **DO NOT** put participant rosters, bookings, unit chat, or annual PII on the **public** front-door tab — those live only in the gated Surface B (§10.2).
 - **DO NOT** build a parallel messaging system — **realize the existing schema-v2.10 design**; don't reinvent chat.
-- **DO NOT** require a phone number for chat/identity; SMS stays an opt-in Layer-2 fallback only.
-- **DO NOT** treat TLC-domain identities as anything but ISO-1; PHI-walled, sovereign-only, never a vendor model.
+- **DO NOT** require a phone number — or an email — for chat/identity; the app-only handle (§14.5) must always work; SMS stays a budget-capped edge fallback only.
+- **DO NOT** enrich profiles without consent, sell enriched data, or **ever** enrich/cross-reference TLC clinical identities against online info (§14.6); **DO NOT** route SMS through a vendor for TLC.
+- **DO NOT** treat TLC-domain identities as anything but ISO-1; PHI-walled, sovereign-only, never a vendor model, never enriched.
 - **DO NOT** lock the pattern — **this is Darrell's decision to ratify** (he explicitly left it open); the agent surfaces the recommendation + trade-offs and stops.
 
 ---
