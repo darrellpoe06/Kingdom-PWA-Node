@@ -498,7 +498,7 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 
 | Entity | Identity domain | Primary/admin anchor | Staff identities (examples) | Tier |
 |---|---|---|---|---|
-| **Church** | **`@thechurchofthelivinggod.com`** | **`info@thechurchofthelivinggod.com`** (main Workspace account; the grant + admin anchor for item I; confirmed ConvertKit sender) | `bg@` (Bishop Gwin), `eldressredding@`, … | **ISO-2** |
+| **Church** | **`@thechurchofthelivinggod.com`** | **`info@thechurchofthelivinggod.com`** (main Workspace account; the grant + admin anchor for item I; confirmed ConvertKit sender) | `bg@` (Bishop Gwin — primary anchor; `bishoplgwin@gmail.com` = recovery-only, §14.1a), `eldressredding@`, … | **ISO-2** |
 | **TLC** | `@tlctherapysolutions.com` | practice admin account | staff practice accounts | **ISO-1 — PHI-walled** |
 | **PoeTech** | `@poetech.us` | platform admin account | product/team accounts | ISO-3 |
 | **Partner org** | their own domain | their admin account | per sovereign node | their tier |
@@ -506,6 +506,23 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 **The church's primary identity is `info@thechurchofthelivinggod.com`** — the main Workspace account, the target of the §3.0 service-account grant, and the **admin anchor for the church-domain identity layer (item I)**. **`bg@` (Bishop Gwin), `eldressredding@`, and the other named mailboxes are staff identities on the same domain**, federated through the same SSO substrate.
 
 **Staff / unit-leader SSO login AND in-app group-chat identity key off these domain emails.** That is the concrete "no phone number" anchor for staff/leaders: identity is the **domain email**, federated through the SSO substrate. (Members may hold lighter identities — e.g., a magic-link/passkey account or the app-only handle of §14.5, without a church-domain mailbox — but **staff/leaders are domain-email accounts**, which is also what makes the audit trail and the green-light authority legible.) This is the `IDENTITY-ROLES-AUDIT` **Phase 3 (cloud auth) → Phase 4 (SSO via SAML/OIDC)** path, made concrete and **per-domain** — with `info@` as the church's Owner/Administrator anchor.
+
+### 14.1a Sovereign-domain-primary rule — staff/leaders anchor on the domain, personal email is recovery-only (Darrell decision, 2026-06-09)
+
+**Binding rule (declared by Darrell):** **a staff/leader's PRIMARY SSO identity is their sovereign domain account; a personal email (Gmail, etc.) is at most a LINKED / RECOVERY contact, NEVER the auth anchor.** This is the per-entity domain-based sovereign-SSO pattern (§14.1) applied to the person.
+
+**The named case — Bishop Gwin:**
+
+| | |
+|---|---|
+| **Primary SSO identity (auth anchor)** | **`bg@thechurchofthelivinggod.com`** — the sovereign domain account; this is what he authenticates with, what carries his Owner/leader role + green-light authority, and what keys his in-app group-chat identity. |
+| **Linked / recovery contact only** | **`bishoplgwin@gmail.com`** — a recovery + notification fallback **linked** to the `bg@` identity. **Not an auth anchor; cannot be used to assert his church role.** |
+
+**Generalized (the rule for every staff/leader, every entity):**
+- **Domain account = the primary anchor.** Staff/leaders authenticate on their entity's sovereign domain (`@thechurchofthelivinggod.com`, `@tlctherapysolutions.com`, `@poetech.us`). Role, audit attribution, and green-light authority bind to the **domain identity**, never to a personal address.
+- **Personal email = optional linked recovery, never the anchor.** A personal Gmail/iCloud/etc. may be **linked** for account recovery and notification fallback, but it **cannot be the login identity** and **cannot carry role/authority**. (This closes the `IDENTITY-ROLES-AUDIT` "permission-revocation lag" + "cross-instance role bleed" risks: revoking the domain account revokes access; a personal address never grants it.)
+- **Sovereignty + legibility:** the sovereign domain is the relationship and the record we own (PR #8 §7); anchoring on it — not on a vendor-owned personal mailbox — keeps identity, audit trail, and authority inside the sovereign loop.
+- **Reconciles with §14.5 multi-anchor inclusion:** multi-anchor (email **or** phone **or** app-handle) is for **members** (maximum inclusion); **staff/leaders are held to the stricter domain-primary rule** because their identity carries authority and must be revocable + legible. Members include everyone; leaders are anchored sovereign.
 
 ### 14.2 Current-state — RESOLVED by the 2026-06-09 Workspace inventory
 
@@ -534,13 +551,13 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 
 | Anchor | Who it's for | Auth method | Notes |
 |---|---|---|---|
-| **(a) Domain email** | **Staff / leaders** (`@thechurchofthelivinggod.com`, etc.) | SSO / OIDC (§14.1–14.3) | The legible audit + green-light anchor; the enrichment vector (§14.6). |
+| **(a) Domain email** | **Staff / leaders** (`@thechurchofthelivinggod.com`, etc.) | SSO / OIDC (§14.1–14.3) | The legible audit + green-light anchor; the enrichment vector (§14.6). **Per §14.1a this is the PRIMARY anchor for staff/leaders; a personal email is recovery-only, never the auth anchor** (e.g. Bishop Gwin: primary `bg@thechurchofthelivinggod.com`, recovery `bishoplgwin@gmail.com`). |
 | **(b) Phone number** | Members who have a phone | OTP/passkey; SMS OTP only if they have carrier service, else WhatsApp/OTT or the app | A phone is **sufficient but not required**. |
 | **(c) App-only handle + passcode** | **Anyone with neither email nor phone** | A chosen handle + PIN/passkey on the device (the `IDENTITY-ROLES-AUDIT` Phase-2 local-profile pattern, promoted to a real account) | **The pure-inclusion path** — works on any browser + internet, no email, no phone, no carrier. |
 
 - **Any one anchor suffices to create a real account.** All three resolve to the same `instance_members.user_id` (the chat + audit identity). A member can **add** anchors later (claim an email, link a phone) — additive, never required.
 - **PWA-first** so the app-handle path works on any device with a browser; no app-store gate, no SIM, no inbox needed.
-- **Per-entity isolation holds:** **staff/leaders are domain-email accounts** (legibility + enrichment); **members may use any anchor**; **TLC** identities stay ISO-1 and PHI-walled regardless of anchor.
+- **Per-entity isolation holds:** **staff/leaders are domain-email accounts — domain-primary, personal email recovery-only (§14.1a)**; **members may use any anchor**; **TLC** identities stay ISO-1 and PHI-walled regardless of anchor.
 - This is the `IDENTITY-ROLES-AUDIT` phased model extended: Phase 2 local profiles → Phase 3 cloud auth (passkey / magic-link / OAuth) → Phase 4 SSO — **with the app-handle anchor making Phase 3 reachable for the email-less and phone-less.**
 
 ### 14.6 SSO as consented data-enrichment — capability + BINDING guardrails (governed, not bolted on)
