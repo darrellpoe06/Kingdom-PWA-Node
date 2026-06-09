@@ -18,6 +18,8 @@
 | R10 | Sovereignty roadmap (Phase 1–4) | decided | DR-0029 | sequencing only; rides R4/R5/R6 (~Jul–Aug 2026) | Darrell + Claude |
 | R11 | Module specs built (PMO, template, Want-To-Use, Flywheel, HumDev, Growth, Self-Extending, Cohort, Auto-Tagging) | decided | DR-0027…024 | R4 runner; build per Composable Spine (DR-0039) | Claude + Darrell |
 | R12 | Self-serve status dashboard — owned observability (extends NAS dispatch-status: node/LLM health, build queue, Cage-ledger events, ntfy push; removes Claude as single source of truth) | planned | DR-0040; `EXECUTION-OUTCOME-OBSERVABILITY.md`; part of R4 | R4 runner; enable dispatch-status (an R8 safe-21) | Claude + Darrell |
+| R13 | Convert the 16 timer workflows to event-driven (trigger fires only on a real event; keep only genuine single-fire schedules behind the Cage) | decided | DR-0042; three-brakes | R8 home-n8n access (the 16 timer wfs are on HOLD there); per-wf event-source mapping | Claude + Darrell |
+| R14 | Event usage-ranking + analytics view on the dashboard (most-used → least-used by type/tag/tier; drives reduce/increase; aggregate-only, PHI walled out, bounded retention) | planned | DR-0043; extends R12; `EXECUTION-OUTCOME-OBSERVABILITY.md` | R12 dashboard; events-as-data roll-up + retention window | Claude + Darrell |
 
 † No hardware-specific DR yet; DR-0030/015 are the module-template decisions, not BOMs. Writing the BOM docs (and optional hardware DRs) is part of R5/R6.
 

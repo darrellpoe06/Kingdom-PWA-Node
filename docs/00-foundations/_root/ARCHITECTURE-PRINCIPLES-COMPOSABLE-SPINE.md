@@ -2,7 +2,7 @@
 
 **Layer 3 foundation. Added 2026-06-09, declared with Darrell.**
 **Status:** Binding architectural standard. **Spec / record only — this document authorizes no code, no purchases, no money movement, and no autonomous execution.** Standing up anything named here is a separately governed decision.
-**Decision records:** **DR-0039** (flexibility-from-discipline + the Composable Spine) and **DR-0040** (the Situational Auto-Tagging Engine + the auto-tag-vs-auto-mutation governance line) — see `docs/decisions/INDEX.md`.
+**Decision records:** **DR-0039** (flexibility-from-discipline + the Composable Spine), **DR-0040** (the Situational Auto-Tagging Engine + the auto-tag-vs-auto-mutation governance line), **DR-0042** (event-driven by default, §6.4), **DR-0043** (event usage-ranking / analytics on the tag stream, §5d), and **DR-0044** (Interface-as-Collaborative-Partner, §7) — see `docs/decisions/INDEX.md`.
 
 **Builds on (reference, do not rebuild):**
 - `MODULAR-EXTENSIBILITY.md` — one module per file; three lines to add, three to remove; one codebase, many instances. This document is the *system-level* companion to that *codebase-level* rule.
@@ -118,6 +118,20 @@ Tagged situations are structured signal for the **Continuous-Improvement + Skill
 ### Why this delivers "fewer change requests"
 A system that **classifies, routes, and proposes itself** removes the human triage step that change-requests otherwise pile up behind. The work sorts itself to the right module; the isolation enforces itself; the next-capability proposal writes itself. The human is freed to *decide*, not to *route*. That is the core principle paying off at the operational layer: discipline in the tagging contract buys flexibility in throughput.
 
+### (d) RANK usage — analytics that drive reduce / increase decisions
+
+The three jobs above read each tag as it arrives. The tag stream is **also a usage signal in aggregate.** Roll up the tagged events and **rank them most-used → least-used** — counts and trend, broken out by **type, tag, and tier** — and surface that ranking on the **self-serve status dashboard** (R12; `EXECUTION-OUTCOME-OBSERVABILITY.md`). The ranking is what makes **reduce / increase** decisions data-driven instead of guessed:
+
+- **Hot paths (most-used):** either **optimize** them — they have earned the investment — or **root-cause-reduce** them. A path fired constantly because something upstream keeps failing is a *problem to fix*, not a feature to scale; the ranking distinguishes the two.
+- **Cold paths (least-used):** either **prune** them (dead weight the spine carries for no one) or **promote** them (valuable but undiscovered — a discoverability fix, not a deletion).
+- **Frequent-but-untagged** situations are an **anticipation signal** — real demand reaching past the edge of what the tags know how to classify. This feeds §5(b) / the Self-Extending Layer (DR-0037): the gap *is* the next capability formulating itself.
+
+**Guardrails (binding):**
+- **AGGREGATE only.** This is roll-up statistics, never individual surveillance (`DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`). No per-person usage profile is built, stored, or surfaced.
+- **TLC / PHI walled out of analytics.** The ISO-1 / clinical tier and legal privilege never enter the analytics roll-up (§4 — cross-entity roll-up never crosses an isolation firewall).
+- **BOUNDED.** The analytics **roll up and then prune the raw events on a retention window** — the aggregate persists, the raw tail does not grow forever (no tail-eating; the same bounded-self-pruning discipline the Build Roadmap holds).
+- **Reduce / increase are PROPOSALS, not actions.** A ranking that says "reduce this path" routes through **propose → govern → build** (§6.2). The analytics surface *what to change*; they never change it autonomously.
+
 ---
 
 ## 6. Governance Lines (binding)
@@ -144,9 +158,43 @@ The system may classify the world and propose what comes next *all day long* (ad
 ### 6.3 Governance scales with power
 The flexibility this whole document buys is also *reach* — and reach is exactly what makes a mistake costly. So the binding posture: **as the platform's capability grows, the Cage + brakes + audit grow with it.** A more capable platform earns *more* governance, not a pass on it. This is not friction added for its own sake (`RELEASE-TIERS.md` warns against unearned gates); it is the governance *matched to* the blast radius the capability creates.
 
+### 6.4 Event-driven by default — the runaway shape, removed at the trigger
+
+A workflow's trigger fires **only when a real event lands.** The clock is a legitimate trigger **only when the clock genuinely IS the event** — a single-fire scheduled task (a dated reminder, a daily digest, a nightly backup), and then only behind the Cage. What is **never** permitted is **high-frequency polling or a self-re-queuing loop** — a workflow that wakes on a timer to *check whether* there is work, or that re-schedules itself to run again.
+
+**Rationale — three payoffs at once:**
+- **It removes the runaway shape.** There is no loop to spin. The 2026-06-06 runaway (`feedback_autonomous_automation_three_brakes`; `LESSONS-LEARNED.md`) was a timer-driven, self-re-queuing fleet; an event-driven trigger has nothing to run away *into* — it sits idle until a real event arrives.
+- **It kills idle consumption.** A polling loop burns compute every interval whether or not there is work; an event-driven trigger consumes nothing until there is something to do.
+- **It is real-time / faster than polling.** The work starts the instant the event lands, not on the next poll tick — lower latency *and* lower cost, the rare case where the safer design is also the faster one.
+
+This pairs with the three brakes (§6.3 / `feedback_autonomous_automation_three_brakes`): the brakes *bound* a timer that must exist (a genuine single-fire schedule); event-driven-by-default *removes* the timers that should never have existed in the first place. Converting the existing timer workflows to event-driven triggers is tracked on the Build Roadmap (`BUILD-ROADMAP.md`).
+
 ---
 
-## 7. Don't-Miss Checklist
+## 7. Interface as Collaborative Partner
+
+The PoeTech App interface is modeled on **how Darrell and Claude actually work together** — a **collaborative partner you converse with**, not a forms-and-dashboards app you operate. This is an architecture principle, not a UI-polish note: it sets *what the front door is.*
+
+**The paradigm shift.** The mainstream app makes the human the operator — the human navigates menus, fills forms, reads dashboards, and assembles the answer themselves. The PoeTech interface inverts that: the human **converses**; the system does the operating. You **discuss → decide → it executes.** Forms and dashboards remain a **fallback mode** — there for when direct manipulation is genuinely faster — but **conversation is the front door**, not a chatbot bolted onto a control panel.
+
+**The binding qualities of the partner:**
+
+- **Conversational, not navigational.** You talk to it; you do not hunt through a navigation tree for the screen that holds the thing you need.
+- **Discuss → decide → it executes.** Agreement turns into action without the human hand-assembling the steps. (The Want-To-Use Bar's "does-the-toil" property, DR-0033, realized at the interface.)
+- **It BRINGS you the substance.** It reviews, summarizes, and reads back — the user **never has to go dig.** The system surfaces what matters; the human does not mine for it.
+- **Anticipates and proposes; the human governs.** It sees what is coming and offers it (the auto-tagging anticipation, §5b) — and then waits. **Propose → govern → build** (§6.2) is the *interaction* contract, not only the *build* contract.
+- **Holds the line honestly.** It flags risk, tells the truth, and **refuses the unsafe thing even when asked.** The guardrails — the Cage, the isolation tiers, the brakes — are **part of the design, not friction bolted on.** A partner that will not help you hurt yourself is a *better* partner, not a more annoying one.
+- **Transparent and bounded.** It shows what it is doing; the user is **never "at its mercy" for status.** (The self-serve status dashboard, R12, is this quality made concrete — owned observability so the human is never blind to what the system is up to.)
+- **Anxiety-clarity, always.** Every surface answers **what / when / why / how** (`ANXIETY-CLARITY-PRINCIPLE.md`) — the partner meets the scared, time-pressed human where they are.
+- **The Want-To-Use bar.** The test is DR-0033's: the human reaches for it **because it is this good a partner** — pull, not push.
+
+**Why this belongs in the architecture doc and not a design sketch.** A conversational front door only holds up if the spine underneath it is disciplined. The partner can "just do it" *because* the modules are single-responsibility and composable (§2), the versioned contracts let it route without breaking anything (§3), the isolation tiers let it act on sensitive data safely (§4), the tagging engine lets it classify-and-route what you said (§5), and the Cage lets it act autonomously *within bounds* (§6). The collaborative interface is the **payoff** of the Composable Spine, surfaced to the human as a partner instead of a control panel. It is the same relationship this document was authored in.
+
+**Ties to:** the **Want-To-Use Bar** (DR-0033, the senior success metric); **PM-as-automation** (DR-0029 — guide / enforce / escalate, the same "manage at quality without being the expert" economics applied to the interface); and the **Conversational Space Architecture** (`CONVERSATIONAL-SPACE-ARCHITECTURE.md`). That document governs the *public many-to-many* room; this section governs the *private 1:1 app interface* — the Council Chamber's `INTAKE-AND-FIT` / `MODE-ROUTING` posture (the system deduces the needed process from what you say) applied to the whole app.
+
+---
+
+## 8. Don't-Miss Checklist
 
 The short list of what this document forbids you to skip. Run it before standing up the spine, any data service, or any module.
 
