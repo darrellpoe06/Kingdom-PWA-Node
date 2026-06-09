@@ -20,6 +20,7 @@
 5. **The Continuous-Improvement + Skill-Growth Flywheel (§4):** every module inherits three nested feedback loops — module self-improvement, skills-match learning, and a people-growth layer — so modules and matches get better over time and people grow their skills and their 1099 earning capacity. The people-growth loop opens into a **Human Development + Pocket Education layer (§4.1)** — a pluggable assessment-framework library (Maslow / Munroe / Dreyfus / Ikigai / strengths / spiritual-gifts / andragogy; the person *selects*, agency-first), "education in your pockets 24/7" — grounded in a **Foundational Growth Process (3rd / 4th-dimensional, §4.2)**, Darrell's declared worldview spine the system is built to. Wellbeing/dignity-guarded throughout: consent, self-owned assessments, no pathologizing; growth and self-determination are the goal, never engagement or judgment.
 6. **It is the convergence** of per-industry sovereign-LLM-teams + the SKOS marketplace (experience over credentials; prebuilt role modules). (§5)
 7. **Instances** (§6): #1 **PMO**, #2 **Legal**, plus a **prioritized candidate list** (IT/network ops, accounting, HR, marketing, real-estate, church ops, counseling — ISO-1 walled).
+   - **Self-Extending Layer (§6.1):** the OS **anticipates** the next module from signals (events-as-data pattern detection), **communicates** a living "what to build" roadmap (the PMO module pointed at PoeTech's own portfolio — dogfooding the recursion), and lets the community **collaborate** on the build (template + QA + Cage; "for us, by us"). Build is **opportunistic** (capacity + willing collaborators + greenlight; never timer-driven). Governance line: anticipation/communication may run autonomously (advisory/read-only); **actual build only on Darrell's greenlight** — system PROPOSES, human GOVERNS, collaborators BUILD.
 8. **Prioritization lens** (§7): rank candidate industries by **pipeline value**, tied to the three-ring market and the Workforce Layer.
 9. **This is a PLAN.** No code, no purchases. (§8)
 
@@ -237,6 +238,46 @@ Where they meet: a **prebuilt, sovereign, per-industry role module** that a non-
 | **Counseling (TLC domain)** | **ISO-1 walled, sovereign-only** — the clinical tier; high trust, high differentiation, but gated behind the strictest isolation (PHI firewall) and never commingled. |
 
 Recorded as **DR-016.**
+
+---
+
+## 6.1 Self-Extending Layer — Anticipation, Communication & Collaboration
+
+> Darrell, 2026-06-09: *"Anticipation of new modules, and communicate what we are needing to build, and even collaboration."*
+
+The pattern doesn't just let humans add modules by hand — the OS **helps decide which module to build next, says so clearly, and lets the community help build it.** Three parts, with a hard governance line between sensing and building.
+
+### 1. Anticipation (demand-sensing)
+The OS **predicts the next high-value module from signals** it already collects:
+
+- **User gaps** — where users repeatedly try to do something no module yet supports.
+- **Recurring task types with no module yet** — pattern detection across **events-as-data** (`EXECUTION-OUTCOME-OBSERVABILITY.md`, `INSTITUTIONAL-MEMORY-EVENTS.md`): e.g. recurring **bookkeeping** requests with no home → **anticipate an Accounting module.**
+- **Market signals** — Ring-2/Ring-3 demand surfacing in the directory and intake.
+- **Feedback / flywheel data** — Loop 1–3 signals (§4) showing where people keep reaching past the edge of what exists.
+- **Darrell's vision inputs** — the governor's strategic direction is a first-class signal, not an afterthought.
+
+This **operationalizes the existing needs-driven-prebuild principle** (`WORKFLOW-MODULE-LIBRARY.md`): build the module the demand is already asking for, rather than guessing. Anticipation is **pattern detection + forecast** — it produces a *ranked candidate list*, nothing more.
+
+### 2. Communication (a living build roadmap)
+Anticipation is surfaced as a **prioritized "what we need to build" backlog** — and it is implemented by **pointing the PMO module (DOC 1) at PoeTech's OWN product portfolio.** This is **dogfooding the recursion:** the project-portfolio module manages the portfolio of *building the modules.* It communicates — to **Darrell, the team, and collaborators** — **what** is needed, **why** it matters, and its **value-to-pipeline rank** (§7 lens), all in **anxiety-clarity** terms (what / when / why / how). The roadmap is a living overview (the §2/§3 capabilities of DOC 1), not a stale list.
+
+### 3. Collaboration (built together, "for us, by us")
+New modules are **built collaboratively** — by the **1099 Workforce Layer + partners + community contributors** — **via the module template** (configure, don't custom-build, §2). Every contribution is **QA-gated** (the Quality Gatekeeper, wf36) and runs **behind the Cage** (`infra/ai-orchestrator/`). This extends **"for us, by us"** from *using* the OS to *building* the OS itself — the community that the platform serves also helps grow it.
+
+### Posture: opportunistic, never forced ("when possible")
+Per Darrell's refinement: **collaboration and the actual module BUILD are an OPPORTUNISTIC posture** — gated on **available capacity, willing collaborators, and Darrell's greenlight.** A build happens when the moment is **right and resourced**, never forced and **never timer-driven.** **Anticipation and communication, by contrast, run continuously** — they are advisory and cheap (forecast + surface), so they stay always-on; **building waits for the right, resourced moment.** This reinforces the advisory-anticipation / human-governed-build split below.
+
+### Governance guardrail (binding — echoes the runaway lesson)
+There is a hard line between **sensing** and **building:**
+
+- **Anticipation + communication MAY run autonomously** — they are **ADVISORY / read-only** (forecast and surface). Nothing is built, bought, or changed by them.
+- **Actual module BUILD happens ONLY on Darrell's greenlight**, **behind the Cage**, with **collaborator QA.** The split is explicit: **the system PROPOSES, the human GOVERNS, collaborators BUILD.**
+- **No autonomous module-creation runaway.** Any autonomous *build* step is **Tier C** with all **three brakes** (budget, concurrency lock, kill-switch), inactive → watched → never unattended (`feedback_autonomous_automation_three_brakes`, `RELEASE-TIERS.md`). This directly echoes the 2026-06-06 runaway lesson: advisory may flow; action waits for the governor.
+
+### The recursion (stated explicitly)
+The **PMO module managing PoeTech's own module pipeline** is **the system using itself to grow itself.** It is also the **ultimate Want-To-Use test (§3):** if the team building PoeTech *voluntarily reaches for* PoeTech to manage the building of PoeTech, the bar is cleared at the hardest possible altitude — the makers prefer their own tool for their own hardest work.
+
+Recorded as **DR-021.**
 
 ---
 
