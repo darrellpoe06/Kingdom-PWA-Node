@@ -17,6 +17,61 @@
     },
     {
       "parameters": {
+        "jsCode": "// L16 Bearer guard (defense-in-depth behind the D17 client gate).\n// Returns 401 unless the request carries the shared bearer token. The wf18\n// payload is real bank + Gmail PII (~2,020 Chase rows incl. Cash App / Zelle),\n// so this is the NAS-side server gate that pairs with the repo-side client\n// gate from D17 (Imported tab hidden + fetch skipped on demo / profileless\n// loads). Either gate alone fails closed.\n//\n// Where the expected secret comes from:\n//   1. /data/finance-events/_secrets/n8n-webhook-bearer.txt  (PREFERRED file;\n//      the _-prefixed path lives on the confirmed wf18 bind mount and is\n//      skipped by every directory walker in this repo)\n//   2. process.env fallback (N8N_WEBHOOK_BEARER / VITE_N8N_BEARER)\n// On this n8n install, process.env access inside Code nodes is unreliable\n// (the wf30/31/32 sandbox fix, D5 / L7), so the mounted-file path is primary.\n// The companion apply script writes that file and prints the value so Darrell\n// can paste the SAME value into the Vercel env var VITE_N8N_BEARER.\n//\n// FAILS CLOSED: if no expected secret is configured, every request is denied.\n// That is deliberate — a misconfigured guard must deny PII, never leak it.\n\nconst fs = require('fs');\n\nlet expected = '';\ntry { expected = (fs.readFileSync('/data/finance-events/_secrets/n8n-webhook-bearer.txt', 'utf8') || '').trim(); } catch (_) {}\nif (!expected) {\n  try { expected = (process.env.N8N_WEBHOOK_BEARER || process.env.VITE_N8N_BEARER || '').trim(); } catch (_) {}\n}\n\nconst input = $input.first().json || {};\nconst headers = (input.headers && typeof input.headers === 'object') ? input.headers : {};\nconst raw = (headers.authorization || headers.Authorization || '').toString();\nconst presented = raw.replace(/^Bearer\\s+/i, '').trim();\n\nconst authorized = !!expected && !!presented && presented === expected;\n\n// Pass the original webhook payload through untouched (the Aggregate node\n// still reads .query / .headers), with the verdict flag appended.\nreturn [{ json: Object.assign({}, input, { __authorized: authorized }) }];"
+      },
+      "id": "9f7e2a10-18a0-4180-8180-aaaaaaaaaa04",
+      "name": "Bearer check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [380, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "loose"},
+          "conditions": [
+            {
+              "id": "auth-cond-1",
+              "leftValue": "={{ $json.__authorized }}",
+              "rightValue": true,
+              "operator": {"type": "boolean", "operation": "true", "singleValue": true}
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f7e2a10-18a0-4180-8180-aaaaaaaaaa05",
+      "name": "Authorized?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [560, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: 'unauthorized', hint: 'this endpoint serves private financial data and requires a bearer token' }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {"name": "Content-Type", "value": "application/json"},
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization"},
+              {"name": "Cache-Control", "value": "no-store"}
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-18a0-4180-8180-aaaaaaaaaa06",
+      "name": "Respond 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [760, 460]
+    },
+    {
+      "parameters": {
         "jsCode": "// Aggregate all ingested finance data from disk and return it as a single\n// JSON response the PWA can render. Pure read-only — no mutations.\n//\n// PHASE 2B (2026-05-28): also surfaces per-institution bank balances from\n// the new _balance.json files that workflow 15 writes (LEDGERBAL +\n// AVAILBAL captured from QFX). Plus per-institution activity rollups\n// (tx count, inflow, outflow, latest tx date) so the PWA's Accounts tab\n// can show a real bank-derived view alongside the manual balance.\n//\n// Reads:\n//   /data/finance-events/bank/<institution>/<txid>.json\n//   /data/finance-events/bank/<institution>/_balance.json (NEW)\n//   /data/finance-events/gmail/<id>.json\n//   /data/chatin/_reconcile_state.json (workflow 16's state file)\n//\n// Output shape: { transactions, gmail_events, bank_balances, counts, page }\n\nconst fs = require('fs');\nconst path = require('path');\n\nconst BANK_ROOT = '/data/finance-events/bank';\nconst GMAIL_DIR = '/data/finance-events/gmail';\nconst STATE_FILES = [\n  '/data/chatin/_reconcile_state.json',\n  '/data/finance-events/_reconcile_state.json'\n];\n\nconst input = $input.first().json || {};\nconst q = (input.query && typeof input.query === 'object') ? input.query : (input.body && input.body.query) || {};\nconst limit = Math.min(parseInt(q.limit || '500', 10) || 500, 5000);\nconst offset = parseInt(q.offset || '0', 10) || 0;\nconst institutionFilter = (q.institution || '').toLowerCase();\nconst statusFilter = (q.status || 'all').toLowerCase();\nconst sinceFilter = q.since ? new Date(q.since).getTime() : 0;\n\nfunction walk(dir, out, depth) {\n  if (depth > 4) return;\n  let entries;\n  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }\n  for (const e of entries) {\n    if (e.name.startsWith('_')) continue;\n    const full = path.join(dir, e.name);\n    if (e.isDirectory()) walk(full, out, depth + 1);\n    else if (e.name.endsWith('.json')) out.push(full);\n  }\n}\n\n// Load reconcile state for status lookups.\nlet reconcileState = { reconciled_ids: {} };\nfor (const sf of STATE_FILES) {\n  try {\n    reconcileState = JSON.parse(fs.readFileSync(sf, 'utf8'));\n    break;\n  } catch (_) {}\n}\n\nfunction lookupStatus(key) {\n  const r = reconcileState.reconciled_ids && reconcileState.reconciled_ids[key];\n  return (r && r.status) || 'unknown';\n}\n\n// Phase 2B — gather per-institution bank balance from each _balance.json.\nconst bankBalances = {};\nlet instDirs = [];\ntry {\n  instDirs = fs.readdirSync(BANK_ROOT, { withFileTypes: true })\n    .filter(d => d.isDirectory() && !d.name.startsWith('_'))\n    .map(d => d.name);\n} catch (_) {}\nfor (const inst of instDirs) {\n  const balPath = path.join(BANK_ROOT, inst, '_balance.json');\n  try {\n    const rec = JSON.parse(fs.readFileSync(balPath, 'utf8'));\n    bankBalances[inst] = rec;\n  } catch (_) {}\n}\n\n// Load bank transactions.\nconst bankFiles = [];\nwalk(BANK_ROOT, bankFiles, 0);\n\nconst bankTransactions = [];\nconst perInstitution = {};\nfor (const f of bankFiles) {\n  let rec;\n  try { rec = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (_) { continue; }\n  const t = rec.transaction || {};\n  const inst = (rec.institution || '').toLowerCase();\n  if (institutionFilter && inst.indexOf(institutionFilter) === -1) continue;\n  const posted = t.posted || rec.captured_at;\n  const postedMs = posted ? new Date(posted).getTime() : 0;\n  if (sinceFilter && postedMs < sinceFilter) continue;\n  const statusKey = inst + ':' + (t.fitid || (posted + '-' + t.amount + '-' + (t.name || '')));\n  const status = lookupStatus(statusKey);\n  if (statusFilter !== 'all' && status !== statusFilter) continue;\n  bankTransactions.push({\n    id: path.basename(f, '.json'),\n    source: 'bank',\n    institution: rec.institution,\n    source_file: rec.source_file,\n    posted: t.posted,\n    amount: t.amount,\n    name: t.name,\n    memo: t.memo,\n    type: t.type,\n    fitid: t.fitid,\n    status,\n    captured_at: rec.captured_at\n  });\n  if (!perInstitution[inst]) perInstitution[inst] = { count: 0, in: 0, out: 0, latest: null };\n  const agg = perInstitution[inst];\n  agg.count += 1;\n  if (typeof t.amount === 'number') {\n    if (t.amount > 0) agg.in += t.amount;\n    else agg.out += t.amount;\n  }\n  if (posted && (!agg.latest || posted > agg.latest)) agg.latest = posted;\n}\n\n// Merge per-institution rollups into bankBalances.\nfor (const inst of Object.keys(perInstitution)) {\n  if (!bankBalances[inst]) bankBalances[inst] = { institution: inst };\n  Object.assign(bankBalances[inst], {\n    tx_count: perInstitution[inst].count,\n    inflow_sum: Math.round(perInstitution[inst].in * 100) / 100,\n    outflow_sum: Math.round(perInstitution[inst].out * 100) / 100,\n    net_change: Math.round((perInstitution[inst].in + perInstitution[inst].out) * 100) / 100,\n    latest_tx_date: perInstitution[inst].latest\n  });\n}\n\n// Load Gmail finance events.\nlet gmailFiles = [];\ntry {\n  gmailFiles = fs.readdirSync(GMAIL_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).map(f => path.join(GMAIL_DIR, f));\n} catch (_) {}\n\nconst gmailEvents = [];\nfor (const f of gmailFiles) {\n  let rec;\n  try { rec = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (_) { continue; }\n  const internalDate = rec.internal_date || rec.captured_at;\n  if (sinceFilter && internalDate && new Date(internalDate).getTime() < sinceFilter) continue;\n  const status = lookupStatus(rec.gmail_id);\n  if (statusFilter !== 'all' && status !== statusFilter && status !== 'unknown') continue;\n  gmailEvents.push({\n    id: rec.gmail_id || path.basename(f, '.json'),\n    source: 'gmail',\n    from: rec.from,\n    subject: rec.subject,\n    snippet: rec.snippet,\n    internal_date: internalDate,\n    amount: rec.extracted && rec.extracted.amount,\n    direction: rec.extracted && rec.extracted.direction,\n    status,\n    captured_at: rec.captured_at\n  });\n}\n\nbankTransactions.sort((a, b) => (b.posted || '').localeCompare(a.posted || ''));\ngmailEvents.sort((a, b) => (b.internal_date || '').localeCompare(a.internal_date || ''));\n\nconst pagedBank = bankTransactions.slice(offset, offset + limit);\nconst pagedGmail = gmailEvents.slice(0, Math.min(200, gmailEvents.length));\n\nconst statusCounts = { verified: 0, unconfirmed: 0, unexplained: 0, unknown: 0 };\nfor (const t of bankTransactions) statusCounts[t.status] = (statusCounts[t.status] || 0) + 1;\n\nconst institutions = Array.from(new Set(bankTransactions.map(t => t.institution).filter(Boolean))).sort();\n\nreturn [{\n  json: {\n    served_at: new Date().toISOString(),\n    counts: {\n      total_bank: bankTransactions.length,\n      total_gmail: gmailEvents.length,\n      status_counts: statusCounts,\n      institutions\n    },\n    bank_balances: bankBalances,\n    transactions: pagedBank,\n    gmail_events: pagedGmail,\n    page: { limit, offset, has_more: offset + limit < bankTransactions.length }\n  }\n}];"
       },
       "id": "9f7e2a10-18a0-4180-8180-aaaaaaaaaa02",
@@ -35,7 +90,7 @@
               {"name": "Content-Type", "value": "application/json"},
               {"name": "Access-Control-Allow-Origin", "value": "*"},
               {"name": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS"},
-              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization"},
               {"name": "Cache-Control", "value": "no-store"}
             ]
           }
@@ -50,7 +105,16 @@
   ],
   "connections": {
     "Webhook (PWA fetch)": {
-      "main": [[{"node": "Aggregate finance data", "type": "main", "index": 0}]]
+      "main": [[{"node": "Bearer check", "type": "main", "index": 0}]]
+    },
+    "Bearer check": {
+      "main": [[{"node": "Authorized?", "type": "main", "index": 0}]]
+    },
+    "Authorized?": {
+      "main": [
+        [{"node": "Aggregate finance data", "type": "main", "index": 0}],
+        [{"node": "Respond 401", "type": "main", "index": 0}]
+      ]
     },
     "Aggregate finance data": {
       "main": [[{"node": "Respond with JSON", "type": "main", "index": 0}]]
@@ -66,7 +130,8 @@
   "tags": [
     {"name": "pwa-api"},
     {"name": "finance-read"},
-    {"name": "sovereign-loop"}
+    {"name": "sovereign-loop"},
+    {"name": "auth-guard"}
   ],
   "meta": {
     "instanceId": "poe-family"
