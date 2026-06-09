@@ -65,6 +65,7 @@
 | **DeepSeek V4** | large MoE | Best perf-to-inference-cost of frontier-open | multi-GPU | **dual-3090 / beyond** | **MIT** | **S2/S3** | $0 marg. |
 | Gemma 4 27B | 27B | Strong general | ~16–20 GB | 2× 4070 / GPU box | Gemma terms | S2 | license less permissive — screen. |
 | **Claude / Gemini** | vendor | Frontier ceiling; escalation reasoner | n/a | vendor API | proprietary | **S4** | **$$** $25 soft / $50 hard. **Never TLC.** |
+| **Qwen2.5-VL (7B / 32B)** | 7B–32B VLM | **Vision-language — event-driven surveillance scene analysis** (COLG build, [DR-0016]); reads Frigate events, not every frame | ~6–8 GB (7B) / ~20 GB (32B Q4) | 1× 4070 (7B) / 48 GB node (32B + LLM) | Apache-2.0 | **S1** | $0 marg. The church-node surveillance VLM; pairs with a 14B text LLM on the 48 GB node. |
 
 ### B. Retrieval / embedding (code + site RAG)
 
