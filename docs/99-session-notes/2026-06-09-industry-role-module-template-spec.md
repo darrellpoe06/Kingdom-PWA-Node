@@ -17,7 +17,7 @@
 2. Darrell's directive (verbatim intent): *"I would like this for every industry that could also add value to the pipeline of the PoeTech app."* (§1)
 3. **The five-part template** (§2): (1) **encode the discipline** so a non-expert operates at expert quality; (2) **federate** the industry's existing systems; (3) **plug into the shared OS spine**; (4) **feed the pipeline** (each module = tenant + market segment + workforce category + data source); (5) **onboard by configuration** ("new industry in days").
 4. **The senior success metric is the Want-To-Use Bar (§3):** PoeTech must be so good the role-holder **voluntarily reaches for it** in any role — **pull, not push.** A module is judged by whether the role-holder **PREFERS** it, not whether it is feature-complete. Five binding properties: makes-you-better / does-the-toil / near-zero-friction / meets-you-where-you-are / earns-trust.
-5. **The Continuous-Improvement + Skill-Growth Flywheel (§4):** every module inherits three nested feedback loops — module self-improvement, skills-match learning, and a people-growth / upskilling layer — so modules and matches get better over time and people grow their skills and their 1099 earning capacity. Wellbeing-guarded: motivation from real progression, never dark patterns.
+5. **The Continuous-Improvement + Skill-Growth Flywheel (§4):** every module inherits three nested feedback loops — module self-improvement, skills-match learning, and a people-growth layer — so modules and matches get better over time and people grow their skills and their 1099 earning capacity. The people-growth loop opens into a **Human Development + Pocket Education layer (§4.1)** — a pluggable assessment-framework library (Maslow / Munroe / Dreyfus / Ikigai / strengths / spiritual-gifts / andragogy; the person *selects*, agency-first), "education in your pockets 24/7" — grounded in a **Foundational Growth Process (3rd / 4th-dimensional, §4.2)**, Darrell's declared worldview spine the system is built to. Wellbeing/dignity-guarded throughout: consent, self-owned assessments, no pathologizing; growth and self-determination are the goal, never engagement or judgment.
 6. **It is the convergence** of per-industry sovereign-LLM-teams + the SKOS marketplace (experience over credentials; prebuilt role modules). (§5)
 7. **Instances** (§6): #1 **PMO**, #2 **Legal**, plus a **prioritized candidate list** (IT/network ops, accounting, HR, marketing, real-estate, church ops, counseling — ISO-1 walled).
 8. **Prioritization lens** (§7): rank candidate industries by **pipeline value**, tied to the three-ring market and the Workforce Layer.
@@ -118,6 +118,8 @@ Every **completed task + QA outcome + feedback** updates the **person ↔ task m
 ### Loop 3 — People-growth / motivational layer
 For **families and individuals who WANT to invest in upskilling**, the platform offers **iterative, intuitive skill paths:** next-step tasks pitched **just above the person's current level**, carried by anxiety-clarity guidance (what / when / why / how), with **visible progression.** Growth is real and it pays: **clearing a skill tier unlocks more task tiers and more 1099 earning capacity** (`...workforce-three-ring.md` §2). The path is opt-in — it serves the person who wants to grow, and it never nags the person who doesn't.
 
+This loop is the seed of a fuller **Human Development + Pocket Education** layer — skill tiers are the entry point, but the layer reaches into needs, purpose, and potential, grounded in a foundational growth process. It is developed in full in §4.1–§4.2 below.
+
 ### The flywheel (stated explicitly)
 
 ```
@@ -136,6 +138,73 @@ Motivation comes from **real progression, mastery, and opportunity** — **NOT**
 This ties directly to the mission: the **Black-church economic powerhouse** and **soul-prosperity** order (3 John 1:2; `BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md`). Families upgrading real skills and real earning capacity — soul prospering first, provision following — is the literal outcome this flywheel exists to produce. It lifts and creates; it does not extract or hook.
 
 Recorded as **DR-018.**
+
+---
+
+## 4.1 The People-Growth loop, expanded — Human Development + Pocket Education
+
+> Darrell, 2026-06-09: *"Maslow's hierarchy of needs, or Myles [Munroe] bridge, or whatever system — maybe all — of assessments and evaluating humans, also allowing THEM to decide and helping them have a more rigorous experience and understanding for better outcomes."*
+> *"Education in your pockets 24/7."*
+
+Loop 3 (§4) is not only a skill ladder. It is a **Human Development + Pocket Education** layer: the platform helps a willing person understand where they are, where they could grow, and how to get there — across **needs, skill, purpose, and potential**, not job tasks alone.
+
+### Pluggable assessment / development framework library
+No single model is imposed. The layer offers a **library of assessment and development frameworks**, and the **user or community SELECTS** which one(s) to use — Darrell's *"maybe all"* means the choice is **configurable**, including running several in parallel:
+
+| Framework | What it serves |
+|---|---|
+| **Maslow's hierarchy of needs** | The **needs floor** — is the foundation (safety, provision, belonging) met before higher growth is asked for. |
+| **Myles Munroe — purpose / potential** | Kingdom-aligned **purpose and untapped potential** ("die empty" — release what you were made to give). |
+| **Dreyfus model (novice → expert)** | Maps cleanly onto the **iterative skill tiers** of Loop 3 — names the stage a person is at so the next step is right-sized. |
+| **Ikigai** | **Purpose** at the intersection of love / skill / need / contribution. |
+| **Strengths inventories** | Surfacing **what a person is already strong in** to build from. |
+| **Spiritual-gifts assessments** | In the **church context** — discerning gifts for service in the Body. |
+| **Andragogy (adult-learning theory)** | **How adults actually learn** — self-directed, experience-anchored, problem-centered — shaping the pedagogy itself. |
+
+The library is extensible; a community can add the framework its tradition or context uses.
+
+### Agency-first (binding principle)
+**Assessments INFORM; the HUMAN DECIDES their path.** The system exists to give a **more rigorous experience and deeper self-understanding for better outcomes** — and there it stops. It **never** dictates a path, **never** labels or boxes the person, **never** scores-the-person-for-others, and **never** pathologizes. **Self-determination and dignity are the design**, not a disclaimer bolted on. The person is the author of their own development; the platform is the companion, not the judge. (Consistent with `GOVERNANCE-EXECUTION-ADVISORY.md` — the human governs — and `QUALITY-OF-LIFE-AS-NORTH-STAR.md` — the system is the mirror, never the gavel.)
+
+### "Education in your pockets, 24/7"
+The PWA is an **always-available learning + assessment + growth companion** — education in the pocket, on demand, whenever the person reaches for it. Because this layer is **user-PULLED** (the person chooses to learn), **24/7 availability is correct and intended.** This is **distinct from** the autonomous-fleet cadence: self-triggering automation observes the **24/6.5 Sabbath rhythm** (the machine rests), but a **person choosing to learn is never Sabbath-gated** — the resource is there when *they* decide to use it. The rest applies to the system acting on its own, not to a human's freedom to grow. *(This distinction is deliberate; do not conflate the two.)*
+
+### Mission tie
+**Maslow + Munroe + purpose = soul-prosperity + the Father's Business** — helping people reach the **God-given potential** Yahweh placed in them (3 John 1:2 order: the soul prospers first). **Pocket education democratizes it** — putting assessment, learning, and a growth path in the hands of **families and the community** who have historically been priced out of it, directly serving the **Black-church economic-powerhouse** mission (`BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md`, `COMMUNITY-FIRST-MISSION.md`). Reaching potential and earning capacity are the same arc, in the right order.
+
+### Dignity / wellbeing guardrail (binding)
+Evaluating humans is sacred ground and is handled as such:
+
+- **Consent.** No assessment runs without the person choosing it.
+- **Privacy — the assessment is THEIRS.** A person's assessment results are **personal and self-owned** (PIN-optional / personal-scope), not a platform asset and not visible to others by default. (Per `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md` — family/person ownership, opt-in per stream, no employer/insurer/advertiser access ever.)
+- **No pathologizing.** The layer describes growth opportunities, never diagnoses or assigns a deficit label to the person.
+- **No surveillance-grade human-scoring.** The platform does not build a ranked dossier of people for anyone to consume; there is no human credit-score.
+- **Growth + self-determination is the goal — never engagement or judgment.** Same line as the flywheel guardrail (§4): a number that rises because someone was hooked, guilted, or judged is a failure, not a win.
+
+Recorded as **DR-019.**
+
+---
+
+## 4.2 Foundational Growth Process (3rd / 4th-dimensional)
+
+> Darrell, 2026-06-09: *"Upgradable using the same 3rd- and 4th-dimensional process Jesus Christ said to use."*
+
+**Framing note.** This growth process is **Darrell's declared worldview spine** — the foundation the Human Development layer is **built TO.** It is consistent with the repository's existing **non-denominational, Word-first, Body-undivided** framework (`project_non_denominational_word_first_body_undivided`; `THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md`). It is **recorded faithfully as the spine the system serves, not asserted as universal fact, and the platform does not evangelize** — the deeper layer is always the person's choice (agency-first, §4.1).
+
+A person "upgrades" through **two integrated dimensions**, modeled on the process Jesus Christ taught and walked:
+
+- **3rd-dimensional — the lived, practical, iterative part.** Doing the work; growing through **real experience** (including hardship borne for righteousness). This is the **home of the skill tiers, the tasks, and Maslow's needs floor.** It is the practice ground — the hands and the days.
+- **4th-dimensional — the spiritual part.** **Love as the method** (how we treat one another); the **Holy Spirit revealing the Way**; **purpose and potential grounded in relationship with Yahweh.** This is the **home of Munroe's purpose / potential, spiritual gifts, and discernment.** It is the formation — the heart and the calling.
+- **Christ's integration.** Teach **Love** → walk through the **3rd-dimensional experience** → be **healed and transformed** → **Spirit-led throughout.** The two dimensions are not sequential stages but a single braided process: a person upgrades via **practice + experience (3rd)** and **formation + purpose (4th)** working **together** toward better outcomes.
+
+### Design rules (consistent with prior decisions)
+
+1. **The 3rd-dimensional / practical dimension is UNIVERSAL** — every user, every module. Skills, tasks, needs, and iterative growth are offered to everyone regardless of belief.
+2. **The 4th-dimensional / spiritual dimension is the DEEPER layer** — **church-default**, and **one-click-deeper / opt-in elsewhere** (the Mars Hill progressive-disclosure pattern). It is **ALWAYS the person's choice** (agency-first). **Word-first, Body-undivided, non-denominational** — no imposed division, no tradition asserted as senior to Scripture, no one made to pass through the 4th-dim layer to use the platform.
+3. **Frameworks map onto the two dimensions.** **Maslow = the needs floor** (3rd-leaning). **Munroe / purpose / spiritual-gifts / the Spirit = the purpose ceiling** (4th). The **3rd/4th process is the through-line** that connects floor to ceiling — needs met, skills grown, purpose discerned, potential released.
+4. **The dignity / consent / privacy + agency guardrails of §4.1 carry in full.** Nothing in the spiritual layer is exempt from consent, self-ownership, no-pathologizing, or self-determination. The deeper layer deepens *by invitation only.*
+
+Recorded as **DR-020.**
 
 ---
 
