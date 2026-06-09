@@ -7,6 +7,8 @@
 **Output gate:** binding filters — `project-cost-discipline-with-growth-permission`, `project-sovereign-llm-teams-per-industry`, `feedback-autonomous-automation-three-brakes` (CLAUDE.md "Three Brakes"), RELEASE-TIERS Tier C, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION`, `COMMUNITY-FIRST-MISSION`, **the TLC firewall (binding, structural — §2.2; senior everywhere below)**, **"we do not sell data" (binding — §7)**.
 **Pairs with:** `infra/ai-orchestrator/` (the Cage), `CLAUDE-TOOL-ROUTING.md`, `RELEASE-TIERS.md`, `LESSONS-LEARNED.md` (P10/P11/P12), `AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md`, `2026-06-01-research-review-sovereign-llm-teams-architecture.md`, the Bishop Gwin / COLG migration brief, `GOVERNANCE-EXECUTION-ADVISORY.md`, `AI-FOUNDATION-INTERNAL-OPERATIONS.md`, `IDENTITY-ROLES-AUDIT.md`, `project-continuous-feedback-reel`, `INPUT-VISIBILITY-TO-CLAUDE`, `BUSINESS-PROCESS-CONNECTIONS`, `INSTITUTIONAL-MEMORY-EVENTS`, `EXECUTION-OUTCOME-OBSERVABILITY`, `WORKFLOW-MODULE-LIBRARY`, `project-brand-surface-hosting-map`, `project-non-denominational-word-first-body-undivided`, `project-community-free-funded-by-aligned-brand-sponsorship`, `project-what-is-actually-free`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION`.
 
+> **Decision Records:** the durable decisions in this review are recorded as append-only Decision Records — index at [`docs/decisions/INDEX.md`](../decisions/INDEX.md), convention at [`docs/decisions/README.md`](../decisions/README.md). Items **A–J map to DR-0001…DR-0010** (A=DR-0001 … J=DR-0010). This narrative is the synthesis; the DRs are the source of truth. Future changes are new DRs that supersede — not rewrites of this report.
+
 ---
 
 ## TL;DR (read this first)
