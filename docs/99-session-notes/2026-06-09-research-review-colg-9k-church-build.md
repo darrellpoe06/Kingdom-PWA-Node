@@ -1,139 +1,155 @@
-# Research Review — COLG $9k Church Build: whole-building surveillance + a double-duty CUDA LLM farm
+# Research Review — COLG $9k Church Build (FINAL / RATIFIED): whole-building surveillance + a 48 GB CUDA node
 
 **Date:** 2026-06-09
 **Author:** Claude (research-review on Darrell's commission, per `feedback-research-first`)
-**Triggered by:** Darrell — a **$9,000** church build covering BOTH whole-building surveillance (PoE, 4K, AI cameras) AND a CUDA LLM system for 24/7 congregation-services support. Church of the Living God, ~44,000 sqft, 312 E. Bradley Ave, Champaign IL.
-**Status:** Research-review. **PLAN ONLY — specs what to buy and what it unlocks; no purchase is executed. Darrell procures.** June-2026 pricing, cited; re-verify at order time.
-**Decision:** [DR-0015]. **Pairs with:** [DR-0014] (COLG ≥$5k node), [DR-0012] (GPU topology), [DR-0001]/[DR-0003] (the Cage + ISO tiers), the 2026-06-08 church-LLM research-review §14; `infra/ai-orchestrator/` (the Cage); `COMMUNITY-FIRST-MISSION`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION`, `project-cost-discipline-with-growth-permission`.
+**Triggered by:** Darrell — a **$9,000** church build covering BOTH whole-building surveillance (PoE, 4K, AI) AND a CUDA node for 24/7 congregation support + real-time scene analysis. Church of the Living God, ~44,000 sqft, 312 E. Bradley Ave, Champaign IL.
+**Status:** **FINAL — choices RATIFIED with Darrell 2026-06-09 ([DR-0016], which supersedes [DR-0015]).** **PLAN ONLY — specs what to buy and what it unlocks; no purchase is executed. Darrell/PoeTech procures + self-assembles.** June-2026 pricing, cited; re-verify at order time.
+**Pairs with:** [DR-0016] (finalization), [DR-0015] (superseded), [DR-0014] (COLG node), [DR-0012] (GPU topology), [DR-0001]/[DR-0003] (Cage + ISO tiers); the PoeTech labor invoice `docs/invoices/2026-06-09-poetech-colg-cabling-labor-invoice.md`; `infra/ai-orchestrator/` (the Cage); `COMMUNITY-FIRST-MISSION`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION`.
 
 ---
 
-## TL;DR
+## TL;DR — the ratified build
 
-- **Premise correction (head-on):** Darrell asked for **"open-source Ubiquiti 4K cameras."** Those two don't coexist — **UniFi Protect is a polished, self-hosted-but PROPRIETARY ecosystem, not open-source.** And at **$379 (G5 Pro) / $499 (AI Pro)** per camera, a ~30-camera whole-building deployment is **$11k+ in cameras alone — over the entire $9k before a single GPU.**
-- **The honest budget tension:** whole-building 4K AI **+** a capable GPU farm **does not fit $9k on the UniFi path.** It **does** fit on the **open-source path** — and that path also matches Darrell's sovereignty stance and enables the key efficiency below.
-- **Recommended path: (B) Frigate NVR (open-source) + ONVIF/RTSP 4K PoE cameras + one CUDA GPU doing double duty** — Frigate object-detection (light) **and** the sovereign congregation-support LLM (heavy), gated by the §4 human-priority/blackout logic. Sovereign, portable, and the only path that lands whole-building + GPU inside $9k.
-- **Recommended allocation:** ~30 cameras + PoE/switching + storage + a single **RTX 3090 (24 GB) double-duty node**, with a **contingency buffer for cabling labor** — and a **phased fallback** (GPU + priority cameras now, remaining cameras next) because professional cabling labor across 44k sqft is the one cost that can blow the budget.
-- **24/7 vs 24/6.5 reconciled:** surveillance + congregation-support are **24/7** (security never sleeps; congregation help is reactive). The **24/6.5 Sabbath + service blackout (DR-0001) apply to the autonomous *review* fleet, not to security or reactive congregation Q&A.**
-
----
-
-## 1. The two camera paths (with the premise corrected)
-
-| | **(A) UniFi Protect** | **(B) Frigate + ONVIF (RECOMMENDED)** |
-|---|---|---|
-| **Cameras** | UniFi G5 Pro 4K **$379** / AI Pro 4K **$499** | ONVIF/RTSP 4K PoE — Reolink RLC-810A **~$50**, RLC-811A varifocal **~$80–100**, Amcrest IP8M **~$80–130** |
-| **NVR** | UNVR **$299** (18 cams) / UNVR Pro **$499** (24 cams) | **Frigate** (open-source, $0) running on the GPU node |
-| **AI detection** | On-camera / UniFi proprietary | **The GPU does it** (Frigate + CUDA), or a $60 Coral TPU offloads it |
-| **Openness / sovereignty** | **Proprietary, self-hosted, local/no-cloud — but a closed ecosystem; vendor-locked** | **Fully open-source, portable, ONVIF-standard cameras are swappable; no lock-in** |
-| **Ease / polish** | Highest — turnkey, warranty, slick app | Moderate — more setup; integrates directly with the LLM farm |
-| **~30-camera cost (cameras only)** | **~$11,400 (G5 Pro) / ~$15,000 (AI Pro) — OVER the whole $9k budget alone** | **~$2,100–3,300** |
-
-**Verdict:** UniFi is the easier, more polished system, but (1) it is **not open-source** (correcting the premise), (2) it **cannot do whole-building + a GPU within $9k**, and (3) it doesn't give us the **one-GPU-double-duty** efficiency. **Recommend Path B (Frigate).** Honest trade-off: Path B costs setup effort and forgoes UniFi's warranty/polish; it buys openness, portability, swappable standard cameras, and the shared-GPU efficiency that makes the whole build fit the budget. (UniFi remains a reasonable *partial* or *phased-later* option if the church later prioritizes polish over budget on a subset of cameras.)
+- **Surveillance = open-source path (LOCKED).** ONVIF 4K PoE cameras → **Frigate** (headless detection engine on the GPU node) → a **PoeTech App "Surveillance" MODULE** as the front end (live view, AI event feed, clips, alerts). **No UniFi Protect, no vendor cloud.** (Premise corrected: UniFi Protect is proprietary, not open-source.)
+- **GPU = 48 GB dual-RTX-3090 node, self-assembled by Darrell (LOCKED).** Parts cost only, no integrator labor. 48 GB runs Frigate detection + an **event-driven VLM** + a congregation-support **LLM** concurrently.
+- **Real-time analysis (LOCKED):** an **event-driven VLM (Qwen2.5-VL class)** reads scenes **on Frigate events** (not every frame); an **agent executes allowlisted actions through the Cage.** **Guardrail:** autonomous is OK for *alert / log / notify / illuminate*; anything **irreversible or safety-critical** (calling authorities, egress-affecting door locks, etc.) sits behind a **human gate** or a **pre-authorized, tightly-scoped rule with strict permission checks.**
+- **Cabling = DIY by PoeTech (LOCKED).** **$0 labor against the $9k** — only Cat6 materials count. A **separate PoeTech labor invoice** documents the fair-market value (~$1,600–4,000) for the church's records; the church pays a **variable/reduced balance** (PoeTech does not charge full freight — give-from-understanding).
+- **The $9k is now PURE HARDWARE** (labor is $0 in-budget / invoiced separately), so whole-building **and** the 48 GB node both fit.
+- **TLC walled off:** the Surveillance Module is church (ISO-2); it touches no TLC data path (ISO-1 firewall holds).
+- **24/7 vs 24/6.5:** surveillance + reactive congregation support are 24/7; the 24/6.5 Sabbath + service blackout (DR-0001) govern the autonomous *review* fleet, not security or reactive support.
 
 ---
 
-## 2. Whole-building camera layout (~44,000 sqft)
+## 1. Surveillance architecture (LOCKED) — Frigate engine + PoeTech App Module
 
-A thorough-but-reasonable count for a 44k sqft church. 4K PoE, ONVIF, Frigate-managed.
+```
+ONVIF 4K PoE cameras --RTSP--> Frigate (headless, on the 48GB GPU node; Coral does detection)
+        |                                   |
+        |                          object/zone events
+        v                                   v
+  PoeTech App "Surveillance" MODULE  <--  event-driven VLM (Qwen2.5-VL) reads the scene
+  (live view, AI event feed, clips,        |
+   alerts; four-entity identity/roles,     v
+   events-as-data, notification path)   agent --> Cage (allowlist + ledger + health-gate) --> scoped actions
+```
+
+- **Frigate** is the open-source detection/recording engine (no UI lock-in); it ingests RTSP from any ONVIF camera, records to local disk, and emits object/zone events.
+- **The PoeTech App "Surveillance" Module is the front end** — a **reusable Module-Library module**: live view, AI event feed, clip review, alerts/notifications. It integrates with the **four-entity identity/roles** (staff-gated, ISO-2), **events-as-data** (`INSTITUTIONAL-MEMORY-EVENTS` — every detection/alert is an Event), and the **notification path** (ntfy/dual-channel). **No UniFi Protect app; no vendor cloud; footage local-only.**
+- **TLC firewall:** this Module is church-scoped (ISO-2); it carries **no** TLC/PHI data path (ISO-1 holds).
+
+---
+
+## 2. Whole-building camera layout (~44,000 sqft) — 24 cameras
+
+4K PoE, ONVIF, Frigate-managed. Final count **24** (matches the ratified allocation; tune on a site walkthrough).
 
 | Zone | Cameras | Notes |
 |---|---|---|
-| Exterior building perimeter | 6 | 4K, IR/night, weatherproof; covers walls + approaches |
-| Parking lot(s) | 4 | wide-angle / varifocal for plate-legible coverage |
-| Entrances / doors | 5 | main, side, fellowship, office, rear — face-height framing |
-| Sanctuary | 3 | wide congregation + 2 angle views |
+| Exterior building perimeter | 5 | 4K, IR/night, weatherproof |
+| Parking lot(s) | 3 | wide / varifocal, plate-legible |
+| Entrances / doors | 4 | main, side, fellowship, rear — face-height |
+| Sanctuary | 3 | wide congregation + 2 angles |
 | Fellowship hall / multipurpose | 2 | wide coverage |
-| Hallways / corridors | 6 | choke-point coverage between wings |
-| Classrooms / children's wing | 3 | wing corridors + entries (rooms themselves per policy) |
-| Office / admin / count room | 2 | giving/financial handling areas (ISO-2, staff-gated) |
-| **Total** | **~31** | tune on a walkthrough; round to **28–32** |
+| Hallways / corridors | 4 | choke points between wings |
+| Classrooms / children's wing | 2 | wing corridors + entries |
+| Office / count room | 1 | giving/financial area (ISO-2, staff-gated) |
+| **Total** | **24** | ~24 cable drops (DIY) |
 
-**Storage math:** ~30× 4K cameras on continuous + event recording needs substantial disk. Plan **3× 12 TB surveillance-grade HDD (~$150–230 ea)** for a few weeks of retention; Frigate's detect-vs-record tiering (record at full 4K only on motion/object) stretches this considerably. Tune retention to the church's policy.
+**Storage (flag — retention-tunable):** 24× 4K is disk-hungry. **2× 12 TB CMR surveillance HDD (~$225 ea)** = 24 TB raw (mirror → 12 TB usable, or JBOD 24 TB). Frigate's record-on-event tiering (full 4K only on motion/object, low-res continuous otherwise) stretches this to weeks; **retention is a dial — set it to the church's policy and add drives later if needed.**
 
 ---
 
-## 3. GPU/CUDA node — double duty (Frigate AI + 24/7 congregation LLM)
+## 3. GPU/CUDA node (LOCKED) — 48 GB dual-RTX-3090, self-assembled
 
-**Key efficiency: one GPU serves both.** Frigate object-detection is light (10–30 ms/frame on a modern GPU, or offloadable to a $60 Coral TPU); the congregation-support LLM is the heavy tenant. They share the card under the §4 priority logic.
+48 GB lets the node run **three jobs at once**: Frigate detection (offloaded to a $60 Coral), an **event-driven VLM** for scene understanding, and a **congregation-support LLM** — concurrently, which a single 24 GB card could not.
 
 | Component | Spec | ~Cost |
 |---|---|---|
-| **GPU** | **1× used RTX 3090 (24 GB)** | **$700–900** |
-| Base | Ryzen/used-workstation, 64–128 GB RAM, B650/X-class board | $600–900 |
-| PSU | 850–1000 W 80+ | $130–180 |
-| Storage | 2 TB NVMe (OS + models) + the surveillance HDDs above | $150 (NVMe) |
-| Case + cooling | airflow tower | $120–200 |
-| (optional) Coral TPU | offloads ALL camera AI → frees the full 24 GB for the LLM | $60 |
-| **Node subtotal** | | **~$1,700–2,300** |
+| **GPU ×2** | 2× used **RTX 3090 24 GB** → **48 GB** | $1,500–1,800 |
+| Base | Ryzen / used dual-PCIe workstation, **128 GB RAM** | $700–1,000 |
+| PSU | **1300 W** 80+ Platinum (two 3090s ≈ 700 W) | $200–250 |
+| Storage | 2 TB NVMe (OS + models) + the surveillance HDDs (§2) | $150 |
+| Case + cooling | airflow tower / open frame | $150–250 |
+| **Coral TPU** | offloads ALL camera detection → frees the full 48 GB for VLM + LLM | $60 |
+| **Node total (self-assembled, parts only)** | | **~$3,600** |
 
-**VRAM → model class (24 GB):** comfortably runs a **14B-class congregation-support model** (`qwen2.5`/`qwen3:14b`, S1) **with headroom for Frigate detection**; or **~32B Q4** if camera AI is offloaded to the Coral. For congregation-facing support — service times, scripture lookup, event info, directions, FAQ, prayer-request intake — a **14B is more than sufficient**, and leaves VRAM for detection. (Heavy reasoning lives on the separate PoeTech farm per [DR-0014]; this node is congregation-facing + security.)
-
-**Ties to the Cage:** congregation-support runs behind the Cage (guarded-action + append-only ledger + health-gate); registry on the church NAS; this node is the COLG sovereign-node compute from [DR-0014], here **scoped to surveillance + congregation support** rather than heavy reasoning.
+**VRAM → model class (48 GB):** runs e.g. a **14B congregation LLM** (`qwen2.5`/`qwen3:14b`) **+ Qwen2.5-VL 7B** (event-driven scene analysis) **+** Frigate (Coral) **concurrently**, with headroom; or a **32B** LLM if the VLM is swapped on demand. Heavy *reasoning* still lives on the separate PoeTech farm ([DR-0014]); this node is **surveillance + congregation support**.
 
 ---
 
-## 4. Budget allocation across $9,000 (open-source path)
+## 4. Real-time LLM analysis + execution (LOCKED) — event-driven VLM + Cage agent
 
-**Recommended single-budget split:**
-
-| Line | Allocation |
-|---|---|
-| ~30× 4K PoE ONVIF cameras (mix fixed/varifocal) | **$2,800** |
-| 2× 24-port PoE+ managed switches (or 1× 48-port) | **$700** |
-| Cat6 cabling materials (bulk + connectors + mounts) | **$400** |
-| Surveillance storage (3× 12 TB HDD) | **$650** |
-| GPU double-duty node (RTX 3090 build + optional Coral) | **$2,000** |
-| UPS (NVR/switch/GPU ride-through) | **$300** |
-| **Hardware subtotal** | **~$6,850** |
-| **Contingency / cabling LABOR buffer** | **~$2,150** |
-| **Total** | **$9,000** |
-
-**The honest flag — cabling labor is the variable that can break the budget.** ~30 cable drops across a 44k sqft building, professionally installed, can run **$50–150/drop ($1,500–4,500)**. The $2,150 buffer covers a modest/volunteer or partial-professional install; a full union/contractor pull likely **exceeds it**.
-
-**Therefore — recommended PHASED fallback (the safe default):**
-- **Phase 1 (~$5,000–5,500):** GPU double-duty node + Frigate + the **~15 highest-value cameras** (all exterior, all parking, all entrances, sanctuary) + switch + storage + UPS + their cabling. Security + congregation LLM **live now.**
-- **Phase 2 (~$3,500–4,000):** remaining interior cameras (halls, classrooms wing, fellowship, office) + their cabling labor.
-
-Phasing de-risks the labor unknown and gets the high-value coverage + the 24/7 LLM standing up first. If cabling is volunteer/low-cost, the single-budget split above does the whole building at once.
+- **Event-driven, not per-frame.** Frigate detects an object/zone event → only **then** does the **VLM (Qwen2.5-VL class)** read the scene ("person at the rear door after hours," "vehicle in the fire lane," "fall in the hallway"). This keeps GPU load low and leaves the LLM responsive — far cheaper than running a VLM on every frame.
+- **Agent executes through the Cage.** A small agent maps VLM/Frigate events to **allowlisted actions** via `guarded-action` (allowlist + append-only ledger + health-gate/auto-rollback).
+- **Autonomy guardrail (explicit, binding):**
+  - **Autonomous OK (reversible / non-safety-critical):** raise an alert, log/record the event, notify staff (ntfy/dual-channel), **illuminate** (turn on lights), tag a clip.
+  - **HUMAN GATE or pre-authorized tightly-scoped rule + strict permission checks (irreversible / safety-critical):** contacting authorities, **egress-affecting door locks**, anything that could trap, endanger, or can't be rolled back. These never fire on a bare model judgment — they require a human decision or a narrowly-scoped, permission-checked pre-authorization (and even then, fail-safe defaults: locks fail to *egress-open*).
+- This is the §8 "LLMs do the work, bounded by the Cage" pattern ([DR-0010]) applied to physical security: the brakes + the irreducible-judgment gate keep autonomy safe.
 
 ---
 
-## 5. Cost + sovereignty screens; 24/7 power/thermal; 24/7-vs-24/6.5
+## 5. FINAL allocation across $9,000 (PURE HARDWARE — cabling labor is $0 in-budget)
 
-- **Sovereignty screen:** Path B is fully open-source + portable (Frigate, ONVIF cameras are a swappable standard, Linux+Docker+CUDA) — no vendor lock, matching `DATA-AS-EMPOWERMENT-NOT-EXTRACTION` and the sovereignty stance. Footage stays on the church's own NAS/disks, local-only. UniFi would have been local-but-proprietary.
-- **Cost screen:** this is a **security + ministry investment**, not arbitrage. The open-source path costs ~⅓ of UniFi per camera and reuses the GPU for both jobs — the cheapest route to whole-building + sovereign LLM. `COMMUNITY-FIRST` (COLG-first) justifies the spend.
-- **24/7 power/thermal:** a single 3090 idles low and draws ~350 W under LLM load (vs ~700 W for the dual-card farm) — **far more 24/7-friendly thermally and on the power bill** (~$10–20/mo). Cameras/PoE are low-draw. Put the node in a ventilated closet/rack with the UPS.
-- **24/7 vs the 24/6.5 Sabbath — reconciled (important):** **surveillance/Frigate is genuinely 24/7** (security never rests). **Congregation-support is reactive 24/7** (it answers when asked). The **24/6.5 Sabbath + the ±1 h service blackout ([DR-0001]) apply to the autonomous *review/automation* fleet** — the timer-driven jobs that carry runaway risk — **not** to security recording or to a reactive congregation Q&A endpoint. This church node is **separate from the A/V switcher (Node 2)**, so it is not subject to the A/V service contention; it can serve congregation support during services. The three-brakes still bound any autonomous behavior on it.
+| Line | June-2026 basis | Allocation |
+|---|---|---|
+| **Dual-3090 48 GB node** (self-assembled, parts) | 2× 3090 ($1.5–1.8k) + base/128GB/1300W/NVMe/case | **$3,600** |
+| **24× 4K PoE ONVIF cameras** | ~$130/cam (Amcrest IP8M / Reolink RLC-811A class) | **$3,120** |
+| **24-port PoE+ switch** | managed, sufficient PoE budget for 24× 4K | **$500** |
+| **Cat6 materials** | bulk box + connectors + mounts (DIY install) | **$350** |
+| **Storage 2× 12 TB CMR** | surveillance-grade; **retention-tunable** | **$450** |
+| **UPS** | ride-through for node/switch/NVR (size ~1500 VA for the dual-3090) | **$300** |
+| **Coral TPU** | offloads detection → frees 48 GB for VLM + LLM | **$60** |
+| **Buffer** | price drift / extra mounts / a spare camera | **$620** |
+| **TOTAL** | | **$9,000** |
+
+**Cabling labor = $0 against the $9k** (DIY by PoeTech). Only the **$350 Cat6 materials** count. The fair-market labor value is **invoiced separately** (§6).
+
+> **Power/thermal honesty:** two 3090s draw ~700 W under *full* load — more than a single card. But detection is on the Coral and the VLM is event-driven + the LLM reactive, so the **24/7 duty cycle is partial**; realistic power ~**$25–50/mo**. Needs a **ventilated closet/rack, good airflow, and the UPS sized for the pair** (~1500 VA). This is the cost of running VLM + LLM + detection on one sovereign box.
 
 ---
 
-## 6. Recommendation + rationale (decisions-with-rationale)
+## 6. PoeTech labor invoice (separate deliverable) — fair-market value, reduced balance
 
-**Recommended: Path B (open-source Frigate + ONVIF 4K PoE) with a single RTX 3090 double-duty node; phase the camera rollout; reserve UniFi as an optional later polish layer. PLAN only — Darrell procures.**
+Cabling is **DIY by PoeTech**, so it costs the church **$0 in cash labor**. To keep honest books and document the gift, a **separate fair-market-value invoice** sits beside the hardware plan: `docs/invoices/2026-06-09-poetech-colg-cabling-labor-invoice.md`.
 
-1. **DO go open-source (Frigate + ONVIF), not UniFi** — *because* UniFi Protect is proprietary (correcting the premise), busts $9k for whole-building before any GPU, and forgoes the shared-GPU efficiency. Frigate is sovereign, portable, ⅓ the per-camera cost, and integrates with the LLM farm.
-2. **DO use ONE GPU for double duty** (Frigate detection + 14B congregation LLM), optionally with a $60 Coral to offload detection — *because* it is the efficiency that makes both fit one budget; a 24 GB 3090 covers both with headroom.
-3. **DO phase the rollout** (GPU + ~15 priority cameras now, interior cameras next) — *because* cabling labor across 44k sqft is the one line that can exceed the budget; phasing de-risks it and stands up security + the 24/7 LLM first.
-4. **DO keep this node congregation-facing + security only**; heavy reasoning stays on the separate PoeTech farm ([DR-0014]) — *because* a 14B fits 24 GB with room for detection, and scope-separation keeps the church node simple and sovereign.
-5. **DO NOT imply any purchase** — this is a PLAN; the church procures.
-6. **DO NOT subject security recording or reactive congregation support to the 24/6.5 Sabbath** — *because* those are not the autonomous review fleet; security is 24/7 and congregation help is reactive. The Sabbath/blackout governs autonomous timer-driven jobs.
+- **Fair-market labor value:** ~24 cable drops @ $50–150 = **~$1,200–3,600**, plus GPU build + integration **~$400** → **~$1,600–4,000** (representative midpoint **~$2,500**).
+- **Balance the church pays:** **variable / reduced** — PoeTech does not charge full freight (give-from-understanding; the Black-church-as-economic-powerhouse ethos). The invoice shows the value contributed and a reduced/at-discretion amount due, so the church can account for the in-kind blessing.
+- **Honest framing on the invoice:** it is a **pro-forma fair-market-value estimate** (PLAN), not a bill for completed work.
 
-**If Darrell prefers UniFi's polish despite the premise:** the honest split is **UniFi cameras for a *partial* high-value set (~12–15 cams ≈ $5–6k) + the GPU node**, deferring whole-building — i.e., UniFi forces either partial coverage or a higher budget. Stated so the trade is explicit.
+---
+
+## 7. Cost + sovereignty screens; ties to the COLG node + the Cage
+
+- **Sovereignty:** fully open-source + portable — Frigate, ONVIF cameras (a swappable standard), Linux+Docker+CUDA, the PoeTech App Module as front end. No vendor lock, footage local-only (`DATA-AS-EMPOWERMENT-NOT-EXTRACTION`).
+- **Cost screen:** security + ministry investment, not arbitrage. Open-source cameras ≈ ⅓ of UniFi; one 48 GB node does detection + VLM + LLM; DIY cabling removes the line that would have busted the budget. `COMMUNITY-FIRST` justifies the spend.
+- **Ties to the Cage / COLG node:** this is the COLG sovereign-node compute from [DR-0014], here **scoped to surveillance + congregation support** (separate from the A/V switcher Node 2 and from the heavy-reasoning PoeTech farm). Registry/events on the church NAS; agent actions through `guarded-action` + ledger + health-gate.
+- **24/7 vs 24/6.5 (reconciled):** surveillance/Frigate is 24/7; congregation support is reactive 24/7; the **24/6.5 Sabbath + ±1 h service blackout ([DR-0001]) govern the autonomous *review* fleet, not security recording or reactive congregation Q&A.** The three-brakes still bound any autonomous agent behavior.
+
+---
+
+## 8. Recommendation + rationale (RATIFIED — decisions-with-rationale)
+
+All four choices are **locked with Darrell (2026-06-09)**; rationale recorded for the institutional memory:
+
+1. **Open-source Frigate + ONVIF + a PoeTech App Surveillance Module**, not UniFi — *because* UniFi Protect is proprietary and ⅓-more-expensive, and a sovereign Module front-end is reusable, integrates with our identity/events/notification fabric, and keeps footage local with no vendor cloud.
+2. **48 GB dual-3090, self-assembled** — *because* 48 GB runs detection + an event-driven VLM + a congregation LLM concurrently (a single 24 GB card can't), and self-assembly removes integrator labor; parts-only ~$3,600.
+3. **Event-driven VLM + Cage agent with the autonomy guardrail** — *because* per-frame VLM is wasteful and unsafe-by-default; event-driven scene reads are cheap, and the alert/notify/illuminate-autonomous vs. authorities/locks-gated split keeps physical-security automation safe ([DR-0010]).
+4. **DIY cabling ($0 in-budget) + a separate reduced-balance labor invoice** — *because* it keeps the $9k pure hardware (so whole-building + the 48 GB node both fit) while documenting the fair-market gift honestly for the church's books.
+5. **DO NOT imply any purchase** — PLAN; PoeTech/Darrell procures + assembles; site walkthrough + church-NAS confirmation precede ordering.
+6. **DO NOT auto-fire irreversible/safety-critical actions** — those stay behind a human gate or a strict pre-authorized rule; locks fail-safe to egress-open.
 
 ---
 
 ## Sources (June 2026 — re-verify at order time)
 
-- [UniFi Camera G5 Pro — Ubiquiti Store](https://store.ui.com/us/en/products/uvc-g5-pro) — G5 Pro 4K $379.
-- [UniFi Camera AI Pro — Ubiquiti Store](https://store.ui.com/us/en/products/uvc-ai-pro) — AI Pro 4K $499.
-- [UNVR / UNVR Pro pricing — iFeeltech](https://ifeeltech.com/blog/unifi-unvr-vs-unvr-pro-comparison) — UNVR $299 (18 cams), UNVR Pro $499 (24 cams).
-- [UniFi Protect is proprietary; community API reverse-engineered — hjdhjd/unifi-protect](https://github.com/hjdhjd/unifi-protect) — confirms Protect itself is not open-source.
+- [UniFi Camera G5 Pro $379 — Ubiquiti Store](https://store.ui.com/us/en/products/uvc-g5-pro); [AI Pro $499](https://store.ui.com/us/en/products/uvc-ai-pro) — the proprietary path, for contrast.
+- [UniFi Protect is proprietary (community-reverse-engineered API) — hjdhjd/unifi-protect](https://github.com/hjdhjd/unifi-protect).
 - [Frigate recommended hardware (open-source NVR)](https://docs.frigate.video/frigate/hardware/) — GPU/Coral/CPU detection; ONVIF/RTSP cameras.
-- [Frigate setup with PoE cameras 2026 — CCTV Info](https://cctvinfo.com/guides/frigate-setup-poe-cameras) — Reolink RLC-810A 4K ~$50; Amcrest IP8M; ~$350 baseline serious setup.
-- [Frigate + Coral TPU local AI cameras — Botmonster](https://botmonster.com/posts/local-ai-security-cameras-frigate-with-google-coral-tpu/) — Coral ~$60, <5 W, 10–30 ms/frame; GPU alternative.
-- GPU pricing (used RTX 3090 ~$600–900) — see the 2026-06-08 church-LLM research-review §14 Sources (hostrunway / XDA / BSWEN).
+- [Frigate setup with PoE cameras 2026 — CCTV Info](https://cctvinfo.com/guides/frigate-setup-poe-cameras) — Reolink RLC-810A 4K ~$50; Amcrest IP8M ~$80–130.
+- [Frigate + Coral TPU local AI cameras — Botmonster](https://botmonster.com/posts/local-ai-security-cameras-frigate-with-google-coral-tpu/) — Coral ~$60, <5 W, 10–30 ms/frame.
+- GPU pricing (used RTX 3090 ~$600–900 each; dual = 48 GB; ~700 W → 1300 W PSU) — 2026-06-08 church-LLM research-review §14 Sources ([hostrunway](https://www.hostrunway.com/blog/rtx-5090-vs-rtx-4090-used-3090-in-2026-is-the-upgrade-worth-it-for-local-llms/) / [XDA](https://www.xda-developers.com/used-rtx-3090-still-best-for-local-ai-in-value/) / [BSWEN](https://docs.bswen.com/blog/2026-03-15-rtx-5090-vs-dual-3090-local-ai/)).
+- Qwen2.5-VL (vision-language) — see the model list in the 2026-06-08 church-LLM research-review §1 (added as the surveillance VLM).
 
 ---
 
-*Security never sleeps; the congregation is helped whenever it asks. One sovereign GPU watches the building and answers the people, on the church's own hardware, footage on the church's own disks, nothing locked to a vendor. We plan diligently and buy only what serves. PLAN, not purchase. We all win. We create. Amen.*
+*Security never sleeps; the congregation is helped whenever it asks; the building is watched by a sovereign eye on the church's own hardware, footage on the church's own disks, nothing locked to a vendor. The hands do the cable work as a gift, valued honestly and charged gently. Autonomy serves where it is safe and waits for a human where it is not. PLAN, not purchase. We all win. We create. Amen.*

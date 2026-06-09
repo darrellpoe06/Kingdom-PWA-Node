@@ -2,9 +2,9 @@
 id: DR-0015
 title: COLG $9k church build — open-source Frigate surveillance + double-duty CUDA LLM node (PLAN, not purchase)
 date: 2026-06-09
-status: accepted
+status: superseded
 supersedes: []
-superseded-by: null
+superseded-by: DR-0016
 tier: C
 entities: [church]
 grounds: [SOVEREIGN-FIRST, COST-DISCIPLINE, COMMUNITY-FIRST, CAGE, DATA-AS-EMPOWERMENT, SURFACE-PREMISE]
