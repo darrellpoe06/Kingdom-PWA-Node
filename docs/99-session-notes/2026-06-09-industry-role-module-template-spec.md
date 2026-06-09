@@ -21,6 +21,7 @@
 6. **It is the convergence** of per-industry sovereign-LLM-teams + the SKOS marketplace (experience over credentials; prebuilt role modules). (§5)
 7. **Instances** (§6): #1 **PMO**, #2 **Legal**, plus a **prioritized candidate list** (IT/network ops, accounting, HR, marketing, real-estate, church ops, counseling — ISO-1 walled).
    - **Self-Extending Layer (§6.1):** the OS **anticipates** the next module from signals (events-as-data pattern detection), **communicates** a living "what to build" roadmap (the PMO module pointed at PoeTech's own portfolio — dogfooding the recursion), and lets the community **collaborate** on the build (template + QA + Cage; "for us, by us"). Build is **opportunistic** (capacity + willing collaborators + greenlight; never timer-driven). Governance line: anticipation/communication may run autonomously (advisory/read-only); **actual build only on Darrell's greenlight** — system PROPOSES, human GOVERNS, collaborators BUILD.
+   - **Collective Team-Formation / Cohort Layer (§6.2) — the capstone + mission heart:** **zero-barrier onboarding** (no money / no skills / no email-or-phone), **collective cohort training** (learn together; belonging; peer support), **team composition** (skills-match composes complementary people into a team that exceeds any individual), **system-orchestrated delivery** (PMO + Cage + QA scaffold a non-PM-led trained team to standard), and **real 1099 earn + flywheel iteration.** Composes the workforce + human-dev + flywheel + modules + PMO + Cage — does not rebuild. Honest guardrails: funded by the paid rings + sponsorship (not costless); "anything" = what we train + modules support + QA verifies (high-risk still routes to the licensed/insured tier); dignity + fair pay, empower-not-extract. Mission: soul-prosperity → all-prosperity, done collectively.
 8. **Prioritization lens** (§7): rank candidate industries by **pipeline value**, tied to the three-ring market and the Workforce Layer.
 9. **This is a PLAN.** No code, no purchases. (§8)
 
@@ -278,6 +279,40 @@ There is a hard line between **sensing** and **building:**
 The **PMO module managing PoeTech's own module pipeline** is **the system using itself to grow itself.** It is also the **ultimate Want-To-Use test (§3):** if the team building PoeTech *voluntarily reaches for* PoeTech to manage the building of PoeTech, the bar is cleared at the hardest possible altitude — the makers prefer their own tool for their own hardest work.
 
 Recorded as **DR-021.**
+
+---
+
+## 6.2 Collective Team-Formation / Cohort Layer (the capstone)
+
+> Darrell, 2026-06-09: *"I would like to train and work with people who have NO money and NO skills required, and collectively/collaboratively upgrade a GROUP of people into a TEAM capable of doing anything we train and support them doing through this platform."*
+
+This is the **mission heart** of the whole pattern, and it is a **capstone, not a new mechanism** — it **composes** the pieces already specified: the **Workforce Layer** (`...workforce-three-ring.md` §2), the **Human Development + Pocket Education layer** (§4.1), the **Foundational Growth Process** (§4.2), the **Flywheel** (§4), the **role/industry modules** (§2), the **PMO module** (DOC 1), and the **Cage + Quality Gatekeeper** (§2 part 3). Nothing below is rebuilt; it is the existing parts pointed at one outcome: **take a group with nothing and collectively lift them into a capable, earning team.**
+
+### What the layer does
+
+1. **Zero-barrier onboarding.** A person joins with **no money, no prior skills, and no email or phone required.**
+   - **No money** — entry is the **free tier**, funded by the **paid rings (businesses + churches that can pay) + aligned-brand sponsorship** (the existing funding model: `project_community_free_funded_by_aligned_brand_sponsorship`; `...workforce-three-ring.md` §6; `project_what_is_actually_free`). Free for *them*, funded by *someone* — stated honestly below.
+   - **No prior skills** — the **role/industry modules carry the expertise** (capacity over credentials; the encode-the-discipline part of the template, §2 part 1, and the Workforce Layer's guided tasks).
+   - **No email/phone** — **maximum-inclusion identity**: an **app handle** is enough to begin (the identity layer's lowest-friction anchor; aligns with the Want-To-Use Bar's near-zero-friction property, §3). Higher-trust verification is layered on later only where a task class requires it.
+
+2. **Collective / cohort training.** People learn **together, not alone.** The cohort moves through the human-development and skill paths (§4.1–§4.2) **as a group** — **peer learning, mutual support, and belonging** (Maslow's middle tiers — the social floor the needs framework names). Collaboration **accelerates** growth: a cohort pulls its members up faster than the same people would climb solo, and the belonging is itself part of the uplift.
+
+3. **Team composition.** The **skills-match engine** (Flywheel Loop 2, §4) **composes complementary people into a TEAM** — pairing strengths, covering gaps — and the **role modules assign the roles.** The team then **takes on work no individual member could do alone.** The whole exceeds the sum because the system arranges the parts.
+
+4. **System-orchestrated delivery.** The **PMO module (DOC 1) orchestrates a non-PM-led team** — guided tasks, dependency math, the living overview — and the **Cage + Quality Gatekeeper scaffold the quality** so a **trained team delivers at standard even when its individuals are still beginners.** The scaffolding (guidance + QA gate + escalation) is what lets beginners produce work that passes the bar; the standard is held by the system, not assumed of the person.
+
+5. **Earn + iterate.** Members earn **real 1099 pay** (gated on the QA pass, `...workforce-three-ring.md` §2), and the **Flywheel (§4) upgrades both the team and each person over time** — better matches, sharper modules, deeper skills, higher task tiers, more earning capacity. The cohort that started with nothing compounds into a capable, paid team.
+
+### Honest guardrails (binding — stated plainly, not hand-waved)
+
+- **Funding is real, not magic.** "Free for them" is **funded by the paid rings + aligned-brand sponsorship.** It is **sustainable by design**, but it is **paid for by someone** — we name it rather than pretend it is costless. If the paid rings and sponsorship do not cover it, the free tier is not infinite; the funding model is the constraint, and it is honored, not wished away.
+- **"Anything" is bounded.** "A team capable of doing anything" means **anything we TRAIN + the modules SUPPORT + QA can VERIFY.** **High-risk / regulated work still routes to the licensed + insured tier** (the workforce constraint, `...workforce-three-ring.md` §3.3) — electrical, work at height, anything entering homes/churches or touching surveillance/access. The platform is **scaffolding that lets a trained team exceed any individual member's level** — but **real competence = the person's effort + the system's support**, not a substitute for either. We do not promise magic.
+- **Dignity + fair pay.** The point is to **empower, not extract.** Real pay, **agency-first** (the person decides their path, §4.1), **healthy motivation** (no manufactured dependency, no engagement dark patterns, §4 + §4.1 guardrails). A cohort lifted into capability and then kept dependent would be a failure of the mission, not a success of it.
+
+### Mission tie
+This is **soul-prosperity → all-prosperity, done collectively** (3 John 1:2 order, `BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md`). It is the **Father's Business** made operational and the **Black-church economic powerhouse** made literal: **lifting people from nothing — no money, no skills, no foothold — into capable, earning teams.** The serve-not-extract test (`GOVERNANCE-EXECUTION-ADVISORY.md`) is the whole design: *does this lift the family and the community AND create rather than extract?* This layer exists to answer **yes** at the scale of a group.
+
+Recorded as **DR-022.**
 
 ---
 
