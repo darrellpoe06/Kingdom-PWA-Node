@@ -14,7 +14,8 @@
 | [DR-0008](DR-0008-outcome-driven-funnel-sovereign-analytics.md) | Outcome-driven funnel + sovereign privacy-respecting analytics | accepted | C | church, tlc, poetech | NO-DATA-SALE, ALIGNED-FUNDING, SOVEREIGN-FIRST, TLC-FIREWALL, DATA-DRIVEN-LIVING |
 | [DR-0009](DR-0009-first-party-data-identity-no-data-sale.md) | First-party data + sovereign identity; we do not sell data | accepted | C | church, tlc, poetech | NO-DATA-SALE, SOVEREIGN-IDENTITY, TLC-FIREWALL, ALIGNED-FUNDING, DATA-DRIVEN-LIVING |
 | [DR-0010](DR-0010-llms-do-the-work-bounded-autonomy.md) | LLMs do the work — bounded autonomy, reconciled with the brakes | accepted | C | all | GOVERN-EXECUTE-ADVISE, CAGE, THREE-BRAKES, TIER-C, EARN-AUTONOMY, TLC-FIREWALL, WORD-FIRST |
+| [DR-0011](DR-0011-operating-model-how-we-work.md) | Operating model — append-only decisions, session isolation, narrative vs decision | accepted | n/a | all | DECISION-RECORDS, SESSION-ISOLATION, GOVERN-EXECUTE-ADVISE, RESEARCH-FIRST, EARN-AUTONOMY |
 
 **Provenance:** DR-0001…DR-0010 are the retrofit of items A–J from the 2026-06-08 church-LLM research-review (`docs/99-session-notes/2026-06-08-research-review-church-network-llm-eval-and-app-review.md`). A=DR-0001, B=DR-0002, C=DR-0003, D=DR-0004, E=DR-0005, F=DR-0006, G=DR-0007, H=DR-0008, I=DR-0009, J=DR-0010.
 
-**Next ID:** DR-0011. To add a decision: copy the template in `README.md`, assign the next ID, add a row here. To change a decision: write a new DR, set `supersedes:`, flip the old row's status to `superseded`.
+**Next ID:** DR-0012. To add a decision: copy the template in `README.md`, assign the next ID, add a row here. To change a decision: write a new DR, set `supersedes:`, flip the old row's status to `superseded`.
