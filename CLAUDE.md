@@ -33,6 +33,7 @@ The repository's context is layered per ICM. Name the layer when locating or pla
 - **Layer 2 (stage contract):** the per-workspace stage `CONTEXT.md` inside each ICM workspace — the contract for a single stage of a single workflow. Created per-workspace as the WORKFLOW-MODULE-LIBRARY workspaces are built out.
 - **Layer 3 (reference):** `docs/00-foundations/_root/*.md` — the authoritative foundation documents (THE-WAY, MIND-OF-CHRIST, the Worldview spine, the governance and mission foundations). Reference material the agent reads before generating substantive content.
 - **Layer 4 (working):** `docs/99-session-notes/*.md` — the dated working artifacts: research-reviews, session snapshots, audits, and the consolidated extracts that feed the next build.
+- **Decision Records (Layer 4 discipline):** `docs/decisions/` — append-only decision records; `INDEX.md` is the source of truth for what's decided, `PRINCIPLES.md` the cite-once registry of binding-principle IDs, `README.md` the convention, and `DR-0011` the operating model (one decision per file; new directive = a new DR, never a rewrite; branch + worktree per writing session so concurrent sessions don't collide).
 
 ## Typographic Theology
 
