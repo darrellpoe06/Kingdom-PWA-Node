@@ -16,7 +16,9 @@
 | [DR-0010](DR-0010-llms-do-the-work-bounded-autonomy.md) | LLMs do the work — bounded autonomy, reconciled with the brakes | accepted | C | all | GOVERN-EXECUTE-ADVISE, CAGE, THREE-BRAKES, TIER-C, EARN-AUTONOMY, TLC-FIREWALL, WORD-FIRST |
 | [DR-0011](DR-0011-operating-model-how-we-work.md) | Operating model — append-only decisions, session isolation, narrative vs decision | accepted | n/a | all | DECISION-RECORDS, SESSION-ISOLATION, GOVERN-EXECUTE-ADVISE, RESEARCH-FIRST, EARN-AUTONOMY |
 | [DR-0012](DR-0012-gpu-topology-conservative-single-4070-creative-preemption.md) | GPU topology — conservative single-4070; creative-app CUDA is absolute-priority preemption | accepted | C | poetech, all | THREE-BRAKES, CAGE, GOVERN-EXECUTE-ADVISE, EARN-AUTONOMY, COST-DISCIPLINE, DATA-DRIVEN-LIVING |
+| [DR-0013](DR-0013-sovereignty-roadmap-vendor-optional-milestones.md) | Sovereignty roadmap — phased vendor-optional milestones (two milestones, swappable router) | accepted | C | all | SOVEREIGN-FIRST, COST-DISCIPLINE, DATA-DRIVEN-LIVING, GOVERN-EXECUTE-ADVISE |
+| [DR-0014](DR-0014-hardware-budget-directive-procurement-plan.md) | Hardware budget directive (2026-06-09) — PoeTech $5k farm + Church >=$5k node (PLAN, not purchase) | accepted | C | poetech, church | SOVEREIGN-FIRST, COST-DISCIPLINE, COMMUNITY-FIRST, CAGE, DATA-DRIVEN-LIVING |
 
 **Provenance:** DR-0001…DR-0010 are the retrofit of items A–J from the 2026-06-08 church-LLM research-review (`docs/99-session-notes/2026-06-08-research-review-church-network-llm-eval-and-app-review.md`). A=DR-0001, B=DR-0002, C=DR-0003, D=DR-0004, E=DR-0005, F=DR-0006, G=DR-0007, H=DR-0008, I=DR-0009, J=DR-0010.
 
-**Next ID:** DR-0013. To add a decision: copy the template in `README.md`, assign the next ID, add a row here. To change a decision: write a new DR, set `supersedes:`, flip the old row's status to `superseded`.
+**Next ID:** DR-0015. To add a decision: copy the template in `README.md`, assign the next ID, add a row here. To change a decision: write a new DR, set `supersedes:`, flip the old row's status to `superseded`.
