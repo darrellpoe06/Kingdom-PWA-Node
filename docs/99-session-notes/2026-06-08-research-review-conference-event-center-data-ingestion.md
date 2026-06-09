@@ -32,7 +32,8 @@
 13. **Domain-based multi-entity identity (§14):** the PR #8 identity layer **I** is **multi-domain** — Church staff/leaders on **`@thechurchofthelivinggod.com`** (e.g. `bg@thechurchofthelivinggod.com`, Bishop Gwin), TLC on `@tlctherapysolutions.com`, PoeTech on `@poetech.us`. **Staff/unit-leader SSO + group-chat identity key off these domain emails** — that is the no-phone anchor. **Open current-state question:** is `thechurchofthelivinggod.com` mail on Google Workspace today or elsewhere (the site is Turbify-hosted)? **Recommend: federate/SSO-bridge during MVP, sovereign multi-domain mail on the NAS as the long-arc** — don't block MVP on full sovereign mail (MVP-pragmatism). Church identities = ISO-2; **TLC-domain identities = ISO-1, PHI-walled.**
 14. **All of Part II is reusable per the Module Library** — "ministry-units + unit-chat" and "front-door-tab + gated-deeper-app" are **configurable modules / a per-entity instance shape**, not a COLG one-off; a partner church (or any business) drops into the same shape as its own sovereign node/instance.
 15. **Maximum-inclusion comms — no single credential required (§13.5 / §14.5):** the layer must reach a member whether they have **email-only, phone-only, both, or neither** (app-only handle). **Identity is multi-anchor** (email OR phone OR app-handle, any one suffices); **delivery is OTT** — in-app + Web Push + ntfy **over data, no carrier needed** ("text over the internet"). An **optional SMS bridge** is a deferred, opt-in, **budget-capped, explicitly non-sovereign** edge to pull in phone-only people not yet in the app (the one unavoidable external touchpoint — flagged, costed, **TLC-excluded**). **PWA-first** so it runs on any browser + internet.
-16. **SSO as consented data-enrichment, governed not bolted-on (§14.6):** SSO login doubles as a first-party data + profile-enrichment vector (capture at login, bootstrap/cross-reference at onboarding, keep current) feeding **D + H** of PR #8 — **under five binding guardrails: consent + transparency (opt-out-able); internal-only, NEVER sold; TLC ISO-1 = NO enrichment ever (PHI-walled); values-aligned + non-creepy; Cage-gated + audit-logged.**
+16. **Tiered identity + progressive-trust (§14.1b/§14.1c):** **staff/leaders** authenticate on the **sovereign church domain** (authority-bearing); **members** use low-friction **consumer-OIDC (Google/Apple/Microsoft)** + phone + app-handle — **federated INTO our sovereign store, which is the system of record** (the provider button is an entry method, never lock-in). **Access is EASY for a known identity** — friction is reserved for unknown identities and sensitive actions; **2+ corroborating identity sources that agree = "verified/known" = the frictionless tier** ("we know who it is"). Cross-referencing is consented, Cage-logged, never sold, non-creepy, and **absolutely excludes TLC clinical identities.**
+17. **SSO as consented data-enrichment, governed not bolted-on (§14.6):** SSO login doubles as a first-party data + profile-enrichment vector (capture at login, bootstrap/cross-reference at onboarding, keep current) feeding **D + H** of PR #8 — **under five binding guardrails: consent + transparency (opt-out-able); internal-only, NEVER sold; TLC ISO-1 = NO enrichment ever (PHI-walled); values-aligned + non-creepy; Cage-gated + audit-logged.**
 
 ---
 
@@ -280,8 +281,8 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 | **PIII — Exclusive deeper app (gated)** | Access-gated management surface (full conference mgmt, bookings, annual-results dashboards, staff green-light queues). Gated on identity layer **I** + role model. | identity layer **I** (PR #8 ~2026-09–11); role gating | **~2026-10–11** |
 | **PIV — Ministry units + unit leadership** | `ministry_units` + `ministry_unit_members` + unit-leader scope; unit-leader view in the exclusive app. | role/scope model | **~2026-09–10** |
 | **PV — In-app group chat (no phone)** | Realize the already-designed Layer-1 messaging (schema-v2.10) for ministry-unit group chat; ntfy push; identity = SSO. | identity layer **I**; messaging Layer-1 (already designed, post-vacation weeks 1–4) | **~2026-09–10 (chat infra largely pre-designed)** |
-| **PVI — Multi-domain identity / SSO** | Multi-domain sovereign IDP/SSO (church/TLC/PoeTech domains); staff domain-email anchor; federate-bridge MVP → sovereign mail long-arc. | PR #8 layer **I**; Workspace current-state answer | **MVP bridge ~2026-09; sovereign mail long-arc** |
-| **PVII — Multi-anchor identity (incl. app-handle)** | Email OR phone OR app-only handle, any one suffices; promote IDENTITY-ROLES-AUDIT Phase-2 local profile to a real account; PWA-first. | identity layer **I** | **~2026-09 (rides PVI)** |
+| **PVI — Multi-domain identity / SSO** | Sovereign self-hosted IDP; **staff** church-domain anchor (federate-bridge MVP → sovereign mail long-arc); **member consumer-OIDC connectors (Google/Apple/Microsoft) federating INTO the sovereign store (§14.1b)**. | PR #8 layer **I**; Workspace answer | **MVP bridge ~2026-09; member consumer-OIDC in MVP; sovereign mail long-arc** |
+| **PVII — Multi-anchor identity + progressive-trust (§14.1c)** | Email/consumer-OIDC OR phone OR app-handle, any one suffices; **verification tiers (1 source = basic, 2+ corroborating = verified/known → frictionless)**; cross-reference Cage-logged; **TLC excluded**. | identity layer **I**; the Cage ledger | **~2026-09–10 (rides PVI)** |
 | **PVIII — OTT delivery ladder** | In-app store + PWA Web Push + ntfy over data (Tiers 1–2, sovereign); optional email digest (Tier 3). | messaging Layer-1 (designed); ntfy (running) | **~2026-09–10 (largely pre-designed)** |
 | **PIX — SMS bridge (deferred edge)** | Opt-in, budget-capped outbound/inbound SMS to pull in phone-only people; prefer self-hosted GSM gateway, else low-cost API; **TLC-excluded**. | A2P/10DLC or GSM gateway; budget cap | **deferred; opt-in, post-MVP** |
 | **PX — SSO data-enrichment (governed)** | Consented capture-at-login + onboarding cross-reference + periodic refresh; Cage-gated Tier-C jobs, audit-logged; feeds D + H; **TLC excluded**. | SSO live (PVI); consent UX; the Cage | **~2026-Q4 (after SSO proven; consent UX first)** |
@@ -490,7 +491,9 @@ A unit group chat is a `conversations` row (`kind='group'`, `linked_entity_kind=
 
 > Net: the comms layer is **sovereign and carrier-free for the overwhelming majority** (OTT Tiers 1–3) and includes a **clearly-flagged, budget-capped, non-sovereign SMS edge** only to *pull in* phone-only people who aren't in the app yet. No member is excluded; the one external dependency is named, costed, and walled off from TLC.
 
-## 14. Multi-anchor, domain-based multi-entity identity (the SSO + group-chat anchor)
+## 14. Tiered, multi-anchor, domain-based multi-entity identity (the SSO + group-chat anchor)
+
+> **Tiered (§14.1b):** **staff/leaders** = sovereign church-domain SSO (canonical authority); **members** = low-friction consumer-OIDC (Google/Apple/Microsoft) + phone + app-handle, **federated into our sovereign store** (entry method, not system of record). **Progressive-trust (§14.1c):** easy for a known identity, friction reserved for unknown identities + sensitive actions; **2+ corroborating sources = "verified/known" = frictionless tier.** **TLC ISO-1 excluded from all consumer cross-referencing — absolute.**
 
 ### 14.1 The model: one substrate, many domains
 
@@ -524,6 +527,43 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 - **Sovereignty + legibility:** the sovereign domain is the relationship and the record we own (PR #8 §7); anchoring on it — not on a vendor-owned personal mailbox — keeps identity, audit trail, and authority inside the sovereign loop.
 - **Reconciles with §14.5 multi-anchor inclusion:** multi-anchor (email **or** phone **or** app-handle) is for **members** (maximum inclusion); **staff/leaders are held to the stricter domain-primary rule** because their identity carries authority and must be revocable + legible. Members include everyone; leaders are anchored sovereign.
 
+### 14.1b Tiered identity — staff sovereign-domain, members consumer-OIDC (federated, not locked-in) (Darrell, 2026-06-09)
+
+**The model is TIERED by who the person is.** Darrell: *"People will probably use Gmail, Apple, or Outlook email addresses."* Members of the general congregation / app users **will NOT** have church-domain mailboxes — they bring consumer email. So:
+
+| Tier | Who | Primary sign-in | Notes |
+|---|---|---|---|
+| **Staff / leaders** | Bishop Gwin, admin, eldress, unit leaders | **Sovereign church-domain SSO** (`bg@`, `info@`, `eldressredding@` on `@thechurchofthelivinggod.com`) — §14.1/§14.1a | Carries role + green-light authority; personal email recovery-only. **Canonical, already decided.** |
+| **Members** | General congregation / app users | **"Sign in with Google / Apple / Microsoft"** (consumer **OIDC**) — first-class onboarding path — **plus** the phone + app-handle anchors of §14.5 | **Low-friction by design.** No church mailbox required; maximum inclusion preserved (email **or** phone **or** app-handle still all valid). |
+
+**"Sign in with Google / Apple / Microsoft" is a first-class member onboarding path** — the fastest, most familiar button for the consumer-email majority. It composes with §14.5: a member may instead use phone or the app-only handle; consumer-OIDC is the *easy default*, not a requirement.
+
+**FEDERATION, NOT VENDOR LOCK-IN (binding — state explicitly):** consumer logins **federate INTO our sovereign identity store, which is the system of record.** The Google/Apple/Microsoft button is **only a convenient ENTRY METHOD** — **our own self-hosted IDP (Authentik/Keycloak/Zitadel) holds the canonical account** (the `instance_members.user_id`, roles, links, consent flags). Because the canonical identity lives in our store, **we stay portable and vendor-independent**: a member can add/swap providers, and dropping a provider never loses the account. This is consistent with the open-source/portable-stack + sovereign-mesh principles and PR #8 §7 ("the relationship and its signals are ours, not a vendor's"). **No consumer provider is ever the system of record; each is a corroborating entry signal (§14.1c).**
+
+- **Item I guardrails still hold:** consent + transparency, **never sold**, internal-only.
+- **Per-entity isolation unaffected:** this is the **Church (ISO-2) / PoeTech (ISO-3) member** path; **TLC ISO-1 is clinical and separate** — TLC clinical identity is **not** a consumer-OIDC member account and is never pooled with this (PR #8 §2.2).
+
+### 14.1c Progressive-trust access + verification tiers — "easy if we know who it is" (Darrell, 2026-06-09)
+
+**Binding UX principle.** Darrell: *"Want access to be EASY for them, not restrictive — if we know who it is."* **Access is frictionless for a recognized/known identity; friction is reserved for unknown identities and, separately, for sensitive ACTIONS — not for a known member's normal use.**
+
+**Verification tiers — the concrete definition of "we know who it is."** Darrell: *"cross reference with Google, Facebook, etc. — two or more, they are good."*
+
+| Tier | Definition | Access posture |
+|---|---|---|
+| **Unverified** | A **single** unconfirmed source (one fresh OIDC login, an unconfirmed phone, a bare app-handle) | Basic access; **light step-up** (e.g., confirm a code, link a second source) **before sensitive actions only** |
+| **Verified / Known** | **Two or more corroborating identity sources that AGREE** — e.g. Google + Apple, or Google + phone, or Microsoft + Facebook, or a domain SSO + phone | **Frictionless / "easy" tier** — recognized; **do NOT re-challenge a known member during normal use** |
+
+- **The threshold is concrete: 2+ corroborating sources that agree ⇒ "verified/known" ⇒ the easy-access tier.** A single source stays "unverified" until a second corroborates. This is the operational meaning of progressive-trust "we know who it is."
+- **Friction maps to RISK, never to a known member:** the hard **gates stay strictly on the irreducible-judgment ACTIONS** (doctrinal publish, PHI, money, destructive, final green-lights — §5.3 / PR #8 §8) and step-up applies to **unverified** identities. A verified member doing normal things is **not** re-challenged. Brakes/gates protect risky *actions*, not ordinary *use*.
+
+**GUARDRAILS for cross-referencing (binding — this is powerful, governed not bolted-on):**
+1. **Consent-based + transparent.** The member is told their sign-in sources are cross-referenced to establish trust; **internal trust + service only; never sold** (item I).
+2. **Behind the Cage, fully logged.** Every cross-reference is a **Cage-gated action written to the append-only, hash-chained audit ledger** (who/what/when/which sources) — and visible to the member (`IDENTITY-ROLES-AUDIT` "every change attributable").
+3. **Values-aligned, non-creepy.** Corroboration is for **trust + frictionless access**, **not** surveillance profiling or broker-data inference. If it would feel invasive, it does not ship. (Distinct from, and narrower than, the §14.6 enrichment vector — this is identity-confidence only.)
+4. **TLC ISO-1 EXCLUDED — absolute.** **No clinical/therapy identity is EVER cross-referenced against Google/Apple/Microsoft/Facebook or any consumer/social provider.** The firewall is total; clinical identity confidence is established sovereign-only, never against external providers.
+5. **Federation-not-lock-in still holds.** The providers are **corroborating signals into our sovereign identity store**, never the system of record (§14.1b).
+
 ### 14.2 Current-state — RESOLVED by the 2026-06-09 Workspace inventory
 
 **The church-domain mail is on Google Workspace.** The inventory (§3.0) confirmed a **real Google Workspace domain `@thechurchofthelivinggod.com`** — **primary/admin account `info@thechurchofthelivinggod.com`**, plus staff `eldressredding@` and **`bg@`** (Bishop Gwin). The earlier Turbify-vs-Workspace ambiguity is **resolved: Turbify hosts the *website*; the *mail* is Google Workspace.** (Literal lowercase domain per the §3.0 typography note.)
@@ -538,6 +578,8 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 | **Long-arc** | **Sovereign multi-domain mail on the NAS** — migrate the domains' mail to self-hosted (mailcow/Mailu-class) under the same IDP. | Full sovereignty ("the relationship and its signals are ours"); real operational cost (deliverability, spam, uptime) → **screen against the sustainability rule** before committing. |
 
 **Recommendation:** **bridge during MVP (don't block on sovereign mail), converge to sovereign multi-domain mail on the NAS as the long-arc** — the same MVP-pragmatism / sustainability-beats-convenience rule the messaging doc applies. The **domain email is the SSO + group-chat identity anchor in both phases**; only the *hosting* of the mailbox changes.
+
+**Member path (§14.1b), both phases:** stand up the **self-hosted IDP with consumer-OIDC connectors (Google / Apple / Microsoft)** + phone + app-handle, **federating into our sovereign store** — this is independent of the church-mail hosting question and can ship for members in MVP. The verification-tier cross-reference (§14.1c) layers on top: each added provider/phone is a corroborating signal toward the "verified/known" easy-access tier.
 
 ### 14.4 Per-entity isolation holds in identity too
 
