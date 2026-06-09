@@ -1,0 +1,227 @@
+{
+  "name": "wf - Autonomous builder (scan pending every 30 min; ACTIVE; Cowork trigger is out-of-band placeholder)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */30 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0001-4a00-8000-000000000001",
+      "name": "Every 30 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Scan the pending queue on the NAS bind mount, pick the OLDEST PRD by mtime,\n// and move it to in-progress. If none, end quietly.\n// NOTE: /data/cowork-builds/ is the runtime queue on the NAS bind mount.\n// The repo builds/ folder is the reviewable, version-controlled template - see\n// docs/00-foundations/_root/AUTONOMOUS-BUILDER-LIFECYCLE.md for the mapping.\nconst fs = require('fs');\nconst path = require('path');\n\nconst base = '/data/cowork-builds';\nconst pendingDir = path.join(base, 'pending');\nconst inProgressDir = path.join(base, 'in-progress');\n\n// Ensure the queue dirs exist (idempotent; fail-safe on first run).\nfor (const d of [base, pendingDir, inProgressDir, path.join(base, 'done'), path.join(base, 'failed')]) {\n  try { fs.mkdirSync(d, { recursive: true }); } catch (e) { /* already exists */ }\n}\n\nlet entries = [];\ntry {\n  entries = fs.readdirSync(pendingDir)\n    .filter(function (n) { return n.endsWith('.md') && n !== '.gitkeep'; })\n    .map(function (n) {\n      const full = path.join(pendingDir, n);\n      const stat = fs.statSync(full);\n      return { name: n, full: full, mtimeMs: stat.mtimeMs };\n    })\n    .sort(function (a, b) { return a.mtimeMs - b.mtimeMs; });\n} catch (e) {\n  return [{ json: { picked: false, reason: 'pending dir read error: ' + e.message } }];\n}\n\nif (entries.length === 0) {\n  // Nothing to do this cycle. End quietly.\n  return [{ json: { picked: false, reason: 'pending queue empty' } }];\n}\n\nconst oldest = entries[0];\nconst dest = path.join(inProgressDir, oldest.name);\n\ntry {\n  fs.renameSync(oldest.full, dest);\n} catch (e) {\n  return [{ json: { picked: false, reason: 'move to in-progress failed: ' + e.message, prd: oldest.name } }];\n}\n\nreturn [{\n  json: {\n    picked: true,\n    prd: oldest.name,\n    fromPath: oldest.full,\n    inProgressPath: dest,\n    mtimeMs: oldest.mtimeMs,\n    pickedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "a1b2c3d4-0002-4a00-8000-000000000002",
+      "name": "Scan pending and claim oldest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-picked-true",
+              "leftValue": "={{ $json.picked }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "a1b2c3d4-0003-4a00-8000-000000000003",
+      "name": "Did we claim a PRD?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.COWORK_BUILD_WEBHOOK }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event: 'build_pickup', prd: $json.prd, inProgressPath: $json.inProgressPath, pickedAt: $json.pickedAt, note: 'Out-of-band Cowork session trigger placeholder - no in-n8n Cowork API yet. See AUTONOMOUS-BUILDER-LIFECYCLE.md post-vacation buildout.' }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "a1b2c3d4-0004-4a00-8000-000000000004",
+      "name": "Trigger Cowork build (out-of-band placeholder)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Record the pickup state transition as a first-class Event and prepare the\n// ntfy push payload. On pickup we LEAVE the PRD in in-progress/ - the out-of-band\n// Cowork session moves it to done/ or failed/ when it finishes. That done/failed\n// transition is the deferred post-vacation work (needs the real Cowork API).\nconst fs = require('fs');\nconst path = require('path');\n\nconst base = '/data/cowork-builds';\nconst eventsPath = path.join(base, 'events.jsonl');\n\nconst src = $input.first().json;\nconst webhookOk = !(src && src.error);\n\nconst event = {\n  ts: new Date().toISOString(),\n  type: 'build_state_transition',\n  transition: 'pending->in-progress',\n  prd: src.prd || 'unknown',\n  inProgressPath: src.inProgressPath || null,\n  trigger_webhook_ok: webhookOk,\n  workflow: 'wf-autonomous-builder',\n  note: 'Pickup recorded. Done/failed transition handled out-of-band until the Cowork API lands.'\n};\n\ntry {\n  fs.appendFileSync(eventsPath, JSON.stringify(event) + '\\n');\n} catch (e) {\n  // Do not fail the run on an events-log write error; surface it in the payload.\n  event.events_write_error = e.message;\n}\n\nconst ntfyMessage = 'Autonomous builder claimed PRD: ' + event.prd +\n  ' (pending -> in-progress). Cowork trigger ' + (webhookOk ? 'sent' : 'FAILED - check webhook') + '.';\n\nreturn [{\n  json: {\n    event: event,\n    ntfy: {\n      topic: 'poe-autonomous-builder',\n      title: 'Build pickup',\n      message: ntfyMessage,\n      priority: webhookOk ? 'default' : 'high'\n    }\n  }\n}];"
+      },
+      "id": "a1b2c3d4-0005-4a00-8000-000000000005",
+      "name": "Record event + build ntfy payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ntfy:80/{{ $json.ntfy.topic }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "={{ $json.ntfy.title }}"
+            },
+            {
+              "name": "Priority",
+              "value": "={{ $json.ntfy.priority }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "raw",
+        "rawContentType": "text/plain",
+        "body": "={{ $json.ntfy.message }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "a1b2c3d4-0006-4a00-8000-000000000006",
+      "name": "Emit ntfy push (pickup transition)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0007-4a00-8000-000000000007",
+      "name": "TODO post-vacation: real Cowork API pickup + done/failed transition",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1680, 200]
+    },
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0008-4a00-8000-000000000008",
+      "name": "No PRD this cycle (end quietly)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [960, 420]
+    }
+  ],
+  "connections": {
+    "Every 30 minutes": {
+      "main": [
+        [
+          {
+            "node": "Scan pending and claim oldest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan pending and claim oldest": {
+      "main": [
+        [
+          {
+            "node": "Did we claim a PRD?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Did we claim a PRD?": {
+      "main": [
+        [
+          {
+            "node": "Trigger Cowork build (out-of-band placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No PRD this cycle (end quietly)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Cowork build (out-of-band placeholder)": {
+      "main": [
+        [
+          {
+            "node": "Record event + build ntfy payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record event + build ntfy payload": {
+      "main": [
+        [
+          {
+            "node": "Emit ntfy push (pickup transition)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit ntfy push (pickup transition)": {
+      "main": [
+        [
+          {
+            "node": "TODO post-vacation: real Cowork API pickup + done/failed transition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "autonomous-builder"},
+    {"name": "lifecycle"},
+    {"name": "active"},
+    {"name": "tina-b6"}
+  ],
+  "meta": {"instanceId": "poe-family"},
+  "pinData": {}
+}

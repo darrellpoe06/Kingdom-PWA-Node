@@ -1,0 +1,196 @@
+{
+  "name": "42 - Batch research queue (accumulate by day, submit 11pm, 50% off)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "batch-queue-add",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-4a01-9001-000000000001",
+      "name": "Webhook: batch-queue-add",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stage 1 - Accumulate. Append one queued research request as a JSON line to /data/batch-queue/pending.jsonl.\nconst fs = require('fs');\nconst path = require('path');\n\nconst queueDir = '/data/batch-queue';\nconst pendingFile = path.join(queueDir, 'pending.jsonl');\n\n// Ensure the queue directory exists (mkdir -p).\nfs.mkdirSync(queueDir, { recursive: true });\n\nconst body = ($json.body && typeof $json.body === 'object') ? $json.body : $json;\n\nconst query = (body.query || '').toString().trim();\nif (!query) {\n  return [{ json: { queued: false, error: 'missing query' } }];\n}\n\n// Build a stable custom_id (slug + timestamp) if the caller did not supply one.\nfunction slugify(s) {\n  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);\n}\nconst now = new Date();\nconst stamp = now.toISOString().replace(/[:.]/g, '-');\nconst customId = (body.custom_id && body.custom_id.toString().trim())\n  ? body.custom_id.toString().trim()\n  : (slugify(query) + '-' + stamp);\n\nconst record = {\n  custom_id: customId,\n  query: query,\n  system: (body.system || '').toString(),\n  queued_at: now.toISOString()\n};\n\nfs.appendFileSync(pendingFile, JSON.stringify(record) + '\\n');\n\nreturn [{ json: { queued: true, custom_id: customId } }];"
+      },
+      "id": "a1b2c3d4-0002-4a02-9002-000000000002",
+      "name": "Append to pending.jsonl",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4a03-9003-000000000003",
+      "name": "Respond queued",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 23 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0004-4a04-9004-000000000004",
+      "name": "Cron 11pm America/Chicago",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stage 2a - Read the day's accumulated queue and build the Message Batches requests array.\nconst fs = require('fs');\nconst path = require('path');\n\nconst queueDir = '/data/batch-queue';\nconst pendingFile = path.join(queueDir, 'pending.jsonl');\n\nif (!fs.existsSync(pendingFile)) {\n  return [{ json: { empty: true, reason: 'no pending file', requests: [] } }];\n}\n\nconst raw = fs.readFileSync(pendingFile, 'utf8');\nconst lines = raw.split('\\n').map(l => l.trim()).filter(l => l.length > 0);\n\nif (lines.length === 0) {\n  return [{ json: { empty: true, reason: 'pending file empty', requests: [] } }];\n}\n\nconst requests = [];\nconst destinationMap = {};\n\nfor (const line of lines) {\n  let rec;\n  try {\n    rec = JSON.parse(line);\n  } catch (e) {\n    continue; // skip malformed lines rather than fail the whole batch\n  }\n  if (!rec.custom_id || !rec.query) continue;\n\n  const params = {\n    model: 'claude-sonnet-4-6',\n    max_tokens: 4096,\n    messages: [\n      { role: 'user', content: rec.query }\n    ]\n  };\n  if (rec.system && rec.system.length > 0) {\n    params.system = rec.system;\n  }\n\n  requests.push({ custom_id: rec.custom_id, params: params });\n  destinationMap[rec.custom_id] = rec.dest || null;\n}\n\nif (requests.length === 0) {\n  return [{ json: { empty: true, reason: 'no valid requests', requests: [] } }];\n}\n\nreturn [{ json: { empty: false, count: requests.length, requests: requests, destination_map: destinationMap } }];"
+      },
+      "id": "a1b2c3d4-0005-4a05-9005-000000000005",
+      "name": "Build batch requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 480]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-not-empty",
+              "leftValue": "={{ $json.empty }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0006-4a06-9006-000000000006",
+      "name": "If queue not empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [700, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages/batches",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0007-4a07-9007-000000000007",
+      "name": "POST messages/batches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stage 2b - Persist the returned batch id + custom_id-to-destination map, then archive and clear pending.jsonl.\nconst fs = require('fs');\nconst path = require('path');\n\nconst queueDir = '/data/batch-queue';\nconst submittedDir = path.join(queueDir, 'submitted');\nconst archiveDir = path.join(queueDir, 'archive');\nconst pendingFile = path.join(queueDir, 'pending.jsonl');\n\nfs.mkdirSync(submittedDir, { recursive: true });\nfs.mkdirSync(archiveDir, { recursive: true });\n\n// The batch object returned by the Anthropic API.\nconst resp = $json;\nconst batchId = resp.id || ('unknown-' + Date.now());\n\n// The destination map was built upstream; pull it from the 'Build batch requests' node.\nlet destinationMap = {};\ntry {\n  destinationMap = $('Build batch requests').first().json.destination_map || {};\n} catch (e) {\n  destinationMap = {};\n}\n\nconst submittedRecord = {\n  batch_id: batchId,\n  processing_status: resp.processing_status || null,\n  submitted_at: new Date().toISOString(),\n  results_url: resp.results_url || null,\n  custom_id_destinations: destinationMap\n};\n\nfs.writeFileSync(\n  path.join(submittedDir, batchId + '.json'),\n  JSON.stringify(submittedRecord, null, 2)\n);\n\n// Archive the day's queue, then clear pending.jsonl so tomorrow starts clean.\nif (fs.existsSync(pendingFile)) {\n  const dateStamp = new Date().toISOString().slice(0, 10);\n  const archivePath = path.join(archiveDir, dateStamp + '.jsonl');\n  fs.copyFileSync(pendingFile, archivePath);\n  fs.writeFileSync(pendingFile, '');\n}\n\nreturn [{ json: { stored: true, batch_id: batchId } }];"
+      },
+      "id": "a1b2c3d4-0008-4a08-9008-000000000008",
+      "name": "Store batch id + clear queue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 420]
+    },
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0009-4a09-9009-000000000009",
+      "name": "TODO: morning poller - GET results_url, drop into session notes",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1420, 420]
+    },
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0010-4a10-9010-000000000010",
+      "name": "No-op: empty queue tonight",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [940, 600]
+    }
+  ],
+  "connections": {
+    "Webhook: batch-queue-add": {
+      "main": [[{ "node": "Append to pending.jsonl", "type": "main", "index": 0 }]]
+    },
+    "Append to pending.jsonl": {
+      "main": [[{ "node": "Respond queued", "type": "main", "index": 0 }]]
+    },
+    "Cron 11pm America/Chicago": {
+      "main": [[{ "node": "Build batch requests", "type": "main", "index": 0 }]]
+    },
+    "Build batch requests": {
+      "main": [[{ "node": "If queue not empty", "type": "main", "index": 0 }]]
+    },
+    "If queue not empty": {
+      "main": [
+        [{ "node": "POST messages/batches", "type": "main", "index": 0 }],
+        [{ "node": "No-op: empty queue tonight", "type": "main", "index": 0 }]
+      ]
+    },
+    "POST messages/batches": {
+      "main": [[{ "node": "Store batch id + clear queue", "type": "main", "index": 0 }]]
+    },
+    "Store batch id + clear queue": {
+      "main": [[{ "node": "TODO: morning poller - GET results_url, drop into session notes", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "anthropic" },
+    { "name": "batch-api" },
+    { "name": "cost-discipline" },
+    { "name": "research-queue" }
+  ],
+  "meta": { "instanceId": "poe-family" },
+  "pinData": {}
+}
