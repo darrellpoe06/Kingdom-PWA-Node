@@ -8,7 +8,7 @@
 **Fits inside (does not contradict):** `docs/99-session-notes/2026-06-08-research-review-church-network-llm-eval-and-app-review.md` (PR #8 — the canonical three-entity system). This module is the **Church entity (ISO-2)** ingestion concretized: it is the data substrate under loops **F/G/H/I/J** and the first real instance of the **WORKFLOW-MODULE-LIBRARY** Church/Event module.
 **Builds on (verified in-repo, not from scratch):** `infra/supabase/schema-v2.8-ops.sql` (the `events` table), `infra/supabase/schema-v2.7-church.sql` (parishioners, service_offerings, ministries, ministry_signups), `infra/supabase/schema-v2.1-infra.sql` + `schema-v2.9-portal-rls.sql` (external_users, interactions, invite tokens), `infra/ai-orchestrator/` (the Cage), `service-calendar.json` + loop **(G)**, `docs/00-foundations/_root/WORKFLOW-MODULE-LIBRARY.md`, `docs/00-foundations/_root/INSTITUTIONAL-MEMORY-EVENTS.md`. **Part II additionally builds on:** `docs/00-foundations/_root/CHURCH-TAB-DIRECTORY.md` (the front-door tab + Mars Hill progressive disclosure), `docs/00-foundations/IN-APP-MESSAGING-LAYER-1-DESIGN.md` (**the in-app group chat already designed** — schema-v2.10-messaging, ntfy push, Matrix Layer-4), `docs/00-foundations/_root/IDENTITY-ROLES-AUDIT.md` (5 roles + scope modifiers + the Phase 3→4 SSO path), `docs/00-foundations/_root/MODULAR-EXTENSIBILITY.md` + `MULTI-INSTANCE-STRATEGY.md` (one-codebase-many-instances), PR #8 §7 (the first-party identity layer **I**).
 
-> **Part II (§10–§15)** folds in Darrell's 2026-06-08 follow-up directives: the **two-surface model** (front-door tab + exclusive gated deeper app) generalized to **all entities**; **ministry units + unit leadership + in-app group chat with no phone number**; and **domain-based multi-entity identity** (church staff on `@thechurchofthelivingGod.com`, etc.). Part I (the Conference/Event ingestion) is unchanged; Part II is the surfacing/placement/identity layer on top of the same ingested data model + Cage pipelines.
+> **Part II (§10–§15)** folds in Darrell's 2026-06-08 follow-up directives: the **two-surface model** (front-door tab + exclusive gated deeper app) generalized to **all entities**; **ministry units + unit leadership + in-app group chat with no phone number**; and **domain-based multi-entity identity** (church staff on `@thechurchofthelivinggod.com`, etc.). Part I (the Conference/Event ingestion) is unchanged; Part II is the surfacing/placement/identity layer on top of the same ingested data model + Cage pipelines.
 
 ---
 
@@ -16,8 +16,8 @@
 
 1. **We do NOT start from scratch — ~70% of the substrate already exists.** The `events` table (with `recurrence_rule`, `lifecycle`, `links`), the church domain (`parishioners`, `service_offerings` whose `service_kind` enum **already includes `'conference'` and `'revival'`**, `ministries`, `volunteer_hours`), the **external-participant portal pattern** (`external_users` + `external_invite_tokens` + `interactions`), the Cage, and the `service-calendar.json` + loop **(G)** pipeline are all present. We **extend**, we don't rebuild. (§1)
 2. **The four ingestion surfaces map cleanly onto existing patterns** (§2/§4): **participants/speakers** → extend the `external_users`/portal pattern + two new tables; **weekly schedule** → loop **(G)** already owns `service-calendar.json`, surface it in `events`; **annual results** → a computed `report_snapshots` rollup over data we already capture; **event-center availability** → a new bookings pair modeled on the proven `rentals`/`maintenance_requests` shape.
-3. **CONNECTOR GAP — flagged precisely, not papered over (§3.0):** **no Google Drive / Calendar / Gmail / Sheets / Forms connector is currently connected in this session** (`list_connectors` returned empty; registry search returned empty; no Google tools are present). **I therefore could NOT inspect the church's live Workspace data** and did not fabricate any. This is *not a design blocker* — per `AI-FOUNDATION-INTERNAL-OPERATIONS` the **production** ingestion path is **n8n on the NAS calling the Google Workspace API directly** (service account / OAuth), **not** a Claude-session connector. The connector is only needed for one-time human-driven *discovery/scouting*. See §3.0 for exactly what to connect and what is still unknown.
-4. **Source-of-truth is explicit per surface (§4), and "mirror first, converge later" is the rule:** the church's *existing* collection points (Forms/Sheets/Calendar) stay the source of truth at first; the App ingests a **read-only idempotent mirror**; only after that proves clean does a **sovereign registration form / bookings surface** become the new forward source of truth. We never rip out what the church already uses mid-stream.
+3. **DATA-SOURCE INVENTORY — REAL findings (2026-06-09, §3.0), assumptions replaced with facts:** the church's **live ops do NOT live in the connected account** — they run on a **separate Google Workspace domain `@thechurchofthelivinggod.com`** (`info@`/`eldressredding@`/`bg@`) + **ConvertKit** (members + schedule comms + Bible-Trivia engagement) + **Zoom** (National Assembly). **FOUND + seedable now:** the **"TCOTLG – Conference Registration" Google Form** (responses inside the Form → needs **Forms API**) and the **"Evangelist Gwin Home-going (Responses)" Sheet** (a real Form→Sheet RSVP row shape). **NOT FOUND (→ grant):** speaker/participant rosters+bios, annual results (giving/attendance), event-center bookings. **No church Google Calendar** — the schedule is ConvertKit + Zoom. **P0 unblock = a read-only service-account grant on `@thechurchofthelivinggod.com` + Forms API scope + ConvertKit/Zoom keys** (admin-only). Production ingestion = **n8n-on-NAS hitting those APIs directly**, behind the Cage.
+4. **Source-of-truth is explicit per surface (§4), and "mirror first, converge later" is the rule:** the church's *real* collection points (the **TCOTLG Form, ConvertKit, Zoom, the church Workspace**) stay the source of truth at first; the App ingests a **read-only idempotent mirror**; only after that proves clean does a **sovereign registration form / bookings surface** become the new forward source of truth. We never rip out what the church already uses mid-stream.
 5. **Everything rides the Cage (§5).** Ingestion is **timer-driven**, so it is **Tier C** and needs all **four brakes** (budget + concurrency lock + kill-switch + human-presence preempt), the **allowlist**, the **append-only hash-chained ledger**, and the **health gate**. Ships **inactive → read-only with someone watching → never unattended/while traveling** (P11/P12).
 6. **LLMs do the work; staff reserved for green-lights (§5/§8 of PR #8).** Extraction, normalization, dedup, conflict-flagging, draft summaries = **LLM-executed end-to-end behind the Cage**. The human gate is **only** the ISO-2 doctrinal/publish green-light and the calendar green-light — judgment, not toil.
 7. **It ships as a reusable Module-Library module (§6):** "Conference & Event Center Module," **Tier 2 (community-template)**, config-driven (calendar IDs, form/sheet IDs, room list, tier caps), validation-gated before `active`, every ingest/booking/publish emitted as an **Event** (institutional memory).
@@ -29,7 +29,7 @@
 10. **Both surfaces read the SAME ingested data model + Cage pipelines (§10).** The exclusive app just exposes **more** of it with write/management capability **behind staff green-lights**. Not two data stores — one substrate, two views.
 11. **Ministry units + unit leadership (§11/§12):** model **units within ministries** (ministry → unit → members + unit-leader role) on top of the existing `ministries`/`ministry_signups` tables and the **IDENTITY-ROLES-AUDIT scope-modifier** (a unit leader = an Editor **scoped to their unit**). Per-unit leadership tooling (roster, scheduling, comms) lives in the exclusive app.
 12. **In-app group chat, NO phone number (§13) — largely already built.** `IN-APP-MESSAGING-LAYER-1-DESIGN.md` (schema-v2.10-messaging) already defines `conversations`/`messages`/group chats, **ntfy** as the self-hosted push substrate on the DS1621xs, and **Matrix (Synapse) as the Layer-4 sovereignty-max** option. A ministry-unit chat is a `conversations` row `kind='group'` linked to a unit; **identity = the app login (SSO), not a phone number**; SMS is only an opt-in Layer-2 fallback. **Recommendation: reuse the existing Layer-1 design + ntfy; do NOT bolt on a heavy third-party chat SDK; keep Matrix as the deferred Layer-4.**
-13. **Domain-based multi-entity identity (§14):** the PR #8 identity layer **I** is **multi-domain** — Church staff/leaders on **`@thechurchofthelivingGod.com`** (e.g. `bg@thechurchofthelivingGod.com`, Bishop Gwin), TLC on `@tlctherapysolutions.com`, PoeTech on `@poetech.us`. **Staff/unit-leader SSO + group-chat identity key off these domain emails** — that is the no-phone anchor. **Open current-state question:** is `thechurchofthelivingGod.com` mail on Google Workspace today or elsewhere (the site is Turbify-hosted)? **Recommend: federate/SSO-bridge during MVP, sovereign multi-domain mail on the NAS as the long-arc** — don't block MVP on full sovereign mail (MVP-pragmatism). Church identities = ISO-2; **TLC-domain identities = ISO-1, PHI-walled.**
+13. **Domain-based multi-entity identity (§14):** the PR #8 identity layer **I** is **multi-domain** — Church staff/leaders on **`@thechurchofthelivinggod.com`** (e.g. `bg@thechurchofthelivinggod.com`, Bishop Gwin), TLC on `@tlctherapysolutions.com`, PoeTech on `@poetech.us`. **Staff/unit-leader SSO + group-chat identity key off these domain emails** — that is the no-phone anchor. **Open current-state question:** is `thechurchofthelivinggod.com` mail on Google Workspace today or elsewhere (the site is Turbify-hosted)? **Recommend: federate/SSO-bridge during MVP, sovereign multi-domain mail on the NAS as the long-arc** — don't block MVP on full sovereign mail (MVP-pragmatism). Church identities = ISO-2; **TLC-domain identities = ISO-1, PHI-walled.**
 14. **All of Part II is reusable per the Module Library** — "ministry-units + unit-chat" and "front-door-tab + gated-deeper-app" are **configurable modules / a per-entity instance shape**, not a COLG one-off; a partner church (or any business) drops into the same shape as its own sovereign node/instance.
 15. **Maximum-inclusion comms — no single credential required (§13.5 / §14.5):** the layer must reach a member whether they have **email-only, phone-only, both, or neither** (app-only handle). **Identity is multi-anchor** (email OR phone OR app-handle, any one suffices); **delivery is OTT** — in-app + Web Push + ntfy **over data, no carrier needed** ("text over the internet"). An **optional SMS bridge** is a deferred, opt-in, **budget-capped, explicitly non-sovereign** edge to pull in phone-only people not yet in the app (the one unavoidable external touchpoint — flagged, costed, **TLC-excluded**). **PWA-first** so it runs on any browser + internet.
 16. **SSO as consented data-enrichment, governed not bolted-on (§14.6):** SSO login doubles as a first-party data + profile-enrichment vector (capture at login, bootstrap/cross-reference at onboarding, keep current) feeding **D + H** of PR #8 — **under five binding guardrails: consent + transparency (opt-out-able); internal-only, NEVER sold; TLC ISO-1 = NO enrichment ever (PHI-walled); values-aligned + non-creepy; Cage-gated + audit-logged.**
@@ -71,8 +71,9 @@
 - **No attendance records** (who attended which service/session). (→ §2, §4d)
 - **No annual-results rollup** (computed; data feeding it partly exists via `service_offerings`/`volunteer_hours`). (→ §4c)
 - **No ingestion-source registry / sync-watermark / idempotency ledger.** (→ §2, §3)
-- **No live calendar sync** — the JPG→`service-calendar.json` link is loop (G), not yet built. (→ §4b)
-- **CONNECTORS** to the church's actual Google Workspace data — **not connected in this session** (→ §3.0).
+- **No live calendar sync** — the schedule lives in **ConvertKit + Zoom** (2026-06-09 inventory), folded into `service-calendar.json` by loop (G), not yet built. (→ §4b)
+- **No external (non-Google) ingestion adapters** — **ConvertKit + Zoom** are confirmed real sources and need adapters. (→ §3.1.5)
+- **GRANT** to the church's real ops data — the `@thechurchofthelivinggod.com` Workspace + Forms API + ConvertKit/Zoom keys are **not yet granted** (the connected account is Darrell's personal/family, not church ops). (→ §3.0, §9)
 
 ---
 
@@ -125,20 +126,42 @@ ingestion_sources ───< ingestion_sync_log   (watermark + idempotency + Cag
 
 ## 3. Ingestion architecture per source
 
-### 3.0 The connector situation — exact truth, no fabrication
+### 3.0 The data-source inventory — REAL findings (Workspace inventory returned 2026-06-09; assumptions replaced with facts)
 
-**What I checked this session:** `list_connectors` → `{"connectors":[]}` (none installed). Registry search for Google Drive/Calendar/Gmail/Sheets/Forms → `{"results":[]}`. No Google tools appear in the available tool set. **Conclusion: I have no read path to the church's live Google Workspace data from this session, so I inspected none and invented none.**
+> **Update 2026-06-09:** a Google Workspace inventory of the connected account **was** run. The earlier "no connector this session" caveat is superseded by **actual findings.** The headline correction: **the church's live operational data does NOT live in the connected account.** The connected account is Darrell's personal/family Workspace; **church operations run on a SEPARATE Workspace domain + external SaaS.** What was inspectable was inspected; what is gated is named precisely below.
+>
+> *Typography note (surface-the-conflict per CLAUDE.md):* literal account/domain identifiers below are rendered **all-lowercase** (`thechurchofthelivinggod.com`) because that is the real DNS/email identifier (DNS is canonically lowercase); prose **name** references to the church keep the typographic-theology capitalization. The literal string must match reality to function.
 
-**Why this is not a blocker (and points to the *right* architecture):** per `AI-FOUNDATION-INTERNAL-OPERATIONS` — *"anything that is a click today should be an API call tomorrow; browsers are for humans deciding things, not for systems doing things."* The **production** ingestion path must NOT be an interactive Claude-session connector (those are absent in headless/cron runs anyway — a known caveat). It must be **n8n on the NAS authenticating to the Google Workspace API directly** with a **service account (domain-wide delegation) or OAuth**, read-only scopes, credentials in the n8n credential store. The session connector is useful **only** for one-time human-driven discovery ("which Sheet/Calendar/Form actually holds the conference data?").
+**Where church data ACTUALLY lives (the operational map):**
 
-**Precise connector/credential gaps to close (action items, not assumptions):**
-1. **Google Calendar (read-only)** — for the weekly schedule + any existing resource/room calendars (event-center availability). Scope `calendar.readonly`. *Unknown until connected:* whether COLG keeps service times and room bookings in Google Calendar at all, and the calendar IDs.
-2. **Google Sheets (read-only)** — the most likely home of "collectively gathered" participant + speaker data. Scope `spreadsheets.readonly` + `drive.readonly` (to locate the files). *Unknown:* file IDs, tab/column shapes, whether one sheet or many.
-3. **Google Forms / Drive** — if registration is via Forms (responses land in a linked Sheet → ingest the Sheet). *Unknown:* whether Forms is used.
-4. **Gmail (read-only, optional, later)** — only if registrations/speaker confirmations arrive as email; lowest priority, highest noise. Keep out of v1.
-5. **Sovereign service-account provisioning** in Google Workspace admin — a **decision/access only Darrell or the church admin can grant** (per Drive-Don't-Delegate exception: a credential only they hold).
+| System | Role | Accounts / identifiers | Connector status |
+|---|---|---|---|
+| **Workspace domain `@thechurchofthelivinggod.com`** (separate from the connected account) | Church ops, giving/accounting, booking, rosters | `info@`, `eldressredding@`, `bg@` (Bishop Gwin) | **NOT connected — grant needed** |
+| **ConvertKit** | Member email + newsletters + weekly schedule comms + engagement (incl. Bible Trivia points) | sender `info@thechurchofthelivinggod.com` | **Not connected — external adapter needed** |
+| **Zoom** | Monthly National Assembly (2nd Monday 7:30pm CT, Senior Bishop Lloyd E. Gwin); attendance | church Zoom | **Not connected — external adapter needed** |
+| **`thelovecornermedia@gmail.com`** | Media account | — | not inventoried for ops data |
+| Connected account (Darrell personal/family) | Where the **TCOTLG Registration Form** + the **Gwin Home-going Responses sheet** happen to live | Darrell-owned | **Inspectable — the two seedable assets (below)** |
 
-Until #5 is granted, Phase 1 can still proceed on **schema + a manual CSV/Sheet export drop** into the `poetech-briefing` bind mount (the church exports once; n8n ingests the file idempotently) — proving the whole pipeline before live API access exists.
+**Per-surface findings (fact, not assumption):**
+
+1. **Conference data — PARTIAL, FOUND (seedable now).** The real instrument is the **"TCOTLG – Conference Registration" Google Form** (`id 1a3-7OgQcRPN8MkdVNI1dr-5_GoFW22uObJ4a3PwufXQ`, owned by Darrell, last modified 2024-06-18). **But it has no linked Responses sheet** — responses sit *inside the Form*, so the **field schema requires the Google Forms API** (or the service-account grant) to extract. A duplicate `"Copy of…"` form also exists (dedupe at ingest). **Best readable schema seed available right now:** the **"Evangelist Gwin Home-going (Responses)" Sheet** (`id 1qkbpDj0hrFgcKHn6LgMdsiVx2i5PiwBmqQL8-T_wGJs`) — a **real, working Form→Sheet RSVP row shape** to model conference-participant ingestion on. **Speaker/participant rosters + bios are NOT here** → church Workspace, grant needed.
+2. **Weekly schedule — EXTERNAL, not in any Google Calendar.** Confirmed cadence: **Sun Worship 11am; Wed Bible Study + Bible Trivia; monthly Zoom National Assembly 2nd Monday 7:30pm CT** (Senior Bishop Lloyd E. Gwin). **Source of truth = ConvertKit (comms) + Zoom (the assembly), NOT a Google calendar/sheet.** → treat **ConvertKit + Zoom as external ingestion sources** (and loop (G)'s `service-calendar.json` reconciles them — §4b).
+3. **Annual results — NOT FOUND** in the connected account. Authoritative **giving + attendance live in the church Workspace / accounting** → **grant needed.**
+4. **Event center — NOT FOUND.** Building is **312 E. Bradley Ave, Champaign IL, ~44,000 sqft.** **No booking/availability calendar or sheet** in the connected account (only a single vendor invoice `#6545` to `bg@`). Booking/availability data → **church Workspace, grant needed.**
+5. **No church-owned Google Calendars are connected** — only personal/family/school calendars. Reconfirms the weekly schedule is *not* a Google-calendar surface here.
+
+**Architecture implications (baked into the design):**
+- **P0 unblock = a read-only service-account / domain-wide-delegation grant on the `thechurchofthelivinggod.com` Workspace + the Google Forms API scope.** This is the single highest-leverage action and **only Darrell / the church admin can grant it** (Drive-Don't-Delegate exception). **Production ingestion = n8n-on-NAS hitting the Workspace + Forms APIs directly** (sovereign, API-not-browser, per `AI-FOUNDATION-INTERNAL-OPERATIONS`) — credentials in the n8n credential store, read-only scopes, behind the Cage.
+- **Non-Google external adapters are required (new) — see §3.1.5:** **ConvertKit** (members + schedule comms + engagement/Bible-Trivia points) and **Zoom** (assembly attendance). **Note: members already living in ConvertKit is a real, existing first-party data source for item I** (PR #8 §7) — consented, internal-only, never sold.
+- **Seed the schema NOW from the two readable assets** (the TCOTLG form field shape via the Forms API + the Gwin Home-going Responses sheet row shape) — this is the concrete proof of "don't start from scratch": real RSVP/registration shapes already exist to model `event_participants` on.
+
+**Required scopes / grants (precise, replacing the old assumption list):**
+1. **Service account on `thechurchofthelivinggod.com`** with domain-wide delegation, read-only: `drive.readonly`, `spreadsheets.readonly`, **`forms.body.readonly` + `forms.responses.readonly`** (the Forms API — needed because conference responses are *inside* the Form, not a Sheet), and `calendar.readonly` (in case any room/resource calendars exist there).
+2. **ConvertKit API key** (read-only) — subscribers, sequences/broadcasts, tags (engagement). External adapter.
+3. **Zoom API / Server-to-Server OAuth** (read-only) — meeting + attendance reports. External adapter.
+4. **Gmail** — still out of v1 (noise); revisit only if confirmations arrive only as mail.
+
+Until the §1 grant lands, Phase 1 still proceeds on **(a) the two readable assets above for the schema seed** + **(b) a manual CSV/Sheet export drop** into the `poetech-briefing` bind mount — proving the pipeline before live API access exists.
 
 ### 3.1 The ingestion runner + the shape of every sync
 
@@ -165,9 +188,23 @@ cron/manual trigger
 
 **Cadence (first-pass, living):** participants/speakers **every 6 h** during an open conference, **daily** otherwise; weekly schedule **daily** (and on-demand when loop (G) green-lights a change); event-center bookings **hourly** during booking-heavy windows, daily otherwise; annual results **nightly** recompute. All cadences are **timer-driven ⇒ Tier C ⇒ all four brakes**, and all yield to the §4 GPU/human/Sabbath ladder from PR #8.
 
+### 3.1.5 External (non-Google) ingestion adapters — ConvertKit + Zoom + the Forms API (new, per the 2026-06-09 inventory)
+
+The inventory (§3.0) proved that **not all church data is in Google** — three real sources sit outside Drive/Sheets/Calendar and each needs its own **adapter** (per `MODULAR-EXTENSIBILITY` "a new external data source is wrapped in an adapter that owns parse + ingest + provenance"). Each is an `ingestion_sources` row with its own `source_system`, watermark, and Cage-allowlisted read-only fetch action; each upserts into the **same** target model (§2).
+
+| Adapter | `source_system` | Pulls | Feeds | Idempotency key | Notes |
+|---|---|---|---|---|---|
+| **Google Forms API** | `google_form` | The TCOTLG Registration Form's **field schema + responses** (responses are *inside* the Form — no linked Sheet) | `event_participants` (+ conference) | Form `responseId` | **Requires `forms.responses.readonly`** — the reason a plain Sheets scope is insufficient. Dedupe the `"Copy of…"` duplicate form. |
+| **ConvertKit** | `convertkit` | **Subscribers (members)**, broadcasts/sequences (weekly-schedule comms), tags + engagement (**Bible-Trivia points**) | `parishioners`/`external_users` (member roster), `events` (schedule via (G)), **item I first-party signal** | subscriber `id` + broadcast `id` | **The member list already in ConvertKit is an existing, consented first-party data source** (PR #8 §7) — internal-only, never sold. Engagement (trivia points, opens) is QoL/discipleship signal for D + H, under the §14.6 guardrails. |
+| **Zoom** | `zoom` | **National Assembly** meetings + **attendance/participant reports** (2nd Mon 7:30pm CT) | `events` (the assembly), `attendance_records` | meeting `uuid` + participant `user_id`/email | Server-to-Server OAuth, read-only. Attendance feeds annual results (§4c). |
+
+- **Reconciliation with loop (G):** ConvertKit + Zoom are the **upstream** weekly-schedule + assembly truth; **loop (G) folds them into `service-calendar.json`** (the one calendar the PWA + GPU scheduler read — §4b). No second calendar mechanism.
+- **Same Cage discipline:** read-only, allowlisted fetch action per adapter, hash-chained ledger row per run, four brakes, ships inactive. **TLC firewall unaffected** — these are church (ISO-2) sources; none touch TLC/PHI.
+- **Sovereignty screen:** ConvertKit + Zoom are **external SaaS the church already uses** — we **read** them (API-not-browser) rather than rip them out mid-stream (mirror-first, §4); the **converge-later** path moves member comms toward the sovereign email/identity layer (I) over time, but **does not block** on it.
+
 ### 3.2 The Cage, concretely (this is Tier C, never Tier A)
 
-- **Allowlist:** add read-only fetch actions (e.g. `fetch_google_sheet.sh`, `fetch_google_calendar.sh`, `ingest_bind_mount_csv.sh`) to `scripts/actions/` + `ACTIONS_ALLOWLIST`. **No write-back-to-Google action** in v1.
+- **Allowlist:** add read-only fetch actions (`fetch_google_sheet.sh`, `fetch_google_form.sh` (Forms API), `fetch_google_calendar.sh`, **`fetch_convertkit.sh`**, **`fetch_zoom_attendance.sh`**, `ingest_bind_mount_csv.sh`) to `scripts/actions/` + `ACTIONS_ALLOWLIST`. **No write-back to any external source** in v1.
 - **Audit ledger:** one hash-chained `ai_audit_ledger` row per sync run (source, watermark, counts, conflicts).
 - **Health gate:** 120 s Uptime-Kuma check; failed ingest rolls back the batch.
 - **Four brakes:** budget (per-run ceiling), concurrency lock (single-instance skip), kill-switch (dead-man's-switch auto-pause), human-presence preempt (a human at the keyboard reclaims the GPU). **Ships `inactive` → read-only with someone watching → never unattended or while Darrell travels** (P10/P11/P12; the 2026-06-06 runaway is the reason).
@@ -177,16 +214,17 @@ cron/manual trigger
 ## 4. How each surface flows in and gets surfaced in the App
 
 ### 4a. Participants + speakers (the "collectively gathered" conference data)
-- **Source of truth (now):** the church's existing Google Sheet(s)/Form(s) where registrations and speaker bios are gathered. **Mirror, don't replace.**
-- **Flow:** Sheets/Form-response delta → LLM normalize (map columns, split name/email/phone, classify role) → **resolve identity**: match to a `parishioner` (by email/phone/household) or create an `external_user` (existing portal) → upsert `event_participants` / `event_speakers` (+ `session_speakers`). Conflicts (duplicate person, ambiguous match) are **flagged, not auto-merged** — staged for a human.
+- **Source of truth (now) — confirmed by the 2026-06-09 inventory (§3.0):** the **"TCOTLG – Conference Registration" Google Form** (responses *inside* the Form → **Forms API**, not a Sheet), plus the church Workspace + **ConvertKit** member list for roster reconciliation. **Speaker bios/rosters are not yet located → church Workspace, grant needed.** **Mirror, don't replace.** **Schema seed available now** from the TCOTLG form fields + the **Gwin Home-going Responses sheet** row shape.
+- **Flow:** Form-response/Sheet/ConvertKit delta → LLM normalize (map fields, split name/email/phone, classify role) → **resolve identity**: match to a `parishioner` (by email/phone/household, incl. the ConvertKit subscriber list) or create an `external_user` (existing portal) → upsert `event_participants` / `event_speakers` (+ `session_speakers`). The `"Copy of…"` duplicate form is **deduped at ingest.** Conflicts (duplicate person, ambiguous match) are **flagged, not auto-merged** — staged for a human.
 - **Consent + PII (§5.4):** `consent_flags` captured per participant; speaker `consent_to_publish` defaults **false**. PII isolated to ISO-2; never on the TLC path; never sold.
 - **Surfaced in the App:** a Conference view (roster, session sign-ups, speaker cards). Speaker cards and any public roster publish **only after the ISO-2 green-light**.
 - **Converge later:** once the mirror is clean, stand up a **sovereign registration form** (own IDP/identity layer (I)); flip `ingestion_sources.is_source_of_truth` to the sovereign surface; the Google Sheet becomes a legacy read.
 
 ### 4b. Weekly schedule (services + events)
 - **Source of truth:** **`service-calendar.json`, maintained by loop (G)** (PR #8 §6.2) — this is the already-decided answer to the static-JPG problem; we do **not** invent a second mechanism. Reconciliation order: loop (G)'s staff-green-lit decisions **win**; the JPG and the hardcoded `COLG_DEFAULT_CHURCH.services` seed are **deprecated** in favor of it.
-- **Flow:** (G) emits `service-calendar.json` → ingest into `events` rows (recurring services as `recurrence_rule`; one-offs as dated rows) → the **same `events` table** feeds (1) the PWA weekly-schedule surface and (2) the **GPU blackout scheduler** (one source of truth for both). If COLG ever publishes a real iCal, the source flips to a subscribed feed (the `ingestion_sources` row just changes `source_system`).
-- **Confirmed cadence to reconcile against:** Sun Worship 11 AM; Wed Bible Study 1 PM + 6 PM; office hours M–F 11 AM–6 PM. **No iCal feed exists** (confirmed 2026-06-08).
+- **Upstream sources — confirmed EXTERNAL (2026-06-09 inventory, §3.0):** the schedule is **not in any Google Calendar** (none church-owned are connected). It lives in **ConvertKit** (comms) + **Zoom** (the monthly National Assembly). The §3.1.5 ConvertKit + Zoom adapters feed loop (G), which folds them into `service-calendar.json`.
+- **Flow:** ConvertKit/Zoom delta → (G) reconciles → emits `service-calendar.json` → ingest into `events` rows (recurring services as `recurrence_rule`; one-offs as dated rows) → the **same `events` table** feeds (1) the PWA weekly-schedule surface and (2) the **GPU blackout scheduler** (one source of truth for both). If the church ever publishes a real iCal, the source flips to a subscribed feed (the `ingestion_sources` row just changes `source_system`).
+- **Confirmed cadence to reconcile against (2026-06-09):** **Sun Worship 11 AM; Wed Bible Study + Bible Trivia; monthly Zoom National Assembly 2nd Monday 7:30 PM CT** (Senior Bishop Lloyd E. Gwin); office hours M–F 11 AM–6 PM. **No iCal feed and no church Google Calendar exist** — ConvertKit + Zoom are the upstream truth.
 - **Surfaced:** the Church tab weekly schedule reads `events`, not the hardcoded seed.
 
 ### 4c. Annual results (year-over-year outcomes)
@@ -196,7 +234,7 @@ cron/manual trigger
 - **Backfill:** prior-year results the church already has (in Sheets/PDFs) ingest **once** as historical `annual_results_snapshots` rows tagged `source_system='historical-import'`.
 
 ### 4d. Event-center schedule + open/available times
-- **Source of truth (now):** whichever the church uses — a Google (resource) Calendar or a booking Sheet. Mirror it. **Converge** to the sovereign `event_center_bookings` table as the forward source of truth.
+- **Source of truth (now) — NOT FOUND in the connected account (2026-06-09 inventory, §3.0):** the **312 E. Bradley Ave (~44,000 sqft)** building has **no booking/availability calendar or sheet** in the connected account (only a single vendor invoice `#6545` to `bg@`). Booking/availability data lives in the **church Workspace → grant needed.** Until then, **`event_center_resources`/`bookings` start as the sovereign source of truth** (staff enter rooms + bookings directly in Surface B), and any church-Workspace calendar found post-grant is mirrored in. **Converge** to the sovereign `event_center_bookings` table either way.
 - **Flow:** Calendar/Sheet delta → upsert `event_center_resources` (rooms) + `event_center_bookings` → **conflict check** (no overlapping `confirmed` bookings per resource) → open/available times computed as the complement of confirmed bookings within `open_hours` (default M–F 11–6, plus service windows blocked).
 - **Surfaced:** an availability view ("Fellowship Hall — open Tue/Thu afternoons"), a booking-request flow (reusing the `maintenance_requests` request→approve lifecycle), and the §4b service blackout overlaid so the building's own services never double-book.
 - **Cross-tie:** event-center bookings for a service feed the **same `events`/`service-calendar.json`** truth that gates the GPU — the building's schedule and the compute scheduler stay consistent.
@@ -231,8 +269,8 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 
 | Phase | Scope | Depends on | Window (first-pass) |
 |---|---|---|---|
-| **P0 — Discovery + creds** | Human-driven: locate the actual Sheets/Calendars/Forms; provision the read-only **Google Workspace service account** (or CSV-drop fallback). | **Darrell/church-admin grant** (§3.0 #5); connector OR n8n API creds | **~3–5 days** (gated on the grant) |
-| **P1 — Schema + read-only mirror** | Land the §2 tables; build the Tier-2 ingestion workflow; ingest participants + speakers **read-only** behind the Cage; ship **inactive → watched**. | P0; the Cage brakes | **~2–3 wk** after P0 |
+| **P0 — Grant + adapters** | *Discovery DONE (2026-06-09 inventory, §3.0).* Provision the read-only **service-account/domain-wide-delegation grant on `@thechurchofthelivinggod.com` + Forms API scope**, and **ConvertKit + Zoom read-only API keys**. | **Darrell/church-admin grant** (§3.0); n8n credential store | **~2–4 days** (gated only on the grant) |
+| **P1 — Schema seed + read-only mirror** | **Seed the schema NOW** from the two readable assets (TCOTLG form shape + Gwin Home-going Responses sheet); land the §2 tables + the §3.1.5 Forms/ConvertKit/Zoom adapters; ingest participants/members **read-only** behind the Cage; ship **inactive → watched**. | P0 (schema seed needs no grant); the Cage brakes | **~2–3 wk** (schema seed starts immediately, in parallel with P0) |
 | **P2 — Weekly schedule surfacing** | Wire `service-calendar.json` → `events` → PWA + GPU scheduler; deprecate the hardcoded seed. | **loop (G)** (PR #8 ~2026-08–09) | **rides (G), ~2026-08–09** |
 | **P3 — Event-center bookings + availability** | `event_center_resources`/`bookings`; conflict check; availability view; request→approve flow. | P1; resource/room list | **~2026-09** |
 | **P4 — Annual results** | Computed `annual_results_snapshots`; historical backfill; dashboard. | `attendance_records` populated; `service_offerings` | **~2026-09–10** |
@@ -248,7 +286,7 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 | **PIX — SMS bridge (deferred edge)** | Opt-in, budget-capped outbound/inbound SMS to pull in phone-only people; prefer self-hosted GSM gateway, else low-cost API; **TLC-excluded**. | A2P/10DLC or GSM gateway; budget cap | **deferred; opt-in, post-MVP** |
 | **PX — SSO data-enrichment (governed)** | Consented capture-at-login + onboarding cross-reference + periodic refresh; Cage-gated Tier-C jobs, audit-logged; feeds D + H; **TLC excluded**. | SSO live (PVI); consent UX; the Cage | **~2026-Q4 (after SSO proven; consent UX first)** |
 
-**Hard dependencies:** (1) the **Google Workspace read access grant** (only Darrell/admin can give it); (2) **loop (G)** for the weekly-schedule truth; (3) the **Cage** four brakes proven; (4) the **identity layer (I)** for the sovereign converge; (5) **subscription-tier caps** (`checkout_intents` tiers) for who can host what size event.
+**Hard dependencies:** (1) **THE grant — read-only service account on `@thechurchofthelivinggod.com` + Forms API scope + ConvertKit/Zoom keys** (only Darrell/admin can give it; **one grant unblocks both Part-I ingestion and Part-II SSO** per §14.2); (2) **loop (G)** for the weekly-schedule truth (fed by the ConvertKit + Zoom adapters); (3) the **Cage** four brakes proven; (4) the **identity layer (I)** for the sovereign converge; (5) **subscription-tier caps** (`checkout_intents` tiers) for who can host what size event.
 
 ---
 
@@ -257,8 +295,8 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 **Recommendation: build the Conference & Event Center module as an *additive, idempotent, read-only-first mirror* of the church's existing Google data, on top of the `events` table and the external-participant portal, behind the Cage, packaged Tier-2 — and DO NOT rebuild anything that already works or invent a parallel calendar.**
 
 1. **DO extend `events` + the portal pattern, not rebuild.** ~70% of the substrate exists (§1); a session is an `events` row, a non-member participant is an `external_user`, bookings copy the `rentals` lifecycle, annual results compute through `report_snapshots`. *Because* the fastest correct path is the one that reuses proven, RLS-protected, audited tables.
-2. **DO mirror-first, converge-later.** Keep the church's Sheets/Forms/Calendar as the source of truth until the mirror is clean; only then flip to a sovereign surface. *Because* ripping out what 44,000-sqft, elderly-tech-novice staff already use mid-stream is exactly the failure `COMMUNITY-FIRST-MISSION` warns against.
-3. **DO run ingestion as n8n-on-NAS against the Google API, not session connectors.** *Because* `AI-FOUNDATION-INTERNAL-OPERATIONS` says systems use APIs not browsers, and session connectors are absent in headless/cron runs (and are absent right now — §3.0).
+2. **DO mirror-first, converge-later.** Keep the church's **real sources — the TCOTLG Form, ConvertKit, Zoom, the church Workspace** — as the source of truth until the mirror is clean; only then flip to a sovereign surface. *Because* ripping out what 44,000-sqft, elderly-tech-novice staff already use mid-stream is exactly the failure `COMMUNITY-FIRST-MISSION` warns against.
+3. **DO run ingestion as n8n-on-NAS against the Workspace + Forms + ConvertKit + Zoom APIs, not session connectors.** *Because* `AI-FOUNDATION-INTERNAL-OPERATIONS` says systems use APIs not browsers; and the 2026-06-09 inventory confirmed the real data is on a **separate church Workspace + external SaaS** (§3.0) reachable only by a granted service-account/API key, not the connected session account.
 4. **DO treat every sync as Tier C with all four brakes, shipped inactive.** *Because* it is timer-driven; the 2026-06-06 runaway is the binding precedent (P10/P11/P12). Sovereignty of location does not bound blast radius.
 5. **DO let LLMs do the extraction/normalization/dedup end-to-end; reserve staff for the ISO-2 green-light only.** *Because* PR #8 §8 — brakes prevent runaway, human gates are for judgment (doctrine/publish), not toil.
 6. **DO hold PII consent-gated, ISO-2-isolated, never sold, never on the TLC path.** *Because* binding (`DATA-AS-EMPOWERMENT`, the TLC firewall, "we do not sell data").
@@ -266,11 +304,11 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 8. **DO surface the weekly schedule through loop (G)'s `service-calendar.json`, one source of truth for both the PWA and the GPU scheduler.** *Because* a second calendar mechanism would re-create the static-JPG divergence PR #8 already solved.
 
 **DO NOT:**
-- **DO NOT** fabricate church data or assume sheet/calendar shapes — **the live Google data was not inspectable this session** (§3.0); P0 discovery resolves it.
+- **DO NOT** fabricate church data or assume shapes — **the 2026-06-09 inventory replaced assumptions with facts** (§3.0): seed from the real TCOTLG form + Gwin Home-going sheet; the rest waits on the grant. The schedule is **ConvertKit + Zoom**, not a Google calendar — don't design a Google-calendar sync that doesn't exist.
 - **DO NOT** auto-publish any roster, speaker card, or schedule change without the ISO-2 human green-light (§5).
 - **DO NOT** grant ingestion autonomy before the Cage is proven on that surface, and never while traveling/unattended.
 - **DO NOT** let any TLC/PHI data touch this module.
-- **DO NOT** block schema + pipeline work on the connector grant — the CSV-drop fallback (§3.0) proves the pipeline before live API access exists.
+- **DO NOT** block schema + pipeline work on the grant — **seed the schema now from the real TCOTLG form + Gwin Home-going sheet** (§3.0) + the CSV-drop fallback; the grant unlocks the rest.
 
 ---
 
@@ -286,17 +324,23 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 - `service-calendar.json` + loop (G) as the weekly-schedule answer — PR #8 §4b/§6.2.
 - The hardcoded `COLG_DEFAULT_CHURCH` service times to be deprecated — `app/src/poe-financial-mvp-v28.jsx`.
 - n8n runner + `/n8n` rewrite + `poetech-briefing` bind mount + `_reel.jsonl` telemetry sink.
-- Confirmed service cadence + "no iCal feed" fact (2026-06-08).
 
-**UNKNOWN / NEEDS A CONNECTOR OR A HUMAN GRANT (not invented):**
-- **Whether the church's conference/participant/speaker data lives in Google Sheets, Forms, Calendar, or elsewhere — and the specific file/calendar IDs.** No Google connector is connected this session; live data was not inspectable.
-- **The actual column/tab shape** of the registration + speaker sheets (needed for the normalize step).
-- **Whether COLG uses a Google resource Calendar for the event center**, or a booking sheet, or paper.
-- **Whether prior-year annual results exist as Sheets/PDFs** for historical backfill, and in what form.
-- **The room/resource list** of the 44,000-sqft building and each room's `open_hours`/features.
-- **The Google Workspace read-only service-account grant** (admin action — Darrell/church only).
+**FOUND via the 2026-06-09 Workspace inventory (REAL — assumptions replaced with facts; full detail §3.0):**
+- **The church's live ops do NOT live in the connected account** — they run on a **separate Workspace domain `@thechurchofthelivinggod.com`** (`info@`, `eldressredding@`, `bg@`) + **ConvertKit** + **Zoom** + `thelovecornermedia@gmail.com`.
+- **Conference registration instrument FOUND:** the **"TCOTLG – Conference Registration" Google Form** (`id 1a3-7OgQcRPN8MkdVNI1dr-5_GoFW22uObJ4a3PwufXQ`, Darrell-owned, mod. 2024-06-18) — responses *inside* the Form (needs **Forms API**); a `"Copy of…"` duplicate exists.
+- **A readable schema seed FOUND:** the **"Evangelist Gwin Home-going (Responses)" Sheet** (`id 1qkbpDj0hrFgcKHn6LgMdsiVx2i5PiwBmqQL8-T_wGJs`) — a real Form→Sheet RSVP row shape to model `event_participants` on **now**.
+- **Weekly schedule sources FOUND (external):** **ConvertKit + Zoom** — Sun 11 AM; Wed Bible Study + Bible Trivia; monthly Zoom National Assembly 2nd Mon 7:30 PM CT (Senior Bishop Lloyd E. Gwin). **No church Google Calendar.**
+- **The member list already in ConvertKit** = an existing, consented **first-party data source for item I.**
+- **Building confirmed:** 312 E. Bradley Ave, Champaign IL, ~44,000 sqft.
 
-These unknowns are resolved by **P0 discovery** (§7) the moment a read-only Workspace connector/credential is granted; none of them block schema + pipeline work, which proceeds on the CSV-drop fallback.
+**STILL UNKNOWN / NEEDS THE GRANT (precise — not invented):**
+- **Speaker/participant rosters + bios** — not in the connected account → **`@thechurchofthelivinggod.com` Workspace, grant needed.**
+- **The TCOTLG Form field schema** — needs the **Google Forms API scope** (`forms.body.readonly` + `forms.responses.readonly`) to extract; can't be read as a Sheet.
+- **Annual results (giving + attendance)** — not found; authoritative copies live in the **church Workspace / accounting → grant needed.**
+- **Event-center booking/availability + room list** — not found (only vendor invoice `#6545`); → **church Workspace, grant needed** (until then, the sovereign `event_center_bookings` table is the source of truth — §4d).
+- **THE P0 UNBLOCK — a read-only service-account / domain-wide-delegation grant on `@thechurchofthelivinggod.com` + the Forms API scope** (admin action — **only Darrell / the church admin**). Plus **ConvertKit + Zoom read-only API keys** for the external adapters (§3.1.5).
+
+None of these block schema + pipeline work — **Phase 1 seeds the schema NOW from the two readable assets** (TCOTLG form shape via Forms API + the Gwin Home-going Responses sheet) + the CSV-drop fallback; the grant unlocks the rest.
 
 **FOUND for Part II (build-on, not from scratch):**
 - **The in-app group chat is already designed** — `IN-APP-MESSAGING-LAYER-1-DESIGN.md` (schema-v2.10-messaging: conversations/messages/group chats, n8n `messaging-fanout`, ntfy push, Matrix Layer-4). Phone-number-free at its core.
@@ -305,7 +349,7 @@ These unknowns are resolved by **P0 discovery** (§7) the moment a read-only Wor
 - **The one-codebase-many-instances commitment is already binding** — `MODULAR-EXTENSIBILITY.md` + `MULTI-INSTANCE-STRATEGY.md`.
 
 **UNKNOWN for Part II (flag, don't assume):**
-- **Is `thechurchofthelivingGod.com` email on Google Workspace today, or on Turbify (where the site is hosted), or elsewhere?** Conflicting signals (§14.2); confirm via MX/admin check or the church office. Gates both the SSO bridge and Part I's ingestion auth.
+- ~~**Is `thechurchofthelivinggod.com` email on Google Workspace or Turbify?**~~ **RESOLVED 2026-06-09:** there is a **real Google Workspace domain `@thechurchofthelivinggod.com`** with live accounts (`info@`, `eldressredding@`, `bg@`). The staff/leader domain-email SSO anchor (§14) is therefore **Google Workspace** — federate via Google OIDC for MVP (§14.3). (The Turbify signal was the *website* host, not the mail.) *Still needs:* the admin grant to provision the service-account/SSO (same grant as Part I's §3.0 P0).
 - **The church-staff/leadership roster + their domain-email accounts** (who is staff, who leads which unit) — needed to seed roles/scopes.
 - **The ministry → unit breakdown** (which ministries have which units, and current unit leaders) — the church's own org structure; ingest or capture in Surface B.
 - **Whether Darrell ratifies the two-surface pattern as the general shape** (§15) — explicitly his decision, left open.
@@ -380,7 +424,7 @@ All additive, all `instance_id`-scoped + RLS, all following `MODULAR-EXTENSIBILI
 | **`ministry_unit_members`** | `unit_id`, `person_ref` (`parishioner_id` \| `external_user_id`), `unit_role` (`leader/co-leader/member`), `joined_at`, `status` | The unit roster + **unit-leader role**. `unit_role='leader'` ⇒ the Editor-scoped-to-unit capability set (§12). |
 | **(reuse) `conversations`** | `kind='group'`, `linked_entity_kind='ministry_unit'`, `linked_entity_id=<unit_id>` | **The unit group chat is an existing `conversations` row** — no new chat table. Members seeded from `ministry_unit_members`. |
 | **(reuse) role + scope** | `instance_members.role` + scope modifier `per unit` | A unit leader is an **Editor** whose scope is **their unit** (`IDENTITY-ROLES-AUDIT` "Specialist = Editor with a tight scope"). No new role type. |
-| **`identity_domains`** | `id`, `instance_id`, `domain` (`thechurchofthelivingGod.com` \| `tlctherapysolutions.com` \| `poetech.us`), `idp_ref`, `mail_mode` (`bridge/sovereign`), `is_clinical` | The multi-domain identity registry (§14). Maps each entity to its email domain + IDP + mail-hosting mode. |
+| **`identity_domains`** | `id`, `instance_id`, `domain` (`thechurchofthelivinggod.com` \| `tlctherapysolutions.com` \| `poetech.us`), `idp_ref`, `mail_mode` (`bridge/sovereign`), `is_clinical` | The multi-domain identity registry (§14). Maps each entity to its email domain + IDP + mail-hosting mode. |
 
 > **Why no new chat/messaging tables:** the in-app group chat Darrell asked for is **already fully designed** (`IN-APP-MESSAGING-LAYER-1-DESIGN.md`, schema-v2.10). We **realize** it for ministry units by writing one `conversations` row per unit and seeding members — not by building a parallel messaging system. (§13.)
 
@@ -454,20 +498,18 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 
 | Entity | Identity domain | Example | Tier |
 |---|---|---|---|
-| **Church** | **`@thechurchofthelivingGod.com`** | `bg@thechurchofthelivingGod.com` (Bishop Gwin) | **ISO-2** |
+| **Church** | **`@thechurchofthelivinggod.com`** | `bg@thechurchofthelivinggod.com` (Bishop Gwin) | **ISO-2** |
 | **TLC** | `@tlctherapysolutions.com` | staff practice accounts | **ISO-1 — PHI-walled** |
 | **PoeTech** | `@poetech.us` | product/team accounts | ISO-3 |
 | **Partner org** | their own domain | per sovereign node | their tier |
 
 **Staff / unit-leader SSO login AND in-app group-chat identity key off these domain emails.** That is the concrete "no phone number" anchor for staff/leaders: identity is the **domain email**, federated through the SSO substrate. (Members may hold lighter identities — e.g., a magic-link/passkey account without a church-domain mailbox — but **staff/leaders are domain-email accounts**, which is also what makes the audit trail and the green-light authority legible.) This is the `IDENTITY-ROLES-AUDIT` **Phase 3 (cloud auth) → Phase 4 (SSO via SAML/OIDC)** path, made concrete and **per-domain**.
 
-### 14.2 Open current-state question (flag, don't assume)
+### 14.2 Current-state — RESOLVED by the 2026-06-09 Workspace inventory
 
-**Is `thechurchofthelivingGod.com` email on Google Workspace today, or elsewhere?** Two signals conflict and must be reconciled before MVP wiring:
-- The **directive's signal**: the church uses Google Workspace (Drive/Calendar/Gmail) — which would put the domain mail on Workspace.
-- The **repo's signal** (`project-brand-surface-hosting-map`): the **COLG website is Turbify-hosted** — Turbify also sells domain email, so the mailboxes **could** be on Turbify, not Workspace.
+**The church-domain mail is on Google Workspace.** The inventory (§3.0) confirmed a **real Google Workspace domain `@thechurchofthelivinggod.com`** with live accounts — `info@`, `eldressredding@`, **`bg@`** (Bishop Gwin). The earlier Turbify-vs-Workspace ambiguity is **resolved: Turbify hosts the *website*; the *mail* is Google Workspace.** (Literal lowercase domain per the §3.0 typography note.)
 
-**This is unknown and must be confirmed** (a quick MX-record/admin check, or ask the church office). It also gates Part I's ingestion auth (§3.0) — same Workspace question.
+**Implication:** the staff/leader SSO anchor (§14.1) federates via **Google OIDC** for MVP (§14.3) — fast, and it's the same `@thechurchofthelivinggod.com` Workspace whose **service-account grant** also unblocks Part I's ingestion (§3.0). **One grant unlocks both** identity (SSO) and ingestion (Forms/Drive/Sheets). Still gated on the admin granting it (Darrell / church admin only).
 
 ### 14.3 Recommended path (with the sovereignty/cost screen)
 
@@ -490,7 +532,7 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 
 | Anchor | Who it's for | Auth method | Notes |
 |---|---|---|---|
-| **(a) Domain email** | **Staff / leaders** (`@thechurchofthelivingGod.com`, etc.) | SSO / OIDC (§14.1–14.3) | The legible audit + green-light anchor; the enrichment vector (§14.6). |
+| **(a) Domain email** | **Staff / leaders** (`@thechurchofthelivinggod.com`, etc.) | SSO / OIDC (§14.1–14.3) | The legible audit + green-light anchor; the enrichment vector (§14.6). |
 | **(b) Phone number** | Members who have a phone | OTP/passkey; SMS OTP only if they have carrier service, else WhatsApp/OTT or the app | A phone is **sufficient but not required**. |
 | **(c) App-only handle + passcode** | **Anyone with neither email nor phone** | A chosen handle + PIN/passkey on the device (the `IDENTITY-ROLES-AUDIT` Phase-2 local-profile pattern, promoted to a real account) | **The pure-inclusion path** — works on any browser + internet, no email, no phone, no carrier. |
 
@@ -525,7 +567,7 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 3. **DO read both surfaces from the SAME ingested data model + Cage pipelines** — *because* one substrate / two views is the whole point; two data stores would re-create drift and double the ingestion surface.
 4. **DO model ministry units with the existing role + per-unit scope modifier** (a unit leader = an Editor scoped to their unit) — *because* `IDENTITY-ROLES-AUDIT` already supplies this; inventing a new permission engine is waste.
 5. **DO realize the already-designed Layer-1 messaging (Postgres + ntfy) for unit group chat; keep Matrix as the deferred Layer-4; reject heavy third-party chat SDKs** — *because* it's approved, partially built, sovereign, phone-number-free, and the lightest primitive that meets the need (dependency-skepticism + sustainability-beats-convenience).
-6. **DO make identity multi-domain and anchor staff/leaders to their entity's domain email** (`@thechurchofthelivingGod.com`, `@tlctherapysolutions.com`, `@poetech.us`) — *because* it is the no-phone anchor, makes the audit trail and green-light authority legible, and is the natural Phase-3→4 SSO path.
+6. **DO make identity multi-domain and anchor staff/leaders to their entity's domain email** (`@thechurchofthelivinggod.com`, `@tlctherapysolutions.com`, `@poetech.us`) — *because* it is the no-phone anchor, makes the audit trail and green-light authority legible, and is the natural Phase-3→4 SSO path.
 7. **DO bridge mail for MVP, converge to sovereign NAS mail long-arc** — *because* MVP-pragmatism: don't block login on standing up sovereign mail; the domain email is the anchor either way, only the hosting moves. Screen the sovereign-mail step against the sustainability rule before committing.
 8. **DO make identity multi-anchor — email OR phone OR app-only handle, any one suffices (§14.5)** — *because* the inclusion principle is binding: nobody is excluded for lacking email or phone or a carrier plan. The app-handle anchor is the pure-inclusion path on any browser + internet.
 9. **DO make comms OTT-first (in-app + Web Push + ntfy over data), with the SMS bridge as a deferred, opt-in, budget-capped, clearly-non-sovereign edge (§13.5)** — *because* "text over the internet" is Web Push/ntfy over data, which needs no carrier; SMS is only to *pull in* phone-only people not yet in the app, and it's the one external touchpoint — named, costed, capped, and TLC-excluded.
@@ -560,8 +602,8 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 - PR #8 §7 (identity layer **I** — self-hosted IDP/SSO candidates Authentik/Keycloak/Zitadel; sovereign email) + §2.2 (TLC ISO-1 firewall).
 - memory: `project-brand-surface-hosting-map` (COLG site = Turbify — the conflicting mail-host signal), `project-non-denominational-word-first-body-undivided`, `feedback-autonomous-automation-three-brakes`.
 
-**Connector check (this session):** `list_connectors` → empty; registry search (Drive/Calendar/Gmail/Sheets/Forms) → empty. **No live Google data inspected; none fabricated.** The `@thechurchofthelivingGod.com` mail-host question (Workspace vs. Turbify vs. other) is therefore **unconfirmed** — §14.2.
+**Workspace inventory (2026-06-09 — REAL findings, §3.0):** church live ops run on a **separate Workspace `@thechurchofthelivinggod.com`** (`info@`/`eldressredding@`/`bg@`) + **ConvertKit** + **Zoom** + `thelovecornermedia@gmail.com`. **FOUND/seedable:** TCOTLG Registration Form (`1a3-7OgQcRPN8MkdVNI1dr-5_GoFW22uObJ4a3PwufXQ`, responses inside the Form → Forms API), Gwin Home-going Responses sheet (`1qkbpDj0hrFgcKHn6LgMdsiVx2i5PiwBmqQL8-T_wGJs`). **NOT in connected account → grant:** rosters/bios, annual giving/attendance, event-center bookings. Building: 312 E. Bradley Ave, Champaign IL, ~44,000 sqft. **The mail-host question is RESOLVED: Google Workspace** (Turbify hosts only the website) — §14.2.
 
 ---
 
-*Build on what exists; do not start from scratch. Mirror the church's data before replacing it; converge to sovereign on a clean soak. The `events` table is the one calendar; loop (G) keeps it true. Participants and speakers are people, handled with consent, isolated to the church, never sold, never near the TLC firewall. The LLMs do the ingesting; the staff bless the publishing. Four brakes hold, read-only first, inactive until watched, autonomy earned per surface. One module, reusable for the next church, every sync remembered as an Event. A front door for everyone and a deeper room for the called — one substrate, two views — and the same shape ready for every business at its own tier, with the firewall holding so no clinical word ever crosses. Ministry units gather and their leaders shepherd; the people talk inside the app with no phone number between them, identity carried by the name on their own house's door — bg@thechurchofthelivingGod.com. We serve the Father's Business with the church's own data, and we do not start over. The decision is Darrell's to make. Amen.*
+*Build on what exists; do not start from scratch. Mirror the church's data before replacing it; converge to sovereign on a clean soak. The `events` table is the one calendar; loop (G) keeps it true. Participants and speakers are people, handled with consent, isolated to the church, never sold, never near the TLC firewall. The LLMs do the ingesting; the staff bless the publishing. Four brakes hold, read-only first, inactive until watched, autonomy earned per surface. One module, reusable for the next church, every sync remembered as an Event. A front door for everyone and a deeper room for the called — one substrate, two views — and the same shape ready for every business at its own tier, with the firewall holding so no clinical word ever crosses. Ministry units gather and their leaders shepherd; the people talk inside the app with no phone number between them, identity carried by the name on their own house's door — bg@thechurchofthelivinggod.com. We serve the Father's Business with the church's own data, and we do not start over. The decision is Darrell's to make. Amen.*
