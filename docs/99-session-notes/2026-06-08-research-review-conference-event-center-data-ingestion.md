@@ -34,6 +34,8 @@
 15. **Maximum-inclusion comms — no single credential required (§13.5 / §14.5):** the layer must reach a member whether they have **email-only, phone-only, both, or neither** (app-only handle). **Identity is multi-anchor** (email OR phone OR app-handle, any one suffices); **delivery is OTT** — in-app + Web Push + ntfy **over data, no carrier needed** ("text over the internet"). An **optional SMS bridge** is a deferred, opt-in, **budget-capped, explicitly non-sovereign** edge to pull in phone-only people not yet in the app (the one unavoidable external touchpoint — flagged, costed, **TLC-excluded**). **PWA-first** so it runs on any browser + internet.
 16. **Tiered identity + progressive-trust (§14.1b/§14.1c):** **staff/leaders** authenticate on the **sovereign church domain** (authority-bearing); **members** use low-friction **consumer-OIDC (Google/Apple/Microsoft)** + phone + app-handle — **federated INTO our sovereign store, which is the system of record** (the provider button is an entry method, never lock-in). **Access is EASY for a known identity** — friction is reserved for unknown identities and sensitive actions; **2+ corroborating identity sources that agree = "verified/known" = the frictionless tier** ("we know who it is"). Cross-referencing is consented, Cage-logged, never sold, non-creepy, and **absolutely excludes TLC clinical identities.**
 17. **SSO as consented data-enrichment, governed not bolted-on (§14.6):** SSO login doubles as a first-party data + profile-enrichment vector (capture at login, bootstrap/cross-reference at onboarding, keep current) feeding **D + H** of PR #8 — **under five binding guardrails: consent + transparency (opt-out-able); internal-only, NEVER sold; TLC ISO-1 = NO enrichment ever (PHI-walled); values-aligned + non-creepy; Cage-gated + audit-logged.**
+18. **⭐ Poe Properties = a FOURTH entity + the fastest live-user MVP (§16):** Darrell wants **tenants using the App ASAP** for **communication + service requests (upload + text + explain) + work orders + dispatch tickets.** This is **build-on, not from scratch** — the repo already has **`rentals` + `maintenance_requests`** (`schema-v2.2-rentals.sql:283`), whose lifecycle (`submitted_via='renter-portal'`, category, urgency, `assigned_to_user_id`+`scheduled_at`=dispatch, `new→…→resolved`) **IS** the work-order/ticket engine. Tenant identity = the member consumer-OIDC/multi-anchor model; tenants are a **known, bounded set**. **Tier = ISO-3-class** (tenant PII consent-gated, never sold, **NOT PHI; distinct from TLC ISO-1**). **Near-term quick win, independent of the church grant.**
+19. **Staff-email reality check — TARGET vs BOOTSTRAP (§14.1a):** domain-anchored sovereign SSO is the **target**, not a precondition — staff/leaders who *"may not have or use the church emails currently"* **start NOW on a verified consumer email** (role granted once §14.1c's 2+ cross-ref clears), with **domain accounts provisioned and identity rebased to the domain anchor over time.** Interim personal-email grants are **tracked + revocable + migration-flagged**; authority ultimately binds to the domain identity. **Don't block access on domain-mail adoption that hasn't happened.**
 
 ---
 
@@ -286,6 +288,8 @@ Packaged per `WORKFLOW-MODULE-LIBRARY.md`:
 | **PVIII — OTT delivery ladder** | In-app store + PWA Web Push + ntfy over data (Tiers 1–2, sovereign); optional email digest (Tier 3). | messaging Layer-1 (designed); ntfy (running) | **~2026-09–10 (largely pre-designed)** |
 | **PIX — SMS bridge (deferred edge)** | Opt-in, budget-capped outbound/inbound SMS to pull in phone-only people; prefer self-hosted GSM gateway, else low-cost API; **TLC-excluded**. | A2P/10DLC or GSM gateway; budget cap | **deferred; opt-in, post-MVP** |
 | **PX — SSO data-enrichment (governed)** | Consented capture-at-login + onboarding cross-reference + periodic refresh; Cage-gated Tier-C jobs, audit-logged; feeds D + H; **TLC excluded**. | SSO live (PVI); consent UX; the Cage | **~2026-Q4 (after SSO proven; consent UX first)** |
+| **⭐ PXI — Poe Properties tenant MVP (ASAP, §16)** | **Fourth entity.** Tenant communication (OTT messaging) + service requests (photo/file upload + free-text) + work orders + dispatch tickets, on the **existing `rentals`/`maintenance_requests`** schema; member consumer-OIDC identity; behind the Cage. | **existing schema (no church grant)**; messaging Layer-1; member identity (PVI/PVII) | **NEAR-TERM QUICK WIN — independent of the church grant; fastest to real live users** |
+| **PXII — Staff bootstrap identity (§14.1a)** | Staff/leaders start on **verified consumer email** (role granted on 2+ cross-ref, §14.1c); provision domain accounts + **rebase to domain anchor** over time; interim grants tracked + revocable + migration-flagged. | §14.1c verification; the Cage ledger | **MVP on-ramp (does not block on domain-mail adoption); rebase ongoing** |
 
 **Hard dependencies:** (1) **THE grant — read-only service account on `@thechurchofthelivinggod.com` + Forms API scope + ConvertKit/Zoom keys** (only Darrell/admin can give it; **one grant unblocks both Part-I ingestion and Part-II SSO** per §14.2); (2) **loop (G)** for the weekly-schedule truth (fed by the ConvertKit + Zoom adapters); (3) the **Cage** four brakes proven; (4) the **identity layer (I)** for the sovereign converge; (5) **subscription-tier caps** (`checkout_intents` tiers) for who can host what size event.
 
@@ -404,6 +408,7 @@ None of these block schema + pipeline work — **Phase 1 seeds the schema NOW fr
 | **Church** (ISO-2) | Church Tab (exists) — schedule, conference info, availability | Conference mgmt, bookings, annual results, unit leadership, green-lights | Doctrine gate on any publish |
 | **TLC** (ISO-1) | **public marketing surface ONLY** — services, appointment-**request** | A gated practice surface MAY exist, but **zero PHI in any shared analytics/identity/decision dataset**; the deeper app's clinical content is **walled off from the shared substrate** | **STRESS TEST — see §10.4** |
 | **PoeTech App** (ISO-3) | Marketing/free-tier front door (poetech.us) | The dogfood dev/ops + account management depth | Cage; lightest gate |
+| **Poe Properties** (ISO-3-class) | Public "for tenants/applicants" front door (listings, apply, contact) | **Tenant portal: communication, service requests (photo+text), work orders, dispatch tickets** (§16) | Tenant PII consent-gated, **never sold, NOT PHI**; distinct from TLC ISO-1 |
 | **Partner org / future** | Their public tab (directory entry) | Their gated instance on their sovereign node | Onboarding-in-days via config |
 
 ### 10.4 TLC ISO-1 stress test — does the pattern leak PHI? (must be "no")
@@ -504,6 +509,7 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 | **Church** | **`@thechurchofthelivinggod.com`** | **`info@thechurchofthelivinggod.com`** (main Workspace account; the grant + admin anchor for item I; confirmed ConvertKit sender) | `bg@` (Bishop Gwin — primary anchor; `bishoplgwin@gmail.com` = recovery-only, §14.1a), `eldressredding@`, … | **ISO-2** |
 | **TLC** | `@tlctherapysolutions.com` | practice admin account | staff practice accounts | **ISO-1 — PHI-walled** |
 | **PoeTech** | `@poetech.us` | platform admin account | product/team accounts | ISO-3 |
+| **Poe Properties** | `@poetech.us` (or own domain) staff; **tenants = member consumer-OIDC/phone/app-handle (§14.1b/§14.5)** | property-mgmt admin account | property managers (domain/bootstrap §14.1a) | **ISO-3-class** (tenant PII, never sold, NOT PHI) |
 | **Partner org** | their own domain | their admin account | per sovereign node | their tier |
 
 **The church's primary identity is `info@thechurchofthelivinggod.com`** — the main Workspace account, the target of the §3.0 service-account grant, and the **admin anchor for the church-domain identity layer (item I)**. **`bg@` (Bishop Gwin), `eldressredding@`, and the other named mailboxes are staff identities on the same domain**, federated through the same SSO substrate.
@@ -526,6 +532,17 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 - **Personal email = optional linked recovery, never the anchor.** A personal Gmail/iCloud/etc. may be **linked** for account recovery and notification fallback, but it **cannot be the login identity** and **cannot carry role/authority**. (This closes the `IDENTITY-ROLES-AUDIT` "permission-revocation lag" + "cross-instance role bleed" risks: revoking the domain account revokes access; a personal address never grants it.)
 - **Sovereignty + legibility:** the sovereign domain is the relationship and the record we own (PR #8 §7); anchoring on it — not on a vendor-owned personal mailbox — keeps identity, audit trail, and authority inside the sovereign loop.
 - **Reconciles with §14.5 multi-anchor inclusion:** multi-anchor (email **or** phone **or** app-handle) is for **members** (maximum inclusion); **staff/leaders are held to the stricter domain-primary rule** because their identity carries authority and must be revocable + legible. Members include everyone; leaders are anchored sovereign.
+
+**TARGET vs. BOOTSTRAP — domain-anchored SSO is the target state, NOT a precondition for access (Darrell reality-check, 2026-06-09).** Darrell: *"staff leadership may not have or use the church emails currently."* So the domain-primary rule above is the **target**, and there is an explicit **on-ramp** so access is never blocked on domain-email adoption that hasn't happened yet (MVP-pragmatism):
+
+| State | What it is | Role/authority |
+|---|---|---|
+| **TARGET (§14.1a)** | Staff/leader authenticates on the sovereign **domain account** (`bg@…`, etc.); personal email recovery-only. | Role + green-light authority bind to the **domain identity**. The end state. |
+| **BOOTSTRAP (on-ramp, now)** | Staff/leader starts on their **existing verified consumer email** — role granted **only once the §14.1c verification clears (2+ corroborating sources agree → "known")**. In parallel, a **church-domain account is provisioned** and the identity is **rebased to the domain anchor** over time. | Interim role grant rides the **verified personal email**; it is **explicitly tracked + revocable + flagged for migration** to the domain anchor. |
+
+- **Do NOT block staff/leader access** on a domain mailbox they don't yet have/use — the bootstrap verified-personal-email grant is the on-ramp.
+- **Audit + revocability hold throughout:** every interim personal-email role grant is written to the append-only ledger, carries a `migration_pending → domain` flag, and is revocable like any grant (`IDENTITY-ROLES-AUDIT`). The `identity_domains`/account record tracks `anchor_state` (`bootstrap-personal | provisioned | rebased`).
+- **Ultimate binding is to the domain identity (the §14.1a target):** once the domain account exists and the identity is rebased, role/authority moves to it and the personal email reverts to recovery-only. **The interim is an on-ramp, not the destination.**
 
 ### 14.1b Tiered identity — staff sovereign-domain, members consumer-OIDC (federated, not locked-in) (Darrell, 2026-06-09)
 
@@ -642,6 +659,47 @@ The PR #8 first-party identity layer **(I)** — a self-hosted IDP/SSO (Authenti
 - **DO NOT** enrich profiles without consent, sell enriched data, or **ever** enrich/cross-reference TLC clinical identities against online info (§14.6); **DO NOT** route SMS through a vendor for TLC.
 - **DO NOT** treat TLC-domain identities as anything but ISO-1; PHI-walled, sovereign-only, never a vendor model, never enriched.
 - **DO NOT** lock the pattern — **this is Darrell's decision to ratify** (he explicitly left it open); the agent surfaces the recommendation + trade-offs and stops.
+
+---
+
+## 16. Poe Properties — the FOURTH entity + the tenant MVP (ASAP track, Darrell 2026-06-09)
+
+**Directive:** *"we want our tenants of Poe Properties to be able to use the PoeTech App ASAP for communication and service requests — upload and text and explain issues, put in work orders, and dispatch tickets."* This adds **Poe Properties as a fourth entity** alongside Church / TLC / PoeTech App, and is likely the **fastest path to real live users** because tenants are a **known, bounded set.**
+
+### 16.1 The fourth entity + its isolation tier
+
+**Four entities now:** **(1) Church (ISO-2)** · **(2) TLC (ISO-1, PHI)** · **(3) PoeTech App (ISO-3)** · **(4) Poe Properties (ISO-3-class).**
+
+- **Tier:** **ISO-3-class**, like the App. **Tenant PII is consent-gated and never sold; it is NOT PHI.** Explicitly **distinct from TLC ISO-1** — tenants are a property-management relationship, not a clinical one. The TLC firewall is unaffected and unrelated.
+- **Per-entity isolation holds:** own `instance_id`, RLS, never pooled with church/TLC. Behind the Cage like everything else.
+
+### 16.2 Build on what EXISTS — `rentals` + `maintenance_requests` (do NOT start from scratch)
+
+The repo **already has the tenant work-order/dispatch model** — it is the very table the event-center booking model (§2) was derived from. Verified in-repo:
+
+| Existing table | Path | What it already gives the tenant MVP |
+|---|---|---|
+| **`rentals`** | `infra/supabase/schema-v2.2-rentals.sql:34` | The property/unit a tenant belongs to. |
+| **`renters`** | `schema-v2.2-rentals.sql:90` | The tenant person record (+ `renter_household_members:138`). |
+| **`leases`** | `schema-v2.2-rentals.sql:187` | The tenancy. |
+| **`maintenance_requests`** | `schema-v2.2-rentals.sql:283` | **THE work-order / service-request / dispatch-ticket lifecycle — already built.** Has `submitted_via` (incl. **`renter-portal`**, `sms`, `email`, `phone`), `category` (plumbing/electrical/hvac/…), `urgency` (`emergency/urgent/normal/low`), `description` (free-text "explain the issue"), `renter_id`, **`assigned_to_user_id`** + **`vendor_name`** + **`scheduled_at`** (= **dispatch**), and a `status` lifecycle (`new→triaging→scheduled→in-progress→awaiting-parts→resolved→declined`). RLS already in place; `lifecycle`/`links` already present. |
+
+**The mapping is one-to-one — extend, don't rebuild:**
+- **Service request** = a `maintenance_requests` insert with `submitted_via='renter-portal'`.
+- **"Upload and text and explain"** = `description` (free-text) + **photo/file attachments via the existing messaging `message_attachments` + storage bucket** (`IN-APP-MESSAGING` §2), with a `conversations` thread **linked** to the request (`links`/`linked_entity_kind='maintenance_request'`).
+- **Work order** = the same row progressing through `status`.
+- **Dispatch ticket** = `assigned_to_user_id` + `vendor_name` + `scheduled_at` (assignment to a tech/vendor) — already modeled.
+- **Communication** = the **OTT/in-app messaging substrate (§13)** — a tenant↔manager thread per request; ntfy/Web-Push delivery; no phone number required (§13.5).
+
+**Minimal additive work (per `MODULAR-EXTENSIBILITY`, optional fields default-safe):** an optional `maintenance_request_attachments` view over `message_attachments` (or reuse directly), and a tenant-facing read/insert RLS scope (a renter sees **their** requests). That's the extent — the spine exists.
+
+### 16.3 Tenant identity = the member model (fast)
+
+Tenants authenticate via the **member multi-anchor + consumer-OIDC** path (§14.1b: Sign in with Google/Apple/Microsoft) + phone + app-handle (§14.5), under **progressive-trust** (§14.1c: 2+ corroborating sources → "known" → frictionless). Because **tenants are a known, bounded set** (we already hold their lease records in `renters`/`leases`), verification is easy and onboarding is fast — the likely **fastest path to real live users.** Federation-into-sovereign-store, consent, never-sold all hold; **TLC firewall irrelevant/excluded** (different entity, no PHI).
+
+### 16.4 Why this is a near-term quick win (independent of the church grant)
+
+The Poe Properties tenant MVP **does NOT depend on the §3.0 church Workspace grant** — it rides **existing repo schema** (`rentals`/`maintenance_requests`), the **existing messaging substrate** (§13), and the **member identity path** (§14.1b/c). It can ship on its own ASAP track (§7, "Poe Properties tenant MVP"), behind the Cage, **ahead of the church ingestion work.**
 
 ---
 
