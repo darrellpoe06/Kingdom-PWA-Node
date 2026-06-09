@@ -1,0 +1,70 @@
+# =============================================================================
+# Sovereign AI Registry — PostgreSQL 16 + pgvector (Synology NAS, Tier 1)
+# =============================================================================
+# The immutable Master Registry. Holds:
+#   - ai_audit_ledger : append-only, hash-chained record of every autonomous
+#                       detection / proposal / execution / rollback (The Cage).
+#   - pgvector        : semantic memory for the orchestrator (embeddings).
+#
+# Lives on the NAS (durable + backed up), NOT on Node 1. The AI agent that
+# writes to the ledger must not own the box that stores it.
+#
+# Access: Tailscale only. Do NOT bind 5432 to the public side; the Synology
+# firewall + Tailscale ACLs keep it family-only. Volumes follow the Synology
+# convention: /volume1/docker/<service>/.
+#
+# Deploy via Container Manager:
+#   1. DSM -> Container Manager -> Project -> Create
+#   2. Project name: ai-registry
+#   3. Path: /volume1/docker/ai-registry
+#   4. Upload this docker-compose.yml + the sql/ folder, then Build.
+#
+# Deploy via SSH:
+#   ssh admin@<synology-tailscale-ip>
+#   sudo mkdir -p /volume1/docker/ai-registry/sql
+#   # copy this file + sql/001-audit-ledger.sql into that path
+#   cd /volume1/docker/ai-registry
+#   sudo docker compose up -d
+#
+# Verify:
+#   docker exec -it ai-registry-postgres psql -U $POSTGRES_USER -d $POSTGRES_DB \
+#     -c "SELECT extname FROM pg_extension;"   # expect: vector
+#   docker exec -it ai-registry-postgres psql -U $POSTGRES_USER -d $POSTGRES_DB \
+#     -c "\d+ ai_audit_ledger"
+# =============================================================================
+
+services:
+  postgres:
+    # pgvector-bundled Postgres 16. Pinned major; patch floats.
+    image: pgvector/pgvector:pg16
+    container_name: ai-registry-postgres
+    restart: unless-stopped
+    ports:
+      # Tailscale IP only. Bind to the NAS Tailscale interface, never 0.0.0.0.
+      - "${REGISTRY_BIND_IP:-127.0.0.1}:5432:5432"
+    environment:
+      - TZ=America/Chicago
+      - POSTGRES_DB=${POSTGRES_DB:-poetech_registry}
+      - POSTGRES_USER=${POSTGRES_USER:-registry_owner}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      # The least-privilege role the AI/n8n connects as: INSERT + SELECT only on
+      # the ledger. Created + locked down by 001-audit-ledger.sql.
+      - AI_AGENT_PASSWORD=${AI_AGENT_PASSWORD}
+    volumes:
+      - /volume1/docker/ai-registry/data:/var/lib/postgresql/data
+      # Init scripts run once, on an empty data dir, in lexical order.
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-registry_owner} -d ${POSTGRES_DB:-poetech_registry}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+
+# Backups: schedule `docker exec ai-registry-postgres pg_dump ...` to a separate
+# NAS shared folder nightly (Hyper Backup or a DSM Task Scheduler cron). The
+# ledger is the system's legal memory; treat its backup as non-optional.

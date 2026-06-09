@@ -1,0 +1,126 @@
+# =============================================================================
+# Sovereign AI Orchestrator — Node 1 compute (Legion PC, 1x RTX 4070 / 12 GB)
+# =============================================================================
+# Ollama (GPU) + n8n (logic orchestrator) + Uptime Kuma (watchdog / health gate).
+# The immutable registry (Postgres + pgvector) lives on the NAS -- see
+# ../registry/. n8n connects to it over Tailscale.
+#
+# HOST PREREQ (Windows OBS box): Docker Desktop with the WSL2 backend, and a
+# recent NVIDIA driver (the 595.95 / CUDA 13.2 on this box is plenty). Docker
+# Desktop + WSL2 exposes the 4070 to the ollama container via the reservation
+# below -- no manual NVIDIA Container Toolkit step needed on Windows.
+#
+# SCHEDULE BOUNDARY: heavy compute Mon-Sat / off-hours only. Do NOT run model
+# inference here during Sunday/Wednesday services (OBS NVENC + a 9 GB model
+# contend for the same 12 GB). Stop the ollama service before going live:
+#   docker compose stop ollama
+#
+# Deploy:
+#   1. Install Docker Desktop (WSL2) on Node 1, reboot when prompted.
+#   2. Copy this folder to the box, fill .env from .env.example.
+#   3. docker compose up -d
+#
+# Verify:
+#   curl http://localhost:11434/            # "Ollama is running"
+#   docker exec ai-ollama ollama ls         # models present
+#   curl http://localhost:5678/             # n8n login
+#   curl http://localhost:3001/             # Uptime Kuma
+# =============================================================================
+
+services:
+  # --- Ollama (GPU) -----------------------------------------------------------
+  # The Architect. qwen2.5:14b-instruct-q4_K_M fits the 12 GB VRAM without CPU
+  # spillover; qwen2.5-coder:14b is the build/coding model. One 14B resident at
+  # a time on a 4070 -- Ollama swaps on demand. Never pull 32B+ here.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    environment:
+      - TZ=America/Chicago
+      - OLLAMA_KEEP_ALIVE=15m
+      # One 14B fits 12 GB; keep a single large model + the small embedder.
+      - OLLAMA_MAX_LOADED_MODELS=2
+    volumes:
+      - ${DATA_ROOT:-./data}/ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama ls >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # --- n8n (logic orchestrator) ----------------------------------------------
+  # Postgres backend = the NAS Master Registry (over Tailscale). Model selection
+  # is env-driven so swaps are a .env edit, never a workflow JSON edit -- matches
+  # the convention in infra/n8n/docker-compose.yml.
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: ai-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=America/Chicago
+      - TZ=America/Chicago
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_SECURE_COOKIE=false
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      # Postgres = NAS registry (Tailscale). Falls back to nothing -- the DB host
+      # is required; n8n will not start pointed at a phantom DB.
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=${REGISTRY_HOST}
+      - DB_POSTGRESDB_PORT=${REGISTRY_PORT:-5432}
+      - DB_POSTGRESDB_DATABASE=${REGISTRY_DB:-poetech_registry}
+      - DB_POSTGRESDB_USER=${REGISTRY_N8N_USER}
+      - DB_POSTGRESDB_PASSWORD=${REGISTRY_N8N_PASSWORD}
+      # Model selection (Ollama is same-host).
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - OLLAMA_ARCHITECT_MODEL=${OLLAMA_ARCHITECT_MODEL:-qwen2.5:14b-instruct-q4_K_M}
+      - OLLAMA_CODER_MODEL=${OLLAMA_CODER_MODEL:-qwen2.5-coder:14b}
+      - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+    volumes:
+      - ${DATA_ROOT:-./data}/n8n:/home/node/.n8n
+    depends_on:
+      - ollama
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # --- Uptime Kuma (watchdog / the health gate) ------------------------------
+  # The guarded-action rollback protocol reads this. Build a status page (slug
+  # in .env as UPTIME_KUMA_SLUG) with monitors for the critical surfaces; the
+  # Cage polls its heartbeat API and rolls back within 120s on red.
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: ai-uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - TZ=America/Chicago
+    volumes:
+      - ${DATA_ROOT:-./data}/uptime-kuma:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
