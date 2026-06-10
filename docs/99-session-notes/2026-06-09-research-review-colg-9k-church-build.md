@@ -3,7 +3,7 @@
 **Date:** 2026-06-09
 **Author:** Claude (research-review on Darrell's commission, per `feedback-research-first`)
 **Triggered by:** Darrell — a **$9,000** church build covering BOTH whole-building surveillance (PoE, 4K, AI) AND a CUDA node for 24/7 congregation support + real-time scene analysis. Church of the Living God, ~44,000 sqft, 312 E. Bradley Ave, Champaign IL.
-**Status:** **FINAL — choices RATIFIED with Darrell 2026-06-09 ([DR-0016], which supersedes [DR-0015]).** **PLAN ONLY — specs what to buy and what it unlocks; no purchase is executed. Darrell/PoeTech procures + self-assembles.** June-2026 pricing, cited; re-verify at order time.
+**Status:** **FINAL — choices RATIFIED with Darrell 2026-06-09 ([DR-0017], which supersedes [DR-0016] → [DR-0015]).** Rev. adds church-provided storage (existing ~50 TB Synology NAS + ~6–8 loose HDDs) and supplementary Wyze floodlight cameras. **PLAN ONLY — specs what to buy and what it unlocks; no purchase is executed. Darrell/PoeTech procures + self-assembles.** June-2026 pricing, cited; re-verify at order time.
 **Pairs with:** [DR-0016] (finalization), [DR-0015] (superseded), [DR-0014] (COLG node), [DR-0012] (GPU topology), [DR-0001]/[DR-0003] (Cage + ISO tiers); the PoeTech labor invoice `docs/invoices/2026-06-09-poetech-colg-cabling-labor-invoice.md`; `infra/ai-orchestrator/` (the Cage); `COMMUNITY-FIRST-MISSION`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION`.
 
 ---
@@ -15,6 +15,8 @@
 - **Real-time analysis (LOCKED):** an **event-driven VLM (Qwen2.5-VL class)** reads scenes **on Frigate events** (not every frame); an **agent executes allowlisted actions through the Cage.** **Guardrail:** autonomous is OK for *alert / log / notify / illuminate*; anything **irreversible or safety-critical** (calling authorities, egress-affecting door locks, etc.) sits behind a **human gate** or a **pre-authorized, tightly-scoped rule with strict permission checks.**
 - **Cabling = DIY by PoeTech (LOCKED).** **$0 labor against the $9k** — only Cat6 materials count. A **separate PoeTech labor invoice** documents the fair-market value (~$1,600–4,000) for the church's records; the church pays a **variable/reduced balance** (PoeTech does not charge full freight — give-from-understanding).
 - **The $9k is now PURE HARDWARE** (labor is $0 in-budget / invoiced separately), so whole-building **and** the 48 GB node both fit.
+- **Storage = church-provided, $0 from the $9k (LOCKED).** The church already owns a **~50 TB Synology NAS** (its own box, not the home DS1621xs+) **+ ~6–8 loose HDDs (~10–12 TB ea, ~60–96 TB raw)** — storage is **effectively unconstrained.** The **2× 12 TB purchase is dropped (–$450)**; only a small **~$100 local cache** on the node remains. **Retention is now a policy choice, not a storage limit** (recommend 30–90 days continuous + indefinite for flagged events). Freed ~$350 → buffer/headroom.
+- **Supplementary Wyze floodlight cameras (BONUS, count TBC):** church-owned, new-in-box Wyze Floodlight Pro/Floodlight units for exterior/deterrent — bridged into Frigate where they bridge cleanly; **not the backbone** (cloud-tied). Net ~no change to $9k. Count **pending Darrell**.
 - **TLC walled off:** the Surveillance Module is church (ISO-2); it touches no TLC data path (ISO-1 firewall holds).
 - **24/7 vs 24/6.5:** surveillance + reactive congregation support are 24/7; the 24/6.5 Sabbath + service blackout (DR-0001) govern the autonomous *review* fleet, not security or reactive support.
 
@@ -33,7 +35,7 @@ ONVIF 4K PoE cameras --RTSP--> Frigate (headless, on the 48GB GPU node; Coral do
    events-as-data, notification path)   agent --> Cage (allowlist + ledger + health-gate) --> scoped actions
 ```
 
-- **Frigate** is the open-source detection/recording engine (no UI lock-in); it ingests RTSP from any ONVIF camera, records to local disk, and emits object/zone events.
+- **Frigate** is the open-source detection/recording engine (no UI lock-in); it ingests RTSP from any ONVIF camera, buffers to a small **local cache** and retains to the church's existing **~50 TB Synology NAS / dedicated surveillance volume** (§2) over SMB/NFS, and emits object/zone events.
 - **The PoeTech App "Surveillance" Module is the front end** — a **reusable Module-Library module**: live view, AI event feed, clip review, alerts/notifications. It integrates with the **four-entity identity/roles** (staff-gated, ISO-2), **events-as-data** (`INSTITUTIONAL-MEMORY-EVENTS` — every detection/alert is an Event), and the **notification path** (ntfy/dual-channel). **No UniFi Protect app; no vendor cloud; footage local-only.**
 - **TLC firewall:** this Module is church-scoped (ISO-2); it carries **no** TLC/PHI data path (ISO-1 holds).
 
@@ -53,9 +55,24 @@ ONVIF 4K PoE cameras --RTSP--> Frigate (headless, on the 48GB GPU node; Coral do
 | Hallways / corridors | 4 | choke points between wings |
 | Classrooms / children's wing | 2 | wing corridors + entries |
 | Office / count room | 1 | giving/financial area (ISO-2, staff-gated) |
-| **Total** | **24** | ~24 cable drops (DIY) |
+| **Total** | **24** | ~24 cable drops (DIY); **+ supplementary Wyze floodlight cams (count TBC, §8)** augment exterior/deterrent beyond this backbone |
 
-**Storage (flag — retention-tunable):** 24× 4K is disk-hungry. **2× 12 TB CMR surveillance HDD (~$225 ea)** = 24 TB raw (mirror → 12 TB usable, or JBOD 24 TB). Frigate's record-on-event tiering (full 4K only on motion/object, low-res continuous otherwise) stretches this to weeks; **retention is a dial — set it to the church's policy and add drives later if needed.**
+### 2.1 Storage (LOCKED — church-provided; **$0 from the $9k**)
+
+The church **already owns** its surveillance storage — the 2× 12 TB purchase is **dropped**:
+
+- **~50 TB Synology NAS** — the church's **own** box (NOT the home PoeTech DS1621xs+ at 192.168.1.26). This is the **church sovereign-node storage substrate**: it already hosts **Church Plus + member data + the monthly financial reports.**
+- **~6–8 loose Synology HDDs, ~10–12 TB each (~60–96 TB raw)**, not yet installed. **HDDs are the correct medium for surveillance bulk storage.** **Confirm they are CMR / NAS- or surveillance-rated** (WD Red/Purple, Seagate IronWolf/Skyhawk class) before use — affirm reuse if so.
+
+Combined, church storage is **effectively unconstrained** for surveillance.
+
+**Recommended layout (data isolation):** install the loose HDDs as a **dedicated surveillance volume** — in a **Synology expansion unit (e.g. DX517, ~$200–550) or a second NAS body** — and keep the existing ~50 TB NAS for **Church Plus + member + financial data.** *Rationale:* this separates heavy 24/7 video write I/O from the member/financial store **and** reinforces the data-isolation posture (**surveillance volume ≠ financial/member volume**, access-segregated — financials/member data stay off the surveillance share).
+
+**On the GPU node:** a small **local cache (~$80–100 NVMe/HDD)** holds Frigate's active recording buffer; clips retain to the church surveillance volume over **SMB/NFS**. **Network-link flag:** 24× 4K *continuous* write is real bandwidth — put the NAS on a solid wired uplink (ideally node + NAS on the same switch / a 2.5–10 GbE link); **detection-based recording cuts this sharply** and is the recommended default.
+
+**Retention — now a POLICY choice, not a storage limit.** Reference math: ~50 TB alone ≈ **2.5–10 months** of 24× 4K depending on continuous-vs-detection recording + bitrate; the loose HDDs push it to **a year+**. **Recommended default: 30–90 days continuous + indefinite retention for flagged/event clips**, with the rest of the pool available. Tune in Frigate.
+
+**Pre-order dependencies (flag):** (1) **confirm the loose HDDs are CMR / surveillance-rated**; (2) **confirm bay availability** — if the ~50 TB NAS has open bays, install there; if not, fund a **DX517 / second body from the freed buffer** (§5).
 
 ---
 
@@ -68,7 +85,7 @@ ONVIF 4K PoE cameras --RTSP--> Frigate (headless, on the 48GB GPU node; Coral do
 | **GPU ×2** | 2× used **RTX 3090 24 GB** → **48 GB** | $1,500–1,800 |
 | Base | Ryzen / used dual-PCIe workstation, **128 GB RAM** | $700–1,000 |
 | PSU | **1300 W** 80+ Platinum (two 3090s ≈ 700 W) | $200–250 |
-| Storage | 2 TB NVMe (OS + models) + the surveillance HDDs (§2) | $150 |
+| Storage | 2 TB NVMe (OS + models) + a small Frigate active-recording cache (§5); **bulk retention to the church NAS (§2.1)** | $150 |
 | Case + cooling | airflow tower / open frame | $150–250 |
 | **Coral TPU** | offloads ALL camera detection → frees the full 48 GB for VLM + LLM | $60 |
 | **Node total (self-assembled, parts only)** | | **~$3,600** |
@@ -96,13 +113,13 @@ ONVIF 4K PoE cameras --RTSP--> Frigate (headless, on the 48GB GPU node; Coral do
 | **24× 4K PoE ONVIF cameras** | ~$130/cam (Amcrest IP8M / Reolink RLC-811A class) | **$3,120** |
 | **24-port PoE+ switch** | managed, sufficient PoE budget for 24× 4K | **$500** |
 | **Cat6 materials** | bulk box + connectors + mounts (DIY install) | **$350** |
-| **Storage 2× 12 TB CMR** | surveillance-grade; **retention-tunable** | **$450** |
-| **UPS** | ride-through for node/switch/NVR (size ~1500 VA for the dual-3090) | **$300** |
+| **Local cache (NVMe)** | Frigate active-recording buffer; **bulk retention to the church's ~50 TB NAS + loose HDDs (§2.1) — $0 from budget** | **$100** |
+| **UPS** | ride-through for node/switch/NAS (size ~1500 VA for the dual-3090) | **$300** |
 | **Coral TPU** | offloads detection → frees 48 GB for VLM + LLM | **$60** |
-| **Buffer** | price drift / extra mounts / a spare camera | **$620** |
+| **Buffer / headroom** | incl. the **freed ~$350** (was 2× 12 TB $450 → now a $100 cache); could fund a **Synology DX517 expansion (~$200–550)** if the loose HDDs have no free bays, or 1–2 extra cameras, or sit as contingency | **$970** |
 | **TOTAL** | | **$9,000** |
 
-**Cabling labor = $0 against the $9k** (DIY by PoeTech). Only the **$350 Cat6 materials** count. The fair-market labor value is **invoiced separately** (§6).
+**Two lines are now $0 against the $9k:** **cabling labor** (DIY by PoeTech; only the $350 Cat6 materials count; fair-market value invoiced separately, §6) **and storage drives** (church-provided ~50 TB NAS + ~60–96 TB loose HDDs, §2.1). The freed storage dollars moved to the **buffer ($620 → $970)**.
 
 > **Power/thermal honesty:** two 3090s draw ~700 W under *full* load — more than a single card. But detection is on the Coral and the VLM is event-driven + the LLM reactive, so the **24/7 duty cycle is partial**; realistic power ~**$25–50/mo**. Needs a **ventilated closet/rack, good airflow, and the UPS sized for the pair** (~1500 VA). This is the cost of running VLM + LLM + detection on one sovereign box.
 
@@ -123,20 +140,34 @@ Cabling is **DIY by PoeTech**, so it costs the church **$0 in cash labor**. To k
 - **Sovereignty:** fully open-source + portable — Frigate, ONVIF cameras (a swappable standard), Linux+Docker+CUDA, the PoeTech App Module as front end. No vendor lock, footage local-only (`DATA-AS-EMPOWERMENT-NOT-EXTRACTION`).
 - **Cost screen:** security + ministry investment, not arbitrage. Open-source cameras ≈ ⅓ of UniFi; one 48 GB node does detection + VLM + LLM; DIY cabling removes the line that would have busted the budget. `COMMUNITY-FIRST` justifies the spend.
 - **Ties to the Cage / COLG node:** this is the COLG sovereign-node compute from [DR-0014], here **scoped to surveillance + congregation support** (separate from the A/V switcher Node 2 and from the heavy-reasoning PoeTech farm). Registry/events on the church NAS; agent actions through `guarded-action` + ledger + health-gate.
+- **Storage data-isolation (reinforced):** the recommended layout puts surveillance on a **dedicated volume** (the loose HDDs in an expansion unit / second body) and keeps **Church Plus + member + financial data** on the existing ~50 TB NAS — **surveillance volume ≠ financial/member volume**, access-segregated. Heavy 24/7 video write I/O never shares a volume with the member/financial store (§2.1). Reuses church-owned drives → $0 storage spend + zero added vendor dependency.
 - **24/7 vs 24/6.5 (reconciled):** surveillance/Frigate is 24/7; congregation support is reactive 24/7; the **24/6.5 Sabbath + ±1 h service blackout ([DR-0001]) govern the autonomous *review* fleet, not security recording or reactive congregation Q&A.** The three-brakes still bound any autonomous agent behavior.
 
 ---
 
-## 8. Recommendation + rationale (RATIFIED — decisions-with-rationale)
+## 8. Supplementary church-owned assets — Wyze floodlight cameras (BONUS; count TBC)
 
-All four choices are **locked with Darrell (2026-06-09)**; rationale recorded for the institutional memory:
+The church also has, **new-in-box**, **Wyze Cam Floodlight Pro** (180° ultra-wide, 3000 lumens, 2K, AI motion) **+ Wyze Cam Floodlight** units (**count TBC — pending Darrell's confirmation**).
+
+- **Role: SUPPLEMENTARY exterior/deterrent coverage** — corners, entrances, parking — **NOT the backbone.** They are **WiFi + AC-powered** (no Cat6 drop; mount where floodlight wiring already exists), so they add coverage without new cabling.
+- **Sovereignty caveat (stated plainly):** **Wyze is cloud-tied.** Integrate into Frigate / the PoeTech Surveillance Module via **`docker-wyze-bridge`** (works for many models; leans on the Wyze cloud/API; the **newer Floodlight Pro has spottier bridge support**). The **core whole-building system stays on ONVIF 4K PoE cameras with clean local streams** — the Wyze units are bonus, not load-bearing, so the sovereignty of the backbone is unaffected.
+- **Budget:** **free assets.** If they bridge cleanly they *could* shave 1–2 purchased cameras (~$130 ea), but **bank that as BONUS coverage, not a counted reduction** — **net ~no change to the $9k.**
+- **Pending input:** final Wyze quantity (Darrell confirming) → then we decide which exterior corners they cover vs. the ONVIF backbone. Do not finalize camera counts until that lands + the site walkthrough.
+
+---
+
+## 9. Recommendation + rationale (RATIFIED — decisions-with-rationale)
+
+All choices are **locked with Darrell (2026-06-09)**; rationale recorded for the institutional memory:
 
 1. **Open-source Frigate + ONVIF + a PoeTech App Surveillance Module**, not UniFi — *because* UniFi Protect is proprietary and ⅓-more-expensive, and a sovereign Module front-end is reusable, integrates with our identity/events/notification fabric, and keeps footage local with no vendor cloud.
 2. **48 GB dual-3090, self-assembled** — *because* 48 GB runs detection + an event-driven VLM + a congregation LLM concurrently (a single 24 GB card can't), and self-assembly removes integrator labor; parts-only ~$3,600.
 3. **Event-driven VLM + Cage agent with the autonomy guardrail** — *because* per-frame VLM is wasteful and unsafe-by-default; event-driven scene reads are cheap, and the alert/notify/illuminate-autonomous vs. authorities/locks-gated split keeps physical-security automation safe ([DR-0010]).
 4. **DIY cabling ($0 in-budget) + a separate reduced-balance labor invoice** — *because* it keeps the $9k pure hardware (so whole-building + the 48 GB node both fit) while documenting the fair-market gift honestly for the church's books.
-5. **DO NOT imply any purchase** — PLAN; PoeTech/Darrell procures + assembles; site walkthrough + church-NAS confirmation precede ordering.
-6. **DO NOT auto-fire irreversible/safety-critical actions** — those stay behind a human gate or a strict pre-authorized rule; locks fail-safe to egress-open.
+5. **Reuse the church's own storage (~50 TB NAS + ~60–96 TB loose HDDs); buy zero drives** — *because* it makes storage **$0 from the $9k** and retention a **policy choice, not a constraint**, while the dedicated-surveillance-volume layout isolates heavy 24/7 video I/O from member/financial data.
+6. **Use the Wyze floodlight cams as BONUS exterior/deterrent only** — *because* they are cloud-tied and bridge imperfectly; the ONVIF PoE backbone stays load-bearing and sovereign.
+7. **DO NOT imply any purchase** — PLAN; PoeTech/Darrell procures + assembles. Pre-order dependencies: **site walkthrough** (final drop count), **confirm loose HDDs are CMR/surveillance-rated**, **confirm bay availability** (NAS open bays vs. a DX517 / second body from the buffer), and **confirm the Wyze quantity**.
+8. **DO NOT auto-fire irreversible/safety-critical actions** — those stay behind a human gate or a strict pre-authorized rule; locks fail-safe to egress-open.
 
 ---
 
