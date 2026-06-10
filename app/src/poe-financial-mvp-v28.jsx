@@ -1380,9 +1380,22 @@ function getInitialView() {
     if (typeof window === 'undefined') return 'overview';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','engagement','markets','admin'];
+    // Engagement is now a sub-tab under Church; the legacy ?view=engagement
+    // deep-link lands on the Church tab (the sub-tab is selected separately).
+    if (v === 'engagement') return 'church';
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','admin'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
+}
+
+// Engagement lives under Church. A ?view=engagement deep-link selects the
+// Engagement sub-tab; everything else defaults to the Church home sub-tab.
+function getInitialChurchView() {
+  try {
+    if (typeof window === 'undefined') return 'home';
+    const sp = new URLSearchParams(window.location.search);
+    return (sp.get('view') || '').toLowerCase().trim() === 'engagement' ? 'engagement' : 'home';
+  } catch (e) { return 'home'; }
 }
 
 // Admin — quiet utility surface, NOT a marketing surface. Reached via the
@@ -1510,6 +1523,7 @@ export default function PoeFinancialSystem() {
   const [view, setView] = useState(getInitialView());
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [booksView, setBooksView] = useState('calendar');
+  const [churchView, setChurchView] = useState(getInitialChurchView());
   const [entityFilter, setEntityFilter] = useState('all');
   const [snowballSort, setSnowballSort] = useState('smallest-balance');
   const [snowballExtra, setSnowballExtra] = useState(2000);
@@ -3261,7 +3275,6 @@ html{scroll-padding-bottom:280px}
                 ['about','About'],
                 ['__sep__', null],
                 ['church','Church'],
-                ['engagement','Engagement'],
                 ['markets','Markets'],
               ].map(([id, label]) => {
                 if (id === '__sep__') {
@@ -3280,6 +3293,17 @@ html{scroll-padding-bottom:280px}
               <div className="flex gap-1 text-xs">
                 {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal','🔒 Legal']].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {view === 'church' && (
+          <div className="border-t border-[#E8E4DC] bg-white">
+            <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
+              <div className="flex gap-1 text-xs">
+                {[['home','Church'],['engagement','Engagement']].map(([id, label]) => (
+                  <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
             </div>
@@ -3350,8 +3374,8 @@ html{scroll-padding-bottom:280px}
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} />}
-        {view === 'engagement' && <Engagement />}
+        {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} />}
+        {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
