@@ -13,6 +13,7 @@ import { Rentals } from './components/Rentals.jsx';
 import { ProjectsWrapper, DateField } from './components/Projects.jsx';
 import { Opportunities } from './components/DevOps.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
+import Engagement from './components/Engagement.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import Imported from './components/Imported.jsx';
 import { onAuthChange } from './lib/supabase.js';
@@ -1379,7 +1380,7 @@ function getInitialView() {
     if (typeof window === 'undefined') return 'overview';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','admin'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','engagement','markets','admin'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -3260,6 +3261,7 @@ html{scroll-padding-bottom:280px}
                 ['about','About'],
                 ['__sep__', null],
                 ['church','Church'],
+                ['engagement','Engagement'],
                 ['markets','Markets'],
               ].map(([id, label]) => {
                 if (id === '__sep__') {
@@ -3349,6 +3351,7 @@ html{scroll-padding-bottom:280px}
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
         {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} />}
+        {view === 'engagement' && <Engagement />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
