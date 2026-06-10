@@ -2,9 +2,9 @@
 id: DR-0016
 title: COLG $9k church build — RATIFIED FINAL (open-source Frigate + 48GB dual-3090 + VLM agent + DIY cabling)
 date: 2026-06-09
-status: accepted
+status: superseded
 supersedes: [DR-0015]
-superseded-by: null
+superseded-by: DR-0050
 tier: C
 entities: [church]
 grounds: [SOVEREIGN-FIRST, COST-DISCIPLINE, COMMUNITY-FIRST, CAGE, DATA-AS-EMPOWERMENT, EARN-AUTONOMY, SURFACE-PREMISE]
