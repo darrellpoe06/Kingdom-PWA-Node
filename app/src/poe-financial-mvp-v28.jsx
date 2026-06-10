@@ -2650,6 +2650,17 @@ html{scroll-padding-bottom:280px}
 [data-theme="midnight"] .border-\\[\\#5A6E3D\\]{border-color:#86EFAC!important}
 [data-theme="midnight"] .bg-\\[\\#B85838\\]{background-color:#FB923C!important}
 [data-theme="midnight"] .bg-\\[\\#5A6E3D\\]{background-color:#86EFAC!important}
+/* WCAG 2.1 AA fix (2026-06-10): #5A6E3D remaps to bright mint #86EFAC under
+   midnight, which is readable as a text color on black but fails as a FILLED
+   badge background with white text (1.4:1). Force near-black text on the
+   mint for the filled green badges so they hit ~14:1. Other themes keep
+   #5A6E3D dark green where white text already passes (~5.6:1). */
+[data-theme="midnight"] .bg-\\[\\#5A6E3D\\].text-white{color:#1A1815!important}
+/* Same fix for the #B85838 rust accent, which remaps to bright #FB923C under
+   midnight: white text on it is only 2.26:1 (e.g. the "Drop your bank file"
+   CTA). Near-black text -> ~9.3:1. On hover these buttons go dark (the rule
+   below) and flip back to light text, so no conflict. */
+[data-theme="midnight"] .bg-\\[\\#B85838\\].text-white{color:#1A1815!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#2A2A2A!important;color:#E5E5E5!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:text-\\[\\#1A1815\\]:hover{color:#E5E5E5!important}
