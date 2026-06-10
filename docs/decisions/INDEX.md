@@ -69,8 +69,9 @@ These records came from the 2026-06-09 documentation chain (PoeTech market strat
 
 | ID | Title | Status | Tier | Entities | Grounds |
 |---|---|---|---|---|---|
-| [DR-0050](DR-0050-colg-9k-build-church-storage-supplementary-cams.md) | COLG $9k build — church-provided storage (~50TB NAS + loose HDDs) + supplementary Wyze cams (**supersedes DR-0016**) | accepted | C | church | SOVEREIGN-FIRST, COST-DISCIPLINE, COMMUNITY-FIRST, DATA-AS-EMPOWERMENT, CAGE, SURFACE-PREMISE |
+| [DR-0050](DR-0050-colg-9k-build-church-storage-supplementary-cams.md) | COLG $9k build — NAS REPLACEMENT (new chassis primary, old→backup) + owned drives + supplementary Wyze cams (**supersedes DR-0016**) | accepted | C | church | SOVEREIGN-FIRST, COST-DISCIPLINE, COMMUNITY-FIRST, DATA-AS-EMPOWERMENT, CAGE, SURFACE-PREMISE |
+| [DR-0051](DR-0051-roi-sovereign-stack-replaces-paid-it-funds-mission.md) | ROI reframe — sovereign stack replaces paid IT, frees church budget for mission (PRIMARY justification) | accepted | C | church, poetech | COMMUNITY-FIRST, COST-DISCIPLINE, SOVEREIGN-FIRST, CAGE, GOVERN-EXECUTE-ADVISE |
 
-> **Note (2026-06-09):** this DR was authored concurrently as DR-0017 and **renumbered to DR-0050** on landing because the PMO chain (above) had already taken DR-0017–DR-0049 on `main`. Lesson logged for a future operating-model DR: allocate DR numbers atomically against the live `main` INDEX, not the branch-point copy.
+> **Note (2026-06-09):** DR-0050 was authored concurrently as DR-0017 and **renumbered to DR-0050** on landing because the PMO chain (above) had already taken DR-0017–DR-0049 on `main`. Lesson logged for a future operating-model DR: allocate DR numbers atomically against the live `main` INDEX, not the branch-point copy.
 
-**Next ID:** DR-0051. To add a decision: assign the next ID and add a row (top table = per-DR-file ledger; chain table = source-doc ledger). To change a decision: write a new DR, set `supersedes:`, flip the old row’s status to `superseded`.
+**Next ID:** DR-0052. To add a decision: assign the next ID and add a row (top table = per-DR-file ledger; chain table = source-doc ledger). To change a decision: write a new DR, set `supersedes:`, flip the old row’s status to `superseded`.
