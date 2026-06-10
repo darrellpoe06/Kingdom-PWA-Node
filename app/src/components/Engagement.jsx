@@ -13,7 +13,8 @@
 // inputs, and aria-live regions for the verdict + the live thread.
 // =============================================================================
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { SectionTitle } from './shared.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import { uploadTriviaAnswer, sendMessage, subscribeMessages } from '../lib/engagement-sync.js';
 
@@ -296,24 +297,9 @@ export default function Engagement() {
 
   useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
 
-  const heading = useMemo(
-    () => 'Engagement',
-    []
-  );
-
   return (
     <div className="max-w-2xl">
-      <div className="mb-5 pb-3 border-b-2 border-[#1A1815]">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1.5 font-semibold">
-          Family &middot; daily
-        </div>
-        <h2
-          className="text-2xl sm:text-3xl leading-tight"
-          style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}
-        >
-          {heading}
-        </h2>
-      </div>
+      <SectionTitle eyebrow="Family · daily">Engagement</SectionTitle>
       <TriviaCard signedIn={signedIn} />
       <MessageThread signedIn={signedIn} />
     </div>
