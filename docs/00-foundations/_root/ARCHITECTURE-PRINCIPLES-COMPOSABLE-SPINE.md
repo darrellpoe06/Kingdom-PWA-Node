@@ -2,7 +2,7 @@
 
 **Layer 3 foundation. Added 2026-06-09, declared with Darrell.**
 **Status:** Binding architectural standard. **Spec / record only — this document authorizes no code, no purchases, no money movement, and no autonomous execution.** Standing up anything named here is a separately governed decision.
-**Decision records:** **DR-0039** (flexibility-from-discipline + the Composable Spine), **DR-0040** (the Situational Auto-Tagging Engine + the auto-tag-vs-auto-mutation governance line), **DR-0042** (event-driven by default, §6.4), **DR-0043** (event usage-ranking / analytics on the tag stream, §5d), and **DR-0044** (Interface-as-Collaborative-Partner, §7) — see `docs/decisions/INDEX.md`.
+**Decision records:** **DR-0045** (Universal Work Management — the first anchor, §0), **DR-0046** (Clarification Is the Default — the second anchor, §0), **DR-0039** (flexibility-from-discipline + the Composable Spine), **DR-0040** (the Situational Auto-Tagging Engine + the auto-tag-vs-auto-mutation governance line), **DR-0042** (event-driven by default, §6.4), **DR-0043** (event usage-ranking / analytics on the tag stream, §5d), and **DR-0044** (Interface-as-Collaborative-Partner, §7) — see `docs/decisions/INDEX.md`.
 
 **Builds on (reference, do not rebuild):**
 - `MODULAR-EXTENSIBILITY.md` — one module per file; three lines to add, three to remove; one codebase, many instances. This document is the *system-level* companion to that *codebase-level* rule.
@@ -14,6 +14,40 @@
 - `LEGAL-PRIVACY-BOUNDARY.md`, the TLC ISO-1 / HIPAA wall — the isolation tiers this document elevates from constraint to enabler.
 
 **Reads through:** `CLAUDE.md` Layer 0, `GOVERNANCE-EXECUTION-ADVISORY.md` (Darrell governs, the Foundation executes, Claude advises), `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`, `COMMUNITY-FIRST-MISSION.md`, all under the worldview spine.
+
+---
+
+## 0. The Two Anchor Principles — what the whole system reports up to
+
+Before the Composable Spine, before the modules, before any capability named below, there are **two anchor principles.** They are the most senior statements in this document: everything else here — the spine, the module rules, the tagging engine, the dashboard, the competence ladder, the data-farmed timelines — is *in service of* these two. When a design question reaches past the spine, it reports up to these. They are the architecture's *why*; the rest is the architecture's *how*.
+
+### 0.1 Anchor I — Universal Work Management
+
+> **One system manages and organizes ALL types of work, across EVERY industry — not a tool per domain.**
+
+The platform is **not** a church tool, *and* a rentals tool, *and* a counseling tool, *and* a build tool that happen to share a login. It is **one work-management engine** whose method is **industry-agnostic by design** — the *same* engine runs church operations, a property portfolio, a multi-party vendor transition, a counseling practice, and a construction build. The domain changes; the engine does not.
+
+**This is grounded, not asserted.** It is the encoding of Darrell's **20+ years across multiple industries actually maintaining real businesses** — the cross-industry operating method, learned by running the work, is the system's edge. That is the **experience-over-credentials / SKOS** thesis at the architectural altitude: the system's differentiator is not a feature set, it is an *encoded method* that has already worked across domains, made reusable. The hiring bar becomes capacity, not credentials, *because* the method is in the system (the Workforce Layer, DR-0017; PM-as-automation, DR-0029, are this anchor applied).
+
+**Everything else rolls up to this.** The Industry / Role Module Template (DR-0030), every role module (PMO, Legal, and the candidate list, DR-0032), and the enterprise-stack vision are all **instantiations of this one engine on a new domain** — never separate products. A proposal that would build a *domain-specific tool* instead of *configuring the universal engine for that domain* fails this anchor. Recorded as **DR-0045.**
+
+### 0.2 Anchor II — Clarification Is the Default
+
+> **Anxiety-clarity is not a feature. It is the RESTING STATE of the entire system.**
+
+Every module, every surface, every situation answers **what · when · why · how BY DEFAULT** (`ANXIETY-CLARITY-PRINCIPLE.md`). The right questions are **asked early, by default.** **Nothing proceeds half-understood.** This is the *floor* the whole platform stands on — not a capability one module turns on, but the baseline behavior every part inherits unless something actively removes it (and removing it is the violation).
+
+**Why clarification-as-default is load-bearing — three reasons, all binding:**
+
+1. **It lets a non-expert do expert work.** The clarifying questions an expert would know to ask are **asked *for* the user** — so the novice operates at expert quality without first having to become the expert (the same move as PM-as-automation, DR-0029, and the Workforce Layer's capacity-over-credentials, DR-0017). The questions carry the expertise.
+2. **It makes an expert trust the system.** An expert will not hand work to a system that lets ambiguity ride — *no ambiguity rides.* The system surfaces the gap the expert would have caught, so the expert can rely on it instead of re-checking it. Clarity-by-default is what earns the expert's trust (and the Want-To-Use Bar, DR-0033, with it).
+3. **It is the teaching / competence engine.** Repeated clarification *grows competence* — every time the system asks the right question at the right moment, the operator learns to ask it too. Clarification is not just risk-reduction; it is the mechanism by which the competence ladder (the Flywheel's people-growth loop, DR-0034 / DR-0035) actually climbs.
+
+**Everything serves this through-line.** The PMO method engine (§ in the PMO spec; DR-0047) front-loads the right questions per phase and per party. The auto-tagging engine (§5) classifies so the human is never left to triage half-understood work. The dashboard (R12) answers *what is happening* without the human having to ask. The competence ladder (DR-0034/35) and the data-farmed timelines (DR-0004, living estimates) all exist so the system can answer **what / when / why / how** before the human has to wonder. Recorded as **DR-0046.**
+
+### 0.3 How the two anchors and the Composable Spine relate
+
+The two anchors are the **mission of the architecture**; the Composable Spine (below) is the **engineering that makes the mission survivable at scale.** *Universal Work Management* is only achievable because the spine's disciplined contracts let one engine serve every domain without forking (§1–§3). *Clarification Is the Default* is only affordable because the tagging engine, the federated signals, and the conversational interface (§5, §7) do the asking *for* the human at near-zero marginal cost. The anchors say *what the system is for*; the rest of this document says *how it holds up while delivering it.*
 
 ---
 

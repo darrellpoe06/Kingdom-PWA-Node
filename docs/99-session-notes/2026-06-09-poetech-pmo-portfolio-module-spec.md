@@ -3,7 +3,8 @@
 **Date:** 2026-06-09 (Tue)
 **Author:** Claude (module spec on Darrell's commission — recording architecture already discussed and agreed in chat, not inventing it)
 **Status:** PLAN / spec doc. **No code, no purchases, no money movement, no autonomous execution.** Target module architecture only.
-**Decision records:** DR-0027 (PMO module = instance #1 of the role-module pattern; living portfolio overview is its canonical output), DR-0028 (only net-new component = the thin LLM synthesis/orchestration layer; everything else federates), DR-0029 (PM-as-automation: GUIDE + ENFORCE + ESCALATE; Cage governs autonomous re-sequencing) — see `docs/decisions/INDEX.md`.
+**Decision records:** DR-0027 (PMO module = instance #1 of the role-module pattern; living portfolio overview is its canonical output), DR-0028 (only net-new component = the thin LLM synthesis/orchestration layer; everything else federates), DR-0029 (PM-as-automation: GUIDE + ENFORCE + ESCALATE; Cage governs autonomous re-sequencing), DR-0047 (the PMO Method Engine — early-question engine + party-type workflow templates + comms→structured-state + RACI + artifact tracking + meeting cadence + cross-party visibility + working-style fit; the method-not-data binding boundary; §5A) — see `docs/decisions/INDEX.md`.
+**Anchors up to:** DR-0045 (Universal Work Management — this module is that one engine instantiated on the project-management domain) and DR-0046 (Clarification Is the Default — the early-question engine of §5A is that anchor realized at kickoff), in `ARCHITECTURE-PRINCIPLES-COMPOSABLE-SPINE.md` §0.
 **Pattern parent (this PR):** `2026-06-09-industry-role-module-template-spec.md` — this PMO module is the **first concrete instance** of the reusable Industry/Role Module pattern abstracted there. (Instance #2 = the Legal Module.)
 **Sibling instance:** `2026-06-09-legal-module-spec.md` (the law-firm tenant; DR-0022..DR-0025).
 **Parent strategy:** `2026-06-09-poetech-market-strategy-workforce-three-ring.md` (the Workforce Layer is this module's action-execution engine; the three rings are its cross-entity portfolio).
@@ -19,6 +20,7 @@
 3. **Ten capabilities** make it exceed any static report: living/auto-updating, signal-generated, closed-loop, capacity/dependency-aware, audience-adaptive, predictive, governance-native, cross-entity, self-documenting, and mission-lensed. (§3)
 4. **It builds almost nothing net-new.** Boards, issues, automation, scheduling, decisions, risks, action execution, QA, roles, audit, and roll-up all **federate existing systems.** **The only net-new component is the thin LLM synthesis/orchestration layer** on top. (§4)
 5. **PM-as-automation is a first-class design goal:** a **non-PM manages at PM quality** via **GUIDE + ENFORCE + ESCALATE.** A church or SMB runs enterprise-grade PM **without hiring a PM** — the same "replaces the network engineer" economics as Ring 2. It's a prebuilt SKOS "Project Manager" role module. (§5)
+5a. **The PMO Method Engine is the encoded PM method that makes §5 true** — an **early-question engine** (front-loads the right clarifying questions per phase + per party; Darrell's four phase-alignment questions are the reusable phase-gate), **party-type workflow templates** (Units / Vendors / Infrastructure teams), **comms→structured-state**, **per-item RACI**, **artifact tracking**, **meeting cadence**, **cross-party who's-waiting-on-whom visibility**, and **working-style fit**. Acceptance test is a METHOD test ("could it run a multi-party, phased vendor transition sandbox→production end-to-end?"), with the **binding boundary: own the method, don't host employer data.** It **IS the Project-Manager role module.** (§5A; DR-0047)
 6. **Success metric = the Want-To-Use Bar (§6):** the module is good when the operator **voluntarily prefers** it — pull, not push — judged by preference, not feature-completeness. It clears the bar on five properties (better-at-PM / does-the-toil / near-zero-friction / meets-you-where-you-are / earns-trust) and **gets more preferred over time** as it learns from feedback (the flywheel, template doc §4).
 7. **This is a PLAN.** No code, no purchases. The eventual build's autonomous pieces are Tier C and need all three brakes. (§8)
 
@@ -126,6 +128,61 @@ The novice operator *cannot* skip the discipline, because the system won't let u
 A **church or SMB runs enterprise-grade PM without hiring a PM** — the identical economic move as Ring 2's "replaces the church's network engineer" (`...workforce-three-ring.md` §5, Ring 2). The PM expertise is in the system; the operator supplies attention and decisions. It ships as a **prebuilt SKOS "Project Manager" role module** — the same one-codebase-many-instances shape as the Legal Module's "law firm" template (`MODULAR-EXTENSIBILITY.md`).
 
 This is recorded as **DR-0029.**
+
+---
+
+## 5A. The PMO Method Engine — the early-question + multi-party engine
+
+§5 says a non-PM manages at PM quality. **This section is the engine that makes that true.** Where §2/§3 produce the *living overview* (the output) and §5 sets the *posture* (GUIDE / ENFORCE / ESCALATE), the Method Engine is the **encoded PM method itself** — the questions, templates, and structured-state machinery that run a real, multi-party, phased project end to end. It is the concrete realization of **Anchor I (Universal Work Management)** and **Anchor II (Clarification Is the Default)** at the project layer (`ARCHITECTURE-PRINCIPLES-COMPOSABLE-SPINE.md` §0). Recorded as **DR-0047.**
+
+### 5A.1 Early-question engine — front-load the right questions
+The engine **front-loads the clarifying questions a seasoned PM would ask** — at kickoff, then **per phase and per party** — so gaps surface *early*, not at the gate where they're expensive. This is Anchor II made operational: *nothing proceeds half-understood*, the questions are asked **for** the non-expert, and asking them repeatedly **grows** the operator's competence (the teaching engine, DR-0046).
+
+**Reusable phase-gate template (Darrell's four phase-alignment questions).** These four questions are the first reusable phase-gate, asked at every phase boundary, of every party:
+1. **What is completed this phase?** — the actual done-state, not the planned one.
+2. **What are the readiness criteria to advance?** — the explicit bar to cross into the next phase (Definition-of-Done for the *phase*, the same DoD discipline §5.2 enforces per task).
+3. **What is the production-ready definition — and the vendor-side vs customer-side split?** — what "production-ready" means here, and *who owns which half* of getting there.
+4. **What are the blockers?** — what is actually in the way, named, with an owner.
+
+The template is **reusable** — it instantiates per phase and per party, and new question sets register the same way (one config, written once; `MODULAR-EXTENSIBILITY.md`).
+
+### 5A.2 Party-type workflow templates — the right workflow per relationship
+Different relationship types have **different dynamics, cadence, hand-offs, and questions.** The engine ships a workflow + question set **per party type**, and the operator simply **picks the parties involved**; the module brings the right machinery for each:
+- **Units (internal teams)** — internal cadence, shared standards, lighter contractual hand-offs.
+- **Vendors (external)** — contractual hand-offs, acceptance gates, vendor-side vs customer-side responsibility splits, SLA / deliverable cadence.
+- **Infrastructure teams** — **prerequisites and dependencies first** — what must exist (and be ready) before dependent work can start; the dependency chain is the spine of their workflow.
+
+The operator declares *who is involved*; the engine assembles *the right workflow and question set for each* — no PM methodology required in the operator's head (the §6.4 / DR-0033 "meets you where you are" property).
+
+### 5A.3 Comms → structured state
+The engine **ingests communication threads** (email, Teams, and the like) and converts unstructured back-and-forth into **structured project state**: **decisions, action items, open questions, and who's-waiting-on-whom.** The thread stops being a place work *hides* and becomes a *source* the living overview (§2) renders from. (Routing of sensitive threads honors the isolation tiers, §3.8 / Architecture Principles §4 — a thread tagged PHI or privileged never enters an un-walled roll-up.)
+
+### 5A.4 RACI / responsibility split per item
+Every item carries an explicit **responsibility split** — **vendor-side vs customer-side**, by **unit**, by **infra team**. RACI is not a one-time chart; it is a **per-item** attribute the engine tracks, so "whose move is this?" always has a recorded answer (and feeds the cross-party visibility of §5A.7).
+
+### 5A.5 Artifact tracking
+Files and datasets that the work turns on — e.g. a **supplier CSV** in a vendor transition — are **ingested, validated, and status-tracked** as first-class project artifacts. An artifact has a state (received / validated / rejected / superseded), an owner, and a place in the dependency chain; a missing or invalid artifact is a tracked blocker (§5A.1 Q4), not a surprise discovered late.
+
+### 5A.6 Meeting cadence
+The engine **schedules, cancels, and sets agendas for meetings via the calendar module** (the `events` table — `event_date`, `recurrence_rule`, `lifecycle`; the same federation as §4). Cadence is a managed property of the project, and an agenda is generated from the open questions / blockers / waiting-on items the engine already holds — the meeting is *about* the structured state, not a place to reconstruct it.
+
+### 5A.7 Cross-party visibility — who's-waiting-on-whom
+The engine surfaces the **dependency chains, responsibility splits, and the shared phase view** across *all* parties — **who's-waiting-on-whom** made explicit. On the dashboard this is **audience-adaptive** (the §3.5 rendering): **each party sees their own slice; the PM sees the whole.** No party has to ask "where are we blocked?" — the engine shows it, scoped to what that party is allowed and needs to see (anxiety-clarity, Anchor II; isolation-respecting, §3.8).
+
+### 5A.8 Working-style fit — adapt to how the operator works
+The engine **adapts to how the user likes to work.** The **user's own method becomes a default template**; others can **tune theirs.** This is the **Want-To-Use Bar** (§6 / DR-0033) applied to method itself: the system does not impose one rigid process — it meets the operator in *their* working style and lets each party tune its own, which is what makes the operator *prefer* it (pull, not push).
+
+### 5A.9 Acceptance test — METHOD, not data
+The senior acceptance test for the Method Engine is a **method** test, deliberately not a data test:
+
+> **"Could the module run a multi-party, phased vendor transition (sandbox → production) end-to-end?"** — surfacing the right questions per phase and per party, holding the RACI split, tracking the artifacts, ingesting the comms into structured state, managing the cadence, and giving every party the right cross-party view.
+
+**Real threads are used ONLY as PATTERN ILLUSTRATIONS — never as hosted project data.** The engine is validated against the *shape* of real multi-party work, not by hosting any specific organization's project.
+
+> **BINDING BOUNDARY (method, not data).** PoeTech supports the **work PATTERN / method.** Running that method **on an employer's data** — e.g. University systems, FOIA-able public records, vendor PII — **requires that organization's governance sign-off.** PoeTech **owns the method; it does not host employer data.** This is the same boundary the isolation tiers enforce (Architecture Principles §4) and the same honesty the Cohort-Layer funding guardrail demands (DR-0038): the capability is real, the data ownership stays with whoever governs it. A demo or validation run uses illustrative / synthetic patterns; a *production* run on a real organization's records is a separately governed decision that organization must authorize.
+
+### 5A.10 Generalization — this IS the Project-Manager role module
+The Method Engine **generalizes to all project types** — the vendor transition is the worked example, not the limit; the same engine runs an internal build, a church operations rollout, a counseling-practice setup, or a property turnover (Anchor I, Universal Work Management). And it **IS the SKOS "Project Manager" role module**: it carries the PM expertise so a **non-PM runs projects well** *and* it **amplifies an expert** (the early-question engine catches what even an expert can let slip; §5A.1). Encoded once, instantiated per entity — the same one-codebase-many-instances shape as the rest of the role-module pattern (DR-0030).
 
 ---
 
