@@ -2753,10 +2753,23 @@ html{scroll-padding-bottom:280px}
                 { key: 'lawyer',      free: false, label: 'For solo lawyers',                headline: 'Practice + trust accounting kept clean.',                     summary: 'Today: alias of Solo professional; trust-account ledger in build. Every client transfer recorded, so the trust balance is provable.' },
                 { key: 'therapist',   free: false, label: 'For solo therapists',             headline: 'Practice + CEU + supervision tracked.',                       summary: 'Today: alias of Solo professional; clinical-side tier in build. CEUs and supervision hours logged as the record, not the memory.' },
               ].map(s => (
-                <div key={s.key} className="block p-4 border border-dashed border-[#5A5751] bg-white/70">
+                /* Coming-next cards: same THEMED surface as the working-sample
+                   tiles above (bg-white, which the theme <style> block remaps
+                   per theme -- e.g. #141414 under midnight, the default), then
+                   dimmed with opacity-80 + a dashed (not solid) border + a
+                   muted grey label + an outlined "Vision . in build" badge so
+                   they read as "not built yet" while staying legible. Fixed
+                   2026-06-10: the prior bg-white/70 had NO theme override (only
+                   plain .bg-white does), so under the default midnight theme it
+                   stayed ~70% white over the black panel while its text got
+                   remapped to light -> a near-white box with invisible text.
+                   Every class here IS in the theme override map, so it renders
+                   correctly in all five themes and identically before/after
+                   hydration (static Tailwind, no JS-conditional styling). */
+                <div key={s.key} className="block p-4 border border-dashed border-[#1A1815] bg-white opacity-80">
                   <div className="flex items-baseline justify-between mb-1.5 gap-2">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">{s.label}</div>
-                    <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#5A5751] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
+                    <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
                   </div>
                   <div className="text-sm text-[#1A1815] mb-1 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.headline}</div>
                   <div className="text-[11px] text-[#5A5751] mb-2 leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
