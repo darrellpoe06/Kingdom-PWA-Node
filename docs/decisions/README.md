@@ -21,6 +21,7 @@ This is **ICM Layer 4 discipline** (per `CLAUDE.md`) — the dated working layer
 1. **One decision per file.** `docs/decisions/DR-NNNN-short-slug.md`. Keep it ~25–45 lines.
 2. **Append-only / immutable.** Never rewrite a DR's substance. When a decision changes, write a **new** DR, set its `supersedes:`, and flip the old one's `status: superseded` + `superseded-by:`. History stays intact (this mirrors the append-only audit ledger in the Cage).
 3. **Stable IDs are the reference.** Cite `DR-0007`, never "the section about TLC." IDs are assigned in order; gaps are fine.
+   - **Allocate against LIVE `main`, not the branch point ([DR-0052]).** Read `Next ID` from `git show origin/main:docs/decisions/INDEX.md` when you create a DR; the number is **provisional until merge**. Re-check `main`'s `Next ID` right before merging — if another session landed first, **renumber** (`git mv` the file, fix `id:` + every `[DR-NNNN]` reference) before merging. This keeps the single sequential numbering safe under concurrent sessions.
 4. **Source once, by principle-ID.** Bind to principles in `PRINCIPLES.md` (e.g. `TLC-FIREWALL`, `THREE-BRAKES`) via the `grounds:` field. Do not re-enumerate the underlying files in every DR.
 5. **The INDEX is the single source of truth** for "what is decided." `INDEX.md` lists every DR with id, title, status, tier, entities. Verification = read the index.
 6. **Narratives point at DRs.** Research-reviews / specs reference decisions by DR-ID and do not restate the rationale.
