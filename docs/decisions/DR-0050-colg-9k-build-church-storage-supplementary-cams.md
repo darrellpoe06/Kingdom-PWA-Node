@@ -1,5 +1,5 @@
 ---
-id: DR-0017
+id: DR-0050
 title: COLG $9k build — church-provided storage (existing ~50TB NAS + loose HDDs) + supplementary Wyze cams
 date: 2026-06-09
 status: accepted

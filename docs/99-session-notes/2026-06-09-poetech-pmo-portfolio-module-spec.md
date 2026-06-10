@@ -1,0 +1,268 @@
+# PoeTech OS — PMO / Project-Portfolio Module Spec (Instance #1 of the Role-Module Pattern)
+
+**Date:** 2026-06-09 (Tue)
+**Author:** Claude (module spec on Darrell's commission — recording architecture already discussed and agreed in chat, not inventing it)
+**Status:** PLAN / spec doc. **No code, no purchases, no money movement, no autonomous execution.** Target module architecture only.
+**Decision records:** DR-0027 (PMO module = instance #1 of the role-module pattern; living portfolio overview is its canonical output), DR-0028 (only net-new component = the thin LLM synthesis/orchestration layer; everything else federates), DR-0029 (PM-as-automation: GUIDE + ENFORCE + ESCALATE; Cage governs autonomous re-sequencing), DR-0047 (the PMO Method Engine — early-question engine + party-type workflow templates + comms→structured-state + RACI + artifact tracking + meeting cadence + cross-party visibility + working-style fit; the method-not-data binding boundary; §5A.1–§5A.10), DR-0048 (second-exemplar shared-surface capabilities — shared cross-entity view+edit workspace + persistent timestamped item ledger + direct acknowledgment + the recurring-pains through-line; §5A.11–§5A.13, §5A.15), DR-0049 (the persistent all-parties status dashboard — blocker attribution + cost-of-delay, v1 structure / v2 numbers; §5A.14) — see `docs/decisions/INDEX.md`.
+**Anchors up to:** DR-0045 (Universal Work Management — this module is that one engine instantiated on the project-management domain) and DR-0046 (Clarification Is the Default — the early-question engine of §5A is that anchor realized at kickoff), in `ARCHITECTURE-PRINCIPLES-COMPOSABLE-SPINE.md` §0.
+**Pattern parent (this PR):** `2026-06-09-industry-role-module-template-spec.md` — this PMO module is the **first concrete instance** of the reusable Industry/Role Module pattern abstracted there. (Instance #2 = the Legal Module.)
+**Sibling instance:** `2026-06-09-legal-module-spec.md` (the law-firm tenant; DR-0022..DR-0025).
+**Parent strategy:** `2026-06-09-poetech-market-strategy-workforce-three-ring.md` (the Workforce Layer is this module's action-execution engine; the three rings are its cross-entity portfolio).
+**Builds on (reference, do not rebuild):** the Decision-Record ledger (`docs/decisions/INDEX.md`), the Cage (`infra/ai-orchestrator/`), `EXECUTION-OUTCOME-OBSERVABILITY.md` + `INSTITUTIONAL-MEMORY-EVENTS.md` (events-as-data), `MODULAR-EXTENSIBILITY.md` (one codebase, many instances), `MARKETPLACE-ARCHITECTURE.md` (own the spine, swap the vendor), `IDENTITY-ROLES-AUDIT.md` (roles/ownership), `WORKFLOW-MODULE-LIBRARY.md` + wf36 (the Quality Gatekeeper hook), and `ANXIETY-CLARITY-PRINCIPLE.md` (what/when/why/how). The "build on what exists" thesis is the conference-module thesis applied to PM.
+**Reads through:** `CLAUDE.md` Layer 0, `GOVERNANCE-EXECUTION-ADVISORY.md`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`, `RELEASE-TIERS.md` + `feedback_autonomous_automation_three_brakes`, all under the worldview spine.
+
+---
+
+## TL;DR (read this first)
+
+1. **A sovereign, LLM-native project-portfolio (PMO) module** — instance #1 of the reusable Industry/Role Module pattern (the pattern itself is specified in the companion doc). (§1)
+2. **Its canonical output is a living portfolio overview** — the comprehensive post-meeting format already in use, but *living*, not a static Monday write-up. (§2 = the output template.)
+3. **Ten capabilities** make it exceed any static report: living/auto-updating, signal-generated, closed-loop, capacity/dependency-aware, audience-adaptive, predictive, governance-native, cross-entity, self-documenting, and mission-lensed. (§3)
+4. **It builds almost nothing net-new.** Boards, issues, automation, scheduling, decisions, risks, action execution, QA, roles, audit, and roll-up all **federate existing systems.** **The only net-new component is the thin LLM synthesis/orchestration layer** on top. (§4)
+5. **PM-as-automation is a first-class design goal:** a **non-PM manages at PM quality** via **GUIDE + ENFORCE + ESCALATE.** A church or SMB runs enterprise-grade PM **without hiring a PM** — the same "replaces the network engineer" economics as Ring 2. It's a prebuilt SKOS "Project Manager" role module. (§5)
+5a. **The PMO Method Engine is the encoded PM method that makes §5 true** — an **early-question engine** (front-loads the right clarifying questions per phase + per party; Darrell's four phase-alignment questions are the reusable phase-gate), **party-type workflow templates** (Units / Vendors / Infrastructure teams), **comms→structured-state**, **per-item RACI**, **artifact tracking**, **meeting cadence**, **cross-party who's-waiting-on-whom visibility**, and **working-style fit**. Acceptance test is a METHOD test ("could it run a multi-party, phased vendor transition sandbox→production end-to-end?"), with the **binding boundary: own the method, don't host employer data.** It **IS the Project-Manager role module.** (§5A; DR-0047)
+5b. **A second real exemplar (the system-rewrite "FSA" thread, pattern-illustration only) folds in four more capabilities that solve pains a client explicitly named:** a **shared cross-entity workspace** both teams view+edit (the customer-stated reason to exist; Teams chat failed them), a **persistent timestamped item ledger** with status history + audit trail (so an item identified Aug-2025 can't resurface as "new" in May-2026), **direct acknowledgment + visible status per item**, and a **persistent all-parties status dashboard** surfacing the needs / the blocker owner + who's-waiting chain / the **cost-of-delay** (v1 = structure, v2 = real numbers from consent-first, walled financial data). The through-line: across both exemplars the same PM pains recur (status-lost-in-chat, no-shared-surface, items-lost-or-mislabeled, phase-ambiguity, what's-blocking) and the engine kills all of them — "Clarification Is the Default" in action. (§5A.11–§5A.15; DR-0048, DR-0049)
+6. **Success metric = the Want-To-Use Bar (§6):** the module is good when the operator **voluntarily prefers** it — pull, not push — judged by preference, not feature-completeness. It clears the bar on five properties (better-at-PM / does-the-toil / near-zero-friction / meets-you-where-you-are / earns-trust) and **gets more preferred over time** as it learns from feedback (the flywheel, template doc §4).
+7. **This is a PLAN.** No code, no purchases. The eventual build's autonomous pieces are Tier C and need all three brakes. (§8)
+
+---
+
+## 1. What this is
+
+A **sovereign, LLM-native project-portfolio management module** for PoeTech OS. It is **instance #1 of the reusable Industry/Role Module pattern** (`2026-06-09-industry-role-module-template-spec.md`) — the PMO ("project manager") role, encoded once and instantiated per entity.
+
+It is *sovereign* (runs on the PoeTech node, data never leaves the owner's control — the same `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md` spine as every module) and *LLM-native* (the synthesis is the LLM's core job, not a bolt-on). Its purpose: take the scattered signals a project already emits — board state, repo activity, executions, meeting notes — and continuously synthesize the **decision-ready portfolio overview** a great PM would produce after every touchpoint, **for every audience, on demand.**
+
+Recorded as **DR-0027**.
+
+---
+
+## 2. Output template — the canonical living portfolio overview
+
+This is the module's canonical output. It mirrors the **post-meeting portfolio overview** format already in use, and it deliberately mirrors the **Decision-Record framework** (`docs/decisions/INDEX.md`) and the project-review format the repo already runs. The same dataset renders this whole document — and any audience-specific subset of it (§3.5) — on demand.
+
+The sections, in order:
+
+1. **Selected Approach & Rationale** — the chosen path and *why it won* over the alternatives considered.
+2. **Three-Layer Summary** — **Current** (where things stand) / **Progress** (what moved) / **Forward** (what's next). The fast read.
+3. **Current vs Target State table** — a two-column table: where each workstream *is* vs. where it's *going*, with the gap explicit.
+4. **Domain Impacts (per role)** — what changed, rendered for each role's concerns:
+   - **Admin** — config, access, governance, cost.
+   - **Practitioner (PMs + Devs)** — assignments, dependencies, what to do next.
+   - **Insights / Reporting** — metrics, throughput, what the numbers say.
+   - **Intake / Allocation** — incoming demand, capacity, where new work lands.
+5. **Decisions with Lineage** — every decision as **context → decision → impact.** This *is* a DR ledger view, scoped to the project; it links to the canonical `docs/decisions/INDEX.md` rows.
+6. **What Changed Since Last Touchpoint** — the **delta.** Not the whole state — only what moved since the reader last looked.
+7. **Action Items** — both **explicit** (stated in the meeting / issue) and **implicit** (the ones a good PM infers from the state — "no owner on the critical path" is an action item even if no one said it).
+8. **Risk Aging & Escalation** — the risk register with **age** on each item; risks that sit too long **escalate** automatically.
+9. **Derived Clarifying Questions (non-blocking)** — the questions a PM would ask to de-risk, surfaced but **not gating** — the work proceeds while they're answered.
+10. **Executive Briefing** — the **decision-ready** one-screen version for the governor.
+11. **Bottom Line** — the single-sentence "so what."
+
+> **Note:** sections 5 (Decisions with Lineage) and 8 (Risk Aging) are not free-text prose — they are **views over structured records** (the DR ledger and the risk register), which is what makes §3's living/predictive/governance capabilities possible.
+
+---
+
+## 3. The ten capabilities (what makes it exceed a static Monday write-up)
+
+A static board export is a snapshot a human assembles and that goes stale the moment it's saved. These ten capabilities are what make this a *living* instrument instead.
+
+1. **Living, not a snapshot.** It **auto-updates from board / repo / execution data** (events-as-data, per `EXECUTION-OUTCOME-OBSERVABILITY.md` + `INSTITUTIONAL-MEMORY-EVENTS.md`). The overview is a *current view*, regenerated from source, never a hand-assembled artifact that rots.
+2. **Auto-generated from signals.** It **ingests** the project's real signals — **meeting notes + live board state + commits + workflow executions** — and synthesizes the overview from them. No one types the report.
+3. **Closed-loop.** Outputs become tracked inputs: **action items → tracked tasks routed to the 1099 Workforce Layer, QA-gated** (`2026-06-09-poetech-market-strategy-workforce-three-ring.md` §2); **decisions → the DR ledger**; **risks → a self-aging risk register.** Nothing falls on the floor.
+4. **Capacity / dependency engine.** It computes structural truths the board implies but doesn't state — **"same dev on two critical tasks = a dependency,"** **real-time conflict flags**, and **simulated re-plans** ("if we move X, what slips?"). The dependency math is done for you.
+5. **Audience-adaptive rendering, on demand.** From **one dataset** it renders the **exec one-pager**, the **practitioner view**, the **leadership view**, or the **"what to watch" view** — without re-collecting anything. The audience picks the lens; the data is shared.
+6. **Predictive.** **Risk aging** and **ripple forecasting** are computed from **real historical throughput** (the events-as-data history), not guesses — "at this team's actual velocity, this slip ripples to these three items."
+7. **Governance / audit native.** Decision lineage is **immutable**, written to the **Cage's append-only ledger** (`infra/ai-orchestrator/`). **Replanning is a logged, first-class operation** — every re-sequence is an auditable event, not an invisible edit.
+8. **Cross-entity portfolio.** It rolls up **Church / TLC / PoeTech / Poe Properties** at their respective **isolation tiers** — with **TLC PHI walled** (ISO-1, the same firewall the Legal Module uses for privilege). One portfolio view, hard data boundaries.
+9. **Self-documenting institutional memory + cross-meeting pattern detection.** It is its own record (`INSTITUTIONAL-MEMORY-EVENTS.md`) and detects patterns *across* touchpoints — "this risk has been deferred three meetings running," "this decision keeps getting re-litigated."
+10. **Mission lens.** For community work, it carries a **Father's-Business / soul-prosperity test** (3 John 1:2; `BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md`, `QUALITY-OF-LIFE-AS-NORTH-STAR.md`) as a **domain-impact dimension** — alongside cost and schedule, "does this serve the soul-prosperity of the people it touches" is a first-class column for mission projects.
+
+---
+
+## 4. Federation-and-reuse map (build almost nothing net-new)
+
+The strategic point: **almost every capability above already exists in the PoeTech spine or in a swappable vendor.** The module *federates* them. Per `MARKETPLACE-ARCHITECTURE.md` — own the spine, keep the vendor swappable, audit every swap.
+
+| Capability | Federates / reuses |
+|---|---|
+| Boards / intake / timelines / assignments | **Monday** or **GitHub Projects** (swappable vendor) |
+| Issues / tasks / dependencies / PRs | **GitHub** |
+| Automation / triggers / sync | **n8n** (the existing workflow engine; same-origin `/n8n` rewrite per `project_n8n_same_origin_rewrite`) |
+| Scheduling | the **calendar module** (the `events` table — `event_date`, `recurrence_rule`, `lifecycle`) |
+| Decisions-with-lineage | the **DR ledger** (`docs/decisions/INDEX.md`) |
+| Risk register + aging | **events-as-data** + observability (`EXECUTION-OUTCOME-OBSERVABILITY.md`, `INSTITUTIONAL-MEMORY-EVENTS.md`) |
+| Action execution | the **1099 Workforce Layer** + the guided-task system (`2026-06-09-poetech-market-strategy-workforce-three-ring.md`) |
+| Definition-of-Done / QA gating | the **Quality Gatekeeper** (wf36, `WORKFLOW-MODULE-LIBRARY.md`) |
+| Roles / ownership | the **identity layer** (`IDENTITY-ROLES-AUDIT.md`) |
+| Audit / governance | the **Cage** append-only ledger (`infra/ai-orchestrator/`) |
+| Cross-entity roll-up | the **four-entity model** + isolation tiers (Church / TLC / PoeTech / Poe Properties) |
+
+> **THE ONLY NET-NEW COMPONENT = the thin LLM synthesis / orchestration layer on top.**
+> Its three jobs: **ingest** (pull the signals from the federated systems) → **synthesize** (produce the living overview of §2/§3 from one dataset) → **route** (push action items into the Workforce Layer, decisions into the DR ledger, risks into the aging register). Everything else is wiring to systems that already exist.
+
+This is recorded as **DR-0028.** It is also the conference-module "build on what exists" thesis applied to PM: the value is the synthesis layer and the federation wiring, not a re-implementation of boards, issues, or scheduling.
+
+---
+
+## 5. PM-as-automation (first-class design goal)
+
+**The goal: enable a NON-PM to manage at PM quality.** The expertise of project management is encoded into the module — the same move the Workforce Layer makes with Darrell's operating expertise (`...workforce-three-ring.md` §2). The model is **GUIDE + ENFORCE + ESCALATE.**
+
+### 5.1 GUIDE — surface the decisions a PM would catch
+Anxiety-clarity prompts (`ANXIETY-CLARITY-PRINCIPLE.md` — what / when / why / how) surface, **in plain language**, the decisions a seasoned PM would catch and a novice would miss: "two tasks on the critical path share one owner — pick one to reassign," "this milestone has no Definition-of-Done — define it before work starts," "this risk is 12 days old with no mitigation." The module asks the right question at the right moment, so the operator doesn't need to already know to ask it.
+
+### 5.2 ENFORCE — discipline that can't be skipped
+The module makes PM discipline structural, not optional:
+- **Intake gate:** **no owner / timeline / effort / dependency = it is not real work.** Work that can't pass the gate doesn't enter the board as committed work.
+- **Definition-of-Done:** every task carries explicit acceptance criteria (the same DoD the Quality Gatekeeper checks against, wf36).
+- **Decision ledger:** decisions are recorded with lineage — they can't be made and forgotten.
+
+The novice operator *cannot* skip the discipline, because the system won't let undisciplined work through the gate.
+
+### 5.3 ESCALATE — only judgment goes to the human
+- **Procedural work is automated** (status sync, report generation, dependency math, routing).
+- **Only genuine judgment calls go to the human** (governor) — the strategic, relational, and tradeoff decisions.
+- The **Cage governs autonomous re-sequencing:** **safe re-plans are flagged and run autonomously; risky changes are human-gated.** Re-sequencing the order of two independent low-risk tasks is autonomous; moving a milestone that ripples to a COLG-facing date is human-gated. (Per `GOVERNANCE-EXECUTION-ADVISORY.md` — Darrell governs, the Foundation executes, Claude advises — and `feedback_autonomous_automation_three_brakes`.)
+
+### 5.4 Economic value
+A **church or SMB runs enterprise-grade PM without hiring a PM** — the identical economic move as Ring 2's "replaces the church's network engineer" (`...workforce-three-ring.md` §5, Ring 2). The PM expertise is in the system; the operator supplies attention and decisions. It ships as a **prebuilt SKOS "Project Manager" role module** — the same one-codebase-many-instances shape as the Legal Module's "law firm" template (`MODULAR-EXTENSIBILITY.md`).
+
+This is recorded as **DR-0029.**
+
+---
+
+## 5A. The PMO Method Engine — the early-question + multi-party engine
+
+§5 says a non-PM manages at PM quality. **This section is the engine that makes that true.** Where §2/§3 produce the *living overview* (the output) and §5 sets the *posture* (GUIDE / ENFORCE / ESCALATE), the Method Engine is the **encoded PM method itself** — the questions, templates, and structured-state machinery that run a real, multi-party, phased project end to end. It is the concrete realization of **Anchor I (Universal Work Management)** and **Anchor II (Clarification Is the Default)** at the project layer (`ARCHITECTURE-PRINCIPLES-COMPOSABLE-SPINE.md` §0). Recorded as **DR-0047** (the engine and §5A.1–§5A.10), **DR-0048** (the shared-surface capabilities §5A.11–§5A.13 + the recurring-pains through-line §5A.15, from the second exemplar), and **DR-0049** (the all-parties status dashboard with blocker attribution + cost-of-delay, §5A.14).
+
+The engine is specified against **two real exemplars used as PATTERN ILLUSTRATIONS ONLY** (never hosted project data; the §5A.9 binding boundary holds for both): a **multi-party, phased vendor transition** (sandbox → production) and a **system-rewrite engagement** (the "FSA System Rewrite" thread). Across both, the *same* PM pains recur — and §5A.11–§5A.15 are the engine killing them.
+
+### 5A.1 Early-question engine — front-load the right questions
+The engine **front-loads the clarifying questions a seasoned PM would ask** — at kickoff, then **per phase and per party** — so gaps surface *early*, not at the gate where they're expensive. This is Anchor II made operational: *nothing proceeds half-understood*, the questions are asked **for** the non-expert, and asking them repeatedly **grows** the operator's competence (the teaching engine, DR-0046).
+
+**Reusable phase-gate template (Darrell's four phase-alignment questions).** These four questions are the first reusable phase-gate, asked at every phase boundary, of every party:
+1. **What is completed this phase?** — the actual done-state, not the planned one.
+2. **What are the readiness criteria to advance?** — the explicit bar to cross into the next phase (Definition-of-Done for the *phase*, the same DoD discipline §5.2 enforces per task).
+3. **What is the production-ready definition — and the vendor-side vs customer-side split?** — what "production-ready" means here, and *who owns which half* of getting there.
+4. **What are the blockers?** — what is actually in the way, named, with an owner.
+
+The template is **reusable** — it instantiates per phase and per party, and new question sets register the same way (one config, written once; `MODULAR-EXTENSIBILITY.md`).
+
+### 5A.2 Party-type workflow templates — the right workflow per relationship
+Different relationship types have **different dynamics, cadence, hand-offs, and questions.** The engine ships a workflow + question set **per party type**, and the operator simply **picks the parties involved**; the module brings the right machinery for each:
+- **Units (internal teams)** — internal cadence, shared standards, lighter contractual hand-offs.
+- **Vendors (external)** — contractual hand-offs, acceptance gates, vendor-side vs customer-side responsibility splits, SLA / deliverable cadence.
+- **Infrastructure teams** — **prerequisites and dependencies first** — what must exist (and be ready) before dependent work can start; the dependency chain is the spine of their workflow.
+
+The operator declares *who is involved*; the engine assembles *the right workflow and question set for each* — no PM methodology required in the operator's head (the §6.4 / DR-0033 "meets you where you are" property).
+
+### 5A.3 Comms → structured state
+The engine **ingests communication threads** (email, Teams, and the like) and converts unstructured back-and-forth into **structured project state**: **decisions, action items, open questions, and who's-waiting-on-whom.** The thread stops being a place work *hides* and becomes a *source* the living overview (§2) renders from. (Routing of sensitive threads honors the isolation tiers, §3.8 / Architecture Principles §4 — a thread tagged PHI or privileged never enters an un-walled roll-up.)
+
+### 5A.4 RACI / responsibility split per item
+Every item carries an explicit **responsibility split** — **vendor-side vs customer-side**, by **unit**, by **infra team**. RACI is not a one-time chart; it is a **per-item** attribute the engine tracks, so "whose move is this?" always has a recorded answer (and feeds the cross-party visibility of §5A.7).
+
+### 5A.5 Artifact tracking
+Files and datasets that the work turns on — e.g. a **supplier CSV** in a vendor transition — are **ingested, validated, and status-tracked** as first-class project artifacts. An artifact has a state (received / validated / rejected / superseded), an owner, and a place in the dependency chain; a missing or invalid artifact is a tracked blocker (§5A.1 Q4), not a surprise discovered late.
+
+### 5A.6 Meeting cadence
+The engine **schedules, cancels, and sets agendas for meetings via the calendar module** (the `events` table — `event_date`, `recurrence_rule`, `lifecycle`; the same federation as §4). Cadence is a managed property of the project, and an agenda is generated from the open questions / blockers / waiting-on items the engine already holds — the meeting is *about* the structured state, not a place to reconstruct it.
+
+### 5A.7 Cross-party visibility — who's-waiting-on-whom
+The engine surfaces the **dependency chains, responsibility splits, and the shared phase view** across *all* parties — **who's-waiting-on-whom** made explicit. On the dashboard this is **audience-adaptive** (the §3.5 rendering): **each party sees their own slice; the PM sees the whole.** No party has to ask "where are we blocked?" — the engine shows it, scoped to what that party is allowed and needs to see (anxiety-clarity, Anchor II; isolation-respecting, §3.8).
+
+### 5A.8 Working-style fit — adapt to how the operator works
+The engine **adapts to how the user likes to work.** The **user's own method becomes a default template**; others can **tune theirs.** This is the **Want-To-Use Bar** (§6 / DR-0033) applied to method itself: the system does not impose one rigid process — it meets the operator in *their* working style and lets each party tune its own, which is what makes the operator *prefer* it (pull, not push).
+
+### 5A.9 Acceptance test — METHOD, not data
+The senior acceptance test for the Method Engine is a **method** test, deliberately not a data test:
+
+> **"Could the module run a multi-party, phased vendor transition (sandbox → production) end-to-end?"** — surfacing the right questions per phase and per party, holding the RACI split, tracking the artifacts, ingesting the comms into structured state, managing the cadence, and giving every party the right cross-party view.
+>
+> **And the second-exemplar test:** **"Could the module run a multi-party system-rewrite engagement without an item ever getting lost in chat, silently reverted, or mislabeled 'new' months later?"** — a shared view+edit surface for both entities (§5A.11), a timestamped item ledger with status history (§5A.12), direct acknowledgment + visible status (§5A.13), and an all-parties blocker / cost-of-delay dashboard (§5A.14).
+
+**Real threads are used ONLY as PATTERN ILLUSTRATIONS — never as hosted project data.** The engine is validated against the *shape* of real multi-party work (both the vendor transition and the system-rewrite exemplar), not by hosting any specific organization's project.
+
+> **BINDING BOUNDARY (method, not data).** PoeTech supports the **work PATTERN / method.** Running that method **on an employer's data** — e.g. University systems, FOIA-able public records, vendor PII — **requires that organization's governance sign-off.** PoeTech **owns the method; it does not host employer data.** This is the same boundary the isolation tiers enforce (Architecture Principles §4) and the same honesty the Cohort-Layer funding guardrail demands (DR-0038): the capability is real, the data ownership stays with whoever governs it. A demo or validation run uses illustrative / synthetic patterns; a *production* run on a real organization's records is a separately governed decision that organization must authorize.
+
+### 5A.10 Generalization — this IS the Project-Manager role module
+The Method Engine **generalizes to all project types** — the vendor transition is the worked example, not the limit; the same engine runs an internal build, a church operations rollout, a counseling-practice setup, or a property turnover (Anchor I, Universal Work Management). And it **IS the SKOS "Project Manager" role module**: it carries the PM expertise so a **non-PM runs projects well** *and* it **amplifies an expert** (the early-question engine catches what even an expert can let slip; §5A.1). Encoded once, instantiated per entity — the same one-codebase-many-instances shape as the rest of the role-module pattern (DR-0030).
+
+---
+
+> **Second exemplar (pattern illustration only).** §5A.11–§5A.15 are drawn from a second real engagement — the **system-rewrite ("FSA System Rewrite") thread** — used **strictly as a PATTERN illustration**, never as hosted project data. The §5A.9 binding boundary applies in full: PoeTech owns the *method* these capabilities encode; running it on the actual organization's records (employer systems, FOIA-able public records, vendor PII) requires that organization's governance sign-off. Each capability below maps to a pain a real client **explicitly named** — which is the strongest evidence the capability is needed, and exactly why it is recorded.
+
+### 5A.11 Shared cross-entity workspace — the module's reason to exist
+The client business team **and** the dev / vendor team both **VIEW and EDIT the same items**, on one shared surface. In the exemplar the client asked, in so many words, for *"a PM tool where both entities could view and edit items"* — because **Teams chat had failed them** (status scattered across messages, no shared source of truth). That request is not a nice-to-have; it is **the module's reason to exist, stated by the customer.** A shared cross-entity workspace — isolation-respecting (each party's edit rights and visibility scoped per §3.8 / Architecture Principles §4), but genuinely *shared* — replaces the chat-as-coordination anti-pattern with one surface every party operates on. This is §5A.7's cross-party visibility upgraded from *view* to *view + edit*.
+
+### 5A.12 Persistent, timestamped item / issue ledger — status history + audit trail
+Every identified item is **logged with WHEN it was raised and its full status history** — a persistent ledger, not a chat scrollback. So an item **cannot be lost, silently reverted, or later mislabeled "new."** The exemplar pain is exact: an item identified **Aug 2025** resurfaced as *"new"* in **May 2026** and caused a dispute. A timestamped ledger **ends that** — the record plainly reads *"identified Aug 2025, status: open,"* and the dispute is settled by data instead of memory. This federates **events-as-data** (`EXECUTION-OUTCOME-OBSERVABILITY.md`, `INSTITUTIONAL-MEMORY-EVENTS.md`) for the history and the **Cage's append-only ledger** (`infra/ai-orchestrator/`) for the immutable audit trail — the same governance-native lineage §3.7 already requires for decisions, applied to every item.
+
+### 5A.13 Direct acknowledgment + visible status per item
+Items can be **acknowledged directly**, and each item's **status is plainly visible to all parties.** This replaces chat-based coordination — where an item raised in a message thread is easily overlooked, never explicitly acknowledged, and quietly lost. An explicit "acknowledged by «party» at «timestamp»" plus an always-visible status means **nothing sits in an ambiguous "did they even see this?" state** — the acknowledgment is a recorded act (feeding §5A.12's history), and the status answers *what / where-is-this* by default (Anchor II).
+
+### 5A.14 Persistent all-parties status dashboard — blocker attribution + cost-of-delay
+Every party involved — **client, dev, vendor, internal units** — sees the **live project status** on one persistent dashboard (the §3.5 audience-adaptive rendering, made always-on). It must surface three things:
+
+1. **The needs** — what is required to advance (the explicit readiness criteria, §5A.1 Q2).
+2. **Who / what is holding it up — explicit constraint attribution.** The **bottleneck owner** plus the **who's-waiting-on-whom chain** (§5A.7), so it is unambiguous *what is blocking* and *who can unblock it* — **critical-path visibility**, not a vague "it's behind."
+3. **Financial impact / cost-of-delay.** Money attached to the schedule: the **cost of delay** (what each period of holdup undermines or costs) **and** the **value of acceleration** (what is gained or saved by finishing sooner). This makes prioritization and escalation **money-aware**, not merely "it's late" — the **cost-of-delay / CD3** concept (cost-of-delay-divided-by-duration), so the most expensive blocker, not just the loudest, gets escalated first.
+
+> **HONEST CAVEAT (v1 vs v2).** The dollar figures require **per-project financial inputs** — value / revenue / cost — sourced from the **data-farmed reports + business context**, and that sourcing is **consent-first, aggregate, TLC / PHI walled, never sold** (`DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`; the isolation firewall of §3.8 / Architecture Principles §4). Therefore: **v1 ships the STRUCTURE** — the needs, the blocker owner, and the who's-waiting chain (all derivable from data the engine already holds). **v2 wires the real cost-of-delay numbers** once the financial inputs are connected. This ties to **events-as-data** and the **data-farmed living-timelines** principle (DR-0004 — estimates anchored to telemetry, re-baselined as the data updates): the schedule is already living; v2 attaches money to it. Recorded as **DR-0049.**
+
+### 5A.15 The through-line — the recurring PM pains, systematically killed
+Across **both** exemplars (the vendor transition *and* the system rewrite), the **same PM pains recur** — and the module is built to **kill all of them, systematically**, not patch them one engagement at a time:
+
+| Recurring pain | The engine's answer |
+|---|---|
+| **Status lost in chat** | §5A.3 comms→structured-state; §5A.14 persistent all-parties dashboard |
+| **No shared cross-party surface** | §5A.11 shared cross-entity workspace (view + edit) |
+| **Items lost / silently reverted / mislabeled "new" over time** | §5A.12 timestamped item ledger with status history + audit trail; §5A.13 direct acknowledgment |
+| **Phase ambiguity ("are we done? what's next?")** | §5A.1 early-question engine + the four-question phase-gate; §5A.7 shared phase view |
+| **"What's blocking us and who can fix it?"** | §5A.14 blocker attribution + who's-waiting chain (critical-path visibility) |
+| **"It's late" with no weight behind it** | §5A.14 cost-of-delay / value-of-acceleration (v2) |
+
+This is **"Clarification Is the Default" (Anchor II) + cross-party visibility in action**: the pains all share a root — *the right information not being plainly present to the right party at the right time* — and the engine's answer is, uniformly, to make that information **persistent, shared, attributed, and timestamped by default.** Recorded as **DR-0048.**
+
+---
+
+## 6. Success Metric — The Want-To-Use Bar
+
+> Darrell, 2026-06-09: *"Whenever I do any role, I want to want to use PoeTech — that's how good I want this at supporting the user."*
+
+The senior acceptance test for this module — and for every role module (see the template doc, `2026-06-09-industry-role-module-template-spec.md` §3, DR-0033) — is **voluntary use:** the PM (or non-PM operator) must **prefer** reaching for the PMO module over their current way of running projects — **pull, not push.** The module is judged good when the operator *wants* to use it, not when its feature list is complete.
+
+How the PMO module is built to clear the bar, against the five binding properties:
+
+1. **Makes the operator BETTER at PM** — the GUIDE prompts (§5.1) surface the decisions a seasoned PM would catch, so the operator runs a *better* portfolio, not merely a documented one.
+2. **Does the toil** — status sync, dependency math, report assembly, action-item routing, and the living overview are all generated (§3, §4); the operator's overhead goes **down**, not up.
+3. **Near-zero friction** — the overview is **auto-generated from signals the project already emits** (§3 capability 2), so there is no separate data-entry chore; and access stays frictionless (same-origin, no login wall to clear — the n8n login-wall friction is the cautionary counter-example, `project_n8n_same_origin_rewrite`). Setup / access UX is part of the bar.
+4. **Meets the operator where they are** — anxiety-clarity what / when / why / how (§5.1); **no PM methodology is required in the operator's head** — the module carries the discipline.
+5. **Earns trust** — the Quality Gatekeeper (wf36) and the Cage's append-only ledger (§3 capability 7) make the output reliable enough to depend on without re-checking.
+
+The module also **gets more preferred over time** as it learns from feedback — the Continuous-Improvement Flywheel that every module inherits (template doc §4, DR-0034): user corrections and where-they-got-stuck flow back through events-as-data and sharpen the GUIDE prompts and templates. A PMO module that confused one operator stops confusing the next.
+
+This bar is a **merge gate** for the PMO module alongside the Tier-C / three-brakes discipline (§8 guardrails): feature-complete but not *preferred* = not done. It is the same Want-To-Use Bar made binding for all modules in DR-0033.
+
+---
+
+## 7. Where this sits in the pattern
+
+This PMO module is **instance #1** of the Industry/Role Module pattern abstracted in the companion doc (`2026-06-09-industry-role-module-template-spec.md`). Reading the pattern's five-part template against this module:
+
+1. **Encode the discipline** → PM expertise → a non-PM operates at PM quality (§5: GUIDE / ENFORCE / ESCALATE).
+2. **Federate existing systems** → Monday / GitHub / n8n / calendar (§4).
+3. **Plug into the shared OS spine** → identity, Cage, events-as-data, DR ledger, QA Gatekeeper, Workforce Layer, anxiety-clarity (§4 + §5).
+4. **Feed the pipeline** → the PMO module is itself a **tenant** (every entity that runs projects), a **market segment** (churches + SMBs that can't afford a PM), a **workforce category** (project-coordination tasks routed to the 1099 layer), and a **data source** (the events-as-data throughput history).
+5. **Onboard by configuration** → a new entity's portfolio stands up by config (entities, isolation tiers, board connections), not custom build.
+
+---
+
+## 8. Guardrails on this document
+
+- **This is a PLAN / spec.** No code, no purchases, no money movement, no autonomous execution flow from it.
+- **Federation, not reinvention, is a hard requirement.** No net-new board / issue / scheduling / payments system gets built — the module wires to the existing systems and adds only the LLM synthesis layer. Building a parallel board engine would violate `MODULAR-EXTENSIBILITY.md` and the "build on what exists" thesis.
+- **The autonomous pieces are Tier C.** Any timer-driven or self-triggering automation (auto-regenerate, auto-route action items, autonomous re-sequencing) ships **inactive → watched → never unattended**, with all **three brakes** — budget, concurrency lock, kill-switch — per `feedback_autonomous_automation_three_brakes` and `RELEASE-TIERS.md`. The Cage's human-gate on risky re-sequences (§5.3) is part of this.
+- **TLC PHI stays walled.** The cross-entity roll-up (§3.8) never crosses the ISO-1 firewall; TLC clinical data is aggregated only as walled, tier-respecting summaries.
+- **The Test (`MIND-OF-CHRIST.md`) was run against this output** before delivery: true (no fabrication — these are recorded agreed decisions), honorable, just, and aligned with the serve-not-extract mission.

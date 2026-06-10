@@ -4,7 +4,7 @@ title: COLG $9k church build — RATIFIED FINAL (open-source Frigate + 48GB dual
 date: 2026-06-09
 status: superseded
 supersedes: [DR-0015]
-superseded-by: DR-0017
+superseded-by: DR-0050
 tier: C
 entities: [church]
 grounds: [SOVEREIGN-FIRST, COST-DISCIPLINE, COMMUNITY-FIRST, CAGE, DATA-AS-EMPOWERMENT, EARN-AUTONOMY, SURFACE-PREMISE]

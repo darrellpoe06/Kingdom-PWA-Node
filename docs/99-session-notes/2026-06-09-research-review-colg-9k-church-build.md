@@ -3,7 +3,7 @@
 **Date:** 2026-06-09
 **Author:** Claude (research-review on Darrell's commission, per `feedback-research-first`)
 **Triggered by:** Darrell — a **$9,000** church build covering BOTH whole-building surveillance (PoE, 4K, AI) AND a CUDA node for 24/7 congregation support + real-time scene analysis. Church of the Living God, ~44,000 sqft, 312 E. Bradley Ave, Champaign IL.
-**Status:** **FINAL — choices RATIFIED with Darrell 2026-06-09 ([DR-0017], which supersedes [DR-0016] → [DR-0015]).** Rev. adds church-provided storage (existing ~50 TB Synology NAS + ~6–8 loose HDDs) and supplementary Wyze floodlight cameras. **PLAN ONLY — specs what to buy and what it unlocks; no purchase is executed. Darrell/PoeTech procures + self-assembles.** June-2026 pricing, cited; re-verify at order time.
+**Status:** **FINAL — choices RATIFIED with Darrell 2026-06-09 ([DR-0050], which supersedes [DR-0016] → [DR-0015]).** Rev. adds church-provided storage (existing ~50 TB Synology NAS + ~6–8 loose HDDs) and supplementary Wyze floodlight cameras. **PLAN ONLY — specs what to buy and what it unlocks; no purchase is executed. Darrell/PoeTech procures + self-assembles.** June-2026 pricing, cited; re-verify at order time.
 **Pairs with:** [DR-0016] (finalization), [DR-0015] (superseded), [DR-0014] (COLG node), [DR-0012] (GPU topology), [DR-0001]/[DR-0003] (Cage + ISO tiers); the PoeTech labor invoice `docs/invoices/2026-06-09-poetech-colg-cabling-labor-invoice.md`; `infra/ai-orchestrator/` (the Cage); `COMMUNITY-FIRST-MISSION`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION`.
 
 ---

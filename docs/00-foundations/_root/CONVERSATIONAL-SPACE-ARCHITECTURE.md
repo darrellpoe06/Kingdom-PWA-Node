@@ -131,7 +131,7 @@ This is the heart. Filter the doctrines of demons WITHOUT silencing the honest s
 
 ## 10. Cross-references
 
-`COUNCIL-CHAMBER.md`, `INTAKE-AND-FIT.md`, `MODE-ROUTING.md`, `MIND-OF-CHRIST.md`, `ACCESS-TO-THE-HUMAN-MIND.md`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`, `PERPETUAL-PIPELINE-HEALTH.md`, `GOVERNANCE-EXECUTION-ADVISORY.md`, `CONNECTED-CONTEXT.md`, `BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md`, `MARKETPLACE-ARCHITECTURE.md`. Research: `docs/99-session-notes/2026-06-03-research-review-marketplace-conversational-space-youtube-1jByzKI.md`. Memory: `project_non_denominational_word_first_body_undivided`, `project_pin_optional_community_default`, `project_community_free_funded_by_aligned_brand_sponsorship`, `feedback-distinguish-data-from-brand`.
+`COUNCIL-CHAMBER.md`, `INTAKE-AND-FIT.md`, `MODE-ROUTING.md`, `MIND-OF-CHRIST.md`, `ACCESS-TO-THE-HUMAN-MIND.md`, `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`, `PERPETUAL-PIPELINE-HEALTH.md`, `GOVERNANCE-EXECUTION-ADVISORY.md`, `CONNECTED-CONTEXT.md`, `BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md`, `MARKETPLACE-ARCHITECTURE.md`, `ARCHITECTURE-PRINCIPLES-COMPOSABLE-SPINE.md` §7 (Interface-as-Collaborative-Partner, DR-0044 — this doc governs the *public many-to-many* room; §7 governs the *private 1:1 app interface*). Research: `docs/99-session-notes/2026-06-03-research-review-marketplace-conversational-space-youtube-1jByzKI.md`. Memory: `project_non_denominational_word_first_body_undivided`, `project_pin_optional_community_default`, `project_community_free_funded_by_aligned_brand_sponsorship`, `feedback-distinguish-data-from-brand`.
 
 ---
 
