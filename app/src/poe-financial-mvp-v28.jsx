@@ -2038,6 +2038,21 @@ export default function PoeFinancialSystem() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession]);
 
+  // 2026-06-11 (P14 pattern, third instance of the same gate disease): the
+  // boot-time profile read returns null on public hosts (correct for
+  // anonymous visitors), which made the picker re-appear on every reload for
+  // the SIGNED-IN family and kept currentProfile-gated surfaces (Imported)
+  // hidden. Once the owner's hydration completes, load this device's saved
+  // profile. Demo states keep their forced profile.
+  useEffect(() => {
+    if (!authSession || !authHydrated || currentProfile || isAnyDemoMode) return;
+    try {
+      const saved = localStorage.getItem('poe-current-profile');
+      if (saved) setCurrentProfile(saved);
+    } catch (e) { /* localStorage unavailable — picker stays */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession, authHydrated]);
+
   useEffect(() => {
     if (!loaded) return;
     if (isAnyDemoMode) return; // Demo + picker mode never write to localStorage.
