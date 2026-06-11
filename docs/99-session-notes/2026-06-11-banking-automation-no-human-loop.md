@@ -55,6 +55,34 @@ regulated-processor — full disclosure, default off, per DATA-AS-EMPOWERMENT
 (it prohibits SELLING/mining user data; it does not prohibit a user freely
 choosing a regulated aggregator on their own infrastructure).
 
+## "Why isn't / can't it be sovereign?" (Darrell, follow-up — answered)
+
+**Path A IS fully sovereign.** Bank → your Gmail → your NAS → your app:
+nobody else in the loop, no aggregator, no PoeTech servers. PoeTech-the-
+company never sees a digit (unlike Mint/Rocket Money-class apps that pipe
+everything through their cloud — that difference IS the moat).
+
+**Why the bank can't talk to the NAS directly:** the vault is theirs, and
+so are the doors. Three doors exist: (1) their website — built for humans;
+automating it is scraping (rejected); (2) their outbound delivery (email
+statements/alerts) — OUR door; sovereign because the destination is yours;
+(3) their data API — institutionally gated: banks only federate it through
+accredited aggregators with data-access agreements + audits + liability.
+A family NAS cannot sign a data-access agreement with Chase — that gate is
+institutional, not technical. Section 1033 open banking pushes toward
+consumer-directed access that might someday include self-hosted recipients,
+but the rule's fate is in flux (under challenge as of early 2026) — no
+promises built on it. The sovereignty equation: the only variable between
+paths is what sits between the bank's send button and your NAS. Email =
+just your mailbox. Plaid = a regulated processor. A nothing-in-between
+fourth path does not exist yet.
+
+**Maximal-sovereignty upgrade (future option):** Synology MailPlus Server =
+your own mailbox on your own NAS at your own domain; point bank statement
+delivery there and the chain is bank → your NAS → your app with not even
+Google in the loop. Real, buildable, adds mail-server upkeep — offer when
+the family wants the last hop closed.
+
 ## Still gated (same as before)
 The Imported display surface stays blocked on the public host even signed
 in (`importedAllowed`) — the careful P14-style unlock for authenticated
