@@ -116,12 +116,13 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
           </div>
         </>
       )}
-      {/* The promise — accurate to the architecture. Hero photos live on this
-          device today; the durable sovereign home is the family's own NAS
-          (auto-backup is the next photo project). Nothing here is ever sent to
-          a PoeTech ad/training pipeline — there isn't one. */}
+      {/* The promise — true for EVERY user, NAS or not. The never-sold pledge
+          is absolute (there is no ad/training/sale pipeline). Durability is
+          stated honestly: device-only today; sovereign backup (own NAS, or a
+          private PoeTech space the user owns + exports) is the next project.
+          Do NOT re-add "your NAS" as if everyone has one. */}
       <p className="text-[10px] text-[#5A5751] mt-3 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
-        🔒 Your photos are yours. They live on your devices and your own NAS — never an ad network, never sold, never used to train a model. Export any of them above, anytime.
+        🔒 Never sold, never mined, never used to train a model — there is no such pipeline here. Today these photos live on this device; backing them up to a space you own — your own NAS, or a private PoeTech space you can export any time — is coming next, so a lost phone never loses them. Save any photo above right now.
       </p>
     </section>
   );
