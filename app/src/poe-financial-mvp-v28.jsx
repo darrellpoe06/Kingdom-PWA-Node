@@ -33,6 +33,7 @@ import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { LifeGallery } from './components/LifeGallery.jsx';
 import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
+import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
@@ -1408,7 +1409,7 @@ function getInitialView() {
     if (typeof window === 'undefined') return 'overview';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','admin'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -2679,6 +2680,18 @@ export default function PoeFinancialSystem() {
   // One Voice (Church tab) — serve notes + ideas/testimony land here,
   // persisted with the rest of the data record.
   const addChurchVoice = (entry) => setData(d => ({ ...d, churchVoice: [...(d.churchVoice || []), entry] }));
+  // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
+  // build inbox. Persisted with the rest of the data record (device-local;
+  // never synced to a shared surface — notes are siloed by design).
+  const addNote = (text) => setData(d => ({ ...d, notes: [...(d.notes || []), { id: `nt-${Date.now()}`, text, createdAt: new Date().toISOString(), pinned: false, sentToPoeTech: false }] }));
+  const updateNote = (id, text) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, text, updatedAt: new Date().toISOString() } : n) }));
+  const deleteNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).filter(n => n.id !== id) }));
+  const togglePinNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, pinned: !n.pinned } : n) }));
+  const sendNoteToPoeTech = (text, noteId) => setData(d => ({
+    ...d,
+    appDirectives: [...(d.appDirectives || []), { id: `ad-${Date.now()}`, text, at: new Date().toISOString(), status: 'received' }],
+    notes: noteId ? (d.notes || []).map(n => n.id === noteId ? { ...n, sentToPoeTech: true } : n) : (d.notes || []),
+  }));
 
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
@@ -3510,6 +3523,7 @@ html{scroll-padding-bottom:280px}
                 ['opportunities','Dev/Ops'],
                 ['about','About'],
                 ['__sep__', null],
+                ['notes','🕊 Notes'],
                 ['church','Church'],
                 ['markets','Markets'],
               ].map(([id, label]) => {
@@ -3602,6 +3616,7 @@ html{scroll-padding-bottom:280px}
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
         {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} />}
+        {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
