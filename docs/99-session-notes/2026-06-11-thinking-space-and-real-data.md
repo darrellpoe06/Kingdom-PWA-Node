@@ -109,3 +109,15 @@ Loosening `importedAllowed` for `(authSession && authHydrated)` on public
 host = the concrete next step for #1, mirroring the P14 fix but with extra
 care because it surfaces real PII. Make the manual-import path obvious and
 warm rather than chasing a non-sovereign live-sync.
+
+**SHIPPED same night (Darrell asked for the historical events directly):**
+the deliberate P14-pattern pass cleared all four copies of the public-host
+gate — `importedAllowed`, the wf18 fetch effect, Imported.jsx's independent
+self-guard (now keyed on the device's own Supabase session), and the
+boot-time profile read (the picker stopped re-appearing for the signed-in
+owner). Verified live on the PR #24 preview: Books → Imported rendering
+2,020 bank transactions (two years of Chase history across four accounts)
+through the /n8n rewrite with the device bearer. Anonymous visitors still
+fail closed at every layer. Banking lane same night: Christina's Gmail
+credential (the inbox the banks actually feed) + wf21b active with the
+three brakes.
