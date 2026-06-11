@@ -31,6 +31,7 @@ import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { LifeGallery } from './components/LifeGallery.jsx';
+import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { Queue } from './components/Queue.jsx';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
@@ -2607,6 +2608,9 @@ export default function PoeFinancialSystem() {
   const addLifePhotos = (photos) => setData(d => ({ ...d, lifePhotos: [...(d.lifePhotos || []), ...photos] }));
   const updateLifePhoto = (id, updates) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
   const deleteLifePhoto = (id) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).filter(p => p.id !== id) }));
+  // Conference (COLG 77th National Assembly) — local-first like the rest of
+  // the Church tab; merges onto the seed so partial saves never lose fields.
+  const updateConference = (updates) => setData(d => ({ ...d, conference: { ...(d.conference || {}), ...updates } }));
 
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
@@ -3529,7 +3533,7 @@ html{scroll-padding-bottom:280px}
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} />}
+        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
@@ -5635,7 +5639,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
 // WCAG 2.1 AA: <label>'d inputs, focus rings, descriptive aria-labels,
 // status meaning conveyed in text as well as color.
 // =============================================================================
-function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent }) {
+function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference }) {
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -5864,6 +5868,11 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
           <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>.
         </p>
       )}
+
+      {/* CONFERENCE — 77th National Assembly (2026-06-11). At the top while the
+          Assembly is in season; Bishop Gwin edits details, builds the schedule,
+          and his feedback box feeds the build list directly. */}
+      <ConferenceModule conference={conference} updateConference={updateConference} />
 
       {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
           a post-vacation build; this is the entry point + placeholder. */}
