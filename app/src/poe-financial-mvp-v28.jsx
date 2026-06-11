@@ -1302,6 +1302,28 @@ const DEMO_DATA_BY_PERSONA = {
   'professional':DEMO_DATA_PROFESSIONAL,
   'landlord':    DEMO_DATA_LANDLORD,
 };
+
+// 2026-06-11 — every record id that exists ONLY in the demo datasets (ids the
+// demo shares with SEED_DATA are excluded so real seeded records are never
+// touched). Used to (a) never upload demo rows into a signed-in family's
+// cloud instance, and (b) filter any demo rows that historically slipped in
+// back OUT of cloud-loaded lists. This is the "fake Reeves family mixed with
+// ours" guard.
+const DEMO_ONLY_IDS = (() => {
+  const collect = (node, ids) => {
+    if (Array.isArray(node)) { node.forEach((n) => collect(n, ids)); return ids; }
+    if (node && typeof node === 'object') {
+      if (typeof node.id === 'string') ids.add(node.id);
+      Object.values(node).forEach((v) => collect(v, ids));
+    }
+    return ids;
+  };
+  const demoIds = collect(DEMO_DATA_BY_PERSONA, new Set());
+  const seedIds = collect(SEED_DATA, new Set());
+  seedIds.forEach((id) => demoIds.delete(id));
+  return demoIds;
+})();
+const notDemoRow = (x) => !(x && typeof x.id === 'string' && DEMO_ONLY_IDS.has(x.id));
 // Persona-specific welcome copy. Each entry describes the audience and the
 // stewardship lens. The 'vision' line is honest about what's working today
 // vs what's still being built (per Darrell 2026-05-28).
@@ -1492,7 +1514,7 @@ export default function PoeFinancialSystem() {
   // fragments, balances, and addresses.
   const isFirstTimeLandingBoot = (() => {
     try {
-      if (!!demoPersona) return false;
+      if (demoPersona) return false;
       const sp = new URLSearchParams(window.location.search);
       if (sp.toString() !== '') return false;
       if (localStorage.getItem('poe-landing-seen')) return false;
@@ -1550,6 +1572,9 @@ export default function PoeFinancialSystem() {
   // them to localStorage too, duplicating data.
   const [remoteFeedback, setRemoteFeedback] = useState([]);
   const [authSession, setAuthSession] = useState(null);
+  // 2026-06-11 — true once the signed-in public-host hydration finished;
+  // gates persistence so demo data can never overwrite the owner's snapshot.
+  const [authHydrated, setAuthHydrated] = useState(false);
   const [showVerifyBalances, setShowVerifyBalances] = useState(false);
 
   // Multi-user Layer A (2026-05-28) — `currentProfile` gates which entities
@@ -1695,7 +1720,11 @@ export default function PoeFinancialSystem() {
     } catch (_) { /* localStorage blocked or unavailable */ }
     const screenContext = {
       path: (typeof window !== 'undefined' && window.location) ? window.location.pathname + window.location.search : '/',
-      tab: (typeof activeTab === 'string') ? activeTab : (typeof tab === 'string' ? tab : null),
+      // 2026-06-11 fix: this previously referenced activeTab/tab, neither of
+      // which exists — every feedback row landed with tab:null. `view` is the
+      // real current-tab state. account makes "whose feedback" unambiguous.
+      tab: (typeof view === 'string') ? view : null,
+      account: (authSession && authSession.user && authSession.user.email) ? authSession.user.email : null,
       persona: (typeof demoPersona === 'string') ? demoPersona : null,
       is_demo: typeof isDemoMode === 'boolean' ? isDemoMode : null
     };
@@ -1881,24 +1910,36 @@ export default function PoeFinancialSystem() {
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
+  // 2026-06-11 — the public-host gate is about ANONYMOUS visitors (the
+  // 2026-06-03 leak was real ops data rendering to whoever opened poetech.us).
+  // A SIGNED-IN owner is a different trust boundary: their own saved data on
+  // their own device belongs to them. hydratedForAuthRef ensures the
+  // signed-in hydration runs once per session.
+  const hydratedForAuthRef = useRef(false);
   useEffect(() => {
     if (isAnyDemoMode) { setLoaded(true); return; } // Demo + picker skip storage load entirely.
-    // 2026-06-03 SECURITY: PUBLIC DOMAIN MUST NOT HYDRATE FROM LOCAL STORAGE.
-    // The previous gate stopped the wf18 webhook fetch but localStorage could
-    // still hydrate the entire app with the family's REAL ops data on a non-
-    // incognito tab opened on poetech.us from the family's own device — the
-    // Big Picture dashboard then surfaced real entity names, property
-    // addresses, project titles ("1508 Holly Hill," "Christiana college
-    // transition") to whatever tab was open. On any public host (poetech.us,
-    // *.vercel.app), force the seed sample data + skip localStorage hydration
-    // entirely. Real ops data is accessible only via Tailscale-internal
-    // hostnames (where the gate stays open).
+    // 2026-06-03 SECURITY: PUBLIC DOMAIN MUST NOT HYDRATE FROM LOCAL STORAGE
+    // FOR ANONYMOUS VISITORS. The previous gate stopped the wf18 webhook fetch
+    // but localStorage could still hydrate the entire app with the family's
+    // REAL ops data on a non-incognito tab opened on poetech.us from the
+    // family's own device — the Big Picture dashboard then surfaced real
+    // entity names, property addresses, project titles to whatever tab was
+    // open. On any public host (poetech.us, *.vercel.app), anonymous visitors
+    // get the demo sample + no hydration. (Signed-in hydration is handled by
+    // the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
     if (isPublicHost()) {
       setData(DEMO_DATA_FAMILY_OF_4);
       setLoaded(true);
       return;
     }
-    (async () => {
+    (async () => { await loadSavedSnapshot(); setLoaded(true); })();
+  }, []);
+
+  // Loads this device's saved snapshot into state (defensive merge). Shared
+  // by the mount-time load (private hosts) and the signed-in load on public
+  // hosts: an authenticated owner gets their own data anywhere. Returns
+  // true when a snapshot existed.
+  const loadSavedSnapshot = async () => {
       try {
         let saved = await window.storage.get('poe-financial-v28');
         if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v27');
@@ -1968,17 +2009,36 @@ export default function PoeFinancialSystem() {
             setTheme(themeMigration[parsed.theme] || parsed.theme);
           }
         }
-      } catch (e) {}
-      setLoaded(true);
-    })();
-  }, []);
+        return !!(saved && saved.value);
+      } catch (e) { return false; }
+  };
+
+  // 2026-06-11 — signed-in hydration on public hosts ("fake data mixed with
+  // ours" / "can't tell I'm logged in" fix): once authenticated on
+  // poetech.us, this device's saved data loads for its owner; a fresh device
+  // starts from the aspirational SEED instead of the Reeves demo. Anonymous
+  // visitors still never hydrate (the 2026-06-03 leak gate stands).
+  useEffect(() => {
+    if (!authSession || hydratedForAuthRef.current) return;
+    if (!isPublicHost() || isAnyDemoMode) return;
+    hydratedForAuthRef.current = true;
+    loadSavedSnapshot().then((found) => {
+      if (!found) setData(SEED_DATA);
+      setAuthHydrated(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession]);
 
   useEffect(() => {
     if (!loaded) return;
     if (isAnyDemoMode) return; // Demo + picker mode never write to localStorage.
-    if (isPublicHost()) return; // SECURITY: public domain never persists data.
+    // SECURITY (2026-06-03): the public domain never persists for ANONYMOUS
+    // visitors. 2026-06-11: a signed-in owner persists on their own device —
+    // but only AFTER their hydration completes, so a demo snapshot can never
+    // overwrite their real saved data in the sign-in race window.
+    if (isPublicHost() && !(authSession && authHydrated)) return;
     (async () => { try { await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme })); } catch (e) { console.error('Storage failed', e); } })();
-  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode]);
+  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode, authSession, authHydrated]);
 
   // Layer 2 — auth + feedback sync wiring.
   // On every auth state change: tear down any prior subscriptions, then
@@ -2065,30 +2125,34 @@ export default function PoeFinancialSystem() {
 
     async function start() {
       const latest = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__) || data;
+      // 2026-06-11 — notDemoRow on every local list (demo rows must NEVER
+      // upload into the family's cloud instance, e.g. signing in on a public
+      // host while demo data is on screen) and on every cloud-loaded list
+      // (any demo rows that historically slipped in stay invisible).
       const tables = [
-        { sync: accountsSync,     key: 'accounts',     localList: latest.accounts || [] },
-        { sync: debtsSync,        key: 'debts',        localList: latest.debts || [] },
-        { sync: transactionsSync, key: 'transactions', localList: latest.transactions || [] },
-        { sync: projectsSync,     key: 'projects',     localList: latest.projects || [] },
-        { sync: inquiriesSync,    key: 'inquiries',    localList: latest.inquiries || [] },
+        { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow) },
+        { sync: debtsSync,        key: 'debts',        localList: (latest.debts || []).filter(notDemoRow) },
+        { sync: transactionsSync, key: 'transactions', localList: (latest.transactions || []).filter(notDemoRow) },
+        { sync: projectsSync,     key: 'projects',     localList: (latest.projects || []).filter(notDemoRow) },
+        { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow) },
         // v2.13 — the QC record (work orders + dispatch + lifecycle trail)
         // and the shared 1099 worker roster pool to the family instance.
-        { sync: incidentsSync,    key: 'incidents',       localList: latest.incidents || [] },
-        { sync: contractorsSync,  key: 'contractors1099', localList: latest.contractors1099 || [] },
+        { sync: incidentsSync,    key: 'incidents',       localList: (latest.incidents || []).filter(notDemoRow) },
+        { sync: contractorsSync,  key: 'contractors1099', localList: (latest.contractors1099 || []).filter(notDemoRow) },
       ];
       for (const t of tables) {
         if (cancelled) return;
         try {
           const result = await t.sync.initialSync(t.localList);
           if (!cancelled && result && result.merged) {
-            setData(d => ({ ...d, [t.key]: result.merged }));
+            setData(d => ({ ...d, [t.key]: result.merged.filter(notDemoRow) }));
           }
         } catch (e) {
           console.warn(`[${t.sync.remoteTable}-sync] initial sync failed`, e);
         }
         if (cancelled) return;
         const unsubscribe = t.sync.subscribe((items) => {
-          setData(d => ({ ...d, [t.key]: items }));
+          setData(d => ({ ...d, [t.key]: items.filter(notDemoRow) }));
         });
         cleanups.push(unsubscribe);
       }
@@ -2100,16 +2164,16 @@ export default function PoeFinancialSystem() {
       // tables above. See rentals-sync.js for the merge rules.
       if (cancelled) return;
       try {
-        const result = await rentalsSync.initialSync(latest.inflows?.rentals || []);
+        const result = await rentalsSync.initialSync((latest.inflows?.rentals || []).filter(notDemoRow));
         if (!cancelled && result && result.merged) {
-          setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals(d.inflows?.rentals || [], result.merged) } }));
+          setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals((d.inflows?.rentals || []).filter(notDemoRow), result.merged.filter(notDemoRow)) } }));
         }
       } catch (e) {
         console.warn('[rentals-sync] initial sync failed', e);
       }
       if (cancelled) return;
       cleanups.push(rentalsSync.subscribe((items) => {
-        setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals(d.inflows?.rentals || [], items) } }));
+        setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals((d.inflows?.rentals || []).filter(notDemoRow), items.filter(notDemoRow)) } }));
       }));
     }
     start();
