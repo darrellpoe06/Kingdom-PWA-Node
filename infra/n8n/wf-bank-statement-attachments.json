@@ -1,0 +1,69 @@
+{
+  "id": "wfBankStmtFetch01",
+  "name": "21 · Bank statement attachments (Gmail → /data/bank-imports → wf15)",
+  "nodes": [
+    {
+      "id": "bsSchedule1",
+      "name": "Every 6 hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 6 }] }
+      }
+    },
+    {
+      "id": "bsGmail1",
+      "name": "Find statement emails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [220, 0],
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 10,
+        "simple": false,
+        "filters": {
+          "q": "has:attachment (filename:ofx OR filename:qfx OR filename:qbo OR filename:csv) newer_than:7d (statement OR transactions OR account)"
+        },
+        "options": { "downloadAttachments": true }
+      },
+      "credentials": {
+        "gmailOAuth2": { "id": "4SeqI6mr7lLR73T6", "name": "Gmail account" }
+      }
+    },
+    {
+      "id": "bsSplit1",
+      "name": "One item per attachment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0],
+      "parameters": {
+        "jsCode": "// Budget brake: at most 10 msgs/run (Gmail limit above) and 4 attachments\n// per message. Filenames carry the Gmail message id so re-runs OVERWRITE\n// the same file — idempotent, never duplicates into wf15.\nconst out = [];\nfor (const item of items) {\n  const bins = item.binary || {};\n  let n = 0;\n  for (const key of Object.keys(bins)) {\n    if (n >= 4) break;\n    const b = bins[key];\n    const orig = (b.fileName || 'statement.dat').replace(/[^A-Za-z0-9._-]/g, '_');\n    if (!/\\.(ofx|qfx|qbo|csv)$/i.test(orig)) continue;\n    const msgId = (item.json.id || 'msg').slice(0, 16);\n    out.push({ json: { fileName: `gmail-${msgId}-${orig}` }, binary: { data: b } });\n    n++;\n  }\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "bsWrite1",
+      "name": "Write to bank-imports",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [660, 0],
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/data/bank-imports/{{ $json.fileName }}",
+        "dataPropertyName": "data"
+      }
+    }
+  ],
+  "connections": {
+    "Every 6 hours": { "main": [[{ "node": "Find statement emails", "type": "main", "index": 0 }]] },
+    "Find statement emails": { "main": [[{ "node": "One item per attachment", "type": "main", "index": 0 }]] },
+    "One item per attachment": { "main": [[{ "node": "Write to bank-imports", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120,
+    "timezone": "America/Chicago"
+  }
+}
