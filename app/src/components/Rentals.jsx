@@ -7,6 +7,7 @@ import { RentCastPrefill } from './connectors/RentCast.jsx';
 import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
+import { compressImageFile } from '../lib/image.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -242,6 +243,41 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
     const rooms = (rental.rooms || []).map(rm => rm.id === rmId
       ? { ...rm, items: (rm.items || []).filter(it => it.id !== itId) }
       : rm);
+    updateRental(rental.id, { rooms });
+  };
+  // Room photos + room note — PROPERTY memory, not tenant memory. These ride
+  // on the room record and PERSIST across tenancies (turnover never clears
+  // them), so the transformation of a room over years stays visible and the
+  // factual history of "what this room/bathroom is" is always remembered.
+  const addRoomPhotos = async (rmId, fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const shots = [];
+    for (const file of Array.from(fileList)) {
+      try { shots.push({ id: `ph-${Date.now()}-${shots.length}`, src: await compressImageFile(file), date: today, caption: '' }); }
+      catch (e) { console.warn('Room photo compress failed', e); }
+    }
+    if (!shots.length) return;
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, photos: [...(rm.photos || []), ...shots] }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const setRoomPhotoCaption = (rmId, phId, caption) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, photos: (rm.photos || []).map(p => p.id === phId ? { ...p, caption } : p) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const deleteRoomPhoto = (rmId, phId) => {
+    if (!confirm('Delete this photo from the room history?')) return;
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, photos: (rm.photos || []).filter(p => p.id !== phId) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const setRoomNote = (rmId, note) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId ? { ...rm, note } : rm);
     updateRental(rental.id, { rooms });
   };
 
@@ -539,6 +575,40 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
                     </div>
                   </div>
                 )}
+                {/* Room note — persistent property memory about this room/bathroom. */}
+                <textarea
+                  className="w-full p-2 border border-[#E8E4DC] text-xs bg-white mb-2"
+                  rows="2"
+                  placeholder={`Notes about ${rm.name} (remembered for every tenant — finishes, quirks, what's where)`}
+                  defaultValue={rm.note || ''}
+                  onBlur={e => { if ((e.target.value || '') !== (rm.note || '')) setRoomNote(rm.id, e.target.value); }}
+                />
+                {/* Room photo gallery — the transformation timeline, oldest first. */}
+                <div className="mb-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">📷 {rm.name} photos · {(rm.photos || []).length}</span>
+                    <label className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] cursor-pointer">
+                      + Add photos
+                      <input type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={e => { addRoomPhotos(rm.id, e.target.files); e.target.value = ''; }} />
+                    </label>
+                  </div>
+                  {(rm.photos || []).length === 0 ? (
+                    <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No photos yet. Add before/after shots to see this room change over the years.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {[...(rm.photos || [])].sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(p => (
+                        <div key={p.id} className="w-24">
+                          <a href={p.src} target="_blank" rel="noopener noreferrer" title="Open full size">
+                            <img src={p.src} alt={p.caption || `${rm.name} photo`} className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815]" />
+                          </a>
+                          <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</div>
+                          <input className="w-full text-[10px] p-1 border border-[#E8E4DC] bg-white mt-0.5" placeholder="caption" defaultValue={p.caption || ''} onBlur={e => { if ((e.target.value || '') !== (p.caption || '')) setRoomPhotoCaption(rm.id, p.id, e.target.value); }} />
+                          <button type="button" onClick={() => deleteRoomPhoto(rm.id, p.id)} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] mt-0.5">× remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {(rm.items || []).length === 0 ? (
                   <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No items yet.</p>
                 ) : (
@@ -770,28 +840,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const [maintForm, setMaintForm] = useState(blankMaint());
   const [convForm, setConvForm] = useState(blankConv());
 
-  // Compress an image File to a JPEG data URL (max width 1200, quality 0.7).
-  // Returns a Promise<string>. Typical receipt photo lands at 80-200 KB.
-  const compressImageFile = (file, maxWidth = 1200, quality = 0.7) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const ratio = img.width > maxWidth ? maxWidth / img.width : 1;
-        const w = Math.round(img.width * ratio);
-        const h = Math.round(img.height * ratio);
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  // Photo compression is shared with the room galleries — see lib/image.js.
   const onMaintPhotoFiles = async (fileList) => {
     if (!fileList || fileList.length === 0) return;
     const compressed = [];
@@ -813,6 +862,36 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     const entry = { ...convForm, id: `cv-${Date.now()}` };
     updateRental(r.id, { conversationLog: [...(r.conversationLog || []), entry] });
     setConvForm(blankConv()); setShowConvForm(false);
+  };
+  // Tenant turnover — the new tenant starts with a clean slate; the prior
+  // tenant's record is ARCHIVED, not erased. What carries to the next tenant
+  // (property memory): rooms, room photos + notes, equipment, the maintenance
+  // log. What does NOT carry (tenant memory): the tenant's name/contact, the
+  // lease, the tenant/vendor conversation log, and any open issues — those
+  // are filed under Past Tenancies so the landlord can pull them up for
+  // clarification, and open issues are closed out of the active queue.
+  const tenantTurnover = (r) => {
+    const who = r.tenantName || r.tenant?.name || 'the current tenant';
+    if (!confirm(`Mark turnover at ${r.name}?\n\nThe new tenant gets a clean slate. ${who}'s record (lease, contacts, conversations, open issues) is archived under Past Tenancies — you keep it. Rooms, photos, equipment, and maintenance history stay with the property.`)) return;
+    const openIssues = (incidents || []).filter(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
+    const archived = {
+      id: `ten-${Date.now()}`,
+      tenantName: r.tenantName || r.tenant?.name || '',
+      tenant: r.tenant || null,
+      lease: r.lease || null,
+      conversationLog: r.conversationLog || [],
+      closedIssues: openIssues.map(i => ({ id: i.id, description: i.description, date: i.date })),
+      movedOutAt: new Date().toISOString().slice(0, 10),
+    };
+    if (resolveIncident) openIssues.forEach(i => resolveIncident(i.id));
+    updateRental(r.id, {
+      tenancyHistory: [...(r.tenancyHistory || []), archived],
+      tenantName: '',
+      tenant: null,
+      lease: null,
+      conversationLog: [],
+      status: 'unrented',
+    });
   };
   // Property-chat history import (v2.13). The Poe Properties history lives in
   // the NAS chat app, one channel per property named by short address. An n8n
@@ -1349,6 +1428,42 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </div>
                         )}
                       </div>
+
+                      {/* TENANT TURNOVER + PAST TENANCIES (landlord records) */}
+                      {!readOnly && (
+                        <div className="mb-3 pb-3 border-b border-[#E8E4DC]">
+                          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🔑 Tenancy{(r.tenancyHistory || []).length > 0 ? ` · ${(r.tenancyHistory || []).length} past` : ''}</div>
+                            {(r.tenantName || r.tenant?.name) && (
+                              <button type="button" onClick={() => tenantTurnover(r)} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">→ Tenant moved out / turnover</button>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                            Turnover gives the next tenant a clean slate. Rooms, photos, equipment, and maintenance history stay; the tenant&apos;s lease, contacts, conversations, and open issues archive below for your records.
+                          </p>
+                          {(r.tenancyHistory || []).length > 0 && (
+                            <details className="mt-2">
+                              <summary className="cursor-pointer text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Past tenancies ({(r.tenancyHistory || []).length}) — landlord records</summary>
+                              <div className="mt-2 space-y-2">
+                                {[...(r.tenancyHistory || [])].reverse().map(t => (
+                                  <div key={t.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
+                                    <div className="text-[11px] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{t.tenantName || '(unnamed tenant)'} <span className="text-[#5A5751] font-normal">· moved out {t.movedOutAt}</span></div>
+                                    {t.lease && (t.lease.start || t.lease.end) && (
+                                      <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>lease {t.lease.start || '?'} → {t.lease.end || '?'}{t.lease.monthlyRent ? ` · ${fmt(t.lease.monthlyRent)}/mo` : ''}</div>
+                                    )}
+                                    {(t.conversationLog || []).length > 0 && (
+                                      <div className="text-[10px] text-[#5A5751] mt-1">{(t.conversationLog || []).length} archived conversation note{(t.conversationLog || []).length === 1 ? '' : 's'}</div>
+                                    )}
+                                    {(t.closedIssues || []).length > 0 && (
+                                      <div className="text-[10px] text-[#5A5751] mt-0.5">{(t.closedIssues || []).length} issue{(t.closedIssues || []).length === 1 ? '' : 's'} closed at turnover: {(t.closedIssues || []).map(i => i.description).slice(0, 3).join('; ')}{(t.closedIssues || []).length > 3 ? '…' : ''}</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      )}
 
                       {/* CONVERSATION LOG */}
                       <div>
