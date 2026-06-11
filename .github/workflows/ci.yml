@@ -1,0 +1,41 @@
+# CI — the mechanical floor under RELEASE-TIERS.md.
+# Every PR and every push to main runs lint + the Vitest suite + the wf36
+# Quality Gatekeeper harness. Nothing merges with a red suite, regardless
+# of tier. Added per docs/99-session-notes/2026-06-11-test-coverage-analysis.md
+# (P2); the suite runs without app/.env.local because vitest.config.js stubs
+# the Supabase env (P1).
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  app:
+    name: app — lint + vitest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npx vitest run
+
+  workflows:
+    name: n8n workflows — wf36 gatekeeper harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/test-wf36-quality-gatekeeper.js

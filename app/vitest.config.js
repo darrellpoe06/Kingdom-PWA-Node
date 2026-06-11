@@ -16,5 +16,15 @@ export default defineConfig({
     include: ['src/__tests__/**/*.test.{js,jsx}'],
     environment: 'jsdom',
     globals: false,
+    // Stub Supabase env so the suite runs on a clean checkout (CI, remote
+    // sessions, new machines) where app/.env.local does not exist. Without
+    // these, the import chain test -> financial-calcs -> MVP -> supabase.js
+    // throws "supabaseUrl is required" at collection and zero tests run.
+    // Real values from .env.local still win when present; the calc tests
+    // never touch the network — the client just has to construct.
+    env: {
+      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || 'https://test-stub.supabase.co',
+      VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || 'test-stub-anon-key',
+    },
   },
 });
