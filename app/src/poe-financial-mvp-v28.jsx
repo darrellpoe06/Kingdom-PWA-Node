@@ -2073,26 +2073,37 @@ export default function PoeFinancialSystem() {
       // Initial sync uploads any local entities not yet in Supabase, then
       // pulls the merged set. Realtime subscription keeps subsequent edits
       // from other devices flowing in.
-      try {
-        const localEntities = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__)
-          ? (window.__POETECH_LATEST_DATA__.entities || [])
-          : [];
-        const result = await entitiesSync.initialSync(localEntities);
-        if (result && result.merged) {
-          setData(d => ({ ...d, entities: result.merged }));
+      // 2026-06-11 — notDemoRow on BOTH directions (this block was missed in
+      // the numeric-table sweep): the public-host mount puts the Reeves demo
+      // in state before auth resolves, so the unfiltered upload pushed demo
+      // entities into the family's cloud instance, and the unfiltered pull
+      // rendered them back (Maya / Jordan / Avery / Reeves on a signed-in
+      // device). Demo mode skips entities sync entirely — a working sample
+      // must neither upload its props nor pull the family's real names.
+      if (!isAnyDemoMode) {
+        try {
+          const localEntities = ((typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__)
+            ? (window.__POETECH_LATEST_DATA__.entities || [])
+            : []).filter(notDemoRow);
+          const result = await entitiesSync.initialSync(localEntities);
+          if (result && result.merged) {
+            setData(d => ({ ...d, entities: result.merged.filter(notDemoRow) }));
+          }
+        } catch (e) {
+          console.warn('[auth] entities initial sync failed', e);
         }
-      } catch (e) {
-        console.warn('[auth] entities initial sync failed', e);
+        unsubscribeEntities = entitiesSync.subscribe((items) => {
+          setData(d => ({ ...d, entities: items.filter(notDemoRow) }));
+        });
       }
-      unsubscribeEntities = entitiesSync.subscribe((items) => {
-        setData(d => ({ ...d, entities: items }));
-      });
     });
     return () => {
       cleanupAuth();
       if (unsubscribeFeedback) unsubscribeFeedback();
       if (unsubscribeEntities) unsubscribeEntities();
     };
+    // isAnyDemoMode is URL-derived and constant for the page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -2112,6 +2123,12 @@ export default function PoeFinancialSystem() {
 
   useEffect(() => {
     if (!authSession) {
+      setShowVerifyBalances(false);
+      return;
+    }
+    // 2026-06-11 — a working sample never asks you to verify: the wizard over
+    // a ?demo= view listed sample entities as if they were the family's own.
+    if (isAnyDemoMode) {
       setShowVerifyBalances(false);
       return;
     }
@@ -2183,6 +2200,9 @@ export default function PoeFinancialSystem() {
       cancelled = true;
       cleanups.forEach(fn => { try { fn && fn(); } catch (_) {} });
     };
+    // `data` is read via the window stash (see below); isAnyDemoMode is
+    // URL-derived and constant for the page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession, data.numericSyncVerifiedAt]);
 
   // Stash the latest data on window so the auth effect (which has [] deps
