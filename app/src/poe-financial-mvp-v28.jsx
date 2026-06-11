@@ -32,6 +32,7 @@ import { QueueList } from './components/QueueList.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { LifeGallery } from './components/LifeGallery.jsx';
 import { ConferenceModule } from './components/ConferenceModule.jsx';
+import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { Queue } from './components/Queue.jsx';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
@@ -2611,6 +2612,9 @@ export default function PoeFinancialSystem() {
   // Conference (COLG 77th National Assembly) — local-first like the rest of
   // the Church tab; merges onto the seed so partial saves never lose fields.
   const updateConference = (updates) => setData(d => ({ ...d, conference: { ...(d.conference || {}), ...updates } }));
+  // One Voice (Church tab) — serve notes + ideas/testimony land here,
+  // persisted with the rest of the data record.
+  const addChurchVoice = (entry) => setData(d => ({ ...d, churchVoice: [...(d.churchVoice || []), entry] }));
 
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
@@ -3533,7 +3537,7 @@ html{scroll-padding-bottom:280px}
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} />}
+        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
@@ -5639,7 +5643,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
 // WCAG 2.1 AA: <label>'d inputs, focus rings, descriptive aria-labels,
 // status meaning conveyed in text as well as color.
 // =============================================================================
-function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference }) {
+function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice }) {
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -5869,7 +5873,18 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
         </p>
       )}
 
-      {/* CONFERENCE — 77th National Assembly (2026-06-11). At the top while the
+      {/* ONE VOICE — the Church tab's single front door (COUNCIL-CHAMBER:
+          one input, the system deduces; MODE-ROUTING: suggestion visible,
+          person decides). Ordered first so speaking is always one tap away. */}
+      <ChurchOneVoice
+        addPrayerRequest={addPrayerRequest}
+        updateConference={updateConference}
+        conference={conference}
+        addChurchVoice={addChurchVoice}
+        churchVoice={churchVoice}
+      />
+
+      {/* CONFERENCE — 77th National Assembly (2026-06-11). Second while the
           Assembly is in season; Bishop Gwin edits details, builds the schedule,
           and his feedback box feeds the build list directly. */}
       <ConferenceModule conference={conference} updateConference={updateConference} />

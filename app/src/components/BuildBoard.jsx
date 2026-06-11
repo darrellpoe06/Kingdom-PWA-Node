@@ -23,10 +23,12 @@ const ROADMAP = [
   { id: 'history-bridge', title: 'Property-history import', what: 'Pull your property chat history into the right property, verified by you before anything is kept.', status: 'shipped', when: '2026-06-11' },
 
   { id: 'conference', title: 'Conference module (77th National Assembly)', what: 'The Assembly on the Church tab — details, schedule, RSVPs, serving signups, and a direct feedback line from Bishop Gwin that shapes what we build next.', status: 'shipped', when: '2026-06-11' },
+  { id: 'one-voice', title: 'One Voice (Church tab)', what: 'One box for everything — prayer, the Assembly, serving, ideas. It suggests where your words go; you always have the last word.', status: 'shipped', when: '2026-06-11' },
 
   // — Building now —
   { id: 'build-board', title: 'Build-transparency board', what: 'This page — PoeTech building itself in the open, with go-live dates, visible to every user.', status: 'building', when: '2026-06-11' },
   { id: 'ratings', title: 'Ratings — workers and PoeTech itself', what: '1099 workers who advertise accept being rated; PoeTech is rated on feedback the same way — so we always improve, or show plainly why we won’t do something.', status: 'next', when: '2026-06-17' },
+  { id: 'pipeline-insights', title: 'Pipeline & promotions insights', what: 'Inside the app: what’s possible to do next, where pipeline investment pays, which services and promotions fit — insight surfaces grounded in your real data.', status: 'next', when: '2026-07-01' },
   { id: 'photos-two-way', title: 'Photos both ways (phone ↔ NAS)', what: 'Browse what’s already on your NAS without filling the phone (live now for property photos); push new phone photos to a space you own next.', status: 'building', when: '2026-06-20' },
   { id: 'occupancy', title: 'Occupancy-revenue model', what: 'Per-room income potential, with the full opportunity always shown — so every vacant room markets itself.', status: 'building', when: '2026-06-20' },
   { id: 'photo-ingest', title: 'Bring property photos in', what: 'File your existing property photos to the right room — see each place transform over the years.', status: 'shipped', when: '2026-06-11' },
