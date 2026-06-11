@@ -173,7 +173,7 @@ These are the distilled, binding lessons. Each links back to the dated incident(
 
 3. **wf13b — Chat-channel-noise probe.** After any wf13 import or restart, count empty-payload posts in `#PoeTech-PWA` over the next 90 seconds via Synology Chat scrape. If > 0, fire alert + Synology Chat post saying "wf13 apply did NOT close noise — re-investigate." Ships post-vacation.
 
-4. **Service Worker versioning.** Every deploy bumps a `SW_VERSION` constant in `sw.js`; old SWs see the bump on next page load and auto-unregister + force a refresh. Code change at `app/public/sw.js` — ship NEXT push.
+4. **Service Worker versioning.** Every deploy bumps a `SW_VERSION` constant in `sw.js`; old SWs see the bump on next page load and auto-unregister + force a refresh. Code change at `app/public/sw.js` — ship NEXT push. *Shipped 2026-06-10:* the `sw-version-stamp` plugin in `app/vite.config.js` rewrites a `__SW_VERSION__` placeholder in `dist/sw.js` at build time with the deploy's `VERCEL_GIT_COMMIT_SHA` (timestamp fallback locally); the cache name derives from it, so each deploy's byte-different `sw.js` installs fresh, the existing SKIP_WAITING + controllerchange-reload flow in `main.jsx` takes over without a tap, and the activate handler deletes all prior-deploy caches. (Mechanism differs slightly from the sketch above — install-new-and-takeover instead of unregister — same outcome: no stale cached bundle survives a deploy.)
 
 5. **"Fix verified" must include a failure-mode simulation.** No fix can move from ⏳ → ✅ in the master fix list without a probe that simulates the bug's original conditions and shows the new behavior. The probe is added to the fix itself, not to a separate workstream.
 
