@@ -4,6 +4,7 @@
 // shipped r20; this is the structural extraction.
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
+import { BuildBoard } from './BuildBoard.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
@@ -46,7 +47,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
     <div className="space-y-4">
       <div className="border-b border-[#E8E4DC]">
         <div className="flex gap-1 text-xs">
-          {[['list','Projects · Timeline'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast']].map(([id, label]) => (
+          {[['list','Projects · Timeline'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']].map(([id, label]) => (
             <button key={id} onClick={() => setSubView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${subView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
           ))}
         </div>
@@ -67,6 +68,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
+      {subView === 'build' && <BuildBoard />}
     </div>
   );
 }
