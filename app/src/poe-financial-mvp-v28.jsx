@@ -2687,11 +2687,28 @@ export default function PoeFinancialSystem() {
   const updateNote = (id, text) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, text, updatedAt: new Date().toISOString() } : n) }));
   const deleteNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).filter(n => n.id !== id) }));
   const togglePinNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, pinned: !n.pinned } : n) }));
-  const sendNoteToPoeTech = (text, noteId) => setData(d => ({
-    ...d,
-    appDirectives: [...(d.appDirectives || []), { id: `ad-${Date.now()}`, text, at: new Date().toISOString(), status: 'received' }],
-    notes: noteId ? (d.notes || []).map(n => n.id === noteId ? { ...n, sentToPoeTech: true } : n) : (d.notes || []),
-  }));
+  const sendNoteToPoeTech = (text, noteId) => {
+    const id = `ad-${Date.now()}`;
+    setData(d => ({
+      ...d,
+      appDirectives: [...(d.appDirectives || []), { id, text, at: new Date().toISOString(), status: 'received' }],
+      notes: noteId ? (d.notes || []).map(n => n.id === noteId ? { ...n, sentToPoeTech: true } : n) : (d.notes || []),
+    }));
+    // Low-hanging-fruit bucket → build pipeline (Darrell 2026-06-11: "the
+    // system gets better based on the bucket filling — we have workflows for
+    // 90% of that"). The missing 10% was this one connection: relay the
+    // directive to the NAS thought-inbox (wf26) that feeds build sessions.
+    // Fire-and-forget; offline is fine — the local record above is canonical.
+    try {
+      fetch('/n8n/webhook/thought', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ text, tags: ['tell-poetech', 'poetech-app'], data: { source: 'thinking-space', directiveId: id } }),
+      }).then((r) => {
+        if (r.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
+      }).catch(() => { /* offline — local record stands; relays are best-effort */ });
+    } catch (_) { /* same */ }
+  };
 
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);

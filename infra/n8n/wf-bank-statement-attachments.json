@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "wfBankStmtFetch01",
   "name": "21 · Bank statement attachments (Gmail → /data/bank-imports → wf15)",
   "nodes": [
@@ -40,7 +40,7 @@
       "typeVersion": 2,
       "position": [440, 0],
       "parameters": {
-        "jsCode": "// Budget brake: at most 10 msgs/run (Gmail limit above) and 4 attachments\n// per message. Filenames carry the Gmail message id so re-runs OVERWRITE\n// the same file — idempotent, never duplicates into wf15.\nconst out = [];\nfor (const item of items) {\n  const bins = item.binary || {};\n  let n = 0;\n  for (const key of Object.keys(bins)) {\n    if (n >= 4) break;\n    const b = bins[key];\n    const orig = (b.fileName || 'statement.dat').replace(/[^A-Za-z0-9._-]/g, '_');\n    if (!/\\.(ofx|qfx|qbo|csv)$/i.test(orig)) continue;\n    const msgId = (item.json.id || 'msg').slice(0, 16);\n    out.push({ json: { fileName: `gmail-${msgId}-${orig}` }, binary: { data: b } });\n    n++;\n  }\n}\nreturn out;"
+        "jsCode": "// Budget brake: at most 10 msgs/run (Gmail limit above) and 4 attachments\n// per message. Filenames carry the Gmail message id so re-runs OVERWRITE\n// the same file - idempotent, never duplicates into wf15.\nconst out = [];\nfor (const item of items) {\n  const bins = item.binary || {};\n  let n = 0;\n  for (const key of Object.keys(bins)) {\n    if (n >= 4) break;\n    const b = bins[key];\n    const orig = (b.fileName || 'statement.dat').replace(/[^A-Za-z0-9._-]/g, '_');\n    if (!/\\.(ofx|qfx|qbo|csv)$/i.test(orig)) continue;\n    const msgId = (item.json.id || 'msg').slice(0, 16);\n    out.push({ json: { fileName: `gmail-${msgId}-${orig}` }, binary: { data: b } });\n    n++;\n  }\n}\nreturn out;"
       }
     },
     {

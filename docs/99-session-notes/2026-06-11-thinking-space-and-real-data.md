@@ -13,6 +13,20 @@ Privacy is the design: notes are device-local, never synced to a shared
 surface, never sold/mined/trained (project_photo_sovereignty extended to
 thoughts). Sharing is always a deliberate act (generous-collective premise).
 
+**UPDATE (same day): the bucket now reaches the build pipeline.** Per
+Darrell's 90%-doctrine ("the system gets better based on the low-hanging-
+fruit bucket filling — we have workflows for 90% of that; needs and
+requirements are 90% done based on current workflows, so short timelines"),
+the missing 10% was ONE connection: Tell-PoeTech directives now relay
+(fire-and-forget, offline-safe, localStorage canonical) to wf26's
+/webhook/thought — VERIFIED end-to-end: a test directive landed at
+/volume1/PoeTech/poetech-briefing/inbox/th-*.json, the same inbox the
+Foundation Agent + build sessions read. The doctrine, stated as the
+operating rule: before building anything new, find the existing workflow
+that does 90% and wire the missing hop — tonight's proofs: wf21 (one hop on
+wf14/15/16/18), photos bridge (rode the history bridge), One Voice (rode
+five existing pipelines), this relay (rode wf26).
+
 **"Can I tell the PoeTech App yet?" — YES, shipped.** Every note has a
 💡 Tell PoeTech action (and the capture box has a Tell-PoeTech route). It
 drops the directive into an in-app build inbox (data.appDirectives) shown
