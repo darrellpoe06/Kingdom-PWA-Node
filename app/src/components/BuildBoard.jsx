@@ -25,7 +25,7 @@ const ROADMAP = [
   // — Building now —
   { id: 'build-board', title: 'Build-transparency board', what: 'This page — PoeTech building itself in the open, with go-live dates, visible to every user.', status: 'building', when: '2026-06-11' },
   { id: 'occupancy', title: 'Occupancy-revenue model', what: 'Per-room income potential, with the full opportunity always shown — so every vacant room markets itself.', status: 'building', when: '2026-06-20' },
-  { id: 'photo-ingest', title: 'Bring property photos in', what: 'File your existing property photos to the right room — see each place transform over the years.', status: 'building', when: '2026-06-20' },
+  { id: 'photo-ingest', title: 'Bring property photos in', what: 'File your existing property photos to the right room — see each place transform over the years.', status: 'shipped', when: '2026-06-11' },
 
   // — Next —
   { id: 'dash-merge', title: 'Dashboard into Projects', what: 'One page that fits every level of user and learner — know anything about everything.', status: 'next', when: '2026-06-24' },

@@ -1011,6 +1011,46 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     if (accepted.length) updateRental(r.id, { conversationLog: [...(r.conversationLog || []), ...accepted] });
     setChatImport(null);
   };
+  // Property-photo import (NAS bridge): pulls the property chat channel's
+  // photos as Synology thumbnails, the family files each to the right room.
+  // The thumbnail bytes never include the originals — Synology already made
+  // these small previews; we read those in place. Nothing files itself: the
+  // user picks the room and taps Add, then it joins that room's gallery.
+  const PHOTO_PAGE = 18;
+  const [photoImport, setPhotoImport] = useState(null);
+  const fetchPhotoPage = async (r, offset) => {
+    const token = (localStorage.getItem(CHAT_BRIDGE_TOKEN_KEY) || '').trim();
+    if (!token) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [] }); return; }
+    setPhotoImport(p => ({ rentalId: r.id, status: 'loading', photos: (p && p.rentalId === r.id ? p.photos : []), offset }));
+    try {
+      const resp = await fetch(`/n8n/webhook/property-photos?channel=${encodeURIComponent(r.name)}&limit=${PHOTO_PAGE}&offset=${offset}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (resp.status === 401 || resp.status === 403) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [], badToken: true }); return; }
+      if (!resp.ok) throw new Error(`photo bridge answered ${resp.status}`);
+      const json = await resp.json();
+      const payload = Array.isArray(json) ? (json[0] || {}) : json;
+      const incoming = (payload.photos || []).map(p => ({ ...p, room: '' }));
+      setPhotoImport(prev => {
+        const base = (prev && prev.rentalId === r.id && offset > 0) ? prev.photos : [];
+        const seen = new Set(base.map(x => x.id));
+        return { rentalId: r.id, status: 'staged', photos: [...base, ...incoming.filter(x => !seen.has(x.id))], offset, lastCount: incoming.length };
+      });
+    } catch (err) {
+      setPhotoImport({ rentalId: r.id, status: 'error', error: String(err?.message || err), photos: [] });
+    }
+  };
+  const startPhotoImport = (r) => fetchPhotoPage(r, 0);
+  const setPhotoRoom = (photoId, room) => setPhotoImport(p => p ? { ...p, photos: p.photos.map(x => x.id === photoId ? { ...x, room } : x) } : p);
+  const filePhotoToRoom = (r, photo) => {
+    if (!photo.room || !photo.thumb) return;
+    const entry = { id: `ph-chat-${photo.id}`, src: photo.thumb, date: photo.date || '', caption: photo.text || '' };
+    const rooms = (r.rooms || []).map(rm => rm.id === photo.room
+      ? { ...rm, photos: (rm.photos || []).some(x => x.id === entry.id) ? rm.photos : [...(rm.photos || []), entry] }
+      : rm);
+    updateRental(r.id, { rooms });
+    setPhotoImport(p => p ? { ...p, photos: p.photos.map(x => x.id === photo.id ? { ...x, filed: true } : x) } : p);
+  };
   const deleteMaintEntry = (r, entryId) => {
     if (!confirm('Delete this maintenance entry? Photos and receipt info will be lost.')) return;
     updateRental(r.id, { maintenanceLog: (r.maintenanceLog || []).filter(e => e.id !== entryId) });
@@ -1565,6 +1605,58 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                 ))}
                               </div>
                             </details>
+                          )}
+                        </div>
+                      )}
+
+                      {/* PHOTO IMPORT FROM CHAT — file the property's photos to rooms */}
+                      {!readOnly && (
+                        <div className="mb-3">
+                          <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">📷 Property Photos from Chat</div>
+                            <button type="button" onClick={() => (photoImport && photoImport.rentalId === r.id) ? setPhotoImport(null) : startPhotoImport(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{photoImport && photoImport.rentalId === r.id ? '× Close' : '📷 Browse & file to rooms'}</button>
+                          </div>
+                          {photoImport && photoImport.rentalId === r.id && (
+                            <div className="bg-white border border-[#5A6E3D] p-3 space-y-2">
+                              {photoImport.status === 'need-token' && (
+                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.badToken ? 'Token rejected.' : 'Enter the history-bridge token first (use the “Import property-chat history” button below — same token).'}</p>
+                              )}
+                              {photoImport.status === 'loading' && <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Loading photos from the #{r.name} channel…</p>}
+                              {photoImport.status === 'error' && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Photo bridge not reachable ({photoImport.error}). Nothing changed.</p>}
+                              {photoImport.status === 'staged' && (
+                                <>
+                                  {(r.rooms || []).length === 0 && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Add a room above first, then assign photos to it.</p>}
+                                  <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.photos.length} photos from this property&apos;s chat. Pick a room for each and tap Add — see the place change over the years.</p>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+                                    {photoImport.photos.map(p => (
+                                      <div key={p.id} className="border border-[#E8E4DC] bg-[#FAF8F4] p-1">
+                                        {p.thumb ? (
+                                          <img src={p.thumb} alt={p.text || 'property photo'} className="w-full h-24 object-cover border border-[#E8E4DC]" />
+                                        ) : (
+                                          <div className="w-full h-24 flex items-center justify-center text-[9px] text-[#5A5751] italic border border-dashed border-[#E8E4DC] text-center px-1">not in backup</div>
+                                        )}
+                                        <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date}</div>
+                                        {p.text && <div className="text-[9px] text-[#5A5751] truncate" title={p.text} style={{ fontFamily: '"Fraunces", serif' }}>{p.text}</div>}
+                                        {p.filed ? (
+                                          <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-1">✓ filed</div>
+                                        ) : p.thumb ? (
+                                          <div className="flex gap-1 mt-1">
+                                            <select value={p.room} onChange={e => setPhotoRoom(p.id, e.target.value)} className="flex-1 text-[10px] p-1 border border-[#E8E4DC] bg-white min-w-0">
+                                              <option value="">room…</option>
+                                              {(r.rooms || []).map(rm => <option key={rm.id} value={rm.id}>{rm.name}</option>)}
+                                            </select>
+                                            <button type="button" disabled={!p.room} onClick={() => filePhotoToRoom(r, p)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-30">Add</button>
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {photoImport.lastCount === PHOTO_PAGE && (
+                                    <button type="button" onClick={() => fetchPhotoPage(r, photoImport.offset + PHOTO_PAGE)} className="w-full text-[10px] uppercase tracking-wider py-1.5 border border-[#1A1815] hover:bg-[#FAF8F4]">Load more photos</button>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
