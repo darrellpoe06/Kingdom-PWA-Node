@@ -7,6 +7,10 @@ import { SectionTitle } from './shared.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
+// Union vocab with the contractors_1099 status CHECK (v2.13) — the app's
+// values and the schema's lifecycle states are both real; nothing flattens.
+const CONTRACTOR_STATUSES = ['active', 'pipeline', 'possible', 'paused', 'inactive', 'ended', 'terminated'];
+
 const BLANK_CONTRACTOR = {
   direction: 'outbound',
   entityId: 'e-personal',
@@ -80,7 +84,7 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direction</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.direction} onChange={e => setEditForm({ ...editForm, direction: e.target.value })}><option value="outbound">outbound (we pay)</option><option value="inbound">inbound (we receive)</option></select></div>
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.entityId} onChange={e => setEditForm({ ...editForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}><option value="active">active</option><option value="paused">paused</option><option value="ended">ended</option></select></div>
+            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>{CONTRACTOR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
           </div>
           {editForm.direction === 'outbound' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -167,7 +171,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direction</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.direction} onChange={e => setAddForm({ ...addForm, direction: e.target.value })}><option value="outbound">outbound (we pay)</option><option value="inbound">inbound (we receive)</option></select></div>
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.entityId} onChange={e => setAddForm({ ...addForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.status} onChange={e => setAddForm({ ...addForm, status: e.target.value })}><option value="active">active</option><option value="paused">paused</option><option value="ended">ended</option></select></div>
+              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.status} onChange={e => setAddForm({ ...addForm, status: e.target.value })}>{CONTRACTOR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
             </div>
             {addForm.direction === 'outbound' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

@@ -23,7 +23,8 @@ export function DispatchPanel({ incident, property = null, contractors = [], onD
   const [reassigning, setReassigning] = useState(false);
   if (!incident) return null;
 
-  const workers = contractors.filter(c => c.direction === 'outbound' && c.status !== 'ended');
+  const DONE_STATUSES = new Set(['ended', 'terminated', 'inactive']);
+  const workers = contractors.filter(c => c.direction === 'outbound' && !DONE_STATUSES.has(c.status));
   const d = incident.dispatch;
   const resolved = incident.status === 'resolved';
   const message = buildDispatchMessage({

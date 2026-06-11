@@ -6,6 +6,7 @@ import { MetricCell, SectionTitle } from './shared.jsx';
 import { RentCastPrefill } from './connectors/RentCast.jsx';
 import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
+import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -813,6 +814,33 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     updateRental(r.id, { conversationLog: [...(r.conversationLog || []), entry] });
     setConvForm(blankConv()); setShowConvForm(false);
   };
+  // Property-chat history import (v2.13). The Poe Properties history lives in
+  // the NAS chat app, one channel per property named by short address. An n8n
+  // workflow exposes it as JSON (see infra/n8n/README-property-history.md);
+  // the PWA reaches it via the same-origin /n8n rewrite. Nothing lands
+  // silently: messages STAGE here, the family checks what's true, and only
+  // accepted items join the conversation log. Re-running is safe (dedup by
+  // sourceId in toConversationEntries).
+  const [chatImport, setChatImport] = useState(null);
+  const startChatImport = async (r) => {
+    setChatImport({ rentalId: r.id, status: 'loading', messages: [], already: 0 });
+    try {
+      const resp = await fetch(`/n8n/webhook/property-history?channel=${encodeURIComponent(r.name)}`);
+      if (!resp.ok) throw new Error(`history bridge answered ${resp.status}`);
+      const json = await resp.json();
+      const parsed = parseChatHistory(json);
+      const fresh = toConversationEntries(parsed, r.conversationLog || []);
+      setChatImport({ rentalId: r.id, status: 'staged', messages: fresh.map(m => ({ ...m, accepted: true })), already: parsed.length - fresh.length });
+    } catch (err) {
+      setChatImport({ rentalId: r.id, status: 'error', error: String(err?.message || err), messages: [], already: 0 });
+    }
+  };
+  const toggleChatImportItem = (sourceId) => setChatImport(ci => ci ? { ...ci, messages: ci.messages.map(m => m.sourceId === sourceId ? { ...m, accepted: !m.accepted } : m) } : ci);
+  const acceptChatImport = (r) => {
+    const accepted = (chatImport?.messages || []).filter(m => m.accepted).map((m) => { const entry = { ...m }; delete entry.accepted; return entry; });
+    if (accepted.length) updateRental(r.id, { conversationLog: [...(r.conversationLog || []), ...accepted] });
+    setChatImport(null);
+  };
   const deleteMaintEntry = (r, entryId) => {
     if (!confirm('Delete this maintenance entry? Photos and receipt info will be lost.')) return;
     updateRental(r.id, { maintenanceLog: (r.maintenanceLog || []).filter(e => e.id !== entryId) });
@@ -1308,10 +1336,53 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
                       {/* CONVERSATION LOG */}
                       <div>
-                        <div className="flex items-baseline justify-between gap-2 mb-2">
+                        <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
                           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Tenant & Vendor Conversations · {(r.conversationLog || []).length}</div>
-                          <button type="button" onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
+                          <div className="flex gap-2">
+                            {!readOnly && (
+                              <button type="button" onClick={() => (chatImport && chatImport.rentalId === r.id) ? setChatImport(null) : startChatImport(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{chatImport && chatImport.rentalId === r.id ? '× Cancel import' : '📥 Import property-chat history'}</button>
+                            )}
+                            <button type="button" onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
+                          </div>
                         </div>
+                        {chatImport && chatImport.rentalId === r.id && (
+                          <div className="bg-white border border-[#5A6E3D] p-3 mb-2 space-y-2">
+                            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">📥 Property-chat history · #{r.name}</div>
+                            {chatImport.status === 'loading' && (
+                              <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Fetching channel history from the NAS…</p>
+                            )}
+                            {chatImport.status === 'error' && (
+                              <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                History bridge not reachable ({chatImport.error}). The NAS-side workflow isn't live yet — see infra/n8n/README-property-history.md. Nothing was changed.
+                              </p>
+                            )}
+                            {chatImport.status === 'staged' && (
+                              <>
+                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                  {chatImport.messages.length === 0
+                                    ? `Nothing new to import${chatImport.already > 0 ? ` — all ${chatImport.already} channel messages are already on this log` : ' — the channel returned no messages'}.`
+                                    : `Check what's true, uncheck what isn't. ${chatImport.messages.length} new message${chatImport.messages.length === 1 ? '' : 's'}${chatImport.already > 0 ? ` (${chatImport.already} already imported)` : ''}. Nothing saves until you accept.`}
+                                </p>
+                                {chatImport.messages.length > 0 && (
+                                  <>
+                                    <div className="max-h-64 overflow-y-auto space-y-1 border border-[#E8E4DC] p-2">
+                                      {chatImport.messages.map(m => (
+                                        <label key={m.sourceId} className="flex items-start gap-2 text-[11px] cursor-pointer hover:bg-[#FAF8F4] p-1">
+                                          <input type="checkbox" checked={m.accepted} onChange={() => toggleChatImportItem(m.sourceId)} className="mt-0.5" />
+                                          <span style={{ fontFamily: '"JetBrains Mono", monospace' }} className="text-[#5A5751] shrink-0">{m.date || '—'}{m.person ? ` · ${m.person}` : ''}</span>
+                                          <span style={{ fontFamily: '"Fraunces", serif' }}>{m.summary}</span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                    <button type="button" onClick={() => acceptChatImport(r)} className="w-full bg-[#5A6E3D] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815]">
+                                      ✓ Import {chatImport.messages.filter(m => m.accepted).length} checked into this property's log
+                                    </button>
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
                         {showConvForm && (
                           <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
                             <div className="grid grid-cols-2 gap-2">

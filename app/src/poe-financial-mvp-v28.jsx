@@ -24,6 +24,8 @@ import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync } from './lib/projects-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
+import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
+import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
@@ -2066,6 +2068,10 @@ export default function PoeFinancialSystem() {
         { sync: transactionsSync, key: 'transactions', localList: latest.transactions || [] },
         { sync: projectsSync,     key: 'projects',     localList: latest.projects || [] },
         { sync: inquiriesSync,    key: 'inquiries',    localList: latest.inquiries || [] },
+        // v2.13 — the QC record (work orders + dispatch + lifecycle trail)
+        // and the shared 1099 worker roster pool to the family instance.
+        { sync: incidentsSync,    key: 'incidents',       localList: latest.incidents || [] },
+        { sync: contractorsSync,  key: 'contractors1099', localList: latest.contractors1099 || [] },
       ];
       for (const t of tables) {
         if (cancelled) return;
@@ -2168,51 +2174,72 @@ export default function PoeFinancialSystem() {
     const id = `in-${Date.now()}`;
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'open';
-    setData(d => {
-      const seeded = {
-        urgency: 'incident',
-        status: initialStatus,
-        dueDate: dueDateFor(item.urgency || 'incident'),
-        ...item,
-        id,
-        createdAt: item.createdAt || nowIso,
-        lifecycle: {
-          phase: initialStatus,
-          openedAt: item.createdAt || nowIso,
-          closedAt: LIFECYCLE_TERMINAL_PHASES.has(initialStatus) ? nowIso : null,
-          log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
-        },
-      };
-      return { ...d, incidents: [...d.incidents, seeded] };
-    });
+    const seeded = {
+      urgency: 'incident',
+      status: initialStatus,
+      dueDate: dueDateFor(item.urgency || 'incident'),
+      ...item,
+      id,
+      // date is rendered with .slice() in Calendar and the queue lists —
+      // guarantee it like the other ITSM defaults (callers may omit it).
+      date: item.date || nowIso.slice(0, 10),
+      createdAt: item.createdAt || nowIso,
+      lifecycle: {
+        phase: initialStatus,
+        openedAt: item.createdAt || nowIso,
+        closedAt: LIFECYCLE_TERMINAL_PHASES.has(initialStatus) ? nowIso : null,
+        log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
+      },
+    };
+    setData(d => ({ ...d, incidents: [...d.incidents, seeded] }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      // Stamp remoteUuid as soon as the insert lands so follow-on updates
+      // (dispatch, resolve) reach the cloud row immediately.
+      incidentsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) {
+          setData(d => ({ ...d, incidents: (d.incidents || []).map(i => i.id === id ? { ...i, remoteUuid: res.remoteId } : i) }));
+        }
+      }).catch(e => console.warn('[incidents-sync] upload failed', e));
+    }
     return id;
   };
-  const updateIncident = (id, updates) => setData(d => ({
-    ...d,
-    incidents: d.incidents.map(i => {
-      if (i.id !== id) return i;
-      const withLifecycle = ensureLifecycle(i);
-      const merged = { ...withLifecycle, ...updates };
-      // If status changed, route through appendLifecycleLog to write a log entry.
-      if (updates.status && updates.status !== withLifecycle.status) {
-        return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
+  // Shared transition logic so the reducer and the cloud push compute the
+  // identical next state (lifecycle log entries included).
+  const applyIncidentUpdates = (incident, updates) => {
+    const withLifecycle = ensureLifecycle(incident);
+    const merged = { ...withLifecycle, ...updates };
+    // If status changed, route through appendLifecycleLog to write a log entry.
+    if (updates.status && updates.status !== withLifecycle.status) {
+      return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
+    }
+    // Same-status audit note (e.g. "dispatched to X") — append a log entry
+    // without a phase change, so the quality-control trail stays complete.
+    if (updates._logNote) {
+      const nowIso = new Date().toISOString();
+      const phase = merged.lifecycle?.phase || merged.status;
+      return {
+        ...merged,
+        lifecycle: {
+          ...merged.lifecycle,
+          log: [...(merged.lifecycle?.log || []), { at: nowIso, fromPhase: phase, toPhase: phase, by: updates._by || 'user', note: updates._logNote }],
+        },
+      };
+    }
+    return merged;
+  };
+  const updateIncident = (id, updates) => {
+    setData(d => ({
+      ...d,
+      incidents: d.incidents.map(i => i.id !== id ? i : applyIncidentUpdates(i, updates)),
+    }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      const current = (data.incidents || []).find(i => i.id === id);
+      if (current && current.remoteUuid) {
+        const next = applyIncidentUpdates(current, updates);
+        incidentsSync.updateRow(current.remoteUuid, incidentColumns(next)).catch(e => console.warn('[incidents-sync] update failed', e));
       }
-      // Same-status audit note (e.g. "dispatched to X") — append a log entry
-      // without a phase change, so the quality-control trail stays complete.
-      if (updates._logNote) {
-        const nowIso = new Date().toISOString();
-        const phase = merged.lifecycle?.phase || merged.status;
-        return {
-          ...merged,
-          lifecycle: {
-            ...merged.lifecycle,
-            log: [...(merged.lifecycle?.log || []), { at: nowIso, fromPhase: phase, toPhase: phase, by: updates._by || 'user', note: updates._logNote }],
-          },
-        };
-      }
-      return merged;
-    }),
-  }));
+    }
+  };
   const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10), _note: 'Marked resolved' });
   // Dispatch — assign a 1099 worker to an open incident (work order). The
   // assignment lands on incident.dispatch and writes a lifecycle log entry,
@@ -2265,9 +2292,37 @@ export default function PoeFinancialSystem() {
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
   // r25 — 1099 contractor CRUD per EDITABLE-EVERYWHERE.md.
-  const addContractor = (item) => setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), { ...item, id: `k-${Date.now()}` }] }));
-  const updateContractor = (id, updates) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c) }));
-  const deleteContractor = (id) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).filter(c => c.id !== id) }));
+  // v2.13 — contractors sync to contractors_1099 so the worker roster (and
+  // the phones one-tap dispatch depends on) is shared across the family.
+  const addContractor = (item) => {
+    const seeded = { ...item, id: `k-${Date.now()}` };
+    setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      contractorsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) {
+          setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === seeded.id ? { ...c, remoteUuid: res.remoteId } : c) }));
+        }
+      }).catch(e => console.warn('[contractors-sync] upload failed', e));
+    }
+  };
+  const updateContractor = (id, updates) => {
+    if (authSession && data.numericSyncVerifiedAt) {
+      const current = (data.contractors1099 || []).find(c => c.id === id);
+      if (current && current.remoteUuid) {
+        contractorsSync.updateRow(current.remoteUuid, contractorColumns({ ...current, ...updates })).catch(e => console.warn('[contractors-sync] update failed', e));
+      }
+    }
+    return setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c) }));
+  };
+  const deleteContractor = (id) => {
+    if (authSession && data.numericSyncVerifiedAt) {
+      const current = (data.contractors1099 || []).find(c => c.id === id);
+      if (current && current.remoteUuid) {
+        contractorsSync.deleteRow(current.remoteUuid).catch(e => console.warn('[contractors-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).filter(c => c.id !== id) }));
+  };
   // r30 — Entity update (no delete: entities are referenced by accounts/debts/contractors/transactions; orphan risk).
   const updateEntity = (id, updates) => {
     setData(d => ({ ...d, entities: (d.entities || []).map(e => e.id === id ? { ...e, ...updates } : e) }));
@@ -5368,7 +5423,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
               <div className="flex justify-between items-baseline gap-2">
                 <div className="flex-1 min-w-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{inc.description}</div>
-                  <div className="text-xs text-[#5A5751]">{inc.date.slice(5)} · {inc.category}</div>
+                  <div className="text-xs text-[#5A5751]">{(inc.date || '').slice(5)} · {inc.category}</div>
                   {Array.isArray(inc.contractorIds) && inc.contractorIds.length > 0 && (
                     <div className="text-[10px] text-[#5A5751] mt-1 flex flex-wrap gap-1.5">
                       <span className="uppercase tracking-wider">👤 1099:</span>
