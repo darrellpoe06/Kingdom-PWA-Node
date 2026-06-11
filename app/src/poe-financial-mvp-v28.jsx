@@ -23,6 +23,7 @@ import { debtsSync } from './lib/debts-sync.js';
 import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync } from './lib/projects-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
+import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
@@ -2081,6 +2082,25 @@ export default function PoeFinancialSystem() {
         });
         cleanups.push(unsubscribe);
       }
+
+      // Rentals live nested under inflows.rentals and carry device-local
+      // detail the v2.2 rentals table doesn't model (mortgage rate/P&I/escrow,
+      // rooms, equipment, logs, rent/actual) — merge remote columns into the
+      // local shape instead of replacing the list wholesale like the flat
+      // tables above. See rentals-sync.js for the merge rules.
+      if (cancelled) return;
+      try {
+        const result = await rentalsSync.initialSync(latest.inflows?.rentals || []);
+        if (!cancelled && result && result.merged) {
+          setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals(d.inflows?.rentals || [], result.merged) } }));
+        }
+      } catch (e) {
+        console.warn('[rentals-sync] initial sync failed', e);
+      }
+      if (cancelled) return;
+      cleanups.push(rentalsSync.subscribe((items) => {
+        setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals(d.inflows?.rentals || [], items) } }));
+      }));
     }
     start();
 
@@ -2348,9 +2368,50 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
   };
   // v28+ Rentals expansion: Rental property CRUD
-  const addRental = (item) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), { ...item, id: `r-${Date.now()}` }] } }));
-  const updateRental = (id, updates) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
-  const deleteRental = (id) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).filter(r => r.id !== id) } }));
+  // 2026-06-10 — wired for cross-device sync (schema v2.2 rentals). Same gate
+  // as accounts/debts/transactions: only push once VerifyBalances has run.
+  // Only the top-level v2.2 property columns travel; mortgage rate/P&I/escrow,
+  // rooms, equipment, logs, and the lease/tenant/market sub-objects stay
+  // device-local (leases + rent_payments sync is the follow-up).
+  const addRental = (item) => {
+    const seeded = { ...item, id: `r-${Date.now()}` };
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      rentalsSync.upload(seeded).catch(e => console.warn('[rentals-sync] upload failed', e));
+    }
+  };
+  const updateRental = (id, updates) => {
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.inflows.rentals || []).find(r => r.id === id);
+      if (local && local.remoteUuid) {
+        const patch = {};
+        if (updates.name !== undefined)           patch.display_name = updates.name;
+        if (updates.address !== undefined)        patch.address = updates.address;
+        if (updates.propertyType !== undefined)   patch.property_type = toRemotePropertyType(updates.propertyType);
+        if (updates.status !== undefined)         patch.status = toRemoteStatus(updates.status);
+        if (updates.purchasePrice !== undefined)  patch.purchase_price = parseFloat(updates.purchasePrice) || 0;
+        if (updates.purchaseDate !== undefined)   patch.purchase_date = updates.purchaseDate || null;
+        if (updates.estimatedValue !== undefined) patch.current_market_value = parseFloat(updates.estimatedValue) || 0;
+        if (updates.mortgage !== undefined)       patch.mortgage_amount = parseFloat(updates.mortgage?.balance) || 0;
+        if (updates.notes !== undefined)          patch.notes = updates.notes;
+        // Device-local edits (rooms, equipment, logs, lease/tenant/market
+        // sub-objects) produce an empty patch — skip the network round-trip.
+        if (Object.keys(patch).length) {
+          rentalsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[rentals-sync] update failed', e));
+        }
+      }
+    }
+  };
+  const deleteRental = (id) => {
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.inflows.rentals || []).find(r => r.id === id);
+      if (local && local.remoteUuid) {
+        rentalsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[rentals-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).filter(r => r.id !== id) } }));
+  };
   const addScope = (scope) => setData(d => ({ ...d, scopes: [...d.scopes, { ...scope, id: `sc-${Date.now()}`, createdAt: new Date().toISOString(), status: 'draft' }] }));
   const deleteScope = (id) => setData(d => ({ ...d, scopes: d.scopes.filter(s => s.id !== id) }));
   // 2026-05-25 — Inquiries CRUD wired for cross-device sync. Same gate as
