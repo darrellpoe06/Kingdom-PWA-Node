@@ -27,6 +27,7 @@ import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType }
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { QueueSpotlight } from './components/QueueSpotlight.jsx';
 import { QueueList } from './components/QueueList.jsx';
+import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { Queue } from './components/Queue.jsx';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
@@ -2161,25 +2162,31 @@ export default function PoeFinancialSystem() {
   // Round 10 — addIncident now fills in ITSM defaults if caller omits them.
   // status defaults to 'open', urgency to 'incident', dueDate computed from urgency.
   // Incidents — every creation seeds a lifecycle log; every status change appends.
-  const addIncident = (item) => setData(d => {
+  // Returns the new incident id so callers (e.g. the maintenance-log work-order
+  // button) can link their source record to it.
+  const addIncident = (item) => {
+    const id = `in-${Date.now()}`;
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'open';
-    const seeded = {
-      urgency: 'incident',
-      status: initialStatus,
-      dueDate: dueDateFor(item.urgency || 'incident'),
-      ...item,
-      id: `in-${Date.now()}`,
-      createdAt: item.createdAt || nowIso,
-      lifecycle: {
-        phase: initialStatus,
-        openedAt: item.createdAt || nowIso,
-        closedAt: LIFECYCLE_TERMINAL_PHASES.has(initialStatus) ? nowIso : null,
-        log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
-      },
-    };
-    return { ...d, incidents: [...d.incidents, seeded] };
-  });
+    setData(d => {
+      const seeded = {
+        urgency: 'incident',
+        status: initialStatus,
+        dueDate: dueDateFor(item.urgency || 'incident'),
+        ...item,
+        id,
+        createdAt: item.createdAt || nowIso,
+        lifecycle: {
+          phase: initialStatus,
+          openedAt: item.createdAt || nowIso,
+          closedAt: LIFECYCLE_TERMINAL_PHASES.has(initialStatus) ? nowIso : null,
+          log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
+        },
+      };
+      return { ...d, incidents: [...d.incidents, seeded] };
+    });
+    return id;
+  };
   const updateIncident = (id, updates) => setData(d => ({
     ...d,
     incidents: d.incidents.map(i => {
@@ -2190,10 +2197,30 @@ export default function PoeFinancialSystem() {
       if (updates.status && updates.status !== withLifecycle.status) {
         return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
       }
+      // Same-status audit note (e.g. "dispatched to X") — append a log entry
+      // without a phase change, so the quality-control trail stays complete.
+      if (updates._logNote) {
+        const nowIso = new Date().toISOString();
+        const phase = merged.lifecycle?.phase || merged.status;
+        return {
+          ...merged,
+          lifecycle: {
+            ...merged.lifecycle,
+            log: [...(merged.lifecycle?.log || []), { at: nowIso, fromPhase: phase, toPhase: phase, by: updates._by || 'user', note: updates._logNote }],
+          },
+        };
+      }
       return merged;
     }),
   }));
   const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10), _note: 'Marked resolved' });
+  // Dispatch — assign a 1099 worker to an open incident (work order). The
+  // assignment lands on incident.dispatch and writes a lifecycle log entry,
+  // so who-was-sent-when is part of the permanent record.
+  const dispatchIncident = (id, dispatch) => updateIncident(id, {
+    dispatch,
+    _logNote: dispatch?.contractorName ? `dispatched to ${dispatch.contractorName}` : 'dispatch updated',
+  });
   const addEvent = (item) => setData(d => ({ ...d, events: [...(d.events || []), { ...item, id: `ev-${Date.now()}`, createdAt: new Date().toISOString(), completedAt: null }] }));
   const completeEvent = (id) => setData(d => ({ ...d, events: (d.events || []).map(e => e.id === id ? { ...e, completedAt: new Date().toISOString() } : e) }));
   // Projects — same lifecycle pattern.
@@ -3373,7 +3400,7 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} />}
+        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} dispatchIncident={dispatchIncident} />}
         {view === 'books' && (
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
@@ -3424,6 +3451,8 @@ html{scroll-padding-bottom:280px}
                 incidents={data.incidents || []}
                 addIncident={addIncident}
                 resolveIncident={resolveIncident}
+                contractors={data.contractors1099 || []}
+                dispatchIncident={dispatchIncident}
                 voiceOps={data.voiceOps || {}}
               />
             </>
@@ -4320,7 +4349,7 @@ function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFe
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null }) {
+function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], dispatchIncident }) {
   // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
   // item (if any) is currently expanded. Tapping the row body opens the full
   // details + lifecycle log + jump-link inline, so the user never loses
@@ -4639,7 +4668,7 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
                         <span className="text-[10px] text-[#5A5751] ml-auto font-semibold" aria-hidden="true">{expanded ? '▲' : '▼'} details</span>
                       </div>
                       <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{lifecycleLog.length > 1 ? ` · 📜 ${lifecycleLog.length} log entries` : ''}
+                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{sourceItem?.dispatch ? ` · 👷 ${sourceItem.dispatch.contractorName}` : ''}{lifecycleLog.length > 1 ? ` · 📜 ${lifecycleLog.length} log entries` : ''}
                       </div>
                     </button>
                     {/* Primary action (Resolve for incidents) stays visible on the
@@ -4666,6 +4695,20 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
                     <div className="px-3 pb-3 pt-2 bg-[#FAF8F4] border-t border-[#E8E4DC] space-y-3">
                       {fullDescription && fullDescription !== q.title && (
                         <p className="text-sm text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{fullDescription}</p>
+                      )}
+                      {/* Dispatch — the path from "needs fixed" to a 1099 worker's
+                          phone. Renders for any incident; pulls the linked
+                          property so the job text carries the full address. */}
+                      {q.kind === 'incident' && sourceItem && dispatchIncident && (
+                        <div className="bg-white border border-[#E8E4DC] p-2.5">
+                          <DispatchPanel
+                            incident={sourceItem}
+                            property={sourceItem.linkedTo?.type === 'rental' ? (rentals.find(r => r.id === sourceItem.linkedTo.id) || null) : null}
+                            contractors={contractors}
+                            onDispatch={dispatchIncident}
+                            onResolve={resolveIncident}
+                          />
+                        </div>
                       )}
                       {lifecycleLog.length > 0 && (
                         <div>

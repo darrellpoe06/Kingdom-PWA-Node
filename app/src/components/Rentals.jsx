@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { RentCastPrefill } from './connectors/RentCast.jsx';
 import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
+import { DispatchPanel } from './DispatchPanel.jsx';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -565,7 +566,7 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   );
 }
 
-function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, voiceOps = {} }) {
+function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], dispatchIncident, voiceOps = {} }) {
   // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
   // incident already pointed at it (if any) so we don't double-track.
   const openIncidentFor = (r) => incidents.find(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
@@ -815,6 +816,25 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const deleteMaintEntry = (r, entryId) => {
     if (!confirm('Delete this maintenance entry? Photos and receipt info will be lost.')) return;
     updateRental(r.id, { maintenanceLog: (r.maintenanceLog || []).filter(e => e.id !== entryId) });
+  };
+  // Work order — promote a maintenance entry to an incident on the Action
+  // Queue and remember the link on the entry, so the entry shows live status
+  // (open / dispatched / done) and the dispatch trail lives on the incident's
+  // lifecycle log. This is the path from "needs fixed" to a worker's phone.
+  const createWorkOrder = (r, entry) => {
+    if (!addIncident) return;
+    const id = addIncident({
+      category: 'maintenance',
+      description: `${entry.category}: ${entry.description}`,
+      urgency: entry.urgency || 'incident',
+      entityId: r.entityId,
+      amount: entry.cost || 0,
+      linkedTo: { type: 'rental', id: r.id },
+      _note: `work order from maintenance log · ${r.name}`,
+    });
+    if (typeof id === 'string') {
+      updateRental(r.id, { maintenanceLog: (r.maintenanceLog || []).map(m => m.id === entry.id ? { ...m, incidentId: id } : m) });
+    }
   };
   const deleteConvEntry = (r, entryId) => {
     if (!confirm('Delete this conversation note?')) return;
@@ -1254,6 +1274,32 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     ))}
                                   </div>
                                 )}
+                                {/* WORK ORDER — the path from this entry to a worker's
+                                    phone. Creates an incident (shows on the Action
+                                    Queue too), then DispatchPanel assigns a 1099
+                                    worker and texts them the job. Entry shows live
+                                    status until the work order is marked done. */}
+                                {!readOnly && (() => {
+                                  if (!e.incidentId) {
+                                    return (
+                                      <div className="mt-2 pt-2 border-t border-[#E8E4DC]">
+                                        <button type="button" onClick={() => createWorkOrder(r, e)} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">🛠 Create work order → dispatch a worker</button>
+                                      </div>
+                                    );
+                                  }
+                                  const wo = incidents.find(i => i.id === e.incidentId);
+                                  if (!wo) {
+                                    return <div className="mt-2 pt-2 border-t border-[#E8E4DC] text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Work order was removed from the queue.</div>;
+                                  }
+                                  return (
+                                    <div className="mt-2 pt-2 border-t border-[#E8E4DC] space-y-1.5">
+                                      <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: wo.status === 'resolved' ? '#5A6E3D' : '#B85838' }}>
+                                        🛠 Work order {wo.status === 'resolved' ? 'done' : `open · due ${wo.dueDate || '—'}`} · also on the Action Queue
+                                      </div>
+                                      <DispatchPanel incident={wo} property={r} contractors={contractors} onDispatch={dispatchIncident} onResolve={resolveIncident} />
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             ))}
                           </div>
