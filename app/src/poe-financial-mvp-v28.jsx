@@ -1620,7 +1620,13 @@ export default function PoeFinancialSystem() {
   //   3. A saved profile exists
   // The family accesses real imported data via the Tailscale-internal URL only.
   // poetech.us / *.vercel.app are PUBLIC-FRONT-DOOR only — no PII ever.
-  const importedAllowed = !isPublicHost() && !isAnyDemoMode && !!currentProfile;
+  // 2026-06-11 (P14 pattern, applied deliberately to the MOST sensitive gate):
+  // a signed-in, hydrated OWNER may see their own imported bank events on a
+  // public host too — anonymous visitors and demo/picker states still never
+  // do, and a saved profile is still required. The wf18 bearer is only ever
+  // attached past this gate.
+  const importedAllowed = !isAnyDemoMode && !!currentProfile
+    && (!isPublicHost() || !!(authSession && authHydrated));
 
   // Demo welcome modal — only shown when ?demo=… is in the URL. Sets the
   // viewer's expectation about what they're looking at and what they can do,
@@ -1909,7 +1915,9 @@ export default function PoeFinancialSystem() {
     load();
     const id = setInterval(load, 300_000);
     return () => { cancelled = true; clearInterval(id); };
-  }, []);
+    // Re-run when the gate opens (sign-in completes hydration) — with [] deps
+    // this captured importedAllowed=false at mount and never fetched.
+  }, [importedAllowed]);
 
   // 2026-06-11 — the public-host gate is about ANONYMOUS visitors (the
   // 2026-06-03 leak was real ops data rendering to whoever opened poetech.us).
