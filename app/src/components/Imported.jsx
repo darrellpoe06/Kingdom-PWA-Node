@@ -44,12 +44,30 @@ function isPublicHostBrowser() {
   }
 }
 
+// 2026-06-11 (P14 pattern): a signed-in OWNER on a public host may see their
+// own imported data. Evidence of the session = the Supabase auth token this
+// device holds after Royalty-Link sign-in. Anonymous public visitors still
+// never pass (no token), demo never passes, and a profile is still required.
+function hasOwnerSession() {
+  try {
+    const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    if (!key) return false;
+    const tok = JSON.parse(localStorage.getItem(key));
+    return !!(tok && (tok.access_token || (tok.currentSession && tok.currentSession.access_token)));
+  } catch {
+    return false;
+  }
+}
+
 function isImportedViewAuthorized() {
   try {
     if (typeof window === 'undefined') return false;
-    if (isPublicHostBrowser()) return false; // Public domain = NEVER show real PII.
     if (new URLSearchParams(window.location.search).has('demo')) return false;
-    return !!localStorage.getItem('poe-current-profile');
+    if (!localStorage.getItem('poe-current-profile')) return false;
+    // Public domain: only a signed-in owner's own device passes. Private
+    // hosts (Tailscale / LAN / localhost) behave as before.
+    if (isPublicHostBrowser() && !hasOwnerSession()) return false;
+    return true;
   } catch {
     return false;
   }
@@ -126,15 +144,6 @@ export default function Imported() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.institution, filters.status, filters.since]);
 
-  // Unauthorized guard: render a notice, never the real transaction stream.
-  if (!isImportedViewAuthorized()) {
-    return (
-      <div className="text-[12px] text-[#5A5751] p-4">
-        Imported transactions are private to each family and shown only when you are signed in with your own data loaded.
-      </div>
-    );
-  }
-
   const filtered = useMemo(() => {
     if (!data || !data.transactions) return [];
     const q = filters.search.trim().toLowerCase();
@@ -147,6 +156,17 @@ export default function Imported() {
 
   const counts = data?.counts || { total_bank: 0, total_gmail: 0, status_counts: {}, institutions: [] };
   const statusCounts = counts.status_counts || {};
+
+  // Unauthorized guard: render a notice, never the real transaction stream.
+  // (Below the hooks — hooks must run unconditionally; the fetch paths above
+  // carry their own isImportedViewAuthorized() stops.)
+  if (!isImportedViewAuthorized()) {
+    return (
+      <div className="text-[12px] text-[#5A5751] p-4">
+        Imported transactions are private to each family and shown only when you are signed in with your own data loaded.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
