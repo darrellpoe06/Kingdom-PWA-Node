@@ -90,6 +90,59 @@ landlord-scoped; tenant-facing views (when they exist) never see prior
 tenants' archived records or another unit's photos; PhotoBackup originals
 are never modified, only read into a resized cache.
 
+## The move-or-copy decision (Darrell asked directly, 2026-06-11)
+
+> "do we need to move or copy images that are already on the nas? ... we
+> also use the photos app on the nas for photo backup which is exactly what
+> I want our PoeTech app to do if possible."
+
+**Expert answer: do NOT move or copy the originals. Three photo tiers.**
+
+The Synology Photos app already does the cellphone-safe backup better than a
+web app can, and it does it sovereignly (on the NAS, family-owned). PoeTech
+should not become a second backup that duplicates gigabytes — that fights
+DATA-AS-EMPOWERMENT (no needless duplication/extraction) and the sovereignty
+principle. PoeTech's job is the **meaningful-organization layer on top of the
+backup that already exists**: the same bytes, shown by family / business /
+property / room / project where they matter.
+
+Three tiers, by purpose and size:
+
+1. **Hero photos (small, curated)** — "the biggest pictures of your life" on
+   the Big Picture page, and a handful of room before/afters. A few dozen
+   images. Stored as compressed data URLs in the app record: simple, syncs
+   across devices, safe from a phone change. **SHIPPED this session**
+   (LifeGallery + room galleries).
+2. **Property/room archives (hundreds–thousands)** — reference the NAS in
+   place. The originals never move; the bridge serves a resized thumbnail
+   cache (`/volume1/PoeTech/property-photos/...`) and full-res opens on tap
+   through the token-gated bridge. Read-only toward PhotoBackup. This is the
+   805-channel ingest project above.
+3. **New in-app uploads (e.g. a tenant's roommate-mess photo)** — need a
+   sovereign WRITE path to the NAS (not a data URL), landing in a per-
+   incident / per-channel folder for admin review. Bridge gains a POST leg;
+   Tier C (write path + access control). See coliving note below.
+
+Net: PoeTech rides the existing NAS backup, never replaces it. "Photo backup
+like the Photos app" = the Photos app keeps backing up; PoeTech is the lens
+that makes those photos mean something per property, room, family, project.
+
+## Coliving / roommate-issue photos (Darrell, 2026-06-11)
+
+> "If a tenant says their roommate is messy or there are issues, images can
+> be uploaded to the group chat for discussion in coliving and family
+> situations and the administration can decide what to do with the data."
+
+Flow: a tenant-reported issue with photos becomes an incident (work-order
+path already exists) carrying images; the images post to the property's
+group channel for discussion; the admin/landlord decides disposition. Builds
+on: incidents already exist + dispatch loop; maintenance entries already
+carry photos; the property chat channel already exists per property. Needs:
+the NAS write path (tier 3 above) so uploaded evidence is sovereign, and an
+incident-photo field mirroring the maintenance-photo one. Tier C (governance
++ who-sees-what). Privacy: evidence is landlord/admin-scoped; the next tenant
+never inherits it (tenant turnover already archives, doesn't carry).
+
 ## Captured, not yet built: Wyze surveillance (project #7 from 2026-06-10)
 
 > "I also have live stream wyze cameras at 805 apartments and at my home."
