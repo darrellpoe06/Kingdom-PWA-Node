@@ -15,10 +15,18 @@
 // (QUALITY-OF-LIFE-AS-NORTH-STAR rule 1; SEED-DATA-AS-ASPIRATION keeps
 // fabricated data out; this path carries only their real history).
 
-// Accepts the worker's JSON (array of messages or { messages: [...] }),
+// Accepts the bridge's JSON in any of its shapes — a bare message array,
+// { messages: [...] }, or n8n's item-array wrapper [{ messages: [...] }] —
 // tolerating the field-name variants Synology exports use.
 export function parseChatHistory(payload) {
-  const arr = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.messages) ? payload.messages : []);
+  let arr = [];
+  if (Array.isArray(payload)) {
+    arr = (payload.length && payload[0] && Array.isArray(payload[0].messages))
+      ? payload.flatMap((p) => (p && Array.isArray(p.messages)) ? p.messages : [])
+      : payload;
+  } else if (payload && Array.isArray(payload.messages)) {
+    arr = payload.messages;
+  }
   return arr
     .map((m) => {
       if (!m) return null;

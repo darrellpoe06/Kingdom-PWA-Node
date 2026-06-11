@@ -822,10 +822,26 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // accepted items join the conversation log. Re-running is safe (dedup by
   // sourceId in toConversationEntries).
   const [chatImport, setChatImport] = useState(null);
+  // The bridge requires the family token (n8n header-auth) because the
+  // Funnel makes the webhook publicly reachable — without it anyone could
+  // read the family's property history. Device-local, entered once.
+  const CHAT_BRIDGE_TOKEN_KEY = 'poetech-chat-bridge-token';
+  const [bridgeTokenInput, setBridgeTokenInput] = useState('');
   const startChatImport = async (r) => {
+    const token = (localStorage.getItem(CHAT_BRIDGE_TOKEN_KEY) || '').trim();
+    if (!token) {
+      setChatImport({ rentalId: r.id, status: 'need-token', messages: [], already: 0 });
+      return;
+    }
     setChatImport({ rentalId: r.id, status: 'loading', messages: [], already: 0 });
     try {
-      const resp = await fetch(`/n8n/webhook/property-history?channel=${encodeURIComponent(r.name)}`);
+      const resp = await fetch(`/n8n/webhook/property-history?channel=${encodeURIComponent(r.name)}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (resp.status === 401 || resp.status === 403) {
+        setChatImport({ rentalId: r.id, status: 'need-token', messages: [], already: 0, badToken: true });
+        return;
+      }
       if (!resp.ok) throw new Error(`history bridge answered ${resp.status}`);
       const json = await resp.json();
       const parsed = parseChatHistory(json);
@@ -1350,6 +1366,17 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                             <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">📥 Property-chat history · #{r.name}</div>
                             {chatImport.status === 'loading' && (
                               <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Fetching channel history from the NAS…</p>
+                            )}
+                            {chatImport.status === 'need-token' && (
+                              <div className="space-y-1.5">
+                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                  {chatImport.badToken ? 'That token was rejected — check it and try again.' : 'Enter the family history-bridge token (one time on this device). It protects your property history from anyone else reaching the bridge.'}
+                                </p>
+                                <div className="flex gap-1.5">
+                                  <input type="password" className="flex-1 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="paste the bridge token" value={bridgeTokenInput} onChange={ev => setBridgeTokenInput(ev.target.value)} />
+                                  <button type="button" onClick={() => { localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, bridgeTokenInput.trim()); setBridgeTokenInput(''); startChatImport(r); }} disabled={!bridgeTokenInput.trim()} className="px-3 py-1.5 text-[10px] uppercase tracking-wider border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-30">Save & fetch</button>
+                                </div>
+                              </div>
                             )}
                             {chatImport.status === 'error' && (
                               <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>

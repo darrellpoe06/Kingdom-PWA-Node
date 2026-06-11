@@ -1,0 +1,72 @@
+{
+  "id": "wfPropHistory001",
+  "name": "wf-property-history",
+  "nodes": [
+    {
+      "id": "phWebhook1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "7c1f4a9e-2b8d-4e63-9f5a-d0c2e1b7a358",
+      "position": [0, 0],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "property-history",
+        "responseMode": "responseNode",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "phbridgetoken1",
+          "name": "property-history bridge token"
+        }
+      }
+    },
+    {
+      "id": "phSsh1",
+      "name": "Read channel history",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [220, 0],
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "=property-history {{ ($json.query && $json.query.channel) || 'none' }}",
+        "cwd": "/tmp"
+      },
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "phbridgessh1",
+          "name": "property-history bridge key"
+        }
+      }
+    },
+    {
+      "id": "phCode1",
+      "name": "Parse JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0],
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of items) {\n  let parsed = [];\n  try { parsed = JSON.parse((item.json.stdout || '[]').trim() || '[]'); } catch (e) { parsed = []; }\n  out.push({ json: { messages: Array.isArray(parsed) ? parsed : [] } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "phResp1",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [660, 0],
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Read channel history", "type": "main", "index": 0 }]] },
+    "Read channel history": { "main": [[{ "node": "Parse JSON", "type": "main", "index": 0 }]] },
+    "Parse JSON": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

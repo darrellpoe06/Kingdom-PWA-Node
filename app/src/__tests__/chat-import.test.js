@@ -27,6 +27,13 @@ describe('parseChatHistory', () => {
     expect(out[1].text).toBe('Roofer quoted $2,800');
   });
 
+  it('unwraps the n8n item-array shape [{ messages: [...] }]', () => {
+    const out = parseChatHistory([{ messages: [{ id: 5, ts: 1718040000, user: 'DP', text: 'Roof quote came in' }] }]);
+    expect(out).toHaveLength(1);
+    expect(out[0].sourceId).toBe('5');
+    expect(out[0].text).toBe('Roof quote came in');
+  });
+
   it('drops empty / textless messages and tolerates garbage', () => {
     expect(parseChatHistory([null, {}, { id: 1, ts: 1718040000, text: '' }, 'nonsense'])).toHaveLength(0);
     expect(parseChatHistory(null)).toHaveLength(0);
