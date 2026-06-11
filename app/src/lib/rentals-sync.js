@@ -1,64 +1,34 @@
 // =============================================================================
-// rentals-sync — cross-device sync for the rentals table (schema v2.2.2)
+// rentals-sync — cross-device sync for the LIVE rentals table
 // =============================================================================
-// Real Estate properties live nested at data.inflows.rentals and carry far
-// more local detail than the rentals table models: mortgage rate / P&I /
-// escrow, rooms, equipment, maintenance + conversation logs, lease / tenant /
-// market-facts sub-objects, and the per-month collection field (actual).
-// Only the top-level property columns travel (one row per property);
-// everything else stays device-local. Because of that, the monolith merges
-// remote rows INTO the local shape (mergeRemoteRentals below) instead of
-// replacing the list wholesale like the flat v1.2 tables do. Leases /
-// rent_payments sync is the planned follow-up.
+// LIVE-SHAPE NOTE (2026-06-10, discovered during the signed-in migration
+// session): the cloud rentals table is the v1.2-numeric-sync shape evolved
+// (instance_id, slug, entity_slug, address, unit, monthly_rent,
+// mortgage_payment, reserves, status, notes, tenant_name) — the v2.2
+// rentals CREATE never applied (the v1.2 table already existed, so
+// IF NOT EXISTS no-opped). The repo's schema files are NOT the applied
+// state; this wrapper maps to the columns verified live via catalog
+// queries, plus the twelve added by schema-v2.13-family-data-sync.sql
+// (applied 2026-06-10): display_name, city, state, zip, property_type,
+// purchase_date, purchase_price, current_market_value, mortgage_balance,
+// mortgage_rate, mortgage_escrow, rent_actual.
 //
-// Local shape (seed + Rentals.jsx submitProp payload):
-//   { id: 'r1', name: '1402 Maple St', address: '1402 Maple St',
-//     city: 'Cedar Heights', state: 'IL', zip: '', tenantName: '',
-//     propertyType: <one of PROPERTY_TYPES>, rent: 1100, actual: 1100,
-//     status: <one of LOCAL_STATUSES>, entityId: 'e-poeprops',
-//     purchasePrice: 0, purchaseDate: '', estimatedValue: 0,
-//     mortgage: { balance, rate, monthlyPI, escrow, estimated },
-//     notes: '', ...device-local sub-records }
+// What this buys vs the old plan: slug and entity_slug are NATIVE columns
+// (no links jsonb ride-along), status/property_type have NO CHECKs (the
+// app's real vocab stores as-is), and the FULL numeric picture syncs —
+// rent, actual collected, tenant name, and the whole mortgage object
+// (balance, rate, P&I via mortgage_payment, escrow) — so Christina's
+// device computes the same snowball math as Darrell's.
 //
-// Remote shape (schema v2.2 + v2.2.2 amendments):
-//   { id (uuid), instance_id, created_by, created_at, updated_at, lifecycle,
-//     links, entity_id, slug, address, unit, city, state, zip, display_name,
-//     property_type, purchase_date, purchase_price, current_market_value,
-//     mortgage_amount, mortgage_paid_off, property_taxes_annual,
-//     insurance_annual, hoa_monthly, notes, status }
-//
-// v2.2.2 contract (REQUIRES schema-v2.2.2-rentals-sync-amendments.sql):
-//   - `slug` is a real column with a per-instance unique index, so
-//     cross-device dedup is enforced by the database, not just the client.
-//     The links { type: 'local-slug', id } entry is still written for
-//     back-compat and read as a fallback for rows from the v0 soak client.
-//   - city / state / zip travel with the property so the Zillow / Realtor /
-//     county-assessor lookups work on every device, not just the one that
-//     typed them. On merge they FILL (a remote value lands locally) but a
-//     blank remote value never erases local detail.
-//   - status and property_type store the app's real vocab — the CHECKs
-//     were widened to the union, so nothing is flattened to a fake value
-//     and both fields sync two-way like any other column. fromRemoteStatus
-//     still normalizes the six v2.2 occupancy values written by the v0
-//     soak client into the app's vocab.
-//
-// Columns intentionally not mapped (no local equivalent yet): unit,
-// property_taxes_annual, insurance_annual, hoa_monthly, mortgage_paid_off,
-// entity_id (uuid FK — local entityId is a slug and v2.2 has no entity_slug
-// + trigger like accounts; the slug stays device-local for now).
-//
-// RLS note: rentals_owner_delete requires the instance 'owner' role; a
-// non-owner's delete still works locally and logs a warn on the remote leg.
-// Tier note: rentals_tier_enforce caps Family-tier instances at 1 active
-// door and landlord-tier at 10 — since v2.2.2 the family's own homes
-// (property_type primary-home / secondary-home, status owner-occupied) do
-// NOT count against the caps. A refused insert is skipped with a warn and
-// the app keeps working from localStorage.
-// =============================================================================
+// Still device-local (no columns): rooms, equipment, maintenanceLog,
+// conversationLog, lat/lon, market/lease/tenant sub-objects. Because of
+// that, the monolith merges remote rows INTO the local shape
+// (mergeRemoteRentals below) instead of replacing the list wholesale.
 import { createTableSync } from './table-sync.js';
 
-// The full property-type vocab — identical to the Rentals.jsx select list
-// and, since v2.2.2, to the remote CHECK. Nothing gets flattened.
+// The UI vocab (Rentals.jsx selects). The live table has no CHECKs; these
+// passthrough-with-fallback helpers exist so garbage never syncs and the
+// monolith's patch mapping has one place to normalize.
 const PROPERTY_TYPES = new Set([
   'single-family', 'duplex', 'multi-family', 'condo', 'townhouse',
   'commercial', 'land', 'primary-home', 'secondary-home', 'vacation', 'other',
@@ -68,38 +38,25 @@ export function toRemotePropertyType(t) {
   return PROPERTY_TYPES.has(t) ? t : 'single-family';
 }
 
-// The app's status vocab — identical to the Rentals.jsx select list.
 const LOCAL_STATUSES = new Set([
   'paying', 'late', 'vacant', 'rehab', 'for-sale', 'sold',
   'owner-occupied', 'seasonal', 'unrented',
 ]);
 
-// The remote CHECK (v2.2.2) = LOCAL_STATUSES plus the original v2.2
-// occupancy values, kept valid for rows written by the v0 soak client.
-const REMOTE_STATUS_CHECK = new Set([...LOCAL_STATUSES, 'occupied', 'listed', 'off-market']);
-
-export function toRemoteStatus(s) {
-  return REMOTE_STATUS_CHECK.has(s) ? s : 'paying';
-}
-
-// Rows written by the v0 soak client carry the old flattened occupancy
-// vocab — normalize those into the app's vocab; pass real values through.
+// Legacy occupancy vocab (in case any tool ever wrote v2.2-style values).
 const LEGACY_REMOTE_TO_LOCAL_STATUS = {
   occupied: 'paying',
   listed: 'for-sale',
   'off-market': 'unrented',
 };
 
+export function toRemoteStatus(s) {
+  return LOCAL_STATUSES.has(s) || LEGACY_REMOTE_TO_LOCAL_STATUS[s] ? s : 'paying';
+}
+
 export function fromRemoteStatus(s) {
   if (LOCAL_STATUSES.has(s)) return s;
   return LEGACY_REMOTE_TO_LOCAL_STATUS[s] || 'paying';
-}
-
-function slugFromLinks(links) {
-  const hit = Array.isArray(links)
-    ? links.find((l) => l && l.type === 'local-slug' && l.id)
-    : null;
-  return hit ? hit.id : null;
 }
 
 export const rentalsSync = createTableSync({
@@ -111,45 +68,52 @@ export const rentalsSync = createTableSync({
       instance_id:          tenantId,
       created_by:           userId,
       slug:                 item.id,
-      links:                [{ type: 'local-slug', id: item.id }],
+      entity_slug:          item.entityId || null,
+      display_name:         item.name || item.address || '',
       address:              item.address || item.name || '',
       city:                 item.city || null,
       state:                item.state || null,
       zip:                  item.zip || null,
-      display_name:         item.name || item.address || '',
+      tenant_name:          item.tenantName || null,
       property_type:        toRemotePropertyType(item.propertyType),
+      status:               toRemoteStatus(item.status),
+      monthly_rent:         Number(item.rent) || 0,
+      rent_actual:          Number(item.actual) || 0,
       purchase_date:        item.purchaseDate || null,
       purchase_price:       Number(item.purchasePrice) || 0,
       current_market_value: Number(item.estimatedValue) || 0,
-      mortgage_amount:      Number(item.mortgage?.balance) || 0,
+      mortgage_balance:     Number(item.mortgage?.balance) || 0,
+      mortgage_rate:        Number(item.mortgage?.rate) || 0,
+      mortgage_payment:     Number(item.mortgage?.monthlyPI) || 0,
+      mortgage_escrow:      Number(item.mortgage?.escrow) || 0,
       notes:                item.notes ?? null,
-      status:               toRemoteStatus(item.status),
     };
   },
 
   fromRow(row) {
     return {
-      id:             row.slug || slugFromLinks(row.links) || `r-remote-${row.id}`,
+      id:             row.slug || `r-remote-${row.id}`,
       remoteUuid:     row.id,
-      tenantId:       row.instance_id,
-      name:           row.display_name,
+      entityId:       row.entity_slug || 'e-poeprops',
+      name:           row.display_name || row.address,
       address:        row.address,
       city:           row.city ?? '',
       state:          row.state ?? '',
       zip:            row.zip ?? '',
+      tenantName:     row.tenant_name ?? '',
       propertyType:   PROPERTY_TYPES.has(row.property_type) ? row.property_type : 'single-family',
-      rent:           0,
-      actual:         0,
       status:         fromRemoteStatus(row.status),
+      rent:           Number(row.monthly_rent) || 0,
+      actual:         Number(row.rent_actual) || 0,
       purchasePrice:  Number(row.purchase_price) || 0,
       purchaseDate:   row.purchase_date || '',
       estimatedValue: Number(row.current_market_value) || 0,
       mortgage: {
-        balance:   Number(row.mortgage_amount) || 0,
-        rate:      0,
-        monthlyPI: 0,
-        escrow:    0,
-        estimated: true,
+        balance:   Number(row.mortgage_balance) || 0,
+        rate:      Number(row.mortgage_rate) || 0,
+        monthlyPI: Number(row.mortgage_payment) || 0,
+        escrow:    Number(row.mortgage_escrow) || 0,
+        estimated: false,
       },
       notes:          row.notes ?? '',
       updatedAt:      row.updated_at,
@@ -158,26 +122,25 @@ export const rentalsSync = createTableSync({
   },
 
   idOf(item) {
-    return item.id; // the local slug; the DB enforces (instance_id, slug) unique
+    return item.id; // the local slug; the DB's (instance_id, slug) unique index enforces dedup
   },
 });
 
 // Fields where the remote column is the source of truth across devices.
-// Since v2.2.2 that includes status and propertyType — the CHECKs accept
-// the app's real vocab, so they sync two-way like any other column.
 const SYNCED_FIELDS = [
   'name', 'address', 'notes', 'purchasePrice', 'purchaseDate',
-  'estimatedValue', 'status', 'propertyType',
+  'estimatedValue', 'status', 'propertyType', 'rent', 'actual',
+  'tenantName', 'entityId',
 ];
 
 // Location fields fill in from remote but a blank remote value never
-// erases local detail (rows from the v0 soak client predate the columns).
+// erases locally-typed detail.
 const FILL_FIELDS = ['city', 'state', 'zip'];
 
 // Merge remote rows into the local list, preserving device-local detail:
 //   - local item matched remotely (by slug or remoteUuid) → overlay the
-//     synced columns; keep rent/actual, mortgage rate/P&I/escrow, rooms,
-//     equipment, logs, entityId, etc.
+//     synced columns + the full mortgage object; keep rooms, equipment,
+//     logs, market/lease sub-objects, lat/lon.
 //   - local item never uploaded (no remoteUuid, no match) → keep it;
 //     initialSync / addRental will push it.
 //   - local item with a remoteUuid whose row is gone → deleted on another
@@ -201,9 +164,10 @@ export function mergeRemoteRentals(localItems = [], remoteItems = []) {
       const next = { ...local, remoteUuid: remote.remoteUuid, updatedAt: remote.updatedAt };
       for (const f of SYNCED_FIELDS) next[f] = remote[f];
       for (const f of FILL_FIELDS) if (remote[f]) next[f] = remote[f];
-      // Only the balance column syncs; rate / P&I / escrow stay device-local.
+      // The whole mortgage object syncs now (v2.13 added rate / P&I /
+      // escrow columns); only the local 'estimated' flag is preserved.
       next.mortgage = local.mortgage
-        ? { ...local.mortgage, balance: remote.mortgage.balance }
+        ? { ...remote.mortgage, estimated: local.mortgage.estimated }
         : remote.mortgage;
       merged.push(next);
     } else if (!local.remoteUuid) {

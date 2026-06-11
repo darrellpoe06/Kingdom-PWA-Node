@@ -1,7 +1,8 @@
 // rentals-sync merge rules — device-local detail must survive a remote refresh.
-// See app/src/lib/rentals-sync.js header for the full mapping contract (v2.2.2:
-// status + propertyType store the app's real vocab and sync two-way; city /
-// state / zip fill from remote but never blank out local detail).
+// See app/src/lib/rentals-sync.js header for the live-shape mapping contract
+// (2026-06-10): rent / actual / tenantName / entityId / the full mortgage
+// object sync as columns now; rooms / equipment / logs stay device-local;
+// city / state / zip fill from remote but never blank out local detail.
 import { describe, it, expect } from 'vitest';
 import {
   mergeRemoteRentals,
@@ -17,9 +18,9 @@ const localSeed = {
   city: 'Cedar Heights',
   state: 'IL',
   zip: '',
-  tenantName: 'Tracy W.',
-  rent: 1100,
-  actual: 550,
+  tenantName: 'Old Name',
+  rent: 1000,
+  actual: 500,
   status: 'late',
   entityId: 'e-poeprops',
   propertyType: 'primary-home',
@@ -27,53 +28,57 @@ const localSeed = {
   rooms: [{ id: 'rm-1', name: 'Kitchen' }],
 };
 
+// What another device pushed (fromRow shape).
 const remoteTwin = {
-  id: 'r1', // slug column (links jsonb fallback for v0-soak rows)
+  id: 'r1',
   remoteUuid: 'uuid-1',
-  name: '1402 Maple Street', // renamed on another device
+  name: '1402 Maple Street',
   address: '1402 Maple St',
-  city: '',                  // v0-soak row predates the city/state/zip columns
+  city: '',
   state: '',
   zip: '',
-  propertyType: 'primary-home', // real vocab stored since v2.2.2
-  rent: 0,
-  actual: 0,
-  status: 'vacant',          // tenant moved out, changed on another device
+  tenantName: 'Tracy W.',
+  entityId: 'e-poeprops',
+  propertyType: 'primary-home',
+  rent: 1100,
+  actual: 550,
+  status: 'vacant',
   purchasePrice: 95000,
   purchaseDate: '2019-04-01',
   estimatedValue: 140000,
-  mortgage: { balance: 87000, rate: 0, monthlyPI: 0, escrow: 0, estimated: true },
+  mortgage: { balance: 87000, rate: 6.25, monthlyPI: 540, escrow: 175, estimated: false },
   notes: '',
   updatedAt: '2026-06-10T00:00:00Z',
 };
 
 describe('mergeRemoteRentals', () => {
-  it('overlays synced columns but keeps device-local fields', () => {
+  it('overlays synced columns (including rent/tenant/mortgage) but keeps device-local records', () => {
     const [m] = mergeRemoteRentals([localSeed], [remoteTwin]);
-    // synced columns follow remote — including status + propertyType (v2.2.2)
+    // synced columns follow remote
     expect(m.name).toBe('1402 Maple Street');
     expect(m.purchasePrice).toBe(95000);
     expect(m.estimatedValue).toBe(140000);
     expect(m.remoteUuid).toBe('uuid-1');
-    expect(m.mortgage.balance).toBe(87000);
     expect(m.status).toBe('vacant');
     expect(m.propertyType).toBe('primary-home');
-    // device-local fields survive
     expect(m.rent).toBe(1100);
     expect(m.actual).toBe(550);
-    expect(m.mortgage.rate).toBe(6.5);
-    expect(m.mortgage.monthlyPI).toBe(556);
     expect(m.tenantName).toBe('Tracy W.');
     expect(m.entityId).toBe('e-poeprops');
+    // the whole mortgage object syncs; only the local 'estimated' flag is kept
+    expect(m.mortgage.balance).toBe(87000);
+    expect(m.mortgage.rate).toBe(6.25);
+    expect(m.mortgage.monthlyPI).toBe(540);
+    expect(m.mortgage.escrow).toBe(175);
+    expect(m.mortgage.estimated).toBe(true);
+    // device-local records survive
     expect(m.rooms).toHaveLength(1);
   });
 
   it('fills city/state/zip from remote but never blanks local detail', () => {
-    // blank remote values (v0-soak row) must not erase the local city/state
     const [kept] = mergeRemoteRentals([localSeed], [remoteTwin]);
     expect(kept.city).toBe('Cedar Heights');
     expect(kept.state).toBe('IL');
-    // a remote value typed on another device lands here
     const remoteWithCity = { ...remoteTwin, city: 'Champaign', state: 'IL', zip: '61820' };
     const [filled] = mergeRemoteRentals([localSeed], [remoteWithCity]);
     expect(filled.city).toBe('Champaign');
@@ -108,30 +113,27 @@ describe('mergeRemoteRentals', () => {
   });
 });
 
-describe('status / property-type vocab (v2.2.2 — stored as-is, no flattening)', () => {
-  it('passes the full app status vocab through to the remote CHECK', () => {
+describe('status / property-type vocab (live table has no CHECKs; app vocab stores as-is)', () => {
+  it('passes the full app status vocab through', () => {
     for (const s of ['paying', 'late', 'vacant', 'rehab', 'for-sale', 'sold', 'owner-occupied', 'seasonal', 'unrented']) {
       expect(toRemoteStatus(s)).toBe(s);
     }
-    expect(toRemoteStatus('something-new')).toBe('paying'); // never violate CHECK
+    expect(toRemoteStatus('something-unknown')).toBe('paying'); // garbage never syncs
   });
 
-  it('passes the full app property-type vocab through to the remote CHECK', () => {
+  it('passes the full app property-type vocab through', () => {
     for (const t of ['single-family', 'duplex', 'multi-family', 'condo', 'townhouse', 'commercial', 'land', 'primary-home', 'secondary-home', 'vacation', 'other']) {
       expect(toRemotePropertyType(t)).toBe(t);
     }
     expect(toRemotePropertyType(undefined)).toBe('single-family');
   });
 
-  it('normalizes v0-soak occupancy statuses into the app vocab coming down', () => {
+  it('normalizes legacy occupancy statuses coming down', () => {
     expect(fromRemoteStatus('occupied')).toBe('paying');
     expect(fromRemoteStatus('listed')).toBe('for-sale');
     expect(fromRemoteStatus('off-market')).toBe('unrented');
-    // real app vocab passes through untouched
     expect(fromRemoteStatus('late')).toBe('late');
     expect(fromRemoteStatus('owner-occupied')).toBe('owner-occupied');
-    // shared values stay themselves
     expect(fromRemoteStatus('vacant')).toBe('vacant');
-    expect(fromRemoteStatus('sold')).toBe('sold');
   });
 });

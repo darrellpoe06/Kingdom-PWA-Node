@@ -2480,12 +2480,21 @@ export default function PoeFinancialSystem() {
         if (updates.city !== undefined)           patch.city = updates.city || null;
         if (updates.state !== undefined)          patch.state = updates.state || null;
         if (updates.zip !== undefined)            patch.zip = updates.zip || null;
+        if (updates.tenantName !== undefined)     patch.tenant_name = updates.tenantName || null;
+        if (updates.entityId !== undefined)       patch.entity_slug = updates.entityId || null;
         if (updates.propertyType !== undefined)   patch.property_type = toRemotePropertyType(updates.propertyType);
         if (updates.status !== undefined)         patch.status = toRemoteStatus(updates.status);
+        if (updates.rent !== undefined)           patch.monthly_rent = parseFloat(updates.rent) || 0;
+        if (updates.actual !== undefined)         patch.rent_actual = parseFloat(updates.actual) || 0;
         if (updates.purchasePrice !== undefined)  patch.purchase_price = parseFloat(updates.purchasePrice) || 0;
         if (updates.purchaseDate !== undefined)   patch.purchase_date = updates.purchaseDate || null;
         if (updates.estimatedValue !== undefined) patch.current_market_value = parseFloat(updates.estimatedValue) || 0;
-        if (updates.mortgage !== undefined)       patch.mortgage_amount = parseFloat(updates.mortgage?.balance) || 0;
+        if (updates.mortgage !== undefined) {
+          patch.mortgage_balance = parseFloat(updates.mortgage?.balance) || 0;
+          patch.mortgage_rate    = parseFloat(updates.mortgage?.rate) || 0;
+          patch.mortgage_payment = parseFloat(updates.mortgage?.monthlyPI) || 0;
+          patch.mortgage_escrow  = parseFloat(updates.mortgage?.escrow) || 0;
+        }
         if (updates.notes !== undefined)          patch.notes = updates.notes;
         // Device-local edits (rooms, equipment, logs, lease/tenant/market
         // sub-objects) produce an empty patch — skip the network round-trip.

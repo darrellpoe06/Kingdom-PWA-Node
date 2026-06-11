@@ -56,10 +56,28 @@ These are the distilled, binding lessons. Each links back to the dated incident(
 - **P10 — Autonomous timer-driven automation needs three brakes before it ships active: a budget, a concurrency lock, and a kill-switch.** A token/turn/wall-clock ceiling per run, single-instance locking so a new fire skips rather than stacks on a hung one, and a dead-man's-switch that auto-pauses on overrun instead of auto-continuing. Without all three, a hung or looping run burns compute until a human kills it by hand. (Extracted: 2026-06-06 autonomous-automation runaway.)
 - **P11 — Nothing self-activates unattended, least of all while the principal is away.** Automation that spawns more automation — or more Claude/compute — on a clock is shipped inactive and turned on only with someone watching. "Ship it live" during a vacation window is the exact condition that converts a small loop into an unrecoverable runaway. (Extracted: 2026-06-06 autonomous-automation runaway.)
 - **P12 — Automation that consumes compute on a timer is Tier C, never Tier A.** The "NAS-only sovereign surface = Tier A" and "additive = Tier A" shortcuts do not apply to anything that runs on a schedule; sovereignty of location and additiveness of code do not bound cost or blast radius. (Extracted: 2026-06-06 autonomous-automation runaway.)
+- **P13 — Schema files are not applied state; verify the live catalog before mapping code to columns.** A migration file in the repo proves intent, not application. `CREATE TABLE IF NOT EXISTS` silently no-ops against a same-named table from an earlier generation, leaving a hybrid: the old shape with the new triggers. Before writing any sync/mapping code, query `information_schema.columns` (and pg_constraint / pg_trigger) on the LIVE database and map to what is actually there. (Extracted: 2026-06-10 phantom-v2.2-rentals discovery.)
 
 ---
 
 ## Incident Log (chronological — newest first)
+
+### 2026-06-10 — The cloud rentals table was never the v2.2 shape; two days of sync code targeted phantom columns
+
+**Trigger:** Applying the v2.2.2 rentals-sync migration in cloud Studio (the first signed-in database session since the rentals-sync wedge began) failed with its transaction rolled back; a catalog probe showed exactly one of four "new" columns already existed.
+
+**Detection:** Post-failure catalog queries (`information_schema.columns`) revealed the live `rentals` table is the v1.2-numeric-sync shape evolved (instance_id, slug, entity_slug, address, monthly_rent, mortgage_payment, status free-text, tenant_name) — not v2.2's shape (display_name, property_type, links, lifecycle, purchase columns). Same for `incidents` (v1.2-evolved, with native linked_to_kind/linked_to_slug). `contractors_1099` (v2.4) did not exist at all. `rentals_tier_notify` (v2.2.1) was never created.
+
+**Root cause(s):**
+1. **`CREATE TABLE IF NOT EXISTS` no-opped silently.** v1.2 created `rentals`/`incidents`; when v2.2/v2.8 were later applied, their CREATEs skipped, while their OTHER statements (renters, leases, the tier trigger) landed — producing hybrid state: old table shapes carrying new-generation triggers.
+2. **"Applied-but-unused" was asserted from the repo's schema files, never verified against the live catalog.** Two days of client mapping code (PR #24 v0 + the v2.2.2 review hardening) inherited the premise.
+3. **The soak never ran signed-in**, so no insert ever hit the real table to expose the mismatch (pairs with P3/P4 — the failure mode was never exercised).
+
+**What worked:** The signed-in Studio session made verification cheap; catalog probes identified the live shapes in minutes; the corrective migration (schema-v2.13-family-data-sync.sql, live-aligned, additive-only) applied and verified the same session; client mappings rewritten same-day. The live shapes turned out SIMPLER for the app (native slug/entity_slug, no CHECKs, purpose-built linked_to_slug).
+
+**Principle(s) extracted:** P13 (also reinforces P3/P4).
+
+**Forward architectural fix:** Every future sync wrapper starts with a live-catalog probe, not a schema-file read; migration files that were applied get an "APPLIED <date> + verified" header, and superseded/never-applied files get a DO-NOT-RUN header (done for v2.2.2 / v2.13).
 
 ### 2026-06-06 — Autonomous timer-driven automation ran away and required a manual shutdown
 

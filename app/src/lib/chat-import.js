@@ -6,6 +6,8 @@
 // (see infra/n8n/README-property-history.md) exposes that history as JSON
 // at GET /webhook/property-history?channel=<short-address>; the PWA reaches
 // it through the same-origin /n8n rewrite (never the absolute Funnel URL).
+// (No schema dependency — imported entries live on the rental's
+// device-local conversationLog until leases/notes sync exists.)
 //
 // Nothing imports silently. Messages are STAGED, Darrell or Christina
 // check what's true, and only accepted items land on the property's

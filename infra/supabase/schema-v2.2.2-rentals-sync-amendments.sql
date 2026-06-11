@@ -1,4 +1,12 @@
 -- =====================================================================
+-- ⚠️ SUPERSEDED — NEVER APPLIED. DO NOT RUN. (2026-06-10, same day.)
+-- This file targeted the v2.2 rentals shape, but the LIVE cloud rentals
+-- table turned out to be the v1.2-numeric-sync shape evolved — v2.2's
+-- CREATE TABLE no-opped against the pre-existing v1.2 table. The run of
+-- this file rolled back (its backfill referenced a links column that
+-- doesn't exist live). Superseded by schema-v2.13-family-data-sync.sql,
+-- which is live-aligned and WAS applied 2026-06-10. Kept for the record.
+-- =====================================================================
 -- Kingdom-PWA / SKOS / PoeTech — schema-v2.2.2-rentals-sync-amendments.sql
 --
 -- v2.2.2 RENTALS SYNC AMENDMENTS (2026-06-10, review follow-up to the

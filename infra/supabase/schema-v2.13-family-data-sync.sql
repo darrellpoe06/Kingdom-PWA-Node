@@ -1,79 +1,126 @@
 -- =====================================================================
 -- Kingdom-PWA / SKOS / PoeTech — schema-v2.13-family-data-sync.sql
 --
--- v2.13 FAMILY DATA SYNC (2026-06-10). Run AFTER
--- schema-v2.2.2-rentals-sync-amendments.sql (same Studio sitting is fine).
--- Depends on: schema-v2.8-ops.sql (incidents), schema-v2.4-contractor.sql
--- (contractors_1099).
+-- v2.13 FAMILY DATA SYNC — LIVE-ALIGNED. ✅ APPLIED 2026-06-10 to the
+-- cloud project (mjjlevhdufpaplypnqrv) via Studio SQL Editor, driven by
+-- Claude in Darrell's signed-in session. Verified by catalog query after
+-- the run: 12/12 rentals columns, 2/2 incidents columns, contractors_1099
+-- present with 4 policies, trigger NULL-guard confirmed.
 --
--- Purpose: the quality-control loops (work orders, dispatch trail,
--- lifecycle logs) and the 1099 worker list currently live in one device's
--- localStorage. These amendments let the PWA sync both to the family
--- instance, so the QC history pools across Darrell's and Christina's
--- devices and survives any one device. Same union-vocab discipline as
--- v2.2.2: the app's real values are stored, nothing is flattened.
+-- *** THE LIVE-SHAPE DISCOVERY (read before touching rentals DDL) ***
+-- The cloud `rentals` and `incidents` tables are the v1.2-numeric-sync
+-- shapes evolved (instance_id, slug, entity_slug, free-text status, no
+-- CHECKs) — NOT the v2.2 shapes. schema-v2.2's CREATE TABLE rentals
+-- no-opped because the v1.2 table already existed (IF NOT EXISTS), while
+-- the REST of v2.2 (renters, leases, rent_payments, the tier trigger)
+-- did apply. The repo's schema files are NOT a record of applied state;
+-- verify information_schema before mapping client code. This superseded
+-- schema-v2.2.2-rentals-sync-amendments.sql (never applied — it targeted
+-- the phantom v2.2 columns and its backfill referenced a links column
+-- that doesn't exist live, so its transaction rolled back).
 --
---  1. incidents: slug column + per-instance unique index (client-side ids
---     like 'in-1718...' become the cross-device identity, DB-enforced);
---     dispatch jsonb (the assigned-worker record: who, phone, when);
---     category CHECK widened with the app's 'tenant','personal','business';
---     urgency CHECK widened with the app's 'project' band.
---
---  2. contractors_1099: slug column + unique index; notes column (the
---     app's per-worker notes had no home, and losing them on sync would
---     violate merge-keeps-local-detail); status CHECK widened with the
---     app's legacy 'paused','ended' so existing device data uploads as-is.
+-- What this migration does:
+--  1. rentals — adds the columns the app carries that the live table
+--     lacked. Native live columns already in use: slug (unique with
+--     instance_id), entity_slug, address, unit, monthly_rent,
+--     mortgage_payment (monthly P&I), status, notes, tenant_name.
+--  2. incidents — adds the two QC-trail columns (lifecycle, dispatch).
+--     Live table natively has slug, entity_slug, linked_to_kind,
+--     linked_to_slug, and no CHECKs (the app vocab stores as-is).
+--  3. contractors_1099 — creates the shared 1099 worker roster in this
+--     database's native style, columns 1:1 with the app's shape.
+--  4. rentals_tier_enforce — replaced with a live-shape-safe version:
+--     NULL tier (no active subscription — both current instances) means
+--     NO caps; the family's own homes (primary-home / secondary-home /
+--     owner-occupied) are never counted as rental doors; the v2.2.1
+--     notification call is dropped (rentals_tier_notify never existed
+--     in this database).
 -- =====================================================================
 
 BEGIN;
 
--- ---------------------------------------------------------------------
--- 1. incidents — work orders + QC trail
--- ---------------------------------------------------------------------
-ALTER TABLE incidents ADD COLUMN IF NOT EXISTS slug text;
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS display_name text;
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS city text;
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS state text;
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS zip text;
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS property_type text;
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS purchase_date date;
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS purchase_price numeric(12,2);
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS current_market_value numeric(12,2);
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS mortgage_balance numeric(12,2);
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS mortgage_rate numeric(6,3);
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS mortgage_escrow numeric(12,2);
+ALTER TABLE rentals ADD COLUMN IF NOT EXISTS rent_actual numeric(12,2);
+
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS lifecycle jsonb;
 ALTER TABLE incidents ADD COLUMN IF NOT EXISTS dispatch jsonb;
 
-CREATE UNIQUE INDEX IF NOT EXISTS incidents_instance_slug_uniq
-  ON incidents (instance_id, slug)
-  WHERE slug IS NOT NULL;
+CREATE TABLE IF NOT EXISTS contractors_1099 (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+  created_by uuid NOT NULL REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz,
+  slug text,
+  entity_slug text,
+  direction text NOT NULL DEFAULT 'outbound',
+  name text NOT NULL,
+  phone text,
+  email text,
+  role text,
+  ytd_paid numeric(12,2) NOT NULL DEFAULT 0,
+  ytd_received numeric(12,2) NOT NULL DEFAULT 0,
+  monthly numeric(12,2) NOT NULL DEFAULT 0,
+  monthly_expected numeric(12,2) NOT NULL DEFAULT 0,
+  status text NOT NULL DEFAULT 'active',
+  notes text
+);
+CREATE UNIQUE INDEX IF NOT EXISTS contractors_instance_slug_uidx ON contractors_1099 (instance_id, slug) WHERE slug IS NOT NULL;
+CREATE INDEX IF NOT EXISTS contractors_instance_idx ON contractors_1099 (instance_id);
+ALTER TABLE contractors_1099 ENABLE ROW LEVEL SECURITY;
+CREATE POLICY contractors_member_read ON contractors_1099 FOR SELECT USING (user_in_instance(instance_id));
+CREATE POLICY contractors_member_insert ON contractors_1099 FOR INSERT WITH CHECK (user_in_instance(instance_id) AND created_by = auth.uid());
+CREATE POLICY contractors_member_update ON contractors_1099 FOR UPDATE USING (user_in_instance(instance_id)) WITH CHECK (user_in_instance(instance_id));
+CREATE POLICY contractors_member_delete ON contractors_1099 FOR DELETE USING (user_in_instance(instance_id));
 
-ALTER TABLE incidents DROP CONSTRAINT IF EXISTS incidents_category_check;
-ALTER TABLE incidents ADD CONSTRAINT incidents_category_check
-  CHECK (category IN (
-    'vehicle','property','medical','renter','maintenance','technology',
-    'financial','administrative','other',
-    -- app vocab (union, v2.13)
-    'tenant','personal','business','tenant-or-property'
-  ));
+CREATE OR REPLACE FUNCTION public.rentals_tier_enforce()
+RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+  v_tier text;
+  v_doors int;
+BEGIN
+  v_tier := instance_active_tier(NEW.instance_id);
+  IF v_tier IS NULL THEN RETURN NEW; END IF;
 
-ALTER TABLE incidents DROP CONSTRAINT IF EXISTS incidents_urgency_check;
-ALTER TABLE incidents ADD CONSTRAINT incidents_urgency_check
-  CHECK (urgency IN (
-    'incident','change','request','problem','normal','urgent','low',
-    -- app vocab (union, v2.13): the third ITSM band
-    'project'
-  ));
+  IF v_tier = 'family' AND TG_OP = 'INSERT' AND EXISTS (
+    SELECT 1 FROM leases l JOIN renters r ON r.id = l.renter_id
+    WHERE l.rental_id = NEW.id AND r.external_user_id IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'Family tier: rentals cannot have non-family renters. Upgrade to Landlord or Business tier.';
+  END IF;
 
--- ---------------------------------------------------------------------
--- 2. contractors_1099 — the 1099 worker list both phones share
--- ---------------------------------------------------------------------
-ALTER TABLE contractors_1099 ADD COLUMN IF NOT EXISTS slug text;
-ALTER TABLE contractors_1099 ADD COLUMN IF NOT EXISTS notes text;
+  SELECT COUNT(*) INTO v_doors FROM rentals
+   WHERE instance_id = NEW.instance_id
+     AND COALESCE(status,'') NOT IN ('sold','owner-occupied')
+     AND COALESCE(property_type,'') NOT IN ('primary-home','secondary-home');
 
-CREATE UNIQUE INDEX IF NOT EXISTS contractors_1099_instance_slug_uniq
-  ON contractors_1099 (instance_id, slug)
-  WHERE slug IS NOT NULL;
+  IF v_tier = 'family' AND v_doors > 1 THEN
+    RAISE EXCEPTION 'Family tier: maximum 1 active rental door (currently %).', v_doors;
+  END IF;
+  IF v_tier = 'landlord' AND v_doors > 10 THEN
+    RAISE EXCEPTION 'Landlord tier: maximum 10 active doors (currently %).', v_doors;
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
-ALTER TABLE contractors_1099 DROP CONSTRAINT IF EXISTS contractors_1099_status_check;
-ALTER TABLE contractors_1099 ADD CONSTRAINT contractors_1099_status_check
-  CHECK (status IN (
-    'active','pipeline','possible','inactive','terminated',
-    -- app vocab (union, v2.13)
-    'paused','ended'
-  ));
+DROP TRIGGER IF EXISTS rentals_tier_enforce_trg ON rentals;
+CREATE TRIGGER rentals_tier_enforce_trg
+  AFTER INSERT OR UPDATE OF status, property_type ON rentals
+  FOR EACH ROW EXECUTE FUNCTION rentals_tier_enforce();
 
 COMMIT;
 
 -- =====================================================================
--- End of schema-v2.13-family-data-sync.sql
+-- End of schema-v2.13-family-data-sync.sql (applied 2026-06-10)
 -- =====================================================================

@@ -1,80 +1,39 @@
 // =============================================================================
-// incidents-sync — cross-device sync for the Action Queue (schema v2.8 + v2.13)
+// incidents-sync — cross-device sync for the Action Queue (LIVE incidents table)
 // =============================================================================
 // Incidents ARE the quality-control record: every work order, every
 // "dispatched to X", every resolve, with timestamps in the lifecycle log.
-// Until v2.13 that record lived in one device's localStorage; this wrapper
-// pools it on the family instance so Darrell's and Christina's devices see
-// the same queue and the QC history survives any one device.
+// This wrapper pools that record on the family instance so both devices
+// see the same queue and the QC history survives any one device.
 //
-// Mapping notes (REQUIRES schema-v2.13-family-data-sync.sql):
-//   - slug column carries the local id ('in-1718...'), unique per instance.
-//   - lifecycle + dispatch ride as jsonb — the full audit trail syncs.
-//   - category / urgency store the app's real vocab (CHECKs widened to the
-//     union in v2.13); unknown values fall back inside the CHECK.
-//   - linkedTo ({ type:'rental', id:<slug> }) rides in the links jsonb —
-//     the remote linked_to_id column is a uuid and local links are slugs.
-//   - entityId (local slug) stays device-local: entity_id is a uuid FK.
+// LIVE-SHAPE NOTE (2026-06-10): the cloud incidents table is the
+// v1.2-numeric-sync shape evolved — it natively carries slug, entity_slug,
+// linked_to_kind + linked_to_slug (text, exactly the app's
+// linkedTo { type, id } pair), and has NO CHECK constraints, so the app's
+// category/urgency/status vocab stores as-is. schema-v2.13 (applied
+// 2026-06-10) added the two QC columns: lifecycle jsonb + dispatch jsonb.
 // Every local field maps to a column, so the monolith uses the flat-table
 // wholesale-replace pattern (like accounts), not the rentals merge.
 import { createTableSync } from './table-sync.js';
-
-const REMOTE_CATEGORIES = new Set([
-  'vehicle', 'property', 'medical', 'renter', 'maintenance', 'technology',
-  'financial', 'administrative', 'other',
-  'tenant', 'personal', 'business', 'tenant-or-property',
-]);
-
-export function toRemoteIncidentCategory(c) {
-  return REMOTE_CATEGORIES.has(c) ? c : 'other';
-}
-
-const REMOTE_URGENCIES = new Set([
-  'incident', 'change', 'request', 'problem', 'normal', 'urgent', 'low', 'project',
-]);
-
-export function toRemoteIncidentUrgency(u) {
-  return REMOTE_URGENCIES.has(u) ? u : 'incident';
-}
-
-const REMOTE_STATUSES = new Set([
-  'open', 'triaging', 'in-progress', 'blocked', 'resolved', 'declined', 'duplicate',
-]);
-
-function linkedToFromLinks(links) {
-  const hit = Array.isArray(links)
-    ? links.find((l) => l && l.type === 'linked-to' && l.kind && l.id)
-    : null;
-  return hit ? { type: hit.kind, id: hit.id } : null;
-}
-
-function slugFromLinks(links) {
-  const hit = Array.isArray(links)
-    ? links.find((l) => l && l.type === 'local-slug' && l.id)
-    : null;
-  return hit ? hit.id : null;
-}
 
 // The full column set for one incident. updateIncident pushes this same
 // shape (minus instance/creator) as the patch, so no field is ever missed.
 export function incidentColumns(item) {
   return {
-    slug:          item.id,
-    links: [
-      { type: 'local-slug', id: item.id },
-      ...(item.linkedTo ? [{ type: 'linked-to', kind: item.linkedTo.type, id: item.linkedTo.id }] : []),
-      ...(item.entityId ? [{ type: 'entity-slug', id: item.entityId }] : []),
-    ],
-    incident_date: (item.date || item.createdAt || new Date().toISOString()).slice(0, 10),
-    amount:        Number(item.amount) || 0,
-    category:      toRemoteIncidentCategory(item.category),
-    description:   item.description || '',
-    urgency:       toRemoteIncidentUrgency(item.urgency),
-    status:        REMOTE_STATUSES.has(item.status) ? item.status : 'open',
-    due_date:      item.dueDate || null,
-    resolved_at:   item.resolvedAt ? new Date(item.resolvedAt).toISOString() : null,
-    lifecycle:     item.lifecycle || { phase: item.status || 'open', log: [] },
-    dispatch:      item.dispatch || null,
+    slug:           item.id,
+    entity_slug:    item.entityId || null,
+    incident_date:  (item.date || item.createdAt || new Date().toISOString()).slice(0, 10),
+    amount:         Number(item.amount) || 0,
+    category:       item.category || 'other',
+    description:    item.description || '',
+    urgency:        item.urgency || 'incident',
+    status:         item.status || 'open',
+    due_date:       item.dueDate || null,
+    resolved_at:    item.resolvedAt ? new Date(item.resolvedAt).toISOString() : null,
+    linked_to_kind: item.linkedTo?.type || null,
+    linked_to_slug: item.linkedTo?.id || null,
+    lifecycle:      item.lifecycle || { phase: item.status || 'open', log: [] },
+    dispatch:       item.dispatch || null,
   };
 }
 
@@ -92,22 +51,24 @@ export const incidentsSync = createTableSync({
 
   fromRow(row) {
     return {
-      id:         row.slug || slugFromLinks(row.links) || `in-remote-${row.id}`,
-      remoteUuid: row.id,
-      date:       row.incident_date,
-      amount:     Number(row.amount) || 0,
-      category:   row.category,
+      id:          row.slug || `in-remote-${row.id}`,
+      remoteUuid:  row.id,
+      entityId:    row.entity_slug || undefined,
+      date:        row.incident_date,
+      amount:      Number(row.amount) || 0,
+      category:    row.category,
       description: row.description,
-      urgency:    row.urgency,
-      status:     row.status,
-      dueDate:    row.due_date || '',
-      resolvedAt: row.resolved_at ? String(row.resolved_at).slice(0, 10) : null,
-      lifecycle:  row.lifecycle || { phase: row.status, log: [] },
-      dispatch:   row.dispatch || null,
-      linkedTo:   linkedToFromLinks(row.links),
-      entityId:   (Array.isArray(row.links) ? row.links.find((l) => l && l.type === 'entity-slug' && l.id)?.id : null) || undefined,
-      createdAt:  row.created_at,
-      updatedAt:  row.updated_at,
+      urgency:     row.urgency,
+      status:      row.status,
+      dueDate:     row.due_date || '',
+      resolvedAt:  row.resolved_at ? String(row.resolved_at).slice(0, 10) : null,
+      lifecycle:   row.lifecycle || { phase: row.status, log: [] },
+      dispatch:    row.dispatch || null,
+      linkedTo:    (row.linked_to_kind && row.linked_to_slug)
+        ? { type: row.linked_to_kind, id: row.linked_to_slug }
+        : null,
+      createdAt:   row.created_at,
+      updatedAt:   row.updated_at,
     };
   },
 
