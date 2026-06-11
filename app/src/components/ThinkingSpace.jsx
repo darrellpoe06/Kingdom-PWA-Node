@@ -1,29 +1,25 @@
 // =============================================================================
-// ThinkingSpace — a sovereign diary with room to think (and a way to be heard)
+// ThinkingSpace — a sovereign diary with room to think (and every door open)
 // =============================================================================
-// Darrell 2026-06-11: "Can people think and communicate with it and come back
-// to their thoughts like a diary with an AI attached that is siloed for their
-// sovereign purposes — growth and development in thinking — with the ability to
-// seek help whenever they need it? Let's make notes feel intuitive."
+// Darrell 2026-06-11: a diary that is siloed for sovereign growth in thinking,
+// with help available whenever needed — and (same day) "all options are in
+// Notes: tell PoeTech, church pastors, 1099 workers, counseling — same system
+// under the hood, just starting on the page of Note."
 //
-// Two truths hold this together:
-//   1. PRIVATE BY DEFAULT. A note is yours — siloed, never sold, never mined,
-//      never used to train anything (project_photo_sovereignty applies to
-//      thoughts too). Sharing is always a deliberate choice, never a default
-//      (project_generous_collective_anthropology).
-//   2. ONE INPUT, YOU DECIDE WHERE IT GOES. Like One Voice on the Church tab
-//      (COUNCIL-CHAMBER): you write; you choose 📓 keep it private, or
-//      💡 tell PoeTech (a build directive — captured for a person/session to
-//      act on; it never auto-acts, per the three-brakes rule).
+// The routing is the SHARED engine (lib/one-voice-routing.js — MODE-ROUTING
+// made concrete): this surface starts PRIVATE by default; your words can pull
+// the route anywhere in the system; the suggestion is visible and you always
+// have the last word. Private notes are siloed by design — device-local,
+// never sold, never mined, never used to train anything.
 //
-// "Seek help whenever they need it": the Test (Philippians 4:8) is a real,
-// on-device reflection aid TODAY — examine a thought against eight filters.
-// A deeper conversation with your OWN sovereign AI (on your NAS, opt-in,
-// private) is the next layer — see docs/99-session-notes/2026-06-11-
-// thinking-space-and-real-data.md. Nothing here pretends to be that yet.
+// "Seek help": the Test (Philippians 4:8) is the on-device reflection aid
+// today; a conversation with your OWN sovereign AI (on your NAS, opt-in) is
+// on the build board. Counseling routes capture an intake note to the
+// practice — contact-level only; clinical content stays with the clinician
+// (the TLC bright line).
 import React, { useState } from 'react';
+import { suggestDestination, destinationsFor } from '../lib/one-voice-routing.js';
 
-// The Test — MIND-OF-CHRIST / Philippians 4:8. A thought held to the light.
 const THE_TEST = [
   ['True', 'Is it factual — or a fear wearing facts?'],
   ['Honorable', 'Does it carry dignity, or contempt?'],
@@ -36,33 +32,59 @@ const THE_TEST = [
 ];
 
 const fieldCls = 'w-full p-3 border border-[#1A1815] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
+const DESTS = destinationsFor('notes');
 
-export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, togglePinNote, sendToPoeTech, appDirectives = [] }) {
+export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, togglePinNote, sendToPoeTech, appDirectives = [], addPrayerRequest, addChurchVoice, addIncident, addInquiry }) {
   const [draft, setDraft] = useState('');
   const [route, setRoute] = useState('private');
+  const [touchedRoute, setTouchedRoute] = useState(false);
+  const [name, setName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
   const [testForId, setTestForId] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [query, setQuery] = useState('');
 
+  const onDraft = (v) => {
+    setDraft(v);
+    if (!touchedRoute) setRoute(suggestDestination(v, 'private'));
+  };
+
   const save = () => {
     const t = draft.trim();
     if (!t) return;
-    if (route === 'poetech') {
-      if (sendToPoeTech) sendToPoeTech(t);
+    const who = name.trim();
+    if (route === 'poetech' && sendToPoeTech) {
+      sendToPoeTech(t);
       setConfirm('💡 PoeTech heard you — it’s on the build inbox. You shape what gets built.');
+    } else if (route === 'prayer' && addPrayerRequest) {
+      addPrayerRequest({ requester: who || 'church family', request: t, shareWithChurch: true });
+      setConfirm('🙏 On the prayer list. The church is standing with you.');
+    } else if (route === 'pastor' && addChurchVoice) {
+      addChurchVoice({ id: `vo-${Date.now()}`, kind: 'pastor', text: t, from: who, at: new Date().toISOString() });
+      setConfirm('⛪ A note to the pastors — they’ll see it on the Church tab.');
+    } else if (route === 'serve' && addChurchVoice) {
+      addChurchVoice({ id: `vo-${Date.now()}`, kind: 'serve', text: t, from: who, at: new Date().toISOString() });
+      setConfirm('🤝 Leadership will see your serving hands — thank you.');
+    } else if (route === 'work' && addIncident) {
+      addIncident({ category: 'maintenance', description: t, urgency: 'incident', status: 'open', _note: 'from Thinking Space' });
+      setConfirm('🛠 On the Action Queue as a work order — dispatch it to a worker from Big Picture.');
+    } else if (route === 'counseling' && addInquiry) {
+      addInquiry({ firstName: who || '(from notes)', lastName: '', phone: '', email: '', source: 'thinking-space', interest: 'counseling', bestTime: 'anytime', notes: t });
+      setConfirm('💚 A private intake note went to the practice. Reaching out took courage.');
     } else {
       if (addNote) addNote(t);
       setConfirm('📓 Kept — private to you. Come back to it anytime.');
     }
     setDraft('');
+    setTouchedRoute(false);
     setRoute('private');
   };
 
   const startEdit = (n) => { setEditingId(n.id); setEditText(n.text); };
   const commitEdit = () => { if (editingId && updateNote) updateNote(editingId, editText); setEditingId(null); };
 
+  const active = DESTS.find(d => d.key === route) || DESTS[0];
   const sorted = [...notes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.createdAt || '').localeCompare(a.createdAt || ''));
   const shown = query.trim() ? sorted.filter(n => (n.text || '').toLowerCase().includes(query.toLowerCase())) : sorted;
 
@@ -71,25 +93,28 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🕊 Thinking Space · your diary</div>
         <p className="text-xs text-[#5A5751] italic mt-1 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Think out loud, then come back to it. Private to you by design — never sold, never mined, never used to train anything.
+          Think out loud, then come back to it. Private by default — and from right here your words can reach anyone in the system: PoeTech, the pastors, a worker, the practice. You always have the last word on where they go.
         </p>
         <textarea
           className={fieldCls}
           rows="3"
-          placeholder="What are you thinking? A worry, an idea, a prayer, a plan, a thing you don't want to forget…"
+          placeholder="What are you thinking? A worry, an idea, a prayer, a repair, a question for the pastors…"
           value={draft}
-          onChange={e => setDraft(e.target.value)}
+          onChange={e => onDraft(e.target.value)}
         />
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          <button type="button" onClick={() => setRoute('private')} aria-pressed={route === 'private'} className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 min-h-[36px] border ${route === 'private' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>📓 Keep private</button>
-          <button type="button" onClick={() => setRoute('poetech')} aria-pressed={route === 'poetech'} className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 min-h-[36px] border ${route === 'poetech' ? 'bg-[#B85838] text-white border-[#B85838]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>💡 Tell PoeTech</button>
-          <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{route === 'poetech' ? '→ becomes a build directive (a person acts on it; never auto-built)' : '→ stays yours alone'}</span>
-          <button type="button" onClick={save} disabled={!draft.trim()} className="ml-auto bg-[#1A1815] text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] disabled:opacity-30">Save</button>
+          {DESTS.map(d => (
+            <button key={d.key} type="button" onClick={() => { setRoute(d.key); setTouchedRoute(true); }} aria-pressed={route === d.key} className={`text-[10px] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border ${route === d.key ? (d.key === 'private' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-[#B85838] text-white border-[#B85838]') : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{d.label}</button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>→ {active.hint}</span>
+          <input className="flex-1 min-w-[140px] p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Your name (optional)" value={name} onChange={e => setName(e.target.value)} />
+          <button type="button" onClick={save} disabled={!draft.trim()} className="bg-[#1A1815] text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] disabled:opacity-30">Save</button>
         </div>
         {confirm && <p className="text-[11px] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{confirm}</p>}
       </section>
 
-      {/* THE THOUGHTS — come back to them */}
       <section>
         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Your thoughts · {notes.length}</h2>
@@ -117,7 +142,7 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
                   </>
                 ) : (
                   <>
-                    <p className="text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{n.pinned ? '📌 ' : ''}{n.text}{n.sentToPoeTech ? ' ' : ''}{n.sentToPoeTech && <span className="text-[9px] uppercase tracking-wider text-[#B85838]">· told PoeTech</span>}</p>
+                    <p className="text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{n.pinned ? '📌 ' : ''}{n.text} {n.sentToPoeTech && <span className="text-[9px] uppercase tracking-wider text-[#B85838]">· told PoeTech</span>}</p>
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#E8E4DC] flex-wrap">
                       <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(n.createdAt || '').slice(0, 10)}</span>
                       <button type="button" onClick={() => setTestForId(testForId === n.id ? null : n.id)} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">🔎 Examine it</button>
@@ -145,12 +170,11 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
         )}
       </section>
 
-      {/* WHAT YOU'VE TOLD POETECH — the in-app build inbox */}
       {appDirectives.length > 0 && (
         <section className="bg-white border border-[#B85838] p-4">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">💡 What you’ve told PoeTech · {appDirectives.length}</h2>
           <p className="text-[11px] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-            Yes — you can tell the app now. These shape the build (a person or session acts on them; nothing auto-builds). They’ll surface on the PoeTech Build board.
+            These shape the build (a person or session acts on them; nothing auto-builds). They surface on the PoeTech Build board.
           </p>
           <ul className="space-y-1">
             {[...appDirectives].slice(-6).reverse().map(d => (
