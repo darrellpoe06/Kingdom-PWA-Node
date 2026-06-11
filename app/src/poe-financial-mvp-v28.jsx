@@ -2683,7 +2683,42 @@ export default function PoeFinancialSystem() {
   // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
   // build inbox. Persisted with the rest of the data record (device-local;
   // never synced to a shared surface — notes are siloed by design).
-  const addNote = (text) => setData(d => ({ ...d, notes: [...(d.notes || []), { id: `nt-${Date.now()}`, text, createdAt: new Date().toISOString(), pinned: false, sentToPoeTech: false }] }));
+  // Links kept WITH the note (Darrell 2026-06-11: titles from YouTube/any
+  // link stay with the thought "for easy locating it again — to think and
+  // process the implications"). Titles resolve through OUR NAS (wf22
+  // link-title), so what you're reading never leaks to a third-party
+  // metadata service. Offline/no-token → the hostname is the label.
+  const extractNoteUrls = (text) => Array.from(new Set((String(text).match(/https?:\/\/[^\s)>\]"']{4,500}/g) || []).slice(0, 6)));
+  const enrichNoteLinks = (noteId, urls) => {
+    let token = '';
+    try { token = (localStorage.getItem('poetech-chat-bridge-token') || '').trim(); } catch (_) { /* no-op */ }
+    if (!token) return;
+    urls.forEach((u) => {
+      try {
+        fetch(`/n8n/webhook/link-title?url=${encodeURIComponent(u)}`, { headers: { authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : null)
+          .then(j => {
+            const o = Array.isArray(j) ? j[0] : j;
+            const title = (o && o.title) ? String(o.title).slice(0, 200) : '';
+            if (!title) return;
+            setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === noteId ? { ...n, links: (n.links || []).map(l => l.url === u ? { ...l, title } : l) } : n) }));
+          })
+          .catch(() => { /* offline — hostname label stands */ });
+      } catch (_) { /* same */ }
+    });
+  };
+  const addNote = (text) => {
+    const id = `nt-${Date.now()}`;
+    const urls = extractNoteUrls(text);
+    setData(d => ({ ...d, notes: [...(d.notes || []), { id, text, createdAt: new Date().toISOString(), pinned: false, sentToPoeTech: false, links: urls.map(u => ({ url: u, title: '' })) }] }));
+    if (urls.length) enrichNoteLinks(id, urls);
+  };
+  // 📖 Spiritual-source flag — notes marked as sources (e.g. Yahweh Speaks
+  // links) feed the spiritual module's source review. Word-senior posture:
+  // sources that try to clarify Yahweh's perspectives are weighed against
+  // Scripture, never the other way (THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW;
+  // per-tradition weights with Bishop Gwin).
+  const toggleNoteSource = (id) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, spiritualSource: !n.spiritualSource } : n) }));
   const updateNote = (id, text) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, text, updatedAt: new Date().toISOString() } : n) }));
   const deleteNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).filter(n => n.id !== id) }));
   const togglePinNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, pinned: !n.pinned } : n) }));
@@ -3633,7 +3668,7 @@ html{scroll-padding-bottom:280px}
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
         {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
-        {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
+        {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}

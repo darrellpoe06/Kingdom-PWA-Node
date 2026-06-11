@@ -76,6 +76,34 @@ The honest, grounded answer (the pipeline already partly EXISTS):
    smoother (a clear in-app "drop your statement here" path) without ever
    handing a middleman your bank credentials.
 
+## Links kept with the thought + Yahweh Speaks sources (same day, shipped)
+
+Darrell: titles from YouTube/any link should stay with the note "for easy
+locating it again — to think and process the implications"; he saves
+content from **Yahweh Speaks** to build the spiritual module's sources —
+"data sources that say or try to clarify Yahweh's perspectives... connecting
+ideas and reviewing the integration of the relationship between the user
+and Yahweh."
+
+Shipped + verified: notes auto-detect links; titles resolve through **our
+NAS** (wf22 link-title, token-gated — what you're reading never leaks to a
+third-party metadata service); the title renders as a chip on the note
+(verified live: the church channel resolved to "The Love Corner"). Each
+note has a **📖 Mark source** toggle and a Sources filter — the curated
+source list the spiritual module will draw from.
+
+**Doctrinal posture (binding, per the Worldview + Word-first memory):**
+sources that try to clarify Yahweh's perspectives are SOURCE MATERIAL to be
+weighed against Scripture — Scripture is senior, always; per-tradition
+weighting sits with Bishop Gwin + Darrell. The diary's deeper purpose —
+"connecting ideas and reviewing the integration of the relationship between
+the user and Yahweh" — is the watching-recognizing-recording posture from
+THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW given a surface: notice, test
+(Phil 4:8 is already on every note), capture, and return to see what He has
+been doing across time. The sovereign-AI conversation layer (on the board)
+inherits this posture — Hear → Mirror → Anchor → Invite, never improvised
+theology.
+
 ## Capture
 Loosening `importedAllowed` for `(authSession && authHydrated)` on public
 host = the concrete next step for #1, mirroring the P14 fix but with extra

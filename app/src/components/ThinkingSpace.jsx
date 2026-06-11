@@ -34,7 +34,8 @@ const THE_TEST = [
 const fieldCls = 'w-full p-3 border border-[#1A1815] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const DESTS = destinationsFor('notes');
 
-export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, togglePinNote, sendToPoeTech, appDirectives = [], addPrayerRequest, addChurchVoice, addIncident, addInquiry }) {
+export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, togglePinNote, toggleNoteSource, sendToPoeTech, appDirectives = [], addPrayerRequest, addChurchVoice, addIncident, addInquiry }) {
+  const [sourcesOnly, setSourcesOnly] = useState(false);
   const [draft, setDraft] = useState('');
   const [route, setRoute] = useState('private');
   const [touchedRoute, setTouchedRoute] = useState(false);
@@ -86,7 +87,10 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
 
   const active = DESTS.find(d => d.key === route) || DESTS[0];
   const sorted = [...notes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.createdAt || '').localeCompare(a.createdAt || ''));
-  const shown = query.trim() ? sorted.filter(n => (n.text || '').toLowerCase().includes(query.toLowerCase())) : sorted;
+  const queryFiltered = query.trim() ? sorted.filter(n => (n.text || '').toLowerCase().includes(query.toLowerCase())) : sorted;
+  const shown = sourcesOnly ? queryFiltered.filter(n => n.spiritualSource) : queryFiltered;
+  const sourceCount = notes.filter(n => n.spiritualSource).length;
+  const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return u.slice(0, 40); } };
 
   return (
     <div className="space-y-4 max-w-3xl">
@@ -118,9 +122,14 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
       <section>
         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Your thoughts · {notes.length}</h2>
-          {notes.length > 3 && (
-            <input className="text-xs p-1.5 border border-[#E8E4DC] bg-white" placeholder="search your notes…" value={query} onChange={e => setQuery(e.target.value)} />
-          )}
+          <div className="flex items-center gap-1.5">
+            {sourceCount > 0 && (
+              <button type="button" onClick={() => setSourcesOnly(!sourcesOnly)} aria-pressed={sourcesOnly} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${sourcesOnly ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A6E3D] border-[#5A6E3D] hover:bg-[#FAF8F4]'}`}>📖 Sources · {sourceCount}</button>
+            )}
+            {notes.length > 3 && (
+              <input className="text-xs p-1.5 border border-[#E8E4DC] bg-white" placeholder="search your notes…" value={query} onChange={e => setQuery(e.target.value)} />
+            )}
+          </div>
         </div>
         {notes.length === 0 ? (
           <div className="bg-[#FAF8F4] border border-dashed border-[#E8E4DC] p-6 text-center">
@@ -142,10 +151,20 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
                   </>
                 ) : (
                   <>
-                    <p className="text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{n.pinned ? '📌 ' : ''}{n.text} {n.sentToPoeTech && <span className="text-[9px] uppercase tracking-wider text-[#B85838]">· told PoeTech</span>}</p>
+                    <p className="text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{n.pinned ? '📌 ' : ''}{n.spiritualSource ? '📖 ' : ''}{n.text} {n.sentToPoeTech && <span className="text-[9px] uppercase tracking-wider text-[#B85838]">· told PoeTech</span>}</p>
+                    {(n.links || []).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {(n.links || []).map(l => (
+                          <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white no-underline max-w-full truncate" title={l.url}>
+                            🔗 {l.title || hostOf(l.url)}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#E8E4DC] flex-wrap">
                       <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(n.createdAt || '').slice(0, 10)}</span>
                       <button type="button" onClick={() => setTestForId(testForId === n.id ? null : n.id)} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">🔎 Examine it</button>
+                      <button type="button" onClick={() => toggleNoteSource && toggleNoteSource(n.id)} className={`text-[10px] uppercase tracking-wider ${n.spiritualSource ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'} hover:text-[#1A1815]`}>{n.spiritualSource ? '📖 Source ✓' : '📖 Mark source'}</button>
                       <button type="button" onClick={() => startEdit(n)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
                       <button type="button" onClick={() => togglePinNote && togglePinNote(n.id)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{n.pinned ? 'Unpin' : 'Pin'}</button>
                       {!n.sentToPoeTech && <button type="button" onClick={() => { if (sendToPoeTech) { sendToPoeTech(n.text, n.id); } }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">💡 Tell PoeTech</button>}
