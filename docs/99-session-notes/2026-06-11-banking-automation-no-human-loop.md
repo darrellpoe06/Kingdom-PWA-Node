@@ -83,6 +83,40 @@ delivery there and the chain is bank → your NAS → your app with not even
 Google in the loop. Real, buildable, adds mail-server upkeep — offer when
 the family wants the last hop closed.
 
+## Supervised activation (2026-06-11, Darrell authorized + present) — what it caught
+
+wf21 was activated on a temporary 2-minute cadence for a watched first run,
+then restored to 6h. The first execution fired and **errored in 0.45s:
+the shared Gmail OAuth credential is invalid/expired/revoked.** Digging
+further: **wf16 (hourly cross-verify) has been silently failing every hour**
+(errors at 11:00, 12:00, 13:00 confirmed in the executions table) and wf14
+shows no recent executions — the "live" Gmail finance pipeline has been
+down without anyone seeing it. The supervised-first-run rule did exactly
+its job, and this re-proves P3/P5: "workflow active" ≠ "workflow working";
+outcome observability is the missing layer (wf33's error alerts did not
+reach a human).
+
+**The fix (1 minute, Darrell's hands — it's his Google consent):**
+1. http://192.168.1.26:5678 → sign in to n8n (owner login).
+2. Credentials → "Gmail account" → Reconnect → choose the Google account →
+   allow. That single re-consent heals wf14, wf16, AND wf21 at once.
+3. Verification after (Claude, from here): wf16's next hourly run goes
+   green; wf21's next 6h run lists/saves statement attachments.
+
+**Bank-side setup (once per bank, anytime):** enable statement/export
+delivery by email + transaction alert emails to the Gmail wf14 reads.
+
+## Captured (Darrell, same session): reports for every level of thinking
+
+"Reports clear and concise for every type of person or level of thinking —
+diversified clarification — with live or close-to-live data for
+decision-making." This is ANXIETY-CLARITY-PRINCIPLE applied to reporting:
+every report answers what/when/why/how at the reader's level (a child, a
+deacon, a CPA see the same truth, differently clarified). The v2.8 schema
+already has report_runs + report_snapshots tables waiting. On the build
+board (target 2026-07-15): report surfaces fed by the live sync + imported
+ledger, each with a "explain it simply / standard / expert" lens switch.
+
 ## Still gated (same as before)
 The Imported display surface stays blocked on the public host even signed
 in (`importedAllowed`) — the careful P14-style unlock for authenticated
