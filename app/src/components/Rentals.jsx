@@ -68,6 +68,34 @@ const ROOM_ITEM_STATUSES = [
   { key: 'done',       label: 'Done',           symbol: '★' },
 ];
 
+// Occupancy-revenue model (Darrell's locked spec, 2026-06-10): $1,000 per
+// person, two people to a room → $2,000/room full, $1,000 at half, $0 empty.
+// Every room ALWAYS shows the full $2,000 opportunity so the gap between
+// actual and potential motivates marketing the vacant space — across the
+// whole rent → collect → buy → invest lifecycle. The per-person rate is
+// editable per room (the $1,000 is the aspirational default); capacity is 2.
+const RATE_PER_PERSON = 1000;
+const ROOM_CAPACITY = 2;
+// occupants: 0 (empty), 1 (half), 2 (full). Potential is always capacity.
+const roomRate = (room) => Number(room?.ratePerPerson) || RATE_PER_PERSON;
+const roomActualMonthly = (room) => (Number(room?.occupants) || 0) * roomRate(room);
+const roomPotentialMonthly = (room) => ROOM_CAPACITY * roomRate(room);
+const OCCUPANCY_OPTIONS = [
+  { occupants: 0, label: 'Empty' },
+  { occupants: 1, label: 'Half · 1' },
+  { occupants: 2, label: 'Full · 2' },
+];
+// Roll a property's rooms up to { actual, potential, opportunity, vacantSpots }.
+function occupancyRollup(rooms = []) {
+  let actual = 0, potential = 0, vacantSpots = 0;
+  for (const rm of rooms) {
+    actual += roomActualMonthly(rm);
+    potential += roomPotentialMonthly(rm);
+    vacantSpots += Math.max(0, ROOM_CAPACITY - (Number(rm?.occupants) || 0));
+  }
+  return { actual, potential, opportunity: potential - actual, vacantSpots };
+}
+
 function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   // v28+ MVP v1.5 round 8 — Property valuation block (Zillow-style)
   // Characteristics + a market-value field + auto-built lookup links.
@@ -280,6 +308,11 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
     const rooms = (rental.rooms || []).map(rm => rm.id === rmId ? { ...rm, note } : rm);
     updateRental(rental.id, { rooms });
   };
+  const setRoomOccupancy = (rmId, occupants) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId ? { ...rm, occupants } : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const occ = occupancyRollup(rental.rooms || []);
 
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
@@ -546,6 +579,34 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
             </div>
             <button type="button" onClick={addRoom} className="bg-[#1A1815] text-white py-2 px-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">+ Room</button>
           </div>
+          {/* ROOM INCOME — occupancy-revenue model. Always shows the full
+              potential so the opportunity gap motivates filling vacant space. */}
+          {occ.potential > 0 && (
+            <div className="bg-white border-2 border-[#5A6E3D] p-3">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">💵 Room Income · per-room potential</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-base" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.actual)}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">collecting now</div>
+                </div>
+                <div>
+                  <div className="text-base text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.potential)}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">full potential</div>
+                </div>
+                <div>
+                  <div className="text-base text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.opportunity)}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">opportunity</div>
+                </div>
+              </div>
+              {occ.opportunity > 0 ? (
+                <p className="text-[11px] text-[#1A1815] mt-2 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <strong>{fmt(occ.opportunity)}/mo</strong> on the table across <strong>{occ.vacantSpots}</strong> open {occ.vacantSpots === 1 ? 'spot' : 'spots'} — market them and the building funds itself faster.
+                </p>
+              ) : (
+                <p className="text-[11px] text-[#5A6E3D] mt-2 text-center font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Fully occupied — every spot earning. 🎯</p>
+              )}
+            </div>
+          )}
           {(rental.rooms || []).length === 0 ? (
             <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms yet. Add a room above to start tracking needed work.</p>
           ) : (
@@ -561,6 +622,20 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
                     <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
                     <button type="button" onClick={() => deleteRoom(rm.id)} aria-label={`Delete room ${rm.name}`} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-white px-3 py-2 min-h-[36px] border border-transparent hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">× Room</button>
                   </div>
+                </div>
+                {/* Occupancy — drives the room-income model. Empty / half / full. */}
+                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                  <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Occupancy:</span>
+                  {OCCUPANCY_OPTIONS.map(o => {
+                    const active = (Number(rm.occupants) || 0) === o.occupants;
+                    return (
+                      <button key={o.occupants} type="button" onClick={() => setRoomOccupancy(rm.id, o.occupants)} aria-pressed={active} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${active ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{o.label}</button>
+                    );
+                  })}
+                  <span className="text-[10px] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span className={roomActualMonthly(rm) > 0 ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}>{fmt(roomActualMonthly(rm))}</span>
+                    <span className="text-[#5A5751]"> / {fmt(roomPotentialMonthly(rm))}</span>
+                  </span>
                 </div>
                 {showRoomForm && roomItem.roomId === rm.id && (
                   <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1">
@@ -988,6 +1063,35 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           <MetricCell label="Monthly rent" value={fmt(totals.rentalExpected)} sub={`${totals.collectionRate.toFixed(0)}%`} small accent="green" />
           <MetricCell label="Rent gap" value={fmt(totals.rentGap)} small accent={totals.rentGap > 0 ? 'rust' : 'green'} />
         </div>
+        {/* Portfolio room-income opportunity — sums the per-room occupancy
+            model across every property so the total money-on-the-table from
+            vacant rooms is one glance away. Only shows when rooms are tracked. */}
+        {(() => {
+          const port = (rentals || []).reduce((acc, r) => {
+            const o = occupancyRollup(r.rooms || []);
+            acc.actual += o.actual; acc.potential += o.potential; acc.opportunity += o.opportunity; acc.vacantSpots += o.vacantSpots;
+            return acc;
+          }, { actual: 0, potential: 0, opportunity: 0, vacantSpots: 0 });
+          if (port.potential <= 0) return null;
+          return (
+            <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
+                <div className="text-xs text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Collecting <strong>{fmt(port.actual)}</strong>/mo of <strong>{fmt(port.potential)}</strong> possible.
+                </div>
+              </div>
+              {port.opportunity > 0 ? (
+                <div className="text-right">
+                  <div className="text-lg text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(port.opportunity)}/mo</div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
+                </div>
+              ) : (
+                <div className="text-sm text-[#5A6E3D] font-semibold">Every spot filled 🎯</div>
+              )}
+            </div>
+          );
+        })()}
       </section>
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
