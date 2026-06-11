@@ -1703,7 +1703,7 @@ export default function PoeFinancialSystem() {
     } catch (_) { /* localStorage blocked or unavailable */ }
     const screenContext = {
       path: (typeof window !== 'undefined' && window.location) ? window.location.pathname + window.location.search : '/',
-      tab: (typeof activeTab === 'string') ? activeTab : (typeof tab === 'string' ? tab : null),
+      tab: (typeof view === 'string') ? view : null,
       persona: (typeof demoPersona === 'string') ? demoPersona : null,
       is_demo: typeof isDemoMode === 'boolean' ? isDemoMode : null
     };

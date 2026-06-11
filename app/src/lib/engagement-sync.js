@@ -55,7 +55,7 @@ function resolveDisplayName(session, explicit) {
  * @param {boolean} a.isCorrect   computed by the caller (grading is app-side)
  * @param {string} [a.displayName]
  */
-export async function uploadTriviaAnswer({ questionId, answer, isCorrect, displayName } = {}) {
+export async function uploadTriviaAnswer({ questionId, questionUuid, answer, isCorrect, displayName } = {}) {
   const session = await currentSession();
   if (!session) return { skipped: 'signed-out' };
 
@@ -75,6 +75,10 @@ export async function uploadTriviaAnswer({ questionId, answer, isCorrect, displa
     question_id: questionId,
     answer: answer ?? '',
     is_correct: !!isCorrect,
+    // Only include question_uuid when the caller has a stored question id.
+    // Omitting it preserves the v2.11 insert shape, so the shipped demo trivia
+    // keeps working even before schema-v2.12 adds the column.
+    ...(questionUuid ? { question_uuid: questionUuid } : {}),
   };
 
   const { error } = await supabase.from('trivia_answers').insert(row);
@@ -182,8 +186,116 @@ export function subscribeMessages(onMessages, opts = {}) {
 }
 
 // -----------------------------------------------------------------------------
+// Trivia QUESTIONS (schema-v2.12) — generated-from-a-message, reviewed content.
+// These are DORMANT until the v2.12 migration is applied and the UI calls them;
+// they do not touch the shipped demo-trivia path above.
+// -----------------------------------------------------------------------------
+
+/**
+ * Fetch the current LIVE question (status='active') for the signed-in user's
+ * instance, newest active_date first. Returns the question shape or null
+ * (signed out, none active, or the table not present yet).
+ */
+export async function getActiveQuestion() {
+  const session = await currentSession();
+  if (!session) return null;
+
+  const { data, error } = await supabase
+    .from('trivia_questions')
+    .select('*')
+    .eq('status', 'active')
+    .order('active_date', { ascending: false })
+    .limit(1);
+  if (error) {
+    console.warn('[engagement-sync] active question fetch failed:', error);
+    return null;
+  }
+  return data && data[0] ? toQuestionShape(data[0]) : null;
+}
+
+/**
+ * Reviewer-only: fetch questions awaiting review (status='draft'), oldest
+ * first. RLS returns rows only to owner/admin members; everyone else gets [].
+ */
+export async function getReviewQuestions() {
+  const session = await currentSession();
+  if (!session) return [];
+
+  const { data, error } = await supabase
+    .from('trivia_questions')
+    .select('*')
+    .eq('status', 'draft')
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.warn('[engagement-sync] review fetch failed:', error);
+    return [];
+  }
+  return (data || []).map(toQuestionShape);
+}
+
+/**
+ * Reviewer-only: approve a draft and make it the live question — sets
+ * status='active', active_date=today, approved_by + approved_at. RLS enforces
+ * owner/admin. Returns { ok:true } | { error }.
+ */
+export async function approveQuestion(questionId, { activeDate } = {}) {
+  const session = await currentSession();
+  if (!session) return { error: 'signed-out' };
+
+  const today = activeDate || new Date().toISOString().slice(0, 10);
+  const { error } = await supabase
+    .from('trivia_questions')
+    .update({
+      status: 'active',
+      active_date: today,
+      approved_by: session.user.id,
+      approved_at: new Date().toISOString(),
+      updated_by: session.user.id,
+    })
+    .eq('id', questionId);
+  if (error) {
+    console.warn('[engagement-sync] approve failed:', error);
+    return { error };
+  }
+  return { ok: true };
+}
+
+/** Reviewer-only: reject a draft (status='rejected'). */
+export async function rejectQuestion(questionId) {
+  const session = await currentSession();
+  if (!session) return { error: 'signed-out' };
+
+  const { error } = await supabase
+    .from('trivia_questions')
+    .update({ status: 'rejected', updated_by: session.user.id })
+    .eq('id', questionId);
+  if (error) {
+    console.warn('[engagement-sync] reject failed:', error);
+    return { error };
+  }
+  return { ok: true };
+}
+
+// -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
+
+/** Map a trivia_questions row into the shape the UI renders. */
+function toQuestionShape(row) {
+  return {
+    id: row.id,
+    prompt: row.prompt,
+    choices: Array.isArray(row.choices) ? row.choices : [],
+    correctChoice: row.correct_choice,
+    scriptureRef: row.scripture_ref,
+    note: row.note,
+    source: row.source,
+    sourceRef: row.source_ref,
+    messageDate: row.message_date,
+    status: row.status,
+    activeDate: row.active_date,
+  };
+}
 
 function toMessageShape(row, myUserId) {
   return {
