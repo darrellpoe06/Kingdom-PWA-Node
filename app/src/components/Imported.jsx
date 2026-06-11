@@ -126,15 +126,8 @@ export default function Imported() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.institution, filters.status, filters.since]);
 
-  // Unauthorized guard: render a notice, never the real transaction stream.
-  if (!isImportedViewAuthorized()) {
-    return (
-      <div className="text-[12px] text-[#5A5751] p-4">
-        Imported transactions are private to each family and shown only when you are signed in with your own data loaded.
-      </div>
-    );
-  }
-
+  // Hooks must run unconditionally (before the guard's early return), or
+  // React's hook order corrupts the moment authorization flips mid-session.
   const filtered = useMemo(() => {
     if (!data || !data.transactions) return [];
     const q = filters.search.trim().toLowerCase();
@@ -144,6 +137,15 @@ export default function Imported() {
       return hay.includes(q);
     });
   }, [data, filters.search]);
+
+  // Unauthorized guard: render a notice, never the real transaction stream.
+  if (!isImportedViewAuthorized()) {
+    return (
+      <div className="text-[12px] text-[#5A5751] p-4">
+        Imported transactions are private to each family and shown only when you are signed in with your own data loaded.
+      </div>
+    );
+  }
 
   const counts = data?.counts || { total_bank: 0, total_gmail: 0, status_counts: {}, institutions: [] };
   const statusCounts = counts.status_counts || {};

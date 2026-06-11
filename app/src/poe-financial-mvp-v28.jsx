@@ -24,8 +24,6 @@ import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync } from './lib/projects-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
-import { QueueSpotlight } from './components/QueueSpotlight.jsx';
-import { QueueList } from './components/QueueList.jsx';
 import { Queue } from './components/Queue.jsx';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
@@ -1485,7 +1483,7 @@ export default function PoeFinancialSystem() {
   // fragments, balances, and addresses.
   const isFirstTimeLandingBoot = (() => {
     try {
-      if (!!demoPersona) return false;
+      if (demoPersona) return false;
       const sp = new URLSearchParams(window.location.search);
       if (sp.toString() !== '') return false;
       if (localStorage.getItem('poe-landing-seen')) return false;
@@ -1688,7 +1686,7 @@ export default function PoeFinancialSystem() {
     } catch (_) { /* localStorage blocked or unavailable */ }
     const screenContext = {
       path: (typeof window !== 'undefined' && window.location) ? window.location.pathname + window.location.search : '/',
-      tab: (typeof activeTab === 'string') ? activeTab : (typeof tab === 'string' ? tab : null),
+      tab: (typeof view === 'string') ? view : null,
       persona: (typeof demoPersona === 'string') ? demoPersona : null,
       is_demo: typeof isDemoMode === 'boolean' ? isDemoMode : null
     };
@@ -1872,6 +1870,8 @@ export default function PoeFinancialSystem() {
     load();
     const id = setInterval(load, 300_000);
     return () => { cancelled = true; clearInterval(id); };
+    // Mount-once poller by design; importedAllowed is re-read inside load().
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -1964,6 +1964,8 @@ export default function PoeFinancialSystem() {
       } catch (e) {}
       setLoaded(true);
     })();
+    // Run-once hydration by design; isAnyDemoMode is fixed at boot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -2088,6 +2090,9 @@ export default function PoeFinancialSystem() {
       cancelled = true;
       cleanups.forEach(fn => { try { fn && fn(); } catch (_) {} });
     };
+    // `data` is deliberately omitted: the effect reads the live value via the
+    // window stash documented below, so it must not re-run per keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession, data.numericSyncVerifiedAt]);
 
   // Stash the latest data on window so the auth effect (which has [] deps
