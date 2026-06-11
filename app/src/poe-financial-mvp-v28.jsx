@@ -2368,16 +2368,23 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
   };
   // v28+ Rentals expansion: Rental property CRUD
-  // 2026-06-10 — wired for cross-device sync (schema v2.2 rentals). Same gate
+  // 2026-06-10 — wired for cross-device sync (schema v2.2.2 rentals). Same gate
   // as accounts/debts/transactions: only push once VerifyBalances has run.
-  // Only the top-level v2.2 property columns travel; mortgage rate/P&I/escrow,
+  // Only the top-level property columns travel; mortgage rate/P&I/escrow,
   // rooms, equipment, logs, and the lease/tenant/market sub-objects stay
   // device-local (leases + rent_payments sync is the follow-up).
   const addRental = (item) => {
     const seeded = { ...item, id: `r-${Date.now()}` };
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
     if (authSession && data.numericSyncVerifiedAt) {
-      rentalsSync.upload(seeded).catch(e => console.warn('[rentals-sync] upload failed', e));
+      // Stamp remoteUuid as soon as the insert lands — without it, an edit or
+      // delete in the window before the next realtime refresh can't reach the
+      // remote row (a delete would even resurrect on the next merge).
+      rentalsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) {
+          setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === seeded.id ? { ...r, remoteUuid: res.remoteId } : r) } }));
+        }
+      }).catch(e => console.warn('[rentals-sync] upload failed', e));
     }
   };
   const updateRental = (id, updates) => {
@@ -2388,6 +2395,9 @@ export default function PoeFinancialSystem() {
         const patch = {};
         if (updates.name !== undefined)           patch.display_name = updates.name;
         if (updates.address !== undefined)        patch.address = updates.address;
+        if (updates.city !== undefined)           patch.city = updates.city || null;
+        if (updates.state !== undefined)          patch.state = updates.state || null;
+        if (updates.zip !== undefined)            patch.zip = updates.zip || null;
         if (updates.propertyType !== undefined)   patch.property_type = toRemotePropertyType(updates.propertyType);
         if (updates.status !== undefined)         patch.status = toRemoteStatus(updates.status);
         if (updates.purchasePrice !== undefined)  patch.purchase_price = parseFloat(updates.purchasePrice) || 0;
