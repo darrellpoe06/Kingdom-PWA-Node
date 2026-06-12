@@ -2241,6 +2241,7 @@ export default function PoeFinancialSystem() {
     const FAMILY_EMAIL_PROFILES = {
       'darrellpoe06@gmail.com': 'darrell',
       'mrspoe06@gmail.com': 'christina',
+      'christina@tlctherapysolutions.com': 'christina',
       // Add the twins' sign-in emails as they get accounts.
     };
     const email = (authSession.user?.email || '').toLowerCase();
