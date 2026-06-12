@@ -2345,9 +2345,15 @@ export default function PoeFinancialSystem() {
           const result = await entitiesSync.initialSync(localEntities);
           if (result && result.merged) {
             setData(d => {
-              const incoming = dedupeEntitiesByName(result.merged.filter(notDemoEntityRow));
-              const current = incoming.length ? (d.entities || []).filter(notSeedRow) : (d.entities || []);
-              return { ...d, entities: unionPreservingLocal(current, incoming) };
+              // 2026-06-12 second pass: the polluted rows ALSO live in this
+              // device's saved state, and the union re-added them from the
+              // local side (non-UUID ids look like rows awaiting upload).
+              // Filter BOTH sides; dedupe AFTER the union so a local copy
+              // and its cloud twin collapse.
+              const incoming = result.merged.filter(notDemoEntityRow);
+              let current = (d.entities || []).filter(notDemoEntityRow);
+              if (incoming.length) current = current.filter(notSeedRow);
+              return { ...d, entities: dedupeEntitiesByName(unionPreservingLocal(current, incoming)) };
             });
           }
         } catch (e) {
@@ -2355,9 +2361,10 @@ export default function PoeFinancialSystem() {
         }
         unsubscribeEntities = entitiesSync.subscribe((items) => {
           setData(d => {
-            const incoming = dedupeEntitiesByName(items.filter(notDemoEntityRow));
-            const current = incoming.length ? (d.entities || []).filter(notSeedRow) : (d.entities || []);
-            return { ...d, entities: unionPreservingLocal(current, incoming) };
+            const incoming = items.filter(notDemoEntityRow);
+            let current = (d.entities || []).filter(notDemoEntityRow);
+            if (incoming.length) current = current.filter(notSeedRow);
+            return { ...d, entities: dedupeEntitiesByName(unionPreservingLocal(current, incoming)) };
           });
         });
       }
@@ -2437,7 +2444,8 @@ export default function PoeFinancialSystem() {
             // local seed scaffolding is dropped — truth replaces the picture.
             setData(d => {
               const incoming = result.merged.filter(notDemoRow);
-              const current = incoming.length ? (d[t.key] || []).filter(notSeedRow) : (d[t.key] || []);
+              let current = (d[t.key] || []).filter(notDemoRow);
+              if (incoming.length) current = current.filter(notSeedRow);
               return { ...d, [t.key]: unionPreservingLocal(current, incoming) };
             });
             if (result.uploadFailures) {
@@ -2454,7 +2462,8 @@ export default function PoeFinancialSystem() {
         const unsubscribe = t.sync.subscribe((items) => {
           setData(d => {
             const incoming = items.filter(notDemoRow);
-            const current = incoming.length ? (d[t.key] || []).filter(notSeedRow) : (d[t.key] || []);
+            let current = (d[t.key] || []).filter(notDemoRow);
+            if (incoming.length) current = current.filter(notSeedRow);
             return { ...d, [t.key]: unionPreservingLocal(current, incoming) };
           });
         });
