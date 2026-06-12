@@ -1326,6 +1326,40 @@ const DEMO_ONLY_IDS = (() => {
   return demoIds;
 })();
 const notDemoRow = (x) => !(x && typeof x.id === 'string' && DEMO_ONLY_IDS.has(x.id));
+// 2026-06-12 — id-based provenance can't catch HISTORICAL pollution: demo
+// entities uploaded by pre-filter builds came back from the cloud with new
+// UUIDs (or null slugs), so DEMO_ONLY_IDS never matches them ("Maya (mom)" /
+// "The Reeves Family" rendering ON FILE next to the real entities). Names
+// can catch them: any entity whose display name matches a demo persona
+// entity is demo, whatever id it wears. Seed-shared names excluded, same as
+// DEMO_ONLY_IDS. Belt to the Studio cleanup in
+// infra/supabase/cleanup-2026-06-12-entity-pollution.sql (the real fix).
+export const DEMO_ENTITY_NAMES = (() => {
+  const collect = (d, out) => { ((d && d.entities) || []).forEach((e) => { if (e && typeof e.name === 'string') out.add(e.name.toLowerCase()); }); return out; };
+  const demo = new Set();
+  Object.values(DEMO_DATA_BY_PERSONA).forEach((d) => collect(d, demo));
+  collect(SEED_DATA, new Set()).forEach((n) => demo.delete(n));
+  return demo;
+})();
+export const notDemoEntityRow = (e) => notDemoRow(e) && !(e && typeof e.name === 'string' && DEMO_ENTITY_NAMES.has(e.name.toLowerCase()));
+
+// Collapse duplicate cloud entities by display name (historical double
+// uploads: one row with a slug, one without). Prefer the row carrying a
+// slug — that's the one the app's FK references (entityId) point at — then
+// the earliest created.
+export const dedupeEntitiesByName = (list) => {
+  const byName = new Map();
+  for (const e of list || []) {
+    const key = (e && typeof e.name === 'string') ? e.name.trim().toLowerCase() : `__noname-${byName.size}`;
+    const prev = byName.get(key);
+    if (!prev) { byName.set(key, e); continue; }
+    const better = (e.id && !prev.id) ? e
+      : (!e.id && prev.id) ? prev
+      : (new Date(e.createdAt || 0) < new Date(prev.createdAt || 0) ? e : prev);
+    byName.set(key, better);
+  }
+  return [...byName.values()];
+};
 // 2026-06-12 — SEED PROVENANCE (Darrell: "we have original data, why don't we
 // know the difference?"). SEED_DATA rows are aspirational scaffolding, never
 // the family's books. Two binding consequences, enforced in the sync effect:
@@ -2311,7 +2345,7 @@ export default function PoeFinancialSystem() {
           const result = await entitiesSync.initialSync(localEntities);
           if (result && result.merged) {
             setData(d => {
-              const incoming = result.merged.filter(notDemoRow);
+              const incoming = dedupeEntitiesByName(result.merged.filter(notDemoEntityRow));
               const current = incoming.length ? (d.entities || []).filter(notSeedRow) : (d.entities || []);
               return { ...d, entities: unionPreservingLocal(current, incoming) };
             });
@@ -2321,7 +2355,7 @@ export default function PoeFinancialSystem() {
         }
         unsubscribeEntities = entitiesSync.subscribe((items) => {
           setData(d => {
-            const incoming = items.filter(notDemoRow);
+            const incoming = dedupeEntitiesByName(items.filter(notDemoEntityRow));
             const current = incoming.length ? (d.entities || []).filter(notSeedRow) : (d.entities || []);
             return { ...d, entities: unionPreservingLocal(current, incoming) };
           });
