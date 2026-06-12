@@ -20,6 +20,26 @@ describe('notDemoEntityRow', () => {
   });
 });
 
+describe('union + filter integration (the wizard regression)', () => {
+  // 2026-06-12 second pass: filtering only the INCOMING cloud list let the
+  // union re-add the polluted copies from the device's saved state (their
+  // non-UUID ids look like rows awaiting upload). Both sides filter now;
+  // this locks the exact composition the sync effect uses.
+  it('a demo entity present ONLY in local saved state does not survive', async () => {
+    const { unionPreservingLocal } = await import('../lib/table-sync.js');
+    const demoName = [...DEMO_ENTITY_NAMES][0];
+    const localSaved = [
+      { id: 'e-demo-leftover', name: demoName },
+      { id: 'e-poetech', name: 'PoeTech LLC' },
+    ];
+    const incoming = [{ id: 'e-poetech', name: 'PoeTech LLC', createdAt: '2026-05-01' }].filter(notDemoEntityRow);
+    const current = localSaved.filter(notDemoEntityRow);
+    const out = dedupeEntitiesByName(unionPreservingLocal(current, incoming));
+    expect(out.some((e) => e.name === demoName)).toBe(false);
+    expect(out.filter((e) => e.name === 'PoeTech LLC')).toHaveLength(1);
+  });
+});
+
 describe('dedupeEntitiesByName', () => {
   it('collapses duplicates, preferring the slugged row over the null-slug row', () => {
     const out = dedupeEntitiesByName([
