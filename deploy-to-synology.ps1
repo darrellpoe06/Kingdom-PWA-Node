@@ -19,7 +19,10 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSCommandPath
 $appDir   = Join-Path $repoRoot 'app'
-$destSsh  = 'dpoe@192.168.1.26:/volume1/poetech-app/'
+# NOTE: scp transfers ride Synology's SFTP service, which CHROOTS to a
+# share-rooted view: the folder ls shows at /volume1/poetech-app is
+# addressed as /poetech-app here. Verified working 2026-06-12 01:49.
+$destSsh  = 'dpoe@192.168.1.26:/poetech-app/'
 
 Write-Host ""
 Write-Host "[1/2] Building React app..." -ForegroundColor Cyan
