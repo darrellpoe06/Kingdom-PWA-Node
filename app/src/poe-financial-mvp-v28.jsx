@@ -1324,6 +1324,31 @@ const DEMO_ONLY_IDS = (() => {
   return demoIds;
 })();
 const notDemoRow = (x) => !(x && typeof x.id === 'string' && DEMO_ONLY_IDS.has(x.id));
+// 2026-06-12 — SEED PROVENANCE (Darrell: "we have original data, why don't we
+// know the difference?"). SEED_DATA rows are aspirational scaffolding, never
+// the family's books. Two binding consequences, enforced in the sync effect:
+//   1. Seed rows NEVER upload to the family's cloud tables. (Without this, a
+//      fresh device that hydrated SEED and then completed VerifyBalances
+//      pushed '240 Cedar Ln' incidents and 11 fictional doors into the real
+//      instance next to the real data.)
+//   2. Once the cloud has ANY real rows for a table, that table's local seed
+//      rows are dropped from display — the family's truth replaces the
+//      scaffolding instead of mixing with it.
+// A family that wants to keep something from the seed picture recreates it
+// as their own entry (new id); editing seed scaffolding in place is not a
+// sync path.
+export const SEED_IDS = (() => {
+  const collect = (node, ids) => {
+    if (Array.isArray(node)) { node.forEach((n) => collect(n, ids)); return ids; }
+    if (node && typeof node === 'object') {
+      if (typeof node.id === 'string') ids.add(node.id);
+      Object.values(node).forEach((v) => collect(v, ids));
+    }
+    return ids;
+  };
+  return collect(SEED_DATA, new Set());
+})();
+export const notSeedRow = (x) => !(x && typeof x.id === 'string' && SEED_IDS.has(x.id));
 // Persona-specific welcome copy. Each entry describes the audience and the
 // stewardship lens. The 'vision' line is honest about what's working today
 // vs what's still being built (per Darrell 2026-05-28).
@@ -1601,9 +1626,13 @@ export default function PoeFinancialSystem() {
     // pointing at an entity the new profile can't see.
     setEntityFilter('all');
   };
+  // 2026-06-12 fix ("why Adam, not Darrell?"): the sanitized display names
+  // (Adam/Naomi) exist so PUBLIC visitors never see the family's real names.
+  // A SIGNED-IN session is the family on their own device — they get their
+  // own names. Anonymous, demo, and picker states keep the sanitized pair.
   const PROFILES = [
-    { id: 'darrell', name: 'Adam', sub: 'full owner view', accent: '#1A1815' },
-    { id: 'christina', name: 'Naomi', sub: 'personal + practice', accent: '#B85838' },
+    { id: 'darrell', name: authSession ? 'Darrell' : 'Adam', sub: 'full owner view', accent: '#1A1815' },
+    { id: 'christina', name: authSession ? 'Christina' : 'Naomi', sub: 'personal + practice', accent: '#B85838' },
     { id: 'family', name: 'Family', sub: 'household roll-up only', accent: '#5A6E3D' },
   ];
 
@@ -2068,8 +2097,19 @@ export default function PoeFinancialSystem() {
     if (!authSession || !authHydrated || currentProfile || isAnyDemoMode) return;
     try {
       const saved = localStorage.getItem('poe-current-profile');
-      if (saved) setCurrentProfile(saved);
-    } catch (e) { /* localStorage unavailable — picker stays */ }
+      if (saved) { setCurrentProfile(saved); return; }
+    } catch (e) { /* localStorage unavailable — fall through to email map */ }
+    // 2026-06-12 — identity follows the ACCOUNT, not the device: a signed-in
+    // owner on a brand-new device shouldn't face the picker (or be greeted
+    // as the sanitized persona). Known family emails map straight to their
+    // profile; unknown emails still get the picker.
+    const FAMILY_EMAIL_PROFILES = {
+      'darrellpoe06@gmail.com': 'darrell',
+      // Add Christina's + the twins' sign-in emails as they get accounts.
+    };
+    const email = (authSession.user?.email || '').toLowerCase();
+    const mapped = FAMILY_EMAIL_PROFILES[email];
+    if (mapped) setProfile(mapped);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession, authHydrated]);
 
@@ -2141,18 +2181,29 @@ export default function PoeFinancialSystem() {
       // must neither upload its props nor pull the family's real names.
       if (!isAnyDemoMode) {
         try {
+          // notSeedRow (2026-06-12): seed entities ("Personal (Adam + Naomi)")
+          // must never upload next to the family's real entities; once real
+          // cloud entities exist, local seed entities drop from display.
           const localEntities = ((typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__)
             ? (window.__POETECH_LATEST_DATA__.entities || [])
-            : []).filter(notDemoRow);
+            : []).filter(notDemoRow).filter(notSeedRow);
           const result = await entitiesSync.initialSync(localEntities);
           if (result && result.merged) {
-            setData(d => ({ ...d, entities: result.merged.filter(notDemoRow) }));
+            setData(d => {
+              const incoming = result.merged.filter(notDemoRow);
+              const current = incoming.length ? (d.entities || []).filter(notSeedRow) : (d.entities || []);
+              return { ...d, entities: unionPreservingLocal(current, incoming) };
+            });
           }
         } catch (e) {
           console.warn('[auth] entities initial sync failed', e);
         }
         unsubscribeEntities = entitiesSync.subscribe((items) => {
-          setData(d => ({ ...d, entities: items.filter(notDemoRow) }));
+          setData(d => {
+            const incoming = items.filter(notDemoRow);
+            const current = incoming.length ? (d.entities || []).filter(notSeedRow) : (d.entities || []);
+            return { ...d, entities: unionPreservingLocal(current, incoming) };
+          });
         });
       }
     });
@@ -2206,16 +2257,18 @@ export default function PoeFinancialSystem() {
       // upload into the family's cloud instance, e.g. signing in on a public
       // host while demo data is on screen) and on every cloud-loaded list
       // (any demo rows that historically slipped in stay invisible).
+      // notDemoRow: demo rows never upload. notSeedRow (2026-06-12): seed
+      // scaffolding never uploads either — see SEED_IDS above.
       const tables = [
-        { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow) },
-        { sync: debtsSync,        key: 'debts',        localList: (latest.debts || []).filter(notDemoRow) },
-        { sync: transactionsSync, key: 'transactions', localList: (latest.transactions || []).filter(notDemoRow) },
-        { sync: projectsSync,     key: 'projects',     localList: (latest.projects || []).filter(notDemoRow) },
-        { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow) },
+        { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: debtsSync,        key: 'debts',        localList: (latest.debts || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: transactionsSync, key: 'transactions', localList: (latest.transactions || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: projectsSync,     key: 'projects',     localList: (latest.projects || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
         // v2.13 — the QC record (work orders + dispatch + lifecycle trail)
         // and the shared 1099 worker roster pool to the family instance.
-        { sync: incidentsSync,    key: 'incidents',       localList: (latest.incidents || []).filter(notDemoRow) },
-        { sync: contractorsSync,  key: 'contractors1099', localList: (latest.contractors1099 || []).filter(notDemoRow) },
+        { sync: incidentsSync,    key: 'incidents',       localList: (latest.incidents || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: contractorsSync,  key: 'contractors1099', localList: (latest.contractors1099 || []).filter(notDemoRow).filter(notSeedRow) },
       ];
       for (const t of tables) {
         if (cancelled) return;
@@ -2225,7 +2278,13 @@ export default function PoeFinancialSystem() {
             // 2026-06-12 data-loss fix: union, never wholesale-replace — a
             // locally-created row whose upload failed (or hasn't landed)
             // must survive the cloud list arriving. See unionPreservingLocal.
-            setData(d => ({ ...d, [t.key]: unionPreservingLocal(d[t.key] || [], result.merged.filter(notDemoRow)) }));
+            // Seed purge: once the cloud holds real rows for this table, the
+            // local seed scaffolding is dropped — truth replaces the picture.
+            setData(d => {
+              const incoming = result.merged.filter(notDemoRow);
+              const current = incoming.length ? (d[t.key] || []).filter(notSeedRow) : (d[t.key] || []);
+              return { ...d, [t.key]: unionPreservingLocal(current, incoming) };
+            });
             if (result.uploadFailures) {
               setPersistIssue({
                 kind: 'sync',
@@ -2238,7 +2297,11 @@ export default function PoeFinancialSystem() {
         }
         if (cancelled) return;
         const unsubscribe = t.sync.subscribe((items) => {
-          setData(d => ({ ...d, [t.key]: unionPreservingLocal(d[t.key] || [], items.filter(notDemoRow)) }));
+          setData(d => {
+            const incoming = items.filter(notDemoRow);
+            const current = incoming.length ? (d[t.key] || []).filter(notSeedRow) : (d[t.key] || []);
+            return { ...d, [t.key]: unionPreservingLocal(current, incoming) };
+          });
         });
         cleanups.push(unsubscribe);
       }
@@ -2250,16 +2313,24 @@ export default function PoeFinancialSystem() {
       // tables above. See rentals-sync.js for the merge rules.
       if (cancelled) return;
       try {
-        const result = await rentalsSync.initialSync((latest.inflows?.rentals || []).filter(notDemoRow));
+        const result = await rentalsSync.initialSync((latest.inflows?.rentals || []).filter(notDemoRow).filter(notSeedRow));
         if (!cancelled && result && result.merged) {
-          setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals((d.inflows?.rentals || []).filter(notDemoRow), result.merged.filter(notDemoRow)) } }));
+          setData(d => {
+            const incoming = result.merged.filter(notDemoRow);
+            const current = (d.inflows?.rentals || []).filter(notDemoRow);
+            return { ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals(incoming.length ? current.filter(notSeedRow) : current, incoming) } };
+          });
         }
       } catch (e) {
         console.warn('[rentals-sync] initial sync failed', e);
       }
       if (cancelled) return;
       cleanups.push(rentalsSync.subscribe((items) => {
-        setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals((d.inflows?.rentals || []).filter(notDemoRow), items.filter(notDemoRow)) } }));
+        setData(d => {
+          const incoming = items.filter(notDemoRow);
+          const current = (d.inflows?.rentals || []).filter(notDemoRow);
+          return { ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals(incoming.length ? current.filter(notSeedRow) : current, incoming) } };
+        });
       }));
     }
     start();
