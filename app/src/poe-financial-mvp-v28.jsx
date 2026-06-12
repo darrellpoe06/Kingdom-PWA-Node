@@ -2240,7 +2240,8 @@ export default function PoeFinancialSystem() {
     // profile; unknown emails still get the picker.
     const FAMILY_EMAIL_PROFILES = {
       'darrellpoe06@gmail.com': 'darrell',
-      // Add Christina's + the twins' sign-in emails as they get accounts.
+      'mrspoe06@gmail.com': 'christina',
+      // Add the twins' sign-in emails as they get accounts.
     };
     const email = (authSession.user?.email || '').toLowerCase();
     const mapped = FAMILY_EMAIL_PROFILES[email];
