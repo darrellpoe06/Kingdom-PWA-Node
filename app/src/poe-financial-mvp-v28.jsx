@@ -23,10 +23,17 @@ import { debtsSync } from './lib/debts-sync.js';
 import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync } from './lib/projects-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
+import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
+import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
+import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
-import { QueueSpotlight } from './components/QueueSpotlight.jsx';
-import { QueueList } from './components/QueueList.jsx';
+import { DispatchPanel } from './components/DispatchPanel.jsx';
+import { LifeGallery } from './components/LifeGallery.jsx';
+import { ConferenceModule } from './components/ConferenceModule.jsx';
+import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
+import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
+import { unionPreservingLocal } from './lib/table-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
 
@@ -1295,6 +1302,28 @@ const DEMO_DATA_BY_PERSONA = {
   'professional':DEMO_DATA_PROFESSIONAL,
   'landlord':    DEMO_DATA_LANDLORD,
 };
+
+// 2026-06-11 — every record id that exists ONLY in the demo datasets (ids the
+// demo shares with SEED_DATA are excluded so real seeded records are never
+// touched). Used to (a) never upload demo rows into a signed-in family's
+// cloud instance, and (b) filter any demo rows that historically slipped in
+// back OUT of cloud-loaded lists. This is the "fake Reeves family mixed with
+// ours" guard.
+const DEMO_ONLY_IDS = (() => {
+  const collect = (node, ids) => {
+    if (Array.isArray(node)) { node.forEach((n) => collect(n, ids)); return ids; }
+    if (node && typeof node === 'object') {
+      if (typeof node.id === 'string') ids.add(node.id);
+      Object.values(node).forEach((v) => collect(v, ids));
+    }
+    return ids;
+  };
+  const demoIds = collect(DEMO_DATA_BY_PERSONA, new Set());
+  const seedIds = collect(SEED_DATA, new Set());
+  seedIds.forEach((id) => demoIds.delete(id));
+  return demoIds;
+})();
+const notDemoRow = (x) => !(x && typeof x.id === 'string' && DEMO_ONLY_IDS.has(x.id));
 // Persona-specific welcome copy. Each entry describes the audience and the
 // stewardship lens. The 'vision' line is honest about what's working today
 // vs what's still being built (per Darrell 2026-05-28).
@@ -1379,7 +1408,7 @@ function getInitialView() {
     if (typeof window === 'undefined') return 'overview';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','admin'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -1485,7 +1514,7 @@ export default function PoeFinancialSystem() {
   // fragments, balances, and addresses.
   const isFirstTimeLandingBoot = (() => {
     try {
-      if (!!demoPersona) return false;
+      if (demoPersona) return false;
       const sp = new URLSearchParams(window.location.search);
       if (sp.toString() !== '') return false;
       if (localStorage.getItem('poe-landing-seen')) return false;
@@ -1516,6 +1545,11 @@ export default function PoeFinancialSystem() {
   const [debtSnowballExtra, setDebtSnowballExtra] = useState(500);
   const [theme, setTheme] = useState('midnight');
   const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
+  // 2026-06-12 — persistence problems must be VISIBLE (PERPETUAL-PIPELINE-
+  // HEALTH: no silent failure on the path the family's memories ride).
+  // Set by the storage-quota catch and by cloud-sync upload failures;
+  // rendered as a banner under AuthBanner. null = healthy.
+  const [persistIssue, setPersistIssue] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const firedRemindersRef = useRef(new Set());
   const currentDate = useMemo(() => new Date(2026, 4, 15), []);
@@ -1543,6 +1577,9 @@ export default function PoeFinancialSystem() {
   // them to localStorage too, duplicating data.
   const [remoteFeedback, setRemoteFeedback] = useState([]);
   const [authSession, setAuthSession] = useState(null);
+  // 2026-06-11 — true once the signed-in public-host hydration finished;
+  // gates persistence so demo data can never overwrite the owner's snapshot.
+  const [authHydrated, setAuthHydrated] = useState(false);
   const [showVerifyBalances, setShowVerifyBalances] = useState(false);
 
   // Multi-user Layer A (2026-05-28) — `currentProfile` gates which entities
@@ -1587,7 +1624,13 @@ export default function PoeFinancialSystem() {
   //   3. A saved profile exists
   // The family accesses real imported data via the Tailscale-internal URL only.
   // poetech.us / *.vercel.app are PUBLIC-FRONT-DOOR only — no PII ever.
-  const importedAllowed = !isPublicHost() && !isAnyDemoMode && !!currentProfile;
+  // 2026-06-11 (P14 pattern, applied deliberately to the MOST sensitive gate):
+  // a signed-in, hydrated OWNER may see their own imported bank events on a
+  // public host too — anonymous visitors and demo/picker states still never
+  // do, and a saved profile is still required. The wf18 bearer is only ever
+  // attached past this gate.
+  const importedAllowed = !isAnyDemoMode && !!currentProfile
+    && (!isPublicHost() || !!(authSession && authHydrated));
 
   // Demo welcome modal — only shown when ?demo=… is in the URL. Sets the
   // viewer's expectation about what they're looking at and what they can do,
@@ -1688,7 +1731,11 @@ export default function PoeFinancialSystem() {
     } catch (_) { /* localStorage blocked or unavailable */ }
     const screenContext = {
       path: (typeof window !== 'undefined' && window.location) ? window.location.pathname + window.location.search : '/',
-      tab: (typeof activeTab === 'string') ? activeTab : (typeof tab === 'string' ? tab : null),
+      // 2026-06-11 fix: this previously referenced activeTab/tab, neither of
+      // which exists — every feedback row landed with tab:null. `view` is the
+      // real current-tab state. account makes "whose feedback" unambiguous.
+      tab: (typeof view === 'string') ? view : null,
+      account: (authSession && authSession.user && authSession.user.email) ? authSession.user.email : null,
       persona: (typeof demoPersona === 'string') ? demoPersona : null,
       is_demo: typeof isDemoMode === 'boolean' ? isDemoMode : null
     };
@@ -1872,26 +1919,43 @@ export default function PoeFinancialSystem() {
     load();
     const id = setInterval(load, 300_000);
     return () => { cancelled = true; clearInterval(id); };
-  }, []);
+    // Re-run when the gate opens (sign-in completes hydration) — with [] deps
+    // this captured importedAllowed=false at mount and never fetched.
+  }, [importedAllowed]);
 
+  // 2026-06-11 — the public-host gate is about ANONYMOUS visitors (the
+  // 2026-06-03 leak was real ops data rendering to whoever opened poetech.us).
+  // A SIGNED-IN owner is a different trust boundary: their own saved data on
+  // their own device belongs to them. hydratedForAuthRef ensures the
+  // signed-in hydration runs once per session.
+  const hydratedForAuthRef = useRef(false);
   useEffect(() => {
     if (isAnyDemoMode) { setLoaded(true); return; } // Demo + picker skip storage load entirely.
-    // 2026-06-03 SECURITY: PUBLIC DOMAIN MUST NOT HYDRATE FROM LOCAL STORAGE.
-    // The previous gate stopped the wf18 webhook fetch but localStorage could
-    // still hydrate the entire app with the family's REAL ops data on a non-
-    // incognito tab opened on poetech.us from the family's own device — the
-    // Big Picture dashboard then surfaced real entity names, property
-    // addresses, project titles ("1508 Holly Hill," "Christiana college
-    // transition") to whatever tab was open. On any public host (poetech.us,
-    // *.vercel.app), force the seed sample data + skip localStorage hydration
-    // entirely. Real ops data is accessible only via Tailscale-internal
-    // hostnames (where the gate stays open).
+    // 2026-06-03 SECURITY: PUBLIC DOMAIN MUST NOT HYDRATE FROM LOCAL STORAGE
+    // FOR ANONYMOUS VISITORS. The previous gate stopped the wf18 webhook fetch
+    // but localStorage could still hydrate the entire app with the family's
+    // REAL ops data on a non-incognito tab opened on poetech.us from the
+    // family's own device — the Big Picture dashboard then surfaced real
+    // entity names, property addresses, project titles to whatever tab was
+    // open. On any public host (poetech.us, *.vercel.app), anonymous visitors
+    // get the demo sample + no hydration. (Signed-in hydration is handled by
+    // the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
     if (isPublicHost()) {
       setData(DEMO_DATA_FAMILY_OF_4);
       setLoaded(true);
       return;
     }
-    (async () => {
+    (async () => { await loadSavedSnapshot(); setLoaded(true); })();
+    // Run-once boot hydration by design; isAnyDemoMode is URL-derived and
+    // fixed for the page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Loads this device's saved snapshot into state (defensive merge). Shared
+  // by the mount-time load (private hosts) and the signed-in load on public
+  // hosts: an authenticated owner gets their own data anywhere. Returns
+  // true when a snapshot existed.
+  const loadSavedSnapshot = async () => {
       try {
         let saved = await window.storage.get('poe-financial-v28');
         if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v27');
@@ -1961,17 +2025,65 @@ export default function PoeFinancialSystem() {
             setTheme(themeMigration[parsed.theme] || parsed.theme);
           }
         }
-      } catch (e) {}
-      setLoaded(true);
-    })();
-  }, []);
+        return !!(saved && saved.value);
+      } catch (e) { return false; }
+  };
+
+  // 2026-06-11 — signed-in hydration on public hosts ("fake data mixed with
+  // ours" / "can't tell I'm logged in" fix): once authenticated on
+  // poetech.us, this device's saved data loads for its owner; a fresh device
+  // starts from the aspirational SEED instead of the Reeves demo. Anonymous
+  // visitors still never hydrate (the 2026-06-03 leak gate stands).
+  useEffect(() => {
+    if (!authSession || hydratedForAuthRef.current) return;
+    if (!isPublicHost() || isAnyDemoMode) return;
+    hydratedForAuthRef.current = true;
+    loadSavedSnapshot().then((found) => {
+      if (!found) setData(SEED_DATA);
+      setAuthHydrated(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession]);
+
+  // 2026-06-11 (P14 pattern, third instance of the same gate disease): the
+  // boot-time profile read returns null on public hosts (correct for
+  // anonymous visitors), which made the picker re-appear on every reload for
+  // the SIGNED-IN family and kept currentProfile-gated surfaces (Imported)
+  // hidden. Once the owner's hydration completes, load this device's saved
+  // profile. Demo states keep their forced profile.
+  useEffect(() => {
+    if (!authSession || !authHydrated || currentProfile || isAnyDemoMode) return;
+    try {
+      const saved = localStorage.getItem('poe-current-profile');
+      if (saved) setCurrentProfile(saved);
+    } catch (e) { /* localStorage unavailable — picker stays */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession, authHydrated]);
 
   useEffect(() => {
     if (!loaded) return;
     if (isAnyDemoMode) return; // Demo + picker mode never write to localStorage.
-    if (isPublicHost()) return; // SECURITY: public domain never persists data.
-    (async () => { try { await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme })); } catch (e) { console.error('Storage failed', e); } })();
-  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode]);
+    // SECURITY (2026-06-03): the public domain never persists for ANONYMOUS
+    // visitors. 2026-06-11: a signed-in owner persists on their own device —
+    // but only AFTER their hydration completes, so a demo snapshot can never
+    // overwrite their real saved data in the sign-in race window.
+    if (isPublicHost() && !(authSession && authHydrated)) return;
+    (async () => {
+      try {
+        await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
+        setPersistIssue(prev => (prev && prev.kind === 'storage' ? null : prev));
+      } catch (e) {
+        console.error('Storage failed', e);
+        // QuotaExceededError here means NOTHING is being saved anymore —
+        // photos are usually the weight. Say so instead of losing a week
+        // of entries silently (review finding, 2026-06-12).
+        setPersistIssue({
+          kind: 'storage',
+          message: 'This device’s storage is full — changes are NOT being saved. Export or remove a few photos (Big Picture → photos), then make any small edit to retry.',
+        });
+      }
+    })();
+  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode, authSession, authHydrated]);
 
   // Layer 2 — auth + feedback sync wiring.
   // On every auth state change: tear down any prior subscriptions, then
@@ -2005,26 +2117,37 @@ export default function PoeFinancialSystem() {
       // Initial sync uploads any local entities not yet in Supabase, then
       // pulls the merged set. Realtime subscription keeps subsequent edits
       // from other devices flowing in.
-      try {
-        const localEntities = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__)
-          ? (window.__POETECH_LATEST_DATA__.entities || [])
-          : [];
-        const result = await entitiesSync.initialSync(localEntities);
-        if (result && result.merged) {
-          setData(d => ({ ...d, entities: result.merged }));
+      // 2026-06-11 — notDemoRow on BOTH directions (this block was missed in
+      // the numeric-table sweep): the public-host mount puts the Reeves demo
+      // in state before auth resolves, so the unfiltered upload pushed demo
+      // entities into the family's cloud instance, and the unfiltered pull
+      // rendered them back (Maya / Jordan / Avery / Reeves on a signed-in
+      // device). Demo mode skips entities sync entirely — a working sample
+      // must neither upload its props nor pull the family's real names.
+      if (!isAnyDemoMode) {
+        try {
+          const localEntities = ((typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__)
+            ? (window.__POETECH_LATEST_DATA__.entities || [])
+            : []).filter(notDemoRow);
+          const result = await entitiesSync.initialSync(localEntities);
+          if (result && result.merged) {
+            setData(d => ({ ...d, entities: result.merged.filter(notDemoRow) }));
+          }
+        } catch (e) {
+          console.warn('[auth] entities initial sync failed', e);
         }
-      } catch (e) {
-        console.warn('[auth] entities initial sync failed', e);
+        unsubscribeEntities = entitiesSync.subscribe((items) => {
+          setData(d => ({ ...d, entities: items.filter(notDemoRow) }));
+        });
       }
-      unsubscribeEntities = entitiesSync.subscribe((items) => {
-        setData(d => ({ ...d, entities: items }));
-      });
     });
     return () => {
       cleanupAuth();
       if (unsubscribeFeedback) unsubscribeFeedback();
       if (unsubscribeEntities) unsubscribeEntities();
     };
+    // isAnyDemoMode is URL-derived and constant for the page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -2047,6 +2170,12 @@ export default function PoeFinancialSystem() {
       setShowVerifyBalances(false);
       return;
     }
+    // 2026-06-11 — a working sample never asks you to verify: the wizard over
+    // a ?demo= view listed sample entities as if they were the family's own.
+    if (isAnyDemoMode) {
+      setShowVerifyBalances(false);
+      return;
+    }
     if (!data.numericSyncVerifiedAt) {
       setShowVerifyBalances(true);
       return;
@@ -2058,29 +2187,65 @@ export default function PoeFinancialSystem() {
 
     async function start() {
       const latest = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__) || data;
+      // 2026-06-11 — notDemoRow on every local list (demo rows must NEVER
+      // upload into the family's cloud instance, e.g. signing in on a public
+      // host while demo data is on screen) and on every cloud-loaded list
+      // (any demo rows that historically slipped in stay invisible).
       const tables = [
-        { sync: accountsSync,     key: 'accounts',     localList: latest.accounts || [] },
-        { sync: debtsSync,        key: 'debts',        localList: latest.debts || [] },
-        { sync: transactionsSync, key: 'transactions', localList: latest.transactions || [] },
-        { sync: projectsSync,     key: 'projects',     localList: latest.projects || [] },
-        { sync: inquiriesSync,    key: 'inquiries',    localList: latest.inquiries || [] },
+        { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow) },
+        { sync: debtsSync,        key: 'debts',        localList: (latest.debts || []).filter(notDemoRow) },
+        { sync: transactionsSync, key: 'transactions', localList: (latest.transactions || []).filter(notDemoRow) },
+        { sync: projectsSync,     key: 'projects',     localList: (latest.projects || []).filter(notDemoRow) },
+        { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow) },
+        // v2.13 — the QC record (work orders + dispatch + lifecycle trail)
+        // and the shared 1099 worker roster pool to the family instance.
+        { sync: incidentsSync,    key: 'incidents',       localList: (latest.incidents || []).filter(notDemoRow) },
+        { sync: contractorsSync,  key: 'contractors1099', localList: (latest.contractors1099 || []).filter(notDemoRow) },
       ];
       for (const t of tables) {
         if (cancelled) return;
         try {
           const result = await t.sync.initialSync(t.localList);
           if (!cancelled && result && result.merged) {
-            setData(d => ({ ...d, [t.key]: result.merged }));
+            // 2026-06-12 data-loss fix: union, never wholesale-replace — a
+            // locally-created row whose upload failed (or hasn't landed)
+            // must survive the cloud list arriving. See unionPreservingLocal.
+            setData(d => ({ ...d, [t.key]: unionPreservingLocal(d[t.key] || [], result.merged.filter(notDemoRow)) }));
+            if (result.uploadFailures) {
+              setPersistIssue({
+                kind: 'sync',
+                message: `${result.uploadFailures} ${t.key} item(s) could not reach the cloud — they are safe on this device and will retry on next sign-in.`,
+              });
+            }
           }
         } catch (e) {
           console.warn(`[${t.sync.remoteTable}-sync] initial sync failed`, e);
         }
         if (cancelled) return;
         const unsubscribe = t.sync.subscribe((items) => {
-          setData(d => ({ ...d, [t.key]: items }));
+          setData(d => ({ ...d, [t.key]: unionPreservingLocal(d[t.key] || [], items.filter(notDemoRow)) }));
         });
         cleanups.push(unsubscribe);
       }
+
+      // Rentals live nested under inflows.rentals and carry device-local
+      // detail the v2.2 rentals table doesn't model (mortgage rate/P&I/escrow,
+      // rooms, equipment, logs, rent/actual) — merge remote columns into the
+      // local shape instead of replacing the list wholesale like the flat
+      // tables above. See rentals-sync.js for the merge rules.
+      if (cancelled) return;
+      try {
+        const result = await rentalsSync.initialSync((latest.inflows?.rentals || []).filter(notDemoRow));
+        if (!cancelled && result && result.merged) {
+          setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals((d.inflows?.rentals || []).filter(notDemoRow), result.merged.filter(notDemoRow)) } }));
+        }
+      } catch (e) {
+        console.warn('[rentals-sync] initial sync failed', e);
+      }
+      if (cancelled) return;
+      cleanups.push(rentalsSync.subscribe((items) => {
+        setData(d => ({ ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals((d.inflows?.rentals || []).filter(notDemoRow), items.filter(notDemoRow)) } }));
+      }));
     }
     start();
 
@@ -2088,6 +2253,9 @@ export default function PoeFinancialSystem() {
       cancelled = true;
       cleanups.forEach(fn => { try { fn && fn(); } catch (_) {} });
     };
+    // `data` is read via the window stash (see below); isAnyDemoMode is
+    // URL-derived and constant for the page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession, data.numericSyncVerifiedAt]);
 
   // Stash the latest data on window so the auth effect (which has [] deps
@@ -2141,7 +2309,10 @@ export default function PoeFinancialSystem() {
   // Round 10 — addIncident now fills in ITSM defaults if caller omits them.
   // status defaults to 'open', urgency to 'incident', dueDate computed from urgency.
   // Incidents — every creation seeds a lifecycle log; every status change appends.
-  const addIncident = (item) => setData(d => {
+  // Returns the new incident id so callers (e.g. the maintenance-log work-order
+  // button) can link their source record to it.
+  const addIncident = (item) => {
+    const id = `in-${Date.now()}`;
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'open';
     const seeded = {
@@ -2149,7 +2320,10 @@ export default function PoeFinancialSystem() {
       status: initialStatus,
       dueDate: dueDateFor(item.urgency || 'incident'),
       ...item,
-      id: `in-${Date.now()}`,
+      id,
+      // date is rendered with .slice() in Calendar and the queue lists —
+      // guarantee it like the other ITSM defaults (callers may omit it).
+      date: item.date || nowIso.slice(0, 10),
       createdAt: item.createdAt || nowIso,
       lifecycle: {
         phase: initialStatus,
@@ -2158,22 +2332,68 @@ export default function PoeFinancialSystem() {
         log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
       },
     };
-    return { ...d, incidents: [...d.incidents, seeded] };
-  });
-  const updateIncident = (id, updates) => setData(d => ({
-    ...d,
-    incidents: d.incidents.map(i => {
-      if (i.id !== id) return i;
-      const withLifecycle = ensureLifecycle(i);
-      const merged = { ...withLifecycle, ...updates };
-      // If status changed, route through appendLifecycleLog to write a log entry.
-      if (updates.status && updates.status !== withLifecycle.status) {
-        return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
+    setData(d => ({ ...d, incidents: [...d.incidents, seeded] }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      // Stamp remoteUuid as soon as the insert lands so follow-on updates
+      // (dispatch, resolve) reach the cloud row immediately.
+      incidentsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) {
+          setData(d => ({ ...d, incidents: (d.incidents || []).map(i => i.id === id ? { ...i, remoteUuid: res.remoteId } : i) }));
+        }
+      }).catch(e => console.warn('[incidents-sync] upload failed', e));
+    }
+    return id;
+  };
+  // Shared transition logic so the reducer and the cloud push compute the
+  // identical next state (lifecycle log entries included).
+  const applyIncidentUpdates = (incident, updates) => {
+    const withLifecycle = ensureLifecycle(incident);
+    const merged = { ...withLifecycle, ...updates };
+    // If status changed, route through appendLifecycleLog to write a log entry.
+    if (updates.status && updates.status !== withLifecycle.status) {
+      return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
+    }
+    // Same-status audit note (e.g. "dispatched to X") — append a log entry
+    // without a phase change, so the quality-control trail stays complete.
+    if (updates._logNote) {
+      const nowIso = new Date().toISOString();
+      const phase = merged.lifecycle?.phase || merged.status;
+      return {
+        ...merged,
+        lifecycle: {
+          ...merged.lifecycle,
+          log: [...(merged.lifecycle?.log || []), { at: nowIso, fromPhase: phase, toPhase: phase, by: updates._by || 'user', note: updates._logNote }],
+        },
+      };
+    }
+    return merged;
+  };
+  const updateIncident = (id, updates) => {
+    // 2026-06-12 fix: the cloud push used to be computed from the CLOSURE's
+    // data — two rapid updates (dispatch → resolve, or two log notes) pushed
+    // a patch built on pre-first-update state, dropping the earlier lifecycle
+    // log entry from the QC trail. Compute inside the updater so the push
+    // always carries the post-update item. updateRow is a full-row PUT
+    // (idempotent), so StrictMode's dev-only double-invoke is harmless.
+    setData(d => {
+      const next = (d.incidents || []).map(i => i.id !== id ? i : applyIncidentUpdates(i, updates));
+      if (authSession && d.numericSyncVerifiedAt) {
+        const updated = next.find(i => i.id === id);
+        if (updated && updated.remoteUuid) {
+          incidentsSync.updateRow(updated.remoteUuid, incidentColumns(updated)).catch(e => console.warn('[incidents-sync] update failed', e));
+        }
       }
-      return merged;
-    }),
-  }));
+      return { ...d, incidents: next };
+    });
+  };
   const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10), _note: 'Marked resolved' });
+  // Dispatch — assign a 1099 worker to an open incident (work order). The
+  // assignment lands on incident.dispatch and writes a lifecycle log entry,
+  // so who-was-sent-when is part of the permanent record.
+  const dispatchIncident = (id, dispatch) => updateIncident(id, {
+    dispatch,
+    _logNote: dispatch?.contractorName ? `dispatched to ${dispatch.contractorName}` : 'dispatch updated',
+  });
   const addEvent = (item) => setData(d => ({ ...d, events: [...(d.events || []), { ...item, id: `ev-${Date.now()}`, createdAt: new Date().toISOString(), completedAt: null }] }));
   const completeEvent = (id) => setData(d => ({ ...d, events: (d.events || []).map(e => e.id === id ? { ...e, completedAt: new Date().toISOString() } : e) }));
   // Projects — same lifecycle pattern.
@@ -2218,9 +2438,41 @@ export default function PoeFinancialSystem() {
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
   // r25 — 1099 contractor CRUD per EDITABLE-EVERYWHERE.md.
-  const addContractor = (item) => setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), { ...item, id: `k-${Date.now()}` }] }));
-  const updateContractor = (id, updates) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c) }));
-  const deleteContractor = (id) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).filter(c => c.id !== id) }));
+  // v2.13 — contractors sync to contractors_1099 so the worker roster (and
+  // the phones one-tap dispatch depends on) is shared across the family.
+  const addContractor = (item) => {
+    const seeded = { ...item, id: `k-${Date.now()}` };
+    setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      contractorsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) {
+          setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === seeded.id ? { ...c, remoteUuid: res.remoteId } : c) }));
+        }
+      }).catch(e => console.warn('[contractors-sync] upload failed', e));
+    }
+  };
+  const updateContractor = (id, updates) => {
+    // 2026-06-12 fix: same stale-closure push as updateIncident — see there.
+    setData(d => {
+      const next = (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c);
+      if (authSession && d.numericSyncVerifiedAt) {
+        const updated = next.find(c => c.id === id);
+        if (updated && updated.remoteUuid) {
+          contractorsSync.updateRow(updated.remoteUuid, contractorColumns(updated)).catch(e => console.warn('[contractors-sync] update failed', e));
+        }
+      }
+      return { ...d, contractors1099: next };
+    });
+  };
+  const deleteContractor = (id) => {
+    if (authSession && data.numericSyncVerifiedAt) {
+      const current = (data.contractors1099 || []).find(c => c.id === id);
+      if (current && current.remoteUuid) {
+        contractorsSync.deleteRow(current.remoteUuid).catch(e => console.warn('[contractors-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).filter(c => c.id !== id) }));
+  };
   // r30 — Entity update (no delete: entities are referenced by accounts/debts/contractors/transactions; orphan risk).
   const updateEntity = (id, updates) => {
     setData(d => ({ ...d, entities: (d.entities || []).map(e => e.id === id ? { ...e, ...updates } : e) }));
@@ -2348,9 +2600,69 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
   };
   // v28+ Rentals expansion: Rental property CRUD
-  const addRental = (item) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), { ...item, id: `r-${Date.now()}` }] } }));
-  const updateRental = (id, updates) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
-  const deleteRental = (id) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).filter(r => r.id !== id) } }));
+  // 2026-06-10 — wired for cross-device sync (schema v2.2.2 rentals). Same gate
+  // as accounts/debts/transactions: only push once VerifyBalances has run.
+  // Only the top-level property columns travel; mortgage rate/P&I/escrow,
+  // rooms, equipment, logs, and the lease/tenant/market sub-objects stay
+  // device-local (leases + rent_payments sync is the follow-up).
+  const addRental = (item) => {
+    const seeded = { ...item, id: `r-${Date.now()}` };
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      // Stamp remoteUuid as soon as the insert lands — without it, an edit or
+      // delete in the window before the next realtime refresh can't reach the
+      // remote row (a delete would even resurrect on the next merge).
+      rentalsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) {
+          setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === seeded.id ? { ...r, remoteUuid: res.remoteId } : r) } }));
+        }
+      }).catch(e => console.warn('[rentals-sync] upload failed', e));
+    }
+  };
+  const updateRental = (id, updates) => {
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.inflows.rentals || []).find(r => r.id === id);
+      if (local && local.remoteUuid) {
+        const patch = {};
+        if (updates.name !== undefined)           patch.display_name = updates.name;
+        if (updates.address !== undefined)        patch.address = updates.address;
+        if (updates.city !== undefined)           patch.city = updates.city || null;
+        if (updates.state !== undefined)          patch.state = updates.state || null;
+        if (updates.zip !== undefined)            patch.zip = updates.zip || null;
+        if (updates.tenantName !== undefined)     patch.tenant_name = updates.tenantName || null;
+        if (updates.entityId !== undefined)       patch.entity_slug = updates.entityId || null;
+        if (updates.propertyType !== undefined)   patch.property_type = toRemotePropertyType(updates.propertyType);
+        if (updates.status !== undefined)         patch.status = toRemoteStatus(updates.status);
+        if (updates.rent !== undefined)           patch.monthly_rent = parseFloat(updates.rent) || 0;
+        if (updates.actual !== undefined)         patch.rent_actual = parseFloat(updates.actual) || 0;
+        if (updates.purchasePrice !== undefined)  patch.purchase_price = parseFloat(updates.purchasePrice) || 0;
+        if (updates.purchaseDate !== undefined)   patch.purchase_date = updates.purchaseDate || null;
+        if (updates.estimatedValue !== undefined) patch.current_market_value = parseFloat(updates.estimatedValue) || 0;
+        if (updates.mortgage !== undefined) {
+          patch.mortgage_balance = parseFloat(updates.mortgage?.balance) || 0;
+          patch.mortgage_rate    = parseFloat(updates.mortgage?.rate) || 0;
+          patch.mortgage_payment = parseFloat(updates.mortgage?.monthlyPI) || 0;
+          patch.mortgage_escrow  = parseFloat(updates.mortgage?.escrow) || 0;
+        }
+        if (updates.notes !== undefined)          patch.notes = updates.notes;
+        // Device-local edits (rooms, equipment, logs, lease/tenant/market
+        // sub-objects) produce an empty patch — skip the network round-trip.
+        if (Object.keys(patch).length) {
+          rentalsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[rentals-sync] update failed', e));
+        }
+      }
+    }
+  };
+  const deleteRental = (id) => {
+    if (authSession && data.numericSyncVerifiedAt) {
+      const local = (data.inflows.rentals || []).find(r => r.id === id);
+      if (local && local.remoteUuid) {
+        rentalsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[rentals-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).filter(r => r.id !== id) } }));
+  };
   const addScope = (scope) => setData(d => ({ ...d, scopes: [...d.scopes, { ...scope, id: `sc-${Date.now()}`, createdAt: new Date().toISOString(), status: 'draft' }] }));
   const deleteScope = (id) => setData(d => ({ ...d, scopes: d.scopes.filter(s => s.id !== id) }));
   // 2026-05-25 — Inquiries CRUD wired for cross-device sync. Same gate as
@@ -2439,6 +2751,94 @@ export default function PoeFinancialSystem() {
     });
   };
   const removeWatchlistSymbol = (sym) => setData(d => ({ ...d, watchlist: (d.watchlist || []).filter(s => s !== sym) }));
+  // Life Gallery — the curated hero photos on the Big Picture page. Device-
+  // local data URLs in the poe-financial-v28 snapshot. HONEST LIMIT
+  // (2026-06-12): photos do NOT ride cloud sync — no table carries them yet —
+  // and they are NOT safe from a phone change until the sovereign photo
+  // write-path (phone → NAS) lands. This device is the only copy; the
+  // per-photo export button is the interim backup.
+  const addLifePhotos = (photos) => setData(d => ({ ...d, lifePhotos: [...(d.lifePhotos || []), ...photos] }));
+  const updateLifePhoto = (id, updates) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
+  const deleteLifePhoto = (id) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).filter(p => p.id !== id) }));
+  // Conference (COLG 77th National Assembly) — local-first like the rest of
+  // the Church tab; merges onto the seed so partial saves never lose fields.
+  const updateConference = (updates) => setData(d => ({ ...d, conference: { ...(d.conference || {}), ...updates } }));
+  // One Voice (Church tab) — serve notes + ideas/testimony land here,
+  // persisted with the rest of the data record.
+  const addChurchVoice = (entry) => setData(d => ({ ...d, churchVoice: [...(d.churchVoice || []), entry] }));
+  // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
+  // build inbox. Persisted with the rest of the data record (device-local;
+  // never synced to a shared surface — notes are siloed by design).
+  // Links kept WITH the note (Darrell 2026-06-11: titles from YouTube/any
+  // link stay with the thought "for easy locating it again — to think and
+  // process the implications"). Titles resolve through OUR NAS (wf22
+  // link-title), so what you're reading never leaks to a third-party
+  // metadata service. Offline/no-token → the hostname is the label.
+  const extractNoteUrls = (text) => Array.from(new Set((String(text).match(/https?:\/\/[^\s)>\]"']{4,500}/g) || []).slice(0, 6)));
+  const enrichNoteLinks = (noteId, urls) => {
+    let token = '';
+    try { token = (localStorage.getItem('poetech-chat-bridge-token') || '').trim(); } catch (_) { /* no-op */ }
+    if (!token) return;
+    urls.forEach((u) => {
+      try {
+        fetch(`/n8n/webhook/link-title?url=${encodeURIComponent(u)}`, { headers: { authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : null)
+          .then(j => {
+            const o = Array.isArray(j) ? j[0] : j;
+            const title = (o && o.title) ? String(o.title).slice(0, 200) : '';
+            if (!title) return;
+            setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === noteId ? { ...n, links: (n.links || []).map(l => l.url === u ? { ...l, title } : l) } : n) }));
+          })
+          .catch(() => { /* offline — hostname label stands */ });
+      } catch (_) { /* same */ }
+    });
+  };
+  const addNote = (text) => {
+    const id = `nt-${Date.now()}`;
+    const urls = extractNoteUrls(text);
+    setData(d => ({ ...d, notes: [...(d.notes || []), { id, text, createdAt: new Date().toISOString(), pinned: false, sentToPoeTech: false, links: urls.map(u => ({ url: u, title: '' })) }] }));
+    if (urls.length) enrichNoteLinks(id, urls);
+  };
+  // 📖 Spiritual-source flag — notes marked as sources (e.g. Yahweh Speaks
+  // links) feed the spiritual module's source review. Word-senior posture:
+  // sources that try to clarify Yahweh's perspectives are weighed against
+  // Scripture, never the other way (THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW;
+  // per-tradition weights with Bishop Gwin).
+  const toggleNoteSource = (id) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, spiritualSource: !n.spiritualSource } : n) }));
+  const updateNote = (id, text) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, text, updatedAt: new Date().toISOString() } : n) }));
+  const deleteNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).filter(n => n.id !== id) }));
+  const togglePinNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, pinned: !n.pinned } : n) }));
+  const sendNoteToPoeTech = (text, noteId) => {
+    const id = `ad-${Date.now()}`;
+    setData(d => ({
+      ...d,
+      appDirectives: [...(d.appDirectives || []), { id, text, at: new Date().toISOString(), status: 'received' }],
+      notes: noteId ? (d.notes || []).map(n => n.id === noteId ? { ...n, sentToPoeTech: true } : n) : (d.notes || []),
+    }));
+    // Low-hanging-fruit bucket → build pipeline (Darrell 2026-06-11: "the
+    // system gets better based on the bucket filling — we have workflows for
+    // 90% of that"). The missing 10% was this one connection: relay the
+    // directive to the NAS thought-inbox (wf26) that feeds build sessions.
+    // Fire-and-forget; offline is fine — the local record above is canonical.
+    // 2026-06-12 security fix: this POST was unauthenticated and reachable by
+    // any anonymous visitor on poetech.us — arbitrary public text injected
+    // into the autonomous-agent inbox (wf26 → wf27). Now it only fires from a
+    // device holding the bridge token, and sends it so wf26 can require
+    // headerAuth. No token (anonymous/public visitor) → the local record
+    // stands and nothing is relayed.
+    let bridgeToken = '';
+    try { bridgeToken = (localStorage.getItem('poetech-chat-bridge-token') || '').trim(); } catch (_) { /* no-op */ }
+    if (!bridgeToken) return;
+    try {
+      fetch('/n8n/webhook/thought', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${bridgeToken}` },
+        body: JSON.stringify({ text, tags: ['tell-poetech', 'poetech-app'], data: { source: 'thinking-space', directiveId: id } }),
+      }).then((r) => {
+        if (r.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
+      }).catch(() => { /* offline — local record stands; relays are best-effort */ });
+    } catch (_) { /* same */ }
+  };
 
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
@@ -2673,6 +3073,12 @@ html{scroll-padding-bottom:280px}
       </div>
 
       <AuthBanner />
+      {persistIssue && (
+        <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[12px] py-2 px-4 flex items-center justify-between gap-3 print:hidden">
+          <span>⚠ {persistIssue.message}</span>
+          <button onClick={() => setPersistIssue(null)} className="text-[#FAF8F4]/80 hover:text-white text-[11px] uppercase tracking-wide shrink-0">Dismiss</button>
+        </div>
+      )}
       {showVerifyBalances && (
         <VerifyBalances
           data={data}
@@ -3270,6 +3676,7 @@ html{scroll-padding-bottom:280px}
                 ['opportunities','Dev/Ops'],
                 ['about','About'],
                 ['__sep__', null],
+                ['notes','🕊 Notes'],
                 ['church','Church'],
                 ['markets','Markets'],
               ].map(([id, label]) => {
@@ -3302,7 +3709,7 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} />}
+        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} dispatchIncident={dispatchIncident} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
         {view === 'books' && (
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
@@ -3353,13 +3760,16 @@ html{scroll-padding-bottom:280px}
                 incidents={data.incidents || []}
                 addIncident={addIncident}
                 resolveIncident={resolveIncident}
+                contractors={data.contractors1099 || []}
+                dispatchIncident={dispatchIncident}
                 voiceOps={data.voiceOps || {}}
               />
             </>
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} />}
+        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
+        {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
@@ -4249,7 +4659,7 @@ function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFe
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null }) {
+function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], dispatchIncident, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto }) {
   // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
   // item (if any) is currently expanded. Tapping the row body opens the full
   // details + lifecycle log + jump-link inline, so the user never loses
@@ -4437,6 +4847,10 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
         </section>
       )}
 
+      {/* THE BIGGEST PICTURE — family / business / project hero photos, so the
+          person sees what this is all for every time they open the app. */}
+      <LifeGallery photos={lifePhotos} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />
+
       {/* v28+ MVP v1.5 round 10 — ACTION QUEUE
           One-glance triage panel: Changes (broken now), Incidents (3-day fix),
           Projects (planned work). Anything across the app that needs attention
@@ -4568,7 +4982,7 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
                         <span className="text-[10px] text-[#5A5751] ml-auto font-semibold" aria-hidden="true">{expanded ? '▲' : '▼'} details</span>
                       </div>
                       <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{lifecycleLog.length > 1 ? ` · 📜 ${lifecycleLog.length} log entries` : ''}
+                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{sourceItem?.dispatch ? ` · 👷 ${sourceItem.dispatch.contractorName}` : ''}{lifecycleLog.length > 1 ? ` · 📜 ${lifecycleLog.length} log entries` : ''}
                       </div>
                     </button>
                     {/* Primary action (Resolve for incidents) stays visible on the
@@ -4595,6 +5009,20 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
                     <div className="px-3 pb-3 pt-2 bg-[#FAF8F4] border-t border-[#E8E4DC] space-y-3">
                       {fullDescription && fullDescription !== q.title && (
                         <p className="text-sm text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{fullDescription}</p>
+                      )}
+                      {/* Dispatch — the path from "needs fixed" to a 1099 worker's
+                          phone. Renders for any incident; pulls the linked
+                          property so the job text carries the full address. */}
+                      {q.kind === 'incident' && sourceItem && dispatchIncident && (
+                        <div className="bg-white border border-[#E8E4DC] p-2.5">
+                          <DispatchPanel
+                            incident={sourceItem}
+                            property={sourceItem.linkedTo?.type === 'rental' ? (rentals.find(r => r.id === sourceItem.linkedTo.id) || null) : null}
+                            contractors={contractors}
+                            onDispatch={dispatchIncident}
+                            onResolve={resolveIncident}
+                          />
+                        </div>
                       )}
                       {lifecycleLog.length > 0 && (
                         <div>
@@ -5254,7 +5682,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
               <div className="flex justify-between items-baseline gap-2">
                 <div className="flex-1 min-w-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{inc.description}</div>
-                  <div className="text-xs text-[#5A5751]">{inc.date.slice(5)} · {inc.category}</div>
+                  <div className="text-xs text-[#5A5751]">{(inc.date || '').slice(5)} · {inc.category}</div>
                   {Array.isArray(inc.contractorIds) && inc.contractorIds.length > 0 && (
                     <div className="text-[10px] text-[#5A5751] mt-1 flex flex-wrap gap-1.5">
                       <span className="uppercase tracking-wider">👤 1099:</span>
@@ -5447,7 +5875,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
 // WCAG 2.1 AA: <label>'d inputs, focus rings, descriptive aria-labels,
 // status meaning conveyed in text as well as color.
 // =============================================================================
-function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent }) {
+function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry }) {
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -5676,6 +6104,25 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
           <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>.
         </p>
       )}
+
+      {/* ONE VOICE — the Church tab's single front door (COUNCIL-CHAMBER:
+          one input, the system deduces; MODE-ROUTING: suggestion visible,
+          person decides). Ordered first so speaking is always one tap away. */}
+      <ChurchOneVoice
+        addPrayerRequest={addPrayerRequest}
+        updateConference={updateConference}
+        conference={conference}
+        addChurchVoice={addChurchVoice}
+        churchVoice={churchVoice}
+        sendToPoeTech={sendToPoeTech}
+        addIncident={addIncident}
+        addInquiry={addInquiry}
+      />
+
+      {/* CONFERENCE — 77th National Assembly (2026-06-11). Second while the
+          Assembly is in season; Bishop Gwin edits details, builds the schedule,
+          and his feedback box feeds the build list directly. */}
+      <ConferenceModule conference={conference} updateConference={updateConference} />
 
       {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
           a post-vacation build; this is the entry point + placeholder. */}

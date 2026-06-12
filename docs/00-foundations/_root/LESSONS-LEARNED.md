@@ -56,10 +56,44 @@ These are the distilled, binding lessons. Each links back to the dated incident(
 - **P10 — Autonomous timer-driven automation needs three brakes before it ships active: a budget, a concurrency lock, and a kill-switch.** A token/turn/wall-clock ceiling per run, single-instance locking so a new fire skips rather than stacks on a hung one, and a dead-man's-switch that auto-pauses on overrun instead of auto-continuing. Without all three, a hung or looping run burns compute until a human kills it by hand. (Extracted: 2026-06-06 autonomous-automation runaway.)
 - **P11 — Nothing self-activates unattended, least of all while the principal is away.** Automation that spawns more automation — or more Claude/compute — on a clock is shipped inactive and turned on only with someone watching. "Ship it live" during a vacation window is the exact condition that converts a small loop into an unrecoverable runaway. (Extracted: 2026-06-06 autonomous-automation runaway.)
 - **P12 — Automation that consumes compute on a timer is Tier C, never Tier A.** The "NAS-only sovereign surface = Tier A" and "additive = Tier A" shortcuts do not apply to anything that runs on a schedule; sovereignty of location and additiveness of code do not bound cost or blast radius. (Extracted: 2026-06-06 autonomous-automation runaway.)
+- **P14 — Auth changes the trust boundary; a leak gate for anonymous visitors must not lock out authenticated owners.** The 2026-06-03 public-host gate (rightly) forced demo data for ANYONE on poetech.us — but it kept doing so after sign-in, so the family used their own app staring at fake "Reeves/Maya/Jordan" data, feedback evaporated on refresh (persistence blocked), and the sync path could even upload demo rows into their real cloud instance. Reported by Christina + Darrell 2026-06-11 ("can't tell when I'm logged in… fake data mixed with ours"). Fix: anonymous = demo + no hydration + no persistence (gate stands); authenticated owner = own data hydrates, persists after hydration completes, and demo-only record ids are provenance-filtered out of every upload and every cloud-loaded list. Corollary: **any auto-upload path must filter by data provenance** — sample/demo rows never sync. (Extracted: 2026-06-11 signed-in-but-fake-data incident; pairs with P1/P9.) → revised understanding 2026-06-11 evening: the sweep itself missed the one UN-GATED sync path (entities), which had already pushed demo rows into the cloud — a provenance sweep enumerates every sync path and ends with a cloud-table audit, not a code read. → second revision, same night: the 2026-06-03 "public host = never" rule was copy-pasted into at least FOUR independent gates (snapshot hydration, `importedAllowed`, Imported.jsx's self-guard, the boot-time profile read) — when auth semantics change, grep every `isPublicHost()` / host-check call site and apply the owner-exception to ALL of them in one pass, or the surface fails one layer at a time across the whole evening.
+- **P13 — Schema files are not applied state; verify the live catalog before mapping code to columns.** A migration file in the repo proves intent, not application. `CREATE TABLE IF NOT EXISTS` silently no-ops against a same-named table from an earlier generation, leaving a hybrid: the old shape with the new triggers. Before writing any sync/mapping code, query `information_schema.columns` (and pg_constraint / pg_trigger) on the LIVE database and map to what is actually there. (Extracted: 2026-06-10 phantom-v2.2-rentals discovery.)
 
 ---
 
 ## Incident Log (chronological — newest first)
+
+### 2026-06-11 (evening) — The provenance sweep missed the one un-gated sync path; demo rows were already in the cloud
+
+**Trigger:** Darrell, soaking the PR #24 preview signed-in: "still has the names Maya Jordan Avery And the reeves family."
+**Detection path:** DOM text-walk located the names in the verify wizard + dashboard; a `?demo=landlord` query param was a red herring (cleared it, names persisted); a REST SELECT on `entities` through his own session produced the receipts — 8 rows: the 4 real entities created 2026-05-27, Maya/Jordan/Avery created 2026-06-03 (the day of Christina's report), and "The Reeves Family" created 2026-06-11 **by that very sign-in** — live proof of the upload-side hole.
+**Detection delay:** the cloud pollution sat from 06-03 until 06-11 — every "fixed" assertion in between was made without reading the cloud table.
+**Root cause(s):**
+1. **The P14 provenance sweep covered the verify-gated numeric-table block and missed the `entities` block** — the ONLY table that syncs un-gated at sign-in, and therefore the only path that could pollute or re-render pollution. The sweep enumerated the visible block, not every sync path.
+2. **The public-host mount puts the demo dataset into state before auth resolves**, so the sign-in `initialSync` uploaded whatever demo entities were on screen.
+3. **"Verified" never included a cloud-table audit** (P3/P4 again): the demo rows were already in the cloud and no probe ever SELECTed them.
+**What worked:** timestamped SELECT as receipts before any delete; filtering BOTH directions (`localList.filter(notDemoRow)` on upload, `merged/items.filter(notDemoRow)` on pull) plus skipping entities sync entirely in demo mode; postgres-role `DELETE ... RETURNING` in Studio (4 rows, slugs + names + instance shown); clean-device re-verify on the redeployed preview (4 entities, all real).
+**What didn't work:** deleting via the client session's REST call — `entities` has no RLS DELETE policy, so PostgREST returned **200 with 0 rows deleted**. A silent no-op that looks like success.
+**Principle(s) extracted:** P14 corollary sharpened — a provenance sweep must enumerate EVERY sync path, gated AND un-gated, and it is not "verified" until the cloud table itself has been read; the un-gated path is precisely the one that bites. Secondary: an RLS table without a DELETE policy returns 200/empty on DELETE — treat 0-rows-returned as failure, not success.
+**Forward architectural fix:** entities block filtered both directions + demo-mode skip (PR #24, commit 6e0070b); cloud strays deleted with receipts. KNOWN RESIDUAL: production (main) still runs the unfiltered upload until PR #24 merges — signing in on poetech.us before the merge re-uploads `e-family`; accepted, the merge is the close.
+**Cross-refs:** P14 (2026-06-11 morning incident), P1, P3/P4; memory `project_pr24_comprehensive_build_state`.
+
+### 2026-06-10 — The cloud rentals table was never the v2.2 shape; two days of sync code targeted phantom columns
+
+**Trigger:** Applying the v2.2.2 rentals-sync migration in cloud Studio (the first signed-in database session since the rentals-sync wedge began) failed with its transaction rolled back; a catalog probe showed exactly one of four "new" columns already existed.
+
+**Detection:** Post-failure catalog queries (`information_schema.columns`) revealed the live `rentals` table is the v1.2-numeric-sync shape evolved (instance_id, slug, entity_slug, address, monthly_rent, mortgage_payment, status free-text, tenant_name) — not v2.2's shape (display_name, property_type, links, lifecycle, purchase columns). Same for `incidents` (v1.2-evolved, with native linked_to_kind/linked_to_slug). `contractors_1099` (v2.4) did not exist at all. `rentals_tier_notify` (v2.2.1) was never created.
+
+**Root cause(s):**
+1. **`CREATE TABLE IF NOT EXISTS` no-opped silently.** v1.2 created `rentals`/`incidents`; when v2.2/v2.8 were later applied, their CREATEs skipped, while their OTHER statements (renters, leases, the tier trigger) landed — producing hybrid state: old table shapes carrying new-generation triggers.
+2. **"Applied-but-unused" was asserted from the repo's schema files, never verified against the live catalog.** Two days of client mapping code (PR #24 v0 + the v2.2.2 review hardening) inherited the premise.
+3. **The soak never ran signed-in**, so no insert ever hit the real table to expose the mismatch (pairs with P3/P4 — the failure mode was never exercised).
+
+**What worked:** The signed-in Studio session made verification cheap; catalog probes identified the live shapes in minutes; the corrective migration (schema-v2.13-family-data-sync.sql, live-aligned, additive-only) applied and verified the same session; client mappings rewritten same-day. The live shapes turned out SIMPLER for the app (native slug/entity_slug, no CHECKs, purpose-built linked_to_slug).
+
+**Principle(s) extracted:** P13 (also reinforces P3/P4).
+
+**Forward architectural fix:** Every future sync wrapper starts with a live-catalog probe, not a schema-file read; migration files that were applied get an "APPLIED <date> + verified" header, and superseded/never-applied files get a DO-NOT-RUN header (done for v2.2.2 / v2.13).
 
 ### 2026-06-06 — Autonomous timer-driven automation ran away and required a manual shutdown
 

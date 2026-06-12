@@ -162,14 +162,48 @@ export function createTableSync(spec) {
       const lid = idOf(local);
       return !lid || !remoteIds.has(lid);
     });
+    // 2026-06-12 data-loss fix: a failed upload used to vanish — the caller
+    // replaced local state with the refetched cloud list, deleting the very
+    // item whose INSERT had just failed (missing column, tier trigger,
+    // network blip). Track failures and keep those items in the merged list
+    // so the device copy survives; they retry on the next initialSync.
+    const failedUploads = [];
     for (const local of toUpload) {
-      await upload(local);
+      const res = await upload(local);
+      if (!res || !res.uploaded) failedUploads.push(local);
     }
 
     // Refetch after uploads so the caller gets the merged final state.
     const merged = await fetchAll();
-    return { merged: merged || remoteItems };
+    const base = merged || remoteItems;
+    const baseIds = new Set(base.map((r) => idOf(r)));
+    const preserved = failedUploads.filter((l) => !baseIds.has(idOf(l)));
+    return { merged: [...base, ...preserved], uploadFailures: failedUploads.length };
   }
 
   return { localKey, remoteTable, upload, updateRow, deleteRow, subscribe, initialSync };
+}
+
+// -----------------------------------------------------------------------------
+// unionPreservingLocal — 2026-06-12 data-loss fix for the wholesale replace.
+//
+// When a cloud list arrives (initial sync or a realtime event), replacing
+// local state with it drops any locally-created item whose upload hasn't
+// landed yet (or silently failed) — the item simply disappears from the
+// device. Locally-created ids are prefixed strings ('inc-...', 'pr-...');
+// synced rows carry DB UUIDs. So: take the cloud list, then keep any current
+// local item whose id is NOT a UUID (never reached the cloud) and isn't
+// already represented. UUID rows absent from the cloud list stay dropped —
+// that's a genuine cross-device deletion propagating, which must still work.
+// -----------------------------------------------------------------------------
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function unionPreservingLocal(currentLocal, remoteItems, idOf = (item) => item?.id) {
+  const remote = remoteItems || [];
+  const remoteIds = new Set(remote.map((r) => idOf(r)));
+  const keep = (currentLocal || []).filter((l) => {
+    const lid = idOf(l);
+    return lid && !UUID_RE.test(String(lid)) && !remoteIds.has(lid);
+  });
+  return keep.length ? [...remote, ...keep] : remote;
 }
