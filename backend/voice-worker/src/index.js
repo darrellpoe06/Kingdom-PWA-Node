@@ -23,29 +23,29 @@ export default {
     const url = new URL(request.url);
 
     // CORS pre-flight
-    if (request.method === 'OPTIONS') return cors(env, new Response(null, { status: 204 }));
+    if (request.method === 'OPTIONS') return cors(env, request, new Response(null, { status: 204 }));
 
     try {
-      if (url.pathname === '/healthz') return cors(env, json({ ok: true }));
+      if (url.pathname === '/healthz') return cors(env, request, json({ ok: true }));
 
       if (url.pathname === '/webhook/twilio' && request.method === 'POST') {
-        return cors(env, await handleTwilioWebhook(request, env));
+        return cors(env, request, await handleTwilioWebhook(request, env));
       }
 
       if (url.pathname === '/inbound' && request.method === 'GET') {
-        if (!authPwa(request, env)) return cors(env, json({ error: 'unauthorized' }, 401));
-        return cors(env, await listInbound(env, url));
+        if (!authPwa(request, env)) return cors(env, request, json({ error: 'unauthorized' }, 401));
+        return cors(env, request, await listInbound(env, url));
       }
 
       const patchMatch = url.pathname.match(/^\/inbound\/([\w-]+)$/);
       if (patchMatch && request.method === 'PATCH') {
-        if (!authPwa(request, env)) return cors(env, json({ error: 'unauthorized' }, 401));
-        return cors(env, await patchInbound(env, patchMatch[1], await request.json().catch(() => ({}))));
+        if (!authPwa(request, env)) return cors(env, request, json({ error: 'unauthorized' }, 401));
+        return cors(env, request, await patchInbound(env, patchMatch[1], await request.json().catch(() => ({}))));
       }
 
       if (url.pathname === '/usage/this-month' && request.method === 'GET') {
-        if (!authPwa(request, env)) return cors(env, json({ error: 'unauthorized' }, 401));
-        return cors(env, await getMonthlyUsage(env));
+        if (!authPwa(request, env)) return cors(env, request, json({ error: 'unauthorized' }, 401));
+        return cors(env, request, await getMonthlyUsage(env));
       }
 
       // r27 — Property valuation pre-fill via RentCast (https://www.rentcast.io/api).
@@ -53,13 +53,13 @@ export default {
       // when the user re-opens the same property repeatedly. Returns normalized
       // shape so the PWA can render it without knowing RentCast's exact schema.
       if (url.pathname === '/property/lookup' && request.method === 'POST') {
-        if (!authPwa(request, env)) return cors(env, json({ error: 'unauthorized' }, 401));
-        return cors(env, await lookupProperty(env, await request.json().catch(() => ({}))));
+        if (!authPwa(request, env)) return cors(env, request, json({ error: 'unauthorized' }, 401));
+        return cors(env, request, await lookupProperty(env, await request.json().catch(() => ({}))));
       }
 
-      return cors(env, json({ error: 'not found' }, 404));
+      return cors(env, request, json({ error: 'not found' }, 404));
     } catch (e) {
-      return cors(env, json({ error: e.message || 'internal error' }, 500));
+      return cors(env, request, json({ error: e.message || 'internal error' }, 500));
     }
   },
 };
@@ -253,12 +253,17 @@ function json(obj, status = 200) {
     headers: { 'content-type': 'application/json' },
   });
 }
-function cors(env, res) {
+function cors(env, request, res) {
   const allowed = (env.PWA_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
-  // For simplicity in Phase 1, set Access-Control-Allow-Origin to the first allowed origin
-  // (browsers don't accept multi-value here). Real production would echo the matched Origin.
+  // 2026-06-12 fix (ship review): the old version always emitted the FIRST
+  // allowed origin, so every other origin in the list - including localhost
+  // dev - failed CORS. Echo the request's Origin when it's on the allow
+  // list; otherwise fall back to the first entry (non-browser callers
+  // don't care, and a disallowed browser origin gets a mismatched header,
+  // which is exactly the blocked behavior we want).
+  const reqOrigin = request && request.headers ? (request.headers.get('Origin') || '') : '';
   const headers = new Headers(res.headers);
-  headers.set('Access-Control-Allow-Origin', allowed[0] || '*');
+  headers.set('Access-Control-Allow-Origin', allowed.includes(reqOrigin) ? reqOrigin : (allowed[0] || '*'));
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   headers.set('Vary', 'Origin');
