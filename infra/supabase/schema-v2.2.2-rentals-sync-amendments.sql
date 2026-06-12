@@ -71,11 +71,12 @@ UPDATE rentals
  WHERE slug IS NULL
    AND jsonb_typeof(links) = 'array';
 
--- If this index creation fails with a duplicate-key error, the soak
--- left two rows with the same slug (the client-side dedup race this
--- index exists to close). The rentals table has no production data yet
--- (PR #24 never merged), so clear the soak rows and re-run:
---   DELETE FROM rentals;  -- soak/test rows only — verify first
+-- If this index creation fails with a duplicate-key error, two rows
+-- share a slug (the client-side dedup race this index exists to close).
+-- 2026-06-12 UPDATE: the rentals table NOW CONTAINS THE FAMILY'S REAL
+-- PRODUCTION DATA (PR #24 went live). NEVER bulk-delete. Resolve a
+-- duplicate by inspecting both rows and deleting ONLY the stale duplicate
+-- by its id:  DELETE FROM rentals WHERE id = '<the-duplicate-uuid>';
 CREATE UNIQUE INDEX IF NOT EXISTS rentals_instance_slug_uniq
   ON rentals (instance_id, slug)
   WHERE slug IS NOT NULL;

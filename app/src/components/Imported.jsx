@@ -53,7 +53,14 @@ function hasOwnerSession() {
     const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
     if (!key) return false;
     const tok = JSON.parse(localStorage.getItem(key));
-    return !!(tok && (tok.access_token || (tok.currentSession && tok.currentSession.access_token)));
+    const session = (tok && tok.currentSession) || tok;
+    if (!session || !session.access_token) return false;
+    // 2026-06-12 fix: presence is not validity. A leftover token on a shared
+    // computer (signed in once, never signed out, session long expired) used
+    // to pass this gate and render real bank rows. Require an unexpired
+    // session; expires_at is epoch seconds.
+    if (typeof session.expires_at === 'number' && session.expires_at * 1000 <= Date.now()) return false;
+    return true;
   } catch {
     return false;
   }

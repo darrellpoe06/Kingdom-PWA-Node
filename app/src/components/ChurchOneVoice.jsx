@@ -42,8 +42,10 @@ export function ChurchOneVoice({ addPrayerRequest, updateConference, conference,
       addIncident({ category: 'maintenance', description: t, urgency: 'incident', status: 'open', _note: 'from Church One Voice' });
       setConfirmation('🛠 On the Action Queue as a work order — it can dispatch to a worker from Big Picture.');
     } else if (route === 'counseling' && addInquiry) {
-      addInquiry({ firstName: who || '(from church)', lastName: '', phone: '', email: '', source: 'church-one-voice', interest: 'counseling', bestTime: 'anytime', notes: t });
-      setConfirmation('💚 A private intake note went to the practice. Reaching out took courage.');
+      // TLC bright line (2026-06-12 fix): inquiries is pre-intake, non-PHI,
+      // cloud-synced — contact intent only; the person's words never cross.
+      addInquiry({ firstName: who || '(from church)', lastName: '', phone: '', email: '', source: 'church-one-voice', interest: 'counseling', bestTime: 'anytime', notes: 'Requested counseling via Church One Voice. Their words stay private — TLC connects directly.' });
+      setConfirmation('💚 The practice knows you’d like to talk — your words stayed private here. Reaching out took courage.');
     } else if (addChurchVoice) {
       const kind = route === 'serve' ? 'serve' : (route === 'pastor' ? 'pastor' : 'voice');
       addChurchVoice({ id: `vo-${Date.now()}`, kind, text: t, from: who, at: new Date().toISOString() });

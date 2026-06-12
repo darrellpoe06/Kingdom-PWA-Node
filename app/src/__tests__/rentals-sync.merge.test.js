@@ -94,8 +94,21 @@ describe('mergeRemoteRentals', () => {
   });
 
   it('drops a previously-synced local item whose remote row was deleted', () => {
+    // 2026-06-12 contract change: deletion propagates only via a NON-EMPTY
+    // read (the read returns the remaining rows). An all-empty read is
+    // treated as a failed read, not a mass deletion — see the empty-read
+    // guard test below and the sync-data-safety suite.
     const syncedLocal = { ...localSeed, remoteUuid: 'uuid-gone' };
-    expect(mergeRemoteRentals([syncedLocal], [])).toHaveLength(0);
+    const survivor = { id: 'r-other', remoteUuid: 'uuid-stays', name: 'Other Property', mortgage: {} };
+    const localPair = [syncedLocal, { ...survivor }];
+    const merged = mergeRemoteRentals(localPair, [survivor]);
+    expect(merged.some((r) => r.remoteUuid === 'uuid-gone')).toBe(false);
+    expect(merged.some((r) => r.remoteUuid === 'uuid-stays')).toBe(true);
+  });
+
+  it('an empty read with synced local items aborts the merge (RLS 0-rows is a failed read)', () => {
+    const syncedLocal = { ...localSeed, remoteUuid: 'uuid-gone' };
+    expect(mergeRemoteRentals([syncedLocal], [])).toHaveLength(1);
   });
 
   it('matches by remoteUuid when the local slug differs', () => {

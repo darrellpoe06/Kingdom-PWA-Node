@@ -1,6 +1,6 @@
 {
   "id": "wfLinkTitle00001",
-  "name": "22 · Link title resolver (Notes → page titles, sovereign fetch)",
+  "name": "22 \u00b7 Link title resolver (Notes \u2192 page titles, sovereign fetch)",
   "nodes": [
     {
       "id": "ltWebhook1",
@@ -8,7 +8,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "webhookId": "e4a91c7d-3b56-4f80-b2d1-8c6e5a90f344",
-      "position": [0, 0],
+      "position": [
+        0,
+        0
+      ],
       "parameters": {
         "httpMethod": "GET",
         "path": "link-title",
@@ -17,7 +20,10 @@
         "options": {}
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "phbridgetoken1", "name": "property-history bridge token" }
+        "httpHeaderAuth": {
+          "id": "phbridgetoken1",
+          "name": "property-history bridge token"
+        }
       }
     },
     {
@@ -25,9 +31,12 @@
       "name": "Fetch + extract title",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 0],
+      "position": [
+        220,
+        0
+      ],
       "parameters": {
-        "jsCode": "// Sovereign title fetch: the NAS fetches the page so the user's reading\n// habits never leak to a third-party metadata service. http(s) only,\n// bounded URL length, 10s timeout, title capped at 300 chars.\nconst decode = (s) => s.replace(/&amp;/g, '&').replace(/&#39;|&apos;/g, \"'\").replace(/&quot;/g, '\"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\\d+);/g, (m, n) => String.fromCharCode(parseInt(n, 10)));\nconst out = [];\nfor (const item of items) {\n  const q = item.json.query || {};\n  let url = String(q.url || '');\n  let title = '';\n  if (/^https?:\\/\\//i.test(url) && url.length < 2048) {\n    try {\n      const html = String(await this.helpers.httpRequest({ url, timeout: 10000, headers: { 'user-agent': 'Mozilla/5.0 (PoeTech link-title)' } }));\n      const og = html.match(/property=[\\\"']og:title[\\\"'][^>]*content=[\\\"']([^\\\"']{1,300})/i) || html.match(/content=[\\\"']([^\\\"']{1,300})[\\\"'][^>]*property=[\\\"']og:title/i);\n      const t = html.match(/<title[^>]*>([^<]{1,300})/i);\n      title = decode(((og && og[1]) || (t && t[1]) || '').replace(/\\s+/g, ' ').trim());\n    } catch (e) { /* unreachable page: return empty title, never error */ }\n  } else { url = ''; }\n  out.push({ json: { url, title } });\n}\nreturn out;"
+        "jsCode": "// Sovereign title fetch: the NAS fetches the page so the user's reading\n// habits never leak to a third-party metadata service. http(s) only,\n// bounded URL length, 10s timeout, title capped at 300 chars.\n//\n// 2026-06-12 SSRF hardening (review finding): the URL comes from whatever a\n// user typed in a note, and the NAS sits on the family LAN + tailnet \u2014 so\n// the fetch must never reach private/internal addresses. Blocklist covers\n// loopback, RFC1918, link-local, CGNAT (Tailscale 100.64/10), .local/.ts.net\n// and bare hostnames. Redirects are NOT followed (a public URL could 302\n// into http://localhost), and the download is size-capped.\nconst decode = (s) => s.replace(/&amp;/g, '&').replace(/&#39;|&apos;/g, \"'\").replace(/&quot;/g, '\"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\\d+);/g, (m, n) => String.fromCharCode(parseInt(n, 10)));\nconst isPrivateHost = (host) => {\n  const h = String(host || '').toLowerCase().replace(/^\\[|\\]$/g, '');\n  if (!h || h === 'localhost' || h.endsWith('.local') || h.endsWith('.ts.net') || h.endsWith('.internal')) return true;\n  if (!h.includes('.')) return true; // bare intranet hostname\n  if (/^127\\./.test(h) || h === '0.0.0.0' || h === '::1' || h.startsWith('fe80:') || h.startsWith('fc') || h.startsWith('fd')) return true;\n  if (/^10\\./.test(h) || /^192\\.168\\./.test(h) || /^169\\.254\\./.test(h)) return true;\n  if (/^172\\.(1[6-9]|2\\d|3[01])\\./.test(h)) return true;\n  if (/^100\\.(6[4-9]|[7-9]\\d|1[01]\\d|12[0-7])\\./.test(h)) return true; // CGNAT 100.64.0.0/10\n  return false;\n};\nconst out = [];\nfor (const item of items) {\n  const q = item.json.query || {};\n  let url = String(q.url || '');\n  let title = '';\n  let host = '';\n  try { host = new URL(url).hostname; } catch (e) { url = ''; }\n  if (url && /^https?:\\/\\//i.test(url) && url.length < 2048 && !isPrivateHost(host)) {\n    try {\n      const html = String(await this.helpers.httpRequest({ url, timeout: 10000, maxRedirects: 0, maxContentLength: 524288, headers: { 'user-agent': 'Mozilla/5.0 (PoeTech link-title)' } }));\n      const og = html.match(/property=[\\\"']og:title[\\\"'][^>]*content=[\\\"']([^\\\"']{1,300})/i) || html.match(/content=[\\\"']([^\\\"']{1,300})[\\\"'][^>]*property=[\\\"']og:title/i);\n      const t = html.match(/<title[^>]*>([^<]{1,300})/i);\n      title = decode(((og && og[1]) || (t && t[1]) || '').replace(/\\s+/g, ' ').trim());\n    } catch (e) { /* unreachable, redirecting, or oversized page: empty title, never error */ }\n  } else { url = ''; }\n  out.push({ json: { url, title } });\n}\nreturn out;"
       }
     },
     {
@@ -35,13 +44,42 @@
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [440, 0],
-      "parameters": { "respondWith": "allIncomingItems", "options": {} }
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      }
     }
   ],
   "connections": {
-    "Webhook": { "main": [[{ "node": "Fetch + extract title", "type": "main", "index": 0 }]] },
-    "Fetch + extract title": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch + extract title",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch + extract title": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1", "executionTimeout": 30 }
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 30
+  }
 }

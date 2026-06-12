@@ -27,7 +27,9 @@ import sys
 
 PHOTOBACKUP_GLOB = "/volume1/homes/*/Drive/PhotoBackup/*/DCIM/Camera/{y}/{m}/@eaDir/{name}/SYNOFILE_THUMB_M.jpg"
 SAFE_CHANNEL = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
-STD_NAME = re.compile(r"^(\d{4})(\d{2})\d{2}_.+\.(jpg|jpeg|png)$", re.IGNORECASE)
+# 2026-06-12 hardening: [^/\\] (was .+) so a crafted chat file_props.name
+# like "20241206_../../../etc.jpg" cannot climb out of the PhotoBackup root.
+STD_NAME = re.compile(r"^(\d{4})(\d{2})\d{2}_[^/\\]+\.(jpg|jpeg|png)$", re.IGNORECASE)
 
 
 def fail(msg):

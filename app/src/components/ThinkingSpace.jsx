@@ -71,8 +71,14 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
       addIncident({ category: 'maintenance', description: t, urgency: 'incident', status: 'open', _note: 'from Thinking Space' });
       setConfirm('🛠 On the Action Queue as a work order — dispatch it to a worker from Big Picture.');
     } else if (route === 'counseling' && addInquiry) {
-      addInquiry({ firstName: who || '(from notes)', lastName: '', phone: '', email: '', source: 'thinking-space', interest: 'counseling', bestTime: 'anytime', notes: t });
-      setConfirm('💚 A private intake note went to the practice. Reaching out took courage.');
+      // TLC bright line (2026-06-12 fix): the inquiries table is PRE-INTAKE,
+      // non-PHI, and cloud-synced — the verbatim diary text must never land
+      // there. Only contact intent crosses; the words themselves stay in a
+      // private note on this device for the person to share with the
+      // clinician directly.
+      addInquiry({ firstName: who || '(from notes)', lastName: '', phone: '', email: '', source: 'thinking-space', interest: 'counseling', bestTime: 'anytime', notes: 'Requested counseling via Thinking Space. Their words stay private on their device — TLC connects directly.' });
+      if (addNote) addNote(t);
+      setConfirm('💚 The practice knows you’d like to talk — your words stayed private here, for you to share with them directly. Reaching out took courage.');
     } else {
       if (addNote) addNote(t);
       setConfirm('📓 Kept — private to you. Come back to it anytime.');

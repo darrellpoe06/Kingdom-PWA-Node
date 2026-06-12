@@ -144,10 +144,21 @@ const FILL_FIELDS = ['city', 'state', 'zip'];
 //   - local item never uploaded (no remoteUuid, no match) → keep it;
 //     initialSync / addRental will push it.
 //   - local item with a remoteUuid whose row is gone → deleted on another
-//     device → drop it.
+//     device → drop it. EXCEPT when the remote list is empty while local
+//     synced items exist: RLS returns 200 with 0 rows on a membership or
+//     visibility hiccup (LESSONS-LEARNED 2026-06-11: "treat 0-rows-returned
+//     as failure, not success"), and interpreting that as "every property
+//     was deleted elsewhere" would destroy rooms, photo galleries, and
+//     maintenance/conversation logs that exist nowhere else. An empty read
+//     against a non-empty synced local list aborts the merge unchanged —
+//     real single-property deletions still propagate (the read returns the
+//     remaining rows, not zero rows).
 //   - remote row with no local match → new from another device → adopt the
 //     fromRow shape as-is.
 export function mergeRemoteRentals(localItems = [], remoteItems = []) {
+  if ((remoteItems || []).length === 0 && (localItems || []).some((l) => l.remoteUuid)) {
+    return localItems;
+  }
   const remoteById = new Map();
   const remoteByUuid = new Map();
   for (const r of remoteItems) {

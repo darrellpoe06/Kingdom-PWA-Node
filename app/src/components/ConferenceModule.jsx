@@ -18,6 +18,7 @@
 // Communities") — no fabricated dates: what the site doesn't publish, the
 // church fills in.
 import React, { useState } from 'react';
+import { N8N_BASE } from '../lib/n8n-base.js';
 
 export const CONFERENCE_SEED = {
   name: '77th National Assembly',
@@ -26,7 +27,7 @@ export const CONFERENCE_SEED = {
   location: '312 E. Bradley Avenue, Champaign, IL 61820',
   dates: '', // not yet published — Bishop fills in
   livestreamUrl: 'https://www.youtube.com/channel/UC821pJh7YR5llBNnWUJj-ZA',
-  siteUrl: 'https://www.thechurchofthelivingGod.com/77th-national-assembly',
+  siteUrl: 'https://www.thechurchofthelivinggod.com/77th-national-assembly',
   sessions: [],
   rsvps: [],
   volunteers: [],
@@ -73,12 +74,37 @@ export function ConferenceModule({ conference, updateConference }) {
     updateConference({ volunteers: [...(conf.volunteers || []), { id: `vl-${Date.now()}`, ...volForm, name: n, at: new Date().toISOString().slice(0, 10) }] });
     setVolForm({ name: '', area: volForm.area });
   };
-  const sendFeedback = () => {
+  const sendFeedback = async () => {
     const t = fbText.trim();
     if (!t) return;
     updateConference({ feedback: [...(conf.feedback || []), { id: `cf-${Date.now()}`, text: t, at: new Date().toISOString() }] });
     setFbText('');
-    setFbSent(true);
+    // 2026-06-12 fix: this button used to show "✓ Received" while wired to
+    // nothing — and for an anonymous visitor on poetech.us (Bishop Gwin's
+    // actual path) the local record doesn't even persist across refresh.
+    // Now it rides the same wf30 family-feedback lane as the app's feedback
+    // button, so the words actually reach PoeTech — and the confirmation
+    // only shows when they did.
+    try {
+      const base = N8N_BASE;
+      if (!base) { setFbSent('offline'); return; }
+      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/family-feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify({
+          sender: 'conference-module',
+          type: 'conference-feedback',
+          message: t,
+          screen_context: { path: '/church/conference', conference: conf.name },
+          user_agent: (typeof navigator !== 'undefined') ? navigator.userAgent : '',
+          source: 'poetech.us',
+        }),
+      });
+      setFbSent(r.ok ? 'sent' : 'offline');
+    } catch (_) {
+      setFbSent('offline');
+    }
   };
 
   return (
@@ -130,7 +156,7 @@ export function ConferenceModule({ conference, updateConference }) {
           </div>
         )}
         {(conf.sessions || []).length === 0 ? (
-          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No sessions yet — add them as the program firms up. They’ll show here for everyone.</p>
+          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No sessions yet — add them as the program firms up. (For now entries save on this device; shared church-wide sync is coming.)</p>
         ) : (
           <ul className="space-y-1">
             {(conf.sessions || []).map(s => (
@@ -180,7 +206,8 @@ export function ConferenceModule({ conference, updateConference }) {
         <textarea className={fieldCls} rows="2" placeholder="e.g., We need a printable program · registration with meal counts · hotel block info…" value={fbText} onChange={e => setFbText(e.target.value)} />
         <div className="flex items-center gap-2 mt-1.5">
           <button type="button" onClick={sendFeedback} className={btnDark}>Send feedback</button>
-          {fbSent && <span className="text-[11px] text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>✓ Received — thank you, Bishop.</span>}
+          {fbSent === 'sent' && <span className="text-[11px] text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>✓ Received — thank you, Bishop.</span>}
+          {fbSent === 'offline' && <span className="text-[11px] text-[#8A6E1F] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Saved on this device — couldn’t reach PoeTech just now; please mention it to Darrell directly.</span>}
         </div>
         {(conf.feedback || []).length > 0 && (
           <ul className="mt-2 space-y-1">

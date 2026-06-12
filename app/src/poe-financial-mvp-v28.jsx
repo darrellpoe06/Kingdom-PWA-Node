@@ -33,6 +33,7 @@ import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
+import { unionPreservingLocal } from './lib/table-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
 
@@ -1544,6 +1545,11 @@ export default function PoeFinancialSystem() {
   const [debtSnowballExtra, setDebtSnowballExtra] = useState(500);
   const [theme, setTheme] = useState('midnight');
   const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
+  // 2026-06-12 — persistence problems must be VISIBLE (PERPETUAL-PIPELINE-
+  // HEALTH: no silent failure on the path the family's memories ride).
+  // Set by the storage-quota catch and by cloud-sync upload failures;
+  // rendered as a banner under AuthBanner. null = healthy.
+  const [persistIssue, setPersistIssue] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const firedRemindersRef = useRef(new Set());
   const currentDate = useMemo(() => new Date(2026, 4, 15), []);
@@ -1940,6 +1946,9 @@ export default function PoeFinancialSystem() {
       return;
     }
     (async () => { await loadSavedSnapshot(); setLoaded(true); })();
+    // Run-once boot hydration by design; isAnyDemoMode is URL-derived and
+    // fixed for the page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Loads this device's saved snapshot into state (defensive merge). Shared
@@ -2059,7 +2068,21 @@ export default function PoeFinancialSystem() {
     // but only AFTER their hydration completes, so a demo snapshot can never
     // overwrite their real saved data in the sign-in race window.
     if (isPublicHost() && !(authSession && authHydrated)) return;
-    (async () => { try { await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme })); } catch (e) { console.error('Storage failed', e); } })();
+    (async () => {
+      try {
+        await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
+        setPersistIssue(prev => (prev && prev.kind === 'storage' ? null : prev));
+      } catch (e) {
+        console.error('Storage failed', e);
+        // QuotaExceededError here means NOTHING is being saved anymore —
+        // photos are usually the weight. Say so instead of losing a week
+        // of entries silently (review finding, 2026-06-12).
+        setPersistIssue({
+          kind: 'storage',
+          message: 'This device’s storage is full — changes are NOT being saved. Export or remove a few photos (Big Picture → photos), then make any small edit to retry.',
+        });
+      }
+    })();
   }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode, authSession, authHydrated]);
 
   // Layer 2 — auth + feedback sync wiring.
@@ -2184,14 +2207,23 @@ export default function PoeFinancialSystem() {
         try {
           const result = await t.sync.initialSync(t.localList);
           if (!cancelled && result && result.merged) {
-            setData(d => ({ ...d, [t.key]: result.merged.filter(notDemoRow) }));
+            // 2026-06-12 data-loss fix: union, never wholesale-replace — a
+            // locally-created row whose upload failed (or hasn't landed)
+            // must survive the cloud list arriving. See unionPreservingLocal.
+            setData(d => ({ ...d, [t.key]: unionPreservingLocal(d[t.key] || [], result.merged.filter(notDemoRow)) }));
+            if (result.uploadFailures) {
+              setPersistIssue({
+                kind: 'sync',
+                message: `${result.uploadFailures} ${t.key} item(s) could not reach the cloud — they are safe on this device and will retry on next sign-in.`,
+              });
+            }
           }
         } catch (e) {
           console.warn(`[${t.sync.remoteTable}-sync] initial sync failed`, e);
         }
         if (cancelled) return;
         const unsubscribe = t.sync.subscribe((items) => {
-          setData(d => ({ ...d, [t.key]: items.filter(notDemoRow) }));
+          setData(d => ({ ...d, [t.key]: unionPreservingLocal(d[t.key] || [], items.filter(notDemoRow)) }));
         });
         cleanups.push(unsubscribe);
       }
@@ -2337,17 +2369,22 @@ export default function PoeFinancialSystem() {
     return merged;
   };
   const updateIncident = (id, updates) => {
-    setData(d => ({
-      ...d,
-      incidents: d.incidents.map(i => i.id !== id ? i : applyIncidentUpdates(i, updates)),
-    }));
-    if (authSession && data.numericSyncVerifiedAt) {
-      const current = (data.incidents || []).find(i => i.id === id);
-      if (current && current.remoteUuid) {
-        const next = applyIncidentUpdates(current, updates);
-        incidentsSync.updateRow(current.remoteUuid, incidentColumns(next)).catch(e => console.warn('[incidents-sync] update failed', e));
+    // 2026-06-12 fix: the cloud push used to be computed from the CLOSURE's
+    // data — two rapid updates (dispatch → resolve, or two log notes) pushed
+    // a patch built on pre-first-update state, dropping the earlier lifecycle
+    // log entry from the QC trail. Compute inside the updater so the push
+    // always carries the post-update item. updateRow is a full-row PUT
+    // (idempotent), so StrictMode's dev-only double-invoke is harmless.
+    setData(d => {
+      const next = (d.incidents || []).map(i => i.id !== id ? i : applyIncidentUpdates(i, updates));
+      if (authSession && d.numericSyncVerifiedAt) {
+        const updated = next.find(i => i.id === id);
+        if (updated && updated.remoteUuid) {
+          incidentsSync.updateRow(updated.remoteUuid, incidentColumns(updated)).catch(e => console.warn('[incidents-sync] update failed', e));
+        }
       }
-    }
+      return { ...d, incidents: next };
+    });
   };
   const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10), _note: 'Marked resolved' });
   // Dispatch — assign a 1099 worker to an open incident (work order). The
@@ -2415,13 +2452,17 @@ export default function PoeFinancialSystem() {
     }
   };
   const updateContractor = (id, updates) => {
-    if (authSession && data.numericSyncVerifiedAt) {
-      const current = (data.contractors1099 || []).find(c => c.id === id);
-      if (current && current.remoteUuid) {
-        contractorsSync.updateRow(current.remoteUuid, contractorColumns({ ...current, ...updates })).catch(e => console.warn('[contractors-sync] update failed', e));
+    // 2026-06-12 fix: same stale-closure push as updateIncident — see there.
+    setData(d => {
+      const next = (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c);
+      if (authSession && d.numericSyncVerifiedAt) {
+        const updated = next.find(c => c.id === id);
+        if (updated && updated.remoteUuid) {
+          contractorsSync.updateRow(updated.remoteUuid, contractorColumns(updated)).catch(e => console.warn('[contractors-sync] update failed', e));
+        }
       }
-    }
-    return setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c) }));
+      return { ...d, contractors1099: next };
+    });
   };
   const deleteContractor = (id) => {
     if (authSession && data.numericSyncVerifiedAt) {
@@ -2711,7 +2752,11 @@ export default function PoeFinancialSystem() {
   };
   const removeWatchlistSymbol = (sym) => setData(d => ({ ...d, watchlist: (d.watchlist || []).filter(s => s !== sym) }));
   // Life Gallery — the curated hero photos on the Big Picture page. Device-
-  // local data URLs so they're safe from a phone change and ride sync.
+  // local data URLs in the poe-financial-v28 snapshot. HONEST LIMIT
+  // (2026-06-12): photos do NOT ride cloud sync — no table carries them yet —
+  // and they are NOT safe from a phone change until the sovereign photo
+  // write-path (phone → NAS) lands. This device is the only copy; the
+  // per-photo export button is the interim backup.
   const addLifePhotos = (photos) => setData(d => ({ ...d, lifePhotos: [...(d.lifePhotos || []), ...photos] }));
   const updateLifePhoto = (id, updates) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
   const deleteLifePhoto = (id) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).filter(p => p.id !== id) }));
@@ -2775,10 +2820,19 @@ export default function PoeFinancialSystem() {
     // 90% of that"). The missing 10% was this one connection: relay the
     // directive to the NAS thought-inbox (wf26) that feeds build sessions.
     // Fire-and-forget; offline is fine — the local record above is canonical.
+    // 2026-06-12 security fix: this POST was unauthenticated and reachable by
+    // any anonymous visitor on poetech.us — arbitrary public text injected
+    // into the autonomous-agent inbox (wf26 → wf27). Now it only fires from a
+    // device holding the bridge token, and sends it so wf26 can require
+    // headerAuth. No token (anonymous/public visitor) → the local record
+    // stands and nothing is relayed.
+    let bridgeToken = '';
+    try { bridgeToken = (localStorage.getItem('poetech-chat-bridge-token') || '').trim(); } catch (_) { /* no-op */ }
+    if (!bridgeToken) return;
     try {
       fetch('/n8n/webhook/thought', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${bridgeToken}` },
         body: JSON.stringify({ text, tags: ['tell-poetech', 'poetech-app'], data: { source: 'thinking-space', directiveId: id } }),
       }).then((r) => {
         if (r.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
@@ -3019,6 +3073,12 @@ html{scroll-padding-bottom:280px}
       </div>
 
       <AuthBanner />
+      {persistIssue && (
+        <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[12px] py-2 px-4 flex items-center justify-between gap-3 print:hidden">
+          <span>⚠ {persistIssue.message}</span>
+          <button onClick={() => setPersistIssue(null)} className="text-[#FAF8F4]/80 hover:text-white text-[11px] uppercase tracking-wide shrink-0">Dismiss</button>
+        </div>
+      )}
       {showVerifyBalances && (
         <VerifyBalances
           data={data}
