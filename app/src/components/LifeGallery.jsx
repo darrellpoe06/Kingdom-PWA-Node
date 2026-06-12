@@ -11,12 +11,80 @@
 // image-ingest.md). They are never sent to any PoeTech ad/training/sale
 // pipeline — there is none. The large per-property archives (hundreds of
 // images) reference the NAS in place rather than copy it.
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { compressImageFile } from '../lib/image.js';
+import { fetchChannelPhotos, hasBridgeToken } from '../lib/nas-photos.js';
 
 const CATEGORIES = ['Family', 'Business', 'Projects', 'Properties', 'Faith', 'Other'];
 
-export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto, readOnly = false }) {
+// 2026-06-12 auto-populate (Darrell: "the images are already there for each
+// rental and my home and the Big Picture tab — you can start it, I'll adjust
+// after"). The strip fills ITSELF from the NAS photo bridge — a few shots
+// per property, fetched live each visit, never copied into device storage
+// (the NAS stays the sovereign home; quota untouched). "Adjust after" =
+// ☆ Keep, which promotes a single shot into the curated gallery above.
+// No bridge token on this device (visitors, demo) → renders nothing.
+function NasPlacesStrip({ rentals = [], addLifePhotos, keptIds }) {
+  const [groups, setGroups] = useState(null);
+  useEffect(() => {
+    if (!hasBridgeToken() || rentals.length === 0) { setGroups([]); return; }
+    let cancelled = false;
+    (async () => {
+      const out = [];
+      for (const r of rentals.slice(0, 8)) {
+        if (!r || !r.name) continue;
+        const res = await fetchChannelPhotos(r.name, { limit: 3 });
+        if (cancelled) return;
+        if (res && res.photos.length) out.push({ id: r.id, name: r.name, photos: res.photos });
+      }
+      if (!cancelled) setGroups(out);
+    })();
+    return () => { cancelled = true; };
+    // Mount-once by design: one NAS sweep per Big Picture visit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!groups || groups.length === 0) return null;
+  return (
+    <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏡 Your places · live from your NAS</div>
+      <p className="text-[10px] text-[#5A5751] italic mt-0.5 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        Loaded straight from your NAS each visit — nothing copied to this device. ☆ Keep moves one into the gallery above.
+      </p>
+      <div className="space-y-3">
+        {groups.map(g => (
+          <div key={g.id}>
+            <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{g.name}</div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {g.photos.map(p => {
+                const keepId = `lp-nas-${p.id}`;
+                const kept = keptIds.has(keepId);
+                return (
+                  <figure key={p.id} className="border border-[#E8E4DC] bg-[#FAF8F4] w-32 shrink-0">
+                    <img src={p.thumb} alt={p.text || g.name} className="w-32 h-24 object-cover" loading="lazy" />
+                    <figcaption className="p-1 flex items-center justify-between gap-1">
+                      <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</span>
+                      {addLifePhotos && (
+                        <button
+                          type="button"
+                          disabled={kept}
+                          onClick={() => addLifePhotos([{ id: keepId, src: p.thumb, caption: g.name, category: 'Properties', date: p.date || '' }])}
+                          className={`text-[9px] uppercase tracking-wider ${kept ? 'text-[#5A6E3D]' : 'text-[#B85838] hover:text-[#1A1815]'}`}
+                        >{kept ? '✓ kept' : '☆ keep'}</button>
+                      )}
+                    </figcaption>
+                  </figure>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto, readOnly = false, rentals = [] }) {
   const [filter, setFilter] = useState('All');
   const [pendingCategory, setPendingCategory] = useState('Family');
   const [busy, setBusy] = useState(false);
@@ -116,6 +184,8 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
           </div>
         </>
       )}
+      {!readOnly && <NasPlacesStrip rentals={rentals} addLifePhotos={addLifePhotos} keptIds={new Set(photos.map(p => p.id))} />}
+
       {/* The promise — true for EVERY user, NAS or not. The never-sold pledge
           is absolute (there is no ad/training/sale pipeline). Durability is
           stated honestly: device-only today; sovereign backup (own NAS, or a
