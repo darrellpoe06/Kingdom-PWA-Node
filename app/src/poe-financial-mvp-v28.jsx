@@ -13,6 +13,7 @@ import { Rentals } from './components/Rentals.jsx';
 import { ProjectsWrapper, DateField } from './components/Projects.jsx';
 import { Opportunities } from './components/DevOps.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
+import Engagement from './components/Engagement.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import Imported from './components/Imported.jsx';
 import { onAuthChange } from './lib/supabase.js';
@@ -1433,9 +1434,22 @@ function getInitialView() {
     if (typeof window === 'undefined') return 'overview';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
+    // Engagement is now a sub-tab under Church; the legacy ?view=engagement
+    // deep-link lands on the Church tab (the sub-tab is selected separately).
+    if (v === 'engagement') return 'church';
     const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
+}
+
+// Engagement lives under Church. A ?view=engagement deep-link selects the
+// Engagement sub-tab; everything else defaults to the Church home sub-tab.
+function getInitialChurchView() {
+  try {
+    if (typeof window === 'undefined') return 'home';
+    const sp = new URLSearchParams(window.location.search);
+    return (sp.get('view') || '').toLowerCase().trim() === 'engagement' ? 'engagement' : 'home';
+  } catch (e) { return 'home'; }
 }
 
 // Admin — quiet utility surface, NOT a marketing surface. Reached via the
@@ -1563,6 +1577,7 @@ export default function PoeFinancialSystem() {
   const [view, setView] = useState(getInitialView());
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [booksView, setBooksView] = useState('calendar');
+  const [churchView, setChurchView] = useState(getInitialChurchView());
   const [entityFilter, setEntityFilter] = useState('all');
   const [snowballSort, setSnowballSort] = useState('smallest-balance');
   const [snowballExtra, setSnowballExtra] = useState(2000);
@@ -3787,6 +3802,17 @@ html{scroll-padding-bottom:280px}
             </div>
           </div>
         )}
+        {view === 'church' && (
+          <div className="border-t border-[#E8E4DC] bg-white">
+            <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
+              <div className="flex gap-1 text-xs">
+                {[['home','Church'],['engagement','Engagement']].map(([id, label]) => (
+                  <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-24">
@@ -3854,7 +3880,8 @@ html{scroll-padding-bottom:280px}
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
+        {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
+        {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
