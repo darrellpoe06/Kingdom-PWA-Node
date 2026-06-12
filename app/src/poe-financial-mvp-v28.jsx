@@ -27,8 +27,6 @@ import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType }
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
-import { QueueSpotlight } from './components/QueueSpotlight.jsx';
-import { QueueList } from './components/QueueList.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { LifeGallery } from './components/LifeGallery.jsx';
 import { ConferenceModule } from './components/ConferenceModule.jsx';
