@@ -1955,9 +1955,22 @@ export default function PoeFinancialSystem() {
   // by the mount-time load (private hosts) and the signed-in load on public
   // hosts: an authenticated owner gets their own data anywhere. Returns
   // true when a snapshot existed.
-  const loadSavedSnapshot = async () => {
+  // forUserId (optional): when the signed-in PUBLIC-HOST hydration calls
+  // this, refuse a snapshot stamped with a DIFFERENT owner. 2026-06-12 fix:
+  // the gate used to check that *a* session exists, not *whose* — on a
+  // shared device (church kiosk) anyone signing in with any account would
+  // hydrate the previous family's saved data. Legacy snapshots without an
+  // owner stamp still load (and get stamped on next save). Private hosts
+  // pass no forUserId — the device-trust model there is unchanged.
+  const loadSavedSnapshot = async (forUserId = null) => {
       try {
         let saved = await window.storage.get('poe-financial-v28');
+        if (saved && saved.value && forUserId) {
+          try {
+            const ownerCheck = JSON.parse(saved.value);
+            if (ownerCheck.owner && ownerCheck.owner !== forUserId) return false;
+          } catch (_) { /* unparseable → treated as not found below */ }
+        }
         if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v27');
         if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v26');
         if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v25');
@@ -2038,7 +2051,7 @@ export default function PoeFinancialSystem() {
     if (!authSession || hydratedForAuthRef.current) return;
     if (!isPublicHost() || isAnyDemoMode) return;
     hydratedForAuthRef.current = true;
-    loadSavedSnapshot().then((found) => {
+    loadSavedSnapshot(authSession.user?.id || null).then((found) => {
       if (!found) setData(SEED_DATA);
       setAuthHydrated(true);
     });
@@ -2070,7 +2083,9 @@ export default function PoeFinancialSystem() {
     if (isPublicHost() && !(authSession && authHydrated)) return;
     (async () => {
       try {
-        await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
+        // owner stamp (2026-06-12): binds this snapshot to the signed-in
+        // account so a different account on a shared device can't hydrate it.
+        await window.storage.set('poe-financial-v28', JSON.stringify({ owner: authSession?.user?.id || undefined, data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
         setPersistIssue(prev => (prev && prev.kind === 'storage' ? null : prev));
       } catch (e) {
         console.error('Storage failed', e);
@@ -2333,7 +2348,7 @@ export default function PoeFinancialSystem() {
       },
     };
     setData(d => ({ ...d, incidents: [...d.incidents, seeded] }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       // Stamp remoteUuid as soon as the insert lands so follow-on updates
       // (dispatch, resolve) reach the cloud row immediately.
       incidentsSync.upload(seeded).then((res) => {
@@ -2377,7 +2392,7 @@ export default function PoeFinancialSystem() {
     // (idempotent), so StrictMode's dev-only double-invoke is harmless.
     setData(d => {
       const next = (d.incidents || []).map(i => i.id !== id ? i : applyIncidentUpdates(i, updates));
-      if (authSession && d.numericSyncVerifiedAt) {
+      if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
         const updated = next.find(i => i.id === id);
         if (updated && updated.remoteUuid) {
           incidentsSync.updateRow(updated.remoteUuid, incidentColumns(updated)).catch(e => console.warn('[incidents-sync] update failed', e));
@@ -2427,7 +2442,7 @@ export default function PoeFinancialSystem() {
     }),
   }));
   const deleteProject = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.projects || []).find(p => p.id === id);
       if (local && local.remoteUuid) {
         projectsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[projects-sync] delete failed', e));
@@ -2443,7 +2458,7 @@ export default function PoeFinancialSystem() {
   const addContractor = (item) => {
     const seeded = { ...item, id: `k-${Date.now()}` };
     setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       contractorsSync.upload(seeded).then((res) => {
         if (res && res.remoteId) {
           setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === seeded.id ? { ...c, remoteUuid: res.remoteId } : c) }));
@@ -2455,7 +2470,7 @@ export default function PoeFinancialSystem() {
     // 2026-06-12 fix: same stale-closure push as updateIncident — see there.
     setData(d => {
       const next = (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c);
-      if (authSession && d.numericSyncVerifiedAt) {
+      if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
         const updated = next.find(c => c.id === id);
         if (updated && updated.remoteUuid) {
           contractorsSync.updateRow(updated.remoteUuid, contractorColumns(updated)).catch(e => console.warn('[contractors-sync] update failed', e));
@@ -2465,7 +2480,7 @@ export default function PoeFinancialSystem() {
     });
   };
   const deleteContractor = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const current = (data.contractors1099 || []).find(c => c.id === id);
       if (current && current.remoteUuid) {
         contractorsSync.deleteRow(current.remoteUuid).catch(e => console.warn('[contractors-sync] delete failed', e));
@@ -2525,7 +2540,7 @@ export default function PoeFinancialSystem() {
   const addAccount = (item) => {
     const seeded = { ...item, id: `a-${Date.now()}`, balance: parseFloat(item.balance) || 0, inLegal: !!item.inLegal };
     setData(d => ({ ...d, accounts: [...(d.accounts || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       accountsSync.upload(seeded).catch(e => console.warn('[accounts-sync] upload failed', e));
     }
   };
@@ -2540,7 +2555,7 @@ export default function PoeFinancialSystem() {
   };
   const updateAccount = (id, updates) => {
     setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === id ? { ...a, ...updates, balance: updates.balance !== undefined ? parseFloat(updates.balance) || 0 : a.balance } : a) }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.accounts || []).find(a => a.id === id);
       if (local && local.remoteUuid) {
         const patch = {};
@@ -2557,7 +2572,7 @@ export default function PoeFinancialSystem() {
     }
   };
   const deleteAccount = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.accounts || []).find(a => a.id === id);
       if (local && local.remoteUuid) {
         accountsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[accounts-sync] delete failed', e));
@@ -2569,13 +2584,13 @@ export default function PoeFinancialSystem() {
   const addTransaction = (item) => {
     const seeded = { ...item, id: `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 };
     setData(d => ({ ...d, transactions: [...(d.transactions || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       transactionsSync.upload(seeded).catch(e => console.warn('[transactions-sync] upload failed', e));
     }
   };
   const updateTransaction = (id, updates) => {
     setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.transactions || []).find(t => t.id === id);
       if (local && local.remoteUuid) {
         const patch = {};
@@ -2591,7 +2606,7 @@ export default function PoeFinancialSystem() {
     }
   };
   const deleteTransaction = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.transactions || []).find(t => t.id === id);
       if (local && local.remoteUuid) {
         transactionsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[transactions-sync] delete failed', e));
@@ -2608,7 +2623,7 @@ export default function PoeFinancialSystem() {
   const addRental = (item) => {
     const seeded = { ...item, id: `r-${Date.now()}` };
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       // Stamp remoteUuid as soon as the insert lands — without it, an edit or
       // delete in the window before the next realtime refresh can't reach the
       // remote row (a delete would even resurrect on the next merge).
@@ -2621,7 +2636,7 @@ export default function PoeFinancialSystem() {
   };
   const updateRental = (id, updates) => {
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
       if (local && local.remoteUuid) {
         const patch = {};
@@ -2655,7 +2670,7 @@ export default function PoeFinancialSystem() {
     }
   };
   const deleteRental = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
       if (local && local.remoteUuid) {
         rentalsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[rentals-sync] delete failed', e));
@@ -2673,7 +2688,7 @@ export default function PoeFinancialSystem() {
     const nowIso = new Date().toISOString();
     const seeded = { ...item, id: `inq-${Date.now()}`, receivedAt: nowIso, status: 'new', statusHistory: [{ status: 'new', at: nowIso }] };
     setData(d => ({ ...d, inquiries: [...(d.inquiries || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       inquiriesSync.upload(seeded).catch(e => console.warn('[inquiries-sync] upload failed', e));
     }
   };
@@ -2682,7 +2697,7 @@ export default function PoeFinancialSystem() {
   const deleteCheckoutIntent = (id) => setData(d => ({ ...d, checkoutIntents: (d.checkoutIntents || []).filter(i => i.id !== id) }));
   const updateInquiry = (id, updates) => {
     setData(d => ({ ...d, inquiries: (d.inquiries || []).map(i => i.id === id ? { ...i, ...updates, statusHistory: updates.status && updates.status !== i.status ? [...(i.statusHistory || []), { status: updates.status, at: new Date().toISOString(), notes: updates.statusNotes }] : i.statusHistory } : i) }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inquiries || []).find(i => i.id === id);
       if (local && local.remoteUuid) {
         const patch = {};
@@ -2712,7 +2727,7 @@ export default function PoeFinancialSystem() {
     }
   };
   const deleteInquiry = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inquiries || []).find(i => i.id === id);
       if (local && local.remoteUuid) {
         inquiriesSync.deleteRow(local.remoteUuid).catch(e => console.warn('[inquiries-sync] delete failed', e));
