@@ -5111,7 +5111,7 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
 
       {/* THE BIGGEST PICTURE — family / business / project hero photos, so the
           person sees what this is all for every time they open the app. */}
-      <LifeGallery photos={lifePhotos} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />
+      <LifeGallery photos={lifePhotos} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} rentals={rentals} />
 
       {/* v28+ MVP v1.5 round 10 — ACTION QUEUE
           One-glance triage panel: Changes (broken now), Incidents (3-day fix),

@@ -8,6 +8,7 @@ import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
+import { hasBridgeToken } from '../lib/nas-photos.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -925,7 +926,19 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     setMaintForm(f => ({ ...f, photos: [...(f.photos || []), ...compressed] }));
   };
 
-  const openRecords = (r) => { setOpenRecordsId(r.id === openRecordsId ? null : r.id); setShowMaintForm(false); setShowConvForm(false); setMaintForm(blankMaint()); setConvForm(blankConv()); };
+  const openRecords = (r) => {
+    const opening = r.id !== openRecordsId;
+    setOpenRecordsId(opening ? r.id : null);
+    setShowMaintForm(false); setShowConvForm(false); setMaintForm(blankMaint()); setConvForm(blankConv());
+    // 2026-06-12 auto-populate (Darrell: "the images are already there...
+    // why should I [start it]"): when this device holds the bridge token,
+    // the property's NAS photos load THEMSELVES on open — the human's job
+    // is filing keepers to rooms, never fetching. No token / offline →
+    // exactly the old manual behavior, nothing degrades.
+    if (opening && hasBridgeToken() && !(photoImport && photoImport.rentalId === r.id && photoImport.status === 'staged')) {
+      startPhotoImport(r);
+    }
+  };
   const addMaintEntry = (r) => {
     if (!maintForm.description) { alert('Description is required.'); return; }
     const entry = { ...maintForm, id: `mt-${Date.now()}`, cost: parseFloat(maintForm.cost) || 0 };
