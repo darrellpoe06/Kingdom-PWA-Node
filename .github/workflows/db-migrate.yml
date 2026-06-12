@@ -38,12 +38,17 @@ jobs:
             echo "::error::SUPABASE_DB_URL secret is not set. One-time setup: Supabase Dashboard -> Connect -> Session pooler URI -> GitHub Settings -> Secrets -> Actions -> SUPABASE_DB_URL"
             exit 1
           fi
+          # Human-proofing (run #5, 2026-06-12): a pasted secret picked up an
+          # invisible line break (the server saw database "postgres\n"). A
+          # valid connection URI never contains whitespace, so strip ALL of
+          # it before use - paste artifacts can never fail the lane again.
+          DBURL=$(printf '%s' "$SUPABASE_DB_URL" | tr -d '[:space:]')
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
           shopt -s nullglob
           files=(infra/supabase/migrations-auto/*.sql)
           if [ ${#files[@]} -eq 0 ]; then echo "no migrations"; exit 0; fi
           for f in $(printf '%s\n' "${files[@]}" | sort); do
             echo "=== applying $f ==="
-            psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$f"
+            psql "$DBURL" -v ON_ERROR_STOP=1 -f "$f"
           done
           echo "all migrations applied"
