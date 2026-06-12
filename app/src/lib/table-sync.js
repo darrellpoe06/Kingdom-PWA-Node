@@ -109,10 +109,31 @@ export function createTableSync(spec) {
     return { deleted: true };
   }
 
+  // 2026-06-12 fix (review finding): reads used to rely on RLS alone, which
+  // scopes to ALL instances the user belongs to. A user in two instances
+  // pulled the union locally, and initialSync then re-uploaded the other
+  // instance's rows into the default instance — duplication + cross-instance
+  // bleed. Every read (and the realtime channel) now filters to the same
+  // instance the writes target. Cached per controller; instance membership
+  // doesn't change mid-session.
+  let cachedTenantId = null;
+  async function tenantIdCached() {
+    if (!cachedTenantId) cachedTenantId = await getTenantId();
+    return cachedTenantId;
+  }
+
   async function fetchAll() {
+    let tenantId;
+    try {
+      tenantId = await tenantIdCached();
+    } catch (e) {
+      console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      return null;
+    }
     const { data, error } = await supabase
       .from(remoteTable)
       .select('*')
+      .eq('instance_id', tenantId)
       .order('created_at', { ascending: true });
     if (error) {
       console.warn(`[table-sync:${remoteTable}] fetch failed:`, error);
@@ -129,11 +150,17 @@ export function createTableSync(spec) {
       if (!session || cancelled) return;
       const initial = await fetchAll();
       if (initial) onRemote(initial);
+      let tenantId = null;
+      try { tenantId = await tenantIdCached(); } catch (_) { /* filter below stays broad; fetchAll still scopes */ }
+      if (cancelled) return;
       channel = supabase
         .channel(`${remoteTable}-stream`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: remoteTable },
+          {
+            event: '*', schema: 'public', table: remoteTable,
+            ...(tenantId ? { filter: `instance_id=eq.${tenantId}` } : {}),
+          },
           () => {
             fetchAll().then((refreshed) => {
               if (refreshed) onRemote(refreshed);

@@ -21,8 +21,9 @@
 | R13 | Convert the 16 timer workflows to event-driven (trigger fires only on a real event; keep only genuine single-fire schedules behind the Cage) | decided | DR-0042; three-brakes | R8 home-n8n access (the 16 timer wfs are on HOLD there); per-wf event-source mapping | Claude + Darrell |
 | R14 | Event usage-ranking + analytics view on the dashboard (most-used → least-used by type/tag/tier; drives reduce/increase; aggregate-only, PHI walled out, bounded retention) | planned | DR-0043; extends R12; `EXECUTION-OUTCOME-OBSERVABILITY.md` | R12 dashboard; events-as-data roll-up + retention window | Claude + Darrell |
 
-| R15 | Test gate: suite portable on clean checkout + GitHub Actions CI (lint + vitest + wf36 harness) + 9 lint problems fixed | in-progress | PR #25; `2026-06-11-test-coverage-analysis.md` P1/P2 | merge of PR #25 | Claude + Darrell |
+| R15 | Sovereign photo write-path (phone → NAS / own space) — photos stop living on one device; the durable answer for family/business memory + historical record | decided | PR #24 follow-ups; `2026-06-11-photo-sovereignty-and-phone-backup.md` | design session + NAS bridge work | Claude + Darrell |
+| R16 | Main branch ruleset (require the two CI checks) — the one-time platform enforcement of the release lane | awaiting-greenlight | DR-0054; `RELEASE-LANE.md` | Darrell: Settings → Branches, ~1 min | Darrell |
 
 † No hardware-specific DR yet; DR-0030/015 are the module-template decisions, not BOMs. Writing the BOM docs (and optional hardware DRs) is part of R5/R6.
 
-**Done (prune periodically):** doc chain DR-0017…0049 merged to `main` (R1's original scope, completed via PR #15/#16/#20/#21).
+**Done (prune periodically):** doc chain DR-0017…0049 merged (was R1); test gate + CI shipped (was R15, PR #25→#26); PR #24 + hardening merged to `main` (PR #26); review-finding backlog cleared (PR #27, this branch).

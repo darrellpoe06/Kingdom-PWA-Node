@@ -36,6 +36,12 @@ relying on it; memories reflect what was true when written.
 
 ## Session-learned additions (append per session, newest first)
 
+- **2026-06-12 — one release lane (DR-0054)** — production deploys ONLY from
+  `main`; manual Vercel promotes are retired (they caused the AE7C864 version
+  skew). Merge = deploy. The BUILD stamp in the app header is the version
+  truth and the first question of any bug report. Human owns WHAT, AI owns
+  HOW. See `_root/RELEASE-LANE.md`.
+
 - **2026-06-11 — test gate** — the Vitest suite requires the Supabase env
   stub in `app/vitest.config.js` to run on clean checkouts; CI at
   `.github/workflows/ci.yml` runs lint + vitest + the wf36 harness on every
