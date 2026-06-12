@@ -34,6 +34,7 @@ import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
 import { unionPreservingLocal } from './lib/table-sync.js';
+import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
 
@@ -1348,6 +1349,30 @@ export const SEED_IDS = (() => {
   };
   return collect(SEED_DATA, new Set());
 })();
+// remainderIsSeed — true when the NON-table-synced remainder of `data` is
+// still untouched seed scaffolding. Drives the v2.15 family-snapshot policy:
+// a still-seed world always ADOPTS the family snapshot and never PUBLISHES
+// one. Checks the id-bearing remainder lists; a row with an id outside
+// SEED_IDS means the family has made this world their own. (Editing only a
+// non-list field, e.g. church details, doesn't flip this — acceptable v1
+// trade, documented in snapshot-sync.js.)
+export const remainderIsSeed = (d) => {
+  if (!d || typeof d !== 'object') return true;
+  // Only NON-table-synced lists belong here: rentals/incidents/etc. fill
+  // with real cloud rows via table sync, which must not flip a device whose
+  // snapshot-remainder is still scaffolding into a publisher.
+  const lists = [
+    d.recurringObligations, d.taxCalendar, d.events, d.capexItems,
+    d.skillProfiles, d.prayerRequests, d.churchVoice,
+  ];
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const row of list) {
+      if (row && typeof row.id === 'string' && !SEED_IDS.has(row.id)) return false;
+    }
+  }
+  return true;
+};
 export const notSeedRow = (x) => !(x && typeof x.id === 'string' && SEED_IDS.has(x.id));
 // Persona-specific welcome copy. Each entry describes the audience and the
 // stewardship lens. The 'vision' line is honest about what's working today
@@ -1958,6 +1983,67 @@ export default function PoeFinancialSystem() {
   // their own device belongs to them. hydratedForAuthRef ensures the
   // signed-in hydration runs once per session.
   const hydratedForAuthRef = useRef(false);
+  // v2.15 family snapshot (2026-06-12): pull-once-per-session gate + push
+  // throttle. snapshotPulledRef must be true before ANY push — a fresh seed
+  // device pulls (and applies) the family's real snapshot before it is ever
+  // allowed to write one.
+  const snapshotPulledRef = useRef(false);
+  const lastSnapshotPushRef = useRef(0);
+
+  // Pull the family snapshot once per signed-in session, after this device's
+  // own load finished (public hosts: after the auth hydration; private hosts:
+  // after the boot load). Apply policy (provenance-aware, in priority order):
+  //   1. This device's remainder is still SEED scaffolding → ALWAYS adopt the
+  //      family snapshot. (A seed device persists constantly, so naive
+  //      "local is newer" timestamps would block the real world forever.)
+  //   2. This device holds a REAL world and has never joined the snapshot
+  //      (no marker) → adopt NOTHING; it becomes the source on next push.
+  //   3. Joined before → adopt only a snapshot newer than the marker.
+  // The payload contains no table-synced lists, no notes, no photo bytes
+  // (snapshot-sync.js), so applying it cannot clobber those; matched rentals
+  // additionally keep this device's room photos.
+  useEffect(() => {
+    if (!authSession || isAnyDemoMode || snapshotPulledRef.current) return;
+    const readyToPull = isPublicHost() ? authHydrated : loaded;
+    if (!readyToPull) return;
+    snapshotPulledRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const remote = await fetchSnapshot();
+        if (cancelled || !remote || !remote.payload) return;
+        const latest = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__) || data;
+        let marker = null;
+        try { marker = localStorage.getItem('poe-snapshot-marker'); } catch (_) { /* no marker */ }
+        const stillSeed = remainderIsSeed(latest);
+        if (!stillSeed && !marker) return; // rule 2: a real un-joined world is protected
+        if (!stillSeed && marker && new Date(remote.updatedAt) <= new Date(marker)) return; // rule 3
+        try { localStorage.setItem('poe-snapshot-marker', remote.updatedAt); } catch (_) { /* non-fatal */ }
+        const p = remote.payload;
+        setData(d => {
+          const snapData = p.data || {};
+          const next = { ...d, ...snapData };
+          if (snapData.inflows && Array.isArray(snapData.inflows.rentals)) {
+            next.inflows = {
+              ...snapData.inflows,
+              rentals: mergeKeepingLocalRoomPhotos(d.inflows?.rentals || [], snapData.inflows.rentals),
+            };
+          }
+          return next;
+        });
+        if (p.pressure != null) setPressure(p.pressure);
+        if (p.snowballSort) setSnowballSort(p.snowballSort);
+        if (p.snowballExtra != null) setSnowballExtra(p.snowballExtra);
+        if (p.debtSnowballSort) setDebtSnowballSort(p.debtSnowballSort);
+        if (p.debtSnowballExtra != null) setDebtSnowballExtra(p.debtSnowballExtra);
+        if (p.theme) setTheme(p.theme);
+      } catch (e) {
+        console.warn('[snapshot-sync] pull failed', e);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession, authHydrated, loaded]);
   useEffect(() => {
     if (isAnyDemoMode) { setLoaded(true); return; } // Demo + picker skip storage load entirely.
     // 2026-06-03 SECURITY: PUBLIC DOMAIN MUST NOT HYDRATE FROM LOCAL STORAGE
@@ -2125,8 +2211,28 @@ export default function PoeFinancialSystem() {
       try {
         // owner stamp (2026-06-12): binds this snapshot to the signed-in
         // account so a different account on a shared device can't hydrate it.
-        await window.storage.set('poe-financial-v28', JSON.stringify({ owner: authSession?.user?.id || undefined, data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
+        // savedAt: lets the cloud-snapshot pull decide freshness (v2.15).
+        await window.storage.set('poe-financial-v28', JSON.stringify({ owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
         setPersistIssue(prev => (prev && prev.kind === 'storage' ? null : prev));
+        // v2.15 family snapshot push — the non-table-synced remainder follows
+        // the account. Leading-edge throttle (15s). Two hard guards: the pull
+        // must have completed (snapshotPulledRef), and a world whose remainder
+        // is STILL SEED never publishes — scaffolding must never become the
+        // family snapshot, no matter which device signs in first.
+        if (authSession && !isAnyDemoMode && snapshotPulledRef.current
+            && (!isPublicHost() || authHydrated)
+            && !remainderIsSeed(data)
+            && Date.now() - lastSnapshotPushRef.current > 15000) {
+          lastSnapshotPushRef.current = Date.now();
+          const pushedAt = new Date().toISOString();
+          pushSnapshot(buildSnapshotPayload({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }))
+            .then((res) => {
+              if (res && res.pushed) {
+                try { localStorage.setItem('poe-snapshot-marker', pushedAt); } catch (_) { /* non-fatal */ }
+              }
+            })
+            .catch((e) => console.warn('[snapshot-sync] push failed', e));
+        }
       } catch (e) {
         console.error('Storage failed', e);
         // QuotaExceededError here means NOTHING is being saved anymore —

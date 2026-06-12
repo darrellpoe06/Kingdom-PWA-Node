@@ -23,6 +23,7 @@
 
 | R15 | Sovereign photo write-path (phone → NAS / own space) — photos stop living on one device; the durable answer for family/business memory + historical record | decided | PR #24 follow-ups; `2026-06-11-photo-sovereignty-and-phone-backup.md` | design session + NAS bridge work | Claude + Darrell |
 | R16 | Main branch ruleset (require the two CI checks) — the one-time platform enforcement of the release lane | awaiting-greenlight | DR-0054; `RELEASE-LANE.md` | Darrell: Settings → Branches, ~1 min | Darrell |
+| R17 | Family snapshot sync ACTIVATION — run `schema-v2.15-family-snapshot.sql` in Studio, then sign in once on the device holding the real non-synced world (desktop / NAS-portal origin) so it publishes the family snapshot | awaiting-input | v2.15; `snapshot-sync.js` | Darrell: one Studio run + one sign-in | Darrell |
 
 † No hardware-specific DR yet; DR-0030/015 are the module-template decisions, not BOMs. Writing the BOM docs (and optional hardware DRs) is part of R5/R6.
 
