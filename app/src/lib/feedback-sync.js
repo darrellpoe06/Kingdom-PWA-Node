@@ -119,7 +119,17 @@ export async function uploadFeedback(item, meta = {}) {
     triage_status: 'new',
   };
 
-  const { error } = await supabase.from('feedback').insert(row);
+  // Optional screenshot (compressed JPEG data URL) — see migration 0003.
+  const screenshot = (typeof meta.screenshot === 'string' && meta.screenshot) ? meta.screenshot : null;
+
+  let { error } = await supabase.from('feedback').insert(screenshot ? { ...row, screenshot } : row);
+  // Defensive: if the screenshot column isn't live yet (a migration/PostgREST
+  // schema-cache race right at deploy), retry without it so the text feedback
+  // still lands. The image is the only thing lost, and only in that window.
+  if (error && screenshot) {
+    console.warn('[feedback-sync] insert with screenshot failed, retrying without it:', error);
+    ({ error } = await supabase.from('feedback').insert(row));
+  }
   if (error) {
     console.warn('[feedback-sync] upload failed:', error);
     return { skipped: 'insert-error', error };
@@ -130,7 +140,7 @@ export async function uploadFeedback(item, meta = {}) {
   postToChat(
     formatFeedbackMessage({
       displayName: row.display_name,
-      text: row.feedback_text,
+      text: row.feedback_text + (screenshot ? '\n[+screenshot attached]' : ''),
       sentiment: row.sentiment,
       activeTab: row.which_tab,
     })
@@ -238,9 +248,12 @@ function toPrototypeShape(row) {
     category: row.sentiment, // prototype uses 'category'; we mirror
     isConfidential: row.is_confidential,
     submittedAt: row.submitted_at,
+    createdAt: row.submitted_at, // the board renders f.createdAt
     displayName: row.display_name,
     deviceLabel: row.device_label,
     triageStatus: row.triage_status,
+    screenshot: row.screenshot || null,
+    hasScreenshot: !!row.screenshot,
     // 'remote: true' lets the UI render a small badge so users can see
     // which feedback came from another device.
     remote: true,
