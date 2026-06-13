@@ -12,6 +12,7 @@
 // next as the work lands. Go-live dates are honest estimates, revised here.
 import React, { useState } from 'react';
 import WorkflowStatus from './WorkflowStatus.jsx';
+import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
 
 // status: 'shipped' | 'building' | 'next' | 'gated'
 const ROADMAP = [
@@ -82,6 +83,12 @@ function daysLate(r) {
 // that don't run the vite define still render.
 const WORKFLOW_STATS = (typeof __WORKFLOW_STATS__ !== 'undefined') ? __WORKFLOW_STATS__ : { built: 0, active: 0 };
 
+// Open governance-decision count — the SAME real source as the Decisions tab
+// (decision-queue.md parsed into __GOVERNANCE_QUEUE__ at build time), so the
+// Build board can show "N waiting on you" alongside the build at a glance
+// (build backlog #4). Governor-only surface (the Decisions tab is gated).
+const GOVERNANCE_QUEUE = (typeof __GOVERNANCE_QUEUE__ !== 'undefined') ? __GOVERNANCE_QUEUE__ : { ok: false, openCount: 0, items: [] };
+
 // Chronological ordering within a stage. The plan complaint (Darrell,
 // 2026-06-13): the Next tab read 06-17, 07-01, 06-24, 07-15... — array order,
 // not a timeline. Sort by the real target/ship date so each stage reads in
@@ -118,8 +125,10 @@ function shipSpan() {
   return { first: dates[0] || null, last: dates[dates.length - 1] || null };
 }
 
-export function BuildBoard() {
+export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
   const [openId, setOpenId] = useState(null);
+  // Open decisions waiting on the governor — read from the real queue (#4).
+  const openDecisions = normalizeGovernanceQueue(GOVERNANCE_QUEUE).openCount;
 
   // Past Due — anything past its committed target but still in progress. A
   // cross-cutting view over Building + Next: the board adjusting to the real
@@ -159,6 +168,17 @@ export function BuildBoard() {
         <div className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           These counts are real — workflow files in the repo and dated ships, not hand-typed. Live run-status and per-item % complete are wiring up next.
         </div>
+        {isGovernor && openDecisions > 0 && (
+          <button
+            type="button"
+            onClick={() => onViewDecisions && onViewDecisions()}
+            disabled={!onViewDecisions}
+            aria-label={`${openDecisions} governance decision${openDecisions === 1 ? '' : 's'} awaiting your call — open the Decisions tab`}
+            className="mt-2 inline-flex items-center text-[10px] uppercase tracking-wider text-[#B85838] hover:text-white hover:bg-[#B85838] border border-[#B85838] px-2.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-[#B85838]"
+          >
+            ⚖ {openDecisions} decision{openDecisions === 1 ? '' : 's'} awaiting your call →
+          </button>
+        )}
       </section>
 
       {/* Stage sub-tabs — pick a stage and see just that short list, instead of

@@ -152,7 +152,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
-      {subView === 'build' && <BuildBoard />}
+      {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} />}
       {subView === 'governance' && isGovernor && <GovernanceQueue />}
     </div>
   );
