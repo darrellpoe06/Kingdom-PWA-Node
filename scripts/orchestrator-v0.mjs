@@ -104,6 +104,12 @@ async function callGemini(prompt) {
   return (((j.candidates || [])[0] || {}).content || {}).parts?.map(p => p.text).join('\n') || '';
 }
 
+// Routing mode (DR-0073): on a small CPU local model the capable VENDOR is the
+// primary; local is the fallback. Flip to ORCH_MODE=local-first once a GPU box
+// makes local strong (the sovereign ladder: local tries, escalates only the
+// hard ones). Private work is local-only in EVERY mode.
+const MODE = (process.env.ORCH_MODE || 'vendor-first').toLowerCase();
+
 async function main() {
   const task = process.argv.slice(2).filter(a => !a.startsWith('--')).join(' ').trim();
   const type = arg('type') || 'default';
@@ -114,33 +120,48 @@ async function main() {
   if (!task) { console.error('Provide a task: node scripts/orchestrator-v0.mjs "..." --type=code'); process.exit(1); }
 
   if (process.env.ORCH_DRY_RUN) {
-    console.log(`[dry-run] task-type=${type} -> local(${OLLAMA_MODEL}) first; ` +
-      `${isPrivate ? 'PRIVATE: local-only, never escalates' : `if below ${THRESHOLD}/10 -> ${approvedEscalate ? `escalate to ${vendor}` : `recommend ${vendor} (approve with --escalate)`}`}`);
+    console.log(`[dry-run] mode=${MODE} type=${type} -> ` + (
+      isPrivate ? `PRIVATE: local(${OLLAMA_MODEL}) only, never a vendor`
+      : MODE === 'vendor-first' ? `${vendor} first; local(${OLLAMA_MODEL}) fallback if ${vendor} is unavailable`
+      : `local(${OLLAMA_MODEL}) first; if below ${THRESHOLD}/10 ${approvedEscalate ? `escalate to ${vendor}` : `recommend ${vendor} (--escalate)`}`));
     process.exit(0);
   }
 
-  // Tier 0 — local.
-  process.stderr.write(`[local ${OLLAMA_MODEL}] working...\n`);
-  const local = await callOllama(task);
-
-  // Judge — local self-rates completeness (v0 heuristic; the v1 judge is a real
-  // rubric scored independently — strategy doc §3).
-  const rating = await callOllama(`Task:\n${task}\n\nAnswer:\n${local}\n\nRate 0-10 how COMPLETELY the answer solves the task. Reply with only the number.`);
-  const score = parseScore(rating);
-
-  console.log(`\n=== LOCAL (${OLLAMA_MODEL}) — self-score ${score}/10 ===\n${local}\n`);
-
-  // Sovereignty gate — private work never leaves the premises (DR-0056).
+  // Sovereignty gate — private work is LOCAL-ONLY, never a vendor (DR-0056). This
+  // holds in every mode: privacy outranks both speed and quality.
   if (isPrivate) {
-    console.log(`[gate] PRIVATE task: local-only, never escalated. (score ${score}/10; the local floor stands.)`);
+    process.stderr.write(`[local ${OLLAMA_MODEL}] working (private, local-only)...\n`);
+    const local = await callOllama(task);
+    console.log(`\n=== LOCAL (${OLLAMA_MODEL}) — PRIVATE ===\n${local}\n[gate] private: local-only, never escalated. The sovereignty floor stands.`);
     return;
   }
-  // Accept local if it cleared the bar — free, private, done.
+
+  // VENDOR-FIRST (default while local is a small CPU model, DR-0073): the capable
+  // vendor is primary; fall back to local only if the vendor is unavailable.
+  if (MODE === 'vendor-first') {
+    process.stderr.write(`[${vendor}] working...\n`);
+    try {
+      const out = vendor === 'gemini' ? await callGemini(task) : await callClaude(task);
+      console.log(`\n=== ${vendor.toUpperCase()} (primary) ===\n${out}\n[done] vendor-first: ${vendor} handled it. (local is the fallback for when the vendor is offline.)`);
+    } catch (e) {
+      process.stderr.write(`[${vendor} unavailable: ${e.message}] falling back to local ${OLLAMA_MODEL}...\n`);
+      const local = await callOllama(task);
+      console.log(`\n=== LOCAL (${OLLAMA_MODEL}) — fallback ===\n${local}\n[fallback] ${vendor} was unavailable; local kept it moving. The floor holds.`);
+    }
+    return;
+  }
+
+  // LOCAL-FIRST (sovereign ladder — the GPU-era end state): local tries, self-
+  // rates, escalates to the vendor only when it falls short.
+  process.stderr.write(`[local ${OLLAMA_MODEL}] working...\n`);
+  const local = await callOllama(task);
+  const rating = await callOllama(`Task:\n${task}\n\nAnswer:\n${local}\n\nRate 0-10 how COMPLETELY the answer solves the task. Reply with only the number.`);
+  const score = parseScore(rating);
+  console.log(`\n=== LOCAL (${OLLAMA_MODEL}) — self-score ${score}/10 ===\n${local}\n`);
   if (score >= THRESHOLD) {
     console.log(`[accept] local cleared the bar (${score} >= ${THRESHOLD}). Cost: $0. Done.`);
     return;
   }
-  // Below the bar: propose escalation, or escalate if approved.
   if (!approvedEscalate) {
     console.log(`[recommend] local scored ${score}/10 (below ${THRESHOLD}). This one wants ${vendor}. Re-run with --escalate to approve the vendor call.`);
     return;
