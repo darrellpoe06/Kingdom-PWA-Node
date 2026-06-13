@@ -13,9 +13,46 @@
 // images) reference the NAS in place rather than copy it.
 import React, { useState, useEffect } from 'react';
 import { compressImageFile } from '../lib/image.js';
-import { fetchChannelPhotos, hasBridgeToken } from '../lib/nas-photos.js';
+import { fetchChannelPhotos, fetchFamilyPhotos, uploadPhoto, hasBridgeToken } from '../lib/nas-photos.js';
 
 const CATEGORIES = ['Family', 'Business', 'Projects', 'Properties', 'Faith', 'Other'];
+
+// 2026-06-13 — R15 sovereign photo write-path. When this device can reach the
+// family NAS (has the bridge token), the shared family gallery loads LIVE from
+// the NAS and "+ Add photos" writes there, so every family device sees the
+// same backed-up pictures instead of one phone's localStorage. Fail-quiet:
+// no token / offline → renders nothing here, and uploads fall back to
+// device-local (handled in onFiles).
+function FamilyNasGallery({ refreshKey }) {
+  const [photos, setPhotos] = useState(null);
+  useEffect(() => {
+    if (!hasBridgeToken()) { setPhotos([]); return; }
+    let cancelled = false;
+    (async () => {
+      const res = await fetchFamilyPhotos({ limit: 24 });
+      if (!cancelled && res) setPhotos(res.photos);
+      else if (!cancelled) setPhotos([]);
+    })();
+    return () => { cancelled = true; };
+  }, [refreshKey]);
+
+  if (!photos || photos.length === 0) return null;
+  return (
+    <div className="mb-4">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-1">🏠 Shared family gallery · live from your NAS</div>
+      <p className="text-[10px] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        Everyone signed in to the family sees these — backed up on the NAS you own, not trapped on one phone.
+      </p>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+        {photos.map(p => (
+          <a key={p.id} href={p.thumb} target="_blank" rel="noopener noreferrer" className="block">
+            <img src={p.thumb} alt={p.text || 'Family photo'} className="w-full h-24 object-cover border border-[#E8E4DC] hover:opacity-90" loading="lazy" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // 2026-06-12 auto-populate (Darrell: "the images are already there for each
 // rental and my home and the Big Picture tab — you can start it, I'll adjust
@@ -88,20 +125,38 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
   const [filter, setFilter] = useState('All');
   const [pendingCategory, setPendingCategory] = useState('Family');
   const [busy, setBusy] = useState(false);
+  const [nasNote, setNasNote] = useState('');
+  const [familyRefresh, setFamilyRefresh] = useState(0);
 
   const onFiles = async (fileList) => {
     if (!fileList || fileList.length === 0 || !addLifePhotos) return;
     setBusy(true);
+    setNasNote('');
     const today = new Date().toISOString().slice(0, 10);
     const shots = [];
     for (const file of Array.from(fileList)) {
       try {
         // Hero photos get a bit more resolution than thumbnails.
-        shots.push({ id: `lp-${Date.now()}-${shots.length}`, src: await compressImageFile(file, 1600, 0.75), caption: '', category: pendingCategory, date: today });
+        shots.push({ id: `lp-${Date.now()}-${shots.length}`, src: await compressImageFile(file, 1600, 0.75), caption: '', category: pendingCategory, date: today, file });
       } catch (e) { console.warn('Life photo compress failed', e); }
     }
+    // R15: when this device can reach the family NAS, write there so the photo
+    // is SHARED + backed up; only fall back to device-local for shots the NAS
+    // refused or when there's no token. The NAS is the better home; a photo is
+    // never lost for lack of it.
+    let toNas = 0;
+    const localOnly = [];
+    if (hasBridgeToken()) {
+      for (const s of shots) {
+        const res = await uploadPhoto(s.src, { filename: s.file?.name });
+        if (res && res.ok) toNas += 1; else localOnly.push(s);
+      }
+    } else {
+      localOnly.push(...shots);
+    }
     setBusy(false);
-    if (shots.length) addLifePhotos(shots);
+    if (toNas) { setFamilyRefresh(k => k + 1); setNasNote(`${toNas} photo${toNas === 1 ? '' : 's'} saved to your NAS — shared with the family.`); }
+    if (localOnly.length) addLifePhotos(localOnly.map(s => { const c = { ...s }; delete c.file; return c; }));
   };
 
   const shown = filter === 'All' ? photos : photos.filter(p => (p.category || 'Other') === filter);
@@ -123,6 +178,12 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
           </label>
         )}
       </div>
+
+      {!readOnly && nasNote && (
+        <div className="mb-3 text-[11px] text-[#5A6E3D] bg-[#F2F5EC] border border-[#D6E0C4] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>✓ {nasNote}</div>
+      )}
+
+      {!readOnly && <FamilyNasGallery refreshKey={familyRefresh} />}
 
       {!readOnly && (
         <div className="flex items-center gap-1.5 mb-3 flex-wrap">
