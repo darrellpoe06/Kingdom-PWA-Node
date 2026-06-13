@@ -18,16 +18,31 @@
 //   node scripts/orchestrator-v0.mjs "a private note ..." --private
 //
 // Env:
-//   OLLAMA_URL        default http://localhost:11434  (point at the 4070)
-//   OLLAMA_MODEL      default qwen2.5:14b
-//   ANTHROPIC_API_KEY for Claude escalation
-//   GEMINI_API_KEY    for Gemini escalation
+//   OLLAMA_URL        default http://localhost:11434  (point at the 4070/NAS)
+//   OLLAMA_MODEL      default qwen2.5:14b-instruct-q4_K_M
+//   ANTHROPIC_API_KEY for Claude escalation   (env OR a secrets file — below)
+//   GEMINI_API_KEY    for Gemini escalation   (env OR a secrets file — below)
+//   ORCH_SECRETS_DIR  dir holding {gemini,anthropic}-api-key.txt fallbacks,
+//                     read only when the env var is unset (default
+//                     /volume1/PoeTech/secrets on the NAS runner)
 //   ORCH_THRESHOLD    accept-local bar 0-10, default 7
 //   ORCH_DRY_RUN      if set, print the routing plan and exit (no network)
 // =============================================================================
 
+import { readFileSync } from 'node:fs';
+
+// Resolve a secret from the environment first; fall back to a file under the
+// runner's secrets dir so the key is set ONCE on the box — never re-typed each
+// session, never committed, never logged. ORCH_SECRETS_DIR overrides the NAS
+// default for a desktop/dev runner. Missing dir/file degrades to undefined.
+function secret(envName, fileName) {
+  if (process.env[envName]) return process.env[envName];
+  const dir = process.env.ORCH_SECRETS_DIR || '/volume1/PoeTech/secrets';
+  try { const v = readFileSync(`${dir}/${fileName}`, 'utf8').trim(); return v || undefined; } catch { return undefined; }
+}
+
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:14b';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:14b-instruct-q4_K_M';
 const THRESHOLD = Number(process.env.ORCH_THRESHOLD || 7);
 
 // Affinity map (starting defaults; the v1 router tunes these from outcomes —
@@ -64,8 +79,8 @@ async function callOllama(prompt) {
 }
 
 async function callClaude(prompt) {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error('ANTHROPIC_API_KEY not set');
+  const key = secret('ANTHROPIC_API_KEY', 'anthropic-api-key.txt');
+  if (!key) throw new Error('ANTHROPIC_API_KEY not set (env or secrets file)');
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
@@ -77,8 +92,8 @@ async function callClaude(prompt) {
 }
 
 async function callGemini(prompt) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY not set');
+  const key = secret('GEMINI_API_KEY', 'gemini-api-key.txt');
+  if (!key) throw new Error('GEMINI_API_KEY not set (env or secrets file)');
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${key}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

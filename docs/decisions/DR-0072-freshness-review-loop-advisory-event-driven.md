@@ -2,7 +2,7 @@
 id: DR-0072
 title: Freshness-review loop — saved links diffed against our practice into the governance queue; advisory, event-driven, three brakes
 date: 2026-06-13
-status: proposed
+status: accepted
 supersedes: []
 superseded-by: null
 tier: C
