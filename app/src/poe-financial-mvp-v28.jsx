@@ -2778,7 +2778,12 @@ export default function PoeFinancialSystem() {
     const seeded = { ...item, id: `a-${Date.now()}`, balance: parseFloat(item.balance) || 0, inLegal: !!item.inLegal };
     setData(d => ({ ...d, accounts: [...(d.accounts || []), seeded] }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      accountsSync.upload(seeded).catch(e => console.warn('[accounts-sync] upload failed', e));
+      // Stamp remoteUuid as soon as the insert lands so follow-on edits/deletes
+      // reach the cloud row immediately (else they silently no-op until a
+      // realtime refetch backfills it). Matches the incidents pattern.
+      accountsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === seeded.id ? { ...a, remoteUuid: res.remoteId } : a) }));
+      }).catch(e => console.warn('[accounts-sync] upload failed', e));
     }
   };
   // 2026-05-24 — Move-to-Legal toggle: flips inLegal on an account, which
@@ -2822,7 +2827,9 @@ export default function PoeFinancialSystem() {
     const seeded = { ...item, id: `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 };
     setData(d => ({ ...d, transactions: [...(d.transactions || []), seeded] }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      transactionsSync.upload(seeded).catch(e => console.warn('[transactions-sync] upload failed', e));
+      transactionsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === seeded.id ? { ...t, remoteUuid: res.remoteId } : t) }));
+      }).catch(e => console.warn('[transactions-sync] upload failed', e));
     }
   };
   const updateTransaction = (id, updates) => {
@@ -2926,7 +2933,9 @@ export default function PoeFinancialSystem() {
     const seeded = { ...item, id: `inq-${Date.now()}`, receivedAt: nowIso, status: 'new', statusHistory: [{ status: 'new', at: nowIso }] };
     setData(d => ({ ...d, inquiries: [...(d.inquiries || []), seeded] }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      inquiriesSync.upload(seeded).catch(e => console.warn('[inquiries-sync] upload failed', e));
+      inquiriesSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) setData(d => ({ ...d, inquiries: (d.inquiries || []).map(q => q.id === seeded.id ? { ...q, remoteUuid: res.remoteId } : q) }));
+      }).catch(e => console.warn('[inquiries-sync] upload failed', e));
     }
   };
   // v28+ Session C: checkout intent logging
