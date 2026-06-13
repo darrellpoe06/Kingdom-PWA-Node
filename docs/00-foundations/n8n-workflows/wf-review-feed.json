@@ -1,0 +1,112 @@
+{
+  "name": "wf-review-feed (read-only · staged freshness proposals + family feedback -> in-app Review tab)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "review-feed",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9f7e2a10-rv00-4r00-8r00-aaaaaaaaaa01",
+      "name": "Webhook (review feed)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        320
+      ],
+      "webhookId": "review-feed"
+    },
+    {
+      "parameters": {
+        "jsCode": "// wf-review-feed — READ-ONLY GET. Serves the recently-staged freshness\n// proposals + family feedback as JSON so the in-app Governor 'Review' tab can\n// show what the loops are flowing (DR-0061: surfaces are live views of real\n// flow; DR-0065: the app is the primary artifact). Header-token auth -- this\n// serves family-internal content, so the public Funnel must not expose it\n// unauthenticated. No outbound fetch, no mutation -> none of the SSRF surface.\n\nconst fs = require('fs');\nconst path = require('path');\n\nconst FRESH_DIR = '/data/finance-events/_freshness';\nconst FEEDBACK_DIR = '/data/finance-events/family-feedback';\nconst TOKEN_FILE = path.join(FRESH_DIR, '.review-token');  // reuse the freshness token\nconst LIMIT = 25;\n\nconst item = $input.first() || {};\nconst input = item.json || {};\nconst headers = input.headers || item.headers || {};\n\n// AUTH (fail-closed): header X-Review-Token must match the token file.\nlet expectedToken = null;\ntry { expectedToken = fs.readFileSync(TOKEN_FILE, 'utf8').trim(); } catch (_) {}\nconst got = (headers['x-review-token'] || headers['X-Review-Token'] || '').toString();\nif (!expectedToken || got !== expectedToken) {\n  return [{ json: { ok: false, error: 'unauthorized' } }];\n}\n\nfunction readRecent(dir, n) {\n  let names = [];\n  try { names = fs.readdirSync(dir).filter(f => f.endsWith('.json') && !f.startsWith('_') && !f.startsWith('.')); } catch (_) { return []; }\n  names.sort().reverse();  // ids are timestamp-prefixed -> newest first\n  const out = [];\n  for (const f of names.slice(0, n)) {\n    try { out.push(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))); } catch (_) {}\n  }\n  return out;\n}\n\nreturn [{ json: {\n  ok: true,\n  generated_at: new Date().toISOString(),\n  freshness: readRecent(FRESH_DIR, LIMIT),\n  feedback: readRecent(FEEDBACK_DIR, LIMIT)\n} }];"
+      },
+      "id": "9f7e2a10-rv00-4r00-8r00-aaaaaaaaaa02",
+      "name": "Read staged artifacts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-rv00-4r00-8r00-aaaaaaaaaa03",
+      "name": "Respond with JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (review feed)": {
+      "main": [
+        [
+          {
+            "node": "Read staged artifacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read staged artifacts": {
+      "main": [
+        [
+          {
+            "node": "Respond with JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "ai-foundation"
+    },
+    {
+      "name": "review-surface"
+    },
+    {
+      "name": "dr-0061"
+    },
+    {
+      "name": "read-only"
+    }
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}
