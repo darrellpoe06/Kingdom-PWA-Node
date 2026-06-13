@@ -1,7 +1,34 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+
+// DR-0061 (surfaces are live views of real flow): the Build board's automation
+// count must be a REAL number, not hand-typed. Count the actual n8n workflow
+// files in the repo at build time — `built` is the file count (a fact), `active`
+// is how many carry "active": true in the repo JSON (REPO state, not live
+// run-status; live status arrives in Stage 2 via the dispatch feed). Best-effort:
+// a missing dir or unparseable file degrades the count, never crashes the build.
+function countWorkflowFiles() {
+  const dirs = ['../docs/00-foundations/n8n-workflows/', '../infra/n8n/'];
+  let built = 0;
+  let active = 0;
+  for (const rel of dirs) {
+    let names = [];
+    try { names = readdirSync(fileURLToPath(new URL(rel, import.meta.url))); } catch { continue; }
+    for (const f of names) {
+      if (!f.endsWith('.json')) continue;
+      built++;
+      try {
+        let raw = readFileSync(fileURLToPath(new URL(rel + f, import.meta.url)), 'utf8');
+        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+        if (JSON.parse(raw).active === true) active++;
+      } catch { /* still a built workflow even if unparseable */ }
+    }
+  }
+  return { built, active };
+}
+const workflowStats = countWorkflowFiles();
 
 // base set so built assets resolve under the Synology Web Station alias portal
 // at /poetech-app/ on the shared QuickConnect URL.
@@ -44,6 +71,7 @@ export default defineConfig({
   define: {
     __BUILD_TIME__: JSON.stringify(buildTime),
     __BUILD_SHA__: JSON.stringify(buildSha),
+    __WORKFLOW_STATS__: JSON.stringify(workflowStats),
   },
   server: {
     proxy: {
