@@ -1,0 +1,72 @@
+# Daily system review — the recurring health/leverage scan (DR-0058).
+#
+# Runs the DETERMINISTIC, $0, read-only checks (no LLM, no spend, no runaway
+# surface) and writes a system-health + leverage brief to the run summary.
+# Report-only: it writes NOTHING to the repo or anywhere else.
+#
+# THREE-BRAKES POSTURE (binding — this is timer-class automation):
+#   - BUDGET: the checks are deterministic and free (no LLM). Nothing to cap.
+#     (If an LLM synthesis step is ever added, it MUST carry a token/$ budget.)
+#   - CONCURRENCY LOCK: the `concurrency` group below — a new run cancels/queues,
+#     never stacks.
+#   - KILL-SWITCH: report-only by construction — it changes nothing, so it
+#     cannot run away. Disabling = remove the schedule (see below).
+#
+# SHIPS INACTIVE: only `workflow_dispatch` is enabled. The daily `schedule` is
+# left COMMENTED OUT. Darrell turns it on (uncomment) "with someone watching",
+# per CLAUDE.md's autonomous-automation rule — never self-activating on merge.
+
+name: daily-review
+
+on:
+  workflow_dispatch:
+  # To run it daily, uncomment (07:00 America/Chicago = 12:00 UTC). Do this
+  # deliberately, watching the first few runs. It is read-only + free, so the
+  # risk is low — but the discipline (ship inactive, enable on purpose) is the
+  # point, and it must not undermine.
+  # schedule:
+  #   - cron: '0 12 * * *'
+
+concurrency:
+  group: daily-review
+  cancel-in-progress: false
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Coverage fruit queue
+        run: |
+          echo "## Coverage fruit (untested exports)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          node scripts/fruit-scout.mjs | tail -n +1 | head -60 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Workflow conformance
+        run: |
+          echo "## Workflow conformance" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          node scripts/workflow-conformance.mjs >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Lint + test status
+        working-directory: app
+        run: |
+          npm ci
+          echo "## Lint + tests" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          (npm run lint && echo "lint: clean") >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "lint: PROBLEMS" >> "$GITHUB_STEP_SUMMARY"
+          (npx vitest run 2>&1 | grep -E "Test Files|Tests ") >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Leverage note
+        run: |
+          {
+            echo "## Leverage — getting more out of the automation"
+            echo "- **Idle but built (zero-risk, enable now):** Synthesizer (add ANTHROPIC_API_KEY) for the daily portfolio brief; fruit-scout for the coverage queue above."
+            echo "- **Biggest latent value:** the 16 inactive cron workflows (standup/digests/finance-ingest/cross-verify) — unlock by closing W1-W4 (brakes + errorWorkflow + auth + committed mounts). See docs/99-session-notes/2026-06-13-rigorous-review-findings.md."
+            echo "- **Gated on R4:** the tiered-LLM orchestrator (DR-0056) and continuous execution (DR-0057)."
+          } >> "$GITHUB_STEP_SUMMARY"
