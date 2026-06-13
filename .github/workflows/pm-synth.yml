@@ -1,0 +1,56 @@
+# PM-AI v0.1 — the Synthesizer (read-only portfolio brief). DR-0055.
+#
+# MANUAL TRIGGER ONLY (workflow_dispatch). It is human-pressed and read-only,
+# so it needs no three-brakes. Putting it on a schedule would make it the v1
+# anticipation loop = Tier C + three brakes + the R4 runner; do NOT add a
+# `schedule:` trigger here without that.
+#
+# One-time setup (Darrell): GitHub repo Settings -> Secrets and variables ->
+# Actions -> New repository secret -> ANTHROPIC_API_KEY -> your key from
+# console.anthropic.com. Then run it from the Actions tab: pm-synth -> Run
+# workflow. The brief renders on the run's summary page + downloadable artifact.
+# It writes NOTHING to the repo.
+
+name: pm-synth
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Claude model id (default claude-sonnet-4-6)'
+        required: false
+        default: 'claude-sonnet-4-6'
+
+jobs:
+  synth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Gather PR context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr list --state open   --json number,title,isDraft  > /tmp/open_prs.json   || echo '[]' > /tmp/open_prs.json
+          gh pr list --state merged --limit 12 --json number,title,mergedAt > /tmp/merged_prs.json || echo '[]' > /tmp/merged_prs.json
+      - name: Synthesize portfolio brief
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PM_SYNTH_MODEL: ${{ inputs.model }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret not set. One-time: GitHub Settings -> Secrets and variables -> Actions -> ANTHROPIC_API_KEY (from console.anthropic.com)."
+            exit 1
+          fi
+          node scripts/pm-synth.mjs > /tmp/brief.md
+          cat /tmp/brief.md >> "$GITHUB_STEP_SUMMARY"
+          echo "Brief written to the run summary above and the portfolio-brief artifact."
+      - name: Upload brief artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-brief
+          path: /tmp/brief.md
+          if-no-files-found: ignore
