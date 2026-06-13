@@ -1,0 +1,121 @@
+{
+  "name": "Workflow status API (live: which workflows exist / active / last run — DR-0061 Stage 2)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "workflow-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9f7e2a10-ws00-4400-8400-aaaaaaaaaa01",
+      "name": "Webhook (workflow-status)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        320
+      ],
+      "webhookId": "workflow-status"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Workflow status API — the live readout DR-0061 Stage 2 needs: which n8n\n// workflows exist, which are active, and how the last run went. Read-only.\n//\n// Setup on the NAS (one time):\n//   1. n8n -> Settings -> n8n API -> create an API key.\n//   2. Save it: echo -n \"<API_KEY>\" > /data/secrets/n8n-api-key.txt\n//   3. The webhook bearer already exists at /data/secrets/n8n-webhook-bearer.txt\n//      (same secret the PWA sends). Import this workflow and ACTIVATE it.\n// Until step 2 is done the endpoint returns { ok:false, error:'...' } so the\n// app shows a clear \"connect the feed\" state instead of fake data.\n\nconst fs = require('fs');\n\nconst API_BASE = 'http://localhost:5678/api/v1';\nconst BEARER_FILE = '/data/secrets/n8n-webhook-bearer.txt';\nconst APIKEY_FILE = '/data/secrets/n8n-api-key.txt';\nconst EXEC_LIMIT = 100;\n\nfunction readSecret(p) {\n  try { return fs.readFileSync(p, 'utf8').trim(); } catch (e) { return ''; }\n}\n\nconst input = $input.first().json || {};\nconst headers = (input.headers && typeof input.headers === 'object') ? input.headers : {};\n\n// Bearer gate (defense in depth; the NAS being LAN/Funnel-only is the real\n// boundary). Accept Authorization: Bearer <secret> matching the shared file.\nconst expected = readSecret(BEARER_FILE);\nconst auth = String(headers.authorization || headers.Authorization || '');\nconst presented = auth.replace(/^Bearer\\s+/i, '').trim();\nif (expected && presented !== expected) {\n  return [{ json: { ok: false, error: 'unauthorized' } }];\n}\n\nconst apiKey = readSecret(APIKEY_FILE);\nif (!apiKey) {\n  return [{ json: { ok: false, error: 'n8n API key not configured at /data/secrets/n8n-api-key.txt' } }];\n}\n\nconst apiHeaders = { 'X-N8N-API-KEY': apiKey, 'Accept': 'application/json' };\n\nasync function getJson(url) {\n  const r = await fetch(url, { headers: apiHeaders, signal: AbortSignal.timeout(8000) });\n  if (!r.ok) throw new Error('API ' + r.status + ' for ' + url);\n  return await r.json();\n}\n\nlet workflows, executions;\ntry {\n  const wfResp = await getJson(API_BASE + '/workflows?limit=250');\n  workflows = Array.isArray(wfResp.data) ? wfResp.data : [];\n  const exResp = await getJson(API_BASE + '/executions?limit=' + EXEC_LIMIT + '&includeData=false');\n  executions = Array.isArray(exResp.data) ? exResp.data : [];\n} catch (e) {\n  return [{ json: { ok: false, error: 'n8n API read failed: ' + String(e && e.message || e) } }];\n}\n\n// Map workflowId -> most recent execution outcome.\nconst lastByWf = {};\nfor (const ex of executions) {\n  const wfId = String(ex.workflowId || (ex.workflowData && ex.workflowData.id) || '');\n  if (!wfId) continue;\n  const when = ex.stoppedAt || ex.startedAt || ex.createdAt || null;\n  // status field varies by n8n version; fall back to finished boolean.\n  let status = ex.status || (ex.finished === true ? 'success' : (ex.finished === false ? 'error' : 'unknown'));\n  status = String(status).toLowerCase();\n  const prev = lastByWf[wfId];\n  if (!prev || (when && prev.when && when > prev.when) || (when && !prev.when)) {\n    lastByWf[wfId] = { when, status };\n  }\n}\n\nconst out = workflows.map(w => {\n  const last = lastByWf[String(w.id)] || null;\n  return {\n    name: w.name || '(unnamed)',\n    active: w.active === true,\n    last_run: last ? last.when : null,\n    last_status: last ? last.status : 'never-run',\n  };\n}).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name));\n\nconst activeCount = out.filter(w => w.active).length;\nconst recentErrors = Object.values(lastByWf).filter(l => l.status === 'error' || l.status === 'crashed').length;\n\nreturn [{ json: { ok: true, generated_at: new Date().toISOString(), total: out.length, active: activeCount, recent_errors: recentErrors, workflows: out } }];"
+      },
+      "id": "9f7e2a10-ws00-4400-8400-aaaaaaaaaa02",
+      "name": "Read workflow status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Accept, Authorization"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-ws00-4400-8400-aaaaaaaaaa03",
+      "name": "Respond with JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (workflow-status)": {
+      "main": [
+        [
+          {
+            "node": "Read workflow status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read workflow status": {
+      "main": [
+        [
+          {
+            "node": "Respond with JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "pwa-api"
+    },
+    {
+      "name": "workflow-status"
+    },
+    {
+      "name": "sovereign-loop"
+    }
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}

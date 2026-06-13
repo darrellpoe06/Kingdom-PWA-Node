@@ -11,6 +11,7 @@
 // Update this list as part of shipping — a project moves shipped/building/
 // next as the work lands. Go-live dates are honest estimates, revised here.
 import React, { useState } from 'react';
+import WorkflowStatus from './WorkflowStatus.jsx';
 
 // status: 'shipped' | 'building' | 'next' | 'gated'
 const ROADMAP = [
@@ -203,6 +204,8 @@ export function BuildBoard() {
       <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Dates are honest estimates and move as we learn — that&apos;s the point of showing them. No blame, just build.
       </p>
+
+      <WorkflowStatus />
     </div>
   );
 }
