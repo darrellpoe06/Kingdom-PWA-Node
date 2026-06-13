@@ -71,22 +71,11 @@ Derived from DR-0064, `RELEASE-TIERS.md`, and the Tier-1 fix classes in the poli
 - **My recommendation:** wait — an empty engine is low value and reads as painted. Wire it alongside OPEN-1 so it's never empty.
 - `DECISION:` _____
 
-### OPEN-4 · Apply the governance point to the NAS
-- **Unblocks:** the bot-teams + pre-authorized auto-execution (the whole `pre-authorized-policies.yaml` becomes *live* policy instead of declared substrate), and the NAS-resident ntfy escalation queue that replaces this markdown.
-- **Needs:** the local agent runs a sync-and-reload (repo `docs/governance/` → `/volume1/PoeTech/governance/` + OPA reload). I'll provide the PowerShell block.
-- **Track:** local agent. **Tier C.**
-- `DECISION:` _____
-
 ### OPEN-5 · Credentials I need (bright-line — only you)
 - **`ANTHROPIC_API_KEY`** → turns on the read-only Synthesizer (DR-0055).
 - **Gemini API key** → the vendor side of the head-to-head (DR-0063) + the `fresh_knowledge` route.
 - **Gmail reconnect** → the banking-on-autopilot lane has an expired Gmail credential silently failing; one reconnect heals it.
 - `DECISION:` _____ (which, if any, to provision now)
-
-### OPEN-6 · n8n Code-node HTTP sweep (local-agent track)
-- **Unblocks:** fixes wf30 ntfy (and any sibling) silently broken by `fetch`/`require('http')` in the Code-node sandbox; the working pattern is `this.helpers.httpRequest` (P17).
-- **Track:** local agent (needs the NAS to apply/test). Low-risk, but can't be done from the cloud.
-- `DECISION:` _____
 
 ---
 
@@ -108,4 +97,5 @@ Darrell (2026-06-13): *"What would you like in the build backlog is whatever mak
 
 _(Decided items move here with the date and outcome, so the queue stays short and the record stays.)_
 
-- _none yet_
+- **2026-06-13 · OPEN-6 — n8n Code-node HTTP sweep — DONE (local agent).** 9 workflows converted `fetch`/`require('http')` → `this.helpers.httpRequest` ([PR #87](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/87), merged to main; CI green). Deployed to live NAS n8n 2.21.7; wf08/20/29/30/32 active, **wf27 set INACTIVE** (autonomous processor — three-brakes held; turn on later attended), wf31/34/37 inactive. Live-proven: wf30's ntfy push now fires (was silently swallowed by `catch`). wf18/wf99 `process.env` reads (same class, no fetch/require) spun off as a separate follow-up.
+- **2026-06-13 · OPEN-4 — governance sync to NAS — files staged (local agent).** `docs/governance/` (README, decision-queue, pre-authorized-policies, 4 OPA rego policies) synced to `/volume1/PoeTech/governance/`. **"reload OPA" is N/A — no OPA runs on the NAS** (no container/process/binary), so policy is staged but NOT live. Standing up OPA is a separate step that folds into OPEN-1 / the Cage runner.
