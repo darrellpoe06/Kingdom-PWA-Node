@@ -265,4 +265,21 @@ Pairs with: RELEASE-TIERS.md (Tier C), LESSONS-LEARNED.md (P10 / P11 / P12), the
 
 ---
 
+## Reality-Trace Before Building Any Surface (added 2026-06-13)
+
+**Binding rule, post-incident.** On 2026-06-13, three "a human would have known" misses landed in one session: an image upload built into the wrong feedback component, a Build board that depicted static data and would not flag its own missed targets, and a proposed fix ("drive the Build board from the projects table") that rested on a premise error — the Build board is platform data, not the user's projects. The common cause: the agent optimized each surface as a display layer over whatever data was nearest, without applying the human-obvious questions. Full write-up: `LESSONS-LEARNED.md` (2026-06-13 entry; principles P15 / P16). Governed by `DR-0061`.
+
+**Before writing code for any user-facing surface, the agent runs this trace — out loud, in the response, first:**
+
+1. **Real data** — name the real record/table/feed this surface reads and writes. If the value displayed cannot be traced to real state (a real row, a real run, a real timestamp), it does not ship. A painted number ("60% complete," a hardcoded list) is worse than none on a surface whose value is trust.
+2. **End-to-end** — confirm it connects in the LIVE system (signed-in, real instance), not just the demo/seed path.
+3. **The surface the user actually uses** — confirm by OBSERVING the running app (screenshot / DOM / the user's own screen), not by assumption. Two of the 2026-06-13 misses die here.
+4. **State assumptions first** — write the premise down before coding, so a wrong one is caught in a sentence (cheap) instead of after a merged PR (expensive, and it erodes trust).
+
+**The governing principle (P15):** a surface is a live view of — and a control for — real system state. The app is where the flow RUNS, not where it is drawn. When a surface and its real data don't yet connect, that gap is the work; wiring it is not optional polish.
+
+This is the structural version of "the AI should think like a human": the human's contextual judgment is captured as a standing step the system runs every time, not left to a given session's attention. Pairs with: `feedback-research-first` (P7), `feedback-surface-premise-conflicts`, DR-0060 (tenancy guard — judgment encoded as a gate), GOVERNANCE-EXECUTION-ADVISORY (the human holds lived context the model cannot see).
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
