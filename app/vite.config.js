@@ -30,6 +30,41 @@ function countWorkflowFiles() {
 }
 const workflowStats = countWorkflowFiles();
 
+// Governance decision queue (Darrell, 2026-06-13: "built inside and outside of
+// the app ... for comprehensive review and continuity of work"). The repo file
+// docs/governance/decision-queue.md is the single source of truth; this parses
+// its OPEN items at build time so the in-app surface shows the SAME real file —
+// no second source, no painted data. Best-effort: a missing file degrades to an
+// empty queue, never crashes the build.
+function readGovernanceQueue() {
+  let raw = '';
+  try {
+    raw = readFileSync(fileURLToPath(new URL('../docs/governance/decision-queue.md', import.meta.url)), 'utf8');
+  } catch { return { ok: false, openCount: 0, items: [] }; }
+  // Isolate the "## OPEN" section (everything up to "## DECIDED").
+  const openSection = (raw.split(/^##\s+OPEN\b.*$/m)[1] || '').split(/^##\s+DECIDED\b/m)[0];
+  const blocks = openSection.split(/^###\s+/m).slice(1);
+  const field = (block, label) => {
+    const m = block.match(new RegExp(`\\*\\*${label}:\\*\\*\\s*([^\\n]+)`, 'i'));
+    return m ? m[1].trim() : '';
+  };
+  const items = blocks.map((b) => {
+    const head = (b.split('\n')[0] || '').trim();
+    const [idPart, ...titleParts] = head.split('·');
+    const tierMatch = b.match(/Tier\s+([ABC])\b/);
+    return {
+      id: (idPart || '').trim(),
+      title: titleParts.join('·').trim(),
+      unblocks: field(b, 'Unblocks'),
+      recommendation: field(b, 'My recommendation') || field(b, 'Recommendation'),
+      track: field(b, 'Track'),
+      tier: tierMatch ? tierMatch[1] : '',
+    };
+  }).filter((it) => /^OPEN-\d+/.test(it.id));
+  return { ok: true, openCount: items.length, items };
+}
+const governanceQueue = readGovernanceQueue();
+
 // base set so built assets resolve under the Synology Web Station alias portal
 // at /poetech-app/ on the shared QuickConnect URL.
 //
@@ -72,6 +107,7 @@ export default defineConfig({
     __BUILD_TIME__: JSON.stringify(buildTime),
     __BUILD_SHA__: JSON.stringify(buildSha),
     __WORKFLOW_STATS__: JSON.stringify(workflowStats),
+    __GOVERNANCE_QUEUE__: JSON.stringify(governanceQueue),
   },
   server: {
     proxy: {

@@ -34,6 +34,7 @@ export default [
         __BUILD_TIME__: 'readonly',
         __BUILD_SHA__: 'readonly',
         __WORKFLOW_STATS__: 'readonly',
+        __GOVERNANCE_QUEUE__: 'readonly',
       },
     },
     plugins: {
