@@ -27,6 +27,7 @@ import { inquiriesSync } from './lib/inquiries-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { compressImageFile } from './lib/image.js';
+import SelfServeWelcome from './components/SelfServeWelcome.jsx';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
@@ -813,6 +814,18 @@ const tierMeets = (userTier, requiredTier) => {
   const r = TIER_ORDER.indexOf(requiredTier);
   return u >= 0 && r >= 0 && u >= r;
 };
+// Known family sign-in emails -> their profile. Module-level so BOTH the
+// profile-mapping effect and the self-serve onboarding check read one source
+// (DRY; avoids the two drifting apart).
+const FAMILY_EMAIL_PROFILES = {
+  'darrellpoe06@gmail.com': 'darrell',
+  'mrspoe06@gmail.com': 'christina',
+  'christina@tlctherapysolutions.com': 'christina',
+  // Add the twins' sign-in emails as they get accounts.
+};
+const isFamilyEmail = (email) =>
+  Object.prototype.hasOwnProperty.call(FAMILY_EMAIL_PROFILES, String(email || '').toLowerCase());
+
 // VIEW_TIER_REQUIREMENTS — each nav view's minimum tier.
 // 'foundation' = free for everyone. Markets, Books, Big Picture, Debts, Church
 // all live here. Real Estate is special — rendered as read-only preview at
@@ -1636,6 +1649,16 @@ export default function PoeFinancialSystem() {
   const [pressure, setPressure] = useState(5);
   const [view, setView] = useState(getInitialView());
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  // DR-0059 Phase 2 — a NEW non-family signed-in user gets a named welcome once,
+  // instead of falling through to the family persona picker. Presentational only.
+  const [selfServeWelcomeDismissed, setSelfServeWelcomeDismissed] = useState(() => {
+    try { return typeof window !== 'undefined' && !!window.localStorage.getItem('poe-selfserve-welcomed'); }
+    catch (e) { return false; }
+  });
+  const dismissSelfServeWelcome = () => {
+    try { window.localStorage.setItem('poe-selfserve-welcomed', '1'); } catch (e) { /* ignore */ }
+    setSelfServeWelcomeDismissed(true);
+  };
   const [booksView, setBooksView] = useState('calendar');
   const [churchView, setChurchView] = useState(getInitialChurchView());
   const [entityFilter, setEntityFilter] = useState('all');
@@ -2261,14 +2284,9 @@ export default function PoeFinancialSystem() {
     } catch (e) { /* localStorage unavailable — fall through to email map */ }
     // 2026-06-12 — identity follows the ACCOUNT, not the device: a signed-in
     // owner on a brand-new device shouldn't face the picker (or be greeted
-    // as the sanitized persona). Known family emails map straight to their
-    // profile; unknown emails still get the picker.
-    const FAMILY_EMAIL_PROFILES = {
-      'darrellpoe06@gmail.com': 'darrell',
-      'mrspoe06@gmail.com': 'christina',
-      'christina@tlctherapysolutions.com': 'christina',
-      // Add the twins' sign-in emails as they get accounts.
-    };
+    // as the sanitized persona). Known family emails (FAMILY_EMAIL_PROFILES,
+    // module-level) map straight to their profile; unknown emails still get
+    // the picker, and now also a self-serve welcome.
     const email = (authSession.user?.email || '').toLowerCase();
     const mapped = FAMILY_EMAIL_PROFILES[email];
     if (mapped) {
@@ -3669,6 +3687,14 @@ html{scroll-padding-bottom:280px}
           Suggest
         </button>
       )}
+
+      {(() => {
+        // Show once to a signed-in, non-family, non-demo user. Keyed only on
+        // auth + email + a localStorage flag — touches no data/seed/hydration.
+        const ssEmail = (authSession?.user?.email || '').toLowerCase();
+        const show = !!authSession && !!ssEmail && !isFamilyEmail(ssEmail) && !isAnyDemoMode && !selfServeWelcomeDismissed;
+        return show ? <SelfServeWelcome name={ssEmail.split('@')[0]} onDismiss={dismissSelfServeWelcome} /> : null;
+      })()}
 
       {suggestOpen && (
         <div role="dialog" aria-modal="true" aria-labelledby="suggest-h" className="fixed inset-0 z-50 bg-[#1A1815]/90 flex items-end sm:items-center justify-center p-0 sm:p-4">
