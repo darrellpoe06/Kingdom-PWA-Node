@@ -117,6 +117,7 @@ export function BuildBoard() {
                 type="button"
                 onClick={() => setOpenId(openId === r.id ? null : r.id)}
                 aria-expanded={openId === r.id}
+                aria-label={openId === r.id ? `Hide details for ${r.title}` : `Show details for ${r.title}`}
                 className="w-full text-left p-3 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
               >
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
@@ -125,11 +126,18 @@ export function BuildBoard() {
                     {r.status === 'shipped' ? `shipped ${r.when}` : r.status === 'gated' ? 'gated' : `target ${r.when}`}
                   </span>
                 </div>
-                <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{r.what}</p>
-                {r.status === 'gated' && (
-                  <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Waiting on: {r.when}</p>
-                )}
+                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5" aria-hidden="true">
+                  {openId === r.id ? '▲ hide details' : '▼ details'}
+                </div>
               </button>
+              {openId === r.id && (
+                <div className="px-3 pb-3">
+                  <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.what}</p>
+                  {r.status === 'gated' && (
+                    <p className="text-xs text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Waiting on: {r.when}</p>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
