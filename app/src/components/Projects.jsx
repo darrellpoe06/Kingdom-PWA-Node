@@ -8,6 +8,19 @@ import { BuildBoard } from './BuildBoard.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
+// Defensive date parsing. A missing or malformed startDate must NEVER render as
+// "12/31/1969" (epoch zero in local time), sort to the top of the timeline, or
+// stretch the 12-month forecast back to 1970. Returns a valid Date or null;
+// callers show an honest "date not set" affordance instead of a junk date.
+// (Darrell, 2026-06-13: a synced project with a null start_date was showing
+// 12/31/1969 — "this whole screen should be working.")
+const safeDate = (s) => {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+};
+const dateMs = (s) => { const d = safeDate(s); return d ? d.getTime() : Infinity; };
+
 const PROJECT_DOMAINS = [
   { key: 'personal', label: 'Personal', color: '#5A6E3D' },
   { key: 'family', label: 'Family', color: '#B85838' },
@@ -180,7 +193,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
     if (filterDomain !== 'all' && p.domain !== filterDomain) return false;
     if (filterStatus !== 'all' && p.status !== filterStatus) return false;
     return true;
-  }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+  }).sort((a, b) => dateMs(a.startDate) - dateMs(b.startDate));
 
   // Compute timeline range. `now` is captured in a useMemo so the workload
   // useMemo below has a stable dep (otherwise it'd re-run every render).
@@ -189,8 +202,9 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   let earliestDate = now;
   let latestDate = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
   visibleProjects.forEach(p => {
-    const s = new Date(p.startDate);
-    const e = p.endDate ? new Date(p.endDate) : new Date(s.getFullYear(), s.getMonth() + 3, s.getDate());
+    const s = safeDate(p.startDate);
+    if (!s) return; // undated project: don't let it stretch the timeline range
+    const e = safeDate(p.endDate) || new Date(s.getFullYear(), s.getMonth() + 3, s.getDate());
     if (s < earliestDate) earliestDate = s;
     if (e > latestDate) latestDate = e;
   });
@@ -209,8 +223,9 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       months[key] = { label: MONTHS_ABBR[d.getMonth()] + " '" + String(d.getFullYear()).slice(2), hours: 0, projects: [] };
     }
     projects.filter(p => p.status === 'active' || p.status === 'ending-soon').forEach(p => {
-      const s = new Date(p.startDate);
-      const e = p.endDate ? new Date(p.endDate) : new Date(s.getFullYear() + 1, s.getMonth(), s.getDate());
+      const s = safeDate(p.startDate);
+      if (!s) return; // undated project can't be placed on the forecast
+      const e = safeDate(p.endDate) || new Date(s.getFullYear() + 1, s.getMonth(), s.getDate());
       Object.keys(months).forEach(key => {
         const [y, m] = key.split('-').map(Number);
         const monthStart = new Date(y, m, 1);
@@ -401,12 +416,12 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           <div className="space-y-2">
             {filtered.map(p => {
               const now = new Date();
-              const start = new Date(p.startDate);
-              const end = p.endDate ? new Date(p.endDate) : null;
+              const start = safeDate(p.startDate);
+              const end = safeDate(p.endDate);
               const isOverdue = end && end < now && p.status !== 'complete';
               const daysUntilEnd = end ? Math.ceil((end - now) / (1000 * 60 * 60 * 24)) : null;
-              const totalDays = end ? Math.ceil((end - start) / (1000 * 60 * 60 * 24)) : null;
-              const daysElapsed = Math.max(0, Math.ceil((now - start) / (1000 * 60 * 60 * 24)));
+              const totalDays = (start && end) ? Math.ceil((end - start) / (1000 * 60 * 60 * 24)) : null;
+              const daysElapsed = start ? Math.max(0, Math.ceil((now - start) / (1000 * 60 * 60 * 24))) : 0;
               const progressPct = totalDays && totalDays > 0 ? Math.min(100, (daysElapsed / totalDays) * 100) : 0;
               return (
                 <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: domainColor(p.domain) }}>
@@ -432,7 +447,9 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                   <div className="text-xs text-[#5A5751] mb-2">
                     <span style={{ color: domainColor(p.domain) }} className="font-medium">{domainLabel(p.domain)}</span>
                     <span> · </span>
-                    <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{start.toLocaleDateString()}</span>
+                    {start
+                      ? <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{start.toLocaleDateString()}</span>
+                      : <button type="button" onClick={() => startEdit(p)} className="italic text-[#B85838] underline decoration-dotted hover:text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>start date not set — add one</button>}
                     {end && <><span> → </span><span style={{ fontFamily: '"JetBrains Mono", monospace' }} className={isOverdue ? 'text-[#B85838] font-medium' : ''}>{end.toLocaleDateString()}{isOverdue ? ' (overdue)' : daysUntilEnd > 0 && daysUntilEnd < 30 ? ` (${daysUntilEnd}d left)` : ''}</span></>}
                     {p.hoursPerWeek > 0 && <> · {p.hoursPerWeek}h/wk</>}
                   </div>
