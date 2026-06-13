@@ -2719,9 +2719,8 @@ export default function PoeFinancialSystem() {
     };
     return { ...d, projects: [...(d.projects || []), seeded] };
   });
-  const updateProject = (id, updates) => setData(d => ({
-    ...d,
-    projects: (d.projects || []).map(p => {
+  const updateProject = (id, updates) => setData(d => {
+    const next = (d.projects || []).map(p => {
       if (p.id !== id) return p;
       const withLifecycle = ensureLifecycle(p);
       const merged = { ...withLifecycle, ...updates };
@@ -2729,8 +2728,19 @@ export default function PoeFinancialSystem() {
         return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
       }
       return merged;
-    }),
-  }));
+    });
+    // Layer 2 — persist the manual priority rank to the cloud so a reprioritized
+    // order syncs across devices. Scoped strictly to this one column (the rest
+    // of project-edit cloud sync is a separate concern), and fails soft: if the
+    // priority_rank column isn't live yet, the local order still holds.
+    if (updates.priorityRank !== undefined && authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(p => p.id === id);
+      if (updated && updated.remoteUuid) {
+        projectsSync.updateRow(updated.remoteUuid, { priority_rank: updates.priorityRank }).catch(e => console.warn('[projects-sync] priority update failed', e));
+      }
+    }
+    return { ...d, projects: next };
+  });
   const deleteProject = (id) => {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.projects || []).find(p => p.id === id);

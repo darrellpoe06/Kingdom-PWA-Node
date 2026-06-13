@@ -36,6 +36,27 @@ export const scopeProjects = (projects, userId, scope) =>
 export const defaultProjectScope = (projects, userId) =>
   (userId && projects.some(p => isMine(p, userId))) ? 'mine' : 'all';
 
+// Manual reprioritization (Darrell, 2026-06-13): "rearrange the list so we can
+// reprioritize based on current needs." A persisted priority_rank the user sets
+// by hand — the HUMAN-decide half of "system ranks, the human decides." Lower
+// rank = higher priority; unranked (null) sorts after ranked and falls back to
+// the timeline date order. The local-AI pushback half lands later (DR-0062) and
+// proposes a rank; this hand-set order always wins.
+export const rankOf = (p) => (p && p.priorityRank != null ? p.priorityRank : Infinity);
+export const orderProjects = (list, mode) => {
+  const arr = [...list];
+  if (mode === 'priority') {
+    arr.sort((a, b) => rankOf(a) - rankOf(b) || dateMs(a.startDate) - dateMs(b.startDate));
+  } else {
+    arr.sort((a, b) => dateMs(a.startDate) - dateMs(b.startDate));
+  }
+  return arr;
+};
+// Start in Priority order when the list already carries a hand-set order, so a
+// reprioritized list stays reprioritized across visits; otherwise Timeline.
+export const defaultOrderMode = (projects) =>
+  projects.some(p => p && p.priorityRank != null) ? 'priority' : 'timeline';
+
 const PROJECT_DOMAINS = [
   { key: 'personal', label: 'Personal', color: '#5A6E3D' },
   { key: 'family', label: 'Family', color: '#B85838' },
@@ -162,6 +183,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [scope, setScope] = useState(() => defaultProjectScope(projects, currentUserId));
+  const [orderMode, setOrderMode] = useState(() => defaultOrderMode(projects));
   const [filterDomain, setFilterDomain] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [projError, setProjError] = useState('');
@@ -211,12 +233,28 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   const scoped = useMemo(() => scopeProjects(projects, currentUserId, scope), [projects, currentUserId, scope]);
   const mineCount = useMemo(() => projects.filter(p => isMine(p, currentUserId)).length, [projects, currentUserId]);
 
-  // Filter and sort
-  const filtered = scoped.filter(p => {
+  // Order (Timeline by date, or the hand-set Priority order) THEN filter, so the
+  // displayed list and the reorder controls agree on positions.
+  const ordered = useMemo(() => orderProjects(scoped, orderMode), [scoped, orderMode]);
+  const filtered = ordered.filter(p => {
     if (filterDomain !== 'all' && p.domain !== filterDomain) return false;
     if (filterStatus !== 'all' && p.status !== filterStatus) return false;
     return true;
-  }).sort((a, b) => dateMs(a.startDate) - dateMs(b.startDate));
+  });
+
+  // Hand reordering is only unambiguous when no domain/status filter hides rows
+  // (then `filtered` === the full ordered list, so ranks map 1:1 to positions).
+  const filtersActive = filterDomain !== 'all' || filterStatus !== 'all';
+  const canReorder = orderMode === 'priority' && !filtersActive && filtered.length > 1;
+  // Move a project up/down and persist the new 0..n ranks across the whole
+  // visible list, so the order is durable and syncs across devices.
+  const moveProject = (index, dir) => {
+    const j = dir === 'up' ? index - 1 : index + 1;
+    if (j < 0 || j >= filtered.length) return;
+    const arr = [...filtered];
+    [arr[index], arr[j]] = [arr[j], arr[index]];
+    arr.forEach((p, idx) => { if ((p.priorityRank ?? null) !== idx) updateProject(p.id, { priorityRank: idx }); });
+  };
 
   // Compute timeline range. `now` is captured in a useMemo so the workload
   // useMemo below has a stable dep (otherwise it'd re-run every render).
@@ -353,6 +391,16 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Projects</h2>
           <div className="flex gap-2 flex-wrap items-center">
+            {/* Order: Timeline (by date) vs Priority (hand-set order you can
+                rearrange). Switching to Priority reveals up/down controls. */}
+            <div className="flex" role="group" aria-label="Order the list">
+              {[['timeline', 'Timeline'], ['priority', 'Priority']].map(([k, label]) => (
+                <button key={k} type="button" aria-pressed={orderMode === k} onClick={() => setOrderMode(k)}
+                  className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  style={orderMode === k ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}
+                >{label}</button>
+              ))}
+            </div>
             <select className="text-xs p-1.5 border border-[#E8E4DC] bg-[#FAF8F4]" value={filterDomain} onChange={e => setFilterDomain(e.target.value)}>
               <option value="all">All domains</option>
               {PROJECT_DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
@@ -364,6 +412,22 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             <button type="button" onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
           </div>
         </div>
+
+        {/* Priority mode — explain the hand-set order + honestly mark where the
+            local AI's pushback will land (DR-0062: the AI proposes, you decide).
+            No painted AI data: it says plainly it isn't active yet. */}
+        {orderMode === 'priority' && (
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-3 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            {filtersActive ? (
+              <span>You&apos;re ordering by priority. <strong>Clear the domain/status filters</strong> to rearrange — reordering a filtered list would scramble the hidden ones.</span>
+            ) : (
+              <span>Use <span aria-hidden="true">▲ ▼</span> on each project to set the order — top is highest priority. It saves and syncs across your devices.</span>
+            )}
+            <span className="block mt-1 italic text-[#8B6F47]">
+              The local AI&apos;s suggested order isn&apos;t active yet — you&apos;re setting it by hand. When the orchestrator brain is on, it will propose an order here and you&apos;ll still have the final say.
+            </span>
+          </div>
+        )}
 
         {/* r19 — Top form panel ONLY for ADD NEW. Edit happens inline under
             the edited row (see renderProjectForm + the row map below). */}
@@ -478,7 +542,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
 
         {filtered.length > 0 && (
           <div className="space-y-2">
-            {filtered.map(p => {
+            {filtered.map((p, index) => {
               const now = new Date();
               const start = safeDate(p.startDate);
               const end = safeDate(p.endDate);
@@ -490,7 +554,16 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
               return (
                 <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: domainColor(p.domain) }}>
                   <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
-                    <h4 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</h4>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {canReorder && (
+                        <span className="flex flex-col shrink-0">
+                          <button type="button" onClick={() => moveProject(index, 'up')} disabled={index === 0} aria-label={`Move ${p.title} up`} className="text-[10px] leading-none px-1.5 py-0.5 border border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▲</button>
+                          <button type="button" onClick={() => moveProject(index, 'down')} disabled={index === filtered.length - 1} aria-label={`Move ${p.title} down`} className="text-[10px] leading-none px-1.5 py-0.5 border border-t-0 border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▼</button>
+                        </span>
+                      )}
+                      {canReorder && <span className="text-[10px] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>#{index + 1}</span>}
+                      <h4 className="text-base truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</h4>
+                    </div>
                     {/* Round 7 — properly-sized Edit / Delete tap targets, divider between them. */}
                     <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
                       <span style={{ color: statusColor(p.status) }} className="font-medium px-2">{p.status}{p.status === 'tbd' && ' · parked'}</span>
