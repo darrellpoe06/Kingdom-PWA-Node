@@ -34,6 +34,10 @@ Per task: classify → route. Inputs: task-type tag, **sensitivity tag (DR-0040)
 local-model confidence, outcome-judge score. Output: `local-only` /
 `try-local-then-escalate` / `escalate-direct`.
 
+The strength-aware affinity map + the idle-capacity backfill policy live in
+`2026-06-13-vendor-llm-routing-strategy.md` (which work-type goes to which mind,
+and what to do with paid capacity that would otherwise sit idle).
+
 **Hard sovereignty gate (binding):** any task tagged PHI / TLC / family-private
 is `local-only`, NO exceptions — it can never be escalated to a vendor. The tag
 is the decision; the egress guard (§5) is the enforcement; mis-tagging defaults
