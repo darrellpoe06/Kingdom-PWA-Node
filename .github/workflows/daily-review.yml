@@ -53,6 +53,12 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           node scripts/workflow-conformance.mjs >> "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Tenancy guard (data isolation)
+        run: |
+          echo "## Tenancy guard (data isolation — DR-0060)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          node scripts/tenancy-guard.mjs >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Lint + test status
         working-directory: app
         run: |
