@@ -2783,8 +2783,13 @@ export default function PoeFinancialSystem() {
   const addFeedback = (item) => {
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'new';
+    // Keep the base64 image OUT of localStorage (it would bloat the quota and
+    // every device's snapshot). It rides to Supabase via uploadFeedback; the
+    // local copy keeps only a marker.
+    const { screenshot, ...rest } = item;
     const seeded = {
-      ...item,
+      ...rest,
+      hasScreenshot: !!screenshot,
       id: `fb-${Date.now()}`,
       createdAt: nowIso,
       status: initialStatus,
@@ -2796,7 +2801,7 @@ export default function PoeFinancialSystem() {
       },
     };
     setData(d => ({ ...d, feedback: [...(d.feedback || []), seeded] }));
-    uploadFeedback(seeded, { activeTab: view, appVersion: data.meta?.appVersion });
+    uploadFeedback(seeded, { activeTab: view, appVersion: data.meta?.appVersion, screenshot });
   };
   const deleteFeedback = (id) => setData(d => ({ ...d, feedback: (d.feedback || []).filter(f => f.id !== id) }));
   const dismissWelcome = () => setData(d => ({ ...d, welcomeDismissed: true }));
@@ -4731,16 +4736,35 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
   const [whatsWorking, setWhatsWorking] = useState('');
   const [whatsNot, setWhatsNot] = useState('');
   const [whatsMissing, setWhatsMissing] = useState('');
+  const [screenshot, setScreenshot] = useState(null); // compressed JPEG data URL
   const [formError, setFormError] = useState('');
 
   const toggleCategory = (k) => setCategories(prev => prev.includes(k) ? prev.filter(c => c !== k) : [...prev, k]);
 
-  const handleSubmit = () => {
-    if (!rating && categories.length === 0 && !whatsWorking && !whatsNot && !whatsMissing) {
-      setFormError('Pick a rating, a category, or jot any note — anything is helpful.');
+  const onPickImage = async (fileList) => {
+    const file = fileList && fileList[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type || '')) {
+      setFormError('That file is not an image — a screenshot or photo works best.');
       return;
     }
-    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing });
+    try {
+      // Compress hard: the image only needs to be legible and it travels in the
+      // row, so keep it small.
+      const dataUrl = await compressImageFile(file, 1280, 0.6);
+      setScreenshot(dataUrl);
+      setFormError('');
+    } catch (_) {
+      setFormError('Could not read that image. Try another, or submit without one.');
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!rating && categories.length === 0 && !whatsWorking && !whatsNot && !whatsMissing && !screenshot) {
+      setFormError('Pick a rating, a category, jot a note, or attach an image — anything is helpful.');
+      return;
+    }
+    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshot });
   };
 
   const ratings = [
@@ -4813,6 +4837,21 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
             <div>
               <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">+ What's missing / what would help</div>
               <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Features you wish existed · workflows that don't fit · what would make this perfect for you" value={whatsMissing} onChange={e => setWhatsMissing(e.target.value)} />
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">📎 Screenshot or photo (optional)</div>
+              {!screenshot ? (
+                <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] text-xs text-[#5A5751] cursor-pointer hover:bg-[#FAF8F4] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
+                  <span>Attach an image to show us what you mean</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={e => { onPickImage(e.target.files); e.target.value = ''; }} />
+                </label>
+              ) : (
+                <div className="relative inline-block">
+                  <img src={screenshot} alt="Attached screenshot preview" className="max-h-32 border border-[#1A1815]" />
+                  <button type="button" onClick={() => setScreenshot(null)} aria-label="Remove image" className="absolute -top-2 -right-2 bg-[#1A1815] text-white w-6 h-6 text-xs leading-none hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">✕</button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -4945,6 +4984,16 @@ function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFe
                 <p className="text-sm" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsMissing}</p>
               </div>
             )}
+            {f.screenshot ? (
+              <div className="mb-2">
+                <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold">📎 Screenshot</div>
+                <a href={f.screenshot} target="_blank" rel="noreferrer" title="Open full size">
+                  <img src={f.screenshot} alt="Feedback screenshot" className="max-h-48 border border-[#1A1815] mt-1" />
+                </a>
+              </div>
+            ) : f.hasScreenshot ? (
+              <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-2">📎 Screenshot attached (open on the submitter's device or in Supabase)</div>
+            ) : null}
           </div>
         )}
         renderCard={(f) => {
