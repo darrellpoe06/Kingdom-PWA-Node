@@ -74,6 +74,20 @@ export const defaultOrderMode = (projects) =>
 export const hasNextStep = (p) => !!(p && typeof p.nextStep === 'string' && p.nextStep.trim());
 export const isBlocked = (p) => !!(p && typeof p.blocker === 'string' && p.blocker.trim());
 
+// Reorder helper (build backlog #3): swap two items by id within a list,
+// leaving every other element — including filter-hidden rows between them — in
+// place. Moving a card "past the next visible one" while a filter hides rows is
+// exactly this: swap the two visible ids inside the full ordered list. Returns
+// the original list unchanged if either id is missing; never mutates the input.
+export const swapById = (list, idA, idB) => {
+  const arr = [...(list || [])];
+  const i = arr.findIndex(p => p && p.id === idA);
+  const j = arr.findIndex(p => p && p.id === idB);
+  if (i < 0 || j < 0) return list;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  return arr;
+};
+
 const PROJECT_DOMAINS = [
   { key: 'personal', label: 'Personal', color: '#5A6E3D' },
   { key: 'family', label: 'Family', color: '#B85838' },
@@ -324,17 +338,20 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
     return true;
   });
 
-  // Hand reordering is only unambiguous when no domain/status filter hides rows
-  // (then `filtered` === the full ordered list, so ranks map 1:1 to positions).
+  // Hand reordering by priority. filtersActive still drives the COPY (we explain
+  // the slide-past-hidden behavior), but reorder now works WITH filters on: a
+  // move swaps the two VISIBLE neighbors' positions within the full ordered list
+  // (swapById), leaving filter-hidden rows in place, then re-ranks the whole
+  // list 0..n so the order is durable and syncs across devices.
   const filtersActive = filterDomain !== 'all' || filterStatus !== 'all';
-  const canReorder = orderMode === 'priority' && !filtersActive && filtered.length > 1;
-  // Move a project up/down and persist the new 0..n ranks across the whole
-  // visible list, so the order is durable and syncs across devices.
+  const canReorder = orderMode === 'priority' && filtered.length > 1;
   const moveProject = (index, dir) => {
     const j = dir === 'up' ? index - 1 : index + 1;
     if (j < 0 || j >= filtered.length) return;
-    const arr = [...filtered];
-    [arr[index], arr[j]] = [arr[j], arr[index]];
+    // Swap the two visible neighbors by id in the FULL ordered list (not just
+    // `filtered`), so rows hidden by a domain/status filter keep their slot;
+    // then persist a clean 0..n rank across everything in scope.
+    const arr = swapById(ordered, filtered[index].id, filtered[j].id);
     arr.forEach((p, idx) => { if ((p.priorityRank ?? null) !== idx) updateProject(p.id, { priorityRank: idx }); });
   };
 
@@ -501,7 +518,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
         {orderMode === 'priority' && (
           <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-3 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
             {filtersActive ? (
-              <span>You&apos;re ordering by priority. <strong>Clear the domain/status filters</strong> to rearrange — reordering a filtered list would scramble the hidden ones.</span>
+              <span>Ordering by priority with filters on — <span aria-hidden="true">▲ ▼</span> moves a card past the next <strong>visible</strong> one; rows hidden by the filter keep their place. Saves and syncs across your devices.</span>
             ) : (
               <span>Use <span aria-hidden="true">▲ ▼</span> on each project to set the order — top is highest priority. It saves and syncs across your devices.</span>
             )}

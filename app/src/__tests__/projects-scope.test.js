@@ -3,7 +3,7 @@
 // place." These lock the real-attribution filter (created_by, surfaced as
 // createdBy) and the safe default that never lands a user on an empty screen.
 import { describe, it, expect } from 'vitest';
-import { isMine, scopeProjects, defaultProjectScope, rankOf, orderProjects, defaultOrderMode, hasNextStep, isBlocked } from '../components/Projects.jsx';
+import { isMine, scopeProjects, defaultProjectScope, rankOf, orderProjects, defaultOrderMode, hasNextStep, isBlocked, swapById } from '../components/Projects.jsx';
 
 const me = 'user-darrell';
 const her = 'user-christina';
@@ -126,5 +126,27 @@ describe('isBlocked', () => {
     expect(isBlocked({ blocker: '  ' })).toBe(false);
     expect(isBlocked({})).toBe(false);
     expect(isBlocked(null)).toBe(false);
+  });
+});
+
+// --- reorder with filters on (build backlog #3) ------------------------------
+describe('swapById', () => {
+  it('swaps two items by id, leaving others (incl. filter-hidden rows) in place', () => {
+    const list = [{ id: 'A' }, { id: 'H1' }, { id: 'B' }]; // H1 hidden between two visible
+    expect(swapById(list, 'A', 'B').map(p => p.id)).toEqual(['B', 'H1', 'A']);
+  });
+  it('returns the original list unchanged when an id is missing', () => {
+    const list = [{ id: 'A' }, { id: 'B' }];
+    expect(swapById(list, 'A', 'Z')).toBe(list);
+  });
+  it('does not mutate the input', () => {
+    const list = [{ id: 'A' }, { id: 'B' }];
+    const before = list.map(p => p.id);
+    swapById(list, 'A', 'B');
+    expect(list.map(p => p.id)).toEqual(before);
+  });
+  it('tolerates an empty or undefined list', () => {
+    expect(swapById(undefined, 'A', 'B')).toEqual(undefined);
+    expect(swapById([], 'A', 'B')).toEqual([]);
   });
 });
