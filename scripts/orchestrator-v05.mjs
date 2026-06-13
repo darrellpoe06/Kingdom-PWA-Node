@@ -85,7 +85,7 @@ async function callClaude(prompt) {
 }
 async function callGemini(prompt) {
   const key = secret('GEMINI_API_KEY', 'gemini-api-key.txt'); if (!key) throw new Error('GEMINI_API_KEY not set (env or secrets file)');
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${key}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || 'gemini-2.0-flash'}:generateContent?key=${key}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
   if (!r.ok) throw new Error(`gemini ${r.status}`);
   const j = await r.json(); return (((j.candidates || [])[0] || {}).content || {}).parts?.map(p => p.text).join('\n') || '';
 }
