@@ -8,20 +8,32 @@ Advisory + manual = zero autonomous spend, no scheduler, no Cage yet.
 
 ## One-time setup
 
-1. **Local model on the 4070** (the church box, idle most of the day). On that
-   machine:
-   ```
-   # install Ollama (https://ollama.com), then:
-   ollama pull qwen2.5:14b
-   ollama serve   # serves on :11434
-   ```
-2. **Gemini key** — make one at https://aistudio.google.com/apikey. Your
+**You may already have the local model running.** Per the 2026-05-26 stack
+rollout, Ollama + `qwen2.5:14b` are installed and active on the **home NAS**
+(`192.168.1.26:11434`, running on the Xeon CPU — slower than a GPU, but it
+works). Fastest taste = point v0 at that, **no install needed**:
+
+```
+$env:OLLAMA_URL="http://192.168.1.26:11434"   # the existing NAS Ollama
+```
+Verify it's still up: `ollama list` on the NAS (the 2026-06-06 cleanup unpinned
+the keep-alive model but left the Ollama container; re-pull qwen2.5:14b if the
+list is empty).
+
+**For speed later**, move the local tier to a GPU box — the church 4070 (idle
+most of the day) runs a 14B model far faster than the NAS CPU. If/when Ollama is
+installed there, just point `OLLAMA_URL` at it instead. (Our records do NOT show
+Ollama deployed on the church OBS box yet — confirm with `ollama list` on it;
+the active, recorded install is the NAS.)
+
+Then:
+1. **Gemini key** — make one at https://aistudio.google.com/apikey. Your
    Anthropic key already exists.
-3. On the machine you'll run the tool from (must reach the 4070):
+2. Set the env on the machine you'll run from (must reach the chosen Ollama):
    ```
-   set OLLAMA_URL=http://<4070-host>:11434   (PowerShell: $env:OLLAMA_URL="...")
-   set ANTHROPIC_API_KEY=...
-   set GEMINI_API_KEY=...
+   $env:OLLAMA_URL="http://192.168.1.26:11434"   # or the church 4070 once set up
+   $env:ANTHROPIC_API_KEY="..."
+   $env:GEMINI_API_KEY="..."
    ```
 
 ## Run it
