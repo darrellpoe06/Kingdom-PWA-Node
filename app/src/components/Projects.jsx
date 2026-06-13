@@ -28,14 +28,22 @@ const dateMs = (s) => { const d = safeDate(s); return d ? d.getTime() : Infinity
 // (the signed-in user who added it), surfaced here as `createdBy`. "Mine" = the
 // projects I own; "Everyone" = the whole family's shared list. This filters on
 // the real owner already stored on each project — no painted or invented data.
-export const isMine = (p, userId) => !!userId && !!p && p.createdBy === userId;
-export const scopeProjects = (projects, userId, scope) =>
-  scope === 'mine' ? projects.filter(p => isMine(p, userId)) : projects;
-// Land a signed-in person on their OWN list when they have one — but never on an
-// empty screen if their projects aren't attributed yet (legacy rows with no
-// created_by): then fall back to everyone so real data always shows up.
-export const defaultProjectScope = (projects, userId) =>
-  (userId && projects.some(p => isMine(p, userId))) ? 'mine' : 'all';
+// "Mine" = a project I CREATED (created_by) OR one assigned to me personally
+// (assignee_personas, migration 0005 — by persona so a member with more than one
+// sign-in email matches once). No painted data — both are real fields on the row.
+export const isMine = (p, userId, persona = null) => {
+  if (!p) return false;
+  if (userId && p.createdBy === userId) return true;
+  if (persona && Array.isArray(p.assigneePersonas) && p.assigneePersonas.includes(persona)) return true;
+  return false;
+};
+export const scopeProjects = (projects, userId, persona, scope) =>
+  scope === 'mine' ? projects.filter(p => isMine(p, userId, persona)) : projects;
+// Land a signed-in person on their OWN list when they have one (created or
+// assigned) — but never on an empty screen if nothing is attributed to them yet:
+// then fall back to everyone so real data always shows up.
+export const defaultProjectScope = (projects, userId, persona) =>
+  ((userId || persona) && projects.some(p => isMine(p, userId, persona))) ? 'mine' : 'all';
 
 // Manual reprioritization (Darrell, 2026-06-13): "rearrange the list so we can
 // reprioritize based on current needs." A persisted priority_rank the user sets
@@ -91,7 +99,7 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, isGovernor = false }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false }) {
   const [subView, setSubView] = useState('list');
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
@@ -108,7 +116,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       </div>
       {subView === 'list' && (
         <>
-          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} />
+          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} />
           {/* 2026-05-24 — Feedback Log → Promote queue is now positioned
               between All Projects (above) and the 12-Month Capital Forecast
               (below) so the "decide what becomes a project" loop is visually
@@ -185,10 +193,10 @@ function ProjectConversationLog({ project, updateProject }) {
   );
 }
 
-function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject, currentUserId = null }) {
+function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject, currentUserId = null, currentUserPersona = null, familyMembers = [] }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [scope, setScope] = useState(() => defaultProjectScope(projects, currentUserId));
+  const [scope, setScope] = useState(() => defaultProjectScope(projects, currentUserId, currentUserPersona));
   const [orderMode, setOrderMode] = useState(() => defaultOrderMode(projects));
   const [filterDomain, setFilterDomain] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -236,8 +244,8 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   // family's shared list). Everything below — stats, the 12-month workload, and
   // the list — reads from `scoped`, so each user sees a coherent picture of their
   // own perspective, or the family's, depending on the toggle.
-  const scoped = useMemo(() => scopeProjects(projects, currentUserId, scope), [projects, currentUserId, scope]);
-  const mineCount = useMemo(() => projects.filter(p => isMine(p, currentUserId)).length, [projects, currentUserId]);
+  const scoped = useMemo(() => scopeProjects(projects, currentUserId, currentUserPersona, scope), [projects, currentUserId, currentUserPersona, scope]);
+  const mineCount = useMemo(() => projects.filter(p => isMine(p, currentUserId, currentUserPersona)).length, [projects, currentUserId, currentUserPersona]);
 
   // Order (Timeline by date, or the hand-set Priority order) THEN filter, so the
   // displayed list and the reorder controls agree on positions.
@@ -603,6 +611,36 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                         const k = contractors.find(c => c.id === cid);
                         return k ? <span key={cid} className="px-1.5 py-0.5 border border-[#E8E4DC] bg-[#FAF8F4]" style={{ fontFamily: '"Fraunces", serif' }}>{k.name}</span> : null;
                       })}
+                    </div>
+                  )}
+                  {/* Personal assignment (migration 0005) — assign a family
+                      member and it shows up in their "Mine" list too. In-place
+                      toggle chips; persists + syncs immediately. */}
+                  {familyMembers.length > 0 && (
+                    <div className="text-[10px] text-[#5A5751] mb-2 flex flex-wrap items-center gap-1.5">
+                      <span className="uppercase tracking-wider">🧑‍🤝‍🧑 Assigned:</span>
+                      {familyMembers.map(m => {
+                        const on = Array.isArray(p.assigneePersonas) && p.assigneePersonas.includes(m.key);
+                        return (
+                          <button
+                            type="button"
+                            key={m.key}
+                            onClick={() => {
+                              const cur = Array.isArray(p.assigneePersonas) ? p.assigneePersonas : [];
+                              const nextAssignees = on ? cur.filter(x => x !== m.key) : [...cur, m.key];
+                              updateProject(p.id, { assigneePersonas: nextAssignees });
+                            }}
+                            aria-pressed={on}
+                            aria-label={on ? `Unassign ${m.name} from ${p.title}` : `Assign ${m.name} to ${p.title}`}
+                            className={`px-2 py-1 border uppercase tracking-wider min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#5A6E3D] hover:text-[#1A1815]'}`}
+                          >
+                            {on ? '✓ ' : ''}{m.name}
+                          </button>
+                        );
+                      })}
+                      {(!Array.isArray(p.assigneePersonas) || p.assigneePersonas.length === 0) && (
+                        <span className="italic" style={{ fontFamily: '"Fraunces", serif' }}>tap a name to add it to their list</span>
+                      )}
                     </div>
                   )}
                   {totalDays && p.status !== 'complete' && (
