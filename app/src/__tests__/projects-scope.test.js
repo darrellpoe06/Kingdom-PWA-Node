@@ -3,7 +3,7 @@
 // place." These lock the real-attribution filter (created_by, surfaced as
 // createdBy) and the safe default that never lands a user on an empty screen.
 import { describe, it, expect } from 'vitest';
-import { isMine, scopeProjects, defaultProjectScope } from '../components/Projects.jsx';
+import { isMine, scopeProjects, defaultProjectScope, rankOf, orderProjects, defaultOrderMode } from '../components/Projects.jsx';
 
 const me = 'user-darrell';
 const her = 'user-christina';
@@ -43,5 +43,46 @@ describe('defaultProjectScope', () => {
     expect(defaultProjectScope(projects, 'user-nobody')).toBe('all'); // none attributed to them
     expect(defaultProjectScope(projects, null)).toBe('all');          // signed out
     expect(defaultProjectScope([{ id: 'x', createdBy: null }], me)).toBe('all'); // legacy-only
+  });
+});
+
+// --- manual reprioritization (priority_rank) ---------------------------------
+describe('rankOf', () => {
+  it('returns the rank when set, Infinity when unranked', () => {
+    expect(rankOf({ priorityRank: 0 })).toBe(0);
+    expect(rankOf({ priorityRank: 5 })).toBe(5);
+    expect(rankOf({ priorityRank: null })).toBe(Infinity);
+    expect(rankOf({})).toBe(Infinity);
+    expect(rankOf(null)).toBe(Infinity);
+  });
+});
+
+describe('orderProjects', () => {
+  const list = [
+    { id: 'a', startDate: '2026-07-01', priorityRank: 2 },
+    { id: 'b', startDate: '2026-06-01', priorityRank: 0 },
+    { id: 'c', startDate: '2026-06-15', priorityRank: null }, // unranked
+    { id: 'd', startDate: '2026-05-01', priorityRank: 1 },
+  ];
+  it('priority mode: by hand-set rank, unranked sink to the bottom', () => {
+    expect(orderProjects(list, 'priority').map(p => p.id)).toEqual(['b', 'd', 'a', 'c']);
+  });
+  it('timeline mode: by date regardless of rank', () => {
+    expect(orderProjects(list, 'timeline').map(p => p.id)).toEqual(['d', 'b', 'c', 'a']);
+  });
+  it('does not mutate the input array', () => {
+    const before = list.map(p => p.id);
+    orderProjects(list, 'priority');
+    expect(list.map(p => p.id)).toEqual(before);
+  });
+});
+
+describe('defaultOrderMode', () => {
+  it('starts in priority when any project carries a hand-set rank', () => {
+    expect(defaultOrderMode([{ id: 'a', priorityRank: 3 }, { id: 'b', priorityRank: null }])).toBe('priority');
+  });
+  it('starts in timeline when nothing is ranked', () => {
+    expect(defaultOrderMode([{ id: 'a', priorityRank: null }, { id: 'b' }])).toBe('timeline');
+    expect(defaultOrderMode([])).toBe('timeline');
   });
 });
