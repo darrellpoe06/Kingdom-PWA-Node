@@ -58,3 +58,30 @@ Work types: `code` `refactor` `agentic` `writing` -> Claude · `longcontext`
 No autonomy, no schedule, no budget brakes — those are v0.5 / v1 (Tier C). The
 v0 judge is a simple self-rating; the v1 judge is an independent rubric. This is
 here so you can FEEL the ladder on real tasks before any of that is wired.
+
+---
+
+## v0.5 — bounded auto-escalation (`orchestrator-v05.mjs`)
+
+Same ladder, three additions that make it start carrying weight (still
+human-TRIGGERED — you run it; no scheduler, no unattended spend):
+
+1. **A real judge** — a rubric (completeness / correctness / instruction-
+   following) scored 0-10 with a reason, not a naive self-rating.
+2. **`--auto`** — within budget, local-fails-the-bar escalates WITHOUT asking,
+   judges the vendor output, keeps the better one, falls back to local on a
+   vendor error. No human in the per-call loop, but bounded.
+3. **Audit ledger** — every run appends to `orchestrator-audit.jsonl`: the
+   receipt + the spend/escalation tracker. The Cage-ledger seedling.
+
+**Budget brake:** `ORCH_DAILY_MAX_ESCALATIONS` (default 20). Past the daily cap
+it refuses to escalate and keeps the local best — the rate-bound on harm.
+
+```
+node scripts/orchestrator-v05.mjs "refactor ..." --type=code --auto
+node scripts/orchestrator-v05.mjs "a private note" --private        # never escalates
+```
+
+Still NOT v1: no scheduler, no Cage egress guard, no unattended runs — those are
+Tier C. This is the safe surface to let it run a real task type and watch the
+ledger fill.
