@@ -44,6 +44,8 @@ export const projectsSync = createTableSync({
       createdBy:    row.created_by ?? null,
       priorityRank: row.priority_rank ?? null,
       assigneePersonas: Array.isArray(row.assignee_personas) ? row.assignee_personas : [],
+      nextStep:     row.next_step ?? null,
+      blocker:      row.blocker ?? null,
       entityId:     row.entity_slug ?? null,
       title:        row.title,
       startDate:    row.start_date,

@@ -2743,12 +2743,14 @@ export default function PoeFinancialSystem() {
     // order syncs across devices. Scoped strictly to this one column (the rest
     // of project-edit cloud sync is a separate concern), and fails soft: if the
     // priority_rank column isn't live yet, the local order still holds.
-    if ((updates.priorityRank !== undefined || updates.assigneePersonas !== undefined) && authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+    if ((updates.priorityRank !== undefined || updates.assigneePersonas !== undefined || updates.nextStep !== undefined || updates.blocker !== undefined) && authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
       const updated = next.find(p => p.id === id);
       if (updated && updated.remoteUuid) {
         const patch = {};
         if (updates.priorityRank !== undefined) patch.priority_rank = updates.priorityRank;
         if (updates.assigneePersonas !== undefined) patch.assignee_personas = updates.assigneePersonas;
+        if (updates.nextStep !== undefined) patch.next_step = updates.nextStep;
+        if (updates.blocker !== undefined) patch.blocker = updates.blocker;
         projectsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[projects-sync] project field update failed', e));
       }
     }

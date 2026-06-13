@@ -66,6 +66,14 @@ export const orderProjects = (list, mode) => {
 export const defaultOrderMode = (projects) =>
   projects.some(p => p && p.priorityRank != null) ? 'priority' : 'timeline';
 
+// Build backlog #2 (ANXIETY-CLARITY): a project's NEXT ACTION and any BLOCKER,
+// surfaced on the card so the list answers what's-next / what's-stuck at a
+// glance. Free-text fields (migration 0006); these helpers report presence so
+// the UI and any future "needs attention" roll-up read the same truth. Treats
+// whitespace-only as empty so a stray space never reads as a real next step.
+export const hasNextStep = (p) => !!(p && typeof p.nextStep === 'string' && p.nextStep.trim());
+export const isBlocked = (p) => !!(p && typeof p.blocker === 'string' && p.blocker.trim());
+
 const PROJECT_DOMAINS = [
   { key: 'personal', label: 'Personal', color: '#5A6E3D' },
   { key: 'family', label: 'Family', color: '#B85838' },
@@ -188,6 +196,66 @@ function ProjectConversationLog({ project, updateProject }) {
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ProjectClarity (build backlog #2) — the next action and any blocker, shown on
+// the card and editable in place so the list answers what's-next / what's-stuck
+// at a glance (ANXIETY-CLARITY). Free text; persists + syncs immediately via
+// updateProject (UPDATE-only columns, migration 0006 — same path as assignees,
+// so a not-yet-migrated column fails soft instead of breaking a create).
+function ProjectClarity({ project, updateProject }) {
+  const [editing, setEditing] = useState(null); // 'next' | 'blocker' | null
+  const [draft, setDraft] = useState('');
+  const nextStep = (project.nextStep || '').trim();
+  const blocker = (project.blocker || '').trim();
+  const begin = (field, current) => { setEditing(field); setDraft(current); };
+  const commit = (field) => {
+    const key = field === 'next' ? 'nextStep' : 'blocker';
+    const val = draft.trim();
+    const prev = field === 'next' ? nextStep : blocker;
+    if (val !== prev) updateProject(project.id, { [key]: val });
+    setEditing(null); setDraft('');
+  };
+  const onKey = (e, field) => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(field); }
+    else if (e.key === 'Escape') { e.preventDefault(); setEditing(null); setDraft(''); }
+  };
+  return (
+    <div className="mb-2 space-y-1">
+      {/* Next action */}
+      {editing === 'next' ? (
+        <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => commit('next')} onKeyDown={e => onKey(e, 'next')}
+          placeholder="What's the next action?" aria-label={`Next step for ${project.title}`}
+          className="w-full p-1.5 border border-[#5A6E3D] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" />
+      ) : nextStep ? (
+        <button type="button" onClick={() => begin('next', nextStep)} aria-label={`Edit next step for ${project.title}`}
+          className="w-full text-left text-[11px] text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[10px] mr-1">▶ Next</span>{nextStep}
+        </button>
+      ) : (
+        <button type="button" onClick={() => begin('next', '')} aria-label={`Add a next step for ${project.title}`}
+          className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#5A6E3D] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+          ▶ Add next step
+        </button>
+      )}
+      {/* Blocker — only the warning treatment when one is actually set */}
+      {editing === 'blocker' ? (
+        <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => commit('blocker')} onKeyDown={e => onKey(e, 'blocker')}
+          placeholder="What's blocking it? (empty = nothing)" aria-label={`Blocker for ${project.title}`}
+          className="w-full p-1.5 border border-[#B85838] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
+      ) : blocker ? (
+        <button type="button" onClick={() => begin('blocker', blocker)} aria-label={`Edit blocker for ${project.title}`}
+          className="w-full text-left text-[11px] text-[#1A1815] bg-[#FAF8F4] hover:bg-white border-l-2 border border-transparent border-l-[#B85838] hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="text-[#B85838] font-semibold uppercase tracking-wider text-[10px] mr-1">⛔ Blocked</span>{blocker}
+        </button>
+      ) : (
+        <button type="button" onClick={() => begin('blocker', '')} aria-label={`Flag a blocker for ${project.title}`}
+          className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-transparent hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          + Flag a blocker
+        </button>
       )}
     </div>
   );
@@ -643,6 +711,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                       )}
                     </div>
                   )}
+                  <ProjectClarity project={p} updateProject={updateProject} />
                   {totalDays && p.status !== 'complete' && (
                     <div className="h-1 bg-[#E8E4DC] mb-2">
                       <div className="h-full" style={{ width: `${progressPct}%`, backgroundColor: domainColor(p.domain) }}></div>

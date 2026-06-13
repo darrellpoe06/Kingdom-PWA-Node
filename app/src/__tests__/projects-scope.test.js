@@ -3,7 +3,7 @@
 // place." These lock the real-attribution filter (created_by, surfaced as
 // createdBy) and the safe default that never lands a user on an empty screen.
 import { describe, it, expect } from 'vitest';
-import { isMine, scopeProjects, defaultProjectScope, rankOf, orderProjects, defaultOrderMode } from '../components/Projects.jsx';
+import { isMine, scopeProjects, defaultProjectScope, rankOf, orderProjects, defaultOrderMode, hasNextStep, isBlocked } from '../components/Projects.jsx';
 
 const me = 'user-darrell';
 const her = 'user-christina';
@@ -105,5 +105,26 @@ describe('defaultOrderMode', () => {
   it('starts in timeline when nothing is ranked', () => {
     expect(defaultOrderMode([{ id: 'a', priorityRank: null }, { id: 'b' }])).toBe('timeline');
     expect(defaultOrderMode([])).toBe('timeline');
+  });
+});
+
+// --- next step / blocker (build backlog #2, ANXIETY-CLARITY) ------------------
+describe('hasNextStep', () => {
+  it('is true only when a non-blank next step is set', () => {
+    expect(hasNextStep({ nextStep: 'Call the contractor' })).toBe(true);
+    expect(hasNextStep({ nextStep: '' })).toBe(false);
+    expect(hasNextStep({ nextStep: '   ' })).toBe(false); // whitespace-only is empty
+    expect(hasNextStep({})).toBe(false);
+    expect(hasNextStep(null)).toBe(false);
+  });
+});
+
+describe('isBlocked', () => {
+  it('is true only when a non-blank blocker is set', () => {
+    expect(isBlocked({ blocker: 'Waiting on the permit' })).toBe(true);
+    expect(isBlocked({ blocker: '' })).toBe(false);
+    expect(isBlocked({ blocker: '  ' })).toBe(false);
+    expect(isBlocked({})).toBe(false);
+    expect(isBlocked(null)).toBe(false);
   });
 });
