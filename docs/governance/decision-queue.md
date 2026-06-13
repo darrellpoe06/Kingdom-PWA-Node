@@ -90,6 +90,20 @@ Derived from DR-0064, `RELEASE-TIERS.md`, and the Tier-1 fix classes in the poli
 
 ---
 
+## BUILD BACKLOG — what I'll work down on my own
+
+Darrell (2026-06-13): *"What would you like in the build backlog is whatever makes sense, we'll adjust from there."* So this is my proposed order — all **in-app**, on **real data** (DR-0065 / DR-0061), each buildable without blocking on you. I work top-down and ship green (DR-0064); you reorder or strike anything here, same as the OPEN items. Bright-line or fork items still stop and surface (they're up in OPEN).
+
+1. **Personal project assignment** (= OPEN-2) — assign a project to a family member so it lands in *their* "Mine" list, not just the creator's. Default model: shared-but-filtered (my OPEN-2 rec). Small migration + an assignee picker on the project card. *Highest value: completes the per-user story already live.*
+2. **Project "next step / what's blocking" field** — each project card shows its next action and any blocker, so the list answers what·when·why·how at a glance (ANXIETY-CLARITY). In-app, real data on the project record.
+3. **Reorder works with filters on** — today hand-reorder is gated to an unfiltered list (so ranks map 1:1). Make it do relative moves within a filtered view without scrambling hidden rows. Polish on the live reprioritize feature.
+4. **Decisions tab → Build board tie-in** — surface the open-decision count on the Build-transparency board so the governance queue is visible alongside the build, one glance.
+5. **"Recently shipped" continuity strip (in-app)** — a real, build-stamped list of what landed recently (from the build markers already injected at deploy), so the user sees live momentum, not a static roadmap. Reality-traced to real deploy data.
+
+*Adjust freely — strike, reorder, or add. I'll start at the top and report each as it ships.*
+
+---
+
 ## DECIDED — history
 
 _(Decided items move here with the date and outcome, so the queue stays short and the record stays.)_

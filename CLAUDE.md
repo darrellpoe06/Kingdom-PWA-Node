@@ -282,4 +282,21 @@ This is the structural version of "the AI should think like a human": the human'
 
 ---
 
+## The App Is the Primary Artifact — Default to Building In It (added 2026-06-13)
+
+**Binding rule, declared by Darrell 2026-06-13.** This is placed in Layer 0 on purpose: it is the grounding the agent keeps losing when context compacts or a session restarts, forcing Darrell to re-assert it. Encoded here, it loads first, every session, and is never lost.
+
+> "All of this should be in app because it makes sense ... the app is always the main thing we are actively creating and fixing everything ... [the AI] goes offline or purges its memory just to keep talking to the user, losing context for relevance and current information." (Darrell, 2026-06-13.)
+
+**The PoeTech PWA is the primary artifact. It is the thing we are actively building and fixing. Everything orbits it.**
+
+- **Default to building capability INTO the app.** When a capability *can* live in the app — a surface, a real-data view, a control, a review queue — it **should**, without Darrell having to say "build it in the app too." Repo artifacts (docs, decision records, the governance queue, foundation files) are the spine and the memory; they are necessary, but they are **in service of** the app, not a substitute for shipping the thing where the user actually lives.
+- **"Outside the app" is for what genuinely belongs outside** — binding rules, decision records, the policy spine, NAS-side workflows the cloud can't reach. When something is built outside, the default question is still "and what is its surface *inside* the app?"
+- **Surface both when both make sense** — the pattern proven 2026-06-13 with the governance decision queue (repo file = source of truth + memory; in-app Governor-gated tab = where it's reviewed). One source, surfaced where the user is. Not one or the other.
+- **The app is the center of the through-line** that recurs across this whole effort: *everything in the workflows comes together inside this one app* (DR-0061), surfaces are live views of real flow, real data shows up on every page. "Build it in the app" is not a new request each time — it is the standing default this rule makes permanent.
+
+**Why this is Layer 0 and not just a DR:** decision records are read when consulted; this must be true *before* the agent is asked. Losing it to a memory purge is the exact failure Darrell named. It belongs in the file that is always loaded first. (Recorded for the ledger as DR-0065.)
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
