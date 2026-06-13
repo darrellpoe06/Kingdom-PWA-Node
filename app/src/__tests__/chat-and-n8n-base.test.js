@@ -15,20 +15,17 @@ describe('synology-chat formatters', () => {
       .toBe('Jo shared a win (books): nice');
     expect(formatFeedbackMessage({ displayName: 'Jo', text: 'hmm', sentiment: 'negative' }))
       .toBe('Jo flagged something to look at: hmm');
-    // QUIRK (queued for Darrell, NOT auto-fixed — source change is outside the
-    // additive-test class): with no displayName the 'A family member' fallback
-    // is run through .split(' ')[0], so it truncates to just 'A'. These tests
-    // lock the ACTUAL behavior; whether to fix the fallback is a source-edit
-    // decision for the human.
+    // 2026-06-13: the no-name fallback now survives intact (the .split truncation
+    // to 'A' is fixed).
     expect(formatFeedbackMessage({ text: 'x' }))
-      .toBe('A shared a thought: x');
+      .toBe('A family member shared a thought: x');
   });
 
   it('project / change-request / cycle-item messages', () => {
     expect(formatProjectCreatedMessage({ displayName: 'Dee Poe', name: 'Roof' })).toBe('Dee opened a new project: Roof');
     expect(formatChangeRequestMessage({ displayName: 'Dee', title: 'Pricing' })).toBe('Dee proposed a change to review: Pricing');
     expect(formatCycleItemCompletedMessage({ displayName: 'Dee', summary: 'Done' })).toBe('Dee marked complete: Done');
-    expect(formatProjectCreatedMessage({ name: 'X' })).toBe('A opened a new project: X'); // same fallback-truncation quirk
+    expect(formatProjectCreatedMessage({ name: 'X' })).toBe('A family member opened a new project: X');
   });
 });
 

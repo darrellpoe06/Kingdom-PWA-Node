@@ -76,6 +76,13 @@ export function isChatConfigured() {
   return !!BOT_URL;
 }
 
+// First name of the member if known, else the full generic fallback. (Before
+// 2026-06-13 the fallback was run through .split(' ')[0] and truncated to 'A';
+// now it survives intact.)
+function leadName(displayName) {
+  return displayName ? String(displayName).split(' ')[0] : 'A family member';
+}
+
 /**
  * Compose a feedback message for the channel. POE-bound, no punitive
  * vocabulary; the family member's first name (if known) leads.
@@ -87,7 +94,7 @@ export function isChatConfigured() {
  * @param {string} [args.activeTab]
  */
 export function formatFeedbackMessage({ displayName, text, sentiment, activeTab }) {
-  const who = (displayName || 'A family member').split(' ')[0];
+  const who = leadName(displayName);
   const where = activeTab ? ' (' + activeTab + ')' : '';
   const tone = sentiment === 'positive'
     ? 'shared a win'
@@ -99,18 +106,18 @@ export function formatFeedbackMessage({ displayName, text, sentiment, activeTab 
 
 /** Compose a project-created message. */
 export function formatProjectCreatedMessage({ displayName, name }) {
-  const who = (displayName || 'A family member').split(' ')[0];
+  const who = leadName(displayName);
   return who + ' opened a new project: ' + name;
 }
 
 /** Compose a change-request message. */
 export function formatChangeRequestMessage({ displayName, title }) {
-  const who = (displayName || 'A family member').split(' ')[0];
+  const who = leadName(displayName);
   return who + ' proposed a change to review: ' + title;
 }
 
 /** Compose a cycle-item completion message. */
 export function formatCycleItemCompletedMessage({ displayName, summary }) {
-  const who = (displayName || 'A family member').split(' ')[0];
+  const who = leadName(displayName);
   return who + ' marked complete: ' + summary;
 }
