@@ -125,6 +125,47 @@ function shipSpan() {
   return { first: dates[0] || null, last: dates[dates.length - 1] || null };
 }
 
+// Build stamp injected at deploy (vite define) — proves the strip reflects the
+// LIVE deployed build, not a static doc. Guarded for tests/SSR.
+const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
+const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
+
+// Recently-shipped momentum (build backlog #5): the most recent DATED 'shipped'
+// items, newest-first — real ship dates from the board, not invented. Undated
+// shipped items (no place on a timeline) are excluded. Exported for tests.
+export function recentlyShipped(n = 4) {
+  return sortByWhen(ROADMAP.filter(r => r.status === 'shipped' && whenSortKey(r) !== Infinity), 'desc').slice(0, n);
+}
+
+// RecentlyShipped — a compact, build-stamped continuity strip: what landed
+// recently + the live build it's part of, so momentum is visible at a glance
+// (not a static roadmap). Renders nothing when there are no dated ships.
+export function RecentlyShipped() {
+  const items = recentlyShipped(4);
+  if (!items.length) return null;
+  return (
+    <section className="bg-white border border-[#5A6E3D] p-3">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">✓ Recently shipped</div>
+        <div className="text-[9px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          live build {BUILD_SHA}{BUILD_TIME ? ` · ${BUILD_TIME.slice(0, 10)}` : ''}
+        </div>
+      </div>
+      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+        {items.map(r => (
+          <li key={r.id} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <span className="text-[#5A6E3D] mr-1" aria-hidden="true">✓</span>{r.title}
+            <span className="text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {r.when}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[9px] text-[#5A5751] italic mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+        Real ship dates, stamped to the live build — momentum, not a static roadmap.
+      </p>
+    </section>
+  );
+}
+
 export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
   const [openId, setOpenId] = useState(null);
   // Open decisions waiting on the governor — read from the real queue (#4).
@@ -153,6 +194,7 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
 
   return (
     <div className="space-y-4">
+      <RecentlyShipped />
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🛠 PoeTech, Built in the Open</div>
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>

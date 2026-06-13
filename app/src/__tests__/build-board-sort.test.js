@@ -3,7 +3,7 @@
 // nearest-first, shipped most-recent-first, and prose-target items (no date)
 // always at the bottom in their listed order.
 import { describe, it, expect } from 'vitest';
-import { whenSortKey, sortByWhen } from '../components/BuildBoard.jsx';
+import { whenSortKey, sortByWhen, recentlyShipped } from '../components/BuildBoard.jsx';
 
 const when = (s) => ({ when: s });
 
@@ -38,5 +38,27 @@ describe('sortByWhen', () => {
     const a = { id: 'a', when: '2026-06-24' };
     const b = { id: 'b', when: '2026-06-24' };
     expect(sortByWhen([a, b], 'asc').map(r => r.id)).toEqual(['a', 'b']);
+  });
+});
+
+// recently-shipped continuity strip (build backlog #5) — real, dated ships only,
+// newest-first, build-stamped at the call site.
+describe('recentlyShipped', () => {
+  it('returns at most n items, all shipped', () => {
+    const r = recentlyShipped(4);
+    expect(r.length).toBeLessThanOrEqual(4);
+    expect(r.every(x => x.status === 'shipped')).toBe(true);
+  });
+  it('is ordered newest-date-first', () => {
+    const r = recentlyShipped(10);
+    for (let i = 1; i < r.length; i++) {
+      expect(Date.parse(r[i - 1].when)).toBeGreaterThanOrEqual(Date.parse(r[i].when));
+    }
+  });
+  it('only includes dated ships (excludes prose-condition "when")', () => {
+    expect(recentlyShipped(50).every(x => /^\d{4}-\d{2}(-\d{2})?$/.test(x.when))).toBe(true);
+  });
+  it('respects the count limit', () => {
+    expect(recentlyShipped(2).length).toBeLessThanOrEqual(2);
   });
 });
