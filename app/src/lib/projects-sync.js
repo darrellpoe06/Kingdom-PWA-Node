@@ -41,6 +41,7 @@ export const projectsSync = createTableSync({
       id:           row.slug ?? `pr-remote-${row.id}`,
       remoteUuid:   row.id,
       tenantId:     row.instance_id,
+      createdBy:    row.created_by ?? null,
       entityId:     row.entity_slug ?? null,
       title:        row.title,
       startDate:    row.start_date,

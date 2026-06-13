@@ -21,6 +21,21 @@ const safeDate = (s) => {
 };
 const dateMs = (s) => { const d = safeDate(s); return d ? d.getTime() : Infinity; };
 
+// Per-user project scope (Darrell, 2026-06-13): "show me my projects since I'm
+// logged in ... each user has their own list ... the whole family's projects can
+// be in the same place." Real attribution — every project row carries created_by
+// (the signed-in user who added it), surfaced here as `createdBy`. "Mine" = the
+// projects I own; "Everyone" = the whole family's shared list. This filters on
+// the real owner already stored on each project — no painted or invented data.
+export const isMine = (p, userId) => !!userId && !!p && p.createdBy === userId;
+export const scopeProjects = (projects, userId, scope) =>
+  scope === 'mine' ? projects.filter(p => isMine(p, userId)) : projects;
+// Land a signed-in person on their OWN list when they have one — but never on an
+// empty screen if their projects aren't attributed yet (legacy rows with no
+// created_by): then fall back to everyone so real data always shows up.
+export const defaultProjectScope = (projects, userId) =>
+  (userId && projects.some(p => isMine(p, userId))) ? 'mine' : 'all';
+
 const PROJECT_DOMAINS = [
   { key: 'personal', label: 'Personal', color: '#5A6E3D' },
   { key: 'family', label: 'Family', color: '#B85838' },
@@ -54,7 +69,7 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null }) {
   const [subView, setSubView] = useState('list');
   return (
     <div className="space-y-4">
@@ -67,7 +82,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       </div>
       {subView === 'list' && (
         <>
-          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
+          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} />
           {/* 2026-05-24 — Feedback Log → Promote queue is now positioned
               between All Projects (above) and the 12-Month Capital Forecast
               (below) so the "decide what becomes a project" loop is visually
@@ -143,9 +158,10 @@ function ProjectConversationLog({ project, updateProject }) {
   );
 }
 
-function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject }) {
+function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject, currentUserId = null }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [scope, setScope] = useState(() => defaultProjectScope(projects, currentUserId));
   const [filterDomain, setFilterDomain] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [projError, setProjError] = useState('');
@@ -188,8 +204,15 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   };
   const cancelEdit = () => { setEditingId(null); setProjError(''); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); };
 
+  // Per-user scope first: "Mine" (projects I own) vs "Everyone" (the whole
+  // family's shared list). Everything below — stats, the 12-month workload, and
+  // the list — reads from `scoped`, so each user sees a coherent picture of their
+  // own perspective, or the family's, depending on the toggle.
+  const scoped = useMemo(() => scopeProjects(projects, currentUserId, scope), [projects, currentUserId, scope]);
+  const mineCount = useMemo(() => projects.filter(p => isMine(p, currentUserId)).length, [projects, currentUserId]);
+
   // Filter and sort
-  const filtered = projects.filter(p => {
+  const filtered = scoped.filter(p => {
     if (filterDomain !== 'all' && p.domain !== filterDomain) return false;
     if (filterStatus !== 'all' && p.status !== filterStatus) return false;
     return true;
@@ -222,7 +245,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
       months[key] = { label: MONTHS_ABBR[d.getMonth()] + " '" + String(d.getFullYear()).slice(2), hours: 0, projects: [] };
     }
-    projects.filter(p => p.status === 'active' || p.status === 'ending-soon').forEach(p => {
+    scoped.filter(p => p.status === 'active' || p.status === 'ending-soon').forEach(p => {
       const s = safeDate(p.startDate);
       if (!s) return; // undated project can't be placed on the forecast
       const e = safeDate(p.endDate) || new Date(s.getFullYear() + 1, s.getMonth(), s.getDate());
@@ -237,7 +260,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       });
     });
     return months;
-  }, [projects, now]);
+  }, [scoped, now]);
 
   // Preparatory scaffolding — pending "current month's committed hours" chip.
   // eslint-disable-next-line no-unused-vars
@@ -258,20 +281,47 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
         </p>
       </section>
 
+      {/* Whose projects am I looking at? — the same data, seen from each user's
+          own perspective. "Mine" is your own list; "Everyone" is the whole
+          family's, all in one place. Plain words + counts so anyone, regardless
+          of how technical they are, knows exactly what they're seeing. */}
+      {currentUserId && projects.length > 0 && (
+        <section className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Whose projects</span>
+            <div className="flex" role="group" aria-label="Whose projects to show">
+              {[['mine', `Mine (${mineCount})`], ['all', `Everyone (${projects.length})`]].map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={scope === k}
+                  onClick={() => setScope(k)}
+                  className="text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  style={scope === k ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}
+                >{label}</button>
+              ))}
+            </div>
+            <span className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              {scope === 'mine' ? 'The projects you own.' : "Everyone's projects, in one place."}
+            </span>
+          </div>
+        </section>
+      )}
+
       {/* Snapshot stats — at a glance */}
-      {projects.length > 0 && (
+      {scoped.length > 0 && (
         <section>
           <div className="grid grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            <MetricCell label="Active" value={`${projects.filter(p => p.status === 'active').length}`} sub="in flight" small accent="green" />
-            <MetricCell label="Ending soon" value={`${projects.filter(p => p.status === 'ending-soon').length}`} sub="<30 days" small accent="rust" />
-            <MetricCell label="Planning" value={`${projects.filter(p => p.status === 'planning').length}`} sub="to launch" small />
-            <MetricCell label="Total weekly" value={`${projects.filter(p => p.status === 'active' || p.status === 'ending-soon').reduce((s,p) => s + (p.hoursPerWeek || 0), 0)}h`} sub="/wk active" small />
+            <MetricCell label="Active" value={`${scoped.filter(p => p.status === 'active').length}`} sub="in flight" small accent="green" />
+            <MetricCell label="Ending soon" value={`${scoped.filter(p => p.status === 'ending-soon').length}`} sub="<30 days" small accent="rust" />
+            <MetricCell label="Planning" value={`${scoped.filter(p => p.status === 'planning').length}`} sub="to launch" small />
+            <MetricCell label="Total weekly" value={`${scoped.filter(p => p.status === 'active' || p.status === 'ending-soon').reduce((s,p) => s + (p.hoursPerWeek || 0), 0)}h`} sub="/wk active" small />
           </div>
         </section>
       )}
 
       {/* Workload visualization */}
-      {projects.length > 0 && (
+      {scoped.length > 0 && (
         <section>
           <SectionTitle eyebrow="Coordination">12-Month Workload Forecast · Hours / Week</SectionTitle>
           <div className="bg-white border border-[#1A1815] p-5">
@@ -388,7 +438,21 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           </div>
         )}
 
-        {filtered.length === 0 && !showForm && (
+        {/* "Mine" is empty but the family has projects — don't show the cold
+            "no projects yet" / load-examples block (it would read as if their
+            data vanished). Point them to Everyone or to adding their own. */}
+        {filtered.length === 0 && !showForm && scope === 'mine' && projects.length > 0 && (
+          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+            <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+              None of these projects are yours yet. Switch to <strong>Everyone</strong> to see the whole family&apos;s, or add one of your own — it&apos;ll show up in your list.
+            </p>
+            <button type="button" onClick={() => setScope('all')} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white">
+              See everyone&apos;s projects ({projects.length})
+            </button>
+          </div>
+        )}
+
+        {filtered.length === 0 && !showForm && !(scope === 'mine' && projects.length > 0) && (
           <div className="bg-white border border-[#E8E4DC] p-6 text-center">
             <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               No projects yet. Add the things you're working on across your life — work, family, ministry, side projects, repairs. The first ones often feel obvious; the value comes when you can see them all together.
