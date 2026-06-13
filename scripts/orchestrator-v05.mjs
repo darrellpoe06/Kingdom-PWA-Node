@@ -22,18 +22,28 @@
 //   node scripts/orchestrator-v05.mjs "private ..." --private           # local-only
 //
 // Env: OLLAMA_URL (default http://192.168.1.26:11434), OLLAMA_MODEL
-//   (qwen2.5:14b), ANTHROPIC_API_KEY, GEMINI_API_KEY, ORCH_THRESHOLD (7),
-//   ORCH_DAILY_MAX_ESCALATIONS (20), ORCH_AUDIT (orchestrator-audit.jsonl),
-//   ORCH_DRY_RUN.
+//   (qwen2.5:14b-instruct-q4_K_M), ANTHROPIC_API_KEY / GEMINI_API_KEY (env OR a
+//   secrets file under ORCH_SECRETS_DIR, default /volume1/PoeTech/secrets),
+//   ORCH_THRESHOLD (7), ORCH_DAILY_MAX_ESCALATIONS (20),
+//   ORCH_AUDIT (orchestrator-audit.jsonl), ORCH_DRY_RUN.
 // =============================================================================
 import { appendFileSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://192.168.1.26:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:14b';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:14b-instruct-q4_K_M';
 const THRESHOLD = Number(process.env.ORCH_THRESHOLD || 7);
 const DAILY_MAX = Number(process.env.ORCH_DAILY_MAX_ESCALATIONS || 20);
 const AUDIT = process.env.ORCH_AUDIT || 'orchestrator-audit.jsonl';
+
+// Env-first secret with a secrets-file fallback (set the key once on the runner;
+// never re-typed, committed, or logged). ORCH_SECRETS_DIR overrides the NAS
+// default. Missing dir/file degrades to undefined.
+function secret(envName, fileName) {
+  if (process.env[envName]) return process.env[envName];
+  const dir = process.env.ORCH_SECRETS_DIR || '/volume1/PoeTech/secrets';
+  try { const v = readFileSync(`${dir}/${fileName}`, 'utf8').trim(); return v || undefined; } catch { return undefined; }
+}
 
 const AFFINITY = {
   code: 'claude', refactor: 'claude', agentic: 'claude', writing: 'claude',
@@ -68,13 +78,13 @@ async function callOllama(prompt) {
   return (await r.json()).response || '';
 }
 async function callClaude(prompt) {
-  const key = process.env.ANTHROPIC_API_KEY; if (!key) throw new Error('ANTHROPIC_API_KEY not set');
+  const key = secret('ANTHROPIC_API_KEY', 'anthropic-api-key.txt'); if (!key) throw new Error('ANTHROPIC_API_KEY not set (env or secrets file)');
   const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, messages: [{ role: 'user', content: prompt }] }) });
   if (!r.ok) throw new Error(`claude ${r.status}`);
   const j = await r.json(); return (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
 }
 async function callGemini(prompt) {
-  const key = process.env.GEMINI_API_KEY; if (!key) throw new Error('GEMINI_API_KEY not set');
+  const key = secret('GEMINI_API_KEY', 'gemini-api-key.txt'); if (!key) throw new Error('GEMINI_API_KEY not set (env or secrets file)');
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${key}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
   if (!r.ok) throw new Error(`gemini ${r.status}`);
   const j = await r.json(); return (((j.candidates || [])[0] || {}).content || {}).parts?.map(p => p.text).join('\n') || '';
