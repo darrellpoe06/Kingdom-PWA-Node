@@ -81,15 +81,11 @@ Derived from DR-0064, `RELEASE-TIERS.md`, and the Tier-1 fix classes in the poli
 
 ## BUILD BACKLOG — what I'll work down on my own
 
-Darrell (2026-06-13): *"What would you like in the build backlog is whatever makes sense, we'll adjust from there."* So this is my proposed order — all **in-app**, on **real data** (DR-0065 / DR-0061), each buildable without blocking on you. I work top-down and ship green (DR-0064); you reorder or strike anything here, same as the OPEN items. Bright-line or fork items still stop and surface (they're up in OPEN).
+Darrell (2026-06-13): *"What would you like in the build backlog is whatever makes sense, we'll adjust from there."* — all **in-app**, on **real data** (DR-0065 / DR-0061), ship green (DR-0064).
 
-1. **Personal project assignment** (= OPEN-2) — assign a project to a family member so it lands in *their* "Mine" list, not just the creator's. Default model: shared-but-filtered (my OPEN-2 rec). Small migration + an assignee picker on the project card. *Highest value: completes the per-user story already live.*
-2. **Project "next step / what's blocking" field** — each project card shows its next action and any blocker, so the list answers what·when·why·how at a glance (ANXIETY-CLARITY). In-app, real data on the project record.
-3. **Reorder works with filters on** — today hand-reorder is gated to an unfiltered list (so ranks map 1:1). Make it do relative moves within a filtered view without scrambling hidden rows. Polish on the live reprioritize feature.
-4. **Decisions tab → Build board tie-in** — surface the open-decision count on the Build-transparency board so the governance queue is visible alongside the build, one glance.
-5. **"Recently shipped" continuity strip (in-app)** — a real, build-stamped list of what landed recently (from the build markers already injected at deploy), so the user sees live momentum, not a static roadmap. Reality-traced to real deploy data.
+**Cleared 2026-06-13 (local agent) — all five shipped to main.** #1 assignment (PR #82), #2 next-step/blocker (PR #89), #3 reorder-with-filters (PR #91), #4 decisions-count on the Build board (PR #92), #5 recently-shipped strip (PR #93). Details in DECIDED HISTORY below.
 
-*Adjust freely — strike, reorder, or add. I'll start at the top and report each as it ships.*
+*Awaiting your next priorities — drop a domain or items here and I'll work down the new list top-first.*
 
 ---
 
@@ -99,3 +95,4 @@ _(Decided items move here with the date and outcome, so the queue stays short an
 
 - **2026-06-13 · OPEN-6 — n8n Code-node HTTP sweep — DONE (local agent).** 9 workflows converted `fetch`/`require('http')` → `this.helpers.httpRequest` ([PR #87](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/87), merged to main; CI green). Deployed to live NAS n8n 2.21.7; wf08/20/29/30/32 active, **wf27 set INACTIVE** (autonomous processor — three-brakes held; turn on later attended), wf31/34/37 inactive. Live-proven: wf30's ntfy push now fires (was silently swallowed by `catch`). wf18/wf99 `process.env` reads (same class, no fetch/require) spun off as a separate follow-up.
 - **2026-06-13 · OPEN-4 — governance sync to NAS — files staged (local agent).** `docs/governance/` (README, decision-queue, pre-authorized-policies, 4 OPA rego policies) synced to `/volume1/PoeTech/governance/`. **"reload OPA" is N/A — no OPA runs on the NAS** (no container/process/binary), so policy is staged but NOT live. Standing up OPA is a separate step that folds into OPEN-1 / the Cage runner.
+- **2026-06-13 · BUILD BACKLOG #2–#5 — SHIPPED (local agent).** #2 project next-step/blocker field (PR #89), #3 reorder works with filters on — `swapById` preserves filter-hidden rows (PR #91), #4 open-decision count chip on the Build board → Decisions tab, governor-gated (PR #92), #5 recently-shipped continuity strip, build-stamped to the live deploy (PR #93). All in-app on real data, each with unit tests; lint + vitest green; merged through the protected lane. (#1 personal assignment was already shipped, PR #82.) Freshness-review loop captured as **[DR-0072]** (proposed) for when you greenlight it.
