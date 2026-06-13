@@ -59,20 +59,43 @@ const ROADMAP = [
 const STATUS = {
   shipped:  { label: 'Shipped',  color: '#5A6E3D', symbol: '✓', blurb: 'Live now' },
   building: { label: 'Building',  color: '#B85838', symbol: '◐', blurb: 'In progress' },
-  next:     { label: 'Next',      color: '#1A1815', symbol: '→', blurb: 'Planned' },
+  next:     { label: 'Next',      color: '#2A5A8E', symbol: '→', blurb: 'Planned' },
   gated:    { label: 'Gated',     color: '#5A5751', symbol: '⏸', blurb: 'Waiting on a decision' },
 };
 const ORDER = ['building', 'next', 'gated', 'shipped'];
 
+// Accountability: how many days past its committed target an unfinished item is.
+// Only items still building/next with a real YYYY-MM-DD target count — the board
+// holds itself to the dates it commits to, in the open. A board that won't flag
+// its own slips isn't transparency, it's decoration.
+function daysLate(r) {
+  if (r.status !== 'building' && r.status !== 'next') return 0;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(r.when || '')) return 0;
+  const days = Math.floor((Date.now() - Date.parse(r.when)) / 86400000);
+  return days > 0 ? days : 0;
+}
+
 export function BuildBoard() {
   const [openId, setOpenId] = useState(null);
+
+  // Past Due — anything past its committed target but still in progress. A
+  // cross-cutting view over Building + Next: the board adjusting to the real
+  // flow of work, not the plan it started with.
+  const overdueItems = ROADMAP.filter(r => daysLate(r) > 0).sort((a, b) => daysLate(b) - daysLate(a));
+  const OVERDUE = { label: 'Past Due', color: '#B85838', symbol: '⚠', blurb: 'Past target, still in progress' };
+
   const counts = Object.fromEntries(ORDER.map(k => [k, ROADMAP.filter(r => r.status === k).length]));
-  // Default to the first stage that actually has items (Building first per
-  // ORDER) so the tab opens on "what's happening now".
-  const firstNonEmpty = ORDER.find(k => counts[k] > 0) || 'building';
-  const [tab, setTab] = useState(firstNonEmpty);
-  const s = STATUS[tab];
-  const items = ROADMAP.filter(r => r.status === tab);
+  counts.overdue = overdueItems.length;
+
+  // Lead with Past Due when anything slipped, so a missed date is the first
+  // thing seen — not something to scroll for. Otherwise open on Building.
+  const TABS = overdueItems.length ? ['overdue', ...ORDER] : ORDER;
+  const firstTab = overdueItems.length ? 'overdue' : (ORDER.find(k => counts[k] > 0) || 'building');
+  const [tab, setTab] = useState(firstTab);
+  const meta = (k) => (k === 'overdue' ? OVERDUE : STATUS[k]);
+  const s = meta(tab);
+  const items = tab === 'overdue' ? overdueItems : ROADMAP.filter(r => r.status === tab);
+
   return (
     <div className="space-y-4">
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
@@ -80,15 +103,18 @@ export function BuildBoard() {
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           The work is transparent on purpose. Here is what we&apos;ve shipped, what we&apos;re building now, what&apos;s next with a target date, and what&apos;s waiting on a decision — so you can see exactly where PoeTech is going.
         </p>
-        <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-2">✓ {counts.shipped} shipped · {counts.building} building · {counts.next} next</div>
+        <div className="text-[10px] uppercase tracking-wider font-semibold mt-2">
+          <span className="text-[#5A6E3D]">✓ {counts.shipped} shipped · {counts.building} building · {counts.next} next</span>
+          {counts.overdue > 0 && <span className="text-[#B85838]"> · ⚠ {counts.overdue} past target</span>}
+        </div>
       </section>
 
       {/* Stage sub-tabs — pick a stage and see just that short list, instead of
-          one long scroll down the phone. */}
+          one long scroll down the phone. Past Due leads when anything slipped. */}
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Build stages">
-        {ORDER.map(k => {
-          if (!counts[k]) return null;
-          const st = STATUS[k];
+        {TABS.map(k => {
+          if (k !== 'overdue' && !counts[k]) return null;
+          const st = meta(k);
           const active = tab === k;
           return (
             <button
@@ -100,7 +126,7 @@ export function BuildBoard() {
               className="text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
               style={active ? { backgroundColor: st.color, color: 'white', borderColor: st.color } : { color: st.color, borderColor: st.color }}
             >
-              <span aria-hidden="true" className="mr-1">{st.symbol}</span>{st.label} ({counts[k]})
+              <span aria-hidden="true" className="mr-1">{st.symbol}</span>{st.label} ({k === 'overdue' ? counts.overdue : counts[k]})
             </button>
           );
         })}
@@ -111,35 +137,43 @@ export function BuildBoard() {
           <span aria-hidden="true" className="mr-1">{s.symbol}</span>{s.label} · {s.blurb} ({items.length})
         </h3>
         <div className="bg-white border border-[#1A1815]">
-          {items.map((r, i) => (
-            <div key={r.id} className={i < items.length - 1 ? 'border-b border-[#E8E4DC]' : ''}>
-              <button
-                type="button"
-                onClick={() => setOpenId(openId === r.id ? null : r.id)}
-                aria-expanded={openId === r.id}
-                aria-label={openId === r.id ? `Hide details for ${r.title}` : `Show details for ${r.title}`}
-                className="w-full text-left p-3 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
-              >
-                <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{r.title}</span>
-                  <span className="text-[10px] uppercase tracking-wider" style={{ color: s.color, fontFamily: '"JetBrains Mono", monospace' }}>
-                    {r.status === 'shipped' ? `shipped ${r.when}` : r.status === 'gated' ? 'gated' : `target ${r.when}`}
-                  </span>
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5" aria-hidden="true">
-                  {openId === r.id ? '▲ hide details' : '▼ details'}
-                </div>
-              </button>
-              {openId === r.id && (
-                <div className="px-3 pb-3">
-                  <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.what}</p>
-                  {r.status === 'gated' && (
-                    <p className="text-xs text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Waiting on: {r.when}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+          {items.map((r, i) => {
+            const late = daysLate(r);
+            return (
+              <div key={r.id} className={i < items.length - 1 ? 'border-b border-[#E8E4DC]' : ''}>
+                <button
+                  type="button"
+                  onClick={() => setOpenId(openId === r.id ? null : r.id)}
+                  aria-expanded={openId === r.id}
+                  aria-label={openId === r.id ? `Hide details for ${r.title}` : `Show details for ${r.title}`}
+                  className="w-full text-left p-3 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{r.title}</span>
+                    <span className="text-[10px] uppercase tracking-wider flex items-center gap-2 flex-wrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      <span style={{ color: STATUS[r.status].color }}>
+                        {r.status === 'shipped' ? `shipped ${r.when}` : r.status === 'gated' ? 'gated' : `target ${r.when}`}
+                      </span>
+                      {late > 0 && (
+                        <span className="font-semibold" style={{ color: '#B85838' }}>⚠ {late} {late === 1 ? 'day' : 'days'} late</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5" aria-hidden="true">
+                    {openId === r.id ? '▲ hide details' : '▼ details'}
+                  </div>
+                </button>
+                {openId === r.id && (
+                  <div className="px-3 pb-3">
+                    <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.what}</p>
+                    {r.status === 'gated' && (
+                      <p className="text-xs text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Waiting on: {r.when}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
