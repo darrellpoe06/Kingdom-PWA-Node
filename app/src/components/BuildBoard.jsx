@@ -82,6 +82,32 @@ function daysLate(r) {
 // that don't run the vite define still render.
 const WORKFLOW_STATS = (typeof __WORKFLOW_STATS__ !== 'undefined') ? __WORKFLOW_STATS__ : { built: 0, active: 0 };
 
+// Chronological ordering within a stage. The plan complaint (Darrell,
+// 2026-06-13): the Next tab read 06-17, 07-01, 06-24, 07-15... — array order,
+// not a timeline. Sort by the real target/ship date so each stage reads in
+// order: upcoming work nearest-first (asc), shipped most-recent-first (desc).
+// Items whose "when" is a prose condition rather than a date (e.g. "after the
+// privacy review") have no place on the timeline, so they sink to the bottom in
+// their listed order, both directions. Sorts the REAL dates already on each
+// item — no invented or reordered data.
+export function whenSortKey(r) {
+  const t = Date.parse(r.when || '');
+  return Number.isNaN(t) ? Infinity : t;
+}
+export function sortByWhen(list, dir = 'asc') {
+  const sign = dir === 'desc' ? -1 : 1;
+  return list
+    .map((r, i) => [r, i])
+    .sort((a, b) => {
+      const ka = whenSortKey(a[0]), kb = whenSortKey(b[0]);
+      if (ka === Infinity && kb === Infinity) return a[1] - b[1];
+      if (ka === Infinity) return 1;
+      if (kb === Infinity) return -1;
+      return sign * (ka - kb) || (a[1] - b[1]);
+    })
+    .map(([r]) => r);
+}
+
 // Real ship span — the earliest and latest dated "shipped" item. Pulled from
 // the board's own real dates, not invented.
 function shipSpan() {
@@ -111,7 +137,9 @@ export function BuildBoard() {
   const [tab, setTab] = useState(firstTab);
   const meta = (k) => (k === 'overdue' ? OVERDUE : STATUS[k]);
   const s = meta(tab);
-  const items = tab === 'overdue' ? overdueItems : ROADMAP.filter(r => r.status === tab);
+  const items = tab === 'overdue'
+    ? overdueItems
+    : sortByWhen(ROADMAP.filter(r => r.status === tab), tab === 'shipped' ? 'desc' : 'asc');
   const span = shipSpan();
 
   return (
