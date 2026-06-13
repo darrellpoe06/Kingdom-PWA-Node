@@ -66,7 +66,13 @@ const ORDER = ['building', 'next', 'gated', 'shipped'];
 
 export function BuildBoard() {
   const [openId, setOpenId] = useState(null);
-  const shippedCount = ROADMAP.filter(r => r.status === 'shipped').length;
+  const counts = Object.fromEntries(ORDER.map(k => [k, ROADMAP.filter(r => r.status === k).length]));
+  // Default to the first stage that actually has items (Building first per
+  // ORDER) so the tab opens on "what's happening now".
+  const firstNonEmpty = ORDER.find(k => counts[k] > 0) || 'building';
+  const [tab, setTab] = useState(firstNonEmpty);
+  const s = STATUS[tab];
+  const items = ROADMAP.filter(r => r.status === tab);
   return (
     <div className="space-y-4">
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
@@ -74,44 +80,69 @@ export function BuildBoard() {
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           The work is transparent on purpose. Here is what we&apos;ve shipped, what we&apos;re building now, what&apos;s next with a target date, and what&apos;s waiting on a decision — so you can see exactly where PoeTech is going.
         </p>
-        <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-2">✓ {shippedCount} shipped · {ROADMAP.filter(r => r.status === 'building').length} building · {ROADMAP.filter(r => r.status === 'next').length} next</div>
+        <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-2">✓ {counts.shipped} shipped · {counts.building} building · {counts.next} next</div>
       </section>
 
-      {ORDER.map(statusKey => {
-        const items = ROADMAP.filter(r => r.status === statusKey);
-        if (!items.length) return null;
-        const s = STATUS[statusKey];
-        return (
-          <section key={statusKey}>
-            <h3 className="text-[10px] uppercase tracking-[0.25em] font-semibold mb-2" style={{ color: s.color }}>
-              <span aria-hidden="true" className="mr-1">{s.symbol}</span>{s.label} · {s.blurb} ({items.length})
-            </h3>
-            <div className="bg-white border border-[#1A1815]">
-              {items.map((r, i) => (
-                <div key={r.id} className={i < items.length - 1 ? 'border-b border-[#E8E4DC]' : ''}>
-                  <button
-                    type="button"
-                    onClick={() => setOpenId(openId === r.id ? null : r.id)}
-                    aria-expanded={openId === r.id}
-                    className="w-full text-left p-3 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
-                  >
-                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                      <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{r.title}</span>
-                      <span className="text-[10px] uppercase tracking-wider" style={{ color: s.color, fontFamily: '"JetBrains Mono", monospace' }}>
-                        {r.status === 'shipped' ? `shipped ${r.when}` : r.status === 'gated' ? 'gated' : `target ${r.when}`}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{r.what}</p>
-                    {r.status === 'gated' && (
-                      <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Waiting on: {r.when}</p>
-                    )}
-                  </button>
+      {/* Stage sub-tabs — pick a stage and see just that short list, instead of
+          one long scroll down the phone. */}
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Build stages">
+        {ORDER.map(k => {
+          if (!counts[k]) return null;
+          const st = STATUS[k];
+          const active = tab === k;
+          return (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => { setTab(k); setOpenId(null); }}
+              className="text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              style={active ? { backgroundColor: st.color, color: 'white', borderColor: st.color } : { color: st.color, borderColor: st.color }}
+            >
+              <span aria-hidden="true" className="mr-1">{st.symbol}</span>{st.label} ({counts[k]})
+            </button>
+          );
+        })}
+      </div>
+
+      <section>
+        <h3 className="text-[10px] uppercase tracking-[0.25em] font-semibold mb-2" style={{ color: s.color }}>
+          <span aria-hidden="true" className="mr-1">{s.symbol}</span>{s.label} · {s.blurb} ({items.length})
+        </h3>
+        <div className="bg-white border border-[#1A1815]">
+          {items.map((r, i) => (
+            <div key={r.id} className={i < items.length - 1 ? 'border-b border-[#E8E4DC]' : ''}>
+              <button
+                type="button"
+                onClick={() => setOpenId(openId === r.id ? null : r.id)}
+                aria-expanded={openId === r.id}
+                aria-label={openId === r.id ? `Hide details for ${r.title}` : `Show details for ${r.title}`}
+                className="w-full text-left p-3 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{r.title}</span>
+                  <span className="text-[10px] uppercase tracking-wider" style={{ color: s.color, fontFamily: '"JetBrains Mono", monospace' }}>
+                    {r.status === 'shipped' ? `shipped ${r.when}` : r.status === 'gated' ? 'gated' : `target ${r.when}`}
+                  </span>
                 </div>
-              ))}
+                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5" aria-hidden="true">
+                  {openId === r.id ? '▲ hide details' : '▼ details'}
+                </div>
+              </button>
+              {openId === r.id && (
+                <div className="px-3 pb-3">
+                  <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.what}</p>
+                  {r.status === 'gated' && (
+                    <p className="text-xs text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Waiting on: {r.when}</p>
+                  )}
+                </div>
+              )}
             </div>
-          </section>
-        );
-      })}
+          ))}
+        </div>
+      </section>
+
       <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Dates are honest estimates and move as we learn — that&apos;s the point of showing them. No blame, just build.
       </p>
