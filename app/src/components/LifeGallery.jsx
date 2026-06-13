@@ -174,7 +174,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
         {!readOnly && (
           <label className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] cursor-pointer`}>
             {busy ? 'Adding…' : '+ Add photos'}
-            <input type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
+            <input type="file" accept="image/*" multiple className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
           </label>
         )}
       </div>

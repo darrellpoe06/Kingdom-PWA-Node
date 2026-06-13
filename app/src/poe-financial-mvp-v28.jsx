@@ -26,6 +26,7 @@ import { projectsSync } from './lib/projects-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
+import { compressImageFile } from './lib/image.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
@@ -1808,7 +1809,28 @@ export default function PoeFinancialSystem() {
   // back to 'unknown' if no profile is set (demo mode visitors).
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [suggestForm, setSuggestForm] = useState({ type: '', message: '' });
+  // 2026-06-13 — Christina asked to attach a screenshot "for clarification."
+  // suggestImage holds a compressed JPEG data URL (or null); it rides the same
+  // /webhook/family-feedback POST and lands as a sidecar image on the NAS.
+  const [suggestImage, setSuggestImage] = useState(null);
   const [suggestState, setSuggestState] = useState({ submitting: false, success: false, error: null, id: null });
+  const onSuggestImage = async (fileList) => {
+    const file = fileList && fileList[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type || '')) {
+      setSuggestState(s => ({ ...s, error: 'That file is not an image. A screenshot or photo works best.' }));
+      return;
+    }
+    try {
+      // Compress hard — feedback screenshots only need to be legible, and the
+      // data URL travels in a JSON body, so keep it small.
+      const dataUrl = await compressImageFile(file, 1280, 0.6);
+      setSuggestImage(dataUrl);
+      setSuggestState(s => ({ ...s, error: null }));
+    } catch (_) {
+      setSuggestState(s => ({ ...s, error: 'Could not read that image. Try another, or send your note without one.' }));
+    }
+  };
   const submitSuggest = async () => {
     if (!suggestForm.message || suggestForm.message.trim().length < 3) {
       setSuggestState({ submitting: false, success: false, error: 'Tell us what you noticed - a sentence or two is plenty.', id: null });
@@ -1854,7 +1876,9 @@ export default function PoeFinancialSystem() {
           message: suggestForm.message.trim(),
           screen_context: screenContext,
           user_agent: (typeof navigator !== 'undefined') ? navigator.userAgent : '',
-          source: 'poetech.us'
+          source: 'poetech.us',
+          // Optional compressed JPEG data URL; wf30 writes it as a sidecar file.
+          screenshot: suggestImage || null
         })
       });
       const json = await r.json().catch(() => ({}));
@@ -1868,6 +1892,7 @@ export default function PoeFinancialSystem() {
       setTimeout(() => {
         setSuggestOpen(false);
         setSuggestForm({ type: '', message: '' });
+        setSuggestImage(null);
         setSuggestState({ submitting: false, success: false, error: null, id: null });
       }, 3000);
     } catch (e) {
@@ -2246,7 +2271,17 @@ export default function PoeFinancialSystem() {
     };
     const email = (authSession.user?.email || '').toLowerCase();
     const mapped = FAMILY_EMAIL_PROFILES[email];
-    if (mapped) setProfile(mapped);
+    if (mapped) {
+      setProfile(mapped);
+      // 2026-06-13 — a signed-in family member is never tier-gated out of their
+      // OWN family's data. Christina hit the Real Estate read-only preview and
+      // read its upgrade banner as "you need a subscription." Recognized family
+      // emails get full access (top tier) so every module is fully theirs.
+      // Guarded so we don't churn data if they're already at the top.
+      setData(d => (effectiveTier(d.userTier) === 'business'
+        ? d
+        : { ...d, userTier: 'business' }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession, authHydrated]);
 
@@ -3655,6 +3690,20 @@ html{scroll-padding-bottom:280px}
                     <label htmlFor="sg-message" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">What you noticed <span className="text-[#B85838]">*</span></label>
                     <textarea id="sg-message" rows="4" value={suggestForm.message} onChange={e => setSuggestForm({ ...suggestForm, message: e.target.value })} className="w-full p-2 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="A sentence or two is plenty. Specifics help us ship faster." autoFocus />
                   </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Screenshot or photo (optional)</label>
+                    {!suggestImage ? (
+                      <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] bg-white text-xs text-[#5A5751] cursor-pointer hover:bg-[#F2EEE6] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
+                        <span>Attach an image to show us</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={e => { onSuggestImage(e.target.files); e.target.value = ''; }} />
+                      </label>
+                    ) : (
+                      <div className="relative inline-block">
+                        <img src={suggestImage} alt="Attached screenshot preview" className="max-h-32 border border-[#1A1815]" />
+                        <button type="button" onClick={() => setSuggestImage(null)} aria-label="Remove image" className="absolute -top-2 -right-2 bg-[#1A1815] text-white w-6 h-6 text-xs leading-none hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">✕</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {suggestState.error && (
                   <div className="mt-3 p-2 bg-[#DC2626]/10 border border-[#DC2626] text-xs text-[#DC2626]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -3663,7 +3712,7 @@ html{scroll-padding-bottom:280px}
                 )}
                 <div className="flex gap-2 mt-4 flex-wrap">
                   <button type="button" disabled={suggestState.submitting} onClick={submitSuggest} className="flex-1 bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">{suggestState.submitting ? 'Sending…' : 'Send to the team'}</button>
-                  <button type="button" disabled={suggestState.submitting} onClick={() => { setSuggestOpen(false); setSuggestState({ submitting: false, success: false, error: null, id: null }); }} className="px-3 py-2 border border-[#1A1815] text-[#1A1815] text-xs uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
+                  <button type="button" disabled={suggestState.submitting} onClick={() => { setSuggestOpen(false); setSuggestImage(null); setSuggestState({ submitting: false, success: false, error: null, id: null }); }} className="px-3 py-2 border border-[#1A1815] text-[#1A1815] text-xs uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
                 </div>
                 <p className="text-[9px] text-[#5A5751] italic text-center mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Goes to a private inbox on our own infrastructure. We see it within minutes.</p>
               </>

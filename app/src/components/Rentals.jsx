@@ -665,7 +665,7 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
                     <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">📷 {rm.name} photos · {(rm.photos || []).length}</span>
                     <label className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] cursor-pointer">
                       + Add photos
-                      <input type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={e => { addRoomPhotos(rm.id, e.target.files); e.target.value = ''; }} />
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={e => { addRoomPhotos(rm.id, e.target.files); e.target.value = ''; }} />
                     </label>
                   </div>
                   {(rm.photos || []).length === 0 ? (
@@ -1505,7 +1505,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes · warranty · parts numbers" value={maintForm.notes} onChange={e => setMaintForm({ ...maintForm, notes: e.target.value })} />
                             <div>
                               <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">📷 Receipts / photos</label>
-                              <input type="file" accept="image/*" multiple capture="environment" onChange={e => onMaintPhotoFiles(e.target.files)} className="block w-full text-xs file:mr-2 file:px-2 file:py-1 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[10px] file:cursor-pointer" />
+                              <input type="file" accept="image/*" multiple onChange={e => onMaintPhotoFiles(e.target.files)} className="block w-full text-xs file:mr-2 file:px-2 file:py-1 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[10px] file:cursor-pointer" />
                               {(maintForm.photos || []).length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-2">
                                   {maintForm.photos.map((src, i) => (
