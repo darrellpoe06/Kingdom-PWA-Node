@@ -372,3 +372,9 @@ async function lookupProperty(env, body) {
 
   return json(normalized);
 }
+
+// -----------------------------------------------------------------------------
+// Named exports of the pure security helpers, for unit tests. The Worker
+// runtime uses the default export above; these names don't affect it.
+// -----------------------------------------------------------------------------
+export { verifyTwilioSignature, inferLineFromNumber };
