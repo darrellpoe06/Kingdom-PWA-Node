@@ -42,7 +42,7 @@ function secret(envName, fileName) {
 }
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:14b-instruct-q4_K_M';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:3b-instruct-q4_K_M'; // CPU-fast default; set OLLAMA_MODEL=qwen2.5:14b-instruct-q4_K_M (or bigger) on a GPU box
 const THRESHOLD = Number(process.env.ORCH_THRESHOLD || 7);
 
 // Affinity map (starting defaults; the v1 router tunes these from outcomes —

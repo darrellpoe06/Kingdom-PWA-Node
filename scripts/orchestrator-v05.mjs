@@ -31,7 +31,7 @@ import { appendFileSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://192.168.1.26:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:14b-instruct-q4_K_M';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:3b-instruct-q4_K_M'; // CPU-fast default; set OLLAMA_MODEL=qwen2.5:14b-instruct-q4_K_M (or bigger) on a GPU box
 const THRESHOLD = Number(process.env.ORCH_THRESHOLD || 7);
 const DAILY_MAX = Number(process.env.ORCH_DAILY_MAX_ESCALATIONS || 20);
 const AUDIT = process.env.ORCH_AUDIT || 'orchestrator-audit.jsonl';
