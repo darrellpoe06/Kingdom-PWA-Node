@@ -825,6 +825,16 @@ const FAMILY_EMAIL_PROFILES = {
 };
 const isFamilyEmail = (email) =>
   Object.prototype.hasOwnProperty.call(FAMILY_EMAIL_PROFILES, String(email || '').toLowerCase());
+const personaOf = (email) => FAMILY_EMAIL_PROFILES[String(email || '').toLowerCase()] || null;
+// Unique family personas (Christina's two emails collapse to one), used as the
+// project-assignment roster. Display name = title-cased persona key.
+const FAMILY_MEMBERS = (() => {
+  const seen = new Map();
+  for (const persona of Object.values(FAMILY_EMAIL_PROFILES)) {
+    if (!seen.has(persona)) seen.set(persona, { key: persona, name: persona.charAt(0).toUpperCase() + persona.slice(1) });
+  }
+  return [...seen.values()];
+})();
 
 // VIEW_TIER_REQUIREMENTS — each nav view's minimum tier.
 // 'foundation' = free for everyone. Markets, Books, Big Picture, Debts, Church
@@ -2733,10 +2743,13 @@ export default function PoeFinancialSystem() {
     // order syncs across devices. Scoped strictly to this one column (the rest
     // of project-edit cloud sync is a separate concern), and fails soft: if the
     // priority_rank column isn't live yet, the local order still holds.
-    if (updates.priorityRank !== undefined && authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+    if ((updates.priorityRank !== undefined || updates.assigneePersonas !== undefined) && authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
       const updated = next.find(p => p.id === id);
       if (updated && updated.remoteUuid) {
-        projectsSync.updateRow(updated.remoteUuid, { priority_rank: updates.priorityRank }).catch(e => console.warn('[projects-sync] priority update failed', e));
+        const patch = {};
+        if (updates.priorityRank !== undefined) patch.priority_rank = updates.priorityRank;
+        if (updates.assigneePersonas !== undefined) patch.assignee_personas = updates.assigneePersonas;
+        projectsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[projects-sync] project field update failed', e));
       }
     }
     return { ...d, projects: next };
@@ -4134,7 +4147,7 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
-          ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
+          ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
             />
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />

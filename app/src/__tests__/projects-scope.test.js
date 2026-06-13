@@ -26,23 +26,44 @@ describe('isMine', () => {
   });
 });
 
+describe('isMine — personal assignment', () => {
+  it('matches a project assigned to my persona even if someone else created it', () => {
+    expect(isMine({ createdBy: her, assigneePersonas: ['darrell'] }, me, 'darrell')).toBe(true);
+    expect(isMine({ createdBy: her, assigneePersonas: ['christina'] }, me, 'darrell')).toBe(false);
+  });
+  it('still matches projects I created regardless of assignment', () => {
+    expect(isMine({ createdBy: me, assigneePersonas: [] }, me, 'darrell')).toBe(true);
+  });
+  it('needs a persona to match an assignment', () => {
+    expect(isMine({ createdBy: her, assigneePersonas: ['darrell'] }, me, null)).toBe(false);
+  });
+});
+
 describe('scopeProjects', () => {
-  it('"mine" returns only my projects', () => {
-    expect(scopeProjects(projects, me, 'mine').map(p => p.id)).toEqual(['p1', 'p3']);
+  it('"mine" returns projects I created OR am assigned to', () => {
+    const list = [
+      { id: 'p1', createdBy: me },
+      { id: 'p2', createdBy: her },
+      { id: 'p3', createdBy: her, assigneePersonas: ['darrell'] }, // assigned to me
+    ];
+    expect(scopeProjects(list, me, 'darrell', 'mine').map(p => p.id)).toEqual(['p1', 'p3']);
   });
   it('"all" returns the whole family list unchanged', () => {
-    expect(scopeProjects(projects, me, 'all').map(p => p.id)).toEqual(['p1', 'p2', 'p3', 'p4']);
+    expect(scopeProjects(projects, me, null, 'all').map(p => p.id)).toEqual(['p1', 'p2', 'p3', 'p4']);
   });
 });
 
 describe('defaultProjectScope', () => {
   it('defaults to "mine" when the signed-in user has their own projects', () => {
-    expect(defaultProjectScope(projects, me)).toBe('mine');
+    expect(defaultProjectScope(projects, me, null)).toBe('mine');
+  });
+  it('defaults to "mine" when something is assigned to my persona', () => {
+    expect(defaultProjectScope([{ id: 'x', createdBy: her, assigneePersonas: ['darrell'] }], me, 'darrell')).toBe('mine');
   });
   it('falls back to "all" so a user is never stranded on an empty screen', () => {
-    expect(defaultProjectScope(projects, 'user-nobody')).toBe('all'); // none attributed to them
-    expect(defaultProjectScope(projects, null)).toBe('all');          // signed out
-    expect(defaultProjectScope([{ id: 'x', createdBy: null }], me)).toBe('all'); // legacy-only
+    expect(defaultProjectScope(projects, 'user-nobody', null)).toBe('all'); // none attributed to them
+    expect(defaultProjectScope(projects, null, null)).toBe('all');          // signed out
+    expect(defaultProjectScope([{ id: 'x', createdBy: null }], me, null)).toBe('all'); // legacy-only
   });
 });
 
