@@ -75,6 +75,22 @@ function daysLate(r) {
   return days > 0 ? days : 0;
 }
 
+// Real automation-pipeline count, computed at BUILD time from the actual n8n
+// workflow files (vite.config __WORKFLOW_STATS__). Not a hand-typed number.
+// `active` is repo state, not live run-status (Stage 2). Guarded so tests/SSR
+// that don't run the vite define still render.
+const WORKFLOW_STATS = (typeof __WORKFLOW_STATS__ !== 'undefined') ? __WORKFLOW_STATS__ : { built: 0, active: 0 };
+
+// Real ship span — the earliest and latest dated "shipped" item. Pulled from
+// the board's own real dates, not invented.
+function shipSpan() {
+  const dates = ROADMAP
+    .filter(r => r.status === 'shipped' && /^\d{4}-\d{2}-\d{2}$/.test(r.when || ''))
+    .map(r => r.when)
+    .sort();
+  return { first: dates[0] || null, last: dates[dates.length - 1] || null };
+}
+
 export function BuildBoard() {
   const [openId, setOpenId] = useState(null);
 
@@ -95,6 +111,7 @@ export function BuildBoard() {
   const meta = (k) => (k === 'overdue' ? OVERDUE : STATUS[k]);
   const s = meta(tab);
   const items = tab === 'overdue' ? overdueItems : ROADMAP.filter(r => r.status === tab);
+  const span = shipSpan();
 
   return (
     <div className="space-y-4">
@@ -104,8 +121,14 @@ export function BuildBoard() {
           The work is transparent on purpose. Here is what we&apos;ve shipped, what we&apos;re building now, what&apos;s next with a target date, and what&apos;s waiting on a decision — so you can see exactly where PoeTech is going.
         </p>
         <div className="text-[10px] uppercase tracking-wider font-semibold mt-2">
-          <span className="text-[#5A6E3D]">✓ {counts.shipped} shipped · {counts.building} building · {counts.next} next</span>
+          <span className="text-[#5A6E3D]">✓ {counts.shipped} shipped{span.first ? `, ${span.first} → ${span.last}` : ''} · {counts.building} building · {counts.next} next</span>
           {counts.overdue > 0 && <span className="text-[#B85838]"> · ⚠ {counts.overdue} past target</span>}
+        </div>
+        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          🔧 {WORKFLOW_STATS.built} automation workflows built · {WORKFLOW_STATS.active} active in the repo
+        </div>
+        <div className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          These counts are real — workflow files in the repo and dated ships, not hand-typed. Live run-status and per-item % complete are wiring up next.
         </div>
       </section>
 
