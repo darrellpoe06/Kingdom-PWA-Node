@@ -17,10 +17,11 @@
 // =============================================================================
 
 import React, { useEffect, useState } from 'react';
-import { onAuthChange, sendRoyaltyLink, signOut } from '../lib/supabase.js';
-// signInWithGoogle import temporarily removed 2026-05-23 — Google SSO is parked
-// until we get a fresh OAuth client with secret captured at creation. The
-// helper is still exported from lib/supabase.js, just not wired in here.
+import { onAuthChange, sendRoyaltyLink, signOut, signInWithGoogle, signInWithApple } from '../lib/supabase.js';
+// 2026-06-14 (multi-point auth P1): Google + Apple SSO buttons surfaced again.
+// Both providers require one-time dashboard/Apple-Developer config; until that
+// lands they return a "provider not enabled" error which we show inline. The
+// email Royalty Link path always works, so there is no sign-in lockout.
 
 export default function AuthBanner() {
   const [session, setSession] = useState(null);
@@ -46,6 +47,16 @@ export default function AuthBanner() {
       setErrorMsg(error.message || 'Could not send the link. Try again in a minute.');
     } else {
       setStatus('sent');
+    }
+  }
+
+  async function handleOAuth(provider) {
+    setErrorMsg('');
+    const fn = provider === 'apple' ? signInWithApple : signInWithGoogle;
+    const { error } = await fn();
+    if (error) {
+      setStatus('error');
+      setErrorMsg(error.message || `${provider === 'apple' ? 'Apple' : 'Google'} sign-in isn’t available right now — try the email link.`);
     }
   }
 
@@ -99,9 +110,24 @@ export default function AuthBanner() {
             onSubmit={handleSend}
             className="flex items-center gap-2 flex-wrap justify-center w-full max-w-2xl"
           >
-            {/* Google SSO button removed 2026-05-23 — parked until OAuth
-                client secret can be captured at creation. Email Royalty Link
-                is the supported path. */}
+            {/* P1 identity providers — Google + Apple SSO (2026-06-14). Sit
+                alongside the email Royalty Link; account-linking on matching
+                verified email keeps one person = one account. */}
+            <button
+              type="button"
+              onClick={() => handleOAuth('google')}
+              disabled={status === 'sending'}
+              className="normal-case tracking-normal bg-[#FAF8F4] text-[#1A1815] border border-[#3A3A3A] px-3 py-1 hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50 font-semibold">
+              Continue with Google
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOAuth('apple')}
+              disabled={status === 'sending'}
+              className="normal-case tracking-normal bg-[#000] text-[#FAF8F4] border border-[#000] px-3 py-1 hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50 font-semibold">
+              Continue with Apple
+            </button>
+            <span className="text-[#5A5751] normal-case tracking-normal hidden sm:inline">or</span>
             <label htmlFor="auth-email" className="sr-only">Email address</label>
             <input
               id="auth-email"
