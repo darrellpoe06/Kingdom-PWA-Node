@@ -123,7 +123,7 @@ const COLG_DEFAULT_CHURCH = {
 };
 
 // =============================================================================
-const SEED_DATA = {
+export const SEED_DATA = {
   meta: { lastUpdated: '2026-05-17', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 0, appVersion: '28.1', releaseLabel: 'MVP v1.5', releaseNote: 'Real Estate ops (lease · tenant contact · equipment · rooms) + Buffer Fund widget + Capex list. WCAG 2.1 AA holds across new fields.', moduleSlug: 'financial', taxStructure: { filing: 'joint-1040', scheduleC: ['e-tlc', 'e-poetech'], scheduleE: ['e-poeprops'], sCorpElected: [], withholdingCoversFederal: true, withholdingCoversState: true, state: 'IL', county: 'Cedar Heights', propertyTaxEscrowed: true }},
   entities: [
     // Multi-user Layer A (2026-05-28) — `visibleTo` gates per-profile views.
@@ -396,6 +396,54 @@ const SEED_DATA = {
     { id: 'sp-twin-son', name: 'Caleb', skills: 'tech support, networking, teen, neighborhood, lawn care', hoursPerWeek: 4, monthlyIncome: 0, location: 'Cedar Heights, IL', techComfort: 4, notes: 'Apprenticeship in progress — Cable Scout curriculum + neighborhood route' },
     { id: 'sp-twin-dau', name: 'Esther', skills: 'teaching, tutoring, teen, community, pet sitting', hoursPerWeek: 4, monthlyIncome: 0, location: 'Cedar Heights, IL', techComfort: 3, notes: 'Discovering — possible tutoring + pet care' },
   ],
+};
+
+// =============================================================================
+// EMPTY_WORLD — the starting instance for a SIGNED-IN, NON-family user.
+//
+// 2026-06-14: a non-family parishioner who signs up gets their OWN Supabase
+// instance (RLS-scoped). On a public host with no saved snapshot yet, the
+// hydration path used to fall back to SEED_DATA — the Poe-family seed (real
+// business shape, addresses, debt structure). That contradicts the binding
+// rule at the `isPublicHost()` seed gate: "the public domain never seeds from
+// SEED_DATA." A new outside user must land on their own empty books, not the
+// family's scaffolding and not the Reeves demo.
+//
+// Structurally complete (every key SEED_DATA has, so no consumer crashes) but
+// emptied of all family-bearing data. Generic config that carries no PII —
+// pressureMappings, the public market watchlist, the COLG public-directory
+// default church, voiceOps rate card — is inherited from SEED_DATA via spread.
+// remainderIsSeed(EMPTY_WORLD) is true, so this never publishes to the cloud
+// until the user enters real data of their own (correct: empty scaffolding
+// must not masquerade as a real snapshot).
+// =============================================================================
+export const EMPTY_WORLD = {
+  ...SEED_DATA,
+  meta: { ...SEED_DATA.meta, bufferCurrent: 0, taxStructure: { ...SEED_DATA.meta.taxStructure, scheduleC: [], scheduleE: [], sCorpElected: [] } },
+  entities: [],
+  accounts: [],
+  transactions: [],
+  contractors1099: [],
+  taxCalendar: [],
+  recurringObligations: [],
+  incidents: [],
+  scopes: [],
+  events: [],
+  projects: [],
+  subscriptions: [],
+  feedback: [],
+  checkoutIntents: [],
+  inquiries: [],
+  moduleInterest: {},
+  inflows: { salaries: [], rentals: [] },
+  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 0, debtService: 0, charitableGiving: 0 },
+  debts: [],
+  opportunities: [],
+  capexItems: [],
+  prayerRequests: [],
+  skillProfiles: [],
+  userTier: 'foundation',
+  welcomeDismissed: false,
 };
 
 // =============================================================================
@@ -832,7 +880,7 @@ const FAMILY_EMAIL_PROFILES = {
   'christina@tlctherapysolutions.com': 'christina',
   // Add the twins' sign-in emails as they get accounts.
 };
-const isFamilyEmail = (email) =>
+export const isFamilyEmail = (email) =>
   Object.prototype.hasOwnProperty.call(FAMILY_EMAIL_PROFILES, String(email || '').toLowerCase());
 const personaOf = (email) => FAMILY_EMAIL_PROFILES[String(email || '').toLowerCase()] || null;
 // Unique family personas (Christina's two emails collapse to one), used as the
@@ -1766,11 +1814,15 @@ export default function PoeFinancialSystem() {
   };
   // 2026-06-12 fix ("why Adam, not Darrell?"): the sanitized display names
   // (Adam/Naomi) exist so PUBLIC visitors never see the family's real names.
-  // A SIGNED-IN session is the family on their own device — they get their
-  // own names. Anonymous, demo, and picker states keep the sanitized pair.
+  // 2026-06-14 hardening: a signed-in session alone is NOT enough — a NON-family
+  // user who signs up also has an authSession, and must never see "Darrell"/
+  // "Christina" as selectable buttons. Real names show only to a VERIFIED family
+  // email; every other state (anonymous, demo, picker, outside signed-in user)
+  // keeps the sanitized pair.
+  const isFamilyMember = isFamilyEmail(authSession?.user?.email);
   const PROFILES = [
-    { id: 'darrell', name: authSession ? 'Darrell' : 'Adam', sub: 'full owner view', accent: '#1A1815' },
-    { id: 'christina', name: authSession ? 'Christina' : 'Naomi', sub: 'personal + practice', accent: '#B85838' },
+    { id: 'darrell', name: isFamilyMember ? 'Darrell' : 'Adam', sub: 'full owner view', accent: '#1A1815' },
+    { id: 'christina', name: isFamilyMember ? 'Christina' : 'Naomi', sub: 'personal + practice', accent: '#B85838' },
     { id: 'family', name: 'Family', sub: 'household roll-up only', accent: '#5A6E3D' },
   ];
 
@@ -1796,8 +1848,15 @@ export default function PoeFinancialSystem() {
   // public host too — anonymous visitors and demo/picker states still never
   // do, and a saved profile is still required. The wf18 bearer is only ever
   // attached past this gate.
+  // 2026-06-14: the wf18 Imported feed is a SINGLE shared NAS webhook serving
+  // the FAMILY's bank/Gmail PII — it is NOT RLS-scoped per signed-in user. Now
+  // that a non-family user gets a self-serve profile (so the picker no longer
+  // traps them), a truthy currentProfile alone can no longer be the public-host
+  // key, or an outsider would unlock the family's bank data. On a public host
+  // the gate requires a VERIFIED family email; the internal/Tailscale family
+  // device (no auth needed) is unchanged.
   const importedAllowed = !isAnyDemoMode && !!currentProfile
-    && (!isPublicHost() || !!(authSession && authHydrated));
+    && (!isPublicHost() || !!(authSession && authHydrated && isFamilyEmail(authSession?.user?.email)));
 
   // Demo welcome modal — only shown when ?demo=… is in the URL. Sets the
   // viewer's expectation about what they're looking at and what they can do,
@@ -2303,8 +2362,13 @@ export default function PoeFinancialSystem() {
     if (!authSession || hydratedForAuthRef.current) return;
     if (!isPublicHost() || isAnyDemoMode) return;
     hydratedForAuthRef.current = true;
+    const email = (authSession.user?.email || '').toLowerCase();
     loadSavedSnapshot(authSession.user?.id || null).then((found) => {
-      if (!found) setData(SEED_DATA);
+      // 2026-06-14: a fresh family member starts from their aspirational SEED;
+      // a fresh NON-family user starts from their OWN empty books — NEVER
+      // SEED_DATA (the Poe-family shape) on the public host (see EMPTY_WORLD
+      // and the isPublicHost() seed gate).
+      if (!found) setData(isFamilyEmail(email) ? SEED_DATA : EMPTY_WORLD);
       setAuthHydrated(true);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2339,6 +2403,15 @@ export default function PoeFinancialSystem() {
       setData(d => (effectiveTier(d.userTier) === 'business'
         ? d
         : { ...d, userTier: 'business' }));
+    } else {
+      // 2026-06-14 — a SIGNED-IN, NON-family user (e.g. a parishioner) already
+      // has their OWN account + instance. The Poe-family device picker
+      // (Darrell / Christina / Family) is meaningless to them and was the only
+      // option on screen — a full-screen lockout. Give them a self-serve
+      // profile so the app renders their own data instead of trapping them.
+      // 'self' is deliberately NOT in PROFILES (no extra picker button) and is
+      // explicitly excluded from the wf18 family-PII gate above.
+      setProfile('self');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession, authHydrated]);
@@ -4102,7 +4175,12 @@ html{scroll-padding-bottom:280px}
                   click and felt broken) with a controlled dropdown that closes
                   on selection and clicks outside, with a brief flash on change. */}
               <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />
-              {currentProfile && (() => {
+              {/* 2026-06-14 — the profile switcher is the family device-sharing
+                  control; it is hidden for a self-serve ('self') user, who has
+                  only their own identity. Clicking it would setProfile(null)
+                  and re-trap them at the Poe-family picker (the load effect
+                  won't re-fire to restore 'self'). */}
+              {currentProfile && currentProfile !== 'self' && (() => {
                 const p = PROFILES.find(x => x.id === currentProfile);
                 return (
                   <button type="button" onClick={() => setProfile(null)} title={`Currently viewing as ${p?.name || currentProfile}. Tap to switch profile.`} aria-label={`Switch profile (currently ${p?.name || currentProfile})`} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap flex items-center gap-1">
