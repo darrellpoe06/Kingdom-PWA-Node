@@ -76,7 +76,7 @@ const sql = [
   ...withDate.map((r) =>
     `INSERT INTO choir_sermons (instance_id, video_id, youtube_url, service_date, service_type, title, speaker, source) ` +
     `VALUES (${CHURCH}, ${sqlEsc(r.videoId)}, ${sqlEsc(r.youtubeUrl)}, ${sqlEsc(r.serviceDate)}, ${sqlEsc(r.serviceType)}, ${sqlEsc(r.title)}, ${sqlEsc(r.speaker)}, 'youtube') ` +
-    `ON CONFLICT (instance_id, video_id) DO NOTHING;`,
+    `ON CONFLICT (instance_id, video_id) WHERE video_id IS NOT NULL DO NOTHING;`,
   ),
 ].join('\n');
 writeFileSync('scripts/out/choir-sermons-backfill.sql', sql + '\n');
