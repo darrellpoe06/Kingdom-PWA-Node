@@ -25,5 +25,6 @@ When a recalled memory or doc named here moves, update the **source** column her
 | **EARN-AUTONOMY** | Nothing self-activates unattended; ship inactive, turn on with someone watching, earn trust/autonomy per surface as the Cage proves safe (the quarantine bright line). | `LESSONS-LEARNED.md` P11; the post-incident quarantine |
 | **DECISION-RECORDS** | One decision = one append-only DR with a stable ID; never rewrite, supersede; the INDEX is the source of truth; narrative references DRs by ID. | `docs/decisions/README.md`; [DR-0011] |
 | **SESSION-ISOLATION** | No two sessions write the same working tree or branch at once; each writing session works on its own branch in its own worktree/clone; integrate via PR. | `CLAUDE.md` Two-Session Git Race rule; [DR-0011] |
+| **DR-NUMBER-ALLOCATION** | Allocate a DR's number against the LIVE `origin/main` INDEX Next-ID (never the stale branch-point copy); the number is provisional until merge; re-check before merging and renumber on collision. | [DR-0052] |
 
 *Add an ID here before citing it in a DR. Keep one line per principle; the depth lives in the source.*

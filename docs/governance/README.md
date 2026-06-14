@@ -11,6 +11,7 @@
 | Path | What it is |
 | --- | --- |
 | `README.md` | This index. |
+| `decision-queue.md` | **The live, repo-side queue of decisions waiting on Darrell's governance** — the running companion to the policy file below. Until the NAS-resident ntfy escalation queue is applied, this markdown IS the inbox: review on your phone, write your call inline, the next session executes the batch. |
 | `pre-authorized-policies.yaml` | The human-readable policy declaration: bright lines (never auto-promote), pre-authorized fix classes, pre-authorized drafting, escalation patterns, per-team config, routing, the weekly adaptation loop, and observability topics. Drafted per Section 5 of the consolidated extract. |
 | `opa/policies/family-finance.rego` | Starter Rego for the Family-Finance bot-team. |
 | `opa/policies/church-ops.rego` | Starter Rego for the Church-Ops bot-team (COLG). |

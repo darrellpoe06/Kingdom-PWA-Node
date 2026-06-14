@@ -5,15 +5,24 @@
 #  Run from PowerShell in the repo root:
 #     .\deploy-to-synology.ps1
 #
-#  Synology share : \\PoeTech\poetech-app
+#  Destination    : dpoe@192.168.1.26:/volume1/poetech-app/  (over SSH)
 #  Live URL       : https://192-168-1-26.poetech.direct.quickconnect.to/poetech-app/
+#
+#  2026-06-12: copy moved from the SMB share (\\PoeTech\poetech-app) to
+#  scp over SSH. SMB auth was failing (DSM auto-block after repeated
+#  attempts made the right password look wrong); SSH is the auth path that
+#  works on this NAS and is passwordless once the desktop key is in
+#  ~/.ssh/authorized_keys (installed 2026-06-12 via ConnectBot).
 # =============================================================
 
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSCommandPath
 $appDir   = Join-Path $repoRoot 'app'
-$destSmb  = '\\PoeTech\poetech-app\'
+# NOTE: scp transfers ride Synology's SFTP service, which CHROOTS to a
+# share-rooted view: the folder ls shows at /volume1/poetech-app is
+# addressed as /poetech-app here. Verified working 2026-06-12 01:49.
+$destSsh  = 'dpoe@192.168.1.26:/poetech-app/'
 
 Write-Host ""
 Write-Host "[1/2] Building React app..." -ForegroundColor Cyan
@@ -33,7 +42,7 @@ finally {
 }
 
 Write-Host ""
-Write-Host "[2/2] Pushing dist\ to $destSmb ..." -ForegroundColor Cyan
+Write-Host "[2/2] Pushing dist\ to $destSsh ..." -ForegroundColor Cyan
 Write-Host ""
 
 $distSrc = Join-Path $appDir 'dist'
@@ -42,13 +51,13 @@ if (-not (Test-Path $distSrc)) {
     exit 1
 }
 
-try {
-    Copy-Item -Path (Join-Path $distSrc '*') -Destination $destSmb -Recurse -Force
-}
-catch {
+scp -r (Join-Path $distSrc '*') $destSsh
+if ($LASTEXITCODE -ne 0) {
     Write-Host ""
-    Write-Host "COPY FAILED: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Try opening $destSmb in File Explorer first to confirm credentials." -ForegroundColor Yellow
+    Write-Host "COPY FAILED (scp exit $LASTEXITCODE)." -ForegroundColor Red
+    Write-Host "If it asked for a password, the desktop key is not in the NAS" -ForegroundColor Yellow
+    Write-Host "~/.ssh/authorized_keys yet - one careful password entry is safe," -ForegroundColor Yellow
+    Write-Host "or re-install the key (see docs: ssh-keygen + authorized_keys)." -ForegroundColor Yellow
     exit 1
 }
 

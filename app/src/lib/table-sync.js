@@ -35,6 +35,43 @@
 // =============================================================================
 import supabase from './supabase.js';
 
+// -----------------------------------------------------------------------------
+// createDebouncer — coalesce a burst of calls into a single trailing run.
+//
+// A4 (rigorous-review 2026-06-13): every realtime postgres_change (including the
+// device's OWN writes) triggered a full-table refetch with no debounce — N
+// rapid edits fired N refetches, N× across N devices. Debouncing collapses a
+// burst into one refetch. Exported + pure (timer-injectable) so it's testable.
+// -----------------------------------------------------------------------------
+export function createDebouncer(fn, ms = 400) {
+  let timer = null;
+  const debounced = (...args) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => { timer = null; fn(...args); }, ms);
+  };
+  debounced.cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  return debounced;
+}
+
+// -----------------------------------------------------------------------------
+// shouldResyncOnStatus — decide whether a realtime status transition needs a
+// catch-up refetch.
+//
+// A5 (rigorous-review 2026-06-13): subscribe() had no status handler, so a
+// dropped websocket silently stopped all cross-device updates with no recovery.
+// The first SUBSCRIBED is already covered by the initial fetchAll; a LATER
+// SUBSCRIBED means the socket dropped and rejoined, so changes that happened
+// while it was down must be re-fetched. Mutates `state.everSubscribed`.
+// -----------------------------------------------------------------------------
+export function shouldResyncOnStatus(status, state) {
+  if (status === 'SUBSCRIBED') {
+    const resync = state.everSubscribed === true;
+    state.everSubscribed = true;
+    return resync;
+  }
+  return false;
+}
+
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
   return data.session ?? null;
@@ -109,10 +146,31 @@ export function createTableSync(spec) {
     return { deleted: true };
   }
 
+  // 2026-06-12 fix (review finding): reads used to rely on RLS alone, which
+  // scopes to ALL instances the user belongs to. A user in two instances
+  // pulled the union locally, and initialSync then re-uploaded the other
+  // instance's rows into the default instance — duplication + cross-instance
+  // bleed. Every read (and the realtime channel) now filters to the same
+  // instance the writes target. Cached per controller; instance membership
+  // doesn't change mid-session.
+  let cachedTenantId = null;
+  async function tenantIdCached() {
+    if (!cachedTenantId) cachedTenantId = await getTenantId();
+    return cachedTenantId;
+  }
+
   async function fetchAll() {
+    let tenantId;
+    try {
+      tenantId = await tenantIdCached();
+    } catch (e) {
+      console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      return null;
+    }
     const { data, error } = await supabase
       .from(remoteTable)
       .select('*')
+      .eq('instance_id', tenantId)
       .order('created_at', { ascending: true });
     if (error) {
       console.warn(`[table-sync:${remoteTable}] fetch failed:`, error);
@@ -124,26 +182,42 @@ export function createTableSync(spec) {
   function subscribe(onRemote) {
     let channel = null;
     let cancelled = false;
+    const refresh = () => {
+      fetchAll().then((refreshed) => {
+        if (refreshed && !cancelled) onRemote(refreshed);
+      });
+    };
+    // A4: coalesce a burst of realtime changes (incl. own writes) into one
+    // refetch. A5: state for the reconnect-resync decision.
+    const debouncedRefresh = createDebouncer(refresh, 400);
+    const statusState = { everSubscribed: false };
     (async () => {
       const session = await currentSession();
       if (!session || cancelled) return;
       const initial = await fetchAll();
       if (initial) onRemote(initial);
+      let tenantId = null;
+      try { tenantId = await tenantIdCached(); } catch (_) { /* filter below stays broad; fetchAll still scopes */ }
+      if (cancelled) return;
       channel = supabase
         .channel(`${remoteTable}-stream`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: remoteTable },
-          () => {
-            fetchAll().then((refreshed) => {
-              if (refreshed) onRemote(refreshed);
-            });
-          }
+          {
+            event: '*', schema: 'public', table: remoteTable,
+            ...(tenantId ? { filter: `instance_id=eq.${tenantId}` } : {}),
+          },
+          () => { debouncedRefresh(); }
         )
-        .subscribe();
+        .subscribe((status) => {
+          // A5: a re-SUBSCRIBED after a dropped socket means changes were missed
+          // while it was down — catch up with a fresh fetch.
+          if (shouldResyncOnStatus(status, statusState) && !cancelled) refresh();
+        });
     })();
     return function unsubscribe() {
       cancelled = true;
+      debouncedRefresh.cancel();
       if (channel) supabase.removeChannel(channel);
     };
   }
@@ -162,14 +236,48 @@ export function createTableSync(spec) {
       const lid = idOf(local);
       return !lid || !remoteIds.has(lid);
     });
+    // 2026-06-12 data-loss fix: a failed upload used to vanish — the caller
+    // replaced local state with the refetched cloud list, deleting the very
+    // item whose INSERT had just failed (missing column, tier trigger,
+    // network blip). Track failures and keep those items in the merged list
+    // so the device copy survives; they retry on the next initialSync.
+    const failedUploads = [];
     for (const local of toUpload) {
-      await upload(local);
+      const res = await upload(local);
+      if (!res || !res.uploaded) failedUploads.push(local);
     }
 
     // Refetch after uploads so the caller gets the merged final state.
     const merged = await fetchAll();
-    return { merged: merged || remoteItems };
+    const base = merged || remoteItems;
+    const baseIds = new Set(base.map((r) => idOf(r)));
+    const preserved = failedUploads.filter((l) => !baseIds.has(idOf(l)));
+    return { merged: [...base, ...preserved], uploadFailures: failedUploads.length };
   }
 
   return { localKey, remoteTable, upload, updateRow, deleteRow, subscribe, initialSync };
+}
+
+// -----------------------------------------------------------------------------
+// unionPreservingLocal — 2026-06-12 data-loss fix for the wholesale replace.
+//
+// When a cloud list arrives (initial sync or a realtime event), replacing
+// local state with it drops any locally-created item whose upload hasn't
+// landed yet (or silently failed) — the item simply disappears from the
+// device. Locally-created ids are prefixed strings ('inc-...', 'pr-...');
+// synced rows carry DB UUIDs. So: take the cloud list, then keep any current
+// local item whose id is NOT a UUID (never reached the cloud) and isn't
+// already represented. UUID rows absent from the cloud list stay dropped —
+// that's a genuine cross-device deletion propagating, which must still work.
+// -----------------------------------------------------------------------------
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function unionPreservingLocal(currentLocal, remoteItems, idOf = (item) => item?.id) {
+  const remote = remoteItems || [];
+  const remoteIds = new Set(remote.map((r) => idOf(r)));
+  const keep = (currentLocal || []).filter((l) => {
+    const lid = idOf(l);
+    return lid && !UUID_RE.test(String(lid)) && !remoteIds.has(lid);
+  });
+  return keep.length ? [...remote, ...keep] : remote;
 }

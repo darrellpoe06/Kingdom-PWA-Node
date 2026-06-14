@@ -4,8 +4,90 @@
 // shipped r20; this is the structural extraction.
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
+import { BuildBoard } from './BuildBoard.jsx';
+import GovernanceQueue from './GovernanceQueue.jsx';
+import ReviewFeed from './ReviewFeed.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
+
+// Defensive date parsing. A missing or malformed startDate must NEVER render as
+// "12/31/1969" (epoch zero in local time), sort to the top of the timeline, or
+// stretch the 12-month forecast back to 1970. Returns a valid Date or null;
+// callers show an honest "date not set" affordance instead of a junk date.
+// (Darrell, 2026-06-13: a synced project with a null start_date was showing
+// 12/31/1969 — "this whole screen should be working.")
+const safeDate = (s) => {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+};
+const dateMs = (s) => { const d = safeDate(s); return d ? d.getTime() : Infinity; };
+
+// Per-user project scope (Darrell, 2026-06-13): "show me my projects since I'm
+// logged in ... each user has their own list ... the whole family's projects can
+// be in the same place." Real attribution — every project row carries created_by
+// (the signed-in user who added it), surfaced here as `createdBy`. "Mine" = the
+// projects I own; "Everyone" = the whole family's shared list. This filters on
+// the real owner already stored on each project — no painted or invented data.
+// "Mine" = a project I CREATED (created_by) OR one assigned to me personally
+// (assignee_personas, migration 0005 — by persona so a member with more than one
+// sign-in email matches once). No painted data — both are real fields on the row.
+export const isMine = (p, userId, persona = null) => {
+  if (!p) return false;
+  if (userId && p.createdBy === userId) return true;
+  if (persona && Array.isArray(p.assigneePersonas) && p.assigneePersonas.includes(persona)) return true;
+  return false;
+};
+export const scopeProjects = (projects, userId, persona, scope) =>
+  scope === 'mine' ? projects.filter(p => isMine(p, userId, persona)) : projects;
+// Land a signed-in person on their OWN list when they have one (created or
+// assigned) — but never on an empty screen if nothing is attributed to them yet:
+// then fall back to everyone so real data always shows up.
+export const defaultProjectScope = (projects, userId, persona) =>
+  ((userId || persona) && projects.some(p => isMine(p, userId, persona))) ? 'mine' : 'all';
+
+// Manual reprioritization (Darrell, 2026-06-13): "rearrange the list so we can
+// reprioritize based on current needs." A persisted priority_rank the user sets
+// by hand — the HUMAN-decide half of "system ranks, the human decides." Lower
+// rank = higher priority; unranked (null) sorts after ranked and falls back to
+// the timeline date order. The local-AI pushback half lands later (DR-0062) and
+// proposes a rank; this hand-set order always wins.
+export const rankOf = (p) => (p && p.priorityRank != null ? p.priorityRank : Infinity);
+export const orderProjects = (list, mode) => {
+  const arr = [...list];
+  if (mode === 'priority') {
+    arr.sort((a, b) => rankOf(a) - rankOf(b) || dateMs(a.startDate) - dateMs(b.startDate));
+  } else {
+    arr.sort((a, b) => dateMs(a.startDate) - dateMs(b.startDate));
+  }
+  return arr;
+};
+// Start in Priority order when the list already carries a hand-set order, so a
+// reprioritized list stays reprioritized across visits; otherwise Timeline.
+export const defaultOrderMode = (projects) =>
+  projects.some(p => p && p.priorityRank != null) ? 'priority' : 'timeline';
+
+// Build backlog #2 (ANXIETY-CLARITY): a project's NEXT ACTION and any BLOCKER,
+// surfaced on the card so the list answers what's-next / what's-stuck at a
+// glance. Free-text fields (migration 0006); these helpers report presence so
+// the UI and any future "needs attention" roll-up read the same truth. Treats
+// whitespace-only as empty so a stray space never reads as a real next step.
+export const hasNextStep = (p) => !!(p && typeof p.nextStep === 'string' && p.nextStep.trim());
+export const isBlocked = (p) => !!(p && typeof p.blocker === 'string' && p.blocker.trim());
+
+// Reorder helper (build backlog #3): swap two items by id within a list,
+// leaving every other element — including filter-hidden rows between them — in
+// place. Moving a card "past the next visible one" while a filter hides rows is
+// exactly this: swap the two visible ids inside the full ordered list. Returns
+// the original list unchanged if either id is missing; never mutates the input.
+export const swapById = (list, idA, idB) => {
+  const arr = [...(list || [])];
+  const i = arr.findIndex(p => p && p.id === idA);
+  const j = arr.findIndex(p => p && p.id === idB);
+  if (i < 0 || j < 0) return list;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  return arr;
+};
 
 const PROJECT_DOMAINS = [
   { key: 'personal', label: 'Personal', color: '#5A6E3D' },
@@ -40,20 +122,27 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false }) {
   const [subView, setSubView] = useState('list');
+  // The governance queue names credentials, spend, and Tier-C activations — it
+  // shows only for a signed-in family/governor account.
+  const tabs = [['list','Projects · Timeline'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
+  if (isGovernor) tabs.push(['governance','⚖ Decisions']);
+  // The Review surface shows the freshness loop's staged proposals (DR-0072) —
+  // family-internal oversight, so it rides the same Governor gate.
+  if (isGovernor) tabs.push(['review','🔄 Review']);
   return (
     <div className="space-y-4">
       <div className="border-b border-[#E8E4DC]">
         <div className="flex gap-1 text-xs">
-          {[['list','Projects · Timeline'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast']].map(([id, label]) => (
+          {tabs.map(([id, label]) => (
             <button key={id} onClick={() => setSubView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${subView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
           ))}
         </div>
       </div>
       {subView === 'list' && (
         <>
-          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
+          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} />
           {/* 2026-05-24 — Feedback Log → Promote queue is now positioned
               between All Projects (above) and the 12-Month Capital Forecast
               (below) so the "decide what becomes a project" loop is visually
@@ -67,6 +156,9 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
+      {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} />}
+      {subView === 'governance' && isGovernor && <GovernanceQueue />}
+      {subView === 'review' && isGovernor && <ReviewFeed />}
     </div>
   );
 }
@@ -128,9 +220,71 @@ function ProjectConversationLog({ project, updateProject }) {
   );
 }
 
-function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject }) {
+// ProjectClarity (build backlog #2) — the next action and any blocker, shown on
+// the card and editable in place so the list answers what's-next / what's-stuck
+// at a glance (ANXIETY-CLARITY). Free text; persists + syncs immediately via
+// updateProject (UPDATE-only columns, migration 0006 — same path as assignees,
+// so a not-yet-migrated column fails soft instead of breaking a create).
+function ProjectClarity({ project, updateProject }) {
+  const [editing, setEditing] = useState(null); // 'next' | 'blocker' | null
+  const [draft, setDraft] = useState('');
+  const nextStep = (project.nextStep || '').trim();
+  const blocker = (project.blocker || '').trim();
+  const begin = (field, current) => { setEditing(field); setDraft(current); };
+  const commit = (field) => {
+    const key = field === 'next' ? 'nextStep' : 'blocker';
+    const val = draft.trim();
+    const prev = field === 'next' ? nextStep : blocker;
+    if (val !== prev) updateProject(project.id, { [key]: val });
+    setEditing(null); setDraft('');
+  };
+  const onKey = (e, field) => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(field); }
+    else if (e.key === 'Escape') { e.preventDefault(); setEditing(null); setDraft(''); }
+  };
+  return (
+    <div className="mb-2 space-y-1">
+      {/* Next action */}
+      {editing === 'next' ? (
+        <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => commit('next')} onKeyDown={e => onKey(e, 'next')}
+          placeholder="What's the next action?" aria-label={`Next step for ${project.title}`}
+          className="w-full p-1.5 border border-[#5A6E3D] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" />
+      ) : nextStep ? (
+        <button type="button" onClick={() => begin('next', nextStep)} aria-label={`Edit next step for ${project.title}`}
+          className="w-full text-left text-[11px] text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[10px] mr-1">▶ Next</span>{nextStep}
+        </button>
+      ) : (
+        <button type="button" onClick={() => begin('next', '')} aria-label={`Add a next step for ${project.title}`}
+          className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#5A6E3D] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+          ▶ Add next step
+        </button>
+      )}
+      {/* Blocker — only the warning treatment when one is actually set */}
+      {editing === 'blocker' ? (
+        <input autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => commit('blocker')} onKeyDown={e => onKey(e, 'blocker')}
+          placeholder="What's blocking it? (empty = nothing)" aria-label={`Blocker for ${project.title}`}
+          className="w-full p-1.5 border border-[#B85838] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
+      ) : blocker ? (
+        <button type="button" onClick={() => begin('blocker', blocker)} aria-label={`Edit blocker for ${project.title}`}
+          className="w-full text-left text-[11px] text-[#1A1815] bg-[#FAF8F4] hover:bg-white border-l-2 border border-transparent border-l-[#B85838] hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="text-[#B85838] font-semibold uppercase tracking-wider text-[10px] mr-1">⛔ Blocked</span>{blocker}
+        </button>
+      ) : (
+        <button type="button" onClick={() => begin('blocker', '')} aria-label={`Flag a blocker for ${project.title}`}
+          className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-transparent hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          + Flag a blocker
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject, currentUserId = null, currentUserPersona = null, familyMembers = [] }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [scope, setScope] = useState(() => defaultProjectScope(projects, currentUserId, currentUserPersona));
+  const [orderMode, setOrderMode] = useState(() => defaultOrderMode(projects));
   const [filterDomain, setFilterDomain] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [projError, setProjError] = useState('');
@@ -173,12 +327,38 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   };
   const cancelEdit = () => { setEditingId(null); setProjError(''); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); };
 
-  // Filter and sort
-  const filtered = projects.filter(p => {
+  // Per-user scope first: "Mine" (projects I own) vs "Everyone" (the whole
+  // family's shared list). Everything below — stats, the 12-month workload, and
+  // the list — reads from `scoped`, so each user sees a coherent picture of their
+  // own perspective, or the family's, depending on the toggle.
+  const scoped = useMemo(() => scopeProjects(projects, currentUserId, currentUserPersona, scope), [projects, currentUserId, currentUserPersona, scope]);
+  const mineCount = useMemo(() => projects.filter(p => isMine(p, currentUserId, currentUserPersona)).length, [projects, currentUserId, currentUserPersona]);
+
+  // Order (Timeline by date, or the hand-set Priority order) THEN filter, so the
+  // displayed list and the reorder controls agree on positions.
+  const ordered = useMemo(() => orderProjects(scoped, orderMode), [scoped, orderMode]);
+  const filtered = ordered.filter(p => {
     if (filterDomain !== 'all' && p.domain !== filterDomain) return false;
     if (filterStatus !== 'all' && p.status !== filterStatus) return false;
     return true;
-  }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+  });
+
+  // Hand reordering by priority. filtersActive still drives the COPY (we explain
+  // the slide-past-hidden behavior), but reorder now works WITH filters on: a
+  // move swaps the two VISIBLE neighbors' positions within the full ordered list
+  // (swapById), leaving filter-hidden rows in place, then re-ranks the whole
+  // list 0..n so the order is durable and syncs across devices.
+  const filtersActive = filterDomain !== 'all' || filterStatus !== 'all';
+  const canReorder = orderMode === 'priority' && filtered.length > 1;
+  const moveProject = (index, dir) => {
+    const j = dir === 'up' ? index - 1 : index + 1;
+    if (j < 0 || j >= filtered.length) return;
+    // Swap the two visible neighbors by id in the FULL ordered list (not just
+    // `filtered`), so rows hidden by a domain/status filter keep their slot;
+    // then persist a clean 0..n rank across everything in scope.
+    const arr = swapById(ordered, filtered[index].id, filtered[j].id);
+    arr.forEach((p, idx) => { if ((p.priorityRank ?? null) !== idx) updateProject(p.id, { priorityRank: idx }); });
+  };
 
   // Compute timeline range. `now` is captured in a useMemo so the workload
   // useMemo below has a stable dep (otherwise it'd re-run every render).
@@ -187,8 +367,9 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   let earliestDate = now;
   let latestDate = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
   visibleProjects.forEach(p => {
-    const s = new Date(p.startDate);
-    const e = p.endDate ? new Date(p.endDate) : new Date(s.getFullYear(), s.getMonth() + 3, s.getDate());
+    const s = safeDate(p.startDate);
+    if (!s) return; // undated project: don't let it stretch the timeline range
+    const e = safeDate(p.endDate) || new Date(s.getFullYear(), s.getMonth() + 3, s.getDate());
     if (s < earliestDate) earliestDate = s;
     if (e > latestDate) latestDate = e;
   });
@@ -206,9 +387,10 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
       months[key] = { label: MONTHS_ABBR[d.getMonth()] + " '" + String(d.getFullYear()).slice(2), hours: 0, projects: [] };
     }
-    projects.filter(p => p.status === 'active' || p.status === 'ending-soon').forEach(p => {
-      const s = new Date(p.startDate);
-      const e = p.endDate ? new Date(p.endDate) : new Date(s.getFullYear() + 1, s.getMonth(), s.getDate());
+    scoped.filter(p => p.status === 'active' || p.status === 'ending-soon').forEach(p => {
+      const s = safeDate(p.startDate);
+      if (!s) return; // undated project can't be placed on the forecast
+      const e = safeDate(p.endDate) || new Date(s.getFullYear() + 1, s.getMonth(), s.getDate());
       Object.keys(months).forEach(key => {
         const [y, m] = key.split('-').map(Number);
         const monthStart = new Date(y, m, 1);
@@ -220,7 +402,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       });
     });
     return months;
-  }, [projects, now]);
+  }, [scoped, now]);
 
   // Preparatory scaffolding — pending "current month's committed hours" chip.
   // eslint-disable-next-line no-unused-vars
@@ -241,20 +423,47 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
         </p>
       </section>
 
+      {/* Whose projects am I looking at? — the same data, seen from each user's
+          own perspective. "Mine" is your own list; "Everyone" is the whole
+          family's, all in one place. Plain words + counts so anyone, regardless
+          of how technical they are, knows exactly what they're seeing. */}
+      {currentUserId && projects.length > 0 && (
+        <section className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Whose projects</span>
+            <div className="flex" role="group" aria-label="Whose projects to show">
+              {[['mine', `Mine (${mineCount})`], ['all', `Everyone (${projects.length})`]].map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={scope === k}
+                  onClick={() => setScope(k)}
+                  className="text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  style={scope === k ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}
+                >{label}</button>
+              ))}
+            </div>
+            <span className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              {scope === 'mine' ? 'The projects you own.' : "Everyone's projects, in one place."}
+            </span>
+          </div>
+        </section>
+      )}
+
       {/* Snapshot stats — at a glance */}
-      {projects.length > 0 && (
+      {scoped.length > 0 && (
         <section>
           <div className="grid grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            <MetricCell label="Active" value={`${projects.filter(p => p.status === 'active').length}`} sub="in flight" small accent="green" />
-            <MetricCell label="Ending soon" value={`${projects.filter(p => p.status === 'ending-soon').length}`} sub="<30 days" small accent="rust" />
-            <MetricCell label="Planning" value={`${projects.filter(p => p.status === 'planning').length}`} sub="to launch" small />
-            <MetricCell label="Total weekly" value={`${projects.filter(p => p.status === 'active' || p.status === 'ending-soon').reduce((s,p) => s + (p.hoursPerWeek || 0), 0)}h`} sub="/wk active" small />
+            <MetricCell label="Active" value={`${scoped.filter(p => p.status === 'active').length}`} sub="in flight" small accent="green" />
+            <MetricCell label="Ending soon" value={`${scoped.filter(p => p.status === 'ending-soon').length}`} sub="<30 days" small accent="rust" />
+            <MetricCell label="Planning" value={`${scoped.filter(p => p.status === 'planning').length}`} sub="to launch" small />
+            <MetricCell label="Total weekly" value={`${scoped.filter(p => p.status === 'active' || p.status === 'ending-soon').reduce((s,p) => s + (p.hoursPerWeek || 0), 0)}h`} sub="/wk active" small />
           </div>
         </section>
       )}
 
       {/* Workload visualization */}
-      {projects.length > 0 && (
+      {scoped.length > 0 && (
         <section>
           <SectionTitle eyebrow="Coordination">12-Month Workload Forecast · Hours / Week</SectionTitle>
           <div className="bg-white border border-[#1A1815] p-5">
@@ -286,6 +495,16 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Projects</h2>
           <div className="flex gap-2 flex-wrap items-center">
+            {/* Order: Timeline (by date) vs Priority (hand-set order you can
+                rearrange). Switching to Priority reveals up/down controls. */}
+            <div className="flex" role="group" aria-label="Order the list">
+              {[['timeline', 'Timeline'], ['priority', 'Priority']].map(([k, label]) => (
+                <button key={k} type="button" aria-pressed={orderMode === k} onClick={() => setOrderMode(k)}
+                  className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  style={orderMode === k ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}
+                >{label}</button>
+              ))}
+            </div>
             <select className="text-xs p-1.5 border border-[#E8E4DC] bg-[#FAF8F4]" value={filterDomain} onChange={e => setFilterDomain(e.target.value)}>
               <option value="all">All domains</option>
               {PROJECT_DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
@@ -297,6 +516,22 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             <button type="button" onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
           </div>
         </div>
+
+        {/* Priority mode — explain the hand-set order + honestly mark where the
+            local AI's pushback will land (DR-0062: the AI proposes, you decide).
+            No painted AI data: it says plainly it isn't active yet. */}
+        {orderMode === 'priority' && (
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-3 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            {filtersActive ? (
+              <span>Ordering by priority with filters on — <span aria-hidden="true">▲ ▼</span> moves a card past the next <strong>visible</strong> one; rows hidden by the filter keep their place. Saves and syncs across your devices.</span>
+            ) : (
+              <span>Use <span aria-hidden="true">▲ ▼</span> on each project to set the order — top is highest priority. It saves and syncs across your devices.</span>
+            )}
+            <span className="block mt-1 italic text-[#8B6F47]">
+              The local AI&apos;s suggested order isn&apos;t active yet — you&apos;re setting it by hand. When the orchestrator brain is on, it will propose an order here and you&apos;ll still have the final say.
+            </span>
+          </div>
+        )}
 
         {/* r19 — Top form panel ONLY for ADD NEW. Edit happens inline under
             the edited row (see renderProjectForm + the row map below). */}
@@ -371,7 +606,36 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           </div>
         )}
 
-        {filtered.length === 0 && !showForm && (
+        {/* "Mine" is empty but the family has projects — don't show the cold
+            "no projects yet" / load-examples block (it would read as if their
+            data vanished). Point them to Everyone or to adding their own. */}
+        {filtered.length === 0 && !showForm && scope === 'mine' && projects.length > 0 && (
+          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+            <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+              None of these projects are yours yet. Switch to <strong>Everyone</strong> to see the whole family&apos;s, or add one of your own — it&apos;ll show up in your list.
+            </p>
+            <button type="button" onClick={() => setScope('all')} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white">
+              See everyone&apos;s projects ({projects.length})
+            </button>
+          </div>
+        )}
+
+        {/* Signed in with no projects: invite the FIRST real project (saved to
+            your account), not example data that would just clutter your list. */}
+        {filtered.length === 0 && !showForm && !(scope === 'mine' && projects.length > 0) && currentUserId && (
+          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+            <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+              No projects yet. Add the things you&apos;re working on across your life — work, family, ministry, side projects, repairs. They&apos;re yours, saved to your account and synced across your devices.
+            </p>
+            <button type="button" onClick={() => { setEditingId(null); setShowForm(true); }} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+              + Add your first project
+            </button>
+          </div>
+        )}
+
+        {/* Signed out / exploring: examples help someone see the workload view.
+            They stay local (never upload) and so never pollute a real account. */}
+        {filtered.length === 0 && !showForm && !(scope === 'mine' && projects.length > 0) && !currentUserId && (
           <div className="bg-white border border-[#E8E4DC] p-6 text-center">
             <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               No projects yet. Add the things you're working on across your life — work, family, ministry, side projects, repairs. The first ones often feel obvious; the value comes when you can see them all together.
@@ -397,19 +661,28 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
 
         {filtered.length > 0 && (
           <div className="space-y-2">
-            {filtered.map(p => {
+            {filtered.map((p, index) => {
               const now = new Date();
-              const start = new Date(p.startDate);
-              const end = p.endDate ? new Date(p.endDate) : null;
+              const start = safeDate(p.startDate);
+              const end = safeDate(p.endDate);
               const isOverdue = end && end < now && p.status !== 'complete';
               const daysUntilEnd = end ? Math.ceil((end - now) / (1000 * 60 * 60 * 24)) : null;
-              const totalDays = end ? Math.ceil((end - start) / (1000 * 60 * 60 * 24)) : null;
-              const daysElapsed = Math.max(0, Math.ceil((now - start) / (1000 * 60 * 60 * 24)));
+              const totalDays = (start && end) ? Math.ceil((end - start) / (1000 * 60 * 60 * 24)) : null;
+              const daysElapsed = start ? Math.max(0, Math.ceil((now - start) / (1000 * 60 * 60 * 24))) : 0;
               const progressPct = totalDays && totalDays > 0 ? Math.min(100, (daysElapsed / totalDays) * 100) : 0;
               return (
                 <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: domainColor(p.domain) }}>
                   <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
-                    <h4 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</h4>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {canReorder && (
+                        <span className="flex flex-col shrink-0">
+                          <button type="button" onClick={() => moveProject(index, 'up')} disabled={index === 0} aria-label={`Move ${p.title} up`} className="text-[10px] leading-none px-1.5 py-0.5 border border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▲</button>
+                          <button type="button" onClick={() => moveProject(index, 'down')} disabled={index === filtered.length - 1} aria-label={`Move ${p.title} down`} className="text-[10px] leading-none px-1.5 py-0.5 border border-t-0 border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▼</button>
+                        </span>
+                      )}
+                      {canReorder && <span className="text-[10px] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>#{index + 1}</span>}
+                      <h4 className="text-base truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</h4>
+                    </div>
                     {/* Round 7 — properly-sized Edit / Delete tap targets, divider between them. */}
                     <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
                       <span style={{ color: statusColor(p.status) }} className="font-medium px-2">{p.status}{p.status === 'tbd' && ' · parked'}</span>
@@ -430,7 +703,9 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                   <div className="text-xs text-[#5A5751] mb-2">
                     <span style={{ color: domainColor(p.domain) }} className="font-medium">{domainLabel(p.domain)}</span>
                     <span> · </span>
-                    <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{start.toLocaleDateString()}</span>
+                    {start
+                      ? <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{start.toLocaleDateString()}</span>
+                      : <button type="button" onClick={() => startEdit(p)} className="italic text-[#B85838] underline decoration-dotted hover:text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>start date not set — add one</button>}
                     {end && <><span> → </span><span style={{ fontFamily: '"JetBrains Mono", monospace' }} className={isOverdue ? 'text-[#B85838] font-medium' : ''}>{end.toLocaleDateString()}{isOverdue ? ' (overdue)' : daysUntilEnd > 0 && daysUntilEnd < 30 ? ` (${daysUntilEnd}d left)` : ''}</span></>}
                     {p.hoursPerWeek > 0 && <> · {p.hoursPerWeek}h/wk</>}
                   </div>
@@ -443,6 +718,37 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                       })}
                     </div>
                   )}
+                  {/* Personal assignment (migration 0005) — assign a family
+                      member and it shows up in their "Mine" list too. In-place
+                      toggle chips; persists + syncs immediately. */}
+                  {familyMembers.length > 0 && (
+                    <div className="text-[10px] text-[#5A5751] mb-2 flex flex-wrap items-center gap-1.5">
+                      <span className="uppercase tracking-wider">🧑‍🤝‍🧑 Assigned:</span>
+                      {familyMembers.map(m => {
+                        const on = Array.isArray(p.assigneePersonas) && p.assigneePersonas.includes(m.key);
+                        return (
+                          <button
+                            type="button"
+                            key={m.key}
+                            onClick={() => {
+                              const cur = Array.isArray(p.assigneePersonas) ? p.assigneePersonas : [];
+                              const nextAssignees = on ? cur.filter(x => x !== m.key) : [...cur, m.key];
+                              updateProject(p.id, { assigneePersonas: nextAssignees });
+                            }}
+                            aria-pressed={on}
+                            aria-label={on ? `Unassign ${m.name} from ${p.title}` : `Assign ${m.name} to ${p.title}`}
+                            className={`px-2 py-1 border uppercase tracking-wider min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#5A6E3D] hover:text-[#1A1815]'}`}
+                          >
+                            {on ? '✓ ' : ''}{m.name}
+                          </button>
+                        );
+                      })}
+                      {(!Array.isArray(p.assigneePersonas) || p.assigneePersonas.length === 0) && (
+                        <span className="italic" style={{ fontFamily: '"Fraunces", serif' }}>tap a name to add it to their list</span>
+                      )}
+                    </div>
+                  )}
+                  <ProjectClarity project={p} updateProject={updateProject} />
                   {totalDays && p.status !== 'complete' && (
                     <div className="h-1 bg-[#E8E4DC] mb-2">
                       <div className="h-full" style={{ width: `${progressPct}%`, backgroundColor: domainColor(p.domain) }}></div>

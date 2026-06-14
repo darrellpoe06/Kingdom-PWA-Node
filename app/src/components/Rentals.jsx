@@ -5,6 +5,10 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { RentCastPrefill } from './connectors/RentCast.jsx';
 import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
+import { DispatchPanel } from './DispatchPanel.jsx';
+import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
+import { compressImageFile } from '../lib/image.js';
+import { hasBridgeToken, chatChannelFor } from '../lib/nas-photos.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -64,6 +68,34 @@ const ROOM_ITEM_STATUSES = [
   { key: 'scheduled',  label: 'Scheduled',      symbol: '→' },
   { key: 'done',       label: 'Done',           symbol: '★' },
 ];
+
+// Occupancy-revenue model (Darrell's locked spec, 2026-06-10): $1,000 per
+// person, two people to a room → $2,000/room full, $1,000 at half, $0 empty.
+// Every room ALWAYS shows the full $2,000 opportunity so the gap between
+// actual and potential motivates marketing the vacant space — across the
+// whole rent → collect → buy → invest lifecycle. The per-person rate is
+// editable per room (the $1,000 is the aspirational default); capacity is 2.
+const RATE_PER_PERSON = 1000;
+const ROOM_CAPACITY = 2;
+// occupants: 0 (empty), 1 (half), 2 (full). Potential is always capacity.
+const roomRate = (room) => Number(room?.ratePerPerson) || RATE_PER_PERSON;
+const roomActualMonthly = (room) => (Number(room?.occupants) || 0) * roomRate(room);
+const roomPotentialMonthly = (room) => ROOM_CAPACITY * roomRate(room);
+const OCCUPANCY_OPTIONS = [
+  { occupants: 0, label: 'Empty' },
+  { occupants: 1, label: 'Half · 1' },
+  { occupants: 2, label: 'Full · 2' },
+];
+// Roll a property's rooms up to { actual, potential, opportunity, vacantSpots }.
+function occupancyRollup(rooms = []) {
+  let actual = 0, potential = 0, vacantSpots = 0;
+  for (const rm of rooms) {
+    actual += roomActualMonthly(rm);
+    potential += roomPotentialMonthly(rm);
+    vacantSpots += Math.max(0, ROOM_CAPACITY - (Number(rm?.occupants) || 0));
+  }
+  return { actual, potential, opportunity: potential - actual, vacantSpots };
+}
 
 function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   // v28+ MVP v1.5 round 8 — Property valuation block (Zillow-style)
@@ -242,6 +274,46 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
       : rm);
     updateRental(rental.id, { rooms });
   };
+  // Room photos + room note — PROPERTY memory, not tenant memory. These ride
+  // on the room record and PERSIST across tenancies (turnover never clears
+  // them), so the transformation of a room over years stays visible and the
+  // factual history of "what this room/bathroom is" is always remembered.
+  const addRoomPhotos = async (rmId, fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const shots = [];
+    for (const file of Array.from(fileList)) {
+      try { shots.push({ id: `ph-${Date.now()}-${shots.length}`, src: await compressImageFile(file), date: today, caption: '' }); }
+      catch (e) { console.warn('Room photo compress failed', e); }
+    }
+    if (!shots.length) return;
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, photos: [...(rm.photos || []), ...shots] }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const setRoomPhotoCaption = (rmId, phId, caption) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, photos: (rm.photos || []).map(p => p.id === phId ? { ...p, caption } : p) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const deleteRoomPhoto = (rmId, phId) => {
+    if (!confirm('Delete this photo from the room history?')) return;
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, photos: (rm.photos || []).filter(p => p.id !== phId) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const setRoomNote = (rmId, note) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId ? { ...rm, note } : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const setRoomOccupancy = (rmId, occupants) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId ? { ...rm, occupants } : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const occ = occupancyRollup(rental.rooms || []);
 
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
@@ -508,6 +580,34 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
             </div>
             <button type="button" onClick={addRoom} className="bg-[#1A1815] text-white py-2 px-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">+ Room</button>
           </div>
+          {/* ROOM INCOME — occupancy-revenue model. Always shows the full
+              potential so the opportunity gap motivates filling vacant space. */}
+          {occ.potential > 0 && (
+            <div className="bg-white border-2 border-[#5A6E3D] p-3">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">💵 Room Income · per-room potential</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-base" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.actual)}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">collecting now</div>
+                </div>
+                <div>
+                  <div className="text-base text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.potential)}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">full potential</div>
+                </div>
+                <div>
+                  <div className="text-base text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.opportunity)}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">opportunity</div>
+                </div>
+              </div>
+              {occ.opportunity > 0 ? (
+                <p className="text-[11px] text-[#1A1815] mt-2 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <strong>{fmt(occ.opportunity)}/mo</strong> on the table across <strong>{occ.vacantSpots}</strong> open {occ.vacantSpots === 1 ? 'spot' : 'spots'} — market them and the building funds itself faster.
+                </p>
+              ) : (
+                <p className="text-[11px] text-[#5A6E3D] mt-2 text-center font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Fully occupied — every spot earning. 🎯</p>
+              )}
+            </div>
+          )}
           {(rental.rooms || []).length === 0 ? (
             <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms yet. Add a room above to start tracking needed work.</p>
           ) : (
@@ -524,6 +624,20 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
                     <button type="button" onClick={() => deleteRoom(rm.id)} aria-label={`Delete room ${rm.name}`} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-white px-3 py-2 min-h-[36px] border border-transparent hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">× Room</button>
                   </div>
                 </div>
+                {/* Occupancy — drives the room-income model. Empty / half / full. */}
+                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                  <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Occupancy:</span>
+                  {OCCUPANCY_OPTIONS.map(o => {
+                    const active = (Number(rm.occupants) || 0) === o.occupants;
+                    return (
+                      <button key={o.occupants} type="button" onClick={() => setRoomOccupancy(rm.id, o.occupants)} aria-pressed={active} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${active ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{o.label}</button>
+                    );
+                  })}
+                  <span className="text-[10px] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span className={roomActualMonthly(rm) > 0 ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}>{fmt(roomActualMonthly(rm))}</span>
+                    <span className="text-[#5A5751]"> / {fmt(roomPotentialMonthly(rm))}</span>
+                  </span>
+                </div>
                 {showRoomForm && roomItem.roomId === rm.id && (
                   <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -537,6 +651,40 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
                     </div>
                   </div>
                 )}
+                {/* Room note — persistent property memory about this room/bathroom. */}
+                <textarea
+                  className="w-full p-2 border border-[#E8E4DC] text-xs bg-white mb-2"
+                  rows="2"
+                  placeholder={`Notes about ${rm.name} (remembered for every tenant — finishes, quirks, what's where)`}
+                  defaultValue={rm.note || ''}
+                  onBlur={e => { if ((e.target.value || '') !== (rm.note || '')) setRoomNote(rm.id, e.target.value); }}
+                />
+                {/* Room photo gallery — the transformation timeline, oldest first. */}
+                <div className="mb-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">📷 {rm.name} photos · {(rm.photos || []).length}</span>
+                    <label className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] cursor-pointer">
+                      + Add photos
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={e => { addRoomPhotos(rm.id, e.target.files); e.target.value = ''; }} />
+                    </label>
+                  </div>
+                  {(rm.photos || []).length === 0 ? (
+                    <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No photos yet. Add before/after shots to see this room change over the years.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {[...(rm.photos || [])].sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(p => (
+                        <div key={p.id} className="w-24">
+                          <a href={p.src} target="_blank" rel="noopener noreferrer" title="Open full size">
+                            <img src={p.src} alt={p.caption || `${rm.name} photo`} className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815]" />
+                          </a>
+                          <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</div>
+                          <input className="w-full text-[10px] p-1 border border-[#E8E4DC] bg-white mt-0.5" placeholder="caption" defaultValue={p.caption || ''} onBlur={e => { if ((e.target.value || '') !== (p.caption || '')) setRoomPhotoCaption(rm.id, p.id, e.target.value); }} />
+                          <button type="button" onClick={() => deleteRoomPhoto(rm.id, p.id)} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] mt-0.5">× remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {(rm.items || []).length === 0 ? (
                   <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No items yet.</p>
                 ) : (
@@ -565,7 +713,7 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   );
 }
 
-function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, voiceOps = {} }) {
+function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], dispatchIncident, voiceOps = {} }) {
   // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
   // incident already pointed at it (if any) so we don't double-track.
   const openIncidentFor = (r) => incidents.find(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
@@ -670,7 +818,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     const withCoords = rentals.filter(r => typeof r.lat === 'number' && typeof r.lon === 'number');
     withCoords.forEach(r => {
       const marker = window.L.marker([r.lat, r.lon]).addTo(mapInstanceRef.current);
-      marker.bindPopup(`<strong>${r.name}</strong><br/>${r.address || ''}${r.city ? ', ' + r.city : ''}<br/>Rent: $${r.rent}/mo · ${r.status}<br/>${r.mortgage?.balance ? 'Mortgage: $' + r.mortgage.balance.toLocaleString() : 'Paid off'}`);
+      marker.bindPopup(`<strong>${r.name}</strong><br/>${r.address || ''}${r.city ? ', ' + r.city : ''}<br/>Rent: $${r.rent}/mo · ${r.status}<br/>${r.mortgage?.balance ? 'Mortgage: $' + r.mortgage.balance.toLocaleString() : 'Mortgage: —'}`);
       markersRef.current.push(marker);
     });
     if (withCoords.length > 0) {
@@ -768,28 +916,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const [maintForm, setMaintForm] = useState(blankMaint());
   const [convForm, setConvForm] = useState(blankConv());
 
-  // Compress an image File to a JPEG data URL (max width 1200, quality 0.7).
-  // Returns a Promise<string>. Typical receipt photo lands at 80-200 KB.
-  const compressImageFile = (file, maxWidth = 1200, quality = 0.7) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const ratio = img.width > maxWidth ? maxWidth / img.width : 1;
-        const w = Math.round(img.width * ratio);
-        const h = Math.round(img.height * ratio);
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  // Photo compression is shared with the room galleries — see lib/image.js.
   const onMaintPhotoFiles = async (fileList) => {
     if (!fileList || fileList.length === 0) return;
     const compressed = [];
@@ -799,7 +926,19 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     setMaintForm(f => ({ ...f, photos: [...(f.photos || []), ...compressed] }));
   };
 
-  const openRecords = (r) => { setOpenRecordsId(r.id === openRecordsId ? null : r.id); setShowMaintForm(false); setShowConvForm(false); setMaintForm(blankMaint()); setConvForm(blankConv()); };
+  const openRecords = (r) => {
+    const opening = r.id !== openRecordsId;
+    setOpenRecordsId(opening ? r.id : null);
+    setShowMaintForm(false); setShowConvForm(false); setMaintForm(blankMaint()); setConvForm(blankConv());
+    // 2026-06-12 auto-populate (Darrell: "the images are already there...
+    // why should I [start it]"): when this device holds the bridge token,
+    // the property's NAS photos load THEMSELVES on open — the human's job
+    // is filing keepers to rooms, never fetching. No token / offline →
+    // exactly the old manual behavior, nothing degrades.
+    if (opening && hasBridgeToken() && !(photoImport && photoImport.rentalId === r.id && photoImport.status === 'staged')) {
+      startPhotoImport(r);
+    }
+  };
   const addMaintEntry = (r) => {
     if (!maintForm.description) { alert('Description is required.'); return; }
     const entry = { ...maintForm, id: `mt-${Date.now()}`, cost: parseFloat(maintForm.cost) || 0 };
@@ -812,9 +951,141 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     updateRental(r.id, { conversationLog: [...(r.conversationLog || []), entry] });
     setConvForm(blankConv()); setShowConvForm(false);
   };
+  // Tenant turnover — the new tenant starts with a clean slate; the prior
+  // tenant's record is ARCHIVED, not erased. What carries to the next tenant
+  // (property memory): rooms, room photos + notes, equipment, the maintenance
+  // log. What does NOT carry (tenant memory): the tenant's name/contact, the
+  // lease, the tenant/vendor conversation log, and any open issues — those
+  // are filed under Past Tenancies so the landlord can pull them up for
+  // clarification, and open issues are closed out of the active queue.
+  const tenantTurnover = (r) => {
+    const who = r.tenantName || r.tenant?.name || 'the current tenant';
+    if (!confirm(`Mark turnover at ${r.name}?\n\nThe new tenant gets a clean slate. ${who}'s record (lease, contacts, conversations, open issues) is archived under Past Tenancies — you keep it. Rooms, photos, equipment, and maintenance history stay with the property.`)) return;
+    const openIssues = (incidents || []).filter(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
+    const archived = {
+      id: `ten-${Date.now()}`,
+      tenantName: r.tenantName || r.tenant?.name || '',
+      tenant: r.tenant || null,
+      lease: r.lease || null,
+      conversationLog: r.conversationLog || [],
+      closedIssues: openIssues.map(i => ({ id: i.id, description: i.description, date: i.date })),
+      movedOutAt: new Date().toISOString().slice(0, 10),
+    };
+    if (resolveIncident) openIssues.forEach(i => resolveIncident(i.id));
+    updateRental(r.id, {
+      tenancyHistory: [...(r.tenancyHistory || []), archived],
+      tenantName: '',
+      tenant: null,
+      lease: null,
+      conversationLog: [],
+      status: 'unrented',
+    });
+  };
+  // Property-chat history import (v2.13). The Poe Properties history lives in
+  // the NAS chat app, one channel per property named by short address. An n8n
+  // workflow exposes it as JSON (see infra/n8n/README-property-history.md);
+  // the PWA reaches it via the same-origin /n8n rewrite. Nothing lands
+  // silently: messages STAGE here, the family checks what's true, and only
+  // accepted items join the conversation log. Re-running is safe (dedup by
+  // sourceId in toConversationEntries).
+  const [chatImport, setChatImport] = useState(null);
+  // The bridge requires the family token (n8n header-auth) because the
+  // Funnel makes the webhook publicly reachable — without it anyone could
+  // read the family's property history. Device-local, entered once.
+  const CHAT_BRIDGE_TOKEN_KEY = 'poetech-chat-bridge-token';
+  const [bridgeTokenInput, setBridgeTokenInput] = useState('');
+  const startChatImport = async (r) => {
+    const token = (localStorage.getItem(CHAT_BRIDGE_TOKEN_KEY) || '').trim();
+    if (!token) {
+      setChatImport({ rentalId: r.id, status: 'need-token', messages: [], already: 0 });
+      return;
+    }
+    setChatImport({ rentalId: r.id, status: 'loading', messages: [], already: 0 });
+    try {
+      const resp = await fetch(`/n8n/webhook/property-history?channel=${encodeURIComponent(chatChannelFor(r))}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (resp.status === 401 || resp.status === 403) {
+        setChatImport({ rentalId: r.id, status: 'need-token', messages: [], already: 0, badToken: true });
+        return;
+      }
+      if (!resp.ok) throw new Error(`history bridge answered ${resp.status}`);
+      const json = await resp.json();
+      const parsed = parseChatHistory(json);
+      const fresh = toConversationEntries(parsed, r.conversationLog || []);
+      setChatImport({ rentalId: r.id, status: 'staged', messages: fresh.map(m => ({ ...m, accepted: true })), already: parsed.length - fresh.length });
+    } catch (err) {
+      setChatImport({ rentalId: r.id, status: 'error', error: String(err?.message || err), messages: [], already: 0 });
+    }
+  };
+  const toggleChatImportItem = (sourceId) => setChatImport(ci => ci ? { ...ci, messages: ci.messages.map(m => m.sourceId === sourceId ? { ...m, accepted: !m.accepted } : m) } : ci);
+  const acceptChatImport = (r) => {
+    const accepted = (chatImport?.messages || []).filter(m => m.accepted).map((m) => { const entry = { ...m }; delete entry.accepted; return entry; });
+    if (accepted.length) updateRental(r.id, { conversationLog: [...(r.conversationLog || []), ...accepted] });
+    setChatImport(null);
+  };
+  // Property-photo import (NAS bridge): pulls the property chat channel's
+  // photos as Synology thumbnails, the family files each to the right room.
+  // The thumbnail bytes never include the originals — Synology already made
+  // these small previews; we read those in place. Nothing files itself: the
+  // user picks the room and taps Add, then it joins that room's gallery.
+  const PHOTO_PAGE = 18;
+  const [photoImport, setPhotoImport] = useState(null);
+  const fetchPhotoPage = async (r, offset) => {
+    const token = (localStorage.getItem(CHAT_BRIDGE_TOKEN_KEY) || '').trim();
+    if (!token) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [] }); return; }
+    setPhotoImport(p => ({ rentalId: r.id, status: 'loading', photos: (p && p.rentalId === r.id ? p.photos : []), offset }));
+    try {
+      const resp = await fetch(`/n8n/webhook/property-photos?channel=${encodeURIComponent(chatChannelFor(r))}&limit=${PHOTO_PAGE}&offset=${offset}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (resp.status === 401 || resp.status === 403) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [], badToken: true }); return; }
+      if (!resp.ok) throw new Error(`photo bridge answered ${resp.status}`);
+      const json = await resp.json();
+      const payload = Array.isArray(json) ? (json[0] || {}) : json;
+      const incoming = (payload.photos || []).map(p => ({ ...p, room: '' }));
+      setPhotoImport(prev => {
+        const base = (prev && prev.rentalId === r.id && offset > 0) ? prev.photos : [];
+        const seen = new Set(base.map(x => x.id));
+        return { rentalId: r.id, status: 'staged', photos: [...base, ...incoming.filter(x => !seen.has(x.id))], offset, lastCount: incoming.length };
+      });
+    } catch (err) {
+      setPhotoImport({ rentalId: r.id, status: 'error', error: String(err?.message || err), photos: [] });
+    }
+  };
+  const startPhotoImport = (r) => fetchPhotoPage(r, 0);
+  const setPhotoRoom = (photoId, room) => setPhotoImport(p => p ? { ...p, photos: p.photos.map(x => x.id === photoId ? { ...x, room } : x) } : p);
+  const filePhotoToRoom = (r, photo) => {
+    if (!photo.room || !photo.thumb) return;
+    const entry = { id: `ph-chat-${photo.id}`, src: photo.thumb, date: photo.date || '', caption: photo.text || '' };
+    const rooms = (r.rooms || []).map(rm => rm.id === photo.room
+      ? { ...rm, photos: (rm.photos || []).some(x => x.id === entry.id) ? rm.photos : [...(rm.photos || []), entry] }
+      : rm);
+    updateRental(r.id, { rooms });
+    setPhotoImport(p => p ? { ...p, photos: p.photos.map(x => x.id === photo.id ? { ...x, filed: true } : x) } : p);
+  };
   const deleteMaintEntry = (r, entryId) => {
     if (!confirm('Delete this maintenance entry? Photos and receipt info will be lost.')) return;
     updateRental(r.id, { maintenanceLog: (r.maintenanceLog || []).filter(e => e.id !== entryId) });
+  };
+  // Work order — promote a maintenance entry to an incident on the Action
+  // Queue and remember the link on the entry, so the entry shows live status
+  // (open / dispatched / done) and the dispatch trail lives on the incident's
+  // lifecycle log. This is the path from "needs fixed" to a worker's phone.
+  const createWorkOrder = (r, entry) => {
+    if (!addIncident) return;
+    const id = addIncident({
+      category: 'maintenance',
+      description: `${entry.category}: ${entry.description}`,
+      urgency: entry.urgency || 'incident',
+      entityId: r.entityId,
+      amount: entry.cost || 0,
+      linkedTo: { type: 'rental', id: r.id },
+      _note: `work order from maintenance log · ${r.name}`,
+    });
+    if (typeof id === 'string') {
+      updateRental(r.id, { maintenanceLog: (r.maintenanceLog || []).map(m => m.id === entry.id ? { ...m, incidentId: id } : m) });
+    }
   };
   const deleteConvEntry = (r, entryId) => {
     if (!confirm('Delete this conversation note?')) return;
@@ -845,6 +1116,35 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           <MetricCell label="Monthly rent" value={fmt(totals.rentalExpected)} sub={`${totals.collectionRate.toFixed(0)}%`} small accent="green" />
           <MetricCell label="Rent gap" value={fmt(totals.rentGap)} small accent={totals.rentGap > 0 ? 'rust' : 'green'} />
         </div>
+        {/* Portfolio room-income opportunity — sums the per-room occupancy
+            model across every property so the total money-on-the-table from
+            vacant rooms is one glance away. Only shows when rooms are tracked. */}
+        {(() => {
+          const port = (rentals || []).reduce((acc, r) => {
+            const o = occupancyRollup(r.rooms || []);
+            acc.actual += o.actual; acc.potential += o.potential; acc.opportunity += o.opportunity; acc.vacantSpots += o.vacantSpots;
+            return acc;
+          }, { actual: 0, potential: 0, opportunity: 0, vacantSpots: 0 });
+          if (port.potential <= 0) return null;
+          return (
+            <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
+                <div className="text-xs text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Collecting <strong>{fmt(port.actual)}</strong>/mo of <strong>{fmt(port.potential)}</strong> possible.
+                </div>
+              </div>
+              {port.opportunity > 0 ? (
+                <div className="text-right">
+                  <div className="text-lg text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(port.opportunity)}/mo</div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
+                </div>
+              ) : (
+                <div className="text-sm text-[#5A6E3D] font-semibold">Every spot filled 🎯</div>
+              )}
+            </div>
+          );
+        })()}
       </section>
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
@@ -1004,8 +1304,14 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         )}
 
         {(() => {
-          const incomeProducing = rentals.filter(r => (r.rent || 0) > 0);
-          const personal = rentals.filter(r => (r.rent || 0) === 0);
+          // A property is PERSONAL when it's the family's own home (primary/
+          // secondary-home, owner-occupied, or under the personal entity) — NOT
+          // merely because rent isn't entered yet. Rentals stay rentals even
+          // before their rent imports (Darrell 2026-06-13: "2111 should be in
+          // Personal Properties, not Rentals"; rents import via the report flow).
+          const isPersonalProp = (r) => r.propertyType === 'primary-home' || r.propertyType === 'secondary-home' || r.status === 'owner-occupied' || r.entityId === 'e-personal';
+          const incomeProducing = rentals.filter(r => !isPersonalProp(r));
+          const personal = rentals.filter(isPersonalProp);
           const renderPropertyRow = (r, i, lastIdx) => {
             // Round 10 — Tenant-late surfacing. If status is 'late', show a
             // tenant-issue card with one-tap "Open as Change / Incident / Project"
@@ -1108,7 +1414,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     </div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-xs">
-                    <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : 'paid off'}</span></div>
+                    <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : '—'}</span></div>
                     <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
                     <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
                     <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button type="button" onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
@@ -1205,7 +1511,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes · warranty · parts numbers" value={maintForm.notes} onChange={e => setMaintForm({ ...maintForm, notes: e.target.value })} />
                             <div>
                               <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">📷 Receipts / photos</label>
-                              <input type="file" accept="image/*" multiple capture="environment" onChange={e => onMaintPhotoFiles(e.target.files)} className="block w-full text-xs file:mr-2 file:px-2 file:py-1 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[10px] file:cursor-pointer" />
+                              <input type="file" accept="image/*" multiple onChange={e => onMaintPhotoFiles(e.target.files)} className="block w-full text-xs file:mr-2 file:px-2 file:py-1 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[10px] file:cursor-pointer" />
                               {(maintForm.photos || []).length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-2">
                                   {maintForm.photos.map((src, i) => (
@@ -1254,18 +1560,186 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     ))}
                                   </div>
                                 )}
+                                {/* WORK ORDER — the path from this entry to a worker's
+                                    phone. Creates an incident (shows on the Action
+                                    Queue too), then DispatchPanel assigns a 1099
+                                    worker and texts them the job. Entry shows live
+                                    status until the work order is marked done. */}
+                                {!readOnly && (() => {
+                                  if (!e.incidentId) {
+                                    return (
+                                      <div className="mt-2 pt-2 border-t border-[#E8E4DC]">
+                                        <button type="button" onClick={() => createWorkOrder(r, e)} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">🛠 Create work order → dispatch a worker</button>
+                                      </div>
+                                    );
+                                  }
+                                  const wo = incidents.find(i => i.id === e.incidentId);
+                                  if (!wo) {
+                                    return <div className="mt-2 pt-2 border-t border-[#E8E4DC] text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Work order was removed from the queue.</div>;
+                                  }
+                                  return (
+                                    <div className="mt-2 pt-2 border-t border-[#E8E4DC] space-y-1.5">
+                                      <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: wo.status === 'resolved' ? '#5A6E3D' : '#B85838' }}>
+                                        🛠 Work order {wo.status === 'resolved' ? 'done' : `open · due ${wo.dueDate || '—'}`} · also on the Action Queue
+                                      </div>
+                                      <DispatchPanel incident={wo} property={r} contractors={contractors} onDispatch={dispatchIncident} onResolve={resolveIncident} />
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             ))}
                           </div>
                         )}
                       </div>
 
+                      {/* TENANT TURNOVER + PAST TENANCIES (landlord records) */}
+                      {!readOnly && (
+                        <div className="mb-3 pb-3 border-b border-[#E8E4DC]">
+                          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🔑 Tenancy{(r.tenancyHistory || []).length > 0 ? ` · ${(r.tenancyHistory || []).length} past` : ''}</div>
+                            {(r.tenantName || r.tenant?.name) && (
+                              <button type="button" onClick={() => tenantTurnover(r)} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">→ Tenant moved out / turnover</button>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                            Turnover gives the next tenant a clean slate. Rooms, photos, equipment, and maintenance history stay; the tenant&apos;s lease, contacts, conversations, and open issues archive below for your records.
+                          </p>
+                          {(r.tenancyHistory || []).length > 0 && (
+                            <details className="mt-2">
+                              <summary className="cursor-pointer text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Past tenancies ({(r.tenancyHistory || []).length}) — landlord records</summary>
+                              <div className="mt-2 space-y-2">
+                                {[...(r.tenancyHistory || [])].reverse().map(t => (
+                                  <div key={t.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
+                                    <div className="text-[11px] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{t.tenantName || '(unnamed tenant)'} <span className="text-[#5A5751] font-normal">· moved out {t.movedOutAt}</span></div>
+                                    {t.lease && (t.lease.start || t.lease.end) && (
+                                      <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>lease {t.lease.start || '?'} → {t.lease.end || '?'}{t.lease.monthlyRent ? ` · ${fmt(t.lease.monthlyRent)}/mo` : ''}</div>
+                                    )}
+                                    {(t.conversationLog || []).length > 0 && (
+                                      <div className="text-[10px] text-[#5A5751] mt-1">{(t.conversationLog || []).length} archived conversation note{(t.conversationLog || []).length === 1 ? '' : 's'}</div>
+                                    )}
+                                    {(t.closedIssues || []).length > 0 && (
+                                      <div className="text-[10px] text-[#5A5751] mt-0.5">{(t.closedIssues || []).length} issue{(t.closedIssues || []).length === 1 ? '' : 's'} closed at turnover: {(t.closedIssues || []).map(i => i.description).slice(0, 3).join('; ')}{(t.closedIssues || []).length > 3 ? '…' : ''}</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      )}
+
+                      {/* PHOTO IMPORT FROM CHAT — file the property's photos to rooms */}
+                      {!readOnly && (
+                        <div className="mb-3">
+                          <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">📷 Property Photos from Chat</div>
+                            <button type="button" onClick={() => (photoImport && photoImport.rentalId === r.id) ? setPhotoImport(null) : startPhotoImport(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{photoImport && photoImport.rentalId === r.id ? '× Close' : '📷 Browse & file to rooms'}</button>
+                          </div>
+                          {photoImport && photoImport.rentalId === r.id && (
+                            <div className="bg-white border border-[#5A6E3D] p-3 space-y-2">
+                              {photoImport.status === 'need-token' && (
+                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.badToken ? 'Token rejected.' : 'Enter the history-bridge token first (use the “Import property-chat history” button below — same token).'}</p>
+                              )}
+                              {photoImport.status === 'loading' && <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Loading photos from the #{r.name} channel…</p>}
+                              {photoImport.status === 'error' && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Photo bridge not reachable ({photoImport.error}). Nothing changed.</p>}
+                              {photoImport.status === 'staged' && (
+                                <>
+                                  {(r.rooms || []).length === 0 && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Add a room above first, then assign photos to it.</p>}
+                                  <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.photos.length} photos from this property&apos;s chat. Pick a room for each and tap Add — see the place change over the years.</p>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+                                    {photoImport.photos.map(p => (
+                                      <div key={p.id} className="border border-[#E8E4DC] bg-[#FAF8F4] p-1">
+                                        {p.thumb ? (
+                                          <img src={p.thumb} alt={p.text || 'property photo'} className="w-full h-24 object-cover border border-[#E8E4DC]" />
+                                        ) : (
+                                          <div className="w-full h-24 flex items-center justify-center text-[9px] text-[#5A5751] italic border border-dashed border-[#E8E4DC] text-center px-1">not in backup</div>
+                                        )}
+                                        <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date}</div>
+                                        {p.text && <div className="text-[9px] text-[#5A5751] truncate" title={p.text} style={{ fontFamily: '"Fraunces", serif' }}>{p.text}</div>}
+                                        {p.filed ? (
+                                          <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-1">✓ filed</div>
+                                        ) : p.thumb ? (
+                                          <div className="flex gap-1 mt-1">
+                                            <select value={p.room} onChange={e => setPhotoRoom(p.id, e.target.value)} className="flex-1 text-[10px] p-1 border border-[#E8E4DC] bg-white min-w-0">
+                                              <option value="">room…</option>
+                                              {(r.rooms || []).map(rm => <option key={rm.id} value={rm.id}>{rm.name}</option>)}
+                                            </select>
+                                            <button type="button" disabled={!p.room} onClick={() => filePhotoToRoom(r, p)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-30">Add</button>
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {photoImport.lastCount === PHOTO_PAGE && (
+                                    <button type="button" onClick={() => fetchPhotoPage(r, photoImport.offset + PHOTO_PAGE)} className="w-full text-[10px] uppercase tracking-wider py-1.5 border border-[#1A1815] hover:bg-[#FAF8F4]">Load more photos</button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* CONVERSATION LOG */}
                       <div>
-                        <div className="flex items-baseline justify-between gap-2 mb-2">
+                        <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
                           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Tenant & Vendor Conversations · {(r.conversationLog || []).length}</div>
-                          <button type="button" onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
+                          <div className="flex gap-2">
+                            {!readOnly && (
+                              <button type="button" onClick={() => (chatImport && chatImport.rentalId === r.id) ? setChatImport(null) : startChatImport(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{chatImport && chatImport.rentalId === r.id ? '× Cancel import' : '📥 Import property-chat history'}</button>
+                            )}
+                            <button type="button" onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
+                          </div>
                         </div>
+                        {chatImport && chatImport.rentalId === r.id && (
+                          <div className="bg-white border border-[#5A6E3D] p-3 mb-2 space-y-2">
+                            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">📥 Property-chat history · #{r.name}</div>
+                            {chatImport.status === 'loading' && (
+                              <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Fetching channel history from the NAS…</p>
+                            )}
+                            {chatImport.status === 'need-token' && (
+                              <div className="space-y-1.5">
+                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                  {chatImport.badToken ? 'That token was rejected — check it and try again.' : 'Enter the family history-bridge token (one time on this device). It protects your property history from anyone else reaching the bridge.'}
+                                </p>
+                                <div className="flex gap-1.5">
+                                  <input type="password" className="flex-1 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="paste the bridge token" value={bridgeTokenInput} onChange={ev => setBridgeTokenInput(ev.target.value)} />
+                                  <button type="button" onClick={() => { localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, bridgeTokenInput.trim()); setBridgeTokenInput(''); startChatImport(r); }} disabled={!bridgeTokenInput.trim()} className="px-3 py-1.5 text-[10px] uppercase tracking-wider border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-30">Save & fetch</button>
+                                </div>
+                              </div>
+                            )}
+                            {chatImport.status === 'error' && (
+                              <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                History bridge not reachable ({chatImport.error}). The NAS-side workflow isn't live yet — see infra/n8n/README-property-history.md. Nothing was changed.
+                              </p>
+                            )}
+                            {chatImport.status === 'staged' && (
+                              <>
+                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                  {chatImport.messages.length === 0
+                                    ? `Nothing new to import${chatImport.already > 0 ? ` — all ${chatImport.already} channel messages are already on this log` : ' — the channel returned no messages'}.`
+                                    : `Check what's true, uncheck what isn't. ${chatImport.messages.length} new message${chatImport.messages.length === 1 ? '' : 's'}${chatImport.already > 0 ? ` (${chatImport.already} already imported)` : ''}. Nothing saves until you accept.`}
+                                </p>
+                                {chatImport.messages.length > 0 && (
+                                  <>
+                                    <div className="max-h-64 overflow-y-auto space-y-1 border border-[#E8E4DC] p-2">
+                                      {chatImport.messages.map(m => (
+                                        <label key={m.sourceId} className="flex items-start gap-2 text-[11px] cursor-pointer hover:bg-[#FAF8F4] p-1">
+                                          <input type="checkbox" checked={m.accepted} onChange={() => toggleChatImportItem(m.sourceId)} className="mt-0.5" />
+                                          <span style={{ fontFamily: '"JetBrains Mono", monospace' }} className="text-[#5A5751] shrink-0">{m.date || '—'}{m.person ? ` · ${m.person}` : ''}</span>
+                                          <span style={{ fontFamily: '"Fraunces", serif' }}>{m.summary}</span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                    <button type="button" onClick={() => acceptChatImport(r)} className="w-full bg-[#5A6E3D] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815]">
+                                      ✓ Import {chatImport.messages.filter(m => m.accepted).length} checked into this property's log
+                                    </button>
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
                         {showConvForm && (
                           <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
                             <div className="grid grid-cols-2 gap-2">

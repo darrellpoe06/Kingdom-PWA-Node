@@ -13,6 +13,7 @@ import { Rentals } from './components/Rentals.jsx';
 import { ProjectsWrapper, DateField } from './components/Projects.jsx';
 import { Opportunities } from './components/DevOps.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
+import Engagement from './components/Engagement.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import Imported from './components/Imported.jsx';
 import { onAuthChange } from './lib/supabase.js';
@@ -21,12 +22,23 @@ import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
 import { transactionsSync } from './lib/transactions-sync.js';
-import { projectsSync } from './lib/projects-sync.js';
+import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
+import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
+import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
+import { compressImageFile } from './lib/image.js';
+import SelfServeWelcome from './components/SelfServeWelcome.jsx';
+import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
-import { QueueSpotlight } from './components/QueueSpotlight.jsx';
-import { QueueList } from './components/QueueList.jsx';
+import { DispatchPanel } from './components/DispatchPanel.jsx';
+import { LifeGallery } from './components/LifeGallery.jsx';
+import { ConferenceModule } from './components/ConferenceModule.jsx';
+import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
+import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
+import { unionPreservingLocal } from './lib/table-sync.js';
+import { syncIdentityKey } from './lib/sync-identity.js';
+import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
 
@@ -803,6 +815,28 @@ const tierMeets = (userTier, requiredTier) => {
   const r = TIER_ORDER.indexOf(requiredTier);
   return u >= 0 && r >= 0 && u >= r;
 };
+// Known family sign-in emails -> their profile. Module-level so BOTH the
+// profile-mapping effect and the self-serve onboarding check read one source
+// (DRY; avoids the two drifting apart).
+const FAMILY_EMAIL_PROFILES = {
+  'darrellpoe06@gmail.com': 'darrell',
+  'mrspoe06@gmail.com': 'christina',
+  'christina@tlctherapysolutions.com': 'christina',
+  // Add the twins' sign-in emails as they get accounts.
+};
+const isFamilyEmail = (email) =>
+  Object.prototype.hasOwnProperty.call(FAMILY_EMAIL_PROFILES, String(email || '').toLowerCase());
+const personaOf = (email) => FAMILY_EMAIL_PROFILES[String(email || '').toLowerCase()] || null;
+// Unique family personas (Christina's two emails collapse to one), used as the
+// project-assignment roster. Display name = title-cased persona key.
+const FAMILY_MEMBERS = (() => {
+  const seen = new Map();
+  for (const persona of Object.values(FAMILY_EMAIL_PROFILES)) {
+    if (!seen.has(persona)) seen.set(persona, { key: persona, name: persona.charAt(0).toUpperCase() + persona.slice(1) });
+  }
+  return [...seen.values()];
+})();
+
 // VIEW_TIER_REQUIREMENTS — each nav view's minimum tier.
 // 'foundation' = free for everyone. Markets, Books, Big Picture, Debts, Church
 // all live here. Real Estate is special — rendered as read-only preview at
@@ -1295,6 +1329,131 @@ const DEMO_DATA_BY_PERSONA = {
   'professional':DEMO_DATA_PROFESSIONAL,
   'landlord':    DEMO_DATA_LANDLORD,
 };
+
+// 2026-06-11 — every record id that exists ONLY in the demo datasets (ids the
+// demo shares with SEED_DATA are excluded so real seeded records are never
+// touched). Used to (a) never upload demo rows into a signed-in family's
+// cloud instance, and (b) filter any demo rows that historically slipped in
+// back OUT of cloud-loaded lists. This is the "fake Reeves family mixed with
+// ours" guard.
+const DEMO_ONLY_IDS = (() => {
+  const collect = (node, ids) => {
+    if (Array.isArray(node)) { node.forEach((n) => collect(n, ids)); return ids; }
+    if (node && typeof node === 'object') {
+      if (typeof node.id === 'string') ids.add(node.id);
+      Object.values(node).forEach((v) => collect(v, ids));
+    }
+    return ids;
+  };
+  const demoIds = collect(DEMO_DATA_BY_PERSONA, new Set());
+  const seedIds = collect(SEED_DATA, new Set());
+  seedIds.forEach((id) => demoIds.delete(id));
+  return demoIds;
+})();
+const notDemoRow = (x) => !(x && typeof x.id === 'string' && DEMO_ONLY_IDS.has(x.id));
+// 2026-06-12 — id-based provenance can't catch HISTORICAL pollution: demo
+// entities uploaded by pre-filter builds came back from the cloud with new
+// UUIDs (or null slugs), so DEMO_ONLY_IDS never matches them ("Maya (mom)" /
+// "The Reeves Family" rendering ON FILE next to the real entities). Names
+// can catch them: any entity whose display name matches a demo persona
+// entity is demo, whatever id it wears. Seed-shared names excluded, same as
+// DEMO_ONLY_IDS. Belt to the Studio cleanup in
+// infra/supabase/cleanup-2026-06-12-entity-pollution.sql (the real fix).
+export const DEMO_ENTITY_NAMES = (() => {
+  const collect = (d, out) => { ((d && d.entities) || []).forEach((e) => { if (e && typeof e.name === 'string') out.add(e.name.toLowerCase()); }); return out; };
+  const demo = new Set();
+  Object.values(DEMO_DATA_BY_PERSONA).forEach((d) => collect(d, demo));
+  collect(SEED_DATA, new Set()).forEach((n) => demo.delete(n));
+  return demo;
+})();
+export const notDemoEntityRow = (e) => notDemoRow(e) && !(e && typeof e.name === 'string' && DEMO_ENTITY_NAMES.has(e.name.toLowerCase()));
+
+// Collapse duplicate cloud entities by display name (historical double
+// uploads: one row with a slug, one without). Prefer the row carrying a
+// slug — that's the one the app's FK references (entityId) point at — then
+// the earliest created.
+export const dedupeEntitiesByName = (list) => {
+  const byName = new Map();
+  for (const e of list || []) {
+    const key = (e && typeof e.name === 'string') ? e.name.trim().toLowerCase() : `__noname-${byName.size}`;
+    const prev = byName.get(key);
+    if (!prev) { byName.set(key, e); continue; }
+    const better = (e.id && !prev.id) ? e
+      : (!e.id && prev.id) ? prev
+      : (new Date(e.createdAt || 0) < new Date(prev.createdAt || 0) ? e : prev);
+    byName.set(key, better);
+  }
+  return [...byName.values()];
+};
+// 2026-06-12 — SEED PROVENANCE (Darrell: "we have original data, why don't we
+// know the difference?"). SEED_DATA rows are aspirational scaffolding, never
+// the family's books. Two binding consequences, enforced in the sync effect:
+//   1. Seed rows NEVER upload to the family's cloud tables. (Without this, a
+//      fresh device that hydrated SEED and then completed VerifyBalances
+//      pushed '240 Cedar Ln' incidents and 11 fictional doors into the real
+//      instance next to the real data.)
+//   2. Once the cloud has ANY real rows for a table, that table's local seed
+//      rows are dropped from display — the family's truth replaces the
+//      scaffolding instead of mixing with it.
+// A family that wants to keep something from the seed picture recreates it
+// as their own entry (new id); editing seed scaffolding in place is not a
+// sync path.
+export const SEED_IDS = (() => {
+  const collect = (node, ids) => {
+    if (Array.isArray(node)) { node.forEach((n) => collect(n, ids)); return ids; }
+    if (node && typeof node === 'object') {
+      if (typeof node.id === 'string') ids.add(node.id);
+      Object.values(node).forEach((v) => collect(v, ids));
+    }
+    return ids;
+  };
+  return collect(SEED_DATA, new Set());
+})();
+// remainderIsSeed — true when the NON-table-synced remainder of `data` is
+// still untouched seed scaffolding. Drives the v2.15 family-snapshot policy:
+// a still-seed world always ADOPTS the family snapshot and never PUBLISHES
+// one. Checks the id-bearing remainder lists; a row with an id outside
+// SEED_IDS means the family has made this world their own. (Editing only a
+// non-list field, e.g. church details, doesn't flip this — acceptable v1
+// trade, documented in snapshot-sync.js.)
+export const remainderIsSeed = (d) => {
+  if (!d || typeof d !== 'object') return true;
+  // Only NON-table-synced lists belong here: rentals/incidents/etc. fill
+  // with real cloud rows via table sync, which must not flip a device whose
+  // snapshot-remainder is still scaffolding into a publisher.
+  const lists = [
+    d.recurringObligations, d.taxCalendar, d.events, d.capexItems,
+    d.skillProfiles, d.prayerRequests, d.churchVoice,
+  ];
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const row of list) {
+      if (row && typeof row.id === 'string' && !SEED_IDS.has(row.id)) return false;
+    }
+  }
+  return true;
+};
+export const notSeedRow = (x) => !(x && typeof x.id === 'string' && SEED_IDS.has(x.id));
+// A signed-in user's REAL data is anything that has synced (carries a
+// remoteUuid) OR that they entered themselves (not seed scaffolding, not demo).
+// Pure local seed/demo — a SEED/DEMO id that never synced — is the aspirational
+// sample (e.g. "240 Cedar Ln", "Card J (Adam)") that must not masquerade as a
+// real signed-in account's data. isRealRow NEVER drops a synced row, so cleaning
+// is local-only and can't touch the cloud. (Darrell 2026-06-13: "Not my rentals.")
+export const isRealRow = (x) => !!(x && (x.remoteUuid || (notSeedRow(x) && notDemoRow(x))));
+// Drop pure local seed/demo from every list in `data`, preserving synced + user
+// rows. Used on a signed-in clean start so the account begins with the user's
+// real cloud data + empty tables to fill, never the sample dataset.
+export const stripSeedScaffolding = (d) => {
+  const out = { ...d };
+  for (const k of Object.keys(out)) {
+    if (Array.isArray(out[k])) out[k] = out[k].filter(isRealRow);
+  }
+  if (out.inflows && Array.isArray(out.inflows.rentals)) {
+    out.inflows = { ...out.inflows, rentals: out.inflows.rentals.filter(isRealRow) };
+  }
+  return out;
+};
 // Persona-specific welcome copy. Each entry describes the audience and the
 // stewardship lens. The 'vision' line is honest about what's working today
 // vs what's still being built (per Darrell 2026-05-28).
@@ -1379,9 +1538,22 @@ function getInitialView() {
     if (typeof window === 'undefined') return 'overview';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','admin'];
+    // Engagement is now a sub-tab under Church; the legacy ?view=engagement
+    // deep-link lands on the Church tab (the sub-tab is selected separately).
+    if (v === 'engagement') return 'church';
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
+}
+
+// Engagement lives under Church. A ?view=engagement deep-link selects the
+// Engagement sub-tab; everything else defaults to the Church home sub-tab.
+function getInitialChurchView() {
+  try {
+    if (typeof window === 'undefined') return 'home';
+    const sp = new URLSearchParams(window.location.search);
+    return (sp.get('view') || '').toLowerCase().trim() === 'engagement' ? 'engagement' : 'home';
+  } catch (e) { return 'home'; }
 }
 
 // Admin — quiet utility surface, NOT a marketing surface. Reached via the
@@ -1485,7 +1657,7 @@ export default function PoeFinancialSystem() {
   // fragments, balances, and addresses.
   const isFirstTimeLandingBoot = (() => {
     try {
-      if (!!demoPersona) return false;
+      if (demoPersona) return false;
       const sp = new URLSearchParams(window.location.search);
       if (sp.toString() !== '') return false;
       if (localStorage.getItem('poe-landing-seen')) return false;
@@ -1508,7 +1680,18 @@ export default function PoeFinancialSystem() {
   const [pressure, setPressure] = useState(5);
   const [view, setView] = useState(getInitialView());
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  // DR-0059 Phase 2 — a NEW non-family signed-in user gets a named welcome once,
+  // instead of falling through to the family persona picker. Presentational only.
+  const [selfServeWelcomeDismissed, setSelfServeWelcomeDismissed] = useState(() => {
+    try { return typeof window !== 'undefined' && !!window.localStorage.getItem('poe-selfserve-welcomed'); }
+    catch (e) { return false; }
+  });
+  const dismissSelfServeWelcome = () => {
+    try { window.localStorage.setItem('poe-selfserve-welcomed', '1'); } catch (e) { /* ignore */ }
+    setSelfServeWelcomeDismissed(true);
+  };
   const [booksView, setBooksView] = useState('calendar');
+  const [churchView, setChurchView] = useState(getInitialChurchView());
   const [entityFilter, setEntityFilter] = useState('all');
   const [snowballSort, setSnowballSort] = useState('smallest-balance');
   const [snowballExtra, setSnowballExtra] = useState(2000);
@@ -1516,6 +1699,11 @@ export default function PoeFinancialSystem() {
   const [debtSnowballExtra, setDebtSnowballExtra] = useState(500);
   const [theme, setTheme] = useState('midnight');
   const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
+  // 2026-06-12 — persistence problems must be VISIBLE (PERPETUAL-PIPELINE-
+  // HEALTH: no silent failure on the path the family's memories ride).
+  // Set by the storage-quota catch and by cloud-sync upload failures;
+  // rendered as a banner under AuthBanner. null = healthy.
+  const [persistIssue, setPersistIssue] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const firedRemindersRef = useRef(new Set());
   const currentDate = useMemo(() => new Date(2026, 4, 15), []);
@@ -1543,6 +1731,9 @@ export default function PoeFinancialSystem() {
   // them to localStorage too, duplicating data.
   const [remoteFeedback, setRemoteFeedback] = useState([]);
   const [authSession, setAuthSession] = useState(null);
+  // 2026-06-11 — true once the signed-in public-host hydration finished;
+  // gates persistence so demo data can never overwrite the owner's snapshot.
+  const [authHydrated, setAuthHydrated] = useState(false);
   const [showVerifyBalances, setShowVerifyBalances] = useState(false);
 
   // Multi-user Layer A (2026-05-28) — `currentProfile` gates which entities
@@ -1564,9 +1755,13 @@ export default function PoeFinancialSystem() {
     // pointing at an entity the new profile can't see.
     setEntityFilter('all');
   };
+  // 2026-06-12 fix ("why Adam, not Darrell?"): the sanitized display names
+  // (Adam/Naomi) exist so PUBLIC visitors never see the family's real names.
+  // A SIGNED-IN session is the family on their own device — they get their
+  // own names. Anonymous, demo, and picker states keep the sanitized pair.
   const PROFILES = [
-    { id: 'darrell', name: 'Adam', sub: 'full owner view', accent: '#1A1815' },
-    { id: 'christina', name: 'Naomi', sub: 'personal + practice', accent: '#B85838' },
+    { id: 'darrell', name: authSession ? 'Darrell' : 'Adam', sub: 'full owner view', accent: '#1A1815' },
+    { id: 'christina', name: authSession ? 'Christina' : 'Naomi', sub: 'personal + practice', accent: '#B85838' },
     { id: 'family', name: 'Family', sub: 'household roll-up only', accent: '#5A6E3D' },
   ];
 
@@ -1587,7 +1782,13 @@ export default function PoeFinancialSystem() {
   //   3. A saved profile exists
   // The family accesses real imported data via the Tailscale-internal URL only.
   // poetech.us / *.vercel.app are PUBLIC-FRONT-DOOR only — no PII ever.
-  const importedAllowed = !isPublicHost() && !isAnyDemoMode && !!currentProfile;
+  // 2026-06-11 (P14 pattern, applied deliberately to the MOST sensitive gate):
+  // a signed-in, hydrated OWNER may see their own imported bank events on a
+  // public host too — anonymous visitors and demo/picker states still never
+  // do, and a saved profile is still required. The wf18 bearer is only ever
+  // attached past this gate.
+  const importedAllowed = !isAnyDemoMode && !!currentProfile
+    && (!isPublicHost() || !!(authSession && authHydrated));
 
   // Demo welcome modal — only shown when ?demo=… is in the URL. Sets the
   // viewer's expectation about what they're looking at and what they can do,
@@ -1662,7 +1863,28 @@ export default function PoeFinancialSystem() {
   // back to 'unknown' if no profile is set (demo mode visitors).
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [suggestForm, setSuggestForm] = useState({ type: '', message: '' });
+  // 2026-06-13 — Christina asked to attach a screenshot "for clarification."
+  // suggestImage holds a compressed JPEG data URL (or null); it rides the same
+  // /webhook/family-feedback POST and lands as a sidecar image on the NAS.
+  const [suggestImage, setSuggestImage] = useState(null);
   const [suggestState, setSuggestState] = useState({ submitting: false, success: false, error: null, id: null });
+  const onSuggestImage = async (fileList) => {
+    const file = fileList && fileList[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type || '')) {
+      setSuggestState(s => ({ ...s, error: 'That file is not an image. A screenshot or photo works best.' }));
+      return;
+    }
+    try {
+      // Compress hard — feedback screenshots only need to be legible, and the
+      // data URL travels in a JSON body, so keep it small.
+      const dataUrl = await compressImageFile(file, 1280, 0.6);
+      setSuggestImage(dataUrl);
+      setSuggestState(s => ({ ...s, error: null }));
+    } catch (_) {
+      setSuggestState(s => ({ ...s, error: 'Could not read that image. Try another, or send your note without one.' }));
+    }
+  };
   const submitSuggest = async () => {
     if (!suggestForm.message || suggestForm.message.trim().length < 3) {
       setSuggestState({ submitting: false, success: false, error: 'Tell us what you noticed - a sentence or two is plenty.', id: null });
@@ -1688,7 +1910,11 @@ export default function PoeFinancialSystem() {
     } catch (_) { /* localStorage blocked or unavailable */ }
     const screenContext = {
       path: (typeof window !== 'undefined' && window.location) ? window.location.pathname + window.location.search : '/',
-      tab: (typeof activeTab === 'string') ? activeTab : (typeof tab === 'string' ? tab : null),
+      // 2026-06-11 fix: this previously referenced activeTab/tab, neither of
+      // which exists — every feedback row landed with tab:null. `view` is the
+      // real current-tab state. account makes "whose feedback" unambiguous.
+      tab: (typeof view === 'string') ? view : null,
+      account: (authSession && authSession.user && authSession.user.email) ? authSession.user.email : null,
       persona: (typeof demoPersona === 'string') ? demoPersona : null,
       is_demo: typeof isDemoMode === 'boolean' ? isDemoMode : null
     };
@@ -1704,7 +1930,9 @@ export default function PoeFinancialSystem() {
           message: suggestForm.message.trim(),
           screen_context: screenContext,
           user_agent: (typeof navigator !== 'undefined') ? navigator.userAgent : '',
-          source: 'poetech.us'
+          source: 'poetech.us',
+          // Optional compressed JPEG data URL; wf30 writes it as a sidecar file.
+          screenshot: suggestImage || null
         })
       });
       const json = await r.json().catch(() => ({}));
@@ -1718,6 +1946,7 @@ export default function PoeFinancialSystem() {
       setTimeout(() => {
         setSuggestOpen(false);
         setSuggestForm({ type: '', message: '' });
+        setSuggestImage(null);
         setSuggestState({ submitting: false, success: false, error: null, id: null });
       }, 3000);
     } catch (e) {
@@ -1872,28 +2101,119 @@ export default function PoeFinancialSystem() {
     load();
     const id = setInterval(load, 300_000);
     return () => { cancelled = true; clearInterval(id); };
-  }, []);
+    // Re-run when the gate opens (sign-in completes hydration) — with [] deps
+    // this captured importedAllowed=false at mount and never fetched.
+  }, [importedAllowed]);
 
+  // 2026-06-11 — the public-host gate is about ANONYMOUS visitors (the
+  // 2026-06-03 leak was real ops data rendering to whoever opened poetech.us).
+  // A SIGNED-IN owner is a different trust boundary: their own saved data on
+  // their own device belongs to them. hydratedForAuthRef ensures the
+  // signed-in hydration runs once per session.
+  const hydratedForAuthRef = useRef(false);
+  // v2.15 family snapshot (2026-06-12): pull-once-per-session gate + push
+  // throttle. snapshotPulledRef must be true before ANY push — a fresh seed
+  // device pulls (and applies) the family's real snapshot before it is ever
+  // allowed to write one.
+  const snapshotPulledRef = useRef(false);
+  const lastSnapshotPushRef = useRef(0);
+
+  // Pull the family snapshot once per signed-in session, after this device's
+  // own load finished (public hosts: after the auth hydration; private hosts:
+  // after the boot load). Apply policy (provenance-aware, in priority order):
+  //   1. This device's remainder is still SEED scaffolding → ALWAYS adopt the
+  //      family snapshot. (A seed device persists constantly, so naive
+  //      "local is newer" timestamps would block the real world forever.)
+  //   2. This device holds a REAL world and has never joined the snapshot
+  //      (no marker) → adopt NOTHING; it becomes the source on next push.
+  //   3. Joined before → adopt only a snapshot newer than the marker.
+  // The payload contains no table-synced lists, no notes, no photo bytes
+  // (snapshot-sync.js), so applying it cannot clobber those; matched rentals
+  // additionally keep this device's room photos.
+  useEffect(() => {
+    if (!authSession || isAnyDemoMode || snapshotPulledRef.current) return;
+    const readyToPull = isPublicHost() ? authHydrated : loaded;
+    if (!readyToPull) return;
+    snapshotPulledRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const remote = await fetchSnapshot();
+        if (cancelled || !remote || !remote.payload) return;
+        const latest = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__) || data;
+        let marker = null;
+        try { marker = localStorage.getItem('poe-snapshot-marker'); } catch (_) { /* no marker */ }
+        const stillSeed = remainderIsSeed(latest);
+        if (!stillSeed && !marker) return; // rule 2: a real un-joined world is protected
+        if (!stillSeed && marker && new Date(remote.updatedAt) <= new Date(marker)) return; // rule 3
+        try { localStorage.setItem('poe-snapshot-marker', remote.updatedAt); } catch (_) { /* non-fatal */ }
+        const p = remote.payload;
+        setData(d => {
+          const snapData = p.data || {};
+          const next = { ...d, ...snapData };
+          if (snapData.inflows && Array.isArray(snapData.inflows.rentals)) {
+            next.inflows = {
+              ...snapData.inflows,
+              rentals: mergeKeepingLocalRoomPhotos(d.inflows?.rentals || [], snapData.inflows.rentals),
+            };
+          }
+          return next;
+        });
+        if (p.pressure != null) setPressure(p.pressure);
+        if (p.snowballSort) setSnowballSort(p.snowballSort);
+        if (p.snowballExtra != null) setSnowballExtra(p.snowballExtra);
+        if (p.debtSnowballSort) setDebtSnowballSort(p.debtSnowballSort);
+        if (p.debtSnowballExtra != null) setDebtSnowballExtra(p.debtSnowballExtra);
+        if (p.theme) setTheme(p.theme);
+      } catch (e) {
+        console.warn('[snapshot-sync] pull failed', e);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession, authHydrated, loaded]);
   useEffect(() => {
     if (isAnyDemoMode) { setLoaded(true); return; } // Demo + picker skip storage load entirely.
-    // 2026-06-03 SECURITY: PUBLIC DOMAIN MUST NOT HYDRATE FROM LOCAL STORAGE.
-    // The previous gate stopped the wf18 webhook fetch but localStorage could
-    // still hydrate the entire app with the family's REAL ops data on a non-
-    // incognito tab opened on poetech.us from the family's own device — the
-    // Big Picture dashboard then surfaced real entity names, property
-    // addresses, project titles ("1508 Holly Hill," "Christiana college
-    // transition") to whatever tab was open. On any public host (poetech.us,
-    // *.vercel.app), force the seed sample data + skip localStorage hydration
-    // entirely. Real ops data is accessible only via Tailscale-internal
-    // hostnames (where the gate stays open).
+    // 2026-06-03 SECURITY: PUBLIC DOMAIN MUST NOT HYDRATE FROM LOCAL STORAGE
+    // FOR ANONYMOUS VISITORS. The previous gate stopped the wf18 webhook fetch
+    // but localStorage could still hydrate the entire app with the family's
+    // REAL ops data on a non-incognito tab opened on poetech.us from the
+    // family's own device — the Big Picture dashboard then surfaced real
+    // entity names, property addresses, project titles to whatever tab was
+    // open. On any public host (poetech.us, *.vercel.app), anonymous visitors
+    // get the demo sample + no hydration. (Signed-in hydration is handled by
+    // the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
     if (isPublicHost()) {
       setData(DEMO_DATA_FAMILY_OF_4);
       setLoaded(true);
       return;
     }
-    (async () => {
+    (async () => { await loadSavedSnapshot(); setLoaded(true); })();
+    // Run-once boot hydration by design; isAnyDemoMode is URL-derived and
+    // fixed for the page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Loads this device's saved snapshot into state (defensive merge). Shared
+  // by the mount-time load (private hosts) and the signed-in load on public
+  // hosts: an authenticated owner gets their own data anywhere. Returns
+  // true when a snapshot existed.
+  // forUserId (optional): when the signed-in PUBLIC-HOST hydration calls
+  // this, refuse a snapshot stamped with a DIFFERENT owner. 2026-06-12 fix:
+  // the gate used to check that *a* session exists, not *whose* — on a
+  // shared device (church kiosk) anyone signing in with any account would
+  // hydrate the previous family's saved data. Legacy snapshots without an
+  // owner stamp still load (and get stamped on next save). Private hosts
+  // pass no forUserId — the device-trust model there is unchanged.
+  const loadSavedSnapshot = async (forUserId = null) => {
       try {
         let saved = await window.storage.get('poe-financial-v28');
+        if (saved && saved.value && forUserId) {
+          try {
+            const ownerCheck = JSON.parse(saved.value);
+            if (ownerCheck.owner && ownerCheck.owner !== forUserId) return false;
+          } catch (_) { /* unparseable → treated as not found below */ }
+        }
         if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v27');
         if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v26');
         if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v25');
@@ -1961,17 +2281,123 @@ export default function PoeFinancialSystem() {
             setTheme(themeMigration[parsed.theme] || parsed.theme);
           }
         }
-      } catch (e) {}
-      setLoaded(true);
-    })();
-  }, []);
+        return !!(saved && saved.value);
+      } catch (e) { return false; }
+  };
+
+  // 2026-06-11 — signed-in hydration on public hosts ("fake data mixed with
+  // ours" / "can't tell I'm logged in" fix): once authenticated on
+  // poetech.us, this device's saved data loads for its owner; a fresh device
+  // starts from the aspirational SEED instead of the Reeves demo. Anonymous
+  // visitors still never hydrate (the 2026-06-03 leak gate stands).
+  useEffect(() => {
+    if (!authSession || hydratedForAuthRef.current) return;
+    if (!isPublicHost() || isAnyDemoMode) return;
+    hydratedForAuthRef.current = true;
+    loadSavedSnapshot(authSession.user?.id || null).then((found) => {
+      if (!found) setData(SEED_DATA);
+      setAuthHydrated(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession]);
+
+  // 2026-06-11 (P14 pattern, third instance of the same gate disease): the
+  // boot-time profile read returns null on public hosts (correct for
+  // anonymous visitors), which made the picker re-appear on every reload for
+  // the SIGNED-IN family and kept currentProfile-gated surfaces (Imported)
+  // hidden. Once the owner's hydration completes, load this device's saved
+  // profile. Demo states keep their forced profile.
+  useEffect(() => {
+    if (!authSession || !authHydrated || currentProfile || isAnyDemoMode) return;
+    try {
+      const saved = localStorage.getItem('poe-current-profile');
+      if (saved) { setCurrentProfile(saved); return; }
+    } catch (e) { /* localStorage unavailable — fall through to email map */ }
+    // 2026-06-12 — identity follows the ACCOUNT, not the device: a signed-in
+    // owner on a brand-new device shouldn't face the picker (or be greeted
+    // as the sanitized persona). Known family emails (FAMILY_EMAIL_PROFILES,
+    // module-level) map straight to their profile; unknown emails still get
+    // the picker, and now also a self-serve welcome.
+    const email = (authSession.user?.email || '').toLowerCase();
+    const mapped = FAMILY_EMAIL_PROFILES[email];
+    if (mapped) {
+      setProfile(mapped);
+      // 2026-06-13 — a signed-in family member is never tier-gated out of their
+      // OWN family's data. Christina hit the Real Estate read-only preview and
+      // read its upgrade banner as "you need a subscription." Recognized family
+      // emails get full access (top tier) so every module is fully theirs.
+      // Guarded so we don't churn data if they're already at the top.
+      setData(d => (effectiveTier(d.userTier) === 'business'
+        ? d
+        : { ...d, userTier: 'business' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession, authHydrated]);
+
+  // 2026-06-13 — a signed-in FAMILY member is NEVER tier-gated out of their own
+  // data, on its OWN effect. The grant used to live inside the profile-load
+  // effect above, which early-returns once a profile is set (currentProfile
+  // truthy) — so on reload the family-tier grant was skipped and the owner
+  // stayed gated (Darrell: "How can I be logged in and still getting the
+  // choose/unlock pages?"). This runs on every sign-in regardless of profile:
+  // a recognized family email gets the top tier so every module is fully theirs.
+  // The dev tier-switcher can still preview lower tiers within a session; a
+  // reload restores full access. Idempotent (no churn when already at the top).
+  useEffect(() => {
+    if (!authSession || isAnyDemoMode) return;
+    const email = (authSession.user?.email || '').toLowerCase();
+    if (FAMILY_EMAIL_PROFILES[email]) {
+      setData(d => (effectiveTier(d.userTier) === 'business' ? d : { ...d, userTier: 'business' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession]);
 
   useEffect(() => {
     if (!loaded) return;
     if (isAnyDemoMode) return; // Demo + picker mode never write to localStorage.
-    if (isPublicHost()) return; // SECURITY: public domain never persists data.
-    (async () => { try { await window.storage.set('poe-financial-v28', JSON.stringify({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme })); } catch (e) { console.error('Storage failed', e); } })();
-  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode]);
+    // SECURITY (2026-06-03): the public domain never persists for ANONYMOUS
+    // visitors. 2026-06-11: a signed-in owner persists on their own device —
+    // but only AFTER their hydration completes, so a demo snapshot can never
+    // overwrite their real saved data in the sign-in race window.
+    if (isPublicHost() && !(authSession && authHydrated)) return;
+    (async () => {
+      try {
+        // owner stamp (2026-06-12): binds this snapshot to the signed-in
+        // account so a different account on a shared device can't hydrate it.
+        // savedAt: lets the cloud-snapshot pull decide freshness (v2.15).
+        await window.storage.set('poe-financial-v28', JSON.stringify({ owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
+        setPersistIssue(prev => (prev && prev.kind === 'storage' ? null : prev));
+        // v2.15 family snapshot push — the non-table-synced remainder follows
+        // the account. Leading-edge throttle (15s). Two hard guards: the pull
+        // must have completed (snapshotPulledRef), and a world whose remainder
+        // is STILL SEED never publishes — scaffolding must never become the
+        // family snapshot, no matter which device signs in first.
+        if (authSession && !isAnyDemoMode && snapshotPulledRef.current
+            && (!isPublicHost() || authHydrated)
+            && !remainderIsSeed(data)
+            && Date.now() - lastSnapshotPushRef.current > 15000) {
+          lastSnapshotPushRef.current = Date.now();
+          const pushedAt = new Date().toISOString();
+          pushSnapshot(buildSnapshotPayload({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }))
+            .then((res) => {
+              if (res && res.pushed) {
+                try { localStorage.setItem('poe-snapshot-marker', pushedAt); } catch (_) { /* non-fatal */ }
+              }
+            })
+            .catch((e) => console.warn('[snapshot-sync] push failed', e));
+        }
+      } catch (e) {
+        console.error('Storage failed', e);
+        // QuotaExceededError here means NOTHING is being saved anymore —
+        // photos are usually the weight. Say so instead of losing a week
+        // of entries silently (review finding, 2026-06-12).
+        setPersistIssue({
+          kind: 'storage',
+          message: 'This device’s storage is full — changes are NOT being saved. Export or remove a few photos (Big Picture → photos), then make any small edit to retry.',
+        });
+      }
+    })();
+  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode, authSession, authHydrated]);
 
   // Layer 2 — auth + feedback sync wiring.
   // On every auth state change: tear down any prior subscriptions, then
@@ -2005,26 +2431,55 @@ export default function PoeFinancialSystem() {
       // Initial sync uploads any local entities not yet in Supabase, then
       // pulls the merged set. Realtime subscription keeps subsequent edits
       // from other devices flowing in.
-      try {
-        const localEntities = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__)
-          ? (window.__POETECH_LATEST_DATA__.entities || [])
-          : [];
-        const result = await entitiesSync.initialSync(localEntities);
-        if (result && result.merged) {
-          setData(d => ({ ...d, entities: result.merged }));
+      // 2026-06-11 — notDemoRow on BOTH directions (this block was missed in
+      // the numeric-table sweep): the public-host mount puts the Reeves demo
+      // in state before auth resolves, so the unfiltered upload pushed demo
+      // entities into the family's cloud instance, and the unfiltered pull
+      // rendered them back (Maya / Jordan / Avery / Reeves on a signed-in
+      // device). Demo mode skips entities sync entirely — a working sample
+      // must neither upload its props nor pull the family's real names.
+      if (!isAnyDemoMode) {
+        try {
+          // notSeedRow (2026-06-12): seed entities ("Personal (Adam + Naomi)")
+          // must never upload next to the family's real entities; once real
+          // cloud entities exist, local seed entities drop from display.
+          const localEntities = ((typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__)
+            ? (window.__POETECH_LATEST_DATA__.entities || [])
+            : []).filter(notDemoRow).filter(notSeedRow);
+          const result = await entitiesSync.initialSync(localEntities);
+          if (result && result.merged) {
+            setData(d => {
+              // 2026-06-12 second pass: the polluted rows ALSO live in this
+              // device's saved state, and the union re-added them from the
+              // local side (non-UUID ids look like rows awaiting upload).
+              // Filter BOTH sides; dedupe AFTER the union so a local copy
+              // and its cloud twin collapse.
+              const incoming = result.merged.filter(notDemoEntityRow);
+              let current = (d.entities || []).filter(notDemoEntityRow);
+              if (incoming.length) current = current.filter(notSeedRow);
+              return { ...d, entities: dedupeEntitiesByName(unionPreservingLocal(current, incoming)) };
+            });
+          }
+        } catch (e) {
+          console.warn('[auth] entities initial sync failed', e);
         }
-      } catch (e) {
-        console.warn('[auth] entities initial sync failed', e);
+        unsubscribeEntities = entitiesSync.subscribe((items) => {
+          setData(d => {
+            const incoming = items.filter(notDemoEntityRow);
+            let current = (d.entities || []).filter(notDemoEntityRow);
+            if (incoming.length) current = current.filter(notSeedRow);
+            return { ...d, entities: dedupeEntitiesByName(unionPreservingLocal(current, incoming)) };
+          });
+        });
       }
-      unsubscribeEntities = entitiesSync.subscribe((items) => {
-        setData(d => ({ ...d, entities: items }));
-      });
     });
     return () => {
       cleanupAuth();
       if (unsubscribeFeedback) unsubscribeFeedback();
       if (unsubscribeEntities) unsubscribeEntities();
     };
+    // isAnyDemoMode is URL-derived and constant for the page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -2047,7 +2502,28 @@ export default function PoeFinancialSystem() {
       setShowVerifyBalances(false);
       return;
     }
+    // 2026-06-11 — a working sample never asks you to verify: the wizard over
+    // a ?demo= view listed sample entities as if they were the family's own.
+    if (isAnyDemoMode) {
+      setShowVerifyBalances(false);
+      return;
+    }
     if (!data.numericSyncVerifiedAt) {
+      // A signed-in user whose numeric data is ENTIRELY seed scaffolding has
+      // nothing real to verify — never show them a wizard full of sample
+      // accounts/rentals (e.g. "240 Cedar Ln"). Open sync straight away and
+      // strip the seed, leaving a clean slate: their real cloud rows (which
+      // carry remoteUuid and are preserved) + empty tables to fill. A user who
+      // HAS real numeric data still gets the verify walkthrough.
+      // (Darrell 2026-06-13: "Not my rentals don't have 240 Cedar Ln.")
+      const hasRealNumeric = []
+        .concat(data.accounts || [], data.debts || [], data.transactions || [], data.projects || [], (data.inflows?.rentals || []))
+        .some(isRealRow);
+      if (!hasRealNumeric) {
+        setShowVerifyBalances(false);
+        setData(d => stripSeedScaffolding({ ...d, numericSyncVerifiedAt: new Date().toISOString() }));
+        return;
+      }
       setShowVerifyBalances(true);
       return;
     }
@@ -2058,29 +2534,89 @@ export default function PoeFinancialSystem() {
 
     async function start() {
       const latest = (typeof window !== 'undefined' && window.__POETECH_LATEST_DATA__) || data;
+      // 2026-06-11 — notDemoRow on every local list (demo rows must NEVER
+      // upload into the family's cloud instance, e.g. signing in on a public
+      // host while demo data is on screen) and on every cloud-loaded list
+      // (any demo rows that historically slipped in stay invisible).
+      // notDemoRow: demo rows never upload. notSeedRow (2026-06-12): seed
+      // scaffolding never uploads either — see SEED_IDS above.
       const tables = [
-        { sync: accountsSync,     key: 'accounts',     localList: latest.accounts || [] },
-        { sync: debtsSync,        key: 'debts',        localList: latest.debts || [] },
-        { sync: transactionsSync, key: 'transactions', localList: latest.transactions || [] },
-        { sync: projectsSync,     key: 'projects',     localList: latest.projects || [] },
-        { sync: inquiriesSync,    key: 'inquiries',    localList: latest.inquiries || [] },
+        { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: debtsSync,        key: 'debts',        localList: (latest.debts || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: transactionsSync, key: 'transactions', localList: (latest.transactions || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: projectsSync,     key: 'projects',     localList: (latest.projects || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteProjects },
+        { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
+        // v2.13 — the QC record (work orders + dispatch + lifecycle trail)
+        // and the shared 1099 worker roster pool to the family instance.
+        { sync: incidentsSync,    key: 'incidents',       localList: (latest.incidents || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: contractorsSync,  key: 'contractors1099', localList: (latest.contractors1099 || []).filter(notDemoRow).filter(notSeedRow) },
       ];
       for (const t of tables) {
         if (cancelled) return;
         try {
           const result = await t.sync.initialSync(t.localList);
           if (!cancelled && result && result.merged) {
-            setData(d => ({ ...d, [t.key]: result.merged }));
+            // 2026-06-12 data-loss fix: union, never wholesale-replace — a
+            // locally-created row whose upload failed (or hasn't landed)
+            // must survive the cloud list arriving. See unionPreservingLocal.
+            // Seed purge: once the cloud holds real rows for this table, the
+            // local seed scaffolding is dropped — truth replaces the picture.
+            setData(d => {
+              const incoming = result.merged.filter(notDemoRow);
+              let current = (d[t.key] || []).filter(notDemoRow);
+              if (incoming.length) current = current.filter(notSeedRow);
+              const mergeFn = t.merge || unionPreservingLocal;
+              return { ...d, [t.key]: mergeFn(current, incoming) };
+            });
+            if (result.uploadFailures) {
+              setPersistIssue({
+                kind: 'sync',
+                message: `${result.uploadFailures} ${t.key} item(s) could not reach the cloud — they are safe on this device and will retry on next sign-in.`,
+              });
+            }
           }
         } catch (e) {
           console.warn(`[${t.sync.remoteTable}-sync] initial sync failed`, e);
         }
         if (cancelled) return;
         const unsubscribe = t.sync.subscribe((items) => {
-          setData(d => ({ ...d, [t.key]: items }));
+          setData(d => {
+            const incoming = items.filter(notDemoRow);
+            let current = (d[t.key] || []).filter(notDemoRow);
+            if (incoming.length) current = current.filter(notSeedRow);
+            const mergeFn = t.merge || unionPreservingLocal;
+            return { ...d, [t.key]: mergeFn(current, incoming) };
+          });
         });
         cleanups.push(unsubscribe);
       }
+
+      // Rentals live nested under inflows.rentals and carry device-local
+      // detail the v2.2 rentals table doesn't model (mortgage rate/P&I/escrow,
+      // rooms, equipment, logs, rent/actual) — merge remote columns into the
+      // local shape instead of replacing the list wholesale like the flat
+      // tables above. See rentals-sync.js for the merge rules.
+      if (cancelled) return;
+      try {
+        const result = await rentalsSync.initialSync((latest.inflows?.rentals || []).filter(notDemoRow).filter(notSeedRow));
+        if (!cancelled && result && result.merged) {
+          setData(d => {
+            const incoming = result.merged.filter(notDemoRow);
+            const current = (d.inflows?.rentals || []).filter(notDemoRow);
+            return { ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals(incoming.length ? current.filter(notSeedRow) : current, incoming) } };
+          });
+        }
+      } catch (e) {
+        console.warn('[rentals-sync] initial sync failed', e);
+      }
+      if (cancelled) return;
+      cleanups.push(rentalsSync.subscribe((items) => {
+        setData(d => {
+          const incoming = items.filter(notDemoRow);
+          const current = (d.inflows?.rentals || []).filter(notDemoRow);
+          return { ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals(incoming.length ? current.filter(notSeedRow) : current, incoming) } };
+        });
+      }));
     }
     start();
 
@@ -2088,7 +2624,15 @@ export default function PoeFinancialSystem() {
       cancelled = true;
       cleanups.forEach(fn => { try { fn && fn(); } catch (_) {} });
     };
-  }, [authSession, data.numericSyncVerifiedAt]);
+    // `data` is read via the window stash (see below); isAnyDemoMode is
+    // URL-derived and constant for the page load.
+    // A3 (2026-06-13 review): key on the STABLE user id, not the authSession
+    // object — TOKEN_REFRESHED (~hourly) hands back a fresh object with the same
+    // user, and depending on the object re-ran a full initialSync + re-subscribe
+    // storm every hour per device. syncIdentityKey collapses that to real
+    // sign-in / sign-out / account-switch transitions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncIdentityKey(authSession), data.numericSyncVerifiedAt]);
 
   // Stash the latest data on window so the auth effect (which has [] deps
   // and therefore captures only the initial closure) can read the current
@@ -2141,7 +2685,10 @@ export default function PoeFinancialSystem() {
   // Round 10 — addIncident now fills in ITSM defaults if caller omits them.
   // status defaults to 'open', urgency to 'incident', dueDate computed from urgency.
   // Incidents — every creation seeds a lifecycle log; every status change appends.
-  const addIncident = (item) => setData(d => {
+  // Returns the new incident id so callers (e.g. the maintenance-log work-order
+  // button) can link their source record to it.
+  const addIncident = (item) => {
+    const id = `in-${Date.now()}`;
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'open';
     const seeded = {
@@ -2149,7 +2696,10 @@ export default function PoeFinancialSystem() {
       status: initialStatus,
       dueDate: dueDateFor(item.urgency || 'incident'),
       ...item,
-      id: `in-${Date.now()}`,
+      id,
+      // date is rendered with .slice() in Calendar and the queue lists —
+      // guarantee it like the other ITSM defaults (callers may omit it).
+      date: item.date || nowIso.slice(0, 10),
       createdAt: item.createdAt || nowIso,
       lifecycle: {
         phase: initialStatus,
@@ -2158,32 +2708,88 @@ export default function PoeFinancialSystem() {
         log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
       },
     };
-    return { ...d, incidents: [...d.incidents, seeded] };
-  });
-  const updateIncident = (id, updates) => setData(d => ({
-    ...d,
-    incidents: d.incidents.map(i => {
-      if (i.id !== id) return i;
-      const withLifecycle = ensureLifecycle(i);
-      const merged = { ...withLifecycle, ...updates };
-      // If status changed, route through appendLifecycleLog to write a log entry.
-      if (updates.status && updates.status !== withLifecycle.status) {
-        return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
+    setData(d => ({ ...d, incidents: [...d.incidents, seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      // Stamp remoteUuid as soon as the insert lands so follow-on updates
+      // (dispatch, resolve) reach the cloud row immediately.
+      incidentsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) {
+          setData(d => ({ ...d, incidents: (d.incidents || []).map(i => i.id === id ? { ...i, remoteUuid: res.remoteId } : i) }));
+        }
+      }).catch(e => console.warn('[incidents-sync] upload failed', e));
+    }
+    return id;
+  };
+  // Shared transition logic so the reducer and the cloud push compute the
+  // identical next state (lifecycle log entries included).
+  const applyIncidentUpdates = (incident, updates) => {
+    const withLifecycle = ensureLifecycle(incident);
+    const merged = { ...withLifecycle, ...updates };
+    // If status changed, route through appendLifecycleLog to write a log entry.
+    if (updates.status && updates.status !== withLifecycle.status) {
+      return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
+    }
+    // Same-status audit note (e.g. "dispatched to X") — append a log entry
+    // without a phase change, so the quality-control trail stays complete.
+    if (updates._logNote) {
+      const nowIso = new Date().toISOString();
+      const phase = merged.lifecycle?.phase || merged.status;
+      return {
+        ...merged,
+        lifecycle: {
+          ...merged.lifecycle,
+          log: [...(merged.lifecycle?.log || []), { at: nowIso, fromPhase: phase, toPhase: phase, by: updates._by || 'user', note: updates._logNote }],
+        },
+      };
+    }
+    return merged;
+  };
+  const updateIncident = (id, updates) => {
+    // 2026-06-12 fix: the cloud push used to be computed from the CLOSURE's
+    // data — two rapid updates (dispatch → resolve, or two log notes) pushed
+    // a patch built on pre-first-update state, dropping the earlier lifecycle
+    // log entry from the QC trail. Compute inside the updater so the push
+    // always carries the post-update item. updateRow is a full-row PUT
+    // (idempotent), so StrictMode's dev-only double-invoke is harmless.
+    setData(d => {
+      const next = (d.incidents || []).map(i => i.id !== id ? i : applyIncidentUpdates(i, updates));
+      if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+        const updated = next.find(i => i.id === id);
+        if (updated && updated.remoteUuid) {
+          incidentsSync.updateRow(updated.remoteUuid, incidentColumns(updated)).catch(e => console.warn('[incidents-sync] update failed', e));
+        }
       }
-      return merged;
-    }),
-  }));
+      return { ...d, incidents: next };
+    });
+  };
   const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10), _note: 'Marked resolved' });
+  // Dispatch — assign a 1099 worker to an open incident (work order). The
+  // assignment lands on incident.dispatch and writes a lifecycle log entry,
+  // so who-was-sent-when is part of the permanent record.
+  const dispatchIncident = (id, dispatch) => updateIncident(id, {
+    dispatch,
+    _logNote: dispatch?.contractorName ? `dispatched to ${dispatch.contractorName}` : 'dispatch updated',
+  });
   const addEvent = (item) => setData(d => ({ ...d, events: [...(d.events || []), { ...item, id: `ev-${Date.now()}`, createdAt: new Date().toISOString(), completedAt: null }] }));
   const completeEvent = (id) => setData(d => ({ ...d, events: (d.events || []).map(e => e.id === id ? { ...e, completedAt: new Date().toISOString() } : e) }));
   // Projects — same lifecycle pattern.
-  const addProject = (item) => setData(d => {
+  const addProject = (item) => {
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'planning';
+    // Unique even within the same millisecond: a batch add (e.g. "Load 6
+    // example projects" calls addProject in a synchronous forEach) otherwise
+    // mints the SAME `pr-<Date.now()>` for every project, which collides React
+    // keys AND makes edit/delete-by-id hit every twin at once. Same random-suffix
+    // pattern the rest of the app uses for batch-created ids.
+    const localId = `pr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const seeded = {
       ...item,
-      id: `pr-${Date.now()}`,
+      id: localId,
       createdAt: item.createdAt || nowIso,
+      // Attribute the project to the signed-in user so it is "Mine" immediately
+      // and the Mine/Everyone split reflects real ownership (isMine reads
+      // createdBy). Null when signed out so demo/anonymous adds stay unattributed.
+      createdBy: authSession?.user?.id || null,
       status: initialStatus,
       lifecycle: {
         phase: initialStatus,
@@ -2192,11 +2798,24 @@ export default function PoeFinancialSystem() {
         log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
       },
     };
-    return { ...d, projects: [...(d.projects || []), seeded] };
-  });
-  const updateProject = (id, updates) => setData(d => ({
-    ...d,
-    projects: (d.projects || []).map(p => {
+    setData(d => ({ ...d, projects: [...(d.projects || []), seeded] }));
+    // Close the loop: push the new project to the cloud right away (not only when
+    // it is later edited), so it flows to the family's other devices AND we
+    // capture its remoteUuid — without which later edits/deletes never sync.
+    // Fails soft: a failed upload leaves the local copy intact to retry on the
+    // next full sync.
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      projectsSync.upload(seeded)
+        .then(res => {
+          if (res && res.uploaded && res.remoteId) {
+            setData(d => ({ ...d, projects: (d.projects || []).map(p => (p.id === localId ? { ...p, remoteUuid: res.remoteId } : p)) }));
+          }
+        })
+        .catch(e => console.warn('[projects-sync] add upload failed', e));
+    }
+  };
+  const updateProject = (id, updates) => setData(d => {
+    const next = (d.projects || []).map(p => {
       if (p.id !== id) return p;
       const withLifecycle = ensureLifecycle(p);
       const merged = { ...withLifecycle, ...updates };
@@ -2204,10 +2823,50 @@ export default function PoeFinancialSystem() {
         return appendLifecycleLog(merged, updates.status, updates._by || 'user', updates._note || '');
       }
       return merged;
-    }),
-  }));
+    });
+    // Cloud sync — persist EVERY editable column an edit can touch, not just the
+    // inline priority/assignee/next/blocker fields. So a project edited on one
+    // device — its title, dates, status, domain, description, weekly load —
+    // shows up on the family's other devices instead of stalling until the next
+    // sign-in. Scoped to the columns the projects table actually has (lifecycle
+    // log + conversations stay local; no column for them), and fails soft: a
+    // missing column or an offline edit never blocks the local save.
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(p => p.id === id);
+      if (updated && updated.remoteUuid) {
+        const COLUMN_OF = {
+          title:            'title',
+          startDate:        'start_date',
+          endDate:          'end_date',
+          status:           'status',
+          domain:           'domain',
+          description:      'description',
+          entityId:         'entity_slug',
+          priorityRank:     'priority_rank',
+          assigneePersonas: 'assignee_personas',
+          nextStep:         'next_step',
+          blocker:          'blocker',
+        };
+        const patch = {};
+        for (const [localKey, column] of Object.entries(COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (updates.hoursPerWeek !== undefined) patch.hours_per_week = Number(updates.hoursPerWeek);
+        // A1 (2026-06-13): sync the rich fields so they survive across devices.
+        // lifecycle changes via appendLifecycleLog on a status change (not via
+        // updates.lifecycle), so push the CURRENT lifecycle whenever it's present.
+        if (updated.lifecycle !== undefined) patch.lifecycle = updated.lifecycle;
+        if (updates.conversationLog !== undefined) patch.conversation_log = updates.conversationLog;
+        if (updates.contractorIds !== undefined) patch.contractor_ids = updates.contractorIds;
+        if (Object.keys(patch).length > 0) {
+          projectsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[projects-sync] project update failed', e));
+        }
+      }
+    }
+    return { ...d, projects: next };
+  });
   const deleteProject = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.projects || []).find(p => p.id === id);
       if (local && local.remoteUuid) {
         projectsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[projects-sync] delete failed', e));
@@ -2218,9 +2877,41 @@ export default function PoeFinancialSystem() {
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
   // r25 — 1099 contractor CRUD per EDITABLE-EVERYWHERE.md.
-  const addContractor = (item) => setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), { ...item, id: `k-${Date.now()}` }] }));
-  const updateContractor = (id, updates) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c) }));
-  const deleteContractor = (id) => setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).filter(c => c.id !== id) }));
+  // v2.13 — contractors sync to contractors_1099 so the worker roster (and
+  // the phones one-tap dispatch depends on) is shared across the family.
+  const addContractor = (item) => {
+    const seeded = { ...item, id: `k-${Date.now()}` };
+    setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      contractorsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) {
+          setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === seeded.id ? { ...c, remoteUuid: res.remoteId } : c) }));
+        }
+      }).catch(e => console.warn('[contractors-sync] upload failed', e));
+    }
+  };
+  const updateContractor = (id, updates) => {
+    // 2026-06-12 fix: same stale-closure push as updateIncident — see there.
+    setData(d => {
+      const next = (d.contractors1099 || []).map(c => c.id === id ? { ...c, ...updates } : c);
+      if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+        const updated = next.find(c => c.id === id);
+        if (updated && updated.remoteUuid) {
+          contractorsSync.updateRow(updated.remoteUuid, contractorColumns(updated)).catch(e => console.warn('[contractors-sync] update failed', e));
+        }
+      }
+      return { ...d, contractors1099: next };
+    });
+  };
+  const deleteContractor = (id) => {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const current = (data.contractors1099 || []).find(c => c.id === id);
+      if (current && current.remoteUuid) {
+        contractorsSync.deleteRow(current.remoteUuid).catch(e => console.warn('[contractors-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).filter(c => c.id !== id) }));
+  };
   // r30 — Entity update (no delete: entities are referenced by accounts/debts/contractors/transactions; orphan risk).
   const updateEntity = (id, updates) => {
     setData(d => ({ ...d, entities: (d.entities || []).map(e => e.id === id ? { ...e, ...updates } : e) }));
@@ -2244,8 +2935,13 @@ export default function PoeFinancialSystem() {
   const addFeedback = (item) => {
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'new';
+    // Keep the base64 image OUT of localStorage (it would bloat the quota and
+    // every device's snapshot). It rides to Supabase via uploadFeedback; the
+    // local copy keeps only a marker.
+    const { screenshot, ...rest } = item;
     const seeded = {
-      ...item,
+      ...rest,
+      hasScreenshot: !!screenshot,
       id: `fb-${Date.now()}`,
       createdAt: nowIso,
       status: initialStatus,
@@ -2257,7 +2953,7 @@ export default function PoeFinancialSystem() {
       },
     };
     setData(d => ({ ...d, feedback: [...(d.feedback || []), seeded] }));
-    uploadFeedback(seeded, { activeTab: view, appVersion: data.meta?.appVersion });
+    uploadFeedback(seeded, { activeTab: view, appVersion: data.meta?.appVersion, screenshot });
   };
   const deleteFeedback = (id) => setData(d => ({ ...d, feedback: (d.feedback || []).filter(f => f.id !== id) }));
   const dismissWelcome = () => setData(d => ({ ...d, welcomeDismissed: true }));
@@ -2273,8 +2969,13 @@ export default function PoeFinancialSystem() {
   const addAccount = (item) => {
     const seeded = { ...item, id: `a-${Date.now()}`, balance: parseFloat(item.balance) || 0, inLegal: !!item.inLegal };
     setData(d => ({ ...d, accounts: [...(d.accounts || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt) {
-      accountsSync.upload(seeded).catch(e => console.warn('[accounts-sync] upload failed', e));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      // Stamp remoteUuid as soon as the insert lands so follow-on edits/deletes
+      // reach the cloud row immediately (else they silently no-op until a
+      // realtime refetch backfills it). Matches the incidents pattern.
+      accountsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === seeded.id ? { ...a, remoteUuid: res.remoteId } : a) }));
+      }).catch(e => console.warn('[accounts-sync] upload failed', e));
     }
   };
   // 2026-05-24 — Move-to-Legal toggle: flips inLegal on an account, which
@@ -2288,7 +2989,7 @@ export default function PoeFinancialSystem() {
   };
   const updateAccount = (id, updates) => {
     setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === id ? { ...a, ...updates, balance: updates.balance !== undefined ? parseFloat(updates.balance) || 0 : a.balance } : a) }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.accounts || []).find(a => a.id === id);
       if (local && local.remoteUuid) {
         const patch = {};
@@ -2305,7 +3006,7 @@ export default function PoeFinancialSystem() {
     }
   };
   const deleteAccount = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.accounts || []).find(a => a.id === id);
       if (local && local.remoteUuid) {
         accountsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[accounts-sync] delete failed', e));
@@ -2317,13 +3018,15 @@ export default function PoeFinancialSystem() {
   const addTransaction = (item) => {
     const seeded = { ...item, id: `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 };
     setData(d => ({ ...d, transactions: [...(d.transactions || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt) {
-      transactionsSync.upload(seeded).catch(e => console.warn('[transactions-sync] upload failed', e));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      transactionsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === seeded.id ? { ...t, remoteUuid: res.remoteId } : t) }));
+      }).catch(e => console.warn('[transactions-sync] upload failed', e));
     }
   };
   const updateTransaction = (id, updates) => {
     setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.transactions || []).find(t => t.id === id);
       if (local && local.remoteUuid) {
         const patch = {};
@@ -2339,7 +3042,7 @@ export default function PoeFinancialSystem() {
     }
   };
   const deleteTransaction = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.transactions || []).find(t => t.id === id);
       if (local && local.remoteUuid) {
         transactionsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[transactions-sync] delete failed', e));
@@ -2348,9 +3051,69 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
   };
   // v28+ Rentals expansion: Rental property CRUD
-  const addRental = (item) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), { ...item, id: `r-${Date.now()}` }] } }));
-  const updateRental = (id, updates) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
-  const deleteRental = (id) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).filter(r => r.id !== id) } }));
+  // 2026-06-10 — wired for cross-device sync (schema v2.2.2 rentals). Same gate
+  // as accounts/debts/transactions: only push once VerifyBalances has run.
+  // Only the top-level property columns travel; mortgage rate/P&I/escrow,
+  // rooms, equipment, logs, and the lease/tenant/market sub-objects stay
+  // device-local (leases + rent_payments sync is the follow-up).
+  const addRental = (item) => {
+    const seeded = { ...item, id: `r-${Date.now()}` };
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      // Stamp remoteUuid as soon as the insert lands — without it, an edit or
+      // delete in the window before the next realtime refresh can't reach the
+      // remote row (a delete would even resurrect on the next merge).
+      rentalsSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) {
+          setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === seeded.id ? { ...r, remoteUuid: res.remoteId } : r) } }));
+        }
+      }).catch(e => console.warn('[rentals-sync] upload failed', e));
+    }
+  };
+  const updateRental = (id, updates) => {
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.inflows.rentals || []).find(r => r.id === id);
+      if (local && local.remoteUuid) {
+        const patch = {};
+        if (updates.name !== undefined)           patch.display_name = updates.name;
+        if (updates.address !== undefined)        patch.address = updates.address;
+        if (updates.city !== undefined)           patch.city = updates.city || null;
+        if (updates.state !== undefined)          patch.state = updates.state || null;
+        if (updates.zip !== undefined)            patch.zip = updates.zip || null;
+        if (updates.tenantName !== undefined)     patch.tenant_name = updates.tenantName || null;
+        if (updates.entityId !== undefined)       patch.entity_slug = updates.entityId || null;
+        if (updates.propertyType !== undefined)   patch.property_type = toRemotePropertyType(updates.propertyType);
+        if (updates.status !== undefined)         patch.status = toRemoteStatus(updates.status);
+        if (updates.rent !== undefined)           patch.monthly_rent = parseFloat(updates.rent) || 0;
+        if (updates.actual !== undefined)         patch.rent_actual = parseFloat(updates.actual) || 0;
+        if (updates.purchasePrice !== undefined)  patch.purchase_price = parseFloat(updates.purchasePrice) || 0;
+        if (updates.purchaseDate !== undefined)   patch.purchase_date = updates.purchaseDate || null;
+        if (updates.estimatedValue !== undefined) patch.current_market_value = parseFloat(updates.estimatedValue) || 0;
+        if (updates.mortgage !== undefined) {
+          patch.mortgage_balance = parseFloat(updates.mortgage?.balance) || 0;
+          patch.mortgage_rate    = parseFloat(updates.mortgage?.rate) || 0;
+          patch.mortgage_payment = parseFloat(updates.mortgage?.monthlyPI) || 0;
+          patch.mortgage_escrow  = parseFloat(updates.mortgage?.escrow) || 0;
+        }
+        if (updates.notes !== undefined)          patch.notes = updates.notes;
+        // Device-local edits (rooms, equipment, logs, lease/tenant/market
+        // sub-objects) produce an empty patch — skip the network round-trip.
+        if (Object.keys(patch).length) {
+          rentalsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[rentals-sync] update failed', e));
+        }
+      }
+    }
+  };
+  const deleteRental = (id) => {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.inflows.rentals || []).find(r => r.id === id);
+      if (local && local.remoteUuid) {
+        rentalsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[rentals-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).filter(r => r.id !== id) } }));
+  };
   const addScope = (scope) => setData(d => ({ ...d, scopes: [...d.scopes, { ...scope, id: `sc-${Date.now()}`, createdAt: new Date().toISOString(), status: 'draft' }] }));
   const deleteScope = (id) => setData(d => ({ ...d, scopes: d.scopes.filter(s => s.id !== id) }));
   // 2026-05-25 — Inquiries CRUD wired for cross-device sync. Same gate as
@@ -2361,8 +3124,10 @@ export default function PoeFinancialSystem() {
     const nowIso = new Date().toISOString();
     const seeded = { ...item, id: `inq-${Date.now()}`, receivedAt: nowIso, status: 'new', statusHistory: [{ status: 'new', at: nowIso }] };
     setData(d => ({ ...d, inquiries: [...(d.inquiries || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt) {
-      inquiriesSync.upload(seeded).catch(e => console.warn('[inquiries-sync] upload failed', e));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      inquiriesSync.upload(seeded).then((res) => {
+        if (res && res.remoteId) setData(d => ({ ...d, inquiries: (d.inquiries || []).map(q => q.id === seeded.id ? { ...q, remoteUuid: res.remoteId } : q) }));
+      }).catch(e => console.warn('[inquiries-sync] upload failed', e));
     }
   };
   // v28+ Session C: checkout intent logging
@@ -2370,7 +3135,7 @@ export default function PoeFinancialSystem() {
   const deleteCheckoutIntent = (id) => setData(d => ({ ...d, checkoutIntents: (d.checkoutIntents || []).filter(i => i.id !== id) }));
   const updateInquiry = (id, updates) => {
     setData(d => ({ ...d, inquiries: (d.inquiries || []).map(i => i.id === id ? { ...i, ...updates, statusHistory: updates.status && updates.status !== i.status ? [...(i.statusHistory || []), { status: updates.status, at: new Date().toISOString(), notes: updates.statusNotes }] : i.statusHistory } : i) }));
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inquiries || []).find(i => i.id === id);
       if (local && local.remoteUuid) {
         const patch = {};
@@ -2400,7 +3165,7 @@ export default function PoeFinancialSystem() {
     }
   };
   const deleteInquiry = (id) => {
-    if (authSession && data.numericSyncVerifiedAt) {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inquiries || []).find(i => i.id === id);
       if (local && local.remoteUuid) {
         inquiriesSync.deleteRow(local.remoteUuid).catch(e => console.warn('[inquiries-sync] delete failed', e));
@@ -2439,6 +3204,94 @@ export default function PoeFinancialSystem() {
     });
   };
   const removeWatchlistSymbol = (sym) => setData(d => ({ ...d, watchlist: (d.watchlist || []).filter(s => s !== sym) }));
+  // Life Gallery — the curated hero photos on the Big Picture page. Device-
+  // local data URLs in the poe-financial-v28 snapshot. HONEST LIMIT
+  // (2026-06-12): photos do NOT ride cloud sync — no table carries them yet —
+  // and they are NOT safe from a phone change until the sovereign photo
+  // write-path (phone → NAS) lands. This device is the only copy; the
+  // per-photo export button is the interim backup.
+  const addLifePhotos = (photos) => setData(d => ({ ...d, lifePhotos: [...(d.lifePhotos || []), ...photos] }));
+  const updateLifePhoto = (id, updates) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
+  const deleteLifePhoto = (id) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).filter(p => p.id !== id) }));
+  // Conference (COLG 77th National Assembly) — local-first like the rest of
+  // the Church tab; merges onto the seed so partial saves never lose fields.
+  const updateConference = (updates) => setData(d => ({ ...d, conference: { ...(d.conference || {}), ...updates } }));
+  // One Voice (Church tab) — serve notes + ideas/testimony land here,
+  // persisted with the rest of the data record.
+  const addChurchVoice = (entry) => setData(d => ({ ...d, churchVoice: [...(d.churchVoice || []), entry] }));
+  // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
+  // build inbox. Persisted with the rest of the data record (device-local;
+  // never synced to a shared surface — notes are siloed by design).
+  // Links kept WITH the note (Darrell 2026-06-11: titles from YouTube/any
+  // link stay with the thought "for easy locating it again — to think and
+  // process the implications"). Titles resolve through OUR NAS (wf22
+  // link-title), so what you're reading never leaks to a third-party
+  // metadata service. Offline/no-token → the hostname is the label.
+  const extractNoteUrls = (text) => Array.from(new Set((String(text).match(/https?:\/\/[^\s)>\]"']{4,500}/g) || []).slice(0, 6)));
+  const enrichNoteLinks = (noteId, urls) => {
+    let token = '';
+    try { token = (localStorage.getItem('poetech-chat-bridge-token') || '').trim(); } catch (_) { /* no-op */ }
+    if (!token) return;
+    urls.forEach((u) => {
+      try {
+        fetch(`/n8n/webhook/link-title?url=${encodeURIComponent(u)}`, { headers: { authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : null)
+          .then(j => {
+            const o = Array.isArray(j) ? j[0] : j;
+            const title = (o && o.title) ? String(o.title).slice(0, 200) : '';
+            if (!title) return;
+            setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === noteId ? { ...n, links: (n.links || []).map(l => l.url === u ? { ...l, title } : l) } : n) }));
+          })
+          .catch(() => { /* offline — hostname label stands */ });
+      } catch (_) { /* same */ }
+    });
+  };
+  const addNote = (text) => {
+    const id = `nt-${Date.now()}`;
+    const urls = extractNoteUrls(text);
+    setData(d => ({ ...d, notes: [...(d.notes || []), { id, text, createdAt: new Date().toISOString(), pinned: false, sentToPoeTech: false, links: urls.map(u => ({ url: u, title: '' })) }] }));
+    if (urls.length) enrichNoteLinks(id, urls);
+  };
+  // 📖 Spiritual-source flag — notes marked as sources (e.g. Yahweh Speaks
+  // links) feed the spiritual module's source review. Word-senior posture:
+  // sources that try to clarify Yahweh's perspectives are weighed against
+  // Scripture, never the other way (THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW;
+  // per-tradition weights with Bishop Gwin).
+  const toggleNoteSource = (id) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, spiritualSource: !n.spiritualSource } : n) }));
+  const updateNote = (id, text) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, text, updatedAt: new Date().toISOString() } : n) }));
+  const deleteNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).filter(n => n.id !== id) }));
+  const togglePinNote = (id) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, pinned: !n.pinned } : n) }));
+  const sendNoteToPoeTech = (text, noteId) => {
+    const id = `ad-${Date.now()}`;
+    setData(d => ({
+      ...d,
+      appDirectives: [...(d.appDirectives || []), { id, text, at: new Date().toISOString(), status: 'received' }],
+      notes: noteId ? (d.notes || []).map(n => n.id === noteId ? { ...n, sentToPoeTech: true } : n) : (d.notes || []),
+    }));
+    // Low-hanging-fruit bucket → build pipeline (Darrell 2026-06-11: "the
+    // system gets better based on the bucket filling — we have workflows for
+    // 90% of that"). The missing 10% was this one connection: relay the
+    // directive to the NAS thought-inbox (wf26) that feeds build sessions.
+    // Fire-and-forget; offline is fine — the local record above is canonical.
+    // 2026-06-12 security fix: this POST was unauthenticated and reachable by
+    // any anonymous visitor on poetech.us — arbitrary public text injected
+    // into the autonomous-agent inbox (wf26 → wf27). Now it only fires from a
+    // device holding the bridge token, and sends it so wf26 can require
+    // headerAuth. No token (anonymous/public visitor) → the local record
+    // stands and nothing is relayed.
+    let bridgeToken = '';
+    try { bridgeToken = (localStorage.getItem('poetech-chat-bridge-token') || '').trim(); } catch (_) { /* no-op */ }
+    if (!bridgeToken) return;
+    try {
+      fetch('/n8n/webhook/thought', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${bridgeToken}` },
+        body: JSON.stringify({ text, tags: ['tell-poetech', 'poetech-app'], data: { source: 'thinking-space', directiveId: id } }),
+      }).then((r) => {
+        if (r.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
+      }).catch(() => { /* offline — local record stands; relays are best-effort */ });
+    } catch (_) { /* same */ }
+  };
 
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
@@ -2650,6 +3503,17 @@ html{scroll-padding-bottom:280px}
 [data-theme="midnight"] .border-\\[\\#5A6E3D\\]{border-color:#86EFAC!important}
 [data-theme="midnight"] .bg-\\[\\#B85838\\]{background-color:#FB923C!important}
 [data-theme="midnight"] .bg-\\[\\#5A6E3D\\]{background-color:#86EFAC!important}
+/* WCAG 2.1 AA fix (2026-06-10): #5A6E3D remaps to bright mint #86EFAC under
+   midnight, which is readable as a text color on black but fails as a FILLED
+   badge background with white text (1.4:1). Force near-black text on the
+   mint for the filled green badges so they hit ~14:1. Other themes keep
+   #5A6E3D dark green where white text already passes (~5.6:1). */
+[data-theme="midnight"] .bg-\\[\\#5A6E3D\\].text-white{color:#1A1815!important}
+/* Same fix for the #B85838 rust accent, which remaps to bright #FB923C under
+   midnight: white text on it is only 2.26:1 (e.g. the "Drop your bank file"
+   CTA). Near-black text -> ~9.3:1. On hover these buttons go dark (the rule
+   below) and flip back to light text, so no conflict. */
+[data-theme="midnight"] .bg-\\[\\#B85838\\].text-white{color:#1A1815!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#2A2A2A!important;color:#E5E5E5!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:text-\\[\\#1A1815\\]:hover{color:#E5E5E5!important}
@@ -2662,6 +3526,12 @@ html{scroll-padding-bottom:280px}
       </div>
 
       <AuthBanner />
+      {persistIssue && (
+        <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[12px] py-2 px-4 flex items-center justify-between gap-3 print:hidden">
+          <span>⚠ {persistIssue.message}</span>
+          <button onClick={() => setPersistIssue(null)} className="text-[#FAF8F4]/80 hover:text-white text-[11px] uppercase tracking-wide shrink-0">Dismiss</button>
+        </div>
+      )}
       {showVerifyBalances && (
         <VerifyBalances
           data={data}
@@ -2753,10 +3623,23 @@ html{scroll-padding-bottom:280px}
                 { key: 'lawyer',      free: false, label: 'For solo lawyers',                headline: 'Practice + trust accounting kept clean.',                     summary: 'Today: alias of Solo professional; trust-account ledger in build. Every client transfer recorded, so the trust balance is provable.' },
                 { key: 'therapist',   free: false, label: 'For solo therapists',             headline: 'Practice + CEU + supervision tracked.',                       summary: 'Today: alias of Solo professional; clinical-side tier in build. CEUs and supervision hours logged as the record, not the memory.' },
               ].map(s => (
-                <div key={s.key} className="block p-4 border border-dashed border-[#5A5751] bg-white/70">
+                /* Coming-next cards: same THEMED surface as the working-sample
+                   tiles above (bg-white, which the theme <style> block remaps
+                   per theme -- e.g. #141414 under midnight, the default), then
+                   dimmed with opacity-80 + a dashed (not solid) border + a
+                   muted grey label + an outlined "Vision . in build" badge so
+                   they read as "not built yet" while staying legible. Fixed
+                   2026-06-10: the prior bg-white/70 had NO theme override (only
+                   plain .bg-white does), so under the default midnight theme it
+                   stayed ~70% white over the black panel while its text got
+                   remapped to light -> a near-white box with invisible text.
+                   Every class here IS in the theme override map, so it renders
+                   correctly in all five themes and identically before/after
+                   hydration (static Tailwind, no JS-conditional styling). */
+                <div key={s.key} className="block p-4 border border-dashed border-[#1A1815] bg-white opacity-80">
                   <div className="flex items-baseline justify-between mb-1.5 gap-2">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">{s.label}</div>
-                    <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#5A5751] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
+                    <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
                   </div>
                   <div className="text-sm text-[#1A1815] mb-1 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.headline}</div>
                   <div className="text-[11px] text-[#5A5751] mb-2 leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
@@ -2939,6 +3822,14 @@ html{scroll-padding-bottom:280px}
         </button>
       )}
 
+      {(() => {
+        // Show once to a signed-in, non-family, non-demo user. Keyed only on
+        // auth + email + a localStorage flag — touches no data/seed/hydration.
+        const ssEmail = (authSession?.user?.email || '').toLowerCase();
+        const show = !!authSession && !!ssEmail && !isFamilyEmail(ssEmail) && !isAnyDemoMode && !selfServeWelcomeDismissed;
+        return show ? <SelfServeWelcome name={ssEmail.split('@')[0]} onDismiss={dismissSelfServeWelcome} /> : null;
+      })()}
+
       {suggestOpen && (
         <div role="dialog" aria-modal="true" aria-labelledby="suggest-h" className="fixed inset-0 z-50 bg-[#1A1815]/90 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-5 sm:p-6">
@@ -2964,6 +3855,20 @@ html{scroll-padding-bottom:280px}
                     <label htmlFor="sg-message" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">What you noticed <span className="text-[#B85838]">*</span></label>
                     <textarea id="sg-message" rows="4" value={suggestForm.message} onChange={e => setSuggestForm({ ...suggestForm, message: e.target.value })} className="w-full p-2 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="A sentence or two is plenty. Specifics help us ship faster." autoFocus />
                   </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Screenshot or photo (optional)</label>
+                    {!suggestImage ? (
+                      <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] bg-white text-xs text-[#5A5751] cursor-pointer hover:bg-[#F2EEE6] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
+                        <span>Attach an image to show us</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={e => { onSuggestImage(e.target.files); e.target.value = ''; }} />
+                      </label>
+                    ) : (
+                      <div className="relative inline-block">
+                        <img src={suggestImage} alt="Attached screenshot preview" className="max-h-32 border border-[#1A1815]" />
+                        <button type="button" onClick={() => setSuggestImage(null)} aria-label="Remove image" className="absolute -top-2 -right-2 bg-[#1A1815] text-white w-6 h-6 text-xs leading-none hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">✕</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {suggestState.error && (
                   <div className="mt-3 p-2 bg-[#DC2626]/10 border border-[#DC2626] text-xs text-[#DC2626]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -2972,7 +3877,7 @@ html{scroll-padding-bottom:280px}
                 )}
                 <div className="flex gap-2 mt-4 flex-wrap">
                   <button type="button" disabled={suggestState.submitting} onClick={submitSuggest} className="flex-1 bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">{suggestState.submitting ? 'Sending…' : 'Send to the team'}</button>
-                  <button type="button" disabled={suggestState.submitting} onClick={() => { setSuggestOpen(false); setSuggestState({ submitting: false, success: false, error: null, id: null }); }} className="px-3 py-2 border border-[#1A1815] text-[#1A1815] text-xs uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
+                  <button type="button" disabled={suggestState.submitting} onClick={() => { setSuggestOpen(false); setSuggestImage(null); setSuggestState({ submitting: false, success: false, error: null, id: null }); }} className="px-3 py-2 border border-[#1A1815] text-[#1A1815] text-xs uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
                 </div>
                 <p className="text-[9px] text-[#5A5751] italic text-center mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Goes to a private inbox on our own infrastructure. We see it within minutes.</p>
               </>
@@ -3246,6 +4151,7 @@ html{scroll-padding-bottom:280px}
                 ['opportunities','Dev/Ops'],
                 ['about','About'],
                 ['__sep__', null],
+                ['notes','🕊 Notes'],
                 ['church','Church'],
                 ['markets','Markets'],
               ].map(([id, label]) => {
@@ -3270,6 +4176,17 @@ html{scroll-padding-bottom:280px}
             </div>
           </div>
         )}
+        {view === 'church' && (
+          <div className="border-t border-[#E8E4DC] bg-white">
+            <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
+              <div className="flex gap-1 text-xs">
+                {[['home','Church'],['engagement','Engagement']].map(([id, label]) => (
+                  <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-24">
@@ -3278,7 +4195,7 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} />}
+        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} dispatchIncident={dispatchIncident} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
         {view === 'books' && (
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
@@ -3329,15 +4246,19 @@ html{scroll-padding-bottom:280px}
                 incidents={data.incidents || []}
                 addIncident={addIncident}
                 resolveIncident={resolveIncident}
+                contractors={data.contractors1099 || []}
+                dispatchIncident={dispatchIncident}
                 voiceOps={data.voiceOps || {}}
               />
             </>
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} />}
+        {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
+        {view === 'church' && churchView === 'engagement' && <Engagement />}
+        {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
-          ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []}
+          ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
             />
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
@@ -3975,16 +4896,35 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
   const [whatsWorking, setWhatsWorking] = useState('');
   const [whatsNot, setWhatsNot] = useState('');
   const [whatsMissing, setWhatsMissing] = useState('');
+  const [screenshot, setScreenshot] = useState(null); // compressed JPEG data URL
   const [formError, setFormError] = useState('');
 
   const toggleCategory = (k) => setCategories(prev => prev.includes(k) ? prev.filter(c => c !== k) : [...prev, k]);
 
-  const handleSubmit = () => {
-    if (!rating && categories.length === 0 && !whatsWorking && !whatsNot && !whatsMissing) {
-      setFormError('Pick a rating, a category, or jot any note — anything is helpful.');
+  const onPickImage = async (fileList) => {
+    const file = fileList && fileList[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type || '')) {
+      setFormError('That file is not an image — a screenshot or photo works best.');
       return;
     }
-    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing });
+    try {
+      // Compress hard: the image only needs to be legible and it travels in the
+      // row, so keep it small.
+      const dataUrl = await compressImageFile(file, 1280, 0.6);
+      setScreenshot(dataUrl);
+      setFormError('');
+    } catch (_) {
+      setFormError('Could not read that image. Try another, or submit without one.');
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!rating && categories.length === 0 && !whatsWorking && !whatsNot && !whatsMissing && !screenshot) {
+      setFormError('Pick a rating, a category, jot a note, or attach an image — anything is helpful.');
+      return;
+    }
+    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshot });
   };
 
   const ratings = [
@@ -4057,6 +4997,21 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
             <div>
               <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">+ What's missing / what would help</div>
               <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Features you wish existed · workflows that don't fit · what would make this perfect for you" value={whatsMissing} onChange={e => setWhatsMissing(e.target.value)} />
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">📎 Screenshot or photo (optional)</div>
+              {!screenshot ? (
+                <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] text-xs text-[#5A5751] cursor-pointer hover:bg-[#FAF8F4] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
+                  <span>Attach an image to show us what you mean</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={e => { onPickImage(e.target.files); e.target.value = ''; }} />
+                </label>
+              ) : (
+                <div className="relative inline-block">
+                  <img src={screenshot} alt="Attached screenshot preview" className="max-h-32 border border-[#1A1815]" />
+                  <button type="button" onClick={() => setScreenshot(null)} aria-label="Remove image" className="absolute -top-2 -right-2 bg-[#1A1815] text-white w-6 h-6 text-xs leading-none hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">✕</button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -4189,6 +5144,16 @@ function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFe
                 <p className="text-sm" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsMissing}</p>
               </div>
             )}
+            {f.screenshot ? (
+              <div className="mb-2">
+                <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold">📎 Screenshot</div>
+                <a href={f.screenshot} target="_blank" rel="noreferrer" title="Open full size">
+                  <img src={f.screenshot} alt="Feedback screenshot" className="max-h-48 border border-[#1A1815] mt-1" />
+                </a>
+              </div>
+            ) : f.hasScreenshot ? (
+              <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-2">📎 Screenshot attached (open on the submitter's device or in Supabase)</div>
+            ) : null}
           </div>
         )}
         renderCard={(f) => {
@@ -4225,7 +5190,7 @@ function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFe
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null }) {
+function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], dispatchIncident, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto }) {
   // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
   // item (if any) is currently expanded. Tapping the row body opens the full
   // details + lifecycle log + jump-link inline, so the user never loses
@@ -4413,6 +5378,10 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
         </section>
       )}
 
+      {/* THE BIGGEST PICTURE — family / business / project hero photos, so the
+          person sees what this is all for every time they open the app. */}
+      <LifeGallery photos={lifePhotos} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} rentals={rentals} />
+
       {/* v28+ MVP v1.5 round 10 — ACTION QUEUE
           One-glance triage panel: Changes (broken now), Incidents (3-day fix),
           Projects (planned work). Anything across the app that needs attention
@@ -4544,7 +5513,7 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
                         <span className="text-[10px] text-[#5A5751] ml-auto font-semibold" aria-hidden="true">{expanded ? '▲' : '▼'} details</span>
                       </div>
                       <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{lifecycleLog.length > 1 ? ` · 📜 ${lifecycleLog.length} log entries` : ''}
+                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{sourceItem?.dispatch ? ` · 👷 ${sourceItem.dispatch.contractorName}` : ''}{lifecycleLog.length > 1 ? ` · 📜 ${lifecycleLog.length} log entries` : ''}
                       </div>
                     </button>
                     {/* Primary action (Resolve for incidents) stays visible on the
@@ -4571,6 +5540,20 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
                     <div className="px-3 pb-3 pt-2 bg-[#FAF8F4] border-t border-[#E8E4DC] space-y-3">
                       {fullDescription && fullDescription !== q.title && (
                         <p className="text-sm text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{fullDescription}</p>
+                      )}
+                      {/* Dispatch — the path from "needs fixed" to a 1099 worker's
+                          phone. Renders for any incident; pulls the linked
+                          property so the job text carries the full address. */}
+                      {q.kind === 'incident' && sourceItem && dispatchIncident && (
+                        <div className="bg-white border border-[#E8E4DC] p-2.5">
+                          <DispatchPanel
+                            incident={sourceItem}
+                            property={sourceItem.linkedTo?.type === 'rental' ? (rentals.find(r => r.id === sourceItem.linkedTo.id) || null) : null}
+                            contractors={contractors}
+                            onDispatch={dispatchIncident}
+                            onResolve={resolveIncident}
+                          />
+                        </div>
                       )}
                       {lifecycleLog.length > 0 && (
                         <div>
@@ -5230,7 +6213,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
               <div className="flex justify-between items-baseline gap-2">
                 <div className="flex-1 min-w-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{inc.description}</div>
-                  <div className="text-xs text-[#5A5751]">{inc.date.slice(5)} · {inc.category}</div>
+                  <div className="text-xs text-[#5A5751]">{(inc.date || '').slice(5)} · {inc.category}</div>
                   {Array.isArray(inc.contractorIds) && inc.contractorIds.length > 0 && (
                     <div className="text-[10px] text-[#5A5751] mt-1 flex flex-wrap gap-1.5">
                       <span className="uppercase tracking-wider">👤 1099:</span>
@@ -5423,7 +6406,7 @@ function Calendar({ data, reserves, addRecurring, addIncident, addEvent, complet
 // WCAG 2.1 AA: <label>'d inputs, focus rings, descriptive aria-labels,
 // status meaning conveyed in text as well as color.
 // =============================================================================
-function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent }) {
+function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry }) {
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -5652,6 +6635,25 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
           <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>.
         </p>
       )}
+
+      {/* ONE VOICE — the Church tab's single front door (COUNCIL-CHAMBER:
+          one input, the system deduces; MODE-ROUTING: suggestion visible,
+          person decides). Ordered first so speaking is always one tap away. */}
+      <ChurchOneVoice
+        addPrayerRequest={addPrayerRequest}
+        updateConference={updateConference}
+        conference={conference}
+        addChurchVoice={addChurchVoice}
+        churchVoice={churchVoice}
+        sendToPoeTech={sendToPoeTech}
+        addIncident={addIncident}
+        addInquiry={addInquiry}
+      />
+
+      {/* CONFERENCE — 77th National Assembly (2026-06-11). Second while the
+          Assembly is in season; Bishop Gwin edits details, builds the schedule,
+          and his feedback box feeds the build list directly. */}
+      <ConferenceModule conference={conference} updateConference={updateConference} />
 
       {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
           a post-vacation build; this is the entry point + placeholder. */}

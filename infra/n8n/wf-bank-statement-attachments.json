@@ -1,0 +1,175 @@
+{
+  "id": "wfBankStmtFetch01",
+  "name": "21 \u00b7 Bank statement attachments (Gmail \u2192 /data/bank-imports \u2192 wf15)",
+  "nodes": [
+    {
+      "id": "bsSchedule1",
+      "name": "Every 6 hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "bsGmail1",
+      "name": "Find statement emails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 10,
+        "simple": false,
+        "filters": {
+          "q": "has:attachment (filename:ofx OR filename:qfx OR filename:qbo OR filename:csv) newer_than:7d (statement OR transactions OR account)"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4SeqI6mr7lLR73T6",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "bsSplit1",
+      "name": "One item per attachment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Budget brake: at most 10 msgs/run (Gmail limit above) and 4 attachments\n// per message. Filenames carry the Gmail message id so re-runs OVERWRITE\n// the same file - idempotent, never duplicates into wf15.\nconst out = [];\nfor (const item of items) {\n  const bins = item.binary || {};\n  let n = 0;\n  for (const key of Object.keys(bins)) {\n    if (n >= 4) break;\n    const b = bins[key];\n    const orig = (b.fileName || 'statement.dat').replace(/[^A-Za-z0-9._-]/g, '_');\n    if (!/\\.(ofx|qfx|qbo|csv)$/i.test(orig)) continue;\n    const msgId = (item.json.id || 'msg').slice(0, 16);\n    out.push({ json: { fileName: `gmail-${msgId}-${orig}` }, binary: { data: b } });\n    n++;\n  }\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "bsWrite1",
+      "name": "Write to bank-imports",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/data/bank-imports/{{ $json.fileName }}",
+        "dataPropertyName": "data"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// THREE-BRAKES (2026-06-12 review fix). The budget brake already lives in\n// the Gmail limit (10 msgs) + 4-attachments cap + executionTimeout. This\n// node adds the other two required brakes (CLAUDE.md binding rule):\n//   CONCURRENCY LOCK - a prior run still in flight (lock fresher than 30\n//   min) means SKIP this fire entirely; runs never stack.\n//   KILL-SWITCH - a stale lock means the prior run died mid-flight. Three\n//   consecutive stale locks auto-PAUSES the workflow (sd.paused = true);\n//   it never auto-continues into a runaway. A human clears it by setting\n//   paused=false in workflow static data (or re-importing) after looking.\nconst sd = $getWorkflowStaticData('global');\nconst now = Date.now();\nif (sd.paused) return [];\nif (sd.lockAt && (now - sd.lockAt) < 30 * 60 * 1000) return [];\nif (sd.lockAt) {\n  sd.strikes = (sd.strikes || 0) + 1;\n  if (sd.strikes >= 3) { sd.paused = true; sd.lockAt = null; return []; }\n}\nsd.lockAt = now;\nreturn items;"
+      },
+      "id": "brakes-lock-node",
+      "name": "Brakes: lock + auto-pause",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Run completed cleanly: release the concurrency lock and reset the\n// kill-switch strike counter.\nconst sd = $getWorkflowStaticData('global');\nsd.lockAt = null;\nsd.strikes = 0;\nreturn items;"
+      },
+      "id": "brakes-clear-node",
+      "name": "Brakes: clear lock",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Every 6 hours": {
+      "main": [
+        [
+          {
+            "node": "Brakes: lock + auto-pause",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find statement emails": {
+      "main": [
+        [
+          {
+            "node": "One item per attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per attachment": {
+      "main": [
+        [
+          {
+            "node": "Write to bank-imports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brakes: lock + auto-pause": {
+      "main": [
+        [
+          {
+            "node": "Find statement emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write to bank-imports": {
+      "main": [
+        [
+          {
+            "node": "Brakes: clear lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 120,
+    "timezone": "America/Chicago"
+  },
+  "active": false,
+  "meta": {
+    "lifecycle_state": "inactive-pending-tier-c-signoff"
+  }
+}

@@ -265,4 +265,38 @@ Pairs with: RELEASE-TIERS.md (Tier C), LESSONS-LEARNED.md (P10 / P11 / P12), the
 
 ---
 
+## Reality-Trace Before Building Any Surface (added 2026-06-13)
+
+**Binding rule, post-incident.** On 2026-06-13, three "a human would have known" misses landed in one session: an image upload built into the wrong feedback component, a Build board that depicted static data and would not flag its own missed targets, and a proposed fix ("drive the Build board from the projects table") that rested on a premise error — the Build board is platform data, not the user's projects. The common cause: the agent optimized each surface as a display layer over whatever data was nearest, without applying the human-obvious questions. Full write-up: `LESSONS-LEARNED.md` (2026-06-13 entry; principles P15 / P16). Governed by `DR-0061`.
+
+**Before writing code for any user-facing surface, the agent runs this trace — out loud, in the response, first:**
+
+1. **Real data** — name the real record/table/feed this surface reads and writes. If the value displayed cannot be traced to real state (a real row, a real run, a real timestamp), it does not ship. A painted number ("60% complete," a hardcoded list) is worse than none on a surface whose value is trust.
+2. **End-to-end** — confirm it connects in the LIVE system (signed-in, real instance), not just the demo/seed path.
+3. **The surface the user actually uses** — confirm by OBSERVING the running app (screenshot / DOM / the user's own screen), not by assumption. Two of the 2026-06-13 misses die here.
+4. **State assumptions first** — write the premise down before coding, so a wrong one is caught in a sentence (cheap) instead of after a merged PR (expensive, and it erodes trust).
+
+**The governing principle (P15):** a surface is a live view of — and a control for — real system state. The app is where the flow RUNS, not where it is drawn. When a surface and its real data don't yet connect, that gap is the work; wiring it is not optional polish.
+
+This is the structural version of "the AI should think like a human": the human's contextual judgment is captured as a standing step the system runs every time, not left to a given session's attention. Pairs with: `feedback-research-first` (P7), `feedback-surface-premise-conflicts`, DR-0060 (tenancy guard — judgment encoded as a gate), GOVERNANCE-EXECUTION-ADVISORY (the human holds lived context the model cannot see).
+
+---
+
+## The App Is the Primary Artifact — Default to Building In It (added 2026-06-13)
+
+**Binding rule, declared by Darrell 2026-06-13.** This is placed in Layer 0 on purpose: it is the grounding the agent keeps losing when context compacts or a session restarts, forcing Darrell to re-assert it. Encoded here, it loads first, every session, and is never lost.
+
+> "All of this should be in app because it makes sense ... the app is always the main thing we are actively creating and fixing everything ... [the AI] goes offline or purges its memory just to keep talking to the user, losing context for relevance and current information." (Darrell, 2026-06-13.)
+
+**The PoeTech PWA is the primary artifact. It is the thing we are actively building and fixing. Everything orbits it.**
+
+- **Default to building capability INTO the app.** When a capability *can* live in the app — a surface, a real-data view, a control, a review queue — it **should**, without Darrell having to say "build it in the app too." Repo artifacts (docs, decision records, the governance queue, foundation files) are the spine and the memory; they are necessary, but they are **in service of** the app, not a substitute for shipping the thing where the user actually lives.
+- **"Outside the app" is for what genuinely belongs outside** — binding rules, decision records, the policy spine, NAS-side workflows the cloud can't reach. When something is built outside, the default question is still "and what is its surface *inside* the app?"
+- **Surface both when both make sense** — the pattern proven 2026-06-13 with the governance decision queue (repo file = source of truth + memory; in-app Governor-gated tab = where it's reviewed). One source, surfaced where the user is. Not one or the other.
+- **The app is the center of the through-line** that recurs across this whole effort: *everything in the workflows comes together inside this one app* (DR-0061), surfaces are live views of real flow, real data shows up on every page. "Build it in the app" is not a new request each time — it is the standing default this rule makes permanent.
+
+**Why this is Layer 0 and not just a DR:** decision records are read when consulted; this must be true *before* the agent is asked. Losing it to a memory purge is the exact failure Darrell named. It belongs in the file that is always loaded first. (Recorded for the ledger as DR-0065.)
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.

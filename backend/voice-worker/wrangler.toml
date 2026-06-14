@@ -39,4 +39,4 @@ database_id = "REPLACE_WITH_ID_FROM_WRANGLER_D1_CREATE"
 # Vars (non-secret, edit here):
 [vars]
 ALLOWED_LINES = "poe-properties,poetech"          # comma-list of allowed line slugs
-PWA_ORIGIN = "https://app.poetech.us,http://localhost:5173" # CORS allow list
+PWA_ORIGIN = "https://www.poetech.us,https://poetech.us,https://kingdom-pwa-node.vercel.app,http://localhost:5173" # CORS allow list - the origins the PWA actually serves from (app.poetech.us never existed; 2026-06-12 ship review)

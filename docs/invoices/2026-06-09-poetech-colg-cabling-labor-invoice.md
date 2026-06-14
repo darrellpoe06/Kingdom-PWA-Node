@@ -16,11 +16,11 @@
 
 | # | Service | Basis | Fair-market value |
 |---|---|---|---|
-| 1 | Structured cabling — pull, terminate, test | ~24 Cat6 PoE drops @ $50–150/drop (market rate, 44k sqft) | **$1,200 – $3,600** |
+| 1 | Structured cabling — pull, terminate, test | ~22 Cat6 PoE drops @ $50–150/drop (market rate, 44k sqft) | **$1,100 – $3,300** |
 | 2 | GPU node build + OS/CUDA/Frigate/Cage integration | self-assembled dual-3090; build + bring-up | **$400** |
-| 3 | Camera mounting, aiming, zone config (Frigate) | 24 cameras | *(included with #1)* |
-| | **Fair-market labor subtotal** | | **~$1,600 – $4,000** |
-| | **Representative midpoint** | | **~$2,500** |
+| 3 | NAS migration + Church Plus cutover + camera mounting/aiming/zone config | new Synology primary; 22 cameras (Frigate) | *(included with #1)* |
+| | **Fair-market labor subtotal** | | **~$1,500 – $3,700** |
+| | **Representative midpoint** | | **~$2,400** |
 
 > **Materials are NOT on this invoice.** Cat6 materials (~$350), cameras, switch, node parts, storage, UPS, and the Coral are **hardware**, billed/procured separately within the church's $9,000 hardware budget. This invoice is **labor only**.
 
