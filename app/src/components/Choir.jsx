@@ -482,6 +482,7 @@ function SermonForm({ initial, onSave, onCancel, busy }) {
     scriptureRef: initial?.scriptureRef || '',
     serviceSlot: initial?.serviceSlot || '',
     youtubeUrl: initial?.youtubeUrl || '',
+    documentUrl: initial?.documentUrl || '',
     notes: initial?.notes || '',
     status: initial?.status || 'active',
     startTime: initial?.startSeconds != null ? formatTimecode(initial.startSeconds) : '',
@@ -517,6 +518,7 @@ function SermonForm({ initial, onSave, onCancel, busy }) {
         <div><label className={LABEL} htmlFor="sm-yt">Service video link</label><input id="sm-yt" className={FIELD} value={f.youtubeUrl} onChange={set('youtubeUrl')} placeholder="https://youtu.be/…" /></div>
         <div><label className={LABEL} htmlFor="sm-ts">Sermon starts at (mm:ss)</label><input id="sm-ts" className={FIELD} value={f.startTime} onChange={set('startTime')} placeholder="e.g. 35:10" /></div>
       </div>
+      <div><label className={LABEL} htmlFor="sm-doc">Sermon document link (the original message document)</label><input id="sm-doc" className={FIELD} value={f.documentUrl} onChange={set('documentUrl')} placeholder="Link to BG's sermon document" /></div>
       <div><label className={LABEL} htmlFor="sm-notes">Notes (optional)</label><input id="sm-notes" className={FIELD} value={f.notes} onChange={set('notes')} placeholder="Theme, key points…" /></div>
       <div className="flex gap-2 flex-wrap pt-1">
         <button type="button" disabled={busy || !f.title.trim()} onClick={() => onSave({ ...f, startSeconds: parseTimecode(f.startTime) })} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>{busy ? 'Saving…' : 'Save message'}</button>
@@ -542,6 +544,7 @@ function SermonRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
       {sermon.notes && <p className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.notes}</p>}
       <div className="flex gap-2 mt-1 flex-wrap">
         {watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>▶ Watch{sermon.startSeconds ? ` @ ${formatTimecode(sermon.startSeconds)}` : ''}</a>}
+        {sermon.documentUrl && <a href={sermon.documentUrl} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Document</a>}
         {canEdit && onReuse && <button type="button" onClick={() => onReuse(sermon)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse for new</button>}
         {canEdit && <button type="button" onClick={() => onEdit(sermon)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
         {canEdit && <button type="button" onClick={() => onDelete(sermon)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
@@ -567,7 +570,7 @@ function SermonsPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
   const reuse = (s) => { onReuse(s); };
   return (
     <div>
-      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>BG's historical messages — Sundays + Wednesday Bible Study. Watch any past message, or reuse one as a draft to build a new sermon from.</p>
+      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>BG's sermon prep — every past message (Sundays + Wednesday Bible Study): watch the service, open the original document, or reuse one as a draft to build a new sermon from.</p>
       {canEdit && (form ? (
         <SermonForm initial={form.initial} busy={busy} onSave={async (s) => { await onSave(s); setForm(null); }} onCancel={() => setForm(null)} />
       ) : (
