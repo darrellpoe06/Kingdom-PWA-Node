@@ -9,7 +9,7 @@ import {
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService,
   weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
-  selectNewSermonImports,
+  selectNewSermonImports, isValidInviteEmail,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -240,6 +240,17 @@ describe('selectNewSermonImports (idempotent channel import)', () => {
   });
   it('is safe on empty inputs', () => {
     expect(selectNewSermonImports(null, null)).toEqual([]);
+  });
+});
+
+describe('isValidInviteEmail (church onboarding)', () => {
+  it('accepts real-looking emails, rejects junk', () => {
+    expect(isValidInviteEmail('singer@example.com')).toBe(true);
+    expect(isValidInviteEmail('  a@b.co ')).toBe(true);
+    expect(isValidInviteEmail('')).toBe(false);
+    expect(isValidInviteEmail('nope')).toBe(false);
+    expect(isValidInviteEmail('a@b')).toBe(false);
+    expect(isValidInviteEmail(null)).toBe(false);
   });
 });
 

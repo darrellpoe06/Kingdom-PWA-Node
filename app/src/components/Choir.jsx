@@ -27,6 +27,7 @@ import {
   saveSong, deleteSong, reuseSong, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveSermon, deleteSermon, reuseSermon, saveResource, deleteResource, importSermonsFromChannel,
+  inviteToChurch,
 } from '../lib/choir-sync.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
@@ -305,11 +306,35 @@ function MessagesPanel({ messages, onSend }) {
   );
 }
 
-function RosterPanel({ members, canEdit, onAdd, onRemove }) {
+function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
   const [f, setF] = useState({ displayName: '', section: '', choirRole: 'member' });
   const [adding, setAdding] = useState(false);
+  const [inv, setInv] = useState({ email: '', role: 'member' });
+  const [invMsg, setInvMsg] = useState('');
+  const sendInvite = async () => {
+    setInvMsg('Inviting…');
+    const r = await onInvite(inv.email, inv.role);
+    if (r?.invited) { setInvMsg(`Invite sent to ${inv.email}. They'll get access on their next sign-in.`); setInv({ email: '', role: 'member' }); }
+    else setInvMsg(r?.skipped === 'bad-email' ? 'Enter a valid email.' : `Couldn't invite (${r?.skipped || 'error'}).`);
+  };
   return (
     <div>
+      {canEdit && onInvite && (
+        <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-3 mb-3">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Invite a member to the choir</div>
+          <p className="text-[11px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Send an email invite. When they sign in to PoeTech they'll see the Choir tab. Use "Co-director" for someone who should edit.</p>
+          <div className="flex items-end gap-2 flex-wrap">
+            <div className="flex-1 min-w-[180px]"><label className={LABEL} htmlFor="ci-email">Email</label><input id="ci-email" type="email" className={FIELD} value={inv.email} onChange={(e) => setInv((p) => ({ ...p, email: e.target.value }))} placeholder="member@email.com" /></div>
+            <div><label className={LABEL} htmlFor="ci-role">Access</label>
+              <select id="ci-role" className={FIELD} value={inv.role} onChange={(e) => setInv((p) => ({ ...p, role: e.target.value }))}>
+                <option value="member">Member (view)</option><option value="admin">Co-director (edit)</option>
+              </select>
+            </div>
+            <button type="button" disabled={!inv.email.trim()} onClick={sendInvite} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Invite</button>
+          </div>
+          {invMsg && <p className="text-[11px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{invMsg}</p>}
+        </div>
+      )}
       {canEdit && (adding ? (
         <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 mb-2">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -751,6 +776,7 @@ export default function Choir() {
           members={members} canEdit={access.canEdit}
           onAdd={async (m) => { reportSkip(await addMember(m)); }}
           onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
+          onInvite={(email, role) => inviteToChurch(email, role)}
         />
       )}
     </div>
