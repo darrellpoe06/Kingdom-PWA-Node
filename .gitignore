@@ -98,3 +98,6 @@ app/dist-*/
 docs/.sandbox-write-test.md
 # Root-level read-aloud HTML (the canonical one is app/public/read-aloud.html)
 /read-aloud.html
+
+# Generated backfill artifacts
+scripts/out/

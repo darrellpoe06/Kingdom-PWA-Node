@@ -299,7 +299,7 @@ export default function Engagement() {
 
   return (
     <div className="max-w-2xl">
-      <SectionTitle eyebrow="Family · daily">Engagement</SectionTitle>
+      <SectionTitle eyebrow="Church · daily">Engagement</SectionTitle>
       <TriviaCard signedIn={signedIn} />
       <MessageThread signedIn={signedIn} />
     </div>
