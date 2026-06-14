@@ -14,7 +14,6 @@
 // real enforcement either way.
 // =============================================================================
 import supabase from './supabase.js';
-import { ensureTenantMembership } from './feedback-sync.js';
 
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -247,16 +246,21 @@ export { parseServiceTitle, extractYoutubeId } from './youtube-title-parse.js';
 
 // --- Access ------------------------------------------------------------------
 
+// Resolve (and, for allowlisted leaders, auto-join) the CHURCH instance — NOT
+// the family default. Returns the church instance id, or null when the user has
+// no church access. The choir module is church-scoped: all reads/writes target
+// this instance, so church data never lands in the family instance.
+async function churchInstanceId(displayName) {
+  const { data, error } = await supabase.rpc('join_church_instance', { display_name_in: displayName ?? null });
+  if (error) { console.warn('[choir-sync] church instance resolve failed:', error); return null; }
+  return data ?? null;
+}
+
 export async function getChoirAccess(displayName) {
   const session = await currentSession();
   if (!session) return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null };
-  let tenantId;
-  try {
-    tenantId = await ensureTenantMembership(displayName);
-  } catch (e) {
-    console.warn('[choir-sync] tenant membership failed:', e);
-    return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null };
-  }
+  const tenantId = await churchInstanceId(displayName);
+  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null };
   const [{ data: role }, { data: inChoir }] = await Promise.all([
     supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
     supabase.rpc('user_in_choir', { instance_uuid: tenantId }),
@@ -312,9 +316,8 @@ export const subscribeResources = makeSubscriber('choir_resources', toResourceSh
 async function writeContext(displayName) {
   const session = await currentSession();
   if (!session) return { error: 'signed-out' };
-  let tenantId;
-  try { tenantId = await ensureTenantMembership(displayName); }
-  catch (e) { return { error: 'no-tenant', detail: e }; }
+  const tenantId = await churchInstanceId(displayName);
+  if (!tenantId) return { error: 'no-church' };
   return { tenantId, userId: session.user.id, displayName: resolveDisplayName(session, displayName) };
 }
 
