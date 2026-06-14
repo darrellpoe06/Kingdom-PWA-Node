@@ -6,7 +6,7 @@
 // clean additive class. So this is the autonomous run's terminal batch.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ensureLinks } from '../poe-financial-mvp-v28.jsx';
-import { bridgeToken, hasBridgeToken, CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
+import { bridgeToken, hasBridgeToken, CHAT_BRIDGE_TOKEN_KEY, chatChannelFor } from '../lib/nas-photos.js';
 
 describe('ensureLinks', () => {
   it('passes null/undefined straight through', () => {
@@ -38,5 +38,20 @@ describe('nas-photos bridge token reads', () => {
     localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, '  tok-123  ');
     expect(bridgeToken()).toBe('tok-123');
     expect(hasBridgeToken()).toBe(true);
+  });
+});
+
+describe('chatChannelFor — property → Synology Chat channel', () => {
+  it('maps a known property slug to its exact channel name', () => {
+    expect(chatChannelFor({ id: 'r-805nprospect', name: '805 N Prospect (multi-unit)' })).toBe('805NProspect');
+    expect(chatChannelFor({ id: 'r-2111talans', name: '2111 Talans Dr' })).toBe('2111TalansDr');
+    expect(chatChannelFor({ id: 'r-709commercial', name: '709 Commercial St' })).toBe('709CommercialSt');
+  });
+  it('falls back to the property name for an unmapped property', () => {
+    expect(chatChannelFor({ id: 'r-new', name: 'SomeChannel' })).toBe('SomeChannel');
+  });
+  it('degrades safely on missing input', () => {
+    expect(chatChannelFor(null)).toBe('');
+    expect(chatChannelFor({ id: 'r-x' })).toBe('');
   });
 });
