@@ -6,6 +6,7 @@ import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
+import ReviewFeed from './ReviewFeed.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
@@ -127,6 +128,9 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // shows only for a signed-in family/governor account.
   const tabs = [['list','Projects · Timeline'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
+  // The Review surface shows the freshness loop's staged proposals (DR-0072) —
+  // family-internal oversight, so it rides the same Governor gate.
+  if (isGovernor) tabs.push(['review','🔄 Review']);
   return (
     <div className="space-y-4">
       <div className="border-b border-[#E8E4DC]">
@@ -154,6 +158,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
       {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} />}
       {subView === 'governance' && isGovernor && <GovernanceQueue />}
+      {subView === 'review' && isGovernor && <ReviewFeed />}
     </div>
   );
 }
