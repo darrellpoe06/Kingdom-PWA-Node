@@ -263,9 +263,9 @@ describe('extractYoutubeId', () => {
 });
 
 describe('sermon + resource mappers and reuse', () => {
-  it('toSermonShape maps a row with defaults', () => {
-    expect(toSermonShape({ id: 's1', title: 'Built to Win', service_type: 'wednesday', youtube_url: 'u', start_seconds: 2100, status: 'active' }))
-      .toMatchObject({ id: 's1', title: 'Built to Win', serviceType: 'wednesday', youtubeUrl: 'u', startSeconds: 2100, status: 'active', source: 'manual' });
+  it('toSermonShape maps a row with defaults + service slot', () => {
+    expect(toSermonShape({ id: 's1', title: 'Built to Win', service_type: 'wednesday', service_slot: 'evening', youtube_url: 'u', start_seconds: 2100, status: 'active' }))
+      .toMatchObject({ id: 's1', title: 'Built to Win', serviceType: 'wednesday', serviceSlot: 'evening', youtubeUrl: 'u', startSeconds: 2100, status: 'active', source: 'manual' });
   });
   it('toResourceShape maps a row', () => {
     expect(toResourceShape({ id: 'r1', title: 'Worship chart', url: 'https://x', note: 'weekly' }))
