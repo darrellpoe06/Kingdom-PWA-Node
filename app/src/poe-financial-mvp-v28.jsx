@@ -101,7 +101,14 @@ const COLG_DEFAULT_CHURCH = {
     { id: 'svc-wed1', day: 'Wednesday', time: '1:00 PM',  label: 'Bible Study',    online: true },
     { id: 'svc-wed2', day: 'Wednesday', time: '6:00 PM',  label: 'Bible Study',    online: true },
   ],
-  media: {},
+  // youtubeChannelId — COLG's YouTube channel (@TheLoveCorner). Resolved and
+  // verified 2026-06-14 from the live-stream reference video UEtTGPaKI3k
+  // (oEmbed author "The Love Corner" -> channel UC821pJh7YR5llBNnWUJj-ZA).
+  // The Live Worship section embeds this CHANNEL's current broadcast via the
+  // no-API-key /embed/live_stream?channel= pattern, so it auto-follows every
+  // future stream with no weekly video-ID edits. Other churches set their own.
+  youtubeChannelId: 'UC821pJh7YR5llBNnWUJj-ZA',
+  media: { youtube: 'https://www.youtube.com/@TheLoveCorner' },
   links: {
     // Giving runs through the church's own secure page. The exact giving
     // deep-link is confirmed with the church office and swapped in (V1); the
@@ -6563,6 +6570,20 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
 
+  // LIVE WORSHIP (2026-06-14) — embed the church's CURRENT live broadcast by
+  // channel, not by a single video id, so it auto-follows every future stream
+  // with no weekly edits. The /embed/live_stream?channel= form needs no API key:
+  // YouTube serves the active broadcast when the channel is live and its own
+  // "offline" placeholder otherwise. We do NOT paint a "LIVE NOW" badge of our
+  // own — the client cannot truthfully detect live state without the YouTube
+  // Data API (a new vendor dependency we're avoiding), and a hardcoded badge
+  // would be a painted state (Reality-Trace P15). The player carries the live
+  // signal; the service-times + latest-message context below holds both states.
+  const liveChannelId = (c.youtubeChannelId || '').trim();
+  const liveEmbedUrl = liveChannelId ? `https://www.youtube.com/embed/live_stream?channel=${liveChannelId}` : null;
+  const channelUrl = c.media?.youtube || (liveChannelId ? `https://www.youtube.com/channel/${liveChannelId}` : null);
+  const onlineServices = (c.services || []).filter(s => s && s.online !== false);
+
   const submitPrayer = () => {
     const requester = prForm.anonymous ? '(anonymous)' : (prForm.requester || '').trim();
     const request = (prForm.request || '').trim();
@@ -6628,6 +6649,65 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
 
   return (
     <div className="space-y-6">
+      {/* LIVE WORSHIP (2026-06-14) — TOP of the Church tab by Darrell's direction:
+          when the church is streaming, the broadcast is the most prominent thing
+          on the unchurched on-ramp — worship before anything else. Embedded by
+          CHANNEL (not a single video id) so it auto-follows every future stream
+          with no weekly edits. The player self-handles live vs. offline (YouTube
+          serves the active broadcast when live, its own offline placeholder when
+          not); the service-times + latest-message context below keeps the slot
+          graceful in the offline state too. We do not paint our own "LIVE NOW"
+          badge — the client cannot truthfully detect live state without the
+          YouTube Data API (a vendor dependency we're avoiding), and a hardcoded
+          badge would be a painted state (Reality-Trace P15). A real live/offline
+          detector (same-origin n8n proxy, no key) is the follow-up. */}
+      {liveEmbedUrl && (
+        <section aria-labelledby="live-worship-h" className="bg-white border-2 border-[#B85838] p-4">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <h3 id="live-worship-h" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+              Live Worship · {c.nickname && /love corner/i.test(c.nickname) ? 'The Love Corner' : (c.name || 'Church')}
+            </h3>
+            <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#5A5751]">
+              <span className="w-2 h-2 rounded-full bg-[#B85838]" aria-hidden="true" />
+              Plays here when live
+            </span>
+          </div>
+          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            When {c.name || 'the church'} is streaming, the service plays right here — no need to leave the app. If nothing's playing, you'll see the service times below; come back at service time, or watch the latest message on YouTube.
+          </p>
+
+          <div className="mt-3 aspect-video bg-[#1A1815]">
+            <iframe
+              src={liveEmbedUrl}
+              title={`${c.name || 'Church'} — live worship broadcast`}
+              className="w-full h-full border border-[#1A1815]"
+              allow="encrypted-media; picture-in-picture; fullscreen"
+              allowFullScreen
+              loading="lazy"
+            />
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+            {onlineServices.length > 0 && (
+              <p className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold mr-1.5">Service times</span>
+                {onlineServices.map(s => `${s.day} ${s.time}`).join(' · ')}
+              </p>
+            )}
+            {channelUrl && (
+              <a
+                href={channelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                <span aria-hidden="true">▶</span> Watch the latest on YouTube
+              </a>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* DEFAULT CHURCH HOME NOTE (D21) — shown when the user has not set their
           own church home; COLG / The Love Corner is the platform default (the
           Father's Business anchor). Mars Hill Option B: the visitor who
