@@ -28,6 +28,7 @@ import { inquiriesSync } from './lib/inquiries-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { compressImageFile } from './lib/image.js';
+import { applyUpdate } from './lib/sw-update.js';
 import SelfServeWelcome from './components/SelfServeWelcome.jsx';
 import PinGate from './components/PinGate.jsx';
 import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
@@ -4878,12 +4879,7 @@ function UpdatePrompt() {
 
   if (!reg || dismissed) return null;
 
-  const reload = () => {
-    try {
-      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      else window.location.reload();
-    } catch (e) { window.location.reload(); }
-  };
+  const reload = () => applyUpdate(reg, window);
 
   return (
     <div className="update-prompt fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-sm print:hidden">
