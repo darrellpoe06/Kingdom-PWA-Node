@@ -4,22 +4,22 @@
 // Shows the freshness loop's staged proposals (DR-0072): each is a summary the
 // LOCAL model produced from a link the family saved, optionally cross-checked by
 // a vendor model. This is where the Governor reviews what the always-on loop is
-// flowing — REAL runtime data from the NAS, fetched live (not a build-time
-// snapshot like the decision queue). An empty feed says so honestly; it never
-// paints rows (DR-0061: a surface is a live view of real state).
+// flowing — and ACTS on it: Keep (worth acting on) or Dismiss (clear it). A
+// surface is a live view of AND a control for real state (DR-0061), not just a
+// window onto it. An empty feed says so honestly; it never paints rows.
 //
 // DATA + AUTH (Reality-Trace, CLAUDE.md):
 //   - Real data: GET {N8N_BASE}/webhook/review-feed -> wf-review-feed reads the
 //     real /data/finance-events/_freshness/*.json files the v1 loop writes.
+//     POST {N8N_BASE}/webhook/review-action sets a proposal's status
+//     (dismissed/kept) on the same real files — dismissed drop out of the feed.
 //   - This endpoint carries ONLY low-sensitivity PUBLIC-web summaries. Family
-//     feedback (family-private data) is deliberately NOT served here — its
-//     canonical home is the Supabase `feedback` table, read via RLS in its own
-//     panels (feedback-sync.js). Keeping private data off this endpoint is what
-//     lets a build-time shared token be an appropriate speed-bump here,
-//     consistent with N8N-WEBHOOK-AUTH-PATTERN.md (true per-session auth for
-//     every webhook arrives together at L12, the multi-user auth layer).
-//   - Governor-gated at the call site (Projects.jsx), like the decision queue:
-//     the loop output is family-internal oversight, not a public surface.
+//     feedback (family-private) is NOT served here — its home is the Supabase
+//     `feedback` table via RLS. That's what lets a build-time shared token be an
+//     appropriate speed-bump here (N8N-WEBHOOK-AUTH-PATTERN; per-session auth at
+//     L12). Actions are bounded to the proposal status — they never apply
+//     anything to the system; bright lines stay manual.
+//   - Governor-gated at the call site (Projects.jsx), like the decision queue.
 import React, { useEffect, useState } from 'react';
 import { N8N_BASE } from '../lib/n8n-base.js';
 
@@ -35,6 +35,16 @@ export function normalizeReviewFeed(raw) {
     ? r.freshness.filter((it) => it && it.id)
     : [];
   return { ok: r.ok === true, count: freshness.length, freshness };
+}
+
+// Pure local-state transition for an action (exported for tests): 'dismiss'
+// removes the proposal (it leaves the feed); 'keep' flags it as kept. Mirrors
+// what the server does so the UI updates without a refetch.
+export function applyAction(freshness, id, action) {
+  const list = Array.isArray(freshness) ? freshness : [];
+  if (action === 'dismiss') return list.filter((f) => f && f.id !== id);
+  if (action === 'keep') return list.map((f) => (f && f.id === id ? { ...f, status: 'kept' } : f));
+  return list;
 }
 
 // A vendor_synthesis that begins with "(vendor" is the graceful-degradation
@@ -58,6 +68,8 @@ function hostOf(url) {
 
 export default function ReviewFeed() {
   const [state, setState] = useState({ status: 'loading', data: null, error: null });
+  const [acting, setActing] = useState({});       // id -> true while its action is in flight
+  const [actionError, setActionError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +98,30 @@ export default function ReviewFeed() {
     return () => { cancelled = true; };
   }, []);
 
+  const onAction = async (id, action) => {
+    if (!REVIEW_TOKEN || acting[id]) return;
+    setActionError(null);
+    setActing((a) => ({ ...a, [id]: true }));
+    try {
+      const res = await fetch(`${N8N_BASE}/webhook/review-action`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'X-Review-Token': REVIEW_TOKEN },
+        body: JSON.stringify({ id, action }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json || json.ok !== true) throw new Error((json && json.error) || `HTTP ${res.status}`);
+      setState((s) => {
+        if (!s.data) return s;
+        const nf = applyAction(s.data.freshness, id, action);
+        return { ...s, data: { ...s.data, freshness: nf, count: nf.length } };
+      });
+    } catch (e) {
+      setActionError(`Couldn't ${action} that one${e && e.message ? ` — ${e.message}` : ''}.`);
+    } finally {
+      setActing((a) => ({ ...a, [id]: false }));
+    }
+  };
+
   const { status, data, error } = state;
 
   return (
@@ -93,9 +129,15 @@ export default function ReviewFeed() {
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold">🔄 Review · What the freshness loop is flowing</div>
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-          When you save a link, the local AI reads it and stages a short summary of the current best practice it asserts — optionally cross-checked by a vendor model. They wait here for your eyes. Nothing is auto-applied to the system; you decide what becomes a change. Family feedback lives in its own panels, not here.
+          When you save a link, the local AI reads it and stages a short summary of the current best practice it asserts — optionally cross-checked by a vendor model. Review them here: <strong>Keep</strong> the ones worth acting on, <strong>Dismiss</strong> the rest. Nothing is auto-applied to the system; you decide what becomes a change. Family feedback lives in its own panels, not here.
         </p>
       </section>
+
+      {actionError && (
+        <div className="bg-white border border-[#B85838] p-3" role="alert">
+          <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{actionError}</p>
+        </div>
+      )}
 
       {status === 'loading' && (
         <div className="bg-white border border-[#E8E4DC] p-6 text-center">
@@ -131,8 +173,10 @@ export default function ReviewFeed() {
         <div className="space-y-2">
           {data.freshness.map((p) => {
             const pending = isPendingSynthesis(p.vendor_synthesis);
+            const busy = !!acting[p.id];
+            const kept = p.status === 'kept';
             return (
-              <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: '#5A6E3D' }}>
+              <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: kept ? '#8B6F47' : '#5A6E3D' }}>
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                   <span className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtWhen(p.captured_at)}</span>
                   {p.status && <span className="text-[10px] uppercase tracking-wider font-semibold text-[#8B6F47]">{p.status}</span>}
@@ -159,6 +203,24 @@ export default function ReviewFeed() {
                 {p.note && (
                   <p className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Note · {p.note}</p>
                 )}
+                {/* Controls (DR-0061): Keep / Dismiss act on the real staged file. */}
+                <div className="mt-3 pt-2 border-t border-[#E8E4DC] flex items-center gap-2 flex-wrap">
+                  {kept ? (
+                    <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Kept for action</span>
+                  ) : (
+                    <button type="button" onClick={() => onAction(p.id, 'keep')} disabled={busy}
+                      aria-label={`Keep ${hostOf(p.url)} for action`}
+                      className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+                      Keep
+                    </button>
+                  )}
+                  <button type="button" onClick={() => onAction(p.id, 'dismiss')} disabled={busy}
+                    aria-label={`Dismiss ${hostOf(p.url)}`}
+                    className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    Dismiss
+                  </button>
+                  {busy && <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>working…</span>}
+                </div>
               </div>
             );
           })}

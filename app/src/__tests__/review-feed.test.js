@@ -3,7 +3,7 @@
 // tolerate a missing/garbled response (so the panel never crashes) and that
 // distinguish a real vendor cross-check from the graceful-degradation note.
 import { describe, it, expect } from 'vitest';
-import { normalizeReviewFeed, isPendingSynthesis } from '../components/ReviewFeed.jsx';
+import { normalizeReviewFeed, isPendingSynthesis, applyAction } from '../components/ReviewFeed.jsx';
 
 describe('normalizeReviewFeed', () => {
   it('keeps well-formed proposals and reports the count', () => {
@@ -29,6 +29,36 @@ describe('normalizeReviewFeed', () => {
     expect(normalizeReviewFeed(null)).toEqual({ ok: false, count: 0, freshness: [] });
     expect(normalizeReviewFeed('nonsense')).toEqual({ ok: false, count: 0, freshness: [] });
     expect(normalizeReviewFeed({ ok: false, error: 'unauthorized' })).toEqual({ ok: false, count: 0, freshness: [] });
+  });
+});
+
+describe('applyAction', () => {
+  const list = [
+    { id: 'fr-1', summary: 'A', status: 'for-review' },
+    { id: 'fr-2', summary: 'B', status: 'for-review' },
+  ];
+
+  it('dismiss removes the proposal from the list', () => {
+    const out = applyAction(list, 'fr-1', 'dismiss');
+    expect(out.map((f) => f.id)).toEqual(['fr-2']);
+  });
+
+  it('keep flags the proposal as kept without removing it', () => {
+    const out = applyAction(list, 'fr-2', 'keep');
+    expect(out.find((f) => f.id === 'fr-2').status).toBe('kept');
+    expect(out.length).toBe(2);
+  });
+
+  it('does not mutate the input list', () => {
+    const before = JSON.parse(JSON.stringify(list));
+    applyAction(list, 'fr-1', 'dismiss');
+    applyAction(list, 'fr-2', 'keep');
+    expect(list).toEqual(before);
+  });
+
+  it('degrades safely on bad input or unknown action', () => {
+    expect(applyAction(undefined, 'fr-1', 'dismiss')).toEqual([]);
+    expect(applyAction(list, 'fr-1', 'bogus').map((f) => f.id)).toEqual(['fr-1', 'fr-2']);
   });
 });
 
