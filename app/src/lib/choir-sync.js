@@ -77,6 +77,25 @@ export function toChoirMessageShape(row, myUserId) {
   };
 }
 
+export function toAbsenceShape(row, myUserId) {
+  return {
+    id: row.id,
+    userId: row.user_id ?? null,
+    memberId: row.member_id ?? null,
+    memberName: row.member_name,
+    startDate: row.start_date,
+    endDate: row.end_date ?? null,
+    reason: row.reason ?? null,
+    backupMemberId: row.backup_member_id ?? null,
+    backupUserId: row.backup_user_id ?? null,
+    backupName: row.backup_name ?? null,
+    backupStatus: row.backup_status ?? 'none',
+    createdBy: row.created_by ?? null,
+    mine: !!myUserId && (row.user_id === myUserId || row.created_by === myUserId),
+    iAmBackup: !!myUserId && row.backup_user_id === myUserId,
+  };
+}
+
 // Editor controls render only for directors; RLS still enforces it server-side.
 export function deriveAccess(role, inChoir) {
   const canEdit = role === 'owner' || role === 'admin';
@@ -117,6 +136,47 @@ export function songsForService(songs, serviceDate, serviceType) {
     .filter((s) => s.status !== 'archived')
     .filter((s) => s.serviceDate === serviceDate && (s.serviceType === serviceType || s.serviceType === 'both'))
     .sort((a, b) => (a.sortOrder - b.sortOrder) || String(a.title).localeCompare(String(b.title)));
+}
+
+// Which week a date falls in relative to today: 'this' (within 7 days), 'next'
+// (8-14 days), or 'later'. Past dates return 'past'. Lets the planner group
+// upcoming services so Christina can plan this week + next week and beyond.
+export function weekBucket(dateIso, todayIso) {
+  if (!dateIso || !todayIso) return 'later';
+  if (dateIso < todayIso) return 'past';
+  const days = Math.floor((Date.parse(dateIso + 'T00:00:00') - Date.parse(todayIso + 'T00:00:00')) / 86400000);
+  if (days <= 7) return 'this';
+  if (days <= 14) return 'next';
+  return 'later';
+}
+
+// Is a member out on a given date? Absence covers [startDate, endDate]; a null
+// endDate means a single day.
+export function isOutOnDate(absence, dateIso) {
+  if (!absence || !absence.startDate) return false;
+  const end = absence.endDate || absence.startDate;
+  return dateIso >= absence.startDate && dateIso <= end;
+}
+
+// The member ids out on a given date (for "who's out" + backup suggestions).
+export function membersOutOnDate(absences, dateIso) {
+  return (absences || [])
+    .filter((a) => isOutOnDate(a, dateIso))
+    .map((a) => a.memberId)
+    .filter(Boolean);
+}
+
+// Suggest backups for a member who is out on a date: same-section roster members
+// who are NOT themselves out that day and aren't the absent member. Singers fill
+// for singers; if the absent member has no section, suggest anyone available.
+export function suggestBackups(members, absences, dateIso, absentMember) {
+  const out = new Set(membersOutOnDate(absences, dateIso));
+  const section = absentMember?.section || null;
+  return (members || [])
+    .filter((m) => m.id !== absentMember?.id)
+    .filter((m) => !out.has(m.id))
+    .filter((m) => (section ? m.section === section : true))
+    .filter((m) => m.choirRole !== 'sound' && m.choirRole !== 'media' && m.choirRole !== 'tech');
 }
 
 // --- Access ------------------------------------------------------------------
@@ -177,6 +237,7 @@ export const subscribeSongs = makeSubscriber('choir_songs', toSongShape, { col: 
 export const subscribeSchedule = makeSubscriber('choir_schedule', toScheduleShape, { col: 'service_date', asc: true });
 export const subscribeMembers = makeSubscriber('choir_members', toMemberShape, { col: 'created_at', asc: true });
 export const subscribeChoirMessages = makeSubscriber('choir_messages', toChoirMessageShape, { col: 'created_at', asc: true });
+export const subscribeAbsences = makeSubscriber('choir_absences', toAbsenceShape, { col: 'start_date', asc: true });
 
 // --- Writes (owner/admin via RLS; fail soft + surface to caller) -------------
 
@@ -268,4 +329,47 @@ export async function sendChoirMessage(body, displayName) {
     body: text,
   });
   return error ? { skipped: 'insert-error', error } : { uploaded: true };
+}
+
+// --- Availability / absences -------------------------------------------------
+
+// Log (or edit) an absence. A member schedules their OWN time out and may
+// request a backup. created_by is always the signed-in user (RLS requires it);
+// user_id defaults to the signed-in user unless a director logs it for someone.
+export async function saveAbsence(absence, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const hasBackup = !!(absence.backupMemberId || absence.backupUserId || absence.backupName);
+  const row = {
+    user_id: absence.userId ?? ctx.userId,
+    member_id: absence.memberId ?? null,
+    member_name: absence.memberName ?? ctx.displayName,
+    start_date: absence.startDate,
+    end_date: absence.endDate || null,
+    reason: absence.reason ?? null,
+    backup_member_id: absence.backupMemberId ?? null,
+    backup_user_id: absence.backupUserId ?? null,
+    backup_name: absence.backupName ?? null,
+    backup_status: hasBackup ? (absence.backupStatus || 'requested') : 'none',
+  };
+  if (absence.id) {
+    const { error } = await supabase.from('choir_absences').update({ ...row, updated_by: ctx.userId }).eq('id', absence.id);
+    return error ? { skipped: 'update-error', error } : { saved: true };
+  }
+  const { error } = await supabase.from('choir_absences').insert({ ...row, instance_id: ctx.tenantId, created_by: ctx.userId });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
+}
+
+export async function deleteAbsence(id) {
+  const { error } = await supabase.from('choir_absences').delete().eq('id', id);
+  return error ? { skipped: 'delete-error', error } : { deleted: true };
+}
+
+// The requested backup confirms or declines covering the absence. RLS allows the
+// row's backup_user_id (set when the backup is a linked app user) to update it.
+export async function respondToBackup(id, accept) {
+  const { error } = await supabase.from('choir_absences')
+    .update({ backup_status: accept ? 'confirmed' : 'declined' })
+    .eq('id', id);
+  return error ? { skipped: 'update-error', error } : { saved: true };
 }

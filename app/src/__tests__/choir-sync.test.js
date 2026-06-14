@@ -4,8 +4,9 @@
 // Pairs with RELEASE-LANE.md (tests ship with the feature).
 import { describe, it, expect } from 'vitest';
 import {
-  toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape,
+  toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape, toAbsenceShape,
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService,
+  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -92,5 +93,66 @@ describe('songsForService', () => {
     const ids = songsForService(songs, '2026-06-21', 'sunday').map((s) => s.id);
     expect(ids).not.toContain('5');
     expect(ids).not.toContain('4');
+  });
+});
+
+describe('weekBucket (multi-week planning)', () => {
+  const today = '2026-06-14';
+  it('buckets dates into this / next / later / past', () => {
+    expect(weekBucket('2026-06-14', today)).toBe('this');   // today
+    expect(weekBucket('2026-06-21', today)).toBe('this');   // +7
+    expect(weekBucket('2026-06-22', today)).toBe('next');   // +8
+    expect(weekBucket('2026-06-28', today)).toBe('next');   // +14
+    expect(weekBucket('2026-06-29', today)).toBe('later');  // +15
+    expect(weekBucket('2026-06-01', today)).toBe('past');
+  });
+});
+
+describe('absence date logic', () => {
+  it('isOutOnDate covers a single day and a range', () => {
+    expect(isOutOnDate({ startDate: '2026-06-21' }, '2026-06-21')).toBe(true);
+    expect(isOutOnDate({ startDate: '2026-06-21' }, '2026-06-22')).toBe(false);
+    expect(isOutOnDate({ startDate: '2026-06-20', endDate: '2026-06-23' }, '2026-06-22')).toBe(true);
+    expect(isOutOnDate({ startDate: '2026-06-20', endDate: '2026-06-23' }, '2026-06-24')).toBe(false);
+  });
+  it('membersOutOnDate returns the member ids out that day', () => {
+    const abs = [
+      { memberId: 'm1', startDate: '2026-06-21' },
+      { memberId: 'm2', startDate: '2026-06-20', endDate: '2026-06-25' },
+      { memberId: 'm3', startDate: '2026-06-28' },
+    ];
+    expect(membersOutOnDate(abs, '2026-06-21').sort()).toEqual(['m1', 'm2']);
+  });
+});
+
+describe('suggestBackups', () => {
+  const members = [
+    { id: 'm1', displayName: 'Lead', section: 'soprano', choirRole: 'member' },
+    { id: 'm2', displayName: 'Sop2', section: 'soprano', choirRole: 'member' },
+    { id: 'm3', displayName: 'Sop3', section: 'soprano', choirRole: 'member' },
+    { id: 'm4', displayName: 'Alto', section: 'alto', choirRole: 'member' },
+    { id: 'm5', displayName: 'SoundGuy', section: null, choirRole: 'sound' },
+  ];
+  it('suggests same-section members who are not out and not the absentee', () => {
+    const absences = [{ memberId: 'm3', startDate: '2026-06-21' }]; // m3 also out
+    const out = suggestBackups(members, absences, '2026-06-21', members[0]); // m1 (soprano) is out
+    expect(out.map((m) => m.id)).toEqual(['m2']); // m3 excluded (out), m4 wrong section, m1 self, m5 support
+  });
+  it('excludes the sound/media/tech support roles from backup suggestions', () => {
+    const out = suggestBackups(members, [], '2026-06-21', members[0]);
+    expect(out.map((m) => m.id)).not.toContain('m5');
+  });
+  it('suggests anyone available when the absentee has no section', () => {
+    const noSection = { id: 'mX', displayName: 'X', section: null, choirRole: 'member' };
+    const out = suggestBackups([...members, noSection], [], '2026-06-21', noSection);
+    expect(out.map((m) => m.id)).toEqual(['m1', 'm2', 'm3', 'm4']); // all singers, not the support role, not self
+  });
+});
+
+describe('toAbsenceShape', () => {
+  it('flags mine + iAmBackup and maps backup fields', () => {
+    const row = { id: 'a1', user_id: 'u1', member_name: 'Me', start_date: '2026-06-21', end_date: null, backup_user_id: 'u2', backup_name: 'Backup', backup_status: 'requested', created_by: 'u1' };
+    expect(toAbsenceShape(row, 'u1')).toMatchObject({ mine: true, iAmBackup: false, backupName: 'Backup', backupStatus: 'requested' });
+    expect(toAbsenceShape(row, 'u2')).toMatchObject({ mine: false, iAmBackup: true });
   });
 });

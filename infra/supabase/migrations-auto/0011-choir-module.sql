@@ -36,7 +36,11 @@ CREATE TABLE IF NOT EXISTS choir_members (
   user_id      uuid REFERENCES auth.users(id),   -- NULL = roster entry for a member without an app account yet
   display_name text NOT NULL,
   section      text CHECK (section IN ('soprano','alto','tenor','bass','other')),
-  choir_role   text NOT NULL DEFAULT 'member' CHECK (choir_role IN ('director','assistant','member')),
+  -- Singers AND the media/sound team who support the music need to see the
+  -- choir surface (Darrell 2026-06-14: Technology Director + soundboard engineer
+  -- + media team sync with the choir). Support roles are roster rows too, so
+  -- user_in_choir() grants them read access; only owner/admin edit.
+  choir_role   text NOT NULL DEFAULT 'member' CHECK (choir_role IN ('director','assistant','member','musician','sound','media','tech')),
   added_by     uuid REFERENCES auth.users(id),
   created_at   timestamptz NOT NULL DEFAULT now()
 );
@@ -110,13 +114,42 @@ CREATE TABLE IF NOT EXISTS choir_messages (
 CREATE INDEX IF NOT EXISTS choir_messages_instance_idx ON choir_messages(instance_id, created_at DESC);
 
 -- ---------------------------------------------------------------------------
+-- 4b. AVAILABILITY — choir_absences (Darrell 2026-06-14: members schedule
+--     themselves out in advance and request a backup to cover their ministry;
+--     directors know ahead and the surface suggests same-section backups).
+--     A member logs their OWN absence (date or range) + an optional requested
+--     backup; the backup confirms/declines; directors manage all.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS choir_absences (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id      uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+  user_id          uuid REFERENCES auth.users(id),                    -- the member who will be out
+  member_id        uuid REFERENCES choir_members(id) ON DELETE SET NULL,
+  member_name      text NOT NULL,
+  start_date       date NOT NULL,
+  end_date         date,                                              -- NULL = single day
+  reason           text,
+  backup_member_id uuid REFERENCES choir_members(id) ON DELETE SET NULL,
+  backup_user_id   uuid REFERENCES auth.users(id),
+  backup_name      text,
+  backup_status    text NOT NULL DEFAULT 'none' CHECK (backup_status IN ('none','requested','confirmed','declined')),
+  created_by       uuid REFERENCES auth.users(id),
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz,
+  updated_by       uuid REFERENCES auth.users(id)
+);
+CREATE INDEX IF NOT EXISTS choir_absences_instance_idx ON choir_absences(instance_id, start_date);
+
+-- ---------------------------------------------------------------------------
 -- 5. RLS — read = any choir member; write = owner/admin (members may post
---    messages). Append/edit on songs+schedule is reviewer-only.
+--    messages and log/confirm their own availability). Songs+schedule edit
+--    is reviewer-only.
 -- ---------------------------------------------------------------------------
 ALTER TABLE choir_members  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE choir_songs    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE choir_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE choir_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE choir_absences ENABLE ROW LEVEL SECURITY;
 
 -- choir_members: members read the roster; owner/admin manage it.
 DROP POLICY IF EXISTS choir_members_read   ON choir_members;
@@ -171,6 +204,23 @@ CREATE POLICY choir_messages_read   ON choir_messages FOR SELECT
 CREATE POLICY choir_messages_insert ON choir_messages FOR INSERT
   WITH CHECK (user_in_choir(instance_id) AND user_id = auth.uid());
 
+-- choir_absences: members read all; a member logs their OWN absence; the
+-- absentee, the requested backup, or an owner/admin may update it (so the
+-- backup can confirm/decline); the absentee or owner/admin may delete it.
+DROP POLICY IF EXISTS choir_absences_read   ON choir_absences;
+DROP POLICY IF EXISTS choir_absences_insert ON choir_absences;
+DROP POLICY IF EXISTS choir_absences_update ON choir_absences;
+DROP POLICY IF EXISTS choir_absences_delete ON choir_absences;
+CREATE POLICY choir_absences_read   ON choir_absences FOR SELECT
+  USING (user_in_choir(instance_id));
+CREATE POLICY choir_absences_insert ON choir_absences FOR INSERT
+  WITH CHECK (user_in_choir(instance_id) AND created_by = auth.uid());
+CREATE POLICY choir_absences_update ON choir_absences FOR UPDATE
+  USING (user_in_choir(instance_id) AND (created_by = auth.uid() OR backup_user_id = auth.uid() OR user_role_in_instance(instance_id) IN ('owner','admin')))
+  WITH CHECK (user_in_choir(instance_id));
+CREATE POLICY choir_absences_delete ON choir_absences FOR DELETE
+  USING (created_by = auth.uid() OR user_role_in_instance(instance_id) IN ('owner','admin'));
+
 -- ---------------------------------------------------------------------------
 -- 6. updated_at touch trigger (reuses engagement_touch_updated_at if present;
 --    define-or-replace so this migration is standalone).
@@ -193,13 +243,18 @@ CREATE TRIGGER choir_schedule_touch_updated
   BEFORE UPDATE ON choir_schedule
   FOR EACH ROW EXECUTE FUNCTION public.engagement_touch_updated_at();
 
+DROP TRIGGER IF EXISTS choir_absences_touch_updated ON choir_absences;
+CREATE TRIGGER choir_absences_touch_updated
+  BEFORE UPDATE ON choir_absences
+  FOR EACH ROW EXECUTE FUNCTION public.engagement_touch_updated_at();
+
 -- ---------------------------------------------------------------------------
--- 7. REALTIME — stream all four so the choir's devices update live.
+-- 7. REALTIME — stream all of them so the choir's devices update live.
 -- ---------------------------------------------------------------------------
 DO $realtime$
 DECLARE
   t text;
-  tables text[] := ARRAY['choir_members','choir_songs','choir_schedule','choir_messages'];
+  tables text[] := ARRAY['choir_members','choir_songs','choir_schedule','choir_messages','choir_absences'];
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
     CREATE PUBLICATION supabase_realtime;

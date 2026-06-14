@@ -20,10 +20,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
-  getChoirAccess, youtubeEmbedUrl, sortServices, songsForService,
-  subscribeSongs, subscribeSchedule, subscribeMembers, subscribeChoirMessages,
+  getChoirAccess, youtubeEmbedUrl, sortServices, songsForService, weekBucket, isOutOnDate, suggestBackups,
+  subscribeSongs, subscribeSchedule, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
   saveSong, deleteSong, saveService, deleteService, addMember, removeMember, sendChoirMessage,
+  saveAbsence, deleteAbsence, respondToBackup,
 } from '../lib/choir-sync.js';
+
+const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
+const roleLabel = (r) => (ROLE_OPTS.find(([k]) => k === r)?.[1]) || r;
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) => {
@@ -148,8 +152,33 @@ function ServiceForm({ initial, onSave, onCancel, busy }) {
 // -----------------------------------------------------------------------------
 // Panels
 // -----------------------------------------------------------------------------
-function ThisWeekPanel({ schedule, songs, canEdit, onAddSong, onEditSong, onDeleteSong }) {
-  const upcoming = sortServices(schedule, todayIso()).filter((s) => s.serviceDate >= todayIso()).slice(0, 2);
+const WEEK_GROUPS = [['this', 'This week'], ['next', 'Next week'], ['later', 'Coming up']];
+
+function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong }) {
+  const list = songsForService(songs, svc.serviceDate, svc.serviceType);
+  const out = (absences || []).filter((a) => isOutOnDate(a, svc.serviceDate));
+  return (
+    <div className="bg-white border border-[#1A1815] p-3">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{serviceLabel(svc.serviceType)} · {fmtDate(svc.serviceDate)}{svc.title ? ` · ${svc.title}` : ''}</div>
+        {canEdit && <button type="button" onClick={() => onAddSong(svc)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Add song</button>}
+      </div>
+      {list.length ? list.map((s) => <SongRow key={s.id} song={s} canEdit={canEdit} onEdit={onEditSong} onDelete={onDeleteSong} />)
+        : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No songs assigned yet.</p>}
+      {out.length > 0 && (
+        <p className="text-[11px] text-[#991B1B] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Out this day: {out.map((a) => a.memberName + (a.backupName ? ` (backup: ${a.backupName}${a.backupStatus === 'confirmed' ? ' ✓' : ''})` : '')).join(', ')}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Plan view: upcoming services grouped This week / Next week / Coming up so
+// Christina can plan songs as far out as she wants (Darrell 2026-06-14).
+function ThisWeekPanel({ schedule, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong }) {
+  const today = todayIso();
+  const upcoming = sortServices(schedule, today).filter((s) => s.serviceDate >= today);
   if (!upcoming.length) {
     return (
       <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -158,17 +187,18 @@ function ThisWeekPanel({ schedule, songs, canEdit, onAddSong, onEditSong, onDele
     );
   }
   return (
-    <div className="space-y-4">
-      {upcoming.map((svc) => {
-        const list = songsForService(songs, svc.serviceDate, svc.serviceType);
+    <div className="space-y-5">
+      {WEEK_GROUPS.map(([bucket, label]) => {
+        const group = upcoming.filter((s) => weekBucket(s.serviceDate, today) === bucket);
+        if (!group.length) return null;
         return (
-          <div key={svc.id} className="bg-white border border-[#1A1815] p-3">
-            <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{serviceLabel(svc.serviceType)} · {fmtDate(svc.serviceDate)}{svc.title ? ` · ${svc.title}` : ''}</div>
-              {canEdit && <button type="button" onClick={() => onAddSong(svc)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Add song</button>}
+          <div key={bucket}>
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] mb-2">{label}</div>
+            <div className="space-y-3">
+              {group.map((svc) => (
+                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} />
+              ))}
             </div>
-            {list.length ? list.map((s) => <SongRow key={s.id} song={s} canEdit={canEdit} onEdit={onEditSong} onDelete={onDeleteSong} />)
-              : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No songs assigned yet.</p>}
           </div>
         );
       })}
@@ -244,7 +274,7 @@ function RosterPanel({ members, canEdit, onAdd, onRemove }) {
             </div>
             <div><label className={LABEL} htmlFor="cm-role">Role</label>
               <select id="cm-role" className={FIELD} value={f.choirRole} onChange={(e) => setF((p) => ({ ...p, choirRole: e.target.value }))}>
-                <option value="member">Member</option><option value="assistant">Assistant director</option><option value="director">Director</option>
+                {ROLE_OPTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
               </select>
             </div>
           </div>
@@ -260,7 +290,7 @@ function RosterPanel({ members, canEdit, onAdd, onRemove }) {
             <div key={m.id} className="flex items-baseline justify-between gap-2 p-3 border-b border-[#E8E4DC]">
               <div>
                 <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.displayName}</span>
-                <span className="text-[11px] text-[#5A5751] ml-2">{[m.section, m.choirRole !== 'member' ? m.choirRole : null].filter(Boolean).join(' · ')}</span>
+                <span className="text-[11px] text-[#5A5751] ml-2">{[m.section, m.choirRole !== 'member' ? roleLabel(m.choirRole) : null].filter(Boolean).join(' · ')}</span>
               </div>
               {canEdit && <button type="button" onClick={() => onRemove(m)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
             </div>
@@ -272,9 +302,103 @@ function RosterPanel({ members, canEdit, onAdd, onRemove }) {
 }
 
 // -----------------------------------------------------------------------------
+// Availability — members schedule themselves out + request a backup; the surface
+// suggests same-section members who are free (Darrell 2026-06-14).
+// -----------------------------------------------------------------------------
+function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRespond }) {
+  const [open, setOpen] = useState(false);
+  const blank = { memberId: '', startDate: todayIso(), endDate: '', reason: '', backupMemberId: '' };
+  const [f, setF] = useState(blank);
+  const today = todayIso();
+  const upcoming = (absences || []).filter((a) => (a.endDate || a.startDate) >= today)
+    .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)));
+  const absentMember = members.find((m) => m.id === f.memberId) || null;
+  const suggestions = suggestBackups(members, absences, f.startDate, absentMember);
+
+  const submit = () => {
+    const bm = members.find((m) => m.id === f.backupMemberId) || null;
+    onSave({
+      memberId: f.memberId || null,
+      memberName: absentMember?.displayName || 'Me',
+      startDate: f.startDate,
+      endDate: f.endDate || null,
+      reason: f.reason || null,
+      backupMemberId: bm?.id || null,
+      backupUserId: bm?.userId || null,
+      backupName: bm?.displayName || null,
+    });
+    setF(blank); setOpen(false);
+  };
+
+  return (
+    <div>
+      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Let the choir know when you'll be out and request a backup to cover your part. The list shows everyone scheduled out so the director can plan ahead.</p>
+      {open ? (
+        <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 mb-3">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Schedule time out</div>
+          <div>
+            <label className={LABEL} htmlFor="av-who">Who's out</label>
+            <select id="av-who" className={FIELD} value={f.memberId} onChange={(e) => setF((p) => ({ ...p, memberId: e.target.value, backupMemberId: '' }))}>
+              <option value="">Me</option>
+              {members.map((m) => <option key={m.id} value={m.id}>{m.displayName}{m.section ? ` (${m.section})` : ''}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><label className={LABEL} htmlFor="av-start">From</label><input id="av-start" type="date" className={FIELD} value={f.startDate} onChange={(e) => setF((p) => ({ ...p, startDate: e.target.value }))} /></div>
+            <div><label className={LABEL} htmlFor="av-end">Through (optional)</label><input id="av-end" type="date" className={FIELD} value={f.endDate} onChange={(e) => setF((p) => ({ ...p, endDate: e.target.value }))} /></div>
+          </div>
+          <div><label className={LABEL} htmlFor="av-reason">Reason (optional)</label><input id="av-reason" className={FIELD} value={f.reason} onChange={(e) => setF((p) => ({ ...p, reason: e.target.value }))} placeholder="Out of town, etc." /></div>
+          <div>
+            <label className={LABEL} htmlFor="av-backup">Request a backup{absentMember?.section ? ` (${absentMember.section}, available)` : ''}</label>
+            <select id="av-backup" className={FIELD} value={f.backupMemberId} onChange={(e) => setF((p) => ({ ...p, backupMemberId: e.target.value }))}>
+              <option value="">No backup requested</option>
+              {suggestions.map((m) => <option key={m.id} value={m.id}>{m.displayName}{m.section ? ` (${m.section})` : ''}</option>)}
+            </select>
+            {f.memberId !== '' && !suggestions.length && <p className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No same-section members are free that day.</p>}
+          </div>
+          <div className="flex gap-2">
+            <button type="button" disabled={!f.startDate} onClick={submit} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Schedule out</button>
+            <button type="button" onClick={() => { setOpen(false); setF(blank); }} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
+          </div>
+        </div>
+      ) : <button type="button" onClick={() => setOpen(true)} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mb-3`}>+ Schedule time out</button>}
+
+      {upcoming.length ? (
+        <div className="bg-white border border-[#1A1815]">
+          {upcoming.map((a) => (
+            <div key={a.id} className="p-3 border-b border-[#E8E4DC]">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{a.memberName}</span>
+                <span className="text-[11px] text-[#5A5751]">{fmtDate(a.startDate)}{a.endDate && a.endDate !== a.startDate ? ` – ${fmtDate(a.endDate)}` : ''}</span>
+              </div>
+              {a.reason && <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{a.reason}</p>}
+              {a.backupName && (
+                <p className="text-[11px] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Backup: <strong>{a.backupName}</strong>{' '}
+                  <span className={a.backupStatus === 'confirmed' ? 'text-[#166534]' : a.backupStatus === 'declined' ? 'text-[#991B1B]' : 'text-[#5A5751]'}>· {a.backupStatus}</span>
+                </p>
+              )}
+              <div className="flex gap-2 mt-1 flex-wrap">
+                {a.iAmBackup && a.backupStatus === 'requested' && (
+                  <>
+                    <button type="button" onClick={() => onRespond(a, true)} className={`${BTN} text-[#166534] hover:underline`}>Confirm backup</button>
+                    <button type="button" onClick={() => onRespond(a, false)} className={`${BTN} text-[#991B1B] hover:underline`}>Decline</button>
+                  </>
+                )}
+                {(a.mine || canEdit) && <button type="button" onClick={() => onDelete(a)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No one is scheduled out. Everyone's in for the upcoming services.</p>}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Surface
 // -----------------------------------------------------------------------------
-const TABS = [['week', 'This week'], ['schedule', 'Schedule'], ['messages', 'Messages'], ['roster', 'Roster']];
+const TABS = [['week', 'This week'], ['schedule', 'Schedule'], ['availability', 'Availability'], ['messages', 'Messages'], ['roster', 'Roster']];
 
 export default function Choir() {
   const [signedIn, setSignedIn] = useState(false);
@@ -284,6 +408,7 @@ export default function Choir() {
   const [schedule, setSchedule] = useState([]);
   const [members, setMembers] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [absences, setAbsences] = useState([]);
   const [songForm, setSongForm] = useState(null);     // { initial } | null
   const [serviceForm, setServiceForm] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -298,7 +423,7 @@ export default function Choir() {
     return () => { alive = false; };
   }, [signedIn]);
 
-  // Subscribe to the four streams once the user can see the surface.
+  // Subscribe to the streams once the user can see the surface.
   useEffect(() => {
     if (!signedIn || !access.canSee) return undefined;
     const unsubs = [
@@ -306,6 +431,7 @@ export default function Choir() {
       subscribeSchedule(setSchedule),
       subscribeMembers(setMembers),
       subscribeChoirMessages(setMessages),
+      subscribeAbsences(setAbsences),
     ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, [signedIn, access.canSee]);
@@ -351,7 +477,7 @@ export default function Choir() {
         <>
           {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
           <ThisWeekPanel
-            schedule={schedule} songs={songs} canEdit={access.canEdit}
+            schedule={schedule} songs={songs} absences={absences} canEdit={access.canEdit}
             onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
             onEditSong={(s) => setSongForm({ initial: s })}
             onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
@@ -370,6 +496,15 @@ export default function Choir() {
             onDelete={async (svc) => { reportSkip(await deleteService(svc.id)); }}
           />
         </>
+      )}
+
+      {tab === 'availability' && (
+        <AvailabilityPanel
+          absences={absences} members={members} canEdit={access.canEdit}
+          onSave={async (a) => { reportSkip(await saveAbsence(a)); }}
+          onDelete={async (a) => { reportSkip(await deleteAbsence(a.id)); }}
+          onRespond={async (a, accept) => { reportSkip(await respondToBackup(a.id, accept)); }}
+        />
       )}
 
       {tab === 'messages' && (
