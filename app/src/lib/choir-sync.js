@@ -610,6 +610,23 @@ export async function deleteResource(id) {
   return error ? { skipped: 'delete-error', error } : { deleted: true };
 }
 
+// A sermon document is either an external link (manually pasted) or a private
+// Storage path (imported from BG's email). Pure: tells them apart.
+export function isExternalUrl(u) {
+  return typeof u === 'string' && /^https?:\/\//i.test(u.trim());
+}
+
+// Resolve an openable URL for a sermon document. External links pass through;
+// Storage paths get a short-lived signed URL (RLS: only owner/admin can, so
+// non-admins never get one). Returns null if not viewable.
+export async function openSermonDocument(documentUrl) {
+  if (!documentUrl) return null;
+  if (isExternalUrl(documentUrl)) return documentUrl;
+  const { data, error } = await supabase.storage.from('sermon-documents').createSignedUrl(documentUrl, 300);
+  if (error) { console.warn('[choir-sync] signed url failed:', error); return null; }
+  return data?.signedUrl || null;
+}
+
 // --- Ongoing import from the YouTube channel (director-triggered, not a timer) -
 // Pulls the channel's recent uploads via the YouTube Data API and inserts any
 // NEW dated messages into choir_sermons. Metadata only — no downloads (Darrell:

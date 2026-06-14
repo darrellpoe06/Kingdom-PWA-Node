@@ -9,7 +9,7 @@ import {
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService,
   weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
-  selectNewSermonImports, isValidInviteEmail,
+  selectNewSermonImports, isValidInviteEmail, isExternalUrl,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -240,6 +240,16 @@ describe('selectNewSermonImports (idempotent channel import)', () => {
   });
   it('is safe on empty inputs', () => {
     expect(selectNewSermonImports(null, null)).toEqual([]);
+  });
+});
+
+describe('isExternalUrl (sermon doc: external link vs storage path)', () => {
+  it('is true for http(s) links, false for storage paths', () => {
+    expect(isExternalUrl('https://docs.google.com/x')).toBe(true);
+    expect(isExternalUrl('http://x.y/z')).toBe(true);
+    expect(isExternalUrl('a1b2-uuid/sermon-uuid/06-10 PROCLAIM.docx')).toBe(false);
+    expect(isExternalUrl('')).toBe(false);
+    expect(isExternalUrl(null)).toBe(false);
   });
 });
 
