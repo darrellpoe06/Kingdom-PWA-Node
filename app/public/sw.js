@@ -20,8 +20,14 @@ const CACHE = 'poetech-' + SW_VERSION;
 const PRECACHE = [BASE + '/', BASE + '/index.html', BASE + '/manifest.webmanifest', BASE + '/icon.svg'];
 
 self.addEventListener('install', (event) => {
+  // Prime the offline shell with { cache: 'reload' } so the precached copy is
+  // fetched fresh from the network at install — never a stale shell pulled from
+  // the HTTP cache. (A stale precached index.html would point the offline
+  // fallback at an old asset bundle.)
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE))
+    caches.open(CACHE).then((cache) =>
+      Promise.all(PRECACHE.map((url) => cache.add(new Request(url, { cache: 'reload' }))))
+    )
   );
 });
 
@@ -43,8 +49,16 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
+    // App shell: network-first AND cache-bypassing. The old handler used a
+    // plain fetch(event.request), which honors the HTTP cache — so after a new
+    // worker took over, the reload could re-serve a STALE index.html (iOS
+    // Safari over-caches HTML) that still referenced the old asset bundle,
+    // stranding the user on the prior build. { cache: 'no-store' } forces the
+    // shell to come from the network every navigation when online; we fall
+    // back to the precached shell only when offline. Content-hashed asset
+    // bundles need no such guard (a new hash is always a fresh network fetch).
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(BASE + '/index.html'))
+      fetch(event.request.url, { cache: 'no-store' }).catch(() => caches.match(BASE + '/index.html'))
     );
     return;
   }
