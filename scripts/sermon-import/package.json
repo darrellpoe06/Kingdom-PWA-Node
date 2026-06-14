@@ -1,0 +1,11 @@
+{
+  "name": "poetech-sermon-import",
+  "private": true,
+  "type": "module",
+  "description": "Local-only importer: reads BG's sermon documents from Christina's Gmail (IMAP) and files them into Supabase. Reads secrets from C:/Users/dpoe/.poetech-secrets. Not part of the app build.",
+  "dependencies": {
+    "imapflow": "^1.0.165",
+    "mailparser": "^3.6.6",
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
