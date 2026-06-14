@@ -480,6 +480,7 @@ function SermonForm({ initial, onSave, onCancel, busy }) {
     title: initial?.title || '',
     speaker: initial?.speaker || '',
     scriptureRef: initial?.scriptureRef || '',
+    serviceSlot: initial?.serviceSlot || '',
     youtubeUrl: initial?.youtubeUrl || '',
     notes: initial?.notes || '',
     status: initial?.status || 'active',
@@ -495,6 +496,11 @@ function SermonForm({ initial, onSave, onCancel, busy }) {
         <div><label className={LABEL} htmlFor="sm-type">Service</label>
           <select id="sm-type" className={FIELD} value={f.serviceType} onChange={set('serviceType')}>
             <option value="sunday">Sunday</option><option value="wednesday">Wednesday</option>
+          </select>
+        </div>
+        <div><label className={LABEL} htmlFor="sm-slot">Slot</label>
+          <select id="sm-slot" className={FIELD} value={f.serviceSlot} onChange={set('serviceSlot')}>
+            <option value="">—</option><option value="1pm">1pm</option><option value="evening">Evening</option><option value="morning">Morning</option>
           </select>
         </div>
         <div><label className={LABEL} htmlFor="sm-status">Status</label>
@@ -530,7 +536,7 @@ function SermonRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
           {sermon.status === 'draft' && <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
           {sermon.scriptureRef && <span className="text-[11px] text-[#5A5751]">{sermon.scriptureRef}</span>}
         </div>
-        <span className="text-[11px] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {sermon.serviceType === 'wednesday' ? 'Wed' : 'Sun'}</span>
+        <span className="text-[11px] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {sermon.serviceType === 'wednesday' ? 'Wed' : 'Sun'}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
       </div>
       {sermon.speaker && <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
       {sermon.notes && <p className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.notes}</p>}
