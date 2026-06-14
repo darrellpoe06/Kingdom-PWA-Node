@@ -287,8 +287,10 @@ describe('sermon + resource mappers and reuse', () => {
   });
 });
 
-describe('toSongShape carries the timestamp', () => {
-  it('maps start_seconds', () => {
-    expect(toSongShape({ id: 's', title: 'x', start_seconds: 740 }).startSeconds).toBe(740);
+describe('toSongShape carries the timestamp + lyrics', () => {
+  it('maps start_seconds and lyrics (the choir word space)', () => {
+    const out = toSongShape({ id: 's', title: 'x', start_seconds: 740, lyrics: 'Holy, holy, holy' });
+    expect(out.startSeconds).toBe(740);
+    expect(out.lyrics).toBe('Holy, holy, holy');
   });
 });
