@@ -1433,6 +1433,26 @@ export const remainderIsSeed = (d) => {
   return true;
 };
 export const notSeedRow = (x) => !(x && typeof x.id === 'string' && SEED_IDS.has(x.id));
+// A signed-in user's REAL data is anything that has synced (carries a
+// remoteUuid) OR that they entered themselves (not seed scaffolding, not demo).
+// Pure local seed/demo — a SEED/DEMO id that never synced — is the aspirational
+// sample (e.g. "240 Cedar Ln", "Card J (Adam)") that must not masquerade as a
+// real signed-in account's data. isRealRow NEVER drops a synced row, so cleaning
+// is local-only and can't touch the cloud. (Darrell 2026-06-13: "Not my rentals.")
+export const isRealRow = (x) => !!(x && (x.remoteUuid || (notSeedRow(x) && notDemoRow(x))));
+// Drop pure local seed/demo from every list in `data`, preserving synced + user
+// rows. Used on a signed-in clean start so the account begins with the user's
+// real cloud data + empty tables to fill, never the sample dataset.
+export const stripSeedScaffolding = (d) => {
+  const out = { ...d };
+  for (const k of Object.keys(out)) {
+    if (Array.isArray(out[k])) out[k] = out[k].filter(isRealRow);
+  }
+  if (out.inflows && Array.isArray(out.inflows.rentals)) {
+    out.inflows = { ...out.inflows, rentals: out.inflows.rentals.filter(isRealRow) };
+  }
+  return out;
+};
 // Persona-specific welcome copy. Each entry describes the audience and the
 // stewardship lens. The 'vision' line is honest about what's working today
 // vs what's still being built (per Darrell 2026-05-28).
@@ -2470,6 +2490,21 @@ export default function PoeFinancialSystem() {
       return;
     }
     if (!data.numericSyncVerifiedAt) {
+      // A signed-in user whose numeric data is ENTIRELY seed scaffolding has
+      // nothing real to verify — never show them a wizard full of sample
+      // accounts/rentals (e.g. "240 Cedar Ln"). Open sync straight away and
+      // strip the seed, leaving a clean slate: their real cloud rows (which
+      // carry remoteUuid and are preserved) + empty tables to fill. A user who
+      // HAS real numeric data still gets the verify walkthrough.
+      // (Darrell 2026-06-13: "Not my rentals don't have 240 Cedar Ln.")
+      const hasRealNumeric = []
+        .concat(data.accounts || [], data.debts || [], data.transactions || [], data.projects || [], (data.inflows?.rentals || []))
+        .some(isRealRow);
+      if (!hasRealNumeric) {
+        setShowVerifyBalances(false);
+        setData(d => stripSeedScaffolding({ ...d, numericSyncVerifiedAt: new Date().toISOString() }));
+        return;
+      }
       setShowVerifyBalances(true);
       return;
     }
