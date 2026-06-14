@@ -9,6 +9,7 @@ import {
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService,
   weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
+  selectNewSermonImports,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -218,6 +219,27 @@ describe('parseServiceTitle (the YouTube importer core — real channel titles)'
   it('returns a null date when none is present (caller falls back to raw title)', () => {
     expect(parseServiceTitle('Choir rehearsal clip').serviceDate).toBeNull();
     expect(parseServiceTitle('Black History Month 2025 at The Love Corner').serviceDate).toBeNull();
+  });
+});
+
+describe('selectNewSermonImports (idempotent channel import)', () => {
+  const items = [
+    { videoId: 'vNEW1', title: '6 -10 - 2026 Bishop E. Gwin "LET GO"' },          // new, dated, sunday
+    { videoId: 'vHAVE', title: '6 -3 - 2026 Bishop Gwin Wednesday Bible Study "X"' }, // already stored
+    { videoId: 'vNODATE', title: 'Black History Month at The Love Corner' },        // no date -> skip
+    { videoId: 'vNEW2', title: '5/28/2026 Bishop Gwin Wednesday Bible Study "Y"' },  // new, slash date
+  ];
+  it('keeps only new, dated videos and shapes them for insert', () => {
+    const out = selectNewSermonImports(items, ['vHAVE']);
+    expect(out.map((r) => r.videoId)).toEqual(['vNEW1', 'vNEW2']);
+    expect(out[0]).toMatchObject({ serviceType: 'sunday', serviceDate: '2026-06-10', source: 'youtube', youtubeUrl: 'https://www.youtube.com/watch?v=vNEW1' });
+    expect(out[1].serviceType).toBe('wednesday');
+  });
+  it('returns nothing when every video is already stored', () => {
+    expect(selectNewSermonImports(items, ['vNEW1', 'vHAVE', 'vNEW2'])).toEqual([]);
+  });
+  it('is safe on empty inputs', () => {
+    expect(selectNewSermonImports(null, null)).toEqual([]);
   });
 });
 

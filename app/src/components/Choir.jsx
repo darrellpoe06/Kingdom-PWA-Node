@@ -26,7 +26,7 @@ import {
   subscribeSermons, subscribeResources,
   saveSong, deleteSong, reuseSong, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
-  saveSermon, deleteSermon, reuseSermon, saveResource, deleteResource,
+  saveSermon, deleteSermon, reuseSermon, saveResource, deleteResource, importSermonsFromChannel,
 } from '../lib/choir-sync.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
@@ -519,9 +519,17 @@ function SermonRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
   );
 }
 
-function SermonsPanel({ sermons, canEdit, onSave, onDelete, onReuse, busy }) {
+function SermonsPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [q, setQ] = useState('');
+  const [importMsg, setImportMsg] = useState('');
+  const runImport = async () => {
+    setImportMsg('Importing…');
+    const r = await onImport();
+    if (r?.imported >= 0 && r.imported !== undefined) setImportMsg(`Imported ${r.imported} new message(s) from the channel.`);
+    else if (r?.skipped === 'no-key') setImportMsg('Add VITE_YOUTUBE_API_KEY (Vercel env) to enable channel import.');
+    else setImportMsg(`Import skipped (${r?.skipped || 'error'}).`);
+  };
   const drafts = (sermons || []).filter((s) => s.status === 'draft');
   const history = (sermons || []).filter((s) => s.status !== 'draft')
     .filter((s) => !q || `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''}`.toLowerCase().includes(q.toLowerCase()));
@@ -531,7 +539,13 @@ function SermonsPanel({ sermons, canEdit, onSave, onDelete, onReuse, busy }) {
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>BG's historical messages — Sundays + Wednesday Bible Study. Watch any past message, or reuse one as a draft to build a new sermon from.</p>
       {canEdit && (form ? (
         <SermonForm initial={form.initial} busy={busy} onSave={async (s) => { await onSave(s); setForm(null); }} onCancel={() => setForm(null)} />
-      ) : <button type="button" onClick={() => setForm({ initial: null })} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mb-2`}>+ Add message</button>)}
+      ) : (
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <button type="button" onClick={() => setForm({ initial: null })} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Add message</button>
+          {onImport && <button type="button" onClick={runImport} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Import from channel</button>}
+          {importMsg && <span className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{importMsg}</span>}
+        </div>
+      ))}
 
       {drafts.length > 0 && (
         <div className="mb-3">
@@ -707,6 +721,7 @@ export default function Choir() {
           onSave={async (s) => { setBusy(true); reportSkip(await saveSermon(s)); setBusy(false); }}
           onDelete={async (s) => { reportSkip(await deleteSermon(s.id)); }}
           onReuse={async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType)); }}
+          onImport={() => importSermonsFromChannel()}
         />
       )}
 
