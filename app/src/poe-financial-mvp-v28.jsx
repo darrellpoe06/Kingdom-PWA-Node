@@ -6649,36 +6649,18 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
 
   return (
     <div className="space-y-6">
-      {/* DEFAULT CHURCH HOME NOTE (D21) — shown when the user has not set their
-          own church home; COLG / The Love Corner is the platform default (the
-          Father's Business anchor). Mars Hill Option B: the visitor who
-          navigates to this tab is opted-in to deeper engagement. */}
-      {showingDefaultHome && (
-        <p className="text-[11px] text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          This is your default church home. If you have a church home, you can set it in{' '}
-          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>.
-        </p>
-      )}
-
-      {/* ONE VOICE — the Church tab's single front door (COUNCIL-CHAMBER:
-          one input, the system deduces; MODE-ROUTING: suggestion visible,
-          person decides). Ordered first so speaking is always one tap away. */}
-      <ChurchOneVoice
-        addPrayerRequest={addPrayerRequest}
-        updateConference={updateConference}
-        conference={conference}
-        addChurchVoice={addChurchVoice}
-        churchVoice={churchVoice}
-        sendToPoeTech={sendToPoeTech}
-        addIncident={addIncident}
-        addInquiry={addInquiry}
-      />
-
-      {/* LIVE WORSHIP (2026-06-14) — the church's live YouTube broadcast, by
-          channel so it auto-follows every future stream. High in the order for
-          the unchurched on-ramp: when the service is streaming, worship is one
-          tap from the front door. Player self-handles live vs. offline; the
-          service-times + latest-message context below stays graceful in both. */}
+      {/* LIVE WORSHIP (2026-06-14) — TOP of the Church tab by Darrell's direction:
+          when the church is streaming, the broadcast is the most prominent thing
+          on the unchurched on-ramp — worship before anything else. Embedded by
+          CHANNEL (not a single video id) so it auto-follows every future stream
+          with no weekly edits. The player self-handles live vs. offline (YouTube
+          serves the active broadcast when live, its own offline placeholder when
+          not); the service-times + latest-message context below keeps the slot
+          graceful in the offline state too. We do not paint our own "LIVE NOW"
+          badge — the client cannot truthfully detect live state without the
+          YouTube Data API (a vendor dependency we're avoiding), and a hardcoded
+          badge would be a painted state (Reality-Trace P15). A real live/offline
+          detector (same-origin n8n proxy, no key) is the follow-up. */}
       {liveEmbedUrl && (
         <section aria-labelledby="live-worship-h" className="bg-white border-2 border-[#B85838] p-4">
           <div className="flex items-baseline justify-between gap-2 flex-wrap">
@@ -6725,6 +6707,31 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
           </div>
         </section>
       )}
+
+      {/* DEFAULT CHURCH HOME NOTE (D21) — shown when the user has not set their
+          own church home; COLG / The Love Corner is the platform default (the
+          Father's Business anchor). Mars Hill Option B: the visitor who
+          navigates to this tab is opted-in to deeper engagement. */}
+      {showingDefaultHome && (
+        <p className="text-[11px] text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          This is your default church home. If you have a church home, you can set it in{' '}
+          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>.
+        </p>
+      )}
+
+      {/* ONE VOICE — the Church tab's single front door (COUNCIL-CHAMBER:
+          one input, the system deduces; MODE-ROUTING: suggestion visible,
+          person decides). Ordered first so speaking is always one tap away. */}
+      <ChurchOneVoice
+        addPrayerRequest={addPrayerRequest}
+        updateConference={updateConference}
+        conference={conference}
+        addChurchVoice={addChurchVoice}
+        churchVoice={churchVoice}
+        sendToPoeTech={sendToPoeTech}
+        addIncident={addIncident}
+        addInquiry={addInquiry}
+      />
 
       {/* CONFERENCE — 77th National Assembly (2026-06-11). Second while the
           Assembly is in season; Bishop Gwin edits details, builds the schedule,
