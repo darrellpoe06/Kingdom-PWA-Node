@@ -37,6 +37,7 @@ import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
 import { unionPreservingLocal } from './lib/table-sync.js';
+import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
@@ -2623,8 +2624,13 @@ export default function PoeFinancialSystem() {
     };
     // `data` is read via the window stash (see below); isAnyDemoMode is
     // URL-derived and constant for the page load.
+    // A3 (2026-06-13 review): key on the STABLE user id, not the authSession
+    // object — TOKEN_REFRESHED (~hourly) hands back a fresh object with the same
+    // user, and depending on the object re-ran a full initialSync + re-subscribe
+    // storm every hour per device. syncIdentityKey collapses that to real
+    // sign-in / sign-out / account-switch transitions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authSession, data.numericSyncVerifiedAt]);
+  }, [syncIdentityKey(authSession), data.numericSyncVerifiedAt]);
 
   // Stash the latest data on window so the auth effect (which has [] deps
   // and therefore captures only the initial closure) can read the current
