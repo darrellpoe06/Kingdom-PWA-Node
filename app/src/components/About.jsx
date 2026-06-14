@@ -3,9 +3,13 @@
 // Receives VIEW_TIER_REQUIREMENTS as a prop so this module has no main-file dep.
 import React, { useState } from 'react';
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle } from './shared.jsx';
+import TrustedDevices from './TrustedDevices.jsx';
 
 // Patch the function signature to also accept VIEW_TIER_REQUIREMENTS as a prop.
-function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {} }) {
+// 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
+// section (trusted-device list/revoke + change PIN). Both are optional, so the
+// public/demo/anonymous About view is unchanged when they are absent.
+function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {}, authUserId = null, onChangePin = null }) {
   // v28+ MVP v1.5 round 3 — Capex / Tools list moved out of About; lives at the
   // bottom of the Projects tab as "Project Inventory & Capital Forecast".
   // v28+ Session C: checkout cart drawer state
@@ -192,6 +196,23 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
           Switch themes from the swatches in the header (top-right) anytime. Editorial cream is the default · five total themes including a true dark mode.
         </p>
       </section>
+      {authUserId && (
+        <section className="bg-white border border-[#E8E4DC] p-4">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Security · Multi-point sign-in</div>
+          <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            Your space is protected by more than one key: your identity (email / Google / Apple), a PIN, and the devices you trust. You need at least two to get in.
+          </p>
+          {onChangePin && (
+            <button
+              type="button"
+              onClick={onChangePin}
+              className="mb-4 text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Change your PIN
+            </button>
+          )}
+          <TrustedDevices userId={authUserId} />
+        </section>
+      )}
       <section>
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2">PoeTech LLC · poetech.us</div>
         <h2 className="text-3xl sm:text-4xl mb-4 leading-tight" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>A stronghold for relationships with Yahweh.</h2>

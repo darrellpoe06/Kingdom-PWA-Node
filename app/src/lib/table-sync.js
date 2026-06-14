@@ -88,6 +88,13 @@ async function getTenantId() {
   return data;
 }
 
+// Resolve the caller's instance id (the poe-family instance for family members,
+// or their own self-serve instance). Used by the multi-point persona-PIN gate
+// to scope set/verify_persona_pin to the right instance.
+export async function getInstanceId() {
+  return getTenantId();
+}
+
 export function createTableSync(spec) {
   const {
     localKey,

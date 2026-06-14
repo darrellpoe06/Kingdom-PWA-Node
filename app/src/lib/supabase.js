@@ -122,6 +122,43 @@ export async function signInWithGoogle() {
   });
 }
 
+/**
+ * Initiate the Apple OAuth sign-in flow (multi-point auth P1, added 2026-06-14).
+ * Same shape as signInWithGoogle: the browser navigates to Apple's consent
+ * screen, then back via the Supabase callback. The session returns as a URL
+ * fragment under the implicit flow, so it works cross-device like the rest.
+ *
+ * REQUIRES one-time dashboard + Apple Developer setup (Darrell):
+ *   - Apple Developer: a Services ID + Sign in with Apple key (the private .p8).
+ *   - Supabase Dashboard -> Authentication -> Providers -> Apple: enable, paste
+ *     the Services ID (client id) and the generated client secret JWT, add the
+ *     Supabase callback URL to the Apple Services ID's Return URLs.
+ * Until that is done the button surfaces Apple's "provider not enabled" error;
+ * the email Royalty Link and Google paths remain fully available (no lockout).
+ */
+export async function signInWithApple() {
+  const redirectTo = window.location.origin + window.location.pathname;
+  return supabase.auth.signInWithOAuth({
+    provider: 'apple',
+    options: { redirectTo },
+  });
+}
+
+/**
+ * Account linking (one person = one account across providers). Supabase links
+ * identities that share the same VERIFIED email automatically when "Link
+ * accounts with the same email" is enabled in the dashboard (Authentication ->
+ * Settings). This helper is the MANUAL path: a signed-in user attaches an
+ * additional provider (e.g. add Apple to an account created with Google) so all
+ * providers resolve to the same user id and the same RLS-scoped instance.
+ *
+ * @param {'google'|'apple'} provider
+ */
+export async function linkIdentity(provider) {
+  const redirectTo = window.location.origin + window.location.pathname;
+  return supabase.auth.linkIdentity({ provider, options: { redirectTo } });
+}
+
 /** Sign the user out. Returns the supabase-js result. */
 export async function signOut() {
   return supabase.auth.signOut();

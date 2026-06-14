@@ -17,7 +17,7 @@ import Engagement from './components/Engagement.jsx';
 import Choir from './components/Choir.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import Imported from './components/Imported.jsx';
-import { onAuthChange } from './lib/supabase.js';
+import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync } from './lib/accounts-sync.js';
@@ -29,6 +29,10 @@ import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType }
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { compressImageFile } from './lib/image.js';
 import SelfServeWelcome from './components/SelfServeWelcome.jsx';
+import PinGate from './components/PinGate.jsx';
+import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
+import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
+import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/device-trust.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
@@ -37,7 +41,7 @@ import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
-import { unionPreservingLocal } from './lib/table-sync.js';
+import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
@@ -1812,6 +1816,32 @@ export default function PoeFinancialSystem() {
     // pointing at an entity the new profile can't see.
     setEntityFilter('all');
   };
+
+  // ---------------------------------------------------------------------------
+  // Multi-point auth (Phase 1, 2026-06-14) — the >= 2-of-3-points access gate.
+  // P1 identity = signed in; P2 = this device is trusted; P3 = PIN verified.
+  // The decision is computed by lib/multi-point-auth.js (decideAccess); these
+  // are the signals that feed it. This is layered ABOVE the existing flow and
+  // does NOT regress #131 — the self profile, EMPTY_WORLD, name-hiding, and the
+  // wf18 family-email guard are all untouched. Enforced only for a SIGNED-IN
+  // session on a PUBLIC host; the internal/Tailscale no-auth family device is
+  // inside the trust boundary and is unchanged. Degrades to identity-only if the
+  // PIN/device backend isn't reachable (no-lockout; e.g. preview before 0022).
+  // ---------------------------------------------------------------------------
+  const [mpDeviceTrusted, setMpDeviceTrusted] = useState(false);
+  const [mpHasPin, setMpHasPin] = useState(false);
+  const [mpBackendAvailable, setMpBackendAvailable] = useState(true);
+  const [mpSignalsLoaded, setMpSignalsLoaded] = useState(false);
+  // SESSION-scoped (sessionStorage) verified flag — NEVER the PIN itself, only a
+  // boolean that this tab session has cleared the PIN. Cleared on sign-out.
+  const [mpPinVerified, setMpPinVerified] = useState(false);
+  const mpPinOkKey = (uid) => 'poe-pin-ok:' + String(uid || 'anon');
+  // Persona-PIN (family shared-device picker gate) state.
+  const [mpPersonasWithPin, setMpPersonasWithPin] = useState([]);
+  const [mpInstanceId, setMpInstanceId] = useState(null);
+  const [pendingPersona, setPendingPersona] = useState(null); // persona awaiting its PIN
+  const [changePinOpen, setChangePinOpen] = useState(false);   // Security → Change PIN
+
   // 2026-06-12 fix ("why Adam, not Darrell?"): the sanitized display names
   // (Adam/Naomi) exist so PUBLIC visitors never see the family's real names.
   // 2026-06-14 hardening: a signed-in session alone is NOT enough — a NON-family
@@ -1857,6 +1887,77 @@ export default function PoeFinancialSystem() {
   // device (no auth needed) is unchanged.
   const importedAllowed = !isAnyDemoMode && !!currentProfile
     && (!isPublicHost() || !!(authSession && authHydrated && isFamilyEmail(authSession?.user?.email)));
+
+  // ---------------------------------------------------------------------------
+  // Multi-point auth — compute the access decision and the gate handlers.
+  // Enforced ONLY for a signed-in session on a public host after hydration +
+  // signal load. (Internal/Tailscale family device has no authSession and is
+  // unchanged; demo/anonymous never reach here.)
+  // ---------------------------------------------------------------------------
+  const mpEnforce = !!authSession && isPublicHost() && !isAnyDemoMode && authHydrated && mpSignalsLoaded;
+  const accessDecision = decideAccess({
+    identityPresent: !!authSession,
+    deviceTrusted: mpDeviceTrusted,
+    pinVerified: mpPinVerified,
+    hasPin: mpHasPin,
+    backendAvailable: mpBackendAvailable,
+  });
+  const showPinGate = mpEnforce
+    && (accessDecision.nextStep === NEXT_STEP.SET_PIN || accessDecision.nextStep === NEXT_STEP.ENTER_PIN);
+
+  const markPinVerified = () => {
+    setMpPinVerified(true);
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(mpPinOkKey(authSession?.user?.id), String(new Date().toISOString()));
+      }
+    } catch (_) { /* sessionStorage unavailable */ }
+  };
+  // After a full multi-point login on an untrusted device, mint device trust so
+  // next time only the PIN is needed (the fast path).
+  const maybeTrustDevice = async () => {
+    const after = decideAccess({ identityPresent: true, deviceTrusted: mpDeviceTrusted, pinVerified: true, hasPin: true, backendAvailable: mpBackendAvailable });
+    if (shouldIssueDeviceTrust(after, mpDeviceTrusted)) {
+      const t = await trustThisDevice(authSession?.user?.id);
+      if (t.ok) setMpDeviceTrusted(true);
+    }
+  };
+  const handleSetPin = async (pin) => {
+    const r = await setUserPin(pin);
+    if (r.ok) { setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); }
+    return r;
+  };
+  const handleEnterPin = async (pin) => {
+    const r = await verifyUserPin(pin);
+    if (r.ok) { markPinVerified(); await maybeTrustDevice(); }
+    return r;
+  };
+  // No-lockout recovery: forget this device's local trust and sign out so the
+  // user re-proves identity (email OTP / OAuth), then sets a new PIN. set_user_pin
+  // is always allowed for the authenticated user, so identity is always a way back.
+  const handleForgotPin = () => {
+    try { forgetLocalDeviceTrust(authSession?.user?.id); } catch (_) { /* ignore */ }
+    try {
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(mpPinOkKey(authSession?.user?.id));
+    } catch (_) { /* ignore */ }
+    try { signOut(); } catch (_) { /* ignore */ }
+  };
+
+  // Family shared-device persona gate ("anyone taps Darrell" fix). Selecting a
+  // real family persona (darrell/christina) requires that person's PIN when one
+  // is set. No PIN set yet -> selection allowed (no-lockout); 'family' roll-up
+  // and the sanitized personas (outside viewers) are never gated.
+  const handlePersonaSelect = (p) => {
+    const gated = isPersonaGated(p.id, isFamilyMember);
+    if (!gated) { setProfile(p.id); return; }
+    const decision = decidePersonaSelect({
+      hasPersonaPin: mpPersonasWithPin.includes(p.id),
+      personaPinVerified: false,
+      backendAvailable: mpBackendAvailable && !!mpInstanceId,
+    });
+    if (decision.allowed) { setProfile(p.id); return; }
+    setPendingPersona(p.id); // open the persona-PIN gate
+  };
 
   // Demo welcome modal — only shown when ?demo=… is in the URL. Sets the
   // viewer's expectation about what they're looking at and what they can do,
@@ -2433,6 +2534,58 @@ export default function PoeFinancialSystem() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession]);
+
+  // ---------------------------------------------------------------------------
+  // Multi-point auth — load the second-factor signals (P2 device trust, P3
+  // has-PIN) on a real sign-in. Keyed on the STABLE user id (syncIdentityKey)
+  // so the hourly TOKEN_REFRESHED churn doesn't re-fire it. Reads sessionStorage
+  // for a same-session "PIN already cleared" flag so a reload inside the session
+  // doesn't re-prompt. On sign-out, everything resets.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!authSession) {
+      setMpSignalsLoaded(false); setMpDeviceTrusted(false); setMpHasPin(false);
+      setMpBackendAvailable(true); setMpPinVerified(false);
+      setMpPersonasWithPin([]); setMpInstanceId(null); setPendingPersona(null);
+      return;
+    }
+    if (isAnyDemoMode) { setMpSignalsLoaded(true); return; }
+    let cancelled = false;
+    const uid = authSession.user?.id;
+    try {
+      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(mpPinOkKey(uid))) {
+        setMpPinVerified(true);
+      }
+    } catch (_) { /* sessionStorage unavailable */ }
+    (async () => {
+      const [h, d] = await Promise.all([hasUserPin(), isDeviceTrusted(uid)]);
+      if (cancelled) return;
+      setMpHasPin(h.hasPin);
+      setMpDeviceTrusted(d.trusted);
+      setMpBackendAvailable(h.backendAvailable && d.backendAvailable);
+      setMpSignalsLoaded(true);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncIdentityKey(authSession)]);
+
+  // Load the family persona-PIN list for the shared-device picker gate. Only
+  // family members have the multi-persona picker; a self-serve user never does.
+  useEffect(() => {
+    if (!authSession || isAnyDemoMode) return;
+    if (!isFamilyEmail(authSession.user?.email)) { setMpPersonasWithPin([]); setMpInstanceId(null); return; }
+    let cancelled = false;
+    (async () => {
+      let instId = null;
+      try { instId = await getInstanceId(); } catch (_) { /* offline / no instance */ }
+      if (cancelled || !instId) return;
+      setMpInstanceId(instId);
+      const { personas } = await listPersonaPins(instId);
+      if (!cancelled) setMpPersonasWithPin(Array.isArray(personas) ? personas : []);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncIdentityKey(authSession)]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -4136,6 +4289,57 @@ html{scroll-padding-bottom:280px}
           bypasses the profile-picker gate: the deep-link poetech.us/?view=admin
           must land straight on the panel, not behind a "who's using this device"
           modal. The TLC-firewall data gate is unaffected for every data view. */}
+      {/* Multi-point auth — PIN gate (P3). Sits ABOVE the profile picker (z-60)
+          so a signed-in user clears their PIN before anything else. SET mode for
+          a new user/device (the second point), ENTER mode when a PIN exists.
+          Only shown when mpEnforce is true (signed-in, public host, hydrated);
+          degrades away entirely if the backend is unavailable (no-lockout). */}
+      {showPinGate && (
+        <PinGate
+          mode={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'set' : 'enter'}
+          title={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Secure your space' : 'Welcome back'}
+          subtitle={accessDecision.nextStep === NEXT_STEP.SET_PIN
+            ? 'One more step: choose a 4–8 digit PIN. It’s your second key — used with your email sign-in or this trusted device.'
+            : 'Enter your PIN to unlock your space.'}
+          submitLabel={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Set PIN & continue' : 'Unlock'}
+          onSubmit={accessDecision.nextStep === NEXT_STEP.SET_PIN ? handleSetPin : handleEnterPin}
+          onForgot={accessDecision.nextStep === NEXT_STEP.ENTER_PIN ? handleForgotPin : undefined}
+        />
+      )}
+
+      {/* Family shared-device persona gate — verify the selected person's PIN. */}
+      {pendingPersona && mpInstanceId && (
+        <PinGate
+          mode="enter"
+          title={`${PROFILES.find(x => x.id === pendingPersona)?.name || 'This profile'}’s PIN`}
+          subtitle="This profile is protected. Enter the PIN to switch to it."
+          submitLabel="Switch"
+          onSubmit={async (pin) => {
+            const r = await verifyPersonaPin(mpInstanceId, pendingPersona, pin);
+            if (r.ok) { setProfile(pendingPersona); setPendingPersona(null); }
+            return r;
+          }}
+          onCancel={() => setPendingPersona(null)}
+        />
+      )}
+
+      {/* Security → Change PIN (set a new PIN; always allowed for the signed-in
+          user — this is also the no-lockout recovery once re-authenticated). */}
+      {changePinOpen && authSession && (
+        <PinGate
+          mode="set"
+          title="Change your PIN"
+          subtitle="Choose a new 4–8 digit PIN. It replaces your current one everywhere."
+          submitLabel="Save new PIN"
+          onSubmit={async (pin) => {
+            const r = await setUserPin(pin);
+            if (r.ok) { setMpHasPin(true); markPinVerified(); setChangePinOpen(false); }
+            return r;
+          }}
+          onCancel={() => setChangePinOpen(false)}
+        />
+      )}
+
       {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
@@ -4144,7 +4348,7 @@ html{scroll-padding-bottom:280px}
             <p className="text-sm text-[#5A5751] mb-6" style={{ fontFamily: '"Fraunces", serif' }}>Pick a profile to see the views meant for you. The practice stays private to its owner; business entities stay with the principal. You can switch any time from the header.</p>
             <div className="space-y-2">
               {PROFILES.map(p => (
-                <button key={p.id} type="button" onClick={() => setProfile(p.id)} className="w-full p-4 text-left border border-[#1A1815] hover:bg-white hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors flex items-baseline justify-between gap-3">
+                <button key={p.id} type="button" onClick={() => handlePersonaSelect(p)} className="w-full p-4 text-left border border-[#1A1815] hover:bg-white hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors flex items-baseline justify-between gap-3">
                   <div>
                     <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.name}</div>
                     <div className="text-[11px] uppercase tracking-wider text-[#5A5751]">{p.sub}</div>
@@ -4377,7 +4581,7 @@ html{scroll-padding-bottom:280px}
             />
           : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
-        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} />}
+        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} onChangePin={() => setChangePinOpen(true)} />}
         {view === 'admin' && <Admin />}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
