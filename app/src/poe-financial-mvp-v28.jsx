@@ -22,7 +22,7 @@ import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
 import { transactionsSync } from './lib/transactions-sync.js';
-import { projectsSync } from './lib/projects-sync.js';
+import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
@@ -2544,7 +2544,7 @@ export default function PoeFinancialSystem() {
         { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow).filter(notSeedRow) },
         { sync: debtsSync,        key: 'debts',        localList: (latest.debts || []).filter(notDemoRow).filter(notSeedRow) },
         { sync: transactionsSync, key: 'transactions', localList: (latest.transactions || []).filter(notDemoRow).filter(notSeedRow) },
-        { sync: projectsSync,     key: 'projects',     localList: (latest.projects || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: projectsSync,     key: 'projects',     localList: (latest.projects || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteProjects },
         { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
         // v2.13 — the QC record (work orders + dispatch + lifecycle trail)
         // and the shared 1099 worker roster pool to the family instance.
@@ -2565,7 +2565,8 @@ export default function PoeFinancialSystem() {
               const incoming = result.merged.filter(notDemoRow);
               let current = (d[t.key] || []).filter(notDemoRow);
               if (incoming.length) current = current.filter(notSeedRow);
-              return { ...d, [t.key]: unionPreservingLocal(current, incoming) };
+              const mergeFn = t.merge || unionPreservingLocal;
+              return { ...d, [t.key]: mergeFn(current, incoming) };
             });
             if (result.uploadFailures) {
               setPersistIssue({
@@ -2583,7 +2584,8 @@ export default function PoeFinancialSystem() {
             const incoming = items.filter(notDemoRow);
             let current = (d[t.key] || []).filter(notDemoRow);
             if (incoming.length) current = current.filter(notSeedRow);
-            return { ...d, [t.key]: unionPreservingLocal(current, incoming) };
+            const mergeFn = t.merge || unionPreservingLocal;
+            return { ...d, [t.key]: mergeFn(current, incoming) };
           });
         });
         cleanups.push(unsubscribe);
@@ -2850,6 +2852,12 @@ export default function PoeFinancialSystem() {
           if (updates[localKey] !== undefined) patch[column] = updates[localKey];
         }
         if (updates.hoursPerWeek !== undefined) patch.hours_per_week = Number(updates.hoursPerWeek);
+        // A1 (2026-06-13): sync the rich fields so they survive across devices.
+        // lifecycle changes via appendLifecycleLog on a status change (not via
+        // updates.lifecycle), so push the CURRENT lifecycle whenever it's present.
+        if (updated.lifecycle !== undefined) patch.lifecycle = updated.lifecycle;
+        if (updates.conversationLog !== undefined) patch.conversation_log = updates.conversationLog;
+        if (updates.contractorIds !== undefined) patch.contractor_ids = updates.contractorIds;
         if (Object.keys(patch).length > 0) {
           projectsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[projects-sync] project update failed', e));
         }
