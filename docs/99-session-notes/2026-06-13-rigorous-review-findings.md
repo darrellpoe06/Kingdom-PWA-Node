@@ -93,3 +93,35 @@ lifecycle column) → A3/A4/A5 (sync open-loop/resilience hardening) → W1/W2/W
 crisis; all are well-defined. The single most important framing: **the workflow
 layer is safe because it is off, and the foundation docs already gate turning it
 on (R8/R13) behind exactly W1–W4.**
+
+## 5. Resolution status (2026-06-14 — local agent, via the release lane)
+
+The app-layer backlog (§2) was worked top-first through the one release lane
+(`RELEASE-LANE.md` / DR-0054): branch → PR → CI green (lint + vitest + wf36) →
+merge. Every fix shipped with its regression test in the same PR.
+
+| # | Status | Shipped via | Note |
+|---|---|---|---|
+| A1 | **CLOSED** | [PR #116](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/116) | projects push was already live (PR #111); this added the `lifecycle`/`conversation_log`/`contractor_ids` jsonb columns (migration 0008, applied), mapping in projects-sync, and `mergeRemoteProjects` (field-preserving merge) so the rich fields stop being stripped on refetch. |
+| A2 | **CLOSED** | [PR #112](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/112) | mark-handled-first: `markHandled` checks `res.ok`, `submitConvert`/discard create/clear only on backend confirm. No more double-convert / silent resurface. |
+| A3 | **CLOSED** | [PR #113](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/113) | numeric-sync effect keys on `syncIdentityKey(session)` (stable user id), not the session object → no hourly TOKEN_REFRESHED re-sync storm. |
+| A4 | **CLOSED** | [PR #114](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/114) | realtime refetch debounced (400ms) — one refetch per burst. |
+| A5 | **CLOSED** | [PR #114](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/114) | `subscribe()` status handler resyncs on websocket reconnect (was silent death). |
+| A6 | **CLOSED** | [PR #115](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/115) | migration 0007 (applied): `(instance_id, created_at)` index on every synced table — matches `fetchAll`. |
+| A7 | **ESCALATED** | governance | Retention/pg_cron is destructive data deletion + a QoL/consent decision (DATA-AS-EMPOWERMENT: family owns data, deletion must be consented). Not auto-applied; logged as an OPEN item in `docs/governance/decision-queue.md` (retention window per table + consent posture). |
+| A8 | already fixed | — | confirmed guarded on current main (no unguarded `r.mortgage.`). |
+| A9 | accepted | — | note-only per the review; `no-cors` opaque responses are inherently unreadable, feedback channel is best-effort. |
+
+**Bonus integration (same drive):** the shipped Engagement surface
+(trivia/messages/questions) depended on `schema-v2.11`/`v2.12` being hand-pasted
+in Studio — outside the one lane. [PR #117](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/117)
+copied both into `migrations-auto/` (0009, 0010 — idempotent; applied, log
+verified) so the lane is now the source of truth for the engagement tables.
+
+**Still held (NOT touched this drive, by design):** the entire n8n workflow
+layer (W1–W7), including the wf27 Foundation Agent's auto-wake. These are
+timer-driven / autonomous compute, HELD by BUILD-ROADMAP R8/R13 and the
+three-brakes rule (CLAUDE.md); they ship **inactive** and only turn on Tier C,
+attended, with budget + concurrency-lock + kill-switch. "Wire the app to
+integrate within itself" was executed on the app layer; the workflow layer stays
+off until its gates (W1–W4) are deliberately closed with someone watching.

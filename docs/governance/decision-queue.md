@@ -71,6 +71,13 @@ Derived from DR-0064, `RELEASE-TIERS.md`, and the Tier-1 fix classes in the poli
 - **My recommendation:** wait — an empty engine is low value and reads as painted. Wire it alongside OPEN-1 so it's never empty.
 - `DECISION:` _____
 
+### OPEN-7 · Append-only table retention (review finding A7) — destructive, needs your call
+- **Unblocks:** bounded growth on the append-only tables (`transactions`, `feedback`, `audit_log`, `interactions`, `user_telemetry`; `confessions`/`disclaimers` even declare `expires_at` with nothing enforcing it). Today they grow forever and the full-refetch reads them all.
+- **Why it's escalated, not auto-done:** retention = **deleting the family's data on a schedule**. That collides with DATA-AS-EMPOWERMENT (the family owns their data; deletion must be consented + verifiable) and QUALITY-OF-LIFE. The agent will not auto-delete records. The indexes (A6, [PR #115](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/115)) already make the reads fast, so this is growth-hygiene, not a performance crisis.
+- **The fork:** (a) **enforce only the declared `expires_at`** (confessions/disclaimers already opted into expiry — honor it, delete nothing that didn't opt in); or (b) **add retention windows** to the telemetry/audit/feedback tables (e.g. keep N months, archive older); or (c) **archive-not-delete** (move old rows to a cold table, never destroy).
+- **My recommendation:** (a) now (it's honoring an existing consent), defer (b)/(c) until you set windows. Implemented as a pg_cron sweep via the migration lane once you pick — Tier B for (a), Tier C for any real deletion of non-expiring data.
+- `DECISION:` _____
+
 ### OPEN-5 · Credentials I need (bright-line — only you)
 - **`ANTHROPIC_API_KEY`** → turns on the read-only Synthesizer (DR-0055).
 - **Gemini API key** → the vendor side of the head-to-head (DR-0063) + the `fresh_knowledge` route.
@@ -84,6 +91,8 @@ Derived from DR-0064, `RELEASE-TIERS.md`, and the Tier-1 fix classes in the poli
 Darrell (2026-06-13): *"What would you like in the build backlog is whatever makes sense, we'll adjust from there."* — all **in-app**, on **real data** (DR-0065 / DR-0061), ship green (DR-0064).
 
 **Cleared 2026-06-13 (local agent) — all five shipped to main.** #1 assignment (PR #82), #2 next-step/blocker (PR #89), #3 reorder-with-filters (PR #91), #4 decisions-count on the Build board (PR #92), #5 recently-shipped strip (PR #93). Details in DECIDED HISTORY below.
+
+**Cleared 2026-06-14 (local agent) — rigorous-review app backlog, all via the release lane.** A2 ([PR #112](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/112)), A3 ([PR #113](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/113)), A4+A5 ([PR #114](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/114)), A6 ([PR #115](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/115)), A1 ([PR #116](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/116)), plus engagement schema into the migration lane ([PR #117](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/117)). Every fix has a regression test; migrations 0007/0008/0009/0010 applied (db-migrate logs verified). Details in `docs/99-session-notes/2026-06-13-rigorous-review-findings.md` §5. A7 (retention) escalated to OPEN-7 above (destructive — needs your call). The n8n workflow layer (W1–W7, incl. wf27 auto-wake) stays held per R8/R13 + three-brakes.
 
 *Awaiting your next priorities — drop a domain or items here and I'll work down the new list top-first.*
 
