@@ -2,6 +2,66 @@
 // MODULAR-EXTENSIBILITY.md. TLC isolation enforced upstream at the Worker.
 import React, { useState, useEffect } from 'react';
 
+// --- Pure helpers (exported for tests) ---
+
+// Build the local record a converted voicemail becomes. Pure: no I/O, no state.
+// `today` is injected so the mapping is deterministic under test.
+export function buildConvertPayload(row, convertAs, convertNote, convertEntity, today) {
+  const ent = convertEntity || (row.line === 'poe-properties' ? 'e-poeprops' : 'e-poetech');
+  const desc = (row.transcript || `Voicemail from ${row.caller || 'unknown'}`) + (convertNote ? `\n\n${convertNote}` : '');
+  if (convertAs === 'incident') {
+    return { kind: 'incident', payload: {
+      date: today,
+      amount: 0,
+      category: row.line === 'poe-properties' ? 'tenant-or-property' : 'business',
+      entityId: ent,
+      description: `📞 ${row.caller || 'unknown'} — ${desc.slice(0, 200)}`,
+      urgency: 'incident',
+      status: 'open',
+      dueDate: '',
+    } };
+  }
+  if (convertAs === 'inquiry') {
+    return { kind: 'inquiry', payload: {
+      firstName: '(from voicemail)',
+      lastName: row.caller || '',
+      phone: row.caller || '',
+      email: '',
+      source: 'inbound-voicemail',
+      interest: 'voicemail-intake',
+      bestTime: 'anytime',
+      notes: desc,
+    } };
+  }
+  if (convertAs === 'project') {
+    return { kind: 'project', payload: {
+      title: `Inbound: ${(row.caller || 'unknown')} · ${row.line}`,
+      startDate: today,
+      endDate: '',
+      status: 'planning',
+      domain: row.line === 'poe-properties' ? 'real-estate' : 'business-poetech',
+      description: desc,
+      hoursPerWeek: 2,
+      entityId: ent,
+      contractorIds: [],
+      conversationLog: [{ id: `cv-${Date.now()}`, date: today, person: row.caller || 'inbound voicemail', summary: 'Origin voicemail', notes: row.transcript || '' }],
+    } };
+  }
+  return { kind: null, payload: null };
+}
+
+// Mark-handled-FIRST ordering (fixes A2 double-convert). The local record is
+// created ONLY after the backend confirms the voicemail is handled. If the
+// PATCH fails, nothing is created — otherwise a failed mark-handled leaves the
+// voicemail re-convertible and the next attempt double-creates the record (and
+// a failed "discard" silently resurfaces). Pure orchestration; no React.
+export async function convertInbound({ markHandled, createLocalRecord }) {
+  const handled = await markHandled();
+  if (!handled) return { handled: false, created: false };
+  createLocalRecord();
+  return { handled: true, created: true };
+}
+
 function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, addProject, entities = [], setView }) {
   const configured = !!(voiceOps.apiUrl && voiceOps.apiToken);
   const [rows, setRows] = useState([]);
@@ -56,65 +116,55 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
     setShowConfig(false);
   };
 
+  // Mark a voicemail handled on the backend. Returns true only if the PATCH
+  // succeeded (res.ok); surfaces failures through the existing `error` banner so
+  // a silent failure can never leave a half-converted row (A2).
   const markHandled = async (row, handledAs) => {
+    setError('');
     try {
-      await fetch(`${apiUrl}/inbound/${row.id}`, {
+      const res = await fetch(`${apiUrl}/inbound/${row.id}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'handled', handled_as: handledAs, handled_note: convertNote }),
       });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status} — ${body.slice(0, 200) || 'no body'}`);
+      }
     } catch (e) {
-      console.warn('mark-handled failed', e);
+      setError(`Couldn't mark this voicemail handled (${e.message || 'network error'}). Nothing was changed — try again.`);
+      return false;
     }
     fetchInbound();
+    return true;
   };
 
-  const submitConvert = (row) => {
-    const ent = convertEntity || (row.line === 'poe-properties' ? 'e-poeprops' : 'e-poetech');
-    const desc = (row.transcript || `Voicemail from ${row.caller || 'unknown'}`) + (convertNote ? `\n\n${convertNote}` : '');
-    if (convertAs === 'incident') {
-      addIncident && addIncident({
-        date: new Date().toISOString().slice(0, 10),
-        amount: 0,
-        category: row.line === 'poe-properties' ? 'tenant-or-property' : 'business',
-        entityId: ent,
-        description: `📞 ${row.caller || 'unknown'} — ${desc.slice(0, 200)}`,
-        urgency: 'incident',
-        status: 'open',
-        dueDate: '',
-      });
-    } else if (convertAs === 'inquiry') {
-      addInquiry && addInquiry({
-        firstName: '(from voicemail)',
-        lastName: row.caller || '',
-        phone: row.caller || '',
-        email: '',
-        source: 'inbound-voicemail',
-        interest: 'voicemail-intake',
-        bestTime: 'anytime',
-        notes: desc,
-      });
-    } else if (convertAs === 'project') {
-      const today = new Date().toISOString().slice(0, 10);
-      addProject && addProject({
-        title: `Inbound: ${(row.caller || 'unknown')} · ${row.line}`,
-        startDate: today,
-        endDate: '',
-        status: 'planning',
-        domain: row.line === 'poe-properties' ? 'real-estate' : 'business-poetech',
-        description: desc,
-        hoursPerWeek: 2,
-        entityId: ent,
-        contractorIds: [],
-        conversationLog: [{ id: `cv-${Date.now()}`, date: today, person: row.caller || 'inbound voicemail', summary: 'Origin voicemail', notes: row.transcript || '' }],
-      });
-    }
-    markHandled(row, convertAs);
+  const submitConvert = async (row) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const { kind, payload } = buildConvertPayload(row, convertAs, convertNote, convertEntity, today);
+    // Mark handled FIRST; only create the local record if the backend confirms.
+    const result = await convertInbound({
+      markHandled: () => markHandled(row, convertAs),
+      createLocalRecord: () => {
+        if (kind === 'incident') addIncident && addIncident(payload);
+        else if (kind === 'inquiry') addInquiry && addInquiry(payload);
+        else if (kind === 'project') addProject && addProject(payload);
+      },
+    });
+    if (!result.created) return; // markHandled failed; error already surfaced, form stays open to retry
     setConvertOpen(null); setConvertNote(''); setConvertAs('incident');
     if (setView) {
       const target = convertAs === 'inquiry' ? 'practice' : convertAs === 'project' ? 'projects' : 'overview';
       setView(target);
     }
+  };
+
+  // Discard only clears the form if the backend confirmed the discard — a failed
+  // PATCH keeps the row open with the error visible instead of silently
+  // resurfacing it as "new" on the next refresh (A2).
+  const discardRow = async (row) => {
+    const ok = await markHandled(row, 'discarded');
+    if (ok) { setConvertOpen(null); setConvertNote(''); }
   };
 
   const lineLabel = (l) => l === 'poe-properties' ? 'Steward Real Estate' : l === 'poetech' ? 'Cornerstone Tech' : l || '—';
@@ -249,7 +299,7 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
                             </div>
                             <div className="flex gap-2 flex-wrap pt-1">
                               <button type="button" onClick={() => submitConvert(r)} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Convert + mark handled</button>
-                              <button type="button" onClick={() => markHandled(r, 'discarded')} className="border border-[#5A5751] text-[#5A5751] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Discard (not actionable)</button>
+                              <button type="button" onClick={() => discardRow(r)} className="border border-[#5A5751] text-[#5A5751] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Discard (not actionable)</button>
                               <button type="button" onClick={() => { setConvertOpen(null); setConvertNote(''); }} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] px-3 py-2 focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
                             </div>
                           </div>
