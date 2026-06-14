@@ -23,7 +23,7 @@ import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
   sortServices, songsForService, weekBucket, isOutOnDate, suggestBackups,
   subscribeSongs, subscribeSchedule, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
-  subscribeSermons, subscribeResources,
+  subscribeSermons, subscribeResources, subscribeSermonDocuments, saveSermonDocument,
   saveSong, deleteSong, reuseSong, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveSermon, deleteSermon, reuseSermon, saveResource, deleteResource, importSermonsFromChannel,
@@ -656,6 +656,7 @@ export default function Choir() {
   const [messages, setMessages] = useState([]);
   const [absences, setAbsences] = useState([]);
   const [sermons, setSermons] = useState([]);
+  const [sermonDocs, setSermonDocs] = useState([]); // owner/admin only (RLS)
   const [resources, setResources] = useState([]);
   const [songForm, setSongForm] = useState(null);     // { initial } | null
   const [serviceForm, setServiceForm] = useState(null);
@@ -681,6 +682,7 @@ export default function Choir() {
       subscribeChoirMessages(setMessages),
       subscribeAbsences(setAbsences),
       subscribeSermons(setSermons),
+      subscribeSermonDocuments(setSermonDocs),
       subscribeResources(setResources),
     ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
@@ -751,8 +753,9 @@ export default function Choir() {
 
       {tab === 'sermons' && (
         <SermonsPanel
-          sermons={sermons} canEdit={access.canEdit} busy={busy}
-          onSave={async (s) => { setBusy(true); reportSkip(await saveSermon(s)); setBusy(false); }}
+          sermons={sermons.map((s) => ({ ...s, documentUrl: (sermonDocs.find((d) => d.sermonId === s.id) || {}).documentUrl || null }))}
+          canEdit={access.canEdit} busy={busy}
+          onSave={async (s) => { setBusy(true); const r = await saveSermon(s); reportSkip(r); if (r?.id) await saveSermonDocument(r.id, s.documentUrl); setBusy(false); }}
           onDelete={async (s) => { reportSkip(await deleteSermon(s.id)); }}
           onReuse={async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType)); }}
           onImport={() => importSermonsFromChannel()}

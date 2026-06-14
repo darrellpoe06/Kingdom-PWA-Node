@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape, toAbsenceShape,
-  toSermonShape, toResourceShape,
+  toSermonShape, toResourceShape, toSermonDocShape,
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService,
   weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
@@ -263,13 +263,18 @@ describe('extractYoutubeId', () => {
 });
 
 describe('sermon + resource mappers and reuse', () => {
-  it('toSermonShape maps a row with defaults + service slot + document', () => {
-    expect(toSermonShape({ id: 's1', title: 'Built to Win', service_type: 'wednesday', service_slot: 'evening', youtube_url: 'u', document_url: 'https://doc', document_source: 'email', start_seconds: 2100, status: 'active' }))
-      .toMatchObject({ id: 's1', title: 'Built to Win', serviceType: 'wednesday', serviceSlot: 'evening', youtubeUrl: 'u', documentUrl: 'https://doc', documentSource: 'email', startSeconds: 2100, status: 'active', source: 'manual' });
+  it('toSermonShape maps a row with defaults + service slot (documents live in their own admin-only table)', () => {
+    const out = toSermonShape({ id: 's1', title: 'Built to Win', service_type: 'wednesday', service_slot: 'evening', youtube_url: 'u', start_seconds: 2100, status: 'active' });
+    expect(out).toMatchObject({ id: 's1', title: 'Built to Win', serviceType: 'wednesday', serviceSlot: 'evening', youtubeUrl: 'u', startSeconds: 2100, status: 'active', source: 'manual' });
+    expect(out.documentUrl).toBeUndefined(); // not on the choir-readable sermon row
   });
   it('toResourceShape maps a row', () => {
     expect(toResourceShape({ id: 'r1', title: 'Worship chart', url: 'https://x', note: 'weekly' }))
       .toEqual({ id: 'r1', title: 'Worship chart', url: 'https://x', note: 'weekly', createdAt: null });
+  });
+  it('toSermonDocShape maps the admin-only document row', () => {
+    expect(toSermonDocShape({ id: 'd1', sermon_id: 's1', document_url: 'https://doc', document_source: 'email' }))
+      .toEqual({ id: 'd1', sermonId: 's1', documentUrl: 'https://doc', documentSource: 'email' });
   });
   it('buildReusedSermon makes a future DRAFT that references the original', () => {
     const out = buildReusedSermon({ title: 'Let Go', serviceType: 'sunday', scriptureRef: '1 Pet 5', notes: 'rest in God', youtubeUrl: 'https://youtu.be/x' }, '2026-08-02', 'sunday');

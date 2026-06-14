@@ -57,8 +57,6 @@ export function toSermonShape(row) {
     serviceSlot: row.service_slot ?? null,
     youtubeUrl: row.youtube_url ?? null,
     videoId: row.video_id ?? null,
-    documentUrl: row.document_url ?? null,
-    documentSource: row.document_source ?? null,
     startSeconds: row.start_seconds ?? null,
     notes: row.notes ?? null,
     status: row.status ?? 'active',
@@ -74,6 +72,15 @@ export function toResourceShape(row) {
     url: row.url ?? null,
     note: row.note ?? null,
     createdAt: row.created_at ?? null,
+  };
+}
+
+export function toSermonDocShape(row) {
+  return {
+    id: row.id,
+    sermonId: row.sermon_id,
+    documentUrl: row.document_url,
+    documentSource: row.document_source ?? null,
   };
 }
 
@@ -516,8 +523,6 @@ export async function saveSermon(sermon, displayName) {
     speaker: sermon.speaker ?? null,
     scripture_ref: sermon.scriptureRef ?? null,
     service_slot: sermon.serviceSlot ?? null,
-    document_url: sermon.documentUrl ?? null,
-    document_source: sermon.documentUrl ? (sermon.documentSource || 'manual') : null,
     youtube_url: sermon.youtubeUrl ?? null,
     video_id: sermon.videoId ?? null,
     start_seconds: Number.isFinite(sermon.startSeconds) ? sermon.startSeconds : null,
@@ -527,15 +532,37 @@ export async function saveSermon(sermon, displayName) {
   };
   if (sermon.id) {
     const { error } = await supabase.from('choir_sermons').update({ ...row, updated_by: ctx.userId }).eq('id', sermon.id);
-    return error ? { skipped: 'update-error', error } : { saved: true };
+    return error ? { skipped: 'update-error', error } : { saved: true, id: sermon.id };
   }
-  const { error } = await supabase.from('choir_sermons').insert({ ...row, instance_id: ctx.tenantId, created_by: ctx.userId });
-  return error ? { skipped: 'insert-error', error } : { saved: true };
+  const { data, error } = await supabase.from('choir_sermons').insert({ ...row, instance_id: ctx.tenantId, created_by: ctx.userId }).select('id').single();
+  return error ? { skipped: 'insert-error', error } : { saved: true, id: data?.id };
 }
 
 export async function deleteSermon(id) {
   const { error } = await supabase.from('choir_sermons').delete().eq('id', id);
   return error ? { skipped: 'delete-error', error } : { deleted: true };
+}
+
+// Sermon documents — OWNER/ADMIN ONLY (only BG/Darrell/Christina). RLS returns
+// nothing to other members, so non-admins never receive a document link.
+export const subscribeSermonDocuments = makeSubscriber('choir_sermon_documents', toSermonDocShape, { col: 'created_at', asc: true });
+
+export async function saveSermonDocument(sermonId, documentUrl, source) {
+  if (!sermonId) return { skipped: 'no-sermon' };
+  const url = (documentUrl || '').trim();
+  const ctx = await writeContext();
+  if (ctx.error) return { skipped: ctx.error };
+  // Clearing the field removes the document; one document per sermon.
+  await supabase.from('choir_sermon_documents').delete().eq('sermon_id', sermonId);
+  if (!url) return { saved: true, cleared: true };
+  const { error } = await supabase.from('choir_sermon_documents').insert({
+    instance_id: ctx.tenantId,
+    sermon_id: sermonId,
+    document_url: url,
+    document_source: source || 'manual',
+    created_by: ctx.userId,
+  });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
 }
 
 // Reuse a past message as a starting point for a NEW one: a fresh DRAFT carrying
