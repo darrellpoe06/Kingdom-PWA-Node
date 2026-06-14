@@ -2333,6 +2333,24 @@ export default function PoeFinancialSystem() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession, authHydrated]);
 
+  // 2026-06-13 — a signed-in FAMILY member is NEVER tier-gated out of their own
+  // data, on its OWN effect. The grant used to live inside the profile-load
+  // effect above, which early-returns once a profile is set (currentProfile
+  // truthy) — so on reload the family-tier grant was skipped and the owner
+  // stayed gated (Darrell: "How can I be logged in and still getting the
+  // choose/unlock pages?"). This runs on every sign-in regardless of profile:
+  // a recognized family email gets the top tier so every module is fully theirs.
+  // The dev tier-switcher can still preview lower tiers within a session; a
+  // reload restores full access. Idempotent (no churn when already at the top).
+  useEffect(() => {
+    if (!authSession || isAnyDemoMode) return;
+    const email = (authSession.user?.email || '').toLowerCase();
+    if (FAMILY_EMAIL_PROFILES[email]) {
+      setData(d => (effectiveTier(d.userTier) === 'business' ? d : { ...d, userTier: 'business' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession]);
+
   useEffect(() => {
     if (!loaded) return;
     if (isAnyDemoMode) return; // Demo + picker mode never write to localStorage.
