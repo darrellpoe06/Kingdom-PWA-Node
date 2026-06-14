@@ -2768,7 +2768,12 @@ export default function PoeFinancialSystem() {
   const addProject = (item) => {
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'planning';
-    const localId = `pr-${Date.now()}`;
+    // Unique even within the same millisecond: a batch add (e.g. "Load 6
+    // example projects" calls addProject in a synchronous forEach) otherwise
+    // mints the SAME `pr-<Date.now()>` for every project, which collides React
+    // keys AND makes edit/delete-by-id hit every twin at once. Same random-suffix
+    // pattern the rest of the app uses for batch-created ids.
+    const localId = `pr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const seeded = {
       ...item,
       id: localId,
@@ -2811,19 +2816,37 @@ export default function PoeFinancialSystem() {
       }
       return merged;
     });
-    // Layer 2 — persist the manual priority rank to the cloud so a reprioritized
-    // order syncs across devices. Scoped strictly to this one column (the rest
-    // of project-edit cloud sync is a separate concern), and fails soft: if the
-    // priority_rank column isn't live yet, the local order still holds.
-    if ((updates.priorityRank !== undefined || updates.assigneePersonas !== undefined || updates.nextStep !== undefined || updates.blocker !== undefined) && authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+    // Cloud sync — persist EVERY editable column an edit can touch, not just the
+    // inline priority/assignee/next/blocker fields. So a project edited on one
+    // device — its title, dates, status, domain, description, weekly load —
+    // shows up on the family's other devices instead of stalling until the next
+    // sign-in. Scoped to the columns the projects table actually has (lifecycle
+    // log + conversations stay local; no column for them), and fails soft: a
+    // missing column or an offline edit never blocks the local save.
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
       const updated = next.find(p => p.id === id);
       if (updated && updated.remoteUuid) {
+        const COLUMN_OF = {
+          title:            'title',
+          startDate:        'start_date',
+          endDate:          'end_date',
+          status:           'status',
+          domain:           'domain',
+          description:      'description',
+          entityId:         'entity_slug',
+          priorityRank:     'priority_rank',
+          assigneePersonas: 'assignee_personas',
+          nextStep:         'next_step',
+          blocker:          'blocker',
+        };
         const patch = {};
-        if (updates.priorityRank !== undefined) patch.priority_rank = updates.priorityRank;
-        if (updates.assigneePersonas !== undefined) patch.assignee_personas = updates.assigneePersonas;
-        if (updates.nextStep !== undefined) patch.next_step = updates.nextStep;
-        if (updates.blocker !== undefined) patch.blocker = updates.blocker;
-        projectsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[projects-sync] project field update failed', e));
+        for (const [localKey, column] of Object.entries(COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (updates.hoursPerWeek !== undefined) patch.hours_per_week = Number(updates.hoursPerWeek);
+        if (Object.keys(patch).length > 0) {
+          projectsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[projects-sync] project update failed', e));
+        }
       }
     }
     return { ...d, projects: next };
