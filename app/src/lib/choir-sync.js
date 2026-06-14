@@ -1,0 +1,271 @@
+// =============================================================================
+// choir-sync — Supabase-backed Choir module (roster + songs + schedule + msgs)
+// =============================================================================
+// Mirrors engagement-sync.js / feedback-sync.js: tenant membership via
+// ensureTenantMembership() before any write (so RLS passes), and a
+// postgres_changes realtime stream so the choir's devices update live. Backed by
+// the choir_members / choir_songs / choir_schedule / choir_messages tables from
+// infra/supabase/migrations-auto/0011-choir-module.sql.
+//
+// ACCESS (decided 2026-06-14): read = any choir member (user_in_choir = owner/
+// admin OR a row in choir_members); write/edit on roster/songs/schedule =
+// owner/admin. Members may post choir messages. The client mirrors this with
+// getChoirAccess() so editor controls only render for directors; RLS is the
+// real enforcement either way.
+// =============================================================================
+import supabase from './supabase.js';
+import { ensureTenantMembership } from './feedback-sync.js';
+
+async function currentSession() {
+  const { data } = await supabase.auth.getSession();
+  return data.session ?? null;
+}
+
+function resolveDisplayName(session, explicit) {
+  const trimmed = (explicit || '').trim();
+  if (trimmed) return trimmed;
+  return session.user.email?.split('@')[0] || 'Member';
+}
+
+// --- Pure mappers / helpers (exported for tests) -----------------------------
+
+export function toSongShape(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    youtubeUrl: row.youtube_url ?? null,
+    scriptureRef: row.scripture_ref ?? null,
+    notes: row.notes ?? null,
+    serviceDate: row.service_date ?? null,
+    serviceType: row.service_type ?? 'sunday',
+    sortOrder: row.sort_order ?? 0,
+    status: row.status ?? 'active',
+    createdAt: row.created_at ?? null,
+    updatedAt: row.updated_at ?? null,
+  };
+}
+
+export function toScheduleShape(row) {
+  return {
+    id: row.id,
+    serviceDate: row.service_date,
+    serviceType: row.service_type,
+    title: row.title ?? null,
+    notes: row.notes ?? null,
+  };
+}
+
+export function toMemberShape(row) {
+  return {
+    id: row.id,
+    userId: row.user_id ?? null,
+    displayName: row.display_name,
+    section: row.section ?? null,
+    choirRole: row.choir_role ?? 'member',
+    createdAt: row.created_at ?? null,
+  };
+}
+
+export function toChoirMessageShape(row, myUserId) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    displayName: row.display_name,
+    body: row.body,
+    createdAt: row.created_at,
+    mine: row.user_id === myUserId,
+  };
+}
+
+// Editor controls render only for directors; RLS still enforces it server-side.
+export function deriveAccess(role, inChoir) {
+  const canEdit = role === 'owner' || role === 'admin';
+  return { canEdit, canSee: canEdit || !!inChoir };
+}
+
+// Normalize a YouTube URL to its embeddable form; null if not recognizable.
+// Accepts watch?v=, youtu.be/, and /embed/ forms.
+export function youtubeEmbedUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  const u = url.trim();
+  let id = null;
+  let m;
+  if ((m = u.match(/[?&]v=([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/youtu\.be\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/embed\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/^([\w-]{11})$/))) id = m[1];
+  return id ? `https://www.youtube.com/embed/${id}` : null;
+}
+
+// Future-or-today services first, soonest first; past services after, newest
+// first. Keeps "this week" at the top of the schedule view.
+export function sortServices(schedule, todayIso) {
+  const today = todayIso || '';
+  const future = [];
+  const past = [];
+  for (const s of schedule || []) {
+    (s.serviceDate >= today ? future : past).push(s);
+  }
+  future.sort((a, b) => String(a.serviceDate).localeCompare(String(b.serviceDate)));
+  past.sort((a, b) => String(b.serviceDate).localeCompare(String(a.serviceDate)));
+  return [...future, ...past];
+}
+
+// Songs assigned to a given service date + type (a 'both' song shows on either).
+export function songsForService(songs, serviceDate, serviceType) {
+  return (songs || [])
+    .filter((s) => s.status !== 'archived')
+    .filter((s) => s.serviceDate === serviceDate && (s.serviceType === serviceType || s.serviceType === 'both'))
+    .sort((a, b) => (a.sortOrder - b.sortOrder) || String(a.title).localeCompare(String(b.title)));
+}
+
+// --- Access ------------------------------------------------------------------
+
+export async function getChoirAccess(displayName) {
+  const session = await currentSession();
+  if (!session) return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null };
+  let tenantId;
+  try {
+    tenantId = await ensureTenantMembership(displayName);
+  } catch (e) {
+    console.warn('[choir-sync] tenant membership failed:', e);
+    return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null };
+  }
+  const [{ data: role }, { data: inChoir }] = await Promise.all([
+    supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
+    supabase.rpc('user_in_choir', { instance_uuid: tenantId }),
+  ]);
+  const { canEdit, canSee } = deriveAccess(role, inChoir);
+  return { signedIn: true, canSee, canEdit, tenantId, role: role ?? null };
+}
+
+// --- Generic fetch + realtime subscribe --------------------------------------
+
+function makeSubscriber(table, mapRow, orderBy) {
+  return function subscribe(onChange) {
+    let channel = null;
+    let cancelled = false;
+    (async () => {
+      const session = await currentSession();
+      if (!session || cancelled) return;
+      const myUserId = session.user.id;
+      const fetchAll = async () => {
+        const q = supabase.from(table).select('*');
+        const { data, error } = orderBy
+          ? await q.order(orderBy.col, { ascending: orderBy.asc })
+          : await q;
+        if (error) { console.warn(`[choir-sync] ${table} fetch failed:`, error); return null; }
+        return (data || []).map((r) => mapRow(r, myUserId));
+      };
+      const initial = await fetchAll();
+      if (initial && !cancelled) onChange(initial);
+      channel = supabase
+        .channel(`${table}-stream`)
+        .on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+          fetchAll().then((rows) => { if (rows && !cancelled) onChange(rows); });
+        })
+        .subscribe();
+    })();
+    return function unsubscribe() {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  };
+}
+
+export const subscribeSongs = makeSubscriber('choir_songs', toSongShape, { col: 'service_date', asc: true });
+export const subscribeSchedule = makeSubscriber('choir_schedule', toScheduleShape, { col: 'service_date', asc: true });
+export const subscribeMembers = makeSubscriber('choir_members', toMemberShape, { col: 'created_at', asc: true });
+export const subscribeChoirMessages = makeSubscriber('choir_messages', toChoirMessageShape, { col: 'created_at', asc: true });
+
+// --- Writes (owner/admin via RLS; fail soft + surface to caller) -------------
+
+async function writeContext(displayName) {
+  const session = await currentSession();
+  if (!session) return { error: 'signed-out' };
+  let tenantId;
+  try { tenantId = await ensureTenantMembership(displayName); }
+  catch (e) { return { error: 'no-tenant', detail: e }; }
+  return { tenantId, userId: session.user.id, displayName: resolveDisplayName(session, displayName) };
+}
+
+export async function saveSong(song, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const row = {
+    title: song.title ?? '',
+    youtube_url: song.youtubeUrl ?? null,
+    scripture_ref: song.scriptureRef ?? null,
+    notes: song.notes ?? null,
+    service_date: song.serviceDate ?? null,
+    service_type: song.serviceType ?? 'sunday',
+    sort_order: Number.isFinite(song.sortOrder) ? song.sortOrder : 0,
+    status: song.status ?? 'active',
+  };
+  if (song.id) {
+    const { error } = await supabase.from('choir_songs').update({ ...row, updated_by: ctx.userId }).eq('id', song.id);
+    return error ? { skipped: 'update-error', error } : { saved: true };
+  }
+  const { error } = await supabase.from('choir_songs').insert({ ...row, instance_id: ctx.tenantId, created_by: ctx.userId });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
+}
+
+export async function deleteSong(id) {
+  const { error } = await supabase.from('choir_songs').delete().eq('id', id);
+  return error ? { skipped: 'delete-error', error } : { deleted: true };
+}
+
+export async function saveService(item, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const row = {
+    service_date: item.serviceDate,
+    service_type: item.serviceType,
+    title: item.title ?? null,
+    notes: item.notes ?? null,
+  };
+  if (item.id) {
+    const { error } = await supabase.from('choir_schedule').update({ ...row, updated_by: ctx.userId }).eq('id', item.id);
+    return error ? { skipped: 'update-error', error } : { saved: true };
+  }
+  const { error } = await supabase.from('choir_schedule').insert({ ...row, instance_id: ctx.tenantId, created_by: ctx.userId });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
+}
+
+export async function deleteService(id) {
+  const { error } = await supabase.from('choir_schedule').delete().eq('id', id);
+  return error ? { skipped: 'delete-error', error } : { deleted: true };
+}
+
+export async function addMember(member, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const { error } = await supabase.from('choir_members').insert({
+    instance_id: ctx.tenantId,
+    user_id: member.userId ?? null,
+    display_name: member.displayName ?? '',
+    section: member.section ?? null,
+    choir_role: member.choirRole ?? 'member',
+    added_by: ctx.userId,
+  });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
+}
+
+export async function removeMember(id) {
+  const { error } = await supabase.from('choir_members').delete().eq('id', id);
+  return error ? { skipped: 'delete-error', error } : { deleted: true };
+}
+
+export async function sendChoirMessage(body, displayName) {
+  const text = (body || '').trim();
+  if (!text) return { skipped: 'empty' };
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const { error } = await supabase.from('choir_messages').insert({
+    instance_id: ctx.tenantId,
+    user_id: ctx.userId,
+    display_name: ctx.displayName,
+    body: text,
+  });
+  return error ? { skipped: 'insert-error', error } : { uploaded: true };
+}
