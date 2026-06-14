@@ -4,6 +4,13 @@
 // into { date, type, title, speaker } with the SHARED parser (no drift vs the
 // app), and emits an idempotent SQL seed + a JSON preview.
 //
+// METADATA ONLY — this NEVER downloads the videos (Darrell 2026-06-14: "we
+// don't want or need to download the videos, we want to source them"). It uses
+// yt-dlp's --flat-playlist, which reads id/title/date and nothing else; no media
+// is fetched or stored. The app links to each video; the link is just a URL, so
+// when the church later hosts the videos on its own NAS, the same field can
+// point there instead of YouTube.
+//
 // This does NOT touch the database itself. It writes:
 //   scripts/out/choir-sermons-backfill.json  (review the parse)
 //   scripts/out/choir-sermons-backfill.sql   (INSERT ... ON CONFLICT DO NOTHING)
