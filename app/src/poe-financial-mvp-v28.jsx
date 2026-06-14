@@ -886,6 +886,20 @@ const FAMILY_EMAIL_PROFILES = {
 };
 export const isFamilyEmail = (email) =>
   Object.prototype.hasOwnProperty.call(FAMILY_EMAIL_PROFILES, String(email || '').toLowerCase());
+
+// The wf18 Imported family-PII gate (from #131), extracted as a pure predicate
+// so the security property is directly testable and provably preserved: the
+// single shared NAS webhook serving the family's bank/Gmail PII is only ever
+// reachable when (1) not in any demo/picker state, (2) a profile is set, and
+// (3) on a public host, a VERIFIED FAMILY EMAIL is signed in + hydrated. An
+// outside (self-serve) signed-in user, an anonymous visitor, and every demo
+// state are all denied; the internal/Tailscale device (not a public host) is
+// unchanged. The multi-point auth work must NOT regress this — multi-point-auth
+// gating is layered ON TOP of, never in place of, this guard.
+export function isImportedAllowed({ isAnyDemoMode, currentProfile, isPublicHostVal, authSession, authHydrated }) {
+  return !isAnyDemoMode && !!currentProfile
+    && (!isPublicHostVal || !!(authSession && authHydrated && isFamilyEmail(authSession?.user?.email)));
+}
 const personaOf = (email) => FAMILY_EMAIL_PROFILES[String(email || '').toLowerCase()] || null;
 // Unique family personas (Christina's two emails collapse to one), used as the
 // project-assignment roster. Display name = title-cased persona key.
@@ -1885,8 +1899,9 @@ export default function PoeFinancialSystem() {
   // key, or an outsider would unlock the family's bank data. On a public host
   // the gate requires a VERIFIED family email; the internal/Tailscale family
   // device (no auth needed) is unchanged.
-  const importedAllowed = !isAnyDemoMode && !!currentProfile
-    && (!isPublicHost() || !!(authSession && authHydrated && isFamilyEmail(authSession?.user?.email)));
+  const importedAllowed = isImportedAllowed({
+    isAnyDemoMode, currentProfile, isPublicHostVal: isPublicHost(), authSession, authHydrated,
+  });
 
   // ---------------------------------------------------------------------------
   // Multi-point auth — compute the access decision and the gate handlers.
