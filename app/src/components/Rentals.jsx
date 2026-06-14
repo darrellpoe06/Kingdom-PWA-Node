@@ -818,7 +818,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     const withCoords = rentals.filter(r => typeof r.lat === 'number' && typeof r.lon === 'number');
     withCoords.forEach(r => {
       const marker = window.L.marker([r.lat, r.lon]).addTo(mapInstanceRef.current);
-      marker.bindPopup(`<strong>${r.name}</strong><br/>${r.address || ''}${r.city ? ', ' + r.city : ''}<br/>Rent: $${r.rent}/mo · ${r.status}<br/>${r.mortgage?.balance ? 'Mortgage: $' + r.mortgage.balance.toLocaleString() : 'Paid off'}`);
+      marker.bindPopup(`<strong>${r.name}</strong><br/>${r.address || ''}${r.city ? ', ' + r.city : ''}<br/>Rent: $${r.rent}/mo · ${r.status}<br/>${r.mortgage?.balance ? 'Mortgage: $' + r.mortgage.balance.toLocaleString() : 'Mortgage: —'}`);
       markersRef.current.push(marker);
     });
     if (withCoords.length > 0) {
@@ -1304,8 +1304,14 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         )}
 
         {(() => {
-          const incomeProducing = rentals.filter(r => (r.rent || 0) > 0);
-          const personal = rentals.filter(r => (r.rent || 0) === 0);
+          // A property is PERSONAL when it's the family's own home (primary/
+          // secondary-home, owner-occupied, or under the personal entity) — NOT
+          // merely because rent isn't entered yet. Rentals stay rentals even
+          // before their rent imports (Darrell 2026-06-13: "2111 should be in
+          // Personal Properties, not Rentals"; rents import via the report flow).
+          const isPersonalProp = (r) => r.propertyType === 'primary-home' || r.propertyType === 'secondary-home' || r.status === 'owner-occupied' || r.entityId === 'e-personal';
+          const incomeProducing = rentals.filter(r => !isPersonalProp(r));
+          const personal = rentals.filter(isPersonalProp);
           const renderPropertyRow = (r, i, lastIdx) => {
             // Round 10 — Tenant-late surfacing. If status is 'late', show a
             // tenant-issue card with one-tap "Open as Change / Incident / Project"
@@ -1408,7 +1414,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     </div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-xs">
-                    <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : 'paid off'}</span></div>
+                    <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : '—'}</span></div>
                     <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
                     <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
                     <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button type="button" onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
