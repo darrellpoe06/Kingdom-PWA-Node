@@ -243,7 +243,31 @@ export function youtubeTimedUrl(url, startSeconds) {
 
 // The YouTube title parser lives in a dependency-free module so the local
 // backfill script can share it. Re-exported here for the app + tests.
+import { parseServiceTitle as _parseTitle } from './youtube-title-parse.js';
 export { parseServiceTitle, extractYoutubeId } from './youtube-title-parse.js';
+
+// Pure: turn raw {videoId, title} channel items into NEW choir_sermons rows —
+// parse the title, keep only dated ones, drop any whose video is already stored
+// (idempotent re-import). Exported for tests; used by importSermonsFromChannel.
+export function selectNewSermonImports(items, existingVideoIds) {
+  const have = new Set(existingVideoIds || []);
+  const out = [];
+  for (const it of items || []) {
+    if (!it.videoId || have.has(it.videoId)) continue;
+    const p = _parseTitle(it.title);
+    if (!p.serviceDate) continue;
+    out.push({
+      videoId: it.videoId,
+      youtubeUrl: `https://www.youtube.com/watch?v=${it.videoId}`,
+      serviceDate: p.serviceDate,
+      serviceType: p.serviceType,
+      title: p.title || String(it.title || '').trim(),
+      speaker: p.speaker,
+      source: 'youtube',
+    });
+  }
+  return out;
+}
 
 // --- Access ------------------------------------------------------------------
 
@@ -531,4 +555,60 @@ export async function saveResource(resource, displayName) {
 export async function deleteResource(id) {
   const { error } = await supabase.from('choir_resources').delete().eq('id', id);
   return error ? { skipped: 'delete-error', error } : { deleted: true };
+}
+
+// --- Ongoing import from the YouTube channel (director-triggered, not a timer) -
+// Pulls the channel's recent uploads via the YouTube Data API and inserts any
+// NEW dated messages into choir_sermons. Metadata only — no downloads (Darrell:
+// "source, don't download"). Needs VITE_YOUTUBE_API_KEY (a read-only,
+// referrer-restrictable key); without it the surface tells the director to add
+// it. Idempotent: existing videos are skipped (selectNewSermonImports).
+const CHURCH_CHANNEL_HANDLE = 'thelovecorner';
+
+async function ytApi(path, key) {
+  const res = await fetch(`https://www.googleapis.com/youtube/v3/${path}&key=${encodeURIComponent(key)}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`YouTube API ${res.status}: ${body.slice(0, 160)}`);
+  }
+  return res.json();
+}
+
+export async function importSermonsFromChannel(displayName) {
+  const key = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY) || '';
+  if (!key) return { skipped: 'no-key' };
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  try {
+    // Resolve the channel's uploads playlist from its handle.
+    const ch = await ytApi(`channels?part=contentDetails&forHandle=${encodeURIComponent('@' + CHURCH_CHANNEL_HANDLE)}`, key);
+    const uploads = ch?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+    if (!uploads) return { skipped: 'channel-not-found' };
+    // Most recent 50 uploads (newest first).
+    const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${encodeURIComponent(uploads)}`, key);
+    const items = (pl?.items || []).map((i) => ({
+      videoId: i?.contentDetails?.videoId,
+      title: i?.snippet?.title,
+    }));
+    const { data: existing } = await supabase.from('choir_sermons').select('video_id').eq('instance_id', ctx.tenantId);
+    const existingIds = (existing || []).map((r) => r.video_id).filter(Boolean);
+    const fresh = selectNewSermonImports(items, existingIds);
+    if (!fresh.length) return { imported: 0, scanned: items.length };
+    const rows = fresh.map((r) => ({
+      instance_id: ctx.tenantId,
+      created_by: ctx.userId,
+      video_id: r.videoId,
+      youtube_url: r.youtubeUrl,
+      service_date: r.serviceDate,
+      service_type: r.serviceType,
+      title: r.title,
+      speaker: r.speaker,
+      source: 'youtube',
+    }));
+    const { error } = await supabase.from('choir_sermons').insert(rows);
+    if (error) return { skipped: 'insert-error', error };
+    return { imported: rows.length, scanned: items.length };
+  } catch (e) {
+    return { skipped: 'api-error', error: e };
+  }
 }
