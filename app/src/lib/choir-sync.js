@@ -427,6 +427,23 @@ export async function removeMember(id) {
   return error ? { skipped: 'delete-error', error } : { deleted: true };
 }
 
+// Invite a choir/media member into the church instance by email + role. They get
+// access (and see the Choir tab) the next time they sign in — join_church_instance
+// accepts the pending invite. Owner/admin only (enforced in the RPC).
+export function isValidInviteEmail(email) {
+  const e = String(email || '').trim();
+  return e.length > 3 && /\S+@\S+\.\S+/.test(e);
+}
+
+export async function inviteToChurch(email, role) {
+  if (!isValidInviteEmail(email)) return { skipped: 'bad-email' };
+  const { data, error } = await supabase.rpc('invite_to_church', {
+    email_in: String(email).trim(),
+    role_in: role || 'member',
+  });
+  return error ? { skipped: 'invite-error', error } : { invited: true, id: data };
+}
+
 export async function sendChoirMessage(body, displayName) {
   const text = (body || '').trim();
   if (!text) return { skipped: 'empty' };
