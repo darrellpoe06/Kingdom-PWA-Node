@@ -37,6 +37,30 @@ export function hasBridgeToken() {
   return !!bridgeToken();
 }
 
+// Map a property to its Synology Chat channel name (the project-base channels
+// Darrell used for years). His display names ("805 N Prospect (multi-unit)")
+// don't match the channel names ("805NProspect"), and the photo/history bridge
+// keys on the EXACT channel name — so this lookup, by stable property slug,
+// routes each property to its real photo archive. Falls back to the property
+// name for anything not in the map. This is the migration bridge for the Poe
+// chat archive; new users instead get auto-sort from EXIF on upload (Layer 2).
+export const PROPERTY_CHANNELS = {
+  'r-805nprospect': '805NProspect',
+  'r-440ss': '440SS',
+  'r-709commercial': '709CommercialSt',
+  'r-1513hh': '1513HH',
+  'r-1508hh': '1508HH',
+  'r-1213koehn': '1213KoehnDr',
+  'r-2111talans': '2111TalansDr',
+  'r-1003koehn': '1003Koehn',
+  'r-1508williamsburg': '1508Williamsburg',
+};
+
+export function chatChannelFor(r) {
+  if (!r) return '';
+  return PROPERTY_CHANNELS[r.id] || r.name || '';
+}
+
 // Fetch one page of a property channel's photos. Returns { photos } on
 // success, null on any failure (no token, offline, 401) — callers render
 // nothing rather than an error wall; the NAS being unreachable must never

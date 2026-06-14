@@ -8,7 +8,7 @@ import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
-import { hasBridgeToken } from '../lib/nas-photos.js';
+import { hasBridgeToken, chatChannelFor } from '../lib/nas-photos.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -1002,7 +1002,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     }
     setChatImport({ rentalId: r.id, status: 'loading', messages: [], already: 0 });
     try {
-      const resp = await fetch(`/n8n/webhook/property-history?channel=${encodeURIComponent(r.name)}`, {
+      const resp = await fetch(`/n8n/webhook/property-history?channel=${encodeURIComponent(chatChannelFor(r))}`, {
         headers: { authorization: `Bearer ${token}` },
       });
       if (resp.status === 401 || resp.status === 403) {
@@ -1036,7 +1036,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     if (!token) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [] }); return; }
     setPhotoImport(p => ({ rentalId: r.id, status: 'loading', photos: (p && p.rentalId === r.id ? p.photos : []), offset }));
     try {
-      const resp = await fetch(`/n8n/webhook/property-photos?channel=${encodeURIComponent(r.name)}&limit=${PHOTO_PAGE}&offset=${offset}`, {
+      const resp = await fetch(`/n8n/webhook/property-photos?channel=${encodeURIComponent(chatChannelFor(r))}&limit=${PHOTO_PAGE}&offset=${offset}`, {
         headers: { authorization: `Bearer ${token}` },
       });
       if (resp.status === 401 || resp.status === 403) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [], badToken: true }); return; }
