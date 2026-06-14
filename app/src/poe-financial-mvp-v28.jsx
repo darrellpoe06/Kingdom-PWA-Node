@@ -2712,13 +2712,18 @@ export default function PoeFinancialSystem() {
   const addEvent = (item) => setData(d => ({ ...d, events: [...(d.events || []), { ...item, id: `ev-${Date.now()}`, createdAt: new Date().toISOString(), completedAt: null }] }));
   const completeEvent = (id) => setData(d => ({ ...d, events: (d.events || []).map(e => e.id === id ? { ...e, completedAt: new Date().toISOString() } : e) }));
   // Projects — same lifecycle pattern.
-  const addProject = (item) => setData(d => {
+  const addProject = (item) => {
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'planning';
+    const localId = `pr-${Date.now()}`;
     const seeded = {
       ...item,
-      id: `pr-${Date.now()}`,
+      id: localId,
       createdAt: item.createdAt || nowIso,
+      // Attribute the project to the signed-in user so it is "Mine" immediately
+      // and the Mine/Everyone split reflects real ownership (isMine reads
+      // createdBy). Null when signed out so demo/anonymous adds stay unattributed.
+      createdBy: authSession?.user?.id || null,
       status: initialStatus,
       lifecycle: {
         phase: initialStatus,
@@ -2727,8 +2732,22 @@ export default function PoeFinancialSystem() {
         log: [{ at: nowIso, fromPhase: null, toPhase: initialStatus, by: 'user', note: item._note || 'created' }],
       },
     };
-    return { ...d, projects: [...(d.projects || []), seeded] };
-  });
+    setData(d => ({ ...d, projects: [...(d.projects || []), seeded] }));
+    // Close the loop: push the new project to the cloud right away (not only when
+    // it is later edited), so it flows to the family's other devices AND we
+    // capture its remoteUuid — without which later edits/deletes never sync.
+    // Fails soft: a failed upload leaves the local copy intact to retry on the
+    // next full sync.
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      projectsSync.upload(seeded)
+        .then(res => {
+          if (res && res.uploaded && res.remoteId) {
+            setData(d => ({ ...d, projects: (d.projects || []).map(p => (p.id === localId ? { ...p, remoteUuid: res.remoteId } : p)) }));
+          }
+        })
+        .catch(e => console.warn('[projects-sync] add upload failed', e));
+    }
+  };
   const updateProject = (id, updates) => setData(d => {
     const next = (d.projects || []).map(p => {
       if (p.id !== id) return p;
