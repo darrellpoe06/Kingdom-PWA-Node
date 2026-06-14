@@ -5,8 +5,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape, toAbsenceShape,
+  toSermonShape, toResourceShape,
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService,
-  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong,
+  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
+  parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -172,5 +174,78 @@ describe('toAbsenceShape', () => {
     const row = { id: 'a1', user_id: 'u1', member_name: 'Me', start_date: '2026-06-21', end_date: null, backup_user_id: 'u2', backup_name: 'Backup', backup_status: 'requested', created_by: 'u1' };
     expect(toAbsenceShape(row, 'u1')).toMatchObject({ mine: true, iAmBackup: false, backupName: 'Backup', backupStatus: 'requested' });
     expect(toAbsenceShape(row, 'u2')).toMatchObject({ mine: false, iAmBackup: true });
+  });
+});
+
+describe('timecodes + timestamp deep-links', () => {
+  it('parseTimecode handles mm:ss, h:mm:ss, plain seconds, and junk', () => {
+    expect(parseTimecode('12:30')).toBe(750);
+    expect(parseTimecode('1:05:00')).toBe(3900);
+    expect(parseTimecode('90')).toBe(90);
+    expect(parseTimecode('')).toBeNull();
+    expect(parseTimecode(null)).toBeNull();
+    expect(parseTimecode('abc')).toBeNull();
+  });
+  it('formatTimecode round-trips', () => {
+    expect(formatTimecode(750)).toBe('12:30');
+    expect(formatTimecode(3900)).toBe('1:05:00');
+    expect(formatTimecode(null)).toBe('');
+  });
+  it('youtubeTimedUrl appends a start time only when positive', () => {
+    expect(youtubeTimedUrl('https://youtu.be/x', 750)).toBe('https://youtu.be/x?t=750s');
+    expect(youtubeTimedUrl('https://www.youtube.com/watch?v=x', 30)).toBe('https://www.youtube.com/watch?v=x&t=30s');
+    expect(youtubeTimedUrl('https://youtu.be/x', 0)).toBe('https://youtu.be/x');
+    expect(youtubeTimedUrl('https://youtu.be/x', null)).toBe('https://youtu.be/x');
+  });
+});
+
+describe('parseServiceTitle (the YouTube importer core — real channel titles)', () => {
+  it('parses a Sunday message', () => {
+    expect(parseServiceTitle('6 -10 - 2026 Bishop E. Gwin  " LET GO AND LET GOD HELP YOU"'))
+      .toEqual({ serviceDate: '2026-06-10', serviceType: 'sunday', title: 'LET GO AND LET GOD HELP YOU', speaker: 'Bishop E. Gwin' });
+  });
+  it('parses a Wednesday Bible Study', () => {
+    expect(parseServiceTitle('6 -3 - 2026 Bishop Lloyd Gwin Wednesday Bible Study  "THANK YOU FOR THE REMINDER!"'))
+      .toMatchObject({ serviceDate: '2026-06-03', serviceType: 'wednesday', title: 'THANK YOU FOR THE REMINDER!' });
+  });
+  it('expands a 2-digit year', () => {
+    expect(parseServiceTitle('5 - 6 - 26 Bishop Lloyd E. Gwin Wednesday Bible Study " NEED ANSWERS"').serviceDate).toBe('2026-05-06');
+  });
+  it('returns a null date when none is present (caller falls back to raw title)', () => {
+    expect(parseServiceTitle('Choir rehearsal clip').serviceDate).toBeNull();
+  });
+});
+
+describe('extractYoutubeId', () => {
+  it('pulls the id from watch / youtu.be / embed / bare forms', () => {
+    expect(extractYoutubeId('https://www.youtube.com/watch?v=_f0sVWTrNgw')).toBe('_f0sVWTrNgw');
+    expect(extractYoutubeId('https://youtu.be/_f0sVWTrNgw')).toBe('_f0sVWTrNgw');
+    expect(extractYoutubeId('nope')).toBeNull();
+  });
+});
+
+describe('sermon + resource mappers and reuse', () => {
+  it('toSermonShape maps a row with defaults', () => {
+    expect(toSermonShape({ id: 's1', title: 'Built to Win', service_type: 'wednesday', youtube_url: 'u', start_seconds: 2100, status: 'active' }))
+      .toMatchObject({ id: 's1', title: 'Built to Win', serviceType: 'wednesday', youtubeUrl: 'u', startSeconds: 2100, status: 'active', source: 'manual' });
+  });
+  it('toResourceShape maps a row', () => {
+    expect(toResourceShape({ id: 'r1', title: 'Worship chart', url: 'https://x', note: 'weekly' }))
+      .toEqual({ id: 'r1', title: 'Worship chart', url: 'https://x', note: 'weekly', createdAt: null });
+  });
+  it('buildReusedSermon makes a future DRAFT that references the original', () => {
+    const out = buildReusedSermon({ title: 'Let Go', serviceType: 'sunday', scriptureRef: '1 Pet 5', notes: 'rest in God', youtubeUrl: 'https://youtu.be/x' }, '2026-08-02', 'sunday');
+    expect(out.id).toBeUndefined();
+    expect(out.status).toBe('draft');
+    expect(out.serviceDate).toBe('2026-08-02');
+    expect(out.title).toBe('Let Go');
+    expect(out.youtubeUrl).toBeNull();          // a fresh message, not the old video
+    expect(out.notes).toContain('Drawn from: https://youtu.be/x');
+  });
+});
+
+describe('toSongShape carries the timestamp', () => {
+  it('maps start_seconds', () => {
+    expect(toSongShape({ id: 's', title: 'x', start_seconds: 740 }).startSeconds).toBe(740);
   });
 });

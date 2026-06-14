@@ -70,7 +70,8 @@ CREATE TABLE IF NOT EXISTS choir_songs (
   scripture_ref text,                 -- ESV-first per SCRIPTURE-REFERENCE-STANDARD
   notes         text,                 -- arrangement notes, who leads, etc.
   service_date  date,                 -- the Sunday / rehearsal this song is for (NULL = general library)
-  service_type  text NOT NULL DEFAULT 'sunday' CHECK (service_type IN ('sunday','rehearsal','both')),
+  service_type  text NOT NULL DEFAULT 'sunday' CHECK (service_type IN ('sunday','wednesday','rehearsal','both')),
+  start_seconds integer,              -- where the music starts in the service video (deep-link); NULL = none
   sort_order    integer NOT NULL DEFAULT 0,
   status        text NOT NULL DEFAULT 'active' CHECK (status IN ('active','archived')),
   created_by    uuid REFERENCES auth.users(id),
@@ -88,7 +89,7 @@ CREATE TABLE IF NOT EXISTS choir_schedule (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   instance_id   uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
   service_date  date NOT NULL,
-  service_type  text NOT NULL CHECK (service_type IN ('sunday','rehearsal')),
+  service_type  text NOT NULL CHECK (service_type IN ('sunday','wednesday','rehearsal')),
   title         text,                 -- e.g. "Morning Worship" / "Weekly Rehearsal"
   youtube_url   text,                 -- the full service video for this date (the YouTube channel recording)
   notes         text,
@@ -142,15 +143,62 @@ CREATE TABLE IF NOT EXISTS choir_absences (
 CREATE INDEX IF NOT EXISTS choir_absences_instance_idx ON choir_absences(instance_id, start_date);
 
 -- ---------------------------------------------------------------------------
+-- 4c. SERMONS — choir_sermons (Darrell 2026-06-14: BG's historical messages,
+--     Sundays + Wednesday Bible Study, sourced from the @thelovecorner YouTube
+--     channel + uploads. Easy to get historically; BG draws inspiration from
+--     past messages to curate new ones — reuse a past message forward as a
+--     draft. start_seconds deep-links to where the sermon starts in the video.)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS choir_sermons (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id   uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+  service_date  date,
+  service_type  text NOT NULL DEFAULT 'sunday' CHECK (service_type IN ('sunday','wednesday')),
+  title         text NOT NULL,
+  speaker       text,                 -- e.g. "Bishop Lloyd E. Gwin"
+  scripture_ref text,
+  youtube_url   text,                 -- the service video
+  video_id      text,                 -- YouTube id (dedupe key for the importer)
+  start_seconds integer,              -- where the sermon starts in the video (deep-link)
+  notes         text,
+  status        text NOT NULL DEFAULT 'active' CHECK (status IN ('active','draft','archived')),
+  source        text NOT NULL DEFAULT 'manual' CHECK (source IN ('youtube','upload','manual')),
+  created_by    uuid REFERENCES auth.users(id),
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz,
+  updated_by    uuid REFERENCES auth.users(id)
+);
+CREATE INDEX IF NOT EXISTS choir_sermons_instance_idx ON choir_sermons(instance_id, service_date DESC);
+-- Dedupe key so the YouTube importer is idempotent (one row per channel video).
+CREATE UNIQUE INDEX IF NOT EXISTS choir_sermons_video_uniq ON choir_sermons(instance_id, video_id) WHERE video_id IS NOT NULL;
+
+-- ---------------------------------------------------------------------------
+-- 4d. RESOURCES — choir_resources (director-curated links of where to find new
+--     songs to sing; the team curates the sources they trust — Word-first).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS choir_resources (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id  uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+  title        text NOT NULL,
+  url          text,
+  note         text,
+  created_by   uuid REFERENCES auth.users(id),
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS choir_resources_instance_idx ON choir_resources(instance_id, created_at DESC);
+
+-- ---------------------------------------------------------------------------
 -- 5. RLS — read = any choir member; write = owner/admin (members may post
 --    messages and log/confirm their own availability). Songs+schedule edit
 --    is reviewer-only.
 -- ---------------------------------------------------------------------------
-ALTER TABLE choir_members  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE choir_songs    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE choir_schedule ENABLE ROW LEVEL SECURITY;
-ALTER TABLE choir_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE choir_absences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE choir_members   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE choir_songs     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE choir_schedule  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE choir_messages  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE choir_absences  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE choir_sermons   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE choir_resources ENABLE ROW LEVEL SECURITY;
 
 -- choir_members: members read the roster; owner/admin manage it.
 DROP POLICY IF EXISTS choir_members_read   ON choir_members;
@@ -222,6 +270,32 @@ CREATE POLICY choir_absences_update ON choir_absences FOR UPDATE
 CREATE POLICY choir_absences_delete ON choir_absences FOR DELETE
   USING (created_by = auth.uid() OR user_role_in_instance(instance_id) IN ('owner','admin'));
 
+-- choir_sermons: members read; owner/admin write/edit/delete.
+DROP POLICY IF EXISTS choir_sermons_read   ON choir_sermons;
+DROP POLICY IF EXISTS choir_sermons_write  ON choir_sermons;
+DROP POLICY IF EXISTS choir_sermons_update ON choir_sermons;
+DROP POLICY IF EXISTS choir_sermons_delete ON choir_sermons;
+CREATE POLICY choir_sermons_read   ON choir_sermons FOR SELECT
+  USING (user_in_choir(instance_id));
+CREATE POLICY choir_sermons_write  ON choir_sermons FOR INSERT
+  WITH CHECK (user_role_in_instance(instance_id) IN ('owner','admin'));
+CREATE POLICY choir_sermons_update ON choir_sermons FOR UPDATE
+  USING (user_role_in_instance(instance_id) IN ('owner','admin'))
+  WITH CHECK (user_role_in_instance(instance_id) IN ('owner','admin'));
+CREATE POLICY choir_sermons_delete ON choir_sermons FOR DELETE
+  USING (user_role_in_instance(instance_id) IN ('owner','admin'));
+
+-- choir_resources: members read; owner/admin curate.
+DROP POLICY IF EXISTS choir_resources_read   ON choir_resources;
+DROP POLICY IF EXISTS choir_resources_write  ON choir_resources;
+DROP POLICY IF EXISTS choir_resources_delete ON choir_resources;
+CREATE POLICY choir_resources_read   ON choir_resources FOR SELECT
+  USING (user_in_choir(instance_id));
+CREATE POLICY choir_resources_write  ON choir_resources FOR INSERT
+  WITH CHECK (user_role_in_instance(instance_id) IN ('owner','admin'));
+CREATE POLICY choir_resources_delete ON choir_resources FOR DELETE
+  USING (user_role_in_instance(instance_id) IN ('owner','admin'));
+
 -- ---------------------------------------------------------------------------
 -- 6. updated_at touch trigger (reuses engagement_touch_updated_at if present;
 --    define-or-replace so this migration is standalone).
@@ -249,13 +323,18 @@ CREATE TRIGGER choir_absences_touch_updated
   BEFORE UPDATE ON choir_absences
   FOR EACH ROW EXECUTE FUNCTION public.engagement_touch_updated_at();
 
+DROP TRIGGER IF EXISTS choir_sermons_touch_updated ON choir_sermons;
+CREATE TRIGGER choir_sermons_touch_updated
+  BEFORE UPDATE ON choir_sermons
+  FOR EACH ROW EXECUTE FUNCTION public.engagement_touch_updated_at();
+
 -- ---------------------------------------------------------------------------
 -- 7. REALTIME — stream all of them so the choir's devices update live.
 -- ---------------------------------------------------------------------------
 DO $realtime$
 DECLARE
   t text;
-  tables text[] := ARRAY['choir_members','choir_songs','choir_schedule','choir_messages','choir_absences'];
+  tables text[] := ARRAY['choir_members','choir_songs','choir_schedule','choir_messages','choir_absences','choir_sermons','choir_resources'];
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
     CREATE PUBLICATION supabase_realtime;

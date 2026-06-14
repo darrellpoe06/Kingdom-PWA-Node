@@ -38,10 +38,39 @@ export function toSongShape(row) {
     notes: row.notes ?? null,
     serviceDate: row.service_date ?? null,
     serviceType: row.service_type ?? 'sunday',
+    startSeconds: row.start_seconds ?? null,
     sortOrder: row.sort_order ?? 0,
     status: row.status ?? 'active',
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
+  };
+}
+
+export function toSermonShape(row) {
+  return {
+    id: row.id,
+    serviceDate: row.service_date ?? null,
+    serviceType: row.service_type ?? 'sunday',
+    title: row.title,
+    speaker: row.speaker ?? null,
+    scriptureRef: row.scripture_ref ?? null,
+    youtubeUrl: row.youtube_url ?? null,
+    videoId: row.video_id ?? null,
+    startSeconds: row.start_seconds ?? null,
+    notes: row.notes ?? null,
+    status: row.status ?? 'active',
+    source: row.source ?? 'manual',
+    createdAt: row.created_at ?? null,
+  };
+}
+
+export function toResourceShape(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    url: row.url ?? null,
+    note: row.note ?? null,
+    createdAt: row.created_at ?? null,
   };
 }
 
@@ -180,6 +209,42 @@ export function suggestBackups(members, absences, dateIso, absentMember) {
     .filter((m) => m.choirRole !== 'sound' && m.choirRole !== 'media' && m.choirRole !== 'tech');
 }
 
+// --- Timestamps (jump to the exact music / sermon moment in a service video) -
+
+// Parse a "mm:ss", "h:mm:ss", or plain-seconds string into seconds (or null).
+export function parseTimecode(text) {
+  if (text == null || text === '') return null;
+  const s = String(text).trim();
+  if (/^\d+$/.test(s)) return Number(s);
+  const parts = s.split(':').map((p) => Number(p));
+  if (parts.some((n) => !Number.isFinite(n))) return null;
+  return parts.reduce((acc, n) => acc * 60 + n, 0);
+}
+
+// Format seconds back to mm:ss / h:mm:ss for display.
+export function formatTimecode(sec) {
+  if (sec == null || !Number.isFinite(Number(sec))) return '';
+  const total = Math.max(0, Math.floor(Number(sec)));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+// A YouTube watch URL that opens at startSeconds (deep-link to the moment).
+export function youtubeTimedUrl(url, startSeconds) {
+  if (!url) return url || null;
+  const sec = Number(startSeconds);
+  if (!Number.isFinite(sec) || sec <= 0) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}t=${Math.floor(sec)}s`;
+}
+
+// The YouTube title parser lives in a dependency-free module so the local
+// backfill script can share it. Re-exported here for the app + tests.
+export { parseServiceTitle, extractYoutubeId } from './youtube-title-parse.js';
+
 // --- Access ------------------------------------------------------------------
 
 export async function getChoirAccess(displayName) {
@@ -239,6 +304,8 @@ export const subscribeSchedule = makeSubscriber('choir_schedule', toScheduleShap
 export const subscribeMembers = makeSubscriber('choir_members', toMemberShape, { col: 'created_at', asc: true });
 export const subscribeChoirMessages = makeSubscriber('choir_messages', toChoirMessageShape, { col: 'created_at', asc: true });
 export const subscribeAbsences = makeSubscriber('choir_absences', toAbsenceShape, { col: 'start_date', asc: true });
+export const subscribeSermons = makeSubscriber('choir_sermons', toSermonShape, { col: 'service_date', asc: false });
+export const subscribeResources = makeSubscriber('choir_resources', toResourceShape, { col: 'created_at', asc: true });
 
 // --- Writes (owner/admin via RLS; fail soft + surface to caller) -------------
 
@@ -261,6 +328,7 @@ export async function saveSong(song, displayName) {
     notes: song.notes ?? null,
     service_date: song.serviceDate ?? null,
     service_type: song.serviceType ?? 'sunday',
+    start_seconds: Number.isFinite(song.startSeconds) ? song.startSeconds : null,
     sort_order: Number.isFinite(song.sortOrder) ? song.sortOrder : 0,
     status: song.status ?? 'active',
   };
@@ -289,6 +357,7 @@ export function buildReusedSong(song, newDate, newType) {
     notes: song.notes ?? null,
     serviceDate: newDate,
     serviceType: newType || song.serviceType || 'sunday',
+    startSeconds: song.startSeconds ?? null,
     sortOrder: 0,
     status: 'active',
   };
@@ -395,4 +464,77 @@ export async function respondToBackup(id, accept) {
     .update({ backup_status: accept ? 'confirmed' : 'declined' })
     .eq('id', id);
   return error ? { skipped: 'update-error', error } : { saved: true };
+}
+
+// --- Sermons / message library -----------------------------------------------
+
+export async function saveSermon(sermon, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const row = {
+    service_date: sermon.serviceDate ?? null,
+    service_type: sermon.serviceType ?? 'sunday',
+    title: sermon.title ?? '',
+    speaker: sermon.speaker ?? null,
+    scripture_ref: sermon.scriptureRef ?? null,
+    youtube_url: sermon.youtubeUrl ?? null,
+    video_id: sermon.videoId ?? null,
+    start_seconds: Number.isFinite(sermon.startSeconds) ? sermon.startSeconds : null,
+    notes: sermon.notes ?? null,
+    status: sermon.status ?? 'active',
+    source: sermon.source ?? 'manual',
+  };
+  if (sermon.id) {
+    const { error } = await supabase.from('choir_sermons').update({ ...row, updated_by: ctx.userId }).eq('id', sermon.id);
+    return error ? { skipped: 'update-error', error } : { saved: true };
+  }
+  const { error } = await supabase.from('choir_sermons').insert({ ...row, instance_id: ctx.tenantId, created_by: ctx.userId });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
+}
+
+export async function deleteSermon(id) {
+  const { error } = await supabase.from('choir_sermons').delete().eq('id', id);
+  return error ? { skipped: 'delete-error', error } : { deleted: true };
+}
+
+// Reuse a past message as a starting point for a NEW one: a fresh DRAFT carrying
+// the title/scripture/notes (and a back-reference to the original video) on a
+// future date — BG curates the new sermon from the old. Pure so it's testable.
+export function buildReusedSermon(sermon, newDate, newType) {
+  return {
+    serviceDate: newDate,
+    serviceType: newType || sermon.serviceType || 'sunday',
+    title: sermon.title,
+    speaker: sermon.speaker ?? null,
+    scriptureRef: sermon.scriptureRef ?? null,
+    notes: [sermon.notes, sermon.youtubeUrl ? `Drawn from: ${sermon.youtubeUrl}` : null].filter(Boolean).join('\n'),
+    youtubeUrl: null,
+    startSeconds: null,
+    status: 'draft',
+    source: 'manual',
+  };
+}
+
+export async function reuseSermon(sermon, newDate, newType, displayName) {
+  return saveSermon(buildReusedSermon(sermon, newDate, newType), displayName);
+}
+
+// --- Resources (director-curated) --------------------------------------------
+
+export async function saveResource(resource, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const { error } = await supabase.from('choir_resources').insert({
+    instance_id: ctx.tenantId,
+    title: resource.title ?? '',
+    url: resource.url ?? null,
+    note: resource.note ?? null,
+    created_by: ctx.userId,
+  });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
+}
+
+export async function deleteResource(id) {
+  const { error } = await supabase.from('choir_resources').delete().eq('id', id);
+  return error ? { skipped: 'delete-error', error } : { deleted: true };
 }

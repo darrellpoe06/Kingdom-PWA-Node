@@ -20,10 +20,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
-  getChoirAccess, youtubeEmbedUrl, sortServices, songsForService, weekBucket, isOutOnDate, suggestBackups,
+  getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
+  sortServices, songsForService, weekBucket, isOutOnDate, suggestBackups,
   subscribeSongs, subscribeSchedule, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
+  subscribeSermons, subscribeResources,
   saveSong, deleteSong, reuseSong, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
+  saveSermon, deleteSermon, reuseSermon, saveResource, deleteResource,
 } from '../lib/choir-sync.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
@@ -49,7 +52,9 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
   const [reuseOpen, setReuseOpen] = useState(false);
   const [reuseDate, setReuseDate] = useState(todayIso());
   const [reuseType, setReuseType] = useState('sunday');
-  const embed = youtubeEmbedUrl(song.youtubeUrl);
+  const baseEmbed = youtubeEmbedUrl(song.youtubeUrl);
+  const embed = baseEmbed && song.startSeconds ? `${baseEmbed}?start=${Math.floor(song.startSeconds)}` : baseEmbed;
+  const watchLabel = song.startSeconds ? `▶ Watch @ ${formatTimecode(song.startSeconds)}` : '▶ Watch';
   return (
     <div className="border-b border-[#E8E4DC] py-2">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
@@ -60,11 +65,11 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
         <div className="flex items-center gap-2">
           {embed && (
             <button type="button" onClick={() => setOpen((o) => !o)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={open}>
-              {open ? '▾ Hide video' : '▶ Watch'}
+              {open ? '▾ Hide video' : watchLabel}
             </button>
           )}
           {!embed && song.youtubeUrl && (
-            <a href={song.youtubeUrl} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>▶ Link</a>
+            <a href={youtubeTimedUrl(song.youtubeUrl, song.startSeconds)} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel.replace('Watch', 'Link')}</a>
           )}
           {canEdit && onReuse && <button type="button" onClick={() => setReuseOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse</button>}
           {canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
@@ -104,27 +109,31 @@ function SongForm({ initial, onSave, onCancel, busy }) {
     notes: initial?.notes || '',
     serviceDate: initial?.serviceDate || todayIso(),
     serviceType: initial?.serviceType || 'sunday',
+    startTime: initial?.startSeconds != null ? formatTimecode(initial.startSeconds) : '',
   });
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const save = () => onSave({ ...f, startSeconds: parseTimecode(f.startTime) });
   return (
     <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
       <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit song' : 'Add song'}</div>
       <div><label className={LABEL} htmlFor="cs-title">Title</label><input id="cs-title" className={FIELD} value={f.title} onChange={set('title')} placeholder="Song title" /></div>
       <div><label className={LABEL} htmlFor="cs-yt">YouTube link (the video the choir learns from)</label><input id="cs-yt" className={FIELD} value={f.youtubeUrl} onChange={set('youtubeUrl')} placeholder="https://youtu.be/…" /></div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <div><label className={LABEL} htmlFor="cs-date">For date</label><input id="cs-date" type="date" className={FIELD} value={f.serviceDate} onChange={set('serviceDate')} /></div>
         <div><label className={LABEL} htmlFor="cs-type">Service</label>
           <select id="cs-type" className={FIELD} value={f.serviceType} onChange={set('serviceType')}>
             <option value="sunday">Sunday service</option>
+            <option value="wednesday">Wednesday</option>
             <option value="rehearsal">Thursday rehearsal</option>
             <option value="both">Both</option>
           </select>
         </div>
+        <div><label className={LABEL} htmlFor="cs-ts">Starts at (mm:ss)</label><input id="cs-ts" className={FIELD} value={f.startTime} onChange={set('startTime')} placeholder="e.g. 12:30" /></div>
       </div>
       <div><label className={LABEL} htmlFor="cs-scr">Scripture (optional)</label><input id="cs-scr" className={FIELD} value={f.scriptureRef} onChange={set('scriptureRef')} placeholder="e.g. Psalm 100" /></div>
       <div><label className={LABEL} htmlFor="cs-notes">Notes (optional)</label><input id="cs-notes" className={FIELD} value={f.notes} onChange={set('notes')} placeholder="Who leads, the part to focus on…" /></div>
       <div className="flex gap-2 flex-wrap pt-1">
-        <button type="button" disabled={busy || !f.title.trim()} onClick={() => onSave(f)} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>{busy ? 'Saving…' : 'Save song'}</button>
+        <button type="button" disabled={busy || !f.title.trim()} onClick={save} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>{busy ? 'Saving…' : 'Save song'}</button>
         <button type="button" onClick={onCancel} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:bg-white`}>Cancel</button>
       </div>
     </div>
@@ -434,9 +443,160 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
 }
 
 // -----------------------------------------------------------------------------
+// Sermons — BG's historical message library (Sundays + Wednesday Bible Study),
+// sourced from the @thelovecorner channel + uploads; reuse a past message as a
+// draft to curate a new one (Darrell 2026-06-14).
+// -----------------------------------------------------------------------------
+function SermonForm({ initial, onSave, onCancel, busy }) {
+  const [f, setF] = useState({
+    id: initial?.id || null,
+    serviceDate: initial?.serviceDate || todayIso(),
+    serviceType: initial?.serviceType || 'sunday',
+    title: initial?.title || '',
+    speaker: initial?.speaker || '',
+    scriptureRef: initial?.scriptureRef || '',
+    youtubeUrl: initial?.youtubeUrl || '',
+    notes: initial?.notes || '',
+    status: initial?.status || 'active',
+    startTime: initial?.startSeconds != null ? formatTimecode(initial.startSeconds) : '',
+  });
+  const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
+  return (
+    <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
+      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit message' : 'Add message'}</div>
+      <div><label className={LABEL} htmlFor="sm-title">Title</label><input id="sm-title" className={FIELD} value={f.title} onChange={set('title')} placeholder="Message title" /></div>
+      <div className="grid grid-cols-3 gap-2">
+        <div><label className={LABEL} htmlFor="sm-date">Date</label><input id="sm-date" type="date" className={FIELD} value={f.serviceDate} onChange={set('serviceDate')} /></div>
+        <div><label className={LABEL} htmlFor="sm-type">Service</label>
+          <select id="sm-type" className={FIELD} value={f.serviceType} onChange={set('serviceType')}>
+            <option value="sunday">Sunday</option><option value="wednesday">Wednesday</option>
+          </select>
+        </div>
+        <div><label className={LABEL} htmlFor="sm-status">Status</label>
+          <select id="sm-status" className={FIELD} value={f.status} onChange={set('status')}>
+            <option value="active">Active</option><option value="draft">Draft (planning)</option><option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div><label className={LABEL} htmlFor="sm-speaker">Speaker</label><input id="sm-speaker" className={FIELD} value={f.speaker} onChange={set('speaker')} placeholder="Bishop Lloyd E. Gwin" /></div>
+        <div><label className={LABEL} htmlFor="sm-scr">Scripture</label><input id="sm-scr" className={FIELD} value={f.scriptureRef} onChange={set('scriptureRef')} placeholder="e.g. 1 Peter 5" /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div><label className={LABEL} htmlFor="sm-yt">Service video link</label><input id="sm-yt" className={FIELD} value={f.youtubeUrl} onChange={set('youtubeUrl')} placeholder="https://youtu.be/…" /></div>
+        <div><label className={LABEL} htmlFor="sm-ts">Sermon starts at (mm:ss)</label><input id="sm-ts" className={FIELD} value={f.startTime} onChange={set('startTime')} placeholder="e.g. 35:10" /></div>
+      </div>
+      <div><label className={LABEL} htmlFor="sm-notes">Notes (optional)</label><input id="sm-notes" className={FIELD} value={f.notes} onChange={set('notes')} placeholder="Theme, key points…" /></div>
+      <div className="flex gap-2 flex-wrap pt-1">
+        <button type="button" disabled={busy || !f.title.trim()} onClick={() => onSave({ ...f, startSeconds: parseTimecode(f.startTime) })} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>{busy ? 'Saving…' : 'Save message'}</button>
+        <button type="button" onClick={onCancel} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:bg-white`}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function SermonRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
+  const watch = youtubeTimedUrl(sermon.youtubeUrl, sermon.startSeconds);
+  return (
+    <div className="p-3 border-b border-[#E8E4DC]">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{sermon.title}</span>
+          {sermon.status === 'draft' && <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
+          {sermon.scriptureRef && <span className="text-[11px] text-[#5A5751]">{sermon.scriptureRef}</span>}
+        </div>
+        <span className="text-[11px] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {sermon.serviceType === 'wednesday' ? 'Wed' : 'Sun'}</span>
+      </div>
+      {sermon.speaker && <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
+      {sermon.notes && <p className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.notes}</p>}
+      <div className="flex gap-2 mt-1 flex-wrap">
+        {watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>▶ Watch{sermon.startSeconds ? ` @ ${formatTimecode(sermon.startSeconds)}` : ''}</a>}
+        {canEdit && onReuse && <button type="button" onClick={() => onReuse(sermon)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse for new</button>}
+        {canEdit && <button type="button" onClick={() => onEdit(sermon)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
+        {canEdit && <button type="button" onClick={() => onDelete(sermon)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
+      </div>
+    </div>
+  );
+}
+
+function SermonsPanel({ sermons, canEdit, onSave, onDelete, onReuse, busy }) {
+  const [form, setForm] = useState(null); // {initial}|null
+  const [q, setQ] = useState('');
+  const drafts = (sermons || []).filter((s) => s.status === 'draft');
+  const history = (sermons || []).filter((s) => s.status !== 'draft')
+    .filter((s) => !q || `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''}`.toLowerCase().includes(q.toLowerCase()));
+  const reuse = (s) => { onReuse(s); };
+  return (
+    <div>
+      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>BG's historical messages — Sundays + Wednesday Bible Study. Watch any past message, or reuse one as a draft to build a new sermon from.</p>
+      {canEdit && (form ? (
+        <SermonForm initial={form.initial} busy={busy} onSave={async (s) => { await onSave(s); setForm(null); }} onCancel={() => setForm(null)} />
+      ) : <button type="button" onClick={() => setForm({ initial: null })} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mb-2`}>+ Add message</button>)}
+
+      {drafts.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] mb-1">In progress</div>
+          <div className="bg-white border border-[#5A6E3D]">
+            {drafts.map((s) => <SermonRow key={s.id} sermon={s} canEdit={canEdit} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={reuse} />)}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mb-2">
+        <label className="sr-only" htmlFor="sm-q">Search messages</label>
+        <input id="sm-q" className={FIELD} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search past messages by title, scripture, theme…" />
+      </div>
+      {history.length ? (
+        <div className="bg-white border border-[#1A1815]">
+          {history.map((s) => <SermonRow key={s.id} sermon={s} canEdit={canEdit} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={reuse} />)}
+        </div>
+      ) : <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{q ? 'No messages match.' : 'No messages yet. Import them from the channel or add one.'}</p>}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Resources — director-curated links of where to find new songs (Word-first).
+// -----------------------------------------------------------------------------
+function ResourcesPanel({ resources, canEdit, onAdd, onDelete }) {
+  const [f, setF] = useState({ title: '', url: '', note: '' });
+  const [adding, setAdding] = useState(false);
+  return (
+    <div>
+      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Where the team looks for new songs to sing — the sources you trust, curated by the director.</p>
+      {canEdit && (adding ? (
+        <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 mb-2">
+          <div><label className={LABEL} htmlFor="cr-title">Name</label><input id="cr-title" className={FIELD} value={f.title} onChange={(e) => setF((p) => ({ ...p, title: e.target.value }))} placeholder="e.g. A playlist, a publisher, a chart" /></div>
+          <div><label className={LABEL} htmlFor="cr-url">Link</label><input id="cr-url" className={FIELD} value={f.url} onChange={(e) => setF((p) => ({ ...p, url: e.target.value }))} placeholder="https://…" /></div>
+          <div><label className={LABEL} htmlFor="cr-note">Note (optional)</label><input id="cr-note" className={FIELD} value={f.note} onChange={(e) => setF((p) => ({ ...p, note: e.target.value }))} placeholder="Why it's useful" /></div>
+          <div className="flex gap-2">
+            <button type="button" disabled={!f.title.trim()} onClick={() => { onAdd(f); setF({ title: '', url: '', note: '' }); setAdding(false); }} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Add</button>
+            <button type="button" onClick={() => setAdding(false)} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
+          </div>
+        </div>
+      ) : <button type="button" onClick={() => setAdding(true)} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mb-2`}>+ Add resource</button>)}
+      {resources.length ? (
+        <div className="bg-white border border-[#1A1815]">
+          {resources.map((r) => (
+            <div key={r.id} className="flex items-baseline justify-between gap-2 p-3 border-b border-[#E8E4DC]">
+              <div>
+                {r.url ? <a href={r.url} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</a>
+                  : <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</span>}
+                {r.note && <span className="text-[11px] text-[#5A5751] ml-2">{r.note}</span>}
+              </div>
+              {canEdit && <button type="button" onClick={() => onDelete(r)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
+            </div>
+          ))}
+        </div>
+      ) : <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No resources yet.{canEdit ? ' Add the sources your team trusts.' : ''}</p>}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Surface
 // -----------------------------------------------------------------------------
-const TABS = [['week', 'This week'], ['schedule', 'Schedule'], ['availability', 'Availability'], ['messages', 'Messages'], ['roster', 'Roster']];
+const TABS = [['week', 'This week'], ['schedule', 'Schedule'], ['sermons', 'Sermons'], ['availability', 'Availability'], ['messages', 'Messages'], ['resources', 'Resources'], ['roster', 'Roster']];
 
 export default function Choir() {
   const [signedIn, setSignedIn] = useState(false);
@@ -447,6 +607,8 @@ export default function Choir() {
   const [members, setMembers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [absences, setAbsences] = useState([]);
+  const [sermons, setSermons] = useState([]);
+  const [resources, setResources] = useState([]);
   const [songForm, setSongForm] = useState(null);     // { initial } | null
   const [serviceForm, setServiceForm] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -470,6 +632,8 @@ export default function Choir() {
       subscribeMembers(setMembers),
       subscribeChoirMessages(setMessages),
       subscribeAbsences(setAbsences),
+      subscribeSermons(setSermons),
+      subscribeResources(setResources),
     ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, [signedIn, access.canSee]);
@@ -535,6 +699,23 @@ export default function Choir() {
             onDelete={async (svc) => { reportSkip(await deleteService(svc.id)); }}
           />
         </>
+      )}
+
+      {tab === 'sermons' && (
+        <SermonsPanel
+          sermons={sermons} canEdit={access.canEdit} busy={busy}
+          onSave={async (s) => { setBusy(true); reportSkip(await saveSermon(s)); setBusy(false); }}
+          onDelete={async (s) => { reportSkip(await deleteSermon(s.id)); }}
+          onReuse={async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType)); }}
+        />
+      )}
+
+      {tab === 'resources' && (
+        <ResourcesPanel
+          resources={resources} canEdit={access.canEdit}
+          onAdd={async (r) => { reportSkip(await saveResource(r)); }}
+          onDelete={async (r) => { reportSkip(await deleteResource(r.id)); }}
+        />
       )}
 
       {tab === 'availability' && (
