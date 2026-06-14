@@ -211,8 +211,13 @@ describe('parseServiceTitle (the YouTube importer core — real channel titles)'
   it('expands a 2-digit year', () => {
     expect(parseServiceTitle('5 - 6 - 26 Bishop Lloyd E. Gwin Wednesday Bible Study " NEED ANSWERS"').serviceDate).toBe('2026-05-06');
   });
+  it('parses slash-separated and space-separated dates (real channel variants)', () => {
+    expect(parseServiceTitle('3/5/2025 Bishop Lloyd Gwin Wednesday Bible Study "SOMEBODY..."').serviceDate).toBe('2025-03-05');
+    expect(parseServiceTitle('3 26 25 Bishop Lloyd Gwin Wednesday Bible Study "YOU CAN\'T..."').serviceDate).toBe('2025-03-26');
+  });
   it('returns a null date when none is present (caller falls back to raw title)', () => {
     expect(parseServiceTitle('Choir rehearsal clip').serviceDate).toBeNull();
+    expect(parseServiceTitle('Black History Month 2025 at The Love Corner').serviceDate).toBeNull();
   });
 });
 

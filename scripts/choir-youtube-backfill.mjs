@@ -68,12 +68,14 @@ const withDate = rows.filter((r) => r.serviceDate);
 mkdirSync('scripts/out', { recursive: true });
 writeFileSync('scripts/out/choir-sermons-backfill.json', JSON.stringify(rows, null, 2));
 
+// Migration-ready: resolves the church instance by slug (seeded by 0012), so
+// the generated SQL applies through the lane with no instance_id to fill in.
+const CHURCH = "(SELECT id FROM instances WHERE slug = 'colg')";
 const sql = [
-  '-- choir_sermons backfill from @thelovecorner (generated; review before applying).',
-  "-- Fill in :instance_id (the church instance uuid) before running, or apply via the in-app import.",
+  '-- choir_sermons backfill from @thelovecorner (generated; metadata only, no downloads).',
   ...withDate.map((r) =>
     `INSERT INTO choir_sermons (instance_id, video_id, youtube_url, service_date, service_type, title, speaker, source) ` +
-    `VALUES (:instance_id, ${sqlEsc(r.videoId)}, ${sqlEsc(r.youtubeUrl)}, ${sqlEsc(r.serviceDate)}, ${sqlEsc(r.serviceType)}, ${sqlEsc(r.title)}, ${sqlEsc(r.speaker)}, 'youtube') ` +
+    `VALUES (${CHURCH}, ${sqlEsc(r.videoId)}, ${sqlEsc(r.youtubeUrl)}, ${sqlEsc(r.serviceDate)}, ${sqlEsc(r.serviceType)}, ${sqlEsc(r.title)}, ${sqlEsc(r.speaker)}, 'youtube') ` +
     `ON CONFLICT (instance_id, video_id) DO NOTHING;`,
   ),
 ].join('\n');

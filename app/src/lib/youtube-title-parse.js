@@ -10,7 +10,10 @@
 
 export function parseServiceTitle(rawTitle) {
   const title = String(rawTitle || '');
-  const dm = title.match(/(\d{1,2})\s*-\s*(\d{1,2})\s*-\s*(\d{2,4})/);
+  // Dash or slash separators anywhere (e.g. '6 -10 - 2026', '3/5/2025', '1- 7 -26').
+  let dm = title.match(/(\d{1,2})\s*[-/]\s*(\d{1,2})\s*[-/]\s*(\d{2,4})/);
+  // Fallback: space-separated date at the START of the title ('3 26 25 Bishop...').
+  if (!dm) dm = title.match(/^\s*(\d{1,2})\s+(\d{1,2})\s+(\d{2,4})\b/);
   let serviceDate = null;
   if (dm) {
     const mo = Number(dm[1]);
