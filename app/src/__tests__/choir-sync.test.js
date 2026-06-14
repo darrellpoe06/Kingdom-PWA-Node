@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape, toAbsenceShape,
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService,
-  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups,
+  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -45,9 +45,9 @@ describe('row -> shape mappers', () => {
     expect(toSongShape({ id: 's1', title: 'Hymn', youtube_url: 'u', service_date: '2026-06-21', service_type: 'sunday' }))
       .toMatchObject({ id: 's1', title: 'Hymn', youtubeUrl: 'u', serviceDate: '2026-06-21', serviceType: 'sunday', sortOrder: 0, status: 'active' });
   });
-  it('toScheduleShape maps a service row', () => {
-    expect(toScheduleShape({ id: 'v1', service_date: '2026-06-19', service_type: 'rehearsal', title: 'Weekly' }))
-      .toEqual({ id: 'v1', serviceDate: '2026-06-19', serviceType: 'rehearsal', title: 'Weekly', notes: null });
+  it('toScheduleShape maps a service row incl. the service video', () => {
+    expect(toScheduleShape({ id: 'v1', service_date: '2026-06-19', service_type: 'rehearsal', title: 'Weekly', youtube_url: 'https://youtu.be/x' }))
+      .toEqual({ id: 'v1', serviceDate: '2026-06-19', serviceType: 'rehearsal', title: 'Weekly', youtubeUrl: 'https://youtu.be/x', notes: null });
   });
   it('toMemberShape maps a roster row with role default', () => {
     expect(toMemberShape({ id: 'm1', display_name: 'Christina', choir_role: 'director', section: 'soprano' }))
@@ -146,6 +146,24 @@ describe('suggestBackups', () => {
     const noSection = { id: 'mX', displayName: 'X', section: null, choirRole: 'member' };
     const out = suggestBackups([...members, noSection], [], '2026-06-21', noSection);
     expect(out.map((m) => m.id)).toEqual(['m1', 'm2', 'm3', 'm4']); // all singers, not the support role, not self
+  });
+});
+
+describe('buildReusedSong (reuse a past song on a future date)', () => {
+  const past = { id: 'old', title: 'Goodness of God', youtubeUrl: 'https://youtu.be/g', scriptureRef: 'Ps 107', notes: 'soprano lead', serviceDate: '2024-03-10', serviceType: 'sunday', status: 'active' };
+  it('carries the content but lands a fresh active row on the new date', () => {
+    const out = buildReusedSong(past, '2026-07-05', 'sunday');
+    expect(out.id).toBeUndefined();        // a NEW row, not an edit of the old one
+    expect(out.title).toBe('Goodness of God');
+    expect(out.youtubeUrl).toBe('https://youtu.be/g');
+    expect(out.scriptureRef).toBe('Ps 107');
+    expect(out.serviceDate).toBe('2026-07-05');
+    expect(out.serviceType).toBe('sunday');
+    expect(out.status).toBe('active');
+    expect(out.sortOrder).toBe(0);
+  });
+  it('defaults the service type to the original when not given', () => {
+    expect(buildReusedSong({ ...past, serviceType: 'rehearsal' }, '2026-07-09').serviceType).toBe('rehearsal');
   });
 });
 

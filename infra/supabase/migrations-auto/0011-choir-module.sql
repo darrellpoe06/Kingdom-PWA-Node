@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS choir_schedule (
   service_date  date NOT NULL,
   service_type  text NOT NULL CHECK (service_type IN ('sunday','rehearsal')),
   title         text,                 -- e.g. "Morning Worship" / "Weekly Rehearsal"
+  youtube_url   text,                 -- the full service video for this date (the YouTube channel recording)
   notes         text,
   created_by    uuid REFERENCES auth.users(id),
   created_at    timestamptz NOT NULL DEFAULT now(),

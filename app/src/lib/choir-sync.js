@@ -51,6 +51,7 @@ export function toScheduleShape(row) {
     serviceDate: row.service_date,
     serviceType: row.service_type,
     title: row.title ?? null,
+    youtubeUrl: row.youtube_url ?? null,
     notes: row.notes ?? null,
   };
 }
@@ -276,6 +277,27 @@ export async function deleteSong(id) {
   return error ? { skipped: 'delete-error', error } : { deleted: true };
 }
 
+// Reuse a past song on a future date: a NEW active song row carrying the same
+// title / YouTube / scripture / notes, on the new date+type (Darrell 2026-06-14:
+// "go back historical weeks ... move them to a future date so they can reuse old
+// songs"). Pure so it's testable; saveSong inserts it (no id).
+export function buildReusedSong(song, newDate, newType) {
+  return {
+    title: song.title,
+    youtubeUrl: song.youtubeUrl ?? null,
+    scriptureRef: song.scriptureRef ?? null,
+    notes: song.notes ?? null,
+    serviceDate: newDate,
+    serviceType: newType || song.serviceType || 'sunday',
+    sortOrder: 0,
+    status: 'active',
+  };
+}
+
+export async function reuseSong(song, newDate, newType, displayName) {
+  return saveSong(buildReusedSong(song, newDate, newType), displayName);
+}
+
 export async function saveService(item, displayName) {
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
@@ -283,6 +305,7 @@ export async function saveService(item, displayName) {
     service_date: item.serviceDate,
     service_type: item.serviceType,
     title: item.title ?? null,
+    youtube_url: item.youtubeUrl ?? null,
     notes: item.notes ?? null,
   };
   if (item.id) {
