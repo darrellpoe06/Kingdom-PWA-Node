@@ -35,6 +35,43 @@
 // =============================================================================
 import supabase from './supabase.js';
 
+// -----------------------------------------------------------------------------
+// createDebouncer — coalesce a burst of calls into a single trailing run.
+//
+// A4 (rigorous-review 2026-06-13): every realtime postgres_change (including the
+// device's OWN writes) triggered a full-table refetch with no debounce — N
+// rapid edits fired N refetches, N× across N devices. Debouncing collapses a
+// burst into one refetch. Exported + pure (timer-injectable) so it's testable.
+// -----------------------------------------------------------------------------
+export function createDebouncer(fn, ms = 400) {
+  let timer = null;
+  const debounced = (...args) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => { timer = null; fn(...args); }, ms);
+  };
+  debounced.cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  return debounced;
+}
+
+// -----------------------------------------------------------------------------
+// shouldResyncOnStatus — decide whether a realtime status transition needs a
+// catch-up refetch.
+//
+// A5 (rigorous-review 2026-06-13): subscribe() had no status handler, so a
+// dropped websocket silently stopped all cross-device updates with no recovery.
+// The first SUBSCRIBED is already covered by the initial fetchAll; a LATER
+// SUBSCRIBED means the socket dropped and rejoined, so changes that happened
+// while it was down must be re-fetched. Mutates `state.everSubscribed`.
+// -----------------------------------------------------------------------------
+export function shouldResyncOnStatus(status, state) {
+  if (status === 'SUBSCRIBED') {
+    const resync = state.everSubscribed === true;
+    state.everSubscribed = true;
+    return resync;
+  }
+  return false;
+}
+
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
   return data.session ?? null;
@@ -145,6 +182,15 @@ export function createTableSync(spec) {
   function subscribe(onRemote) {
     let channel = null;
     let cancelled = false;
+    const refresh = () => {
+      fetchAll().then((refreshed) => {
+        if (refreshed && !cancelled) onRemote(refreshed);
+      });
+    };
+    // A4: coalesce a burst of realtime changes (incl. own writes) into one
+    // refetch. A5: state for the reconnect-resync decision.
+    const debouncedRefresh = createDebouncer(refresh, 400);
+    const statusState = { everSubscribed: false };
     (async () => {
       const session = await currentSession();
       if (!session || cancelled) return;
@@ -161,16 +207,17 @@ export function createTableSync(spec) {
             event: '*', schema: 'public', table: remoteTable,
             ...(tenantId ? { filter: `instance_id=eq.${tenantId}` } : {}),
           },
-          () => {
-            fetchAll().then((refreshed) => {
-              if (refreshed) onRemote(refreshed);
-            });
-          }
+          () => { debouncedRefresh(); }
         )
-        .subscribe();
+        .subscribe((status) => {
+          // A5: a re-SUBSCRIBED after a dropped socket means changes were missed
+          // while it was down — catch up with a fresh fetch.
+          if (shouldResyncOnStatus(status, statusState) && !cancelled) refresh();
+        });
     })();
     return function unsubscribe() {
       cancelled = true;
+      debouncedRefresh.cancel();
       if (channel) supabase.removeChannel(channel);
     };
   }
