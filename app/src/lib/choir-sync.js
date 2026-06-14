@@ -14,6 +14,7 @@
 // real enforcement either way.
 // =============================================================================
 import supabase from './supabase.js';
+import { churchInstanceId } from './church-instance.js';
 
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -245,16 +246,6 @@ export function youtubeTimedUrl(url, startSeconds) {
 export { parseServiceTitle, extractYoutubeId } from './youtube-title-parse.js';
 
 // --- Access ------------------------------------------------------------------
-
-// Resolve (and, for allowlisted leaders, auto-join) the CHURCH instance — NOT
-// the family default. Returns the church instance id, or null when the user has
-// no church access. The choir module is church-scoped: all reads/writes target
-// this instance, so church data never lands in the family instance.
-async function churchInstanceId(displayName) {
-  const { data, error } = await supabase.rpc('join_church_instance', { display_name_in: displayName ?? null });
-  if (error) { console.warn('[choir-sync] church instance resolve failed:', error); return null; }
-  return data ?? null;
-}
 
 export async function getChoirAccess(displayName) {
   const session = await currentSession();

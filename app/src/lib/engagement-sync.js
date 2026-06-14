@@ -28,8 +28,14 @@
 // =============================================================================
 
 import supabase from './supabase.js';
-import { ensureTenantMembership } from './feedback-sync.js';
+import { churchInstanceId } from './church-instance.js';
 
+// Church module: Engagement/Trivia is CHURCH content (BG's message), so it now
+// scopes to the church instance — the same tenant Choir uses — not the family
+// (Darrell 2026-06-14, "unify Church surfaces on the church instance"). Every
+// read filters by the resolved church instance_id so a multi-instance user
+// (family + church) never sees the other instance's rows (the 2026-06-12
+// cross-instance-bleed lesson: filter reads, don't rely on RLS alone).
 const DEFAULT_THREAD = 'general';
 
 /** Get the current Supabase session, or null. */
@@ -59,14 +65,9 @@ export async function uploadTriviaAnswer({ questionId, questionUuid, answer, isC
   const session = await currentSession();
   if (!session) return { skipped: 'signed-out' };
 
-  // Must be a tenant member for the INSERT to pass RLS.
-  let instanceId;
-  try {
-    instanceId = await ensureTenantMembership(displayName);
-  } catch (e) {
-    console.warn('[engagement-sync] tenant membership setup failed:', e);
-    return { skipped: 'no-tenant', error: e };
-  }
+  // Church-scoped: resolve the church instance for the INSERT to pass RLS.
+  const instanceId = await churchInstanceId(displayName);
+  if (!instanceId) return { skipped: 'no-church' };
 
   const row = {
     instance_id: instanceId,
@@ -104,13 +105,8 @@ export async function sendMessage(body, meta = {}) {
   const session = await currentSession();
   if (!session) return { skipped: 'signed-out' };
 
-  let instanceId;
-  try {
-    instanceId = await ensureTenantMembership(meta.displayName);
-  } catch (e) {
-    console.warn('[engagement-sync] tenant membership setup failed:', e);
-    return { skipped: 'no-tenant', error: e };
-  }
+  const instanceId = await churchInstanceId(meta.displayName);
+  if (!instanceId) return { skipped: 'no-church' };
 
   const row = {
     instance_id: instanceId,
@@ -146,11 +142,14 @@ export function subscribeMessages(onMessages, opts = {}) {
     const session = await currentSession();
     if (!session || cancelled) return;
     const myUserId = session.user.id;
+    const instanceId = await churchInstanceId();
+    if (!instanceId || cancelled) { if (!cancelled) onMessages([]); return; }
 
     const fetchThread = async () => {
       const { data, error } = await supabase
         .from('messages')
         .select('*')
+        .eq('instance_id', instanceId)
         .eq('thread', thread)
         .order('created_at', { ascending: true });
       if (error) {
@@ -199,10 +198,13 @@ export function subscribeMessages(onMessages, opts = {}) {
 export async function getActiveQuestion() {
   const session = await currentSession();
   if (!session) return null;
+  const instanceId = await churchInstanceId();
+  if (!instanceId) return null;
 
   const { data, error } = await supabase
     .from('trivia_questions')
     .select('*')
+    .eq('instance_id', instanceId)
     .eq('status', 'active')
     .order('active_date', { ascending: false })
     .limit(1);
@@ -220,10 +222,13 @@ export async function getActiveQuestion() {
 export async function getReviewQuestions() {
   const session = await currentSession();
   if (!session) return [];
+  const instanceId = await churchInstanceId();
+  if (!instanceId) return [];
 
   const { data, error } = await supabase
     .from('trivia_questions')
     .select('*')
+    .eq('instance_id', instanceId)
     .eq('status', 'draft')
     .order('created_at', { ascending: true });
   if (error) {
