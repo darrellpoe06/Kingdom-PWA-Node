@@ -620,7 +620,22 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           </div>
         )}
 
-        {filtered.length === 0 && !showForm && !(scope === 'mine' && projects.length > 0) && (
+        {/* Signed in with no projects: invite the FIRST real project (saved to
+            your account), not example data that would just clutter your list. */}
+        {filtered.length === 0 && !showForm && !(scope === 'mine' && projects.length > 0) && currentUserId && (
+          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+            <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+              No projects yet. Add the things you&apos;re working on across your life — work, family, ministry, side projects, repairs. They&apos;re yours, saved to your account and synced across your devices.
+            </p>
+            <button type="button" onClick={() => { setEditingId(null); setShowForm(true); }} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+              + Add your first project
+            </button>
+          </div>
+        )}
+
+        {/* Signed out / exploring: examples help someone see the workload view.
+            They stay local (never upload) and so never pollute a real account. */}
+        {filtered.length === 0 && !showForm && !(scope === 'mine' && projects.length > 0) && !currentUserId && (
           <div className="bg-white border border-[#E8E4DC] p-6 text-center">
             <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               No projects yet. Add the things you're working on across your life — work, family, ministry, side projects, repairs. The first ones often feel obvious; the value comes when you can see them all together.
