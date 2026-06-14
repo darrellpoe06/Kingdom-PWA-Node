@@ -50,6 +50,7 @@ const LABEL = 'text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1';
 // -----------------------------------------------------------------------------
 function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
   const [open, setOpen] = useState(false);
+  const [wordsOpen, setWordsOpen] = useState(false);
   const [reuseOpen, setReuseOpen] = useState(false);
   const [reuseDate, setReuseDate] = useState(todayIso());
   const [reuseType, setReuseType] = useState('sunday');
@@ -72,12 +73,16 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
           {!embed && song.youtubeUrl && (
             <a href={youtubeTimedUrl(song.youtubeUrl, song.startSeconds)} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel.replace('Watch', 'Link')}</a>
           )}
+          {song.lyrics && <button type="button" onClick={() => setWordsOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`} aria-expanded={wordsOpen}>{wordsOpen ? '▾ Hide words' : '🎵 Words'}</button>}
           {canEdit && onReuse && <button type="button" onClick={() => setReuseOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse</button>}
           {canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
           {canEdit && onDelete && <button type="button" onClick={() => onDelete(song)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
         </div>
       </div>
       {song.notes && <p className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{song.notes}</p>}
+      {wordsOpen && song.lyrics && (
+        <pre className="mt-2 p-2 bg-[#FAF8F4] border border-[#E8E4DC] text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{song.lyrics}</pre>
+      )}
       {reuseOpen && onReuse && (
         <div className="mt-2 flex items-end gap-2 flex-wrap bg-[#FAF8F4] border border-[#5A6E3D] p-2">
           <div><label className={LABEL} htmlFor={`reuse-d-${song.id}`}>Reuse on</label><input id={`reuse-d-${song.id}`} type="date" className={FIELD} value={reuseDate} onChange={(e) => setReuseDate(e.target.value)} /></div>
@@ -108,6 +113,7 @@ function SongForm({ initial, onSave, onCancel, busy }) {
     youtubeUrl: initial?.youtubeUrl || '',
     scriptureRef: initial?.scriptureRef || '',
     notes: initial?.notes || '',
+    lyrics: initial?.lyrics || '',
     serviceDate: initial?.serviceDate || todayIso(),
     serviceType: initial?.serviceType || 'sunday',
     startTime: initial?.startSeconds != null ? formatTimecode(initial.startSeconds) : '',
@@ -133,6 +139,7 @@ function SongForm({ initial, onSave, onCancel, busy }) {
       </div>
       <div><label className={LABEL} htmlFor="cs-scr">Scripture (optional)</label><input id="cs-scr" className={FIELD} value={f.scriptureRef} onChange={set('scriptureRef')} placeholder="e.g. Psalm 100" /></div>
       <div><label className={LABEL} htmlFor="cs-notes">Notes (optional)</label><input id="cs-notes" className={FIELD} value={f.notes} onChange={set('notes')} placeholder="Who leads, the part to focus on…" /></div>
+      <div><label className={LABEL} htmlFor="cs-lyrics">Words / lyrics (optional)</label><textarea id="cs-lyrics" rows={5} className={FIELD} value={f.lyrics} onChange={set('lyrics')} placeholder="Paste the words the choir sings…" /></div>
       <div className="flex gap-2 flex-wrap pt-1">
         <button type="button" disabled={busy || !f.title.trim()} onClick={save} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>{busy ? 'Saving…' : 'Save song'}</button>
         <button type="button" onClick={onCancel} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:bg-white`}>Cancel</button>
