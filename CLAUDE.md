@@ -299,4 +299,26 @@ This is the structural version of "the AI should think like a human": the human'
 
 ---
 
+## Verification Doctrine — Trust Nothing Unverified (added 2026-06-15, declared by Darrell)
+
+**Binding rule, declared by Darrell 2026-06-15:**
+
+> "How do we safeguard against lies from AI… AI will and do lie accidentally or whatever; we need an executable plan to protect our work and outcomes so we get the best from AI not the slop or garbage that looks great. Verification is most important and the PoeTech app must be grounded in truth."
+
+**The AI's job is not to sound right — it is to be *verifiably* right, or to clearly mark what is unverified.** AI output that *looks* right and is wrong (a comment that claimed WCAG AA while the real ratio was 2.92:1; a refactor *claimed* behavior-preserving but never pinned) is the threat. The safeguard is structural: make truth **cheap to verify** and unverified claims **expensive to ship.** "Looks great" is not a status.
+
+1. **No claim without evidence.** "It works / it's done / it passes / it's accessible / it's secure" is NOT accepted on the agent's word — by Darrell, a reviewer, or the agent on itself. Done = attached evidence: a passing gate, a measured number from the real artifact, a live screenshot / DOM read, a real query result, a test. No evidence → not done.
+2. **Deterministic gates over claims.** Where a property can be machine-checked, a gate checks it and **fails the build** (data isolation, workflows, mission, behavior, per-theme contrast). The agent cannot talk past a gate. Every new "looked-fine-but-wasn't" class that bites becomes a new gate.
+3. **Proven-to-catch (anti-theater).** A gate that always passes is itself a lie. Ship a gate only after it's shown to CATCH the break. A green check must *mean* something.
+4. **Measure, don't claim.** Quantitative claims (contrast, performance, counts, "N rows") come from a measurement on the REAL artifact, not an estimate.
+5. **Characterize before you change.** Pin what the code ACTUALLY does before altering it; "better" is measured against verified reality, not memory.
+6. **Reality-trace before you build.** Name the real data + real screen; verify against the running system; observe, don't assume.
+7. **Independent / adversarial verification for high-stakes.** A second, independent method confirms before trust (a live test against the data, not only a read of the code).
+8. **Provenance + honest uncertainty.** Claims about the system cite `file:line` / a run / a query; training-data claims are flagged as such; "I didn't verify X" is a valid, required output — uncertainty is surfaced, never papered over.
+9. **The human governs the bright lines.** Verification makes review cheaper by attaching evidence; it does not remove the governor. The agent advises with receipts; Darrell decides.
+
+Recorded for the ledger as **DR-0076**; pairs with DR-0075 (perpetual improvement — *verified* is the bar for "improved") and DR-0060 (the proven-to-catch precedent). New gates are the durable output: every LESSONS-LEARNED "a human would have known" incident is mined for a machine check that prevents recurrence.
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
