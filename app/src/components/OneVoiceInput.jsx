@@ -14,7 +14,7 @@
 // copy-pasted send()/save() dispatch in ChurchOneVoice + ThinkingSpace
 // (Darrell 2026-06-15: "consolidate the inputs to make a master multiinput").
 import React, { useState, useRef } from 'react';
-import { suggestDestination, destinationsFor } from '../lib/one-voice-routing.js';
+import { suggestDestination, destinationsFor, planDispatch } from '../lib/one-voice-routing.js';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 
 const SURFACES = {
@@ -94,32 +94,37 @@ export function OneVoiceInput({
     onTranscript: (t) => onText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
   });
 
+  // The routing→action DECISION is the pure planDispatch (testable matrix); the
+  // component only performs the side-effect the plan names. Same behavior as the
+  // old send()/save(), now pinned by a characterization test.
   const dispatch = (r, t, who) => {
     const c = cfg.confirmations;
     const voiceNote = (kind) => addChurchVoice && addChurchVoice({ id: `vo-${Date.now()}`, kind, text: t, from: who, at: new Date().toISOString() });
-    switch (r) {
-      case 'poetech':    if (sendToPoeTech)    { sendToPoeTech(t); return c.poetech; } break;
-      case 'prayer':     if (addPrayerRequest) { addPrayerRequest({ requester: who || 'church family', request: t, shareWithChurch: true }); return c.prayer; } break;
-      case 'pastor':     if (addChurchVoice)   { voiceNote('pastor'); return c.pastor; } break;
-      case 'serve':      if (addChurchVoice)   { voiceNote('serve'); return c.serve; } break;
-      case 'conference': if (updateConference) { updateConference({ feedback: [...((conference && conference.feedback) || []), { id: `cf-${Date.now()}`, text: t, from: who, at: new Date().toISOString() }] }); return c.conference; } break;
-      case 'work':       if (addIncident)      { addIncident({ category: 'maintenance', description: t, urgency: 'incident', status: 'open', _note: cfg.sourceLabel }); return c.work; } break;
-      case 'counseling': if (addInquiry) {
+    const has = {
+      poetech: !!sendToPoeTech, prayer: !!addPrayerRequest, churchVoice: !!addChurchVoice,
+      conference: !!updateConference, incident: !!addIncident, inquiry: !!addInquiry, note: !!addNote,
+    };
+    const plan = planDispatch(r, has, cfg.saveNoteOnCounseling);
+    switch (plan.action) {
+      case 'poetech':    sendToPoeTech(t); break;
+      case 'prayer':     addPrayerRequest({ requester: who || 'church family', request: t, shareWithChurch: true }); break;
+      case 'pastor':     voiceNote('pastor'); break;
+      case 'serve':      voiceNote('serve'); break;
+      case 'conference': updateConference({ feedback: [...((conference && conference.feedback) || []), { id: `cf-${Date.now()}`, text: t, from: who, at: new Date().toISOString() }] }); break;
+      case 'work':       addIncident({ category: 'maintenance', description: t, urgency: 'incident', status: 'open', _note: cfg.sourceLabel }); break;
+      case 'counseling':
         // TLC bright line: inquiries is pre-intake, non-PHI, cloud-synced —
         // contact intent only; the words never cross. On the notes surface the
         // verbatim text is ALSO kept as a private device-local note.
         addInquiry({ firstName: who || cfg.inquiryFrom, lastName: '', phone: '', email: '', source: cfg.sourceTag, interest: 'counseling', bestTime: 'anytime', notes: cfg.counselingNote });
-        if (cfg.saveNoteOnCounseling && addNote) addNote(t);
-        return c.counseling;
-      } break;
-      case 'private':    if (addNote)          { addNote(t); return c.private; } break;
-      default: break;
+        if (plan.savesPrivateNote) addNote(t);
+        break;
+      case 'private':
+      case 'fallback-note': addNote(t); break;
+      case 'fallback-voice': voiceNote('voice'); break;
+      default: break; // 'none' — no handler available
     }
-    // Fallback: a private note where the surface keeps one, else a general
-    // voice note for leadership.
-    if (addNote)       { addNote(t); return c.private; }
-    if (addChurchVoice) { voiceNote('voice'); return c.voice; }
-    return null;
+    return plan.confirmationKey ? c[plan.confirmationKey] : null;
   };
 
   const send = () => {
