@@ -25,7 +25,11 @@ import re
 import subprocess
 import sys
 
-PHOTOBACKUP_GLOB = "/volume1/homes/*/Drive/PhotoBackup/*/DCIM/Camera/{y}/{m}/@eaDir/{name}/SYNOFILE_THUMB_M.jpg"
+# @eaDir holds Synology's pre-made thumbnails. Some are plain (SYNOFILE_THUMB_M.jpg),
+# some carry a revision suffix (SYNOFILE_THUMB_M_r1.jpg) — ~38% of this library — so
+# match the size PREFIX with a glob, preferring medium, then smaller, then any size.
+PHOTOBACKUP_DIR = "/volume1/homes/*/Drive/PhotoBackup/*/DCIM/Camera/{y}/{m}/@eaDir/{name}"
+THUMB_PATTERNS = ("SYNOFILE_THUMB_M*.jpg", "SYNOFILE_THUMB_SM*.jpg", "SYNOFILE_THUMB_S*.jpg", "SYNOFILE_THUMB_*.jpg")
 SAFE_CHANNEL = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 # 2026-06-12 hardening: [^/\\] (was .+) so a crafted chat file_props.name
 # like "20241206_../../../etc.jpg" cannot climb out of the PhotoBackup root.
@@ -88,7 +92,12 @@ def thumb_for(name):
     if not m:
         return None
     y, mo = m.group(1), m.group(2)
-    hits = glob.glob(PHOTOBACKUP_GLOB.format(y=y, m=mo, name=glob.escape(name)))
+    base = PHOTOBACKUP_DIR.format(y=y, m=mo, name=glob.escape(name))
+    hits = []
+    for pat in THUMB_PATTERNS:
+        hits = glob.glob(base + "/" + pat)
+        if hits:
+            break
     if not hits:
         return None
     try:
