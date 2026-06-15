@@ -1131,6 +1131,30 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // user picks the room and taps Add, then it joins that room's gallery.
   const PHOTO_PAGE = 18;
   const [photoImport, setPhotoImport] = useState(null);
+  const [photoShowN, setPhotoShowN] = useState(50);
+  // Load up to `target` photos by paging the bridge in 48-photo chunks (the
+  // script's per-request cap) so a space can show 50 / 100 / 500+ at once.
+  const loadPhotosUpTo = async (r, target) => {
+    const token = (localStorage.getItem(CHAT_BRIDGE_TOKEN_KEY) || '').trim();
+    if (!token) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [] }); return; }
+    setPhotoImport({ rentalId: r.id, status: 'loading', photos: [], offset: 0 });
+    const all = []; const seen = new Set();
+    try {
+      for (let offset = 0; all.length < target; offset += 48) {
+        const resp = await fetch(`/n8n/webhook/property-photos?channel=${encodeURIComponent(chatChannelFor(r))}&limit=48&offset=${offset}`, { headers: { authorization: `Bearer ${token}` } });
+        if (resp.status === 401 || resp.status === 403) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [], badToken: true }); return; }
+        if (!resp.ok) throw new Error(`photo bridge answered ${resp.status}`);
+        const json = await resp.json();
+        const payload = Array.isArray(json) ? (json[0] || {}) : json;
+        const incoming = payload.photos || [];
+        for (const p of incoming) { if (!seen.has(p.id)) { seen.add(p.id); all.push({ ...p, room: '' }); } }
+        if (incoming.length < 48) break; // reached the end of the archive
+      }
+      setPhotoImport({ rentalId: r.id, status: 'staged', photos: all.slice(0, target), offset: all.length, lastCount: 0 });
+    } catch (err) {
+      setPhotoImport({ rentalId: r.id, status: 'error', error: String(err?.message || err), photos: [] });
+    }
+  };
   const fetchPhotoPage = async (r, offset) => {
     const token = (localStorage.getItem(CHAT_BRIDGE_TOKEN_KEY) || '').trim();
     if (!token) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [] }); return; }
@@ -1762,11 +1786,18 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                 <>
                                   {(r.rooms || []).length === 0 && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Add a room above first, then assign photos to it.</p>}
                                   <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.photos.length} photos from this property&apos;s chat. Pick a room for each and tap Add — see the place change over the years.</p>
+                                  <div className="flex items-center gap-1.5 my-1.5 flex-wrap">
+                                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Show:</span>
+                                    {[50, 100, 500].map(n => (
+                                      <button key={n} type="button" onClick={() => { setPhotoShowN(n); loadPhotosUpTo(r, n); }} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${photoShowN === n ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{n === 500 ? '500+' : n}</button>
+                                    ))}
+                                    <span className="text-[9px] text-[#5A5751] italic">{photoImport.photos.length} loaded</span>
+                                  </div>
                                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
                                     {photoImport.photos.map(p => (
                                       <div key={p.id} className="border border-[#E8E4DC] bg-[#FAF8F4] p-1">
                                         {p.thumb ? (
-                                          <img src={p.thumb} alt={p.text || 'property photo'} className="w-full h-24 object-cover border border-[#E8E4DC]" />
+                                          <img src={p.thumb} alt={p.text || 'property photo'} className="w-full h-24 object-cover border border-[#E8E4DC]" loading="lazy" />
                                         ) : (
                                           <div className="w-full h-24 flex items-center justify-center text-[9px] text-[#5A5751] italic border border-dashed border-[#E8E4DC] text-center px-1">not in backup</div>
                                         )}
