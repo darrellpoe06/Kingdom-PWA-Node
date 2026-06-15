@@ -1100,10 +1100,25 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const filePhotoToRoom = (r, photo) => {
     if (!photo.room || !photo.thumb) return;
     const entry = { id: `ph-chat-${photo.id}`, src: photo.thumb, date: photo.date || '', caption: photo.text || '' };
-    const rooms = (r.rooms || []).map(rm => rm.id === photo.room
+    let rooms = r.rooms || [];
+    let targetId = photo.room;
+    // A "new:<Name>" value is a preset room not yet on this property — create it
+    // (or reuse one with the same name) before filing the photo into it, so you
+    // can pick an obvious room like "Living Room" without adding it first.
+    if (photo.room.startsWith('new:')) {
+      const name = photo.room.slice(4);
+      const existing = rooms.find(rm => (rm.name || '').toLowerCase() === name.toLowerCase());
+      if (existing) {
+        targetId = existing.id;
+      } else {
+        targetId = `rm-${Date.now()}`;
+        rooms = [...rooms, { id: targetId, name, items: [] }];
+      }
+    }
+    const updatedRooms = rooms.map(rm => rm.id === targetId
       ? { ...rm, photos: (rm.photos || []).some(x => x.id === entry.id) ? rm.photos : [...(rm.photos || []), entry] }
       : rm);
-    updateRental(r.id, { rooms });
+    updateRental(r.id, { rooms: updatedRooms });
     setPhotoImport(p => p ? { ...p, photos: p.photos.map(x => x.id === photo.id ? { ...x, filed: true } : x) } : p);
   };
   const deleteMaintEntry = (r, entryId) => {
@@ -1705,6 +1720,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                             <select value={p.room} onChange={e => setPhotoRoom(p.id, e.target.value)} className="flex-1 text-[10px] p-1 border border-[#E8E4DC] bg-white min-w-0">
                                               <option value="">room…</option>
                                               {(r.rooms || []).map(rm => <option key={rm.id} value={rm.id}>{rm.name}</option>)}
+                                              <optgroup label="Add a room">
+                                                {ROOM_PRESETS.filter(name => !(r.rooms || []).some(rm => (rm.name || '').toLowerCase() === name.toLowerCase())).map(name => (
+                                                  <option key={`new-${name}`} value={`new:${name}`}>+ {name}</option>
+                                                ))}
+                                              </optgroup>
                                             </select>
                                             <button type="button" disabled={!p.room} onClick={() => filePhotoToRoom(r, p)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-30">Add</button>
                                           </div>
