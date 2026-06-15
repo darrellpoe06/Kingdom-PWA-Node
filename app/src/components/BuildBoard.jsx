@@ -14,6 +14,7 @@ import React, { useState } from 'react';
 import WorkflowStatus from './WorkflowStatus.jsx';
 import LlmHealth from './LlmHealth.jsx';
 import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
+import { FreshnessDot } from './FreshnessDot.jsx';
 
 // status: 'shipped' | 'building' | 'next' | 'gated'
 const ROADMAP = [
@@ -148,8 +149,9 @@ export function RecentlyShipped() {
     <section className="bg-white border border-[#5A6E3D] p-3">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">✓ Recently shipped</div>
-        <div className="text-[9px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-          live build {BUILD_SHA}{BUILD_TIME ? ` · ${BUILD_TIME.slice(0, 10)}` : ''}
+        <div className="text-[9px] uppercase tracking-wider text-[#5A5751] inline-flex items-center gap-1.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          <span>live build {BUILD_SHA}{BUILD_TIME ? ` · ${BUILD_TIME.slice(0, 10)}` : ''}</span>
+          <FreshnessDot />
         </div>
       </div>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
