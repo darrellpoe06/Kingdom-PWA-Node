@@ -9,6 +9,7 @@ import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
 import { hasBridgeToken, chatChannelFor } from '../lib/nas-photos.js';
+import Lightbox from './Lightbox.jsx';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -132,6 +133,7 @@ function occupancyRollup(rooms = []) {
 }
 
 function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
+  const [lightbox, setLightbox] = useState(null);
   // v28+ MVP v1.5 round 8 — Property valuation block (Zillow-style)
   // Characteristics + a market-value field + auto-built lookup links.
   // No paid API — links pre-fill each major site's search with the address,
@@ -709,7 +711,7 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
                       {[...(rm.photos || [])].sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(p => (
                         <div key={p.id} className="w-24">
                           <a href={p.src} target="_blank" rel="noopener noreferrer" title="Open full size">
-                            <img src={p.src} alt={p.caption || `${rm.name} photo`} className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815]" />
+                            <button type="button" onClick={() => setLightbox({ src: p.src, alt: p.caption || `${rm.name} photo` })} className="block"><img src={p.src} alt={p.caption || `${rm.name} photo`} className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" /></button>
                           </a>
                           <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</div>
                           <input className="w-full text-[10px] p-1 border border-[#E8E4DC] bg-white mt-0.5" placeholder="caption" defaultValue={p.caption || ''} onBlur={e => { if ((e.target.value || '') !== (p.caption || '')) setRoomPhotoCaption(rm.id, p.id, e.target.value); }} />
@@ -743,6 +745,7 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
           )}
         </div>
       </details>
+      <Lightbox src={lightbox?.src} alt={lightbox?.alt} onClose={() => setLightbox(null)} />
     </div>
   );
 }

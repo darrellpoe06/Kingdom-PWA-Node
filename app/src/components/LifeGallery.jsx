@@ -14,6 +14,7 @@
 import React, { useState, useEffect } from 'react';
 import { compressImageFile } from '../lib/image.js';
 import { fetchChannelPhotos, fetchFamilyPhotos, uploadPhoto, hasBridgeToken, chatChannelFor } from '../lib/nas-photos.js';
+import Lightbox from './Lightbox.jsx';
 
 const CATEGORIES = ['Family', 'Business', 'Projects', 'Properties', 'Faith', 'Other'];
 
@@ -23,7 +24,7 @@ const CATEGORIES = ['Family', 'Business', 'Projects', 'Properties', 'Faith', 'Ot
 // same backed-up pictures instead of one phone's localStorage. Fail-quiet:
 // no token / offline → renders nothing here, and uploads fall back to
 // device-local (handled in onFiles).
-function FamilyNasGallery({ refreshKey }) {
+function FamilyNasGallery({ refreshKey, onOpen }) {
   const [photos, setPhotos] = useState(null);
   useEffect(() => {
     if (!hasBridgeToken()) { setPhotos([]); return; }
@@ -48,9 +49,9 @@ function FamilyNasGallery({ refreshKey }) {
       </p>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
         {photos.map(p => (
-          <a key={p.id} href={p.thumb} target="_blank" rel="noopener noreferrer" className="block">
-            <img src={p.thumb} alt={p.text || 'Family photo'} className="w-full h-24 object-cover border border-[#E8E4DC] hover:opacity-90" loading="lazy" />
-          </a>
+          <button key={p.id} type="button" onClick={() => onOpen && onOpen(p.thumb, p.text || 'Family photo')} className="block w-full">
+            <img src={p.thumb} alt={p.text || 'Family photo'} className="w-full h-24 object-cover border border-[#E8E4DC] hover:opacity-90 cursor-zoom-in" loading="lazy" />
+          </button>
         ))}
       </div>
     </div>
@@ -64,7 +65,7 @@ function FamilyNasGallery({ refreshKey }) {
 // (the NAS stays the sovereign home; quota untouched). "Adjust after" =
 // ☆ Keep, which promotes a single shot into the curated gallery above.
 // No bridge token on this device (visitors, demo) → renders nothing.
-function NasPlacesStrip({ rentals = [], addLifePhotos, keptIds }) {
+function NasPlacesStrip({ rentals = [], addLifePhotos, keptIds, onOpen }) {
   const [groups, setGroups] = useState(null);
   useEffect(() => {
     if (!hasBridgeToken() || rentals.length === 0) { setGroups([]); return; }
@@ -109,7 +110,7 @@ function NasPlacesStrip({ rentals = [], addLifePhotos, keptIds }) {
                 const kept = keptIds.has(keepId);
                 return (
                   <figure key={p.id} className="border border-[#E8E4DC] bg-[#FAF8F4] w-32 shrink-0">
-                    <img src={p.thumb} alt={p.text || g.name} className="w-32 h-24 object-cover" loading="lazy" />
+                    <button type="button" onClick={() => onOpen && onOpen(p.thumb, p.text || g.name)} className="block w-32"><img src={p.thumb} alt={p.text || g.name} className="w-32 h-24 object-cover cursor-zoom-in" loading="lazy" /></button>
                     <figcaption className="p-1 flex items-center justify-between gap-1">
                       <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</span>
                       {addLifePhotos && (
@@ -138,6 +139,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
   const [busy, setBusy] = useState(false);
   const [nasNote, setNasNote] = useState('');
   const [familyRefresh, setFamilyRefresh] = useState(0);
+  const [lightbox, setLightbox] = useState(null);
 
   const onFiles = async (fileList) => {
     if (!fileList || fileList.length === 0 || !addLifePhotos) return;
@@ -220,7 +222,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
         <div className="mb-3 text-[11px] text-[#5A6E3D] bg-[#F2F5EC] border border-[#D6E0C4] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>✓ {nasNote}</div>
       )}
 
-      {!readOnly && <FamilyNasGallery refreshKey={familyRefresh} />}
+      {!readOnly && <FamilyNasGallery refreshKey={familyRefresh} onOpen={(src, alt) => setLightbox({ src, alt })} />}
 
       {!readOnly && (
         <div className="flex items-center gap-1.5 mb-3 flex-wrap">
@@ -249,9 +251,9 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {shown.map(p => (
               <figure key={p.id} className="border border-[#E8E4DC] bg-[#FAF8F4]">
-                <a href={p.src} target="_blank" rel="noopener noreferrer" title="Open full size">
-                  <img src={p.src} alt={p.caption || p.category || 'Life photo'} className="w-full h-40 object-cover hover:opacity-90" />
-                </a>
+                <button type="button" onClick={() => setLightbox({ src: p.src, alt: p.caption || p.category || 'Life photo' })} title="Open full size" className="block w-full">
+                  <img src={p.src} alt={p.caption || p.category || 'Life photo'} className="w-full h-40 object-cover hover:opacity-90 cursor-zoom-in" />
+                </button>
                 <figcaption className="p-2">
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">{p.category || 'Other'}</span>
@@ -282,7 +284,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
           </div>
         </>
       )}
-      {!readOnly && <NasPlacesStrip rentals={rentals} addLifePhotos={addLifePhotos} keptIds={new Set(photos.map(p => p.id))} />}
+      {!readOnly && <NasPlacesStrip rentals={rentals} addLifePhotos={addLifePhotos} keptIds={new Set(photos.map(p => p.id))} onOpen={(src, alt) => setLightbox({ src, alt })} />}
 
       {/* The promise — true for EVERY user, NAS or not. The never-sold pledge
           is absolute (there is no ad/training/sale pipeline). Durability is
@@ -292,6 +294,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
       <p className="text-[10px] text-[#5A5751] mt-3 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
         🔒 Never sold, never mined, never used to train a model — there is no such pipeline here. Today these photos live on this device; backing them up to a space you own — your own NAS, or a private PoeTech space you can export any time — is coming next, so a lost phone never loses them. Save any photo above right now.
       </p>
+      <Lightbox src={lightbox?.src} alt={lightbox?.alt} onClose={() => setLightbox(null)} />
     </section>
   );
 }
