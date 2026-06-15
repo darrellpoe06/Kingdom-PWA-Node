@@ -1,5 +1,5 @@
 // =============================================================================
-// NetworkStatus — small floating status pill (bottom-right)
+// NetworkStatus — small floating status pill (bottom-left, above Feedback)
 // =============================================================================
 // Surfaces, at a glance, whether the device is reaching:
 //   1. the device's network (online / offline, WiFi vs cellular vs other)
