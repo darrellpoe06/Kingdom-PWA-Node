@@ -20,6 +20,11 @@ import {
   computeTrackHashes,
   BUNDLE_REL,
 } from '../../../scripts/portable-manifest.mjs';
+import {
+  generateCharterYml,
+  CHARTER_MD_REL,
+  CHARTER_YML_REL,
+} from '../../../scripts/generate-charter.mjs';
 
 // Resolve the repo root by walking up until the bundle manifest is found. Robust
 // whether vitest runs from app/ (npm run verify, CI) or the repo root. Avoids
@@ -82,5 +87,44 @@ describe('portable orchestrator bundle freshness gate', () => {
         `tracked source not in manifest: ${file} — re-stamp: ${RESTAMP}`,
       ).toBeDefined();
     }
+  });
+});
+
+// =============================================================================
+// Charter generation gate (DR-0075 / DR-0076).
+// =============================================================================
+// CHARTER.md is the single human-approved source of truth; charter.yml is the
+// machine config GENERATED from it (npm run charter:gen). Both files live INSIDE
+// the bundle, so the manifest above already catches a silent edit to either one.
+// This gate catches the OTHER drift the hash check cannot: CHARTER.md edited and
+// re-stamped, but charter.yml never regenerated — leaving the config inconsistent
+// with the policy it claims to encode. It re-runs the generator and fails if the
+// committed charter.yml is not exactly what CHARTER.md produces. Source and
+// config can never silently disagree.
+const REGEN = 'node scripts/generate-charter.mjs (npm run charter:gen)';
+const charterMd = readFileSync(join(repoRoot, CHARTER_MD_REL), 'utf8');
+const committedYml = readFileSync(join(repoRoot, CHARTER_YML_REL), 'utf8');
+
+describe('charter.yml is generated from CHARTER.md (no source↔config drift)', () => {
+  it('committed charter.yml matches a fresh generation from CHARTER.md', () => {
+    expect(
+      generateCharterYml(charterMd),
+      `charter.yml drifted from CHARTER.md — regenerate: ${REGEN}`,
+    ).toBe(committedYml);
+  });
+
+  it('the generator actually discriminates — a changed source yields a changed config (proven-to-catch)', () => {
+    // Anti-theater (DR-0076): a gate that always passes is itself a lie. Mutate a
+    // real policy value in the source and prove the generator's output changes —
+    // so a green check above genuinely means source and config agree.
+    const mutated = charterMd.replace('per_task_usd: 2', 'per_task_usd: 7');
+    expect(mutated).not.toBe(charterMd); // the anchor must exist, or the proof is hollow
+    expect(generateCharterYml(mutated)).not.toBe(committedYml);
+  });
+
+  it('safety: generated config keeps self_drive_implemented false (ships inert)', () => {
+    // The supervisor honors charter.yml self_drive_implemented as a hard gate
+    // above the ARM flag. Generation must never flip it true.
+    expect(committedYml).toMatch(/^\s*self_drive_implemented:\s*false\s*$/m);
   });
 });

@@ -1,94 +1,98 @@
 # =============================================================================
-# charter.yml  --  the orchestrator's policy, as DATA the container reads.
+# charter.yml  --  GENERATED from CHARTER.md. DO NOT HAND-EDIT.
 # =============================================================================
-# SKELETON / PLACEHOLDER. This is a working stand-in so the bundle is complete
-# and runnable. The CANONICAL Charter is approved by Darrell separately; until
-# then this file governs, and it ships in the safest possible posture:
-# disarmed, kill-switch engaged, self-drive NOT implemented.
+# Source of truth: infra/ai-orchestrator/portable/charter/CHARTER.md
+# Regenerate:      npm run charter:gen   (node scripts/generate-charter.mjs)
+# The portable-bundle freshness gate FAILS THE BUILD if this file drifts from
+# CHARTER.md (DR-0075 / DR-0076). Change policy in CHARTER.md, then regenerate.
 #
-# The orchestrator reads this at runtime (mounted read-only at /charter). Editing
-# it is how you change policy -- no rebuild, no code edit. The one value the
-# supervisor enforces as a HARD gate today is `autonomy.self_drive_implemented`.
-#
-# Typographic theology (CLAUDE.md Layer 0) is in force in this file and every
-# artifact: God references capitalized; the adversary's names never are.
+# Typographic theology (CLAUDE.md Layer 0) is carried through from the source.
+# The orchestrator reads this at runtime, mounted read-only at /charter.
 # =============================================================================
 
-meta:
-  name: poetech-portable-orchestrator
-  charter_version: 0.1.0-skeleton
-  status: SKELETON                # not the canonical Charter; placeholder
-  approval: pending-darrell       # canonical Charter approved separately
-  self_contained: true            # no external dependency beyond pinned images
-
-# --- Autonomy posture -------------------------------------------------------
 autonomy:
-  default: disarmed               # ships disarmed; arm is a deliberate, audited act
-  self_drive_implemented: false   # HARD gate the supervisor honors above all else
+  default: disarmed
+  self_drive_implemented: false
   vendor_summoning: forbidden_until_armed
-  # June-6 runaway rule: nothing self-activates unattended, ever, and never while
-  # the principal is traveling. Arm only with someone watching.
-  arm_requires:
-    - kill_switch_disengaged      # remove state/KILL_SWITCH
-    - arm_flag_set                # create state/ARMED (arm.sh)
-    - budgets_configured          # per-task AND daily ceilings > 0
 
-# --- The three brakes (CLAUDE.md: "Autonomous Automation Requires Three Brakes")
+ask_vs_act:
+  act_conditions:        # ACT now, report after -- only when ALL hold
+    - 'routine, already-stated desire, and a viable fix is in hand'
+    - 'grounded in real data — no guessing, no painted numbers'
+    - 'gates are green, including the area safety gate for the surface being touched'
+    - 'the change is reversible'
+    - 'no unbraked autonomy, no quarantine breach, and no credential is needed'
+  ask_triggers:          # ASK first -- surface for human approval
+    - 'governance — a bright line, a policy, or a release-tier decision'
+    - 'design — a product, identity, or experience choice'
+    - 'opportunity — a new direction or commitment worth a human''s call'
+    - 'a gate that cannot be made green'
+    - 'anything that needs a login, or is irreversible'
+
+standing_rules:
+  - id: no-hallucinating
+    rule: 'ground every claim in real state and cite it; never invent.'
+  - id: always-now
+    rule: 'operate on current, fetched reality, not remembered state.'
+  - id: ship-fast-via-lane
+    rule: 'ship through the lane; rollback is the safety net, not delay.'
+  - id: verified-gates-green-ships-itself
+    rule: 'work that is verified and gates-green ships without a human gate.'
+  - id: app-is-primary-artifact
+    rule: 'the PoeTech app is the primary artifact; no external or GitHub links as the surface.'
+  - id: discuss-in-chat-then-document
+    rule: 'decisions are reached in conversation, then written down.'
+  - id: 'process-don''t-store'
+    rule: 'process data in flight; persistence and sync are opt-in, and opt-in is the subscription.'
+  - id: sovereign-first
+    rule: 'prefer sovereign local compute; vendor LLMs are an escalation, not the default.'
+  - id: no-leaks
+    rule: 'RLS and tenant isolation hold; employer data is firewalled; nothing crosses a boundary.'
+  - id: never-hand-roll-crypto
+    rule: 'never hand-roll crypto; multi-point auth is two-of-three or better; never handle raw passwords.'
+  - id: no-autonomous-automation-without-3-brakes
+    rule: 'no self-triggering automation without all three brakes, behind the Cage.'
+  - id: risk-clarify-before-nontrivial-change
+    rule: 'clarify risk before any non-trivial change.'
+  - id: verify-against-ground-truth
+    rule: 'verify against the real image and the real data, not against assumption.'
+  - id: decisions-carry-rationale
+    rule: 'every decision carries its reason with it.'
+  - id: status-on-demand-and-proactive
+    rule: 'status is available on demand and pushed proactively; heartbeat, mobile-friendly.'
+  - id: almost-final-is-usable
+    rule: 'an almost-final result is usable; do not block delivery on polish.'
+  - id: wcag-2.1-aa-everywhere
+    rule: 'WCAG 2.1 AA on every surface, every theme, verified against rendered colors.'
+  - id: fathers-business-anchor
+    rule: 'the Father''s Business is the anchor; the system lifts the person toward The Way.'
+
+sovereignty:
+  role: 'always-on boss on the NAS'
+  summons_vendor_on_unmet_need: true
+  restarts_vendor_after_offline: true
+  brakes_non_negotiable: true
+  routing_tiered_cheapest_first:
+    - local
+    - claude-code-heavy
+    - gemini-grounded-current
+
 brakes:
   budget:
-    per_task_usd: 0.00            # ceiling per single vendor-LLM task (0 = unset = blocked)
-    daily_usd: 0.00               # ceiling per UTC day across all summons
-    on_ceiling: refuse            # reach the ceiling -> refuse; never continue
-  concurrency:
-    max_concurrent: 1             # single-instance; a second start SKIPS
-    mechanism: atomic-lockdir     # state/orchestrator.lock
-  kill_switch:
-    engaged_by_default: true      # bundle ships with state/KILL_SWITCH present
-    on_engaged: inert             # auto-pause; never auto-continue into a runaway
-    file: state/KILL_SWITCH
+    per_task_usd: 2   # DEFAULT — pending Darrell confirmation
+    daily_usd: 25      # DEFAULT — pending Darrell confirmation
+    monthly_usd: 200   # DEFAULT — pending Darrell confirmation
+  concurrency_lock: true
+  kill_switch: true
+  fires_off_real_events_only: true
+  never_bare_loop: true
 
-# --- Ask-vs-Act (the heart of the policy; SKELETON lists) -------------------
-# When (and only when) autonomy is armed AND self-drive is implemented, the
-# orchestrator may ACT on `act` items within budget, and must ASK (surface for
-# human approval, take no side effect) on `ask` items. Anything not listed is
-# implicitly ASK. These lists are placeholders for the canonical Charter.
-ask_vs_act:
-  may_act_autonomously:           # low-risk, reversible, observable
-    - read_health_status
-    - read_event_log
-    - summarize_local_state
-    - propose_action              # propose only; execution still gated
-  must_ask_first:                 # human approval required, no side effect until granted
-    - summon_vendor_llm           # any paid/cloud model call (budget-gated too)
-    - write_outside_bundle
-    - touch_network_gear
-    - change_routing_or_vlan      # forbidden entirely on protected VLANs (see Cage)
-    - spend_money
-    - send_outbound_message
-  forbidden_always:               # never, armed or not
-    - modify_audit_log            # the event log is append-only
-    - disable_own_brakes
-    - alter_protected_vlan_routing
+resource:
+  cpus: 1
+  mem: 1g
 
-# --- Standing rules the orchestrator operates under -------------------------
-standing_rules:
-  - id: three-brakes
-    rule: >
-      No autonomous, timer-driven, or self-triggering behavior runs without a
-      budget, a concurrency lock, AND a kill-switch. Missing any one = inert.
-  - id: tier-c-to-arm
-    rule: >
-      Arming autonomy is a Tier C change (RELEASE-TIERS.md): family-visible,
-      reviewed, signed off, and turned on only with someone watching. Never Tier A.
-  - id: ship-inert
-    rule: >
-      The bundle ships inert. Standing up gives control and observability; it
-      does not start self-drive. Self-drive arms later, deliberately.
-  - id: append-only-truth
-    rule: >
-      Every outcome is appended to the local JSONL event log. Nothing rewrites
-      or deletes it. Observability is non-optional.
-  - id: self-contained
-    rule: >
-      The orchestrator relies on nothing outside this bundle except its pinned
-      container image. No external registry, no cloud, no phone-home.
+portability:
+  copy_paste_to_any_nas: true
+  one_command_bootstrap: true
+  ships_inert_until_armed: true
+  heavy_inference_off_nas: true
