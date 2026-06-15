@@ -221,7 +221,7 @@ export default function NetworkStatus() {
   // Compact pill: 3 dots side-by-side, plus the connection label on wider screens.
   return (
     <div
-      className="fixed bottom-4 right-4 z-30 print:hidden"
+      className="fixed bottom-20 left-4 z-30 print:hidden"
       role="status"
       aria-label="Network status"
     >
@@ -238,7 +238,13 @@ export default function NetworkStatus() {
           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.internet) }} aria-label={`internet ${probes.internet}`} />
           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.nas) }} aria-label={`nas ${probes.nas}`} />
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-[#1A1815] font-semibold hidden sm:inline">
+        {/* Color must mirror the pill background, which is OS-color-scheme driven
+            (bg-white/95 dark:bg-[#1A1815]/95) and theme-INDEPENDENT — the data-theme
+            remap doesn't touch these variant classes. So the label color tracks the
+            same dark: signal, not the theme. text-black (not text-[#1A1815]) is used
+            for the light pill because the midnight remap lightens text-[#1A1815] to
+            #E5E5E5, which would fail on a white pill (midnight theme + light OS). */}
+        <span className="text-[10px] uppercase tracking-wider text-black dark:text-[#FAF8F4] font-semibold hidden sm:inline">
           {connLabel}
         </span>
       </button>

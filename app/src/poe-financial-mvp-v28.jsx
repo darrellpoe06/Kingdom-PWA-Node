@@ -4067,7 +4067,7 @@ html{scroll-padding-bottom:280px}
           type="button"
           onClick={() => setSuggestOpen(true)}
           aria-label="Send feedback or suggestion"
-          className="fixed bottom-4 right-4 z-40 bg-[#B85838] hover:bg-[#1A1815] text-white text-xs uppercase tracking-wider font-semibold px-3 py-2 shadow-lg focus:outline focus:outline-2 focus:outline-[#1A1815]"
+          className="fixed bottom-20 right-4 z-40 bg-[#B85838] hover:bg-[#1A1815] text-white text-xs uppercase tracking-wider font-semibold px-3 py-2 shadow-lg focus:outline focus:outline-2 focus:outline-[#1A1815]"
           style={{ fontFamily: '"Fraunces", serif' }}
         >
           Suggest
