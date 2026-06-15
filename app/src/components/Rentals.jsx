@@ -59,7 +59,32 @@ const dueDateFor = (urgencyKey, fromDate = new Date()) => {
   return d.toISOString().slice(0, 10);
 };
 
-const ROOM_PRESETS = ['Living Room','Kitchen','Dining Room','Bathroom','Primary Bedroom','Bedroom 1','Bedroom 2','Bedroom 3','Bedroom 4','Garage','Basement','Attic','Laundry','Office','Outdoor'];
+const ROOM_PRESETS = ['Living Room','Kitchen','Dining Room','Den','Family Room','Bathroom','Primary Bedroom','Bedroom 1','Bedroom 2','Bedroom 3','Bedroom 4','Bedroom 5','Bedroom 6','Garage','Basement','Attic','Laundry','Office','Sunroom','Outdoor'];
+// Room choices = the presets PLUS any custom room the user has already created on
+// any property, so a once-typed "Den" or "Bedroom 7" comes back as a pick later.
+const allRoomChoices = (rentals = []) => {
+  const used = new Set();
+  rentals.forEach(rt => (rt.rooms || []).forEach(rm => { if (rm.name) used.add(rm.name); }));
+  const extra = [...used].filter(n => !ROOM_PRESETS.some(p => p.toLowerCase() === n.toLowerCase())).sort();
+  return [...ROOM_PRESETS, ...extra];
+};
+// Display label for a property. A real multi-word address in the address field
+// wins; otherwise the short label (a chat-channel form like "805NProspect" or
+// "1513HH") is spaced out and lightly expanded for reading. Display-only — it
+// never rewrites the stored value.
+const prettifyShortName = (s) => String(s || '')
+  .replace(/(\d)([A-Za-z])/g, '$1 $2')
+  .replace(/([a-z])([A-Z])/g, '$1 $2')
+  .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+  .replace(/\bHH\b/g, 'Holly Hill')
+  .replace(/\s+/g, ' ')
+  .trim();
+const propertyLabel = (r) => {
+  if (!r) return 'Property';
+  const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', ');
+  if (r.address && /\s/.test(String(r.address).trim())) return full;
+  return prettifyShortName(r.name || r.address || 'Property');
+};
 const ROOM_ITEM_PRESETS = ['Cabinets','Windows','Furnace','Plumbing — Toilet','Plumbing — Sink','Plumbing — Faucet','Plumbing — Bathtub','Plumbing — Shower','Flooring','Walls / Paint','Ceiling','Lighting','Outlets / Switches','Doors','Trim','Other'];
 const ROOM_ITEM_STATUSES = [
   { key: 'good',       label: 'Good',           symbol: '✓' },
@@ -818,7 +843,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     const withCoords = rentals.filter(r => typeof r.lat === 'number' && typeof r.lon === 'number');
     withCoords.forEach(r => {
       const marker = window.L.marker([r.lat, r.lon]).addTo(mapInstanceRef.current);
-      marker.bindPopup(`<strong>${r.name}</strong><br/>${r.address || ''}${r.city ? ', ' + r.city : ''}<br/>Rent: $${r.rent}/mo · ${r.status}<br/>${r.mortgage?.balance ? 'Mortgage: $' + r.mortgage.balance.toLocaleString() : 'Mortgage: —'}`);
+      marker.bindPopup(`<strong>${propertyLabel(r)}</strong><br/>Rent: $${r.rent}/mo · ${r.status}<br/>${r.mortgage?.balance ? 'Mortgage: $' + r.mortgage.balance.toLocaleString() : 'Mortgage: —'}`);
       markersRef.current.push(marker);
     });
     if (withCoords.length > 0) {
@@ -1445,10 +1470,10 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   )}
                   <div className="flex items-baseline justify-between gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
-                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
+                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{propertyLabel(r)}</div>
                       <div className="text-xs text-[#5A5751]">
-                        {[r.address, r.city, r.state, r.zip].filter(Boolean).join(', ') || 'no address yet'}
-                        {r.propertyType && <span className="ml-2 uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
+                        {(() => { const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', '); return (full && full !== propertyLabel(r)) ? <span className="mr-2">{full}</span> : null; })()}
+                        {r.propertyType && <span className="uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
                       </div>
                       {r.tenantName && (
                         <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -1717,13 +1742,23 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                           <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-1">✓ filed</div>
                                         ) : p.thumb ? (
                                           <div className="flex gap-1 mt-1">
-                                            <select value={p.room} onChange={e => setPhotoRoom(p.id, e.target.value)} className="flex-1 text-[10px] p-1 border border-[#E8E4DC] bg-white min-w-0">
+                                            <select value={p.room} onChange={e => {
+                                              const v = e.target.value;
+                                              if (v === '__other__') {
+                                                const name = (typeof window !== 'undefined' ? (window.prompt('New room name (Den, Sunroom, Bedroom 7, …)') || '') : '').trim();
+                                                setPhotoRoom(p.id, name ? `new:${name}` : '');
+                                                return;
+                                              }
+                                              setPhotoRoom(p.id, v);
+                                            }} className="flex-1 text-[10px] p-1 border border-[#E8E4DC] bg-white min-w-0">
                                               <option value="">room…</option>
                                               {(r.rooms || []).map(rm => <option key={rm.id} value={rm.id}>{rm.name}</option>)}
+                                              {p.room && p.room.startsWith('new:') && <option value={p.room}>{p.room.slice(4)} (new)</option>}
                                               <optgroup label="Add a room">
-                                                {ROOM_PRESETS.filter(name => !(r.rooms || []).some(rm => (rm.name || '').toLowerCase() === name.toLowerCase())).map(name => (
+                                                {allRoomChoices(rentals).filter(name => !(r.rooms || []).some(rm => (rm.name || '').toLowerCase() === name.toLowerCase())).map(name => (
                                                   <option key={`new-${name}`} value={`new:${name}`}>+ {name}</option>
                                                 ))}
+                                                <option value="__other__">✏️ Other room…</option>
                                               </optgroup>
                                             </select>
                                             <button type="button" disabled={!p.room} onClick={() => filePhotoToRoom(r, p)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-30">Add</button>
