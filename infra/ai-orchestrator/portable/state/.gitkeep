@@ -1,0 +1,2 @@
+# Keeps ./state in git. Runtime files here (ARMED, orchestrator.lock/, spend-*.txt)
+# are gitignored -- see ../.gitignore. KILL_SWITCH is tracked (ships engaged).

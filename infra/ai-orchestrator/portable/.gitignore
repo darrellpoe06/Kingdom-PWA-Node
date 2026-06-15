@@ -1,0 +1,8 @@
+# Secrets + runtime state stay local to the deployed NAS; never commit them.
+.env
+events/*.jsonl
+state/ARMED
+state/orchestrator.lock/
+state/spend-*.txt
+
+# NOTE: state/KILL_SWITCH is intentionally TRACKED -- it ships engaged.
