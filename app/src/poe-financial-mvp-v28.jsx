@@ -4062,17 +4062,12 @@ html{scroll-padding-bottom:280px}
           Per BUSINESS-PROCESS-CONNECTIONS Family-Voice-Is-The-Connection
           extension. Hidden during the picker landing to avoid cluttering
           the first impression. */}
-      {!isFirstTimeLanding && !suggestOpen && (
-        <button
-          type="button"
-          onClick={() => setSuggestOpen(true)}
-          aria-label="Send feedback or suggestion"
-          className="fixed bottom-20 right-4 z-40 bg-[#B85838] hover:bg-[#1A1815] text-white text-xs uppercase tracking-wider font-semibold px-3 py-2 shadow-lg focus:outline focus:outline-2 focus:outline-[#1A1815]"
-          style={{ fontFamily: '"Fraunces", serif' }}
-        >
-          Suggest
-        </button>
-      )}
+      {/* 2026-06-15 — ONE feedback entry point. The floating "Suggest" button
+          (a second, redundant door → n8n wf30) was removed; the 💬 Feedback
+          button (bottom-left → FeedbackModal → the Supabase queue + Governor
+          review) is the single home base the onboarding already points to.
+          Removing it also de-clutters the bottom-right corner. (The now-unused
+          suggest modal + submitSuggest are dead code, queued for cleanup.) */}
 
       {(() => {
         // Show once to a signed-in, non-family, non-demo user. Keyed only on
