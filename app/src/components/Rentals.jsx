@@ -829,6 +829,15 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // Clean up map on unmount
   useEffect(() => () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } }, []);
 
+  // Label the map by the REAL area the properties are in (most common city),
+  // defaulting to Champaign, IL — never the fictional seed town "Cedar Heights".
+  const mapAreaLabel = useMemo(() => {
+    const counts = {};
+    (rentals || []).forEach(r => { const c = (r.city || '').trim(); if (c) counts[c] = (counts[c] || 0) + 1; });
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return top ? top[0] : 'Champaign, IL';
+  }, [rentals]);
+
   // Auto-evaluator - runs continuously off form inputs
   const evaluator = useMemo(() => {
     const price = parseFloat(propForm.purchasePrice) || 0;
@@ -1916,7 +1925,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       </section>
 
       <section>
-        <SectionTitle>Property Map · Cedar Heights area</SectionTitle>
+        <SectionTitle>Property Map · {mapAreaLabel}</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-3">
           <div ref={mapRef} style={{ height: '360px', width: '100%' }} aria-label="Map of rental properties" />
           <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
