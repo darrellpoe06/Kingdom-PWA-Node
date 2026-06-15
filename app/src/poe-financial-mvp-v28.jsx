@@ -3433,6 +3433,15 @@ export default function PoeFinancialSystem() {
   // v28+ MVP v1.5: Buffer Fund — slider-driven current balance + deliberate-edit target.
   const setBufferCurrent = (val) => setData(d => ({ ...d, meta: { ...d.meta, bufferCurrent: parseFloat(val) || 0 } }));
   const setBufferTarget = (val) => setData(d => ({ ...d, meta: { ...d.meta, bufferTarget: parseFloat(val) || 0 } }));
+  // Loop Health (Darrell 2026-06-15): the app reviews its own stagnant loops. A
+  // keep/retire decision persists on data.loopDecisions; 'keep' stamps a 30-day
+  // re-review date (DR-0075 — nothing parked without a why + re-review date).
+  const onLoopDecision = (key, decision) => setData(d => {
+    const next = { ...(d.loopDecisions || {}) };
+    if (decision == null) { delete next[key]; }
+    else { next[key] = { decision, at: new Date().toISOString(), reReview: decision === 'keep' ? new Date(Date.now() + 30 * 86400000).toISOString() : null }; }
+    return { ...d, loopDecisions: next };
+  });
   // v28+ MVP v1.5 round 5: tier switcher (also persists via setData)
   const setUserTier = (tier) => setData(d => ({ ...d, userTier: tier }));
   // Round 14 — Voice Ops config setter (Phase 1 Cloudflare Worker integration)
@@ -4565,6 +4574,7 @@ html{scroll-padding-bottom:280px}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
+              loopData={data} loopDecisions={data.loopDecisions || {}} onLoopDecision={onLoopDecision}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
             />
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />

@@ -7,6 +7,7 @@ import { MetricCell, SectionTitle } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
+import LoopHealth from './LoopHealth.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
@@ -122,7 +123,7 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null }) {
   const [subView, setSubView] = useState('list');
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
@@ -131,6 +132,9 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // The Review surface shows the freshness loop's staged proposals (DR-0072) —
   // family-internal oversight, so it rides the same Governor gate.
   if (isGovernor) tabs.push(['review','🔄 Review']);
+  // Loop Health (DR-0061/0075) — the app reviews its own loops; stagnant ones
+  // ask the Governor to keep or retire them. Governor-gated like the rest.
+  if (isGovernor) tabs.push(['loops','🩺 Loops']);
   return (
     <div className="space-y-4">
       <div className="border-b border-[#E8E4DC]">
@@ -159,6 +163,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} />}
       {subView === 'governance' && isGovernor && <GovernanceQueue />}
       {subView === 'review' && isGovernor && <ReviewFeed />}
+      {subView === 'loops' && isGovernor && <LoopHealth data={loopData} decisions={loopDecisions} onDecision={onLoopDecision} />}
     </div>
   );
 }
