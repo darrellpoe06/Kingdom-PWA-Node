@@ -19,15 +19,28 @@ import { onAuthChange } from '../lib/supabase.js';
 import { uploadTriviaAnswer, sendMessage, subscribeMessages } from '../lib/engagement-sync.js';
 
 // -----------------------------------------------------------------------------
-// Today's seeded trivia + sermon anchor. DEMO / non-sensitive content.
-// Anchor sermon: I Peter 5 - "Let Go and Let God Help You."
+// Featured trivia + sermon anchor. This is a FIXED anchor set from a specific
+// message (John 18 / I Peter 5), NOT freshly-generated daily content — so the UI
+// shows its real date and does not claim "today" (Darrell 2026-06-15: reports must
+// be real, never painted freshness). Fresh daily questions begin when the church
+// inbox pipeline is connected (BG's weekly message → generate → review); that is
+// blocked on Christina's one-time Gmail OAuth, the same consent that opens the
+// banking import. Until then this anchor set is honest about being an anchor set.
 // -----------------------------------------------------------------------------
-const TODAY_ISO = '2026-06-10';
+const ANCHOR_ISO = '2026-06-10';
+const TODAY_ISO = ANCHOR_ISO; // kept so the question ids below stay stable
 
 const SERMON_ANCHOR = {
   reference: 'I Peter 5',
   title: 'Let Go and Let God Help You',
 };
+
+/** Honest, human-readable date for the trivia anchor (UTC, no "today" claim). */
+function fmtAnchor(iso) {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return iso;
+  return new Date(t).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
 
 /** Normalize a free-text answer for forgiving comparison. */
 function normalize(s) {
@@ -83,7 +96,7 @@ function TriviaCard({ signedIn }) {
   return (
     <section aria-labelledby="trivia-heading" className="bg-white border border-[#1A1815] p-5 mb-6">
       <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
-        Today&rsquo;s Trivia &middot; {SERMON_ANCHOR.reference}
+        Featured Trivia &middot; {SERMON_ANCHOR.reference}
       </div>
       <h3
         id="trivia-heading"
@@ -92,8 +105,12 @@ function TriviaCard({ signedIn }) {
       >
         {SERMON_ANCHOR.title}
       </h3>
-      <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-xs text-[#5A5751] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
         Two questions from the garden arrest &mdash; John 18. Answer below.
+      </p>
+      <p className="text-[11px] text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+        From the message of {fmtAnchor(ANCHOR_ISO)}. Fresh questions will follow the
+        pastor&rsquo;s weekly message once the church inbox is connected.
       </p>
 
       <ol className="space-y-5">

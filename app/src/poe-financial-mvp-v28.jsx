@@ -1785,15 +1785,20 @@ export default function PoeFinancialSystem() {
   const [persistIssue, setPersistIssue] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const firedRemindersRef = useRef(new Set());
-  const currentDate = useMemo(() => new Date(2026, 4, 15), []);
+  // Real users get a REAL "today" — a person's debt-payoff projection, "months
+  // until debt-free," payoff dates, and the default date on a new transaction must
+  // be computed from the actual current date, never a frozen one (Darrell 2026-06-15:
+  // "all reports are supposed to be dynamic from a user's personal data... not fake").
+  // The ONLY place the old May-2026 anchor still belongs is the demo / picker, where
+  // a stable date keeps the aspirational SAMPLE numbers from drifting between visits
+  // (SEED-DATA-AS-ASPIRATION). So: anchor in demo, real today for everyone else.
+  const currentDate = useMemo(() => (isAnyDemoMode ? new Date(2026, 4, 15) : new Date()), [isAnyDemoMode]);
   // D20b — Top-right header date is ALWAYS today, for EVERYONE, every mode.
   // Per Darrell's 2026-06-03 callout: the date in the header was still showing
   // the snapshot anchor "May '26" on poetech.us because the prior D20 split
   // kept the snapshot label for demo / picker / first-time-landing modes.
   // That was wrong. The header date is the "system is alive RIGHT NOW" signal —
-  // it must ALWAYS reflect today regardless of demo state. The financial
-  // projection horizon stays anchored to `currentDate` (May 2026) so the seed
-  // sample numbers stay stable; the header is independent of that anchor.
+  // it must ALWAYS reflect today regardless of demo state.
   const headerDateLabel = useMemo(() => {
     try {
       return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date());
