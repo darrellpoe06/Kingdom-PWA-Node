@@ -77,6 +77,7 @@ const prettifyShortName = (s) => String(s || '')
   .replace(/([a-z])([A-Z])/g, '$1 $2')
   .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
   .replace(/\bHH\b/g, 'Holly Hill')
+  .replace(/\bSS\b/g, 'South Street')
   .replace(/\s+/g, ' ')
   .trim();
 const propertyLabel = (r) => {
