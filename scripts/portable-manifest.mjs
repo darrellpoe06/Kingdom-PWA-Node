@@ -32,8 +32,12 @@ export const BUNDLE_REL = 'infra/ai-orchestrator/portable';
 //     contract changing is a reason to re-check the portable's claims.
 //   - guarded-action.sh: the Cage's brake-enforcement primitive that the
 //     portable's brakes.sh mirrors conceptually.
-// When the canonical Charter lands, it gets added here as the primary tracked
-// source (and charter.yml becomes generated from it).
+// The canonical Charter (charter/CHARTER.md) and its generated charter.yml both
+// live INSIDE the bundle, so they are already hash-tracked by computeBundleHashes
+// below — a silent edit to either fails this gate. The remaining drift (CHARTER.md
+// edited but charter.yml not regenerated) is caught by the generation gate in
+// portable-bundle-fresh.test.js, which re-runs scripts/generate-charter.mjs and
+// compares. So both files are gated; neither needs to be a TRACKS entry here.
 export const TRACKS = [
   'infra/ai-orchestrator/README.md',
   'infra/ai-orchestrator/scripts/guarded-action.sh',

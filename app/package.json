@@ -11,6 +11,8 @@
     "lint:fix": "eslint src --fix",
     "test": "vitest",
     "test:run": "vitest run",
+    "charter:gen": "node ../scripts/generate-charter.mjs",
+    "charter:check": "node ../scripts/generate-charter.mjs --check",
     "verify": "npm run lint && vitest run"
   },
   "dependencies": {
