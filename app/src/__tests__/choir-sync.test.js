@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape, toAbsenceShape,
-  toSermonShape, toResourceShape, toSermonDocShape,
+  toSermonShape, toResourceShape, toSermonDocShape, toTeamDocShape,
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService,
   weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
@@ -285,6 +285,10 @@ describe('sermon + resource mappers and reuse', () => {
   it('toSermonDocShape maps the admin-only document row', () => {
     expect(toSermonDocShape({ id: 'd1', sermon_id: 's1', document_url: 'https://doc', document_source: 'email' }))
       .toEqual({ id: 'd1', sermonId: 's1', documentUrl: 'https://doc', documentSource: 'email' });
+  });
+  it('toTeamDocShape maps the choir-visible team doc', () => {
+    expect(toTeamDocShape({ id: 't1', doc_date: '2026-06-14', doc_type: 'order-of-service', title: 'OOS', document_url: 'path/x.docx', document_source: 'email' }))
+      .toEqual({ id: 't1', docDate: '2026-06-14', docType: 'order-of-service', title: 'OOS', documentUrl: 'path/x.docx', documentSource: 'email', createdAt: null });
   });
   it('buildReusedSermon makes a future DRAFT that references the original', () => {
     const out = buildReusedSermon({ title: 'Let Go', serviceType: 'sunday', scriptureRef: '1 Pet 5', notes: 'rest in God', youtubeUrl: 'https://youtu.be/x' }, '2026-08-02', 'sunday');
