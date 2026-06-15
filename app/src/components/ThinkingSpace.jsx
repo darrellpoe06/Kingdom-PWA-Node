@@ -2,23 +2,20 @@
 // ThinkingSpace — a sovereign diary with room to think (and every door open)
 // =============================================================================
 // Darrell 2026-06-11: a diary that is siloed for sovereign growth in thinking,
-// with help available whenever needed — and (same day) "all options are in
-// Notes: tell PoeTech, church pastors, 1099 workers, counseling — same system
-// under the hood, just starting on the page of Note."
+// with help available whenever needed — and "all options are in Notes: tell
+// PoeTech, church pastors, 1099 workers, counseling — same system under the
+// hood, just starting on the page of Note."
 //
-// The routing is the SHARED engine (lib/one-voice-routing.js — MODE-ROUTING
-// made concrete): this surface starts PRIVATE by default; your words can pull
-// the route anywhere in the system; the suggestion is visible and you always
-// have the last word. Private notes are siloed by design — device-local,
-// never sold, never mined, never used to train anything.
-//
-// "Seek help": the Test (Philippians 4:8) is the on-device reflection aid
-// today; a conversation with your OWN sovereign AI (on your NAS, opt-in) is
-// on the build board. Counseling routes capture an intake note to the
-// practice — contact-level only; clinical content stays with the clinician
-// (the TLC bright line).
+// The input box is the shared <OneVoiceInput> (the master input — same
+// classifier, same dispatch, voice built in) configured for the NOTES surface:
+// starts PRIVATE, the words can pull the route anywhere, the suggestion is
+// visible, the person has the last word. Private notes are siloed by design —
+// device-local, never sold, mined, or used to train anything. Around the input
+// sits everything that is Thinking-Space-only: the notes list, search, the
+// Philippians 4:8 "examine it" tool, and the PoeTech directives roll-up.
+// Consolidated onto OneVoiceInput 2026-06-15.
 import React, { useState } from 'react';
-import { suggestDestination, destinationsFor } from '../lib/one-voice-routing.js';
+import OneVoiceInput from './OneVoiceInput.jsx';
 
 const THE_TEST = [
   ['True', 'Is it factual — or a fear wearing facts?'],
@@ -32,66 +29,17 @@ const THE_TEST = [
 ];
 
 const fieldCls = 'w-full p-3 border border-[#1A1815] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
-const DESTS = destinationsFor('notes');
 
 export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, togglePinNote, toggleNoteSource, sendToPoeTech, appDirectives = [], addPrayerRequest, addChurchVoice, addIncident, addInquiry }) {
   const [sourcesOnly, setSourcesOnly] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [route, setRoute] = useState('private');
-  const [touchedRoute, setTouchedRoute] = useState(false);
-  const [name, setName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
   const [testForId, setTestForId] = useState(null);
-  const [confirm, setConfirm] = useState(null);
   const [query, setQuery] = useState('');
-
-  const onDraft = (v) => {
-    setDraft(v);
-    if (!touchedRoute) setRoute(suggestDestination(v, 'private'));
-  };
-
-  const save = () => {
-    const t = draft.trim();
-    if (!t) return;
-    const who = name.trim();
-    if (route === 'poetech' && sendToPoeTech) {
-      sendToPoeTech(t);
-      setConfirm('💡 PoeTech heard you — it’s on the build inbox. You shape what gets built.');
-    } else if (route === 'prayer' && addPrayerRequest) {
-      addPrayerRequest({ requester: who || 'church family', request: t, shareWithChurch: true });
-      setConfirm('🙏 On the prayer list. The church is standing with you.');
-    } else if (route === 'pastor' && addChurchVoice) {
-      addChurchVoice({ id: `vo-${Date.now()}`, kind: 'pastor', text: t, from: who, at: new Date().toISOString() });
-      setConfirm('⛪ A note to the pastors — they’ll see it on the Church tab.');
-    } else if (route === 'serve' && addChurchVoice) {
-      addChurchVoice({ id: `vo-${Date.now()}`, kind: 'serve', text: t, from: who, at: new Date().toISOString() });
-      setConfirm('🤝 Leadership will see your serving hands — thank you.');
-    } else if (route === 'work' && addIncident) {
-      addIncident({ category: 'maintenance', description: t, urgency: 'incident', status: 'open', _note: 'from Thinking Space' });
-      setConfirm('🛠 On the Action Queue as a work order — dispatch it to a worker from Big Picture.');
-    } else if (route === 'counseling' && addInquiry) {
-      // TLC bright line (2026-06-12 fix): the inquiries table is PRE-INTAKE,
-      // non-PHI, and cloud-synced — the verbatim diary text must never land
-      // there. Only contact intent crosses; the words themselves stay in a
-      // private note on this device for the person to share with the
-      // clinician directly.
-      addInquiry({ firstName: who || '(from notes)', lastName: '', phone: '', email: '', source: 'thinking-space', interest: 'counseling', bestTime: 'anytime', notes: 'Requested counseling via Thinking Space. Their words stay private on their device — TLC connects directly.' });
-      if (addNote) addNote(t);
-      setConfirm('💚 The practice knows you’d like to talk — your words stayed private here, for you to share with them directly. Reaching out took courage.');
-    } else {
-      if (addNote) addNote(t);
-      setConfirm('📓 Kept — private to you. Come back to it anytime.');
-    }
-    setDraft('');
-    setTouchedRoute(false);
-    setRoute('private');
-  };
 
   const startEdit = (n) => { setEditingId(n.id); setEditText(n.text); };
   const commitEdit = () => { if (editingId && updateNote) updateNote(editingId, editText); setEditingId(null); };
 
-  const active = DESTS.find(d => d.key === route) || DESTS[0];
   const sorted = [...notes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.createdAt || '').localeCompare(a.createdAt || ''));
   const queryFiltered = query.trim() ? sorted.filter(n => (n.text || '').toLowerCase().includes(query.toLowerCase())) : sorted;
   const shown = sourcesOnly ? queryFiltered.filter(n => n.spiritualSource) : queryFiltered;
@@ -100,30 +48,19 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
 
   return (
     <div className="space-y-4 max-w-3xl">
-      <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🕊 Thinking Space · your diary</div>
-        <p className="text-xs text-[#5A5751] italic mt-1 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Think out loud, then come back to it. Private by default — and from right here your words can reach anyone in the system: PoeTech, the pastors, a worker, the practice. You always have the last word on where they go.
-        </p>
-        <textarea
-          className={fieldCls}
-          rows="3"
-          placeholder="What are you thinking? A worry, an idea, a prayer, a repair, a question for the pastors…"
-          value={draft}
-          onChange={e => onDraft(e.target.value)}
-        />
-        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          {DESTS.map(d => (
-            <button key={d.key} type="button" onClick={() => { setRoute(d.key); setTouchedRoute(true); }} aria-pressed={route === d.key} className={`text-[10px] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border ${route === d.key ? (d.key === 'private' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-[#B85838] text-white border-[#B85838]') : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{d.label}</button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>→ {active.hint}</span>
-          <input className="flex-1 min-w-[140px] p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Your name (optional)" value={name} onChange={e => setName(e.target.value)} />
-          <button type="button" onClick={save} disabled={!draft.trim()} className="bg-[#1A1815] text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] disabled:opacity-30">Save</button>
-        </div>
-        {confirm && <p className="text-[11px] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{confirm}</p>}
-      </section>
+      <OneVoiceInput
+        surface="notes"
+        heading="🕊 Thinking Space · your diary"
+        intro="Think out loud, then come back to it. Private by default — and from right here your words can reach anyone in the system: PoeTech, the pastors, a worker, the practice. You always have the last word on where they go."
+        placeholder="What are you thinking? A worry, an idea, a prayer, a repair, a question for the pastors…"
+        submitLabel="Save"
+        addNote={addNote}
+        sendToPoeTech={sendToPoeTech}
+        addPrayerRequest={addPrayerRequest}
+        addChurchVoice={addChurchVoice}
+        addIncident={addIncident}
+        addInquiry={addInquiry}
+      />
 
       <section>
         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">

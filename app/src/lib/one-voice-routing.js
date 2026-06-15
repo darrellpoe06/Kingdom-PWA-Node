@@ -69,3 +69,34 @@ export function destinationsFor(surface) {
   if (surface === 'church') return DESTINATIONS.filter(d => d.key !== 'private');
   return DESTINATIONS.filter(d => d.key !== 'conference');
 }
+
+// planDispatch — the PURE decision of what a Send/Save does for a given route,
+// given ONLY the route and which destination handlers a surface provides. It
+// returns the action to take + the confirmation key; the component performs the
+// side-effect. Pulled out of OneVoiceInput so the routing→action matrix is a
+// testable table, not behavior buried in a component (so "what the code is
+// designed to do" is pinned by a characterization test, not assumed). It
+// reproduces exactly what the old ChurchOneVoice.send() + ThinkingSpace.save()
+// did: a route whose handler is absent falls through to the surface fallback
+// (a private note where the surface keeps one, else a general voice note).
+//
+// `has` = { poetech, prayer, churchVoice, conference, incident, inquiry, note }
+//   — booleans for which handlers the surface passed.
+// Returns { action, confirmationKey, savesPrivateNote }.
+export function planDispatch(route, has = {}, saveNoteOnCounseling = false) {
+  switch (route) {
+    case 'poetech':    if (has.poetech)     return { action: 'poetech', confirmationKey: 'poetech', savesPrivateNote: false }; break;
+    case 'prayer':     if (has.prayer)      return { action: 'prayer', confirmationKey: 'prayer', savesPrivateNote: false }; break;
+    case 'pastor':     if (has.churchVoice) return { action: 'pastor', confirmationKey: 'pastor', savesPrivateNote: false }; break;
+    case 'serve':      if (has.churchVoice) return { action: 'serve', confirmationKey: 'serve', savesPrivateNote: false }; break;
+    case 'conference': if (has.conference)  return { action: 'conference', confirmationKey: 'conference', savesPrivateNote: false }; break;
+    case 'work':       if (has.incident)    return { action: 'work', confirmationKey: 'work', savesPrivateNote: false }; break;
+    case 'counseling': if (has.inquiry)     return { action: 'counseling', confirmationKey: 'counseling', savesPrivateNote: !!(saveNoteOnCounseling && has.note) }; break;
+    case 'private':    if (has.note)        return { action: 'private', confirmationKey: 'private', savesPrivateNote: true }; break;
+    default: break;
+  }
+  // Fallback: a private note where the surface keeps one, else a general voice note.
+  if (has.note)       return { action: 'fallback-note', confirmationKey: 'private', savesPrivateNote: true };
+  if (has.churchVoice) return { action: 'fallback-voice', confirmationKey: 'voice', savesPrivateNote: false };
+  return { action: 'none', confirmationKey: null, savesPrivateNote: false };
+}
