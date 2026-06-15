@@ -24,6 +24,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js';
+import { resolveAuthSession, isPossibleLogout } from './auth-session-guard.js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -159,9 +160,27 @@ export async function linkIdentity(provider) {
   return supabase.auth.linkIdentity({ provider, options: { redirectTo } });
 }
 
+// True only for the brief window around a user-initiated sign-out. The auth
+// guard reads this so a DELIBERATE sign-out clears immediately, while a
+// transient SIGNED_OUT (PWA resume / rotated-token race) gets the recovery
+// refresh first. Module-level (not per-subscriber) because the SIGNED_OUT
+// event fans out to every onAuthChange subscriber.
+let deliberateSignOut = false;
+
 /** Sign the user out. Returns the supabase-js result. */
 export async function signOut() {
-  return supabase.auth.signOut();
+  // Flag BEFORE calling signOut() so the SIGNED_OUT event it emits is treated
+  // as deliberate (no recovery attempt). onAuthChange clears the flag once the
+  // event is consumed.
+  deliberateSignOut = true;
+  try {
+    return await supabase.auth.signOut();
+  } catch (e) {
+    // If signOut itself throws, don't leave the flag stuck — a later transient
+    // SIGNED_OUT would then be misread as deliberate and skip recovery.
+    deliberateSignOut = false;
+    throw e;
+  }
 }
 
 /**
@@ -176,10 +195,68 @@ export function onAuthChange(callback) {
   // Fire immediately with the current session so callers don't need a
   // separate getSession() call. Then subscribe to future changes.
   supabase.auth.getSession().then(({ data }) => callback(data.session ?? null));
-  const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session ?? null);
+
+  // Re-arm the background token refresher whenever the app/tab returns to the
+  // foreground. A PWA resume or a long-backgrounded tab lets the service
+  // worker pause supabase-js's auto-refresh timer; without re-arming, a phone
+  // picked up after hours wakes with a dead timer and the very next auth event
+  // looks like a sign-out. startAutoRefresh() is idempotent and safe to call
+  // repeatedly. (Pairs with the resolveAuthSession recovery below — re-arming
+  // PREVENTS the stale-timer logout; recovery CATCHES the ones that slip past.)
+  const rearmAutoRefresh = () => {
+    try {
+      const visible =
+        typeof document === 'undefined' || document.visibilityState === 'visible';
+      if (visible && typeof supabase.auth.startAutoRefresh === 'function') {
+        supabase.auth.startAutoRefresh();
+      }
+    } catch (_) {
+      // best-effort; never let a re-arm failure throw into a UI event handler
+    }
+  };
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('visibilitychange', rearmAutoRefresh);
+  }
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('focus', rearmAutoRefresh);
+  }
+
+  const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+    // Fast path: a live session, or any non-logout event, passes straight
+    // through unchanged.
+    if (!isPossibleLogout(event, session)) {
+      callback(session ?? null);
+      return;
+    }
+
+    // A null / SIGNED_OUT event. Capture-and-reset the deliberate flag now so
+    // concurrent subscribers all see the same intent for THIS event.
+    const deliberate = deliberateSignOut;
+    deliberateSignOut = false;
+
+    // Defer the recovery refresh: calling supabase.auth.* synchronously inside
+    // the onAuthStateChange callback can deadlock on supabase-js's internal
+    // auth lock. setTimeout(…, 0) runs it after the callback returns.
+    setTimeout(async () => {
+      const { session: resolved } = await resolveAuthSession(
+        event,
+        session ?? null,
+        supabase.auth,
+        { deliberate },
+      );
+      callback(resolved);
+    }, 0);
   });
-  return () => sub.subscription.unsubscribe();
+
+  return () => {
+    sub.subscription.unsubscribe();
+    if (typeof document !== 'undefined' && document.removeEventListener) {
+      document.removeEventListener('visibilitychange', rearmAutoRefresh);
+    }
+    if (typeof window !== 'undefined' && window.removeEventListener) {
+      window.removeEventListener('focus', rearmAutoRefresh);
+    }
+  };
 }
 
 export default supabase;
