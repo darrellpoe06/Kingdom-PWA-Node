@@ -15,6 +15,8 @@ import { Opportunities } from './components/DevOps.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import Engagement from './components/Engagement.jsx';
 import Choir from './components/Choir.jsx';
+import ChurchLearn from './components/ChurchLearn.jsx';
+import { PROPOSED_COHORT_START } from './lib/church-classes.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import Imported from './components/Imported.jsx';
@@ -1629,7 +1631,7 @@ function getInitialChurchView() {
     if (typeof window === 'undefined') return 'home';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : 'home';
+    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : v === 'learn' ? 'learn' : 'home';
   } catch (e) { return 'home'; }
 }
 
@@ -3481,6 +3483,16 @@ export default function PoeFinancialSystem() {
   // One Voice (Church tab) — serve notes + ideas/testimony land here,
   // persisted with the rest of the data record.
   const addChurchVoice = (entry) => setData(d => ({ ...d, churchVoice: [...(d.churchVoice || []), entry] }));
+  // Church > Learn (Darrell 2026-06-15): the youth A.I. class. Progress is the
+  // student's REAL record (per-module completedAt); cohort start + confirmed flag
+  // are Governor-set real values that drive the computed timeline (no painted dates).
+  const toggleClassModule = (moduleId) => setData(d => {
+    const p = { ...(d.classProgress || {}) };
+    if (p[moduleId]) delete p[moduleId]; else p[moduleId] = new Date().toISOString();
+    return { ...d, classProgress: p };
+  });
+  const setClassCohortStart = (date) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), startDate: date } }));
+  const confirmClassCohort = (confirmed) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), confirmed: !!confirmed } }));
   // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
   // build inbox. Persisted with the rest of the data record (device-local;
   // never synced to a shared surface — notes are siloed by design).
@@ -4502,7 +4514,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir']].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn']].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4581,6 +4593,17 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
+        {view === 'church' && churchView === 'learn' && <ChurchLearn
+          cohortStart={data.classCohort?.startDate || PROPOSED_COHORT_START}
+          cohortConfirmed={!!data.classCohort?.confirmed}
+          setCohortStart={setClassCohortStart}
+          confirmCohort={confirmClassCohort}
+          progress={data.classProgress || {}}
+          toggleModule={authSession ? toggleClassModule : null}
+          addChurchVoice={authSession ? addChurchVoice : null}
+          isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
+          currentUserName={authSession?.user?.email || ''}
+        />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
