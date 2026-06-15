@@ -3431,7 +3431,8 @@ export default function PoeFinancialSystem() {
   const updateCapexItem = (id, updates) => setData(d => ({ ...d, capexItems: (d.capexItems || []).map(x => x.id === id ? { ...x, ...updates, cost: updates.cost !== undefined ? parseFloat(updates.cost) || 0 : x.cost, priority: updates.priority !== undefined ? parseInt(updates.priority) || 3 : x.priority } : x) }));
   const deleteCapexItem = (id) => setData(d => ({ ...d, capexItems: (d.capexItems || []).filter(x => x.id !== id) }));
   // v28+ MVP v1.5: Buffer Fund — slider-driven current balance + deliberate-edit target.
-  const setBufferCurrent = (val) => setData(d => ({ ...d, meta: { ...d.meta, bufferCurrent: parseFloat(val) || 0 } }));
+  // bufferCurrent is computed from real savings balances (bufferCurrentReal),
+  // never set manually — removed the painted-slider setter (DR-0061).
   const setBufferTarget = (val) => setData(d => ({ ...d, meta: { ...d.meta, bufferTarget: parseFloat(val) || 0 } }));
   // v28+ MVP v1.5 round 5: tier switcher (also persists via setData)
   const setUserTier = (tier) => setData(d => ({ ...d, userTier: tier }));
@@ -3578,6 +3579,15 @@ export default function PoeFinancialSystem() {
   // so Pass 2 of the financial audit can unit-test it directly. See FLAG-10
   // fix in CALC-INVENTORY.md for why incidents contribute 0 to totalMonthly.
   const reserves = useMemo(() => computeReserves(data), [data]);
+  // 2026-06-15 — the buffer "current" is a REAL loop now: it reflects actual
+  // savings-account balances (the reserve you actually hold), not a hand-typed
+  // slider (DR-0061: a surface is a live view of real state — a painted number
+  // is worse than none). Recomputes whenever a balance changes or a bank sync
+  // lands; sums every savings account, excluding any in a legal hold.
+  const bufferCurrentReal = useMemo(
+    () => (data.accounts || []).filter(a => a.type === 'savings' && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0),
+    [data.accounts]
+  );
 
   const pressureCalc = useMemo(() => {
     const map = data.pressureMappings[pressure];
@@ -4498,12 +4508,12 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} dispatchIncident={dispatchIncident} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
+        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} dispatchIncident={dispatchIncident} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')}>
           <>
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
-            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={data.meta?.bufferCurrent || 0} setBufferCurrent={setBufferCurrent} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
+            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
             {booksView === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
             {booksView === 'transactions' && <BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} />}
             {booksView === 'imported' && (importedAllowed
@@ -7654,10 +7664,11 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
               </div>
             </div>
 
-            {/* Slider — current balance, live update */}
+            {/* Current balance — a REAL, read-only progress bar from live
+                savings-account balances (no longer a hand-typed slider). */}
             <div className="mt-4">
               <div className="flex items-baseline justify-between mb-1">
-                <label htmlFor="buffer-current-slider" className="text-[9px] uppercase tracking-wider text-[#5A5751]">Current balance · slide to update</label>
+                <label htmlFor="buffer-current-slider" className="text-[9px] uppercase tracking-wider text-[#5A5751]">Current balance · from your savings accounts</label>
                 <span className="text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(bufferCurrent)}</span>
               </div>
               <input
@@ -7665,14 +7676,14 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
                 type="range"
                 min="0"
                 max={bufferTarget}
-                step={Math.max(25, Math.round(bufferTarget / 200))}
                 value={Math.min(bufferCurrent, bufferTarget)}
-                onChange={e => setBufferCurrent && setBufferCurrent(e.target.value)}
+                disabled
+                aria-readonly="true"
                 aria-valuemin="0"
                 aria-valuemax={bufferTarget}
                 aria-valuenow={bufferCurrent}
-                aria-valuetext={`${fmt(bufferCurrent)} of ${fmt(bufferTarget)}`}
-                className="w-full accent-[#B85838]"
+                aria-valuetext={`${fmt(bufferCurrent)} of ${fmt(bufferTarget)} — from your savings balance`}
+                className="w-full accent-[#5A6E3D]"
               />
             </div>
 
