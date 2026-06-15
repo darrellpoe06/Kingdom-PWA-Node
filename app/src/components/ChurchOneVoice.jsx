@@ -8,8 +8,9 @@
 // (Darrell 2026-06-11). Per MODE-ROUTING the suggestion is visible and the
 // person always has the last word. Built for Bishop Gwin first: the head
 // shepherd, under the Shepherd and Overseer of souls (1 Peter 2:25).
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { suggestDestination, destinationsFor } from '../lib/one-voice-routing.js';
+import { useVoiceDictation } from '../lib/voice-dictation.js';
 
 const DESTS = destinationsFor('church');
 
@@ -24,6 +25,16 @@ export function ChurchOneVoice({ addPrayerRequest, updateConference, conference,
     setText(v);
     if (!touchedRoute) setRoute(suggestDestination(v, 'prayer'));
   };
+
+  // Voice input — same box, spoken instead of typed. The mic only appears where
+  // the browser supports speech recognition; everywhere else the box stays
+  // type-only (graceful degradation). A spoken phrase appends to whatever is
+  // already there and re-runs the destination suggestion, exactly like typing.
+  const latestText = useRef('');
+  latestText.current = text;
+  const mic = useVoiceDictation({
+    onTranscript: (t) => onText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
+  });
 
   const send = () => {
     const t = text.trim();
@@ -72,6 +83,35 @@ export function ChurchOneVoice({ addPrayerRequest, updateConference, conference,
         value={text}
         onChange={e => onText(e.target.value)}
       />
+      {(mic.supported || mic.error) && (
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          {mic.supported && (
+            <button
+              type="button"
+              onClick={mic.toggle}
+              aria-pressed={mic.listening}
+              aria-label={mic.listening ? 'Stop voice input' : 'Start voice input — speak instead of typing'}
+              className={`text-[11px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${
+                mic.listening
+                  ? 'bg-[#B85838] text-white border-[#B85838] animate-pulse'
+                  : 'border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white'
+              }`}
+            >
+              {mic.listening ? '⏹ Stop' : '🎤 Speak'}
+            </button>
+          )}
+          {mic.listening && (
+            <span className="text-[10px] text-[#B85838] uppercase tracking-wider" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              listening…
+            </span>
+          )}
+          {mic.error && (
+            <span role="alert" className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              {mic.error}
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
         {DESTS.map(r => (
           <button
