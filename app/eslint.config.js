@@ -35,6 +35,7 @@ export default [
         __BUILD_SHA__: 'readonly',
         __WORKFLOW_STATS__: 'readonly',
         __GOVERNANCE_QUEUE__: 'readonly',
+        __DR_LEDGER__: 'readonly',
       },
     },
     plugins: {
