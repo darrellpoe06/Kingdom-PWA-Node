@@ -10,7 +10,8 @@
     "lint": "eslint src --max-warnings 0",
     "lint:fix": "eslint src --fix",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "verify": "npm run lint && vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
