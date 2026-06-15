@@ -85,6 +85,18 @@ export function toSermonDocShape(row) {
   };
 }
 
+export function toTeamDocShape(row) {
+  return {
+    id: row.id,
+    docDate: row.doc_date ?? null,
+    docType: row.doc_type ?? 'other',
+    title: row.title,
+    documentUrl: row.document_url ?? null,
+    documentSource: row.document_source ?? null,
+    createdAt: row.created_at ?? null,
+  };
+}
+
 export function toScheduleShape(row) {
   return {
     id: row.id,
@@ -336,6 +348,7 @@ export const subscribeChoirMessages = makeSubscriber('choir_messages', toChoirMe
 export const subscribeAbsences = makeSubscriber('choir_absences', toAbsenceShape, { col: 'start_date', asc: true });
 export const subscribeSermons = makeSubscriber('choir_sermons', toSermonShape, { col: 'service_date', asc: false });
 export const subscribeResources = makeSubscriber('choir_resources', toResourceShape, { col: 'created_at', asc: true });
+export const subscribeTeamDocuments = makeSubscriber('choir_team_documents', toTeamDocShape, { col: 'doc_date', asc: false });
 
 // --- Writes (owner/admin via RLS; fail soft + surface to caller) -------------
 
@@ -616,15 +629,40 @@ export function isExternalUrl(u) {
   return typeof u === 'string' && /^https?:\/\//i.test(u.trim());
 }
 
-// Resolve an openable URL for a sermon document. External links pass through;
-// Storage paths get a short-lived signed URL (RLS: only owner/admin can, so
-// non-admins never get one). Returns null if not viewable.
-export async function openSermonDocument(documentUrl) {
+// Resolve an openable URL for a document in a given bucket. External links pass
+// through; Storage paths get a short-lived signed URL (RLS gates who succeeds).
+async function openDocument(bucket, documentUrl) {
   if (!documentUrl) return null;
   if (isExternalUrl(documentUrl)) return documentUrl;
-  const { data, error } = await supabase.storage.from('sermon-documents').createSignedUrl(documentUrl, 300);
-  if (error) { console.warn('[choir-sync] signed url failed:', error); return null; }
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(documentUrl, 300);
+  if (error) { console.warn(`[choir-sync] signed url (${bucket}) failed:`, error); return null; }
   return data?.signedUrl || null;
+}
+// Sermon docs: owner/admin only (RLS). Team docs: whole choir (RLS).
+export const openSermonDocument = (url) => openDocument('sermon-documents', url);
+export const openTeamDocument = (url) => openDocument('church-team-documents', url);
+
+export async function saveTeamDocument(doc) {
+  const ctx = await writeContext();
+  if (ctx.error) return { skipped: ctx.error };
+  const row = {
+    doc_date: doc.docDate ?? null,
+    doc_type: doc.docType ?? 'other',
+    title: doc.title ?? '',
+    document_url: doc.documentUrl ?? null,
+    document_source: doc.documentSource || 'manual',
+  };
+  if (doc.id) {
+    const { error } = await supabase.from('choir_team_documents').update({ ...row, updated_by: ctx.userId }).eq('id', doc.id);
+    return error ? { skipped: 'update-error', error } : { saved: true };
+  }
+  const { error } = await supabase.from('choir_team_documents').insert({ ...row, instance_id: ctx.tenantId, created_by: ctx.userId });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
+}
+
+export async function deleteTeamDocument(id) {
+  const { error } = await supabase.from('choir_team_documents').delete().eq('id', id);
+  return error ? { skipped: 'delete-error', error } : { deleted: true };
 }
 
 // --- Ongoing import from the YouTube channel (director-triggered, not a timer) -

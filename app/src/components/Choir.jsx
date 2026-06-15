@@ -24,6 +24,7 @@ import {
   sortServices, songsForService, weekBucket, isOutOnDate, suggestBackups,
   subscribeSongs, subscribeSchedule, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
   subscribeSermons, subscribeResources, subscribeSermonDocuments, saveSermonDocument,
+  subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, openTeamDocument,
   saveSong, deleteSong, reuseSong, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveSermon, deleteSermon, reuseSermon, saveResource, deleteResource, importSermonsFromChannel,
@@ -649,9 +650,62 @@ function ResourcesPanel({ resources, canEdit, onAdd, onDelete }) {
 }
 
 // -----------------------------------------------------------------------------
+// Team Docs — order of service / announcements / calendar; the whole team's
+// weekly get-ready material (choir-visible). Darrell 2026-06-14.
+// -----------------------------------------------------------------------------
+const TEAM_TYPES = [['order-of-service', 'Order of Service'], ['announcements', 'Announcements'], ['calendar', 'Calendar'], ['other', 'Other']];
+const teamTypeLabel = (t) => (TEAM_TYPES.find(([k]) => k === t)?.[1]) || t;
+
+function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
+  const [adding, setAdding] = useState(false);
+  const [f, setF] = useState({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '' });
+  const open = async (d) => { const u = await openTeamDocument(d.documentUrl); if (u) window.open(u, '_blank', 'noopener'); };
+  return (
+    <div>
+      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>The team's weekly get-ready material — order of service, announcements, and the church calendar. Everyone on the roster can open these.</p>
+      {canEdit && (adding ? (
+        <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 mb-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div><label className={LABEL} htmlFor="td-date">Date</label><input id="td-date" type="date" className={FIELD} value={f.docDate} onChange={(e) => setF((p) => ({ ...p, docDate: e.target.value }))} /></div>
+            <div><label className={LABEL} htmlFor="td-type">Type</label>
+              <select id="td-type" className={FIELD} value={f.docType} onChange={(e) => setF((p) => ({ ...p, docType: e.target.value }))}>
+                {TEAM_TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+            </div>
+          </div>
+          <div><label className={LABEL} htmlFor="td-title">Title</label><input id="td-title" className={FIELD} value={f.title} onChange={(e) => setF((p) => ({ ...p, title: e.target.value }))} placeholder="e.g. 06-14 Order of Service" /></div>
+          <div><label className={LABEL} htmlFor="td-url">Document link</label><input id="td-url" className={FIELD} value={f.documentUrl} onChange={(e) => setF((p) => ({ ...p, documentUrl: e.target.value }))} placeholder="https://…" /></div>
+          <div className="flex gap-2">
+            <button type="button" disabled={!f.title.trim()} onClick={() => { onAdd(f); setF({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '' }); setAdding(false); }} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>Add</button>
+            <button type="button" onClick={() => setAdding(false)} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
+          </div>
+        </div>
+      ) : <button type="button" onClick={() => setAdding(true)} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mb-2`}>+ Add document</button>)}
+      {docs.length ? (
+        <div className="bg-white border border-[#1A1815]">
+          {docs.map((d) => (
+            <div key={d.id} className="flex items-baseline justify-between gap-2 p-3 border-b border-[#E8E4DC]">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="text-[9px] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{teamTypeLabel(d.docType)}</span>
+                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.title}</span>
+                {d.docDate && <span className="text-[11px] text-[#5A5751]">{fmtDate(d.docDate)}</span>}
+              </div>
+              <div className="flex gap-2">
+                {d.documentUrl && <button type="button" onClick={() => open(d)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Open</button>}
+                {canEdit && <button type="button" onClick={() => onDelete(d)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No team documents yet.</p>}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Surface
 // -----------------------------------------------------------------------------
-const TABS = [['week', 'This week'], ['schedule', 'Schedule'], ['sermons', 'Sermons'], ['availability', 'Availability'], ['messages', 'Messages'], ['resources', 'Resources'], ['roster', 'Roster']];
+const TABS = [['week', 'This week'], ['schedule', 'Schedule'], ['sermons', 'Sermons'], ['teamdocs', 'Team Docs'], ['availability', 'Availability'], ['messages', 'Messages'], ['resources', 'Resources'], ['roster', 'Roster']];
 
 export default function Choir() {
   const [signedIn, setSignedIn] = useState(false);
@@ -664,6 +718,7 @@ export default function Choir() {
   const [absences, setAbsences] = useState([]);
   const [sermons, setSermons] = useState([]);
   const [sermonDocs, setSermonDocs] = useState([]); // owner/admin only (RLS)
+  const [teamDocs, setTeamDocs] = useState([]);
   const [resources, setResources] = useState([]);
   const [songForm, setSongForm] = useState(null);     // { initial } | null
   const [serviceForm, setServiceForm] = useState(null);
@@ -690,6 +745,7 @@ export default function Choir() {
       subscribeAbsences(setAbsences),
       subscribeSermons(setSermons),
       subscribeSermonDocuments(setSermonDocs),
+      subscribeTeamDocuments(setTeamDocs),
       subscribeResources(setResources),
     ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
@@ -766,6 +822,14 @@ export default function Choir() {
           onDelete={async (s) => { reportSkip(await deleteSermon(s.id)); }}
           onReuse={async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType)); }}
           onImport={() => importSermonsFromChannel()}
+        />
+      )}
+
+      {tab === 'teamdocs' && (
+        <TeamDocsPanel
+          docs={teamDocs} canEdit={access.canEdit}
+          onAdd={async (d) => { reportSkip(await saveTeamDocument(d)); }}
+          onDelete={async (d) => { reportSkip(await deleteTeamDocument(d.id)); }}
         />
       )}
 
