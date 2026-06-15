@@ -65,6 +65,110 @@ function readGovernanceQueue() {
 }
 const governanceQueue = readGovernanceQueue();
 
+// Decision Record (DR) ledger (DR-0065: the app is the primary artifact +
+// sovereignty: the app must be fully usable without GitHub). The decided
+// records live in docs/decisions/ — per-DR files (rich frontmatter + ## Decision
+// + ## Context) for most IDs, plus a chain table in INDEX.md for DR-0017..0049
+// which were recorded as INDEX rows rather than per-DR files. This parses BOTH
+// at build time so the in-app Decisions tab renders the SAME real ledger with no
+// outbound github.com link. Best-effort: a missing dir/file degrades the entry,
+// never crashes the build. Re-runs on every build, so the bundled ledger stays
+// current with the repo.
+function readDecisionLedger() {
+  const dir = fileURLToPath(new URL('../docs/decisions/', import.meta.url));
+  let names = [];
+  try { names = readdirSync(dir); } catch { return { ok: false, count: 0, items: [] }; }
+
+  const read = (f) => {
+    let raw = readFileSync(dir + f, 'utf8');
+    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+    return raw.replace(/\r\n/g, '\n');
+  };
+  // Lightweight YAML-frontmatter scalar reader (no dep): first --- ... --- block.
+  const frontmatter = (raw) => {
+    const m = /^---\n([\s\S]*?)\n---/.exec(raw);
+    const out = {};
+    if (!m) return out;
+    for (const line of m[1].split('\n')) {
+      const mm = /^([A-Za-z_-]+):\s*(.*)$/.exec(line);
+      if (mm) out[mm[1]] = mm[2].trim();
+    }
+    return out;
+  };
+  // Extract a "## <name>" section body (up to the next "## ").
+  const section = (raw, name) => {
+    const parts = raw.split(/^##\s+/m);
+    for (const p of parts) {
+      if (p.toLowerCase().startsWith(name.toLowerCase())) {
+        return p.slice(p.indexOf('\n') + 1).trim();
+      }
+    }
+    return '';
+  };
+  // Markdown -> readable plain text (keep bullets/newlines; drop bold/code/links).
+  const plain = (s) => s
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\*\*/g, '')
+    .replace(/`/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, 2600);
+  const stripNull = (v) => (v && v !== 'null' && v !== '[]' ? v : '');
+
+  const byNum = new Map();
+
+  // 1) Per-DR files: DR-XXXX-*.md (skips INDEX.md / README.md / PRINCIPLES.md).
+  for (const f of names) {
+    const fm = /^DR-(\d{4})-.+\.md$/.exec(f);
+    if (!fm) continue;
+    let raw;
+    try { raw = read(f); } catch { continue; }
+    const meta = frontmatter(raw);
+    const num = parseInt(fm[1], 10);
+    byNum.set(num, {
+      id: meta.id || `DR-${fm[1]}`,
+      num,
+      title: meta.title || '',
+      date: meta.date || '',
+      status: (meta.status || '').toLowerCase(),
+      tier: stripNull(meta.tier),
+      supersededBy: stripNull(meta['superseded-by']),
+      decision: plain(section(raw, 'Decision')),
+      rationale: plain(section(raw, 'Context')),
+      owner: '',
+      source: stripNull(meta.source),
+    });
+  }
+
+  // 2) INDEX.md chain table (DR-0017..0049): rows with no per-DR file. Shape:
+  //    | **DR-0017** | 2026-06-09 | <decision one line> | <owner> | Accepted | source.md |
+  let index = '';
+  try { index = read('INDEX.md'); } catch { /* chain rows just won't be added */ }
+  for (const line of index.split('\n')) {
+    const m = /^\|\s*\*\*DR-(\d{4})\*\*\s*\|\s*([^|]*?)\s*\|\s*(.*?)\s*\|\s*([^|]*?)\s*\|\s*([^|]*?)\s*\|\s*([^|]*?)\s*\|?\s*$/.exec(line);
+    if (!m) continue;
+    const num = parseInt(m[1], 10);
+    if (byNum.has(num)) continue; // a per-DR file already provided richer content
+    byNum.set(num, {
+      id: `DR-${m[1]}`,
+      num,
+      title: plain(m[3]),
+      date: m[2].trim(),
+      status: m[5].trim().toLowerCase(),
+      tier: '',
+      supersededBy: '',
+      decision: '',
+      rationale: '',
+      owner: plain(m[4]),
+      source: m[6].replace(/`/g, '').trim(),
+    });
+  }
+
+  const items = Array.from(byNum.values()).sort((a, b) => b.num - a.num);
+  return { ok: items.length > 0, count: items.length, items };
+}
+const decisionLedger = readDecisionLedger();
+
 // base set so built assets resolve under the Synology Web Station alias portal
 // at /poetech-app/ on the shared QuickConnect URL.
 //
@@ -108,6 +212,7 @@ export default defineConfig({
     __BUILD_SHA__: JSON.stringify(buildSha),
     __WORKFLOW_STATS__: JSON.stringify(workflowStats),
     __GOVERNANCE_QUEUE__: JSON.stringify(governanceQueue),
+    __DR_LEDGER__: JSON.stringify(decisionLedger),
   },
   server: {
     proxy: {
