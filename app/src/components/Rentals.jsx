@@ -86,6 +86,14 @@ const propertyLabel = (r) => {
   if (r.address && /\s/.test(String(r.address).trim())) return full;
   return prettifyShortName(r.name || r.address || 'Property');
 };
+// Total photos on a property: room-filed photos + maintenance-log photos. Shown
+// on the card so the count is known before drilling into records/maintenance.
+const propertyPhotoCount = (r) => {
+  let n = 0;
+  (r?.rooms || []).forEach(rm => { n += (rm.photos || []).length; });
+  (r?.maintenanceLog || []).forEach(e => { n += (e.photos || []).length; });
+  return n;
+};
 const ROOM_ITEM_PRESETS = ['Cabinets','Windows','Furnace','Plumbing — Toilet','Plumbing — Sink','Plumbing — Faucet','Plumbing — Bathtub','Plumbing — Shower','Flooring','Walls / Paint','Ceiling','Lighting','Outlets / Switches','Doors','Trim','Other'];
 const ROOM_ITEM_STATUSES = [
   { key: 'good',       label: 'Good',           symbol: '✓' },
@@ -1475,6 +1483,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       <div className="text-xs text-[#5A5751]">
                         {(() => { const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', '); return (full && full !== propertyLabel(r)) ? <span className="mr-2">{full}</span> : null; })()}
                         {r.propertyType && <span className="uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
+                        {propertyPhotoCount(r) > 0 && <span className="uppercase tracking-wider text-[9px] text-[#B85838] ml-2">· 📷 {propertyPhotoCount(r)} photo{propertyPhotoCount(r) === 1 ? '' : 's'}</span>}
                       </div>
                       {r.tenantName && (
                         <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -1505,7 +1514,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   <div className="flex gap-2 mt-2 items-baseline flex-wrap">
                     <button type="button" onClick={() => editingPropId === r.id ? cancelPropForm() : startEditProp(r)} aria-expanded={editingPropId === r.id} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingPropId === r.id ? '× Cancel edit' : '✎ Edit'}</button>
                     <button type="button" onClick={() => openRecords(r)} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
-                      {openRecordsId === r.id ? '× Close records' : `📋 Records (${(r.maintenanceLog || []).length} maint · ${(r.conversationLog || []).length} notes)`}
+                      {openRecordsId === r.id ? '× Close records' : `📋 Records (${(r.maintenanceLog || []).length} maint · ${(r.conversationLog || []).length} notes · ${propertyPhotoCount(r)} photos)`}
                     </button>
                     {(r.maintenanceLog || []).length > 0 && (
                       <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
