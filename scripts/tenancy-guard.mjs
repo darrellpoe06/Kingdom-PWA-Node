@@ -118,6 +118,66 @@ export function checkProvisioning() {
   return { ok: problems.length === 0, problems, file };
 }
 
+// --- Check C: identity gate (DR-0074) --------------------------------------
+// Real family first names (and the family device-picker) must be gated on
+// VERIFIED family membership (isFamilyEmail / isFamilyMember), never on the
+// mere presence of a session (authSession). A signed-in NON-family user has an
+// authSession too, so an authSession-only gate renders "Darrell"/"Christina"
+// to an outsider — the 2026-06-14 parishioner incident. This catches the exact
+// regression: a real-name literal in PROFILES selected by a condition that
+// doesn't reference family membership. Pass a string to test the catch without
+// touching the real file (anti-theater proof, DR-0060).
+const MONOLITH = join(ROOT, 'app/src/poe-financial-mvp-v28.jsx');
+const REAL_FAMILY_NAMES = ['Darrell', 'Christina'];
+const MEMBERSHIP_RE = /isFamilyEmail|isFamilyMember/;
+
+export function checkIdentityGate(srcOverride = null) {
+  const problems = [];
+  const src = srcOverride != null
+    ? srcOverride
+    : (existsSync(MONOLITH) ? readFileSync(MONOLITH, 'utf8') : null);
+  if (src == null) {
+    return { ok: true, problems: ['monolith not found (nothing to check)'], names: [] };
+  }
+
+  // Isolate the PROFILES array — the surface that renders selectable identities.
+  const block = src.match(/const\s+PROFILES\s*=\s*\[([\s\S]*?)\n\s*\];/);
+  if (!block) {
+    return { ok: false, problems: ['could not locate the PROFILES array — identity guard is stale, re-anchor it'], names: [] };
+  }
+  const body = block[1];
+
+  // Non-vacuous: the real names must appear in PROFILES, or the guard is
+  // matching the wrong thing (names renamed/moved — re-anchor it).
+  const namesFound = REAL_FAMILY_NAMES.filter(n => new RegExp(`['"]${n}['"]`).test(body));
+  if (namesFound.length === 0) {
+    return { ok: false, problems: ['no real family names found in PROFILES — identity guard is stale, re-anchor it'], names: [] };
+  }
+
+  // Every real-name literal must be chosen by a condition that references
+  // family MEMBERSHIP — never bare session presence, never ungated.
+  for (const line of body.split('\n')) {
+    if (!REAL_FAMILY_NAMES.some(n => new RegExp(`['"]${n}['"]`).test(line))) continue;
+    const cond = (line.match(/name:\s*([^?]*?)\s*\?/) || [, ''])[1];
+    if (!MEMBERSHIP_RE.test(cond)) {
+      problems.push(`real family name not gated on family membership (DR-0074): ${line.trim()}`);
+    }
+  }
+
+  // Integrity: a membership identifier used to gate the names must itself be
+  // derived from isFamilyEmail, so it can't be hollowed to `= !!authSession`.
+  if (/isFamilyMember/.test(body)) {
+    const def = src.match(/const\s+isFamilyMember\s*=\s*([^\n;]*)/);
+    if (!def) {
+      problems.push('PROFILES gates on isFamilyMember but its definition was not found');
+    } else if (!/isFamilyEmail/.test(def[1])) {
+      problems.push(`isFamilyMember must be derived from isFamilyEmail; found: const isFamilyMember = ${def[1].trim()}`);
+    }
+  }
+
+  return { ok: problems.length === 0, problems, names: namesFound };
+}
+
 // --- CLI -------------------------------------------------------------------
 function isMain() {
   return process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
@@ -126,6 +186,7 @@ function isMain() {
 if (isMain()) {
   const { tableScoped, rlsOn, missing } = scanTenancy();
   const prov = checkProvisioning();
+  const ident = checkIdentityGate();
 
   console.log('# TENANCY GUARD (deterministic data-isolation gate)\n');
   console.log('## A. RLS coverage');
@@ -149,7 +210,17 @@ if (isMain()) {
     console.log('');
   }
 
-  const failed = missing.length > 0 || !prov.ok;
+  console.log('## C. Identity gating (DR-0074)');
+  console.log(`Real family names checked in PROFILES: ${ident.names.join(', ') || '(none found)'}`);
+  if (ident.ok) {
+    console.log('PASS — real family names render only to verified family membership.\n');
+  } else {
+    console.log('FAIL — identity can leak to a non-family session:');
+    ident.problems.forEach(p => console.log(`  - ${p}`));
+    console.log('');
+  }
+
+  const failed = missing.length > 0 || !prov.ok || !ident.ok;
   console.log(failed ? 'TENANCY GUARD: FAIL' : 'TENANCY GUARD: PASS');
   process.exit(failed ? 1 : 0);
 }
