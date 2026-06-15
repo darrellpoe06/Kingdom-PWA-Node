@@ -1,0 +1,22 @@
+{
+  "_comment": "Bubblewrap/TWA config for the PoeTech PWA. Prefilled from app/public/manifest.webmanifest. Used by `bubblewrap init --manifest` or as a reference for PWABuilder. Pick a final packageId before publishing (cannot change after first Play upload).",
+  "packageId": "us.poetech.app",
+  "host": "poetech.us",
+  "name": "PoeTech Family OS",
+  "launcherName": "PoeTech",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "themeColor": "#1A1815",
+  "navigationColor": "#1A1815",
+  "backgroundColor": "#FAF8F4",
+  "startUrl": "/poetech-app/",
+  "webManifestUrl": "https://poetech.us/poetech-app/manifest.webmanifest",
+  "iconUrl": "https://poetech.us/poetech-app/icon.svg",
+  "maskableIconUrl": "https://poetech.us/poetech-app/icon-maskable.svg",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "fallbackType": "customtabs",
+  "enableNotifications": false,
+  "_signingNote": "bubblewrap build will generate a signing keystore and print the SHA-256 fingerprint you must place in assetlinks.json. Keep that keystore safe and backed up -- losing it means you can never update the Play listing."
+}
