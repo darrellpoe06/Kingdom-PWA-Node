@@ -114,7 +114,29 @@ portable/
     KILL_SWITCH        # ships ENGAGED (tracked); ARM flag + lock + spend are runtime
   events/
     events.jsonl       # append-only event log (runtime; gitignored)
+  MANIFEST.json        # freshness manifest (sha256 of every shipped file) -- see below
 ```
+
+## Staying current (the freshness gate)
+
+This bundle is the client-handoff artifact, so it must never silently drift from
+our processes. That guarantee is **enforced, not remembered**: `MANIFEST.json`
+pins a sha256 of every shipped file here plus a small set of tracked upstream
+sources, and a build gate (`app/src/__tests__/portable-bundle-fresh.test.js`,
+run by `npm run verify` and CI) **fails the build** if anything drifts —
+a changed file, a new uncovered file, or a moved upstream source.
+
+After any intentional change to this bundle — or after reconciling it to a
+changed upstream source the gate flagged — re-stamp:
+
+```bash
+node scripts/stamp-portable-manifest.mjs
+```
+
+Re-stamping is the deliberate "this bundle is current and client-ready" review.
+You cannot ship a stale bundle past the gate without consciously re-stamping it.
+
+## The self-contained guarantee
 
 ## The self-contained guarantee
 
