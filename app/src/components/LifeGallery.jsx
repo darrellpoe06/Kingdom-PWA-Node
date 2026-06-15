@@ -170,6 +170,27 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
     if (localOnly.length) addLifePhotos(localOnly.map(s => { const c = { ...s }; delete c.file; return c; }));
   };
 
+  // Add straight from the phone's camera folder where the browser allows it
+  // (Android Chrome/Edge: the File System Access API). You grant the folder
+  // ONCE — the app never reaches into your gallery on its own (that's the
+  // sovereignty line) — then it pulls the most recent shots in one tap. Every
+  // other device falls back to the normal photo picker above.
+  const supportsFolderPick = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+  const addFromCameraFolder = async () => {
+    if (!supportsFolderPick) return;
+    try {
+      const dir = await window.showDirectoryPicker({ id: 'poetech-camera', startIn: 'pictures' });
+      const handles = [];
+      for await (const entry of dir.values()) {
+        if (entry.kind === 'file' && /\.(jpe?g|png|webp|heic)$/i.test(entry.name)) handles.push(entry);
+      }
+      // Camera filenames sort by capture time, so newest-name-first ~= most recent.
+      handles.sort((a, b) => b.name.localeCompare(a.name));
+      const files = await Promise.all(handles.slice(0, 30).map(h => h.getFile()));
+      await onFiles(files);
+    } catch (e) { /* user cancelled the folder picker — no-op */ }
+  };
+
   const shown = filter === 'All' ? photos : photos.filter(p => (p.category || 'Other') === filter);
   const chip = (active) => `text-[10px] uppercase tracking-wider px-2.5 py-1 border ${active ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`;
 
@@ -183,10 +204,15 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
           </p>
         </div>
         {!readOnly && (
-          <label className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] cursor-pointer`}>
-            {busy ? 'Adding…' : '+ Add photos'}
-            <input type="file" accept="image/*" multiple className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
-          </label>
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] cursor-pointer`}>
+              {busy ? 'Adding…' : '+ Add photos'}
+              <input type="file" accept="image/*" multiple className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
+            </label>
+            {supportsFolderPick && (
+              <button type="button" disabled={busy} onClick={addFromCameraFolder} className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4] cursor-pointer`}>📷 From camera folder</button>
+            )}
+          </div>
         )}
       </div>
 
