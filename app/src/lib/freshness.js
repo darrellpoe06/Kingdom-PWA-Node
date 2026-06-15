@@ -20,19 +20,23 @@
 
 import { useEffect, useState } from 'react';
 import { UPDATE_EVENT } from './sw-update.js';
+import { KPI_STATUS } from './kpi-status.js';
 
-// green-700 — relative luminance ~0.16 -> 5.0:1 vs white, 4.2:1 vs black.
-export const FRESH_COLOR = '#15803D';
-// red-600  — relative luminance ~0.17 -> 4.8:1 vs white, 4.4:1 vs black.
-export const STALE_COLOR = '#DC2626';
+// Build freshness is the FIRST instance of the shared KPI status system
+// (lib/kpi-status.js): latest build => 'good' (green), a newer build waiting =>
+// 'problem' (red). Colors come from the shared palette so they can never drift
+// from the rest of the app's KPIs.
+export const FRESH_COLOR = KPI_STATUS.good.color;    // green — latest
+export const STALE_COLOR = KPI_STATUS.problem.color; // red   — old / update available
 
 // Pure descriptor for a freshness state. `stale === true` => a newer build is
-// waiting. The returned shape is everything a renderer needs to stay
-// color-safe: a color AND independent text (label / title / aria-label).
+// waiting. Carries the canonical KPI `status` key plus everything a renderer
+// needs to stay color-safe: a color AND independent text (label / title / aria).
 export function freshnessDescriptor(stale) {
   return stale
     ? {
         stale: true,
+        status: 'problem',
         color: STALE_COLOR,
         label: 'Update available — reload',
         title: 'A newer build is available. Tap to reload and update.',
@@ -40,6 +44,7 @@ export function freshnessDescriptor(stale) {
       }
     : {
         stale: false,
+        status: 'good',
         color: FRESH_COLOR,
         label: 'Latest',
         title: 'You are running the latest deployed build.',
