@@ -59,7 +59,7 @@ const dueDateFor = (urgencyKey, fromDate = new Date()) => {
   return d.toISOString().slice(0, 10);
 };
 
-const ROOM_PRESETS = ['Living Room','Kitchen','Dining Room','Bathroom','Master Bedroom','Bedroom 1','Bedroom 2','Bedroom 3','Garage','Basement','Attic','Laundry','Office','Outdoor'];
+const ROOM_PRESETS = ['Living Room','Kitchen','Dining Room','Bathroom','Primary Bedroom','Bedroom 1','Bedroom 2','Bedroom 3','Bedroom 4','Garage','Basement','Attic','Laundry','Office','Outdoor'];
 const ROOM_ITEM_PRESETS = ['Cabinets','Windows','Furnace','Plumbing — Toilet','Plumbing — Sink','Plumbing — Faucet','Plumbing — Bathtub','Plumbing — Shower','Flooring','Walls / Paint','Ceiling','Lighting','Outlets / Switches','Doors','Trim','Other'];
 const ROOM_ITEM_STATUSES = [
   { key: 'good',       label: 'Good',           symbol: '✓' },
