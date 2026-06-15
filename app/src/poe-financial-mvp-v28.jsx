@@ -3705,8 +3705,8 @@ html{scroll-padding-bottom:280px}
 [data-theme="slate"] .text-\\[\\#5A5751\\]{color:#4A5260!important}
 [data-theme="slate"] .border-\\[\\#1A1815\\]{border-color:#1B1D1F!important;border-radius:22px}
 [data-theme="slate"] .border-2{border-radius:24px}
-[data-theme="slate"] .bg-\\[\\#1A1815\\]{background-color:#1F6FEB!important;border-radius:18px}
-[data-theme="slate"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#1B5FCC!important;color:#FFFFFF!important}
+[data-theme="slate"] .bg-\\[\\#1A1815\\]{background-color:#1B5FCC!important;border-radius:18px}
+[data-theme="slate"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#1850B0!important;color:#FFFFFF!important}
 /* Roomy body prose, One UI-style */
 [data-theme="slate"] p,[data-theme="slate"] li{line-height:1.6}
 /* Pill-shaped buttons + extra-rounded inputs */
