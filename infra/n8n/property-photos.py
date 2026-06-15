@@ -87,6 +87,24 @@ def query_rows(channel, limit, offset):
     return rows
 
 
+def total_count(channel):
+    # Total images in the channel (the real archive size for the property),
+    # independent of the page limit/offset. This is the honest photo count.
+    sql = (
+        "SELECT COUNT(*) FROM posts p JOIN channels c ON c.id = p.channel_id "
+        "WHERE c.name = '%s' AND (p.file_props->>'is_image') = 'true' "
+        "AND COALESCE(p.delete_at,0) = 0" % channel
+    )
+    out = subprocess.run(
+        ["sudo", "-n", "-u", "postgres", "psql", "synochat", "-At", "-c", sql],
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+    )
+    try:
+        return int(out.stdout.decode("utf-8", "replace").strip() or "0")
+    except ValueError:
+        return 0
+
+
 def thumb_for(name):
     m = STD_NAME.match(name or "")
     if not m:
@@ -127,7 +145,7 @@ def main():
             "text": (text or "")[:280],
             "thumb": thumb_for(name),
         })
-    print(json.dumps({"count": len(photos), "photos": photos}))
+    print(json.dumps({"count": len(photos), "total": total_count(channel), "photos": photos}))
 
 
 if __name__ == "__main__":

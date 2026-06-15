@@ -75,7 +75,7 @@ export async function fetchChannelPhotos(channel, { limit = 12, offset = 0 } = {
     if (!resp.ok) return null;
     const json = await resp.json();
     const payload = Array.isArray(json) ? (json[0] || {}) : json;
-    return { photos: payload.photos || [] };
+    return { photos: payload.photos || [], total: typeof payload.total === 'number' ? payload.total : (payload.photos || []).length };
   } catch (_) {
     return null;
   }
@@ -102,7 +102,7 @@ export async function fetchFamilyPhotos({ limit = 12 } = {}) {
     if (!resp.ok) return null;
     const json = await resp.json();
     const payload = Array.isArray(json) ? (json[0] || {}) : json;
-    return { photos: payload.photos || [] };
+    return { photos: payload.photos || [], total: typeof payload.total === 'number' ? payload.total : (payload.photos || []).length };
   } catch (_) {
     return null;
   }
