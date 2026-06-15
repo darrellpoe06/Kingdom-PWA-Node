@@ -3499,6 +3499,11 @@ export default function PoeFinancialSystem() {
   });
   const setClassCohortStart = (date) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), startDate: date } }));
   const confirmClassCohort = (confirmed) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), confirmed: !!confirmed } }));
+  // All-ages conference class: same real-data plumbing as the youth cohort.
+  // Sessions check off into the shared classProgress record via lane-namespaced
+  // keys (conf:<lane>:<session>), so toggleClassModule is reused as-is.
+  const setConferenceClassDate = (date) => setData(d => ({ ...d, conferenceClass: { ...(d.conferenceClass || {}), startDate: date } }));
+  const confirmConferenceClass = (confirmed) => setData(d => ({ ...d, conferenceClass: { ...(d.conferenceClass || {}), confirmed: !!confirmed } }));
   // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
   // build inbox. Persisted with the rest of the data record (device-local;
   // never synced to a shared surface — notes are siloed by design).
@@ -4609,6 +4614,10 @@ html{scroll-padding-bottom:280px}
           addChurchVoice={authSession ? addChurchVoice : null}
           isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
           currentUserName={authSession?.user?.email || ''}
+          conferenceStart={data.conferenceClass?.startDate || ''}
+          conferenceConfirmed={!!data.conferenceClass?.confirmed}
+          setConferenceStart={setConferenceClassDate}
+          confirmConference={confirmConferenceClass}
         />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)

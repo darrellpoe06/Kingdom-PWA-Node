@@ -22,6 +22,8 @@
 // touch targets, labelled inputs, aria-live on the interest confirmation.
 import React, { useState } from 'react';
 import { CLASS_META, PROPOSED_COHORT_START, buildSchedule, progressSummary } from '../lib/church-classes.js';
+import ConferenceClass from './ConferenceClass.jsx';
+import { PROPOSED_CONFERENCE_DATE } from '../lib/conference-class.js';
 
 const fmtDate = (d) => d
   ? d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
@@ -37,10 +39,61 @@ export default function ChurchLearn({
   addChurchVoice = null,
   isGovernor = false,
   currentUserName = '',
+  // All-ages conference class (sibling class; shares the real classProgress record
+  // via lane-namespaced keys, so toggleModule doubles as the conference toggle).
+  conferenceStart = PROPOSED_CONFERENCE_DATE,
+  conferenceConfirmed = false,
+  setConferenceStart = null,
+  confirmConference = null,
 }) {
+  // Default to the conference (the all-ages ask) but keep the youth cohort one tap away.
+  const [classTab, setClassTab] = useState('conference');
   const [interestSent, setInterestSent] = useState(false);
   const schedule = buildSchedule(cohortStart);
   const prog = progressSummary(progress);
+
+  const CLASS_TABS = [
+    { id: 'conference', label: 'Conference · all ages' },
+    { id: 'youth', label: 'Youth · 8-week class' },
+  ];
+  const switcher = (
+    <div role="tablist" aria-label="Which class" className="flex flex-wrap gap-2 mb-5">
+      {CLASS_TABS.map((t) => {
+        const selected = t.id === classTab;
+        return (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={selected}
+            type="button"
+            onClick={() => setClassTab(t.id)}
+            className={`text-[11px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  if (classTab === 'conference') {
+    return (
+      <div className="max-w-3xl">
+        {switcher}
+        <ConferenceClass
+          conferenceStart={conferenceStart}
+          conferenceConfirmed={conferenceConfirmed}
+          setConferenceStart={setConferenceStart}
+          confirmConference={confirmConference}
+          progress={progress}
+          toggleSession={toggleModule}
+          addChurchVoice={addChurchVoice}
+          isGovernor={isGovernor}
+          currentUserName={currentUserName}
+        />
+      </div>
+    );
+  }
 
   const sendInterest = () => {
     if (!addChurchVoice) return;
@@ -57,6 +110,7 @@ export default function ChurchLearn({
 
   return (
     <section className="max-w-3xl" aria-labelledby="learn-h">
+      {switcher}
       <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
       <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
         {CLASS_META.title}
