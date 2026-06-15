@@ -829,14 +829,47 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // Clean up map on unmount
   useEffect(() => () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } }, []);
 
-  // Label the map by the REAL area the properties are in (most common city),
-  // defaulting to Champaign, IL — never the fictional seed town "Cedar Heights".
-  const mapAreaLabel = useMemo(() => {
+  // Label the map by the REAL location the properties are in — never a hardcoded
+  // city. First from the properties' own city/address text; if they have
+  // coordinates but no city text, reverse-geocode their centroid (the same OSM/
+  // Nominatim service the address autocomplete uses). Blank when truly unknown,
+  // so the header just reads "Property Map".
+  const cityArea = useMemo(() => {
+    const cityOf = (r) => {
+      if (r.city && r.city.trim()) return r.city.trim();
+      // "1508 Holly Hill Dr, Champaign, IL 61821" -> "Champaign"
+      const parts = (r.address || '').split(',').map(s => s.trim()).filter(Boolean);
+      return parts.length >= 2 ? parts[1] : '';
+    };
     const counts = {};
-    (rentals || []).forEach(r => { const c = (r.city || '').trim(); if (c) counts[c] = (counts[c] || 0) + 1; });
+    (rentals || []).forEach(r => { const c = cityOf(r); if (c) counts[c] = (counts[c] || 0) + 1; });
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    return top ? top[0] : 'Champaign, IL';
+    return top ? top[0] : '';
   }, [rentals]);
+  const [geoArea, setGeoArea] = useState('');
+  const geoAreaKeyRef = useRef('');
+  useEffect(() => {
+    if (cityArea) { setGeoArea(''); return; }
+    const withCoords = (rentals || []).filter(r => typeof r.lat === 'number' && typeof r.lon === 'number');
+    if (!withCoords.length) { setGeoArea(''); return; }
+    const lat = withCoords.reduce((s, r) => s + r.lat, 0) / withCoords.length;
+    const lon = withCoords.reduce((s, r) => s + r.lon, 0) / withCoords.length;
+    const key = `${lat.toFixed(3)},${lon.toFixed(3)}`;
+    if (geoAreaKeyRef.current === key) return;
+    geoAreaKeyRef.current = key;
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&lat=${lat}&lon=${lon}`);
+        const j = await resp.json();
+        const a = j.address || {};
+        const name = a.city || a.town || a.village || a.county || a.state || '';
+        if (!cancelled) setGeoArea(name);
+      } catch (e) { /* leave blank — never block the map on a naming call */ }
+    })();
+    return () => { cancelled = true; };
+  }, [rentals, cityArea]);
+  const mapAreaLabel = cityArea || geoArea;
 
   // Auto-evaluator - runs continuously off form inputs
   const evaluator = useMemo(() => {
@@ -1925,7 +1958,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       </section>
 
       <section>
-        <SectionTitle>Property Map · {mapAreaLabel}</SectionTitle>
+        <SectionTitle>{mapAreaLabel ? `Property Map · ${mapAreaLabel}` : 'Property Map'}</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-3">
           <div ref={mapRef} style={{ height: '360px', width: '100%' }} aria-label="Map of rental properties" />
           <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
