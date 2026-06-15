@@ -4998,10 +4998,18 @@ function InstallPrompt() {
   };
 
   const installAndroid = async () => {
-    if (!deferredEvt) return;
-    deferredEvt.prompt();
-    try { await deferredEvt.userChoice; } catch (e) {}
+    const evt = deferredEvt;
+    // Hide the banner the instant it's clicked, no matter what the native
+    // prompt does next. beforeinstallprompt.prompt() can only be called once
+    // and throws otherwise; keeping the hide here (not after it) means a throw
+    // can never leave the banner stuck on screen.
     setDeferredEvt(null);
+    if (evt) {
+      try { evt.prompt(); await evt.userChoice; } catch (e) {}
+    }
+    // Persist so it doesn't reappear on the next visit whether they installed
+    // or declined the native dialog.
+    dismiss();
   };
 
   if (installed || dismissed) return null;
