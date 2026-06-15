@@ -299,6 +299,23 @@ This is the structural version of "the AI should think like a human": the human'
 
 ---
 
+## Perpetual Improvement Is the Default (added 2026-06-15, declared by Darrell)
+
+**Binding rule, declared by Darrell 2026-06-15:**
+
+> "everything must get better perpetually; if not, why — and if the why makes sense it's a decision and a re-review date that makes sense for the issue; or minor benefitable micro upgrades to feel, flow and smoothness."
+
+**Everything is expected to get better, perpetually.** The standing question for anything the agent touches — and anything it chooses *not* to touch — is *"is this getting better?"*
+
+- **Default = improve.** Every pass leaves a surface better than found. The always-on steady state, needing no decision, is **minor beneficial micro-upgrades to feel, flow, and smoothness** (tap response, spacing, motion, copy clarity, latency, accessibility) — the small polish that compounds. These ride the established lane (Drive-Don't-Delegate + DR-0064); they are normal flow, not events.
+- **Not improving requires a WHY.** Declining an upgrade, parking a rough edge, or choosing "good enough" is allowed ONLY with a stated reason. "We'll leave it" with no why is not permitted.
+- **A justified non-improvement is a recorded decision WITH a re-review date.** It becomes a Decision Record (or a tracked queue entry for small ones) carrying a **`re-review:` date sized to the issue** — days for a hot edge, weeks/months for a deliberate deferral, tied to the unblocking event where one exists. Nothing parked is parked forever; the date is the promise it is revisited.
+- **Nothing stagnates silently.** No why+date means the thing is still expected to improve. Silence is not consent to stall.
+
+**Operationally:** when the agent surfaces a rough edge or declines an upgrade, it ends in one of two states — an improvement shipped, OR a one-line why + a `re-review:` date — never a silent drop. Recorded for the ledger as **DR-0075**; pairs with DR-0057 (fruit loop) + DR-0058 (review cadence) as the engines, QUALITY-OF-LIFE (merge gate), and the in-app Governor Review surface (DR-0061/0065) where re-review dates are shown.
+
+---
+
 ## Verification Doctrine — Trust Nothing Unverified (added 2026-06-15, declared by Darrell)
 
 **Binding rule, declared by Darrell 2026-06-15:**
