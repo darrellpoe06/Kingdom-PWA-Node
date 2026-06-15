@@ -72,11 +72,17 @@ minutes (LESSONS P21).
   two code halves of this record). This DR is the governing rationale + the
   RLS-reality-test discipline; it is Tier A (a documented privacy/UX fix on a
   trust surface) per RELEASE-TIERS.
-- Forward fix (queued, not in this change): extend the DR-0060 tenancy guard
-  with a third class — **identity/personalization gated on `authSession` alone
-  rather than `isFamilyEmail`** fails the build — so this class is *prevented*,
-  not re-discovered (the binding pattern of DR-0060). The guard ships only after
-  it is proven to CATCH the break (anti-theater discipline).
+- Forward fix (SHIPPED with this record): the DR-0060 tenancy guard now has a
+  third class — **Check C (identity gate)** in `scripts/tenancy-guard.mjs`: a
+  real family name in `PROFILES` selected by anything other than verified
+  membership (`isFamilyEmail`/`isFamilyMember`) FAILS the required `app — lint +
+  vitest` check, so this class is *prevented*, not re-discovered (the binding
+  pattern of DR-0060). It also asserts the membership variable is genuinely
+  derived from `isFamilyEmail` (can't be hollowed to `= !!authSession`). Per
+  DR-0060 anti-theater discipline it shipped only after being proven to CATCH
+  the break — a test injects the exact regression (`authSession ? 'Darrell'`)
+  and asserts a non-pass, plus a non-vacuous check that the guard actually finds
+  the names. (`app/src/__tests__/tenancy-guard.test.js`.)
 - Known residual: a `'self'` user's own newly-created entities inherit the
   default `visibleTo: ['darrell','christina','family']` backfill, which the
   entity filter would hide from `'self'`. Harmless for a brand-new empty
