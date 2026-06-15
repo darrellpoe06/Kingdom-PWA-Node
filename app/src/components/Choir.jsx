@@ -18,6 +18,7 @@
 // =============================================================================
 import React, { useEffect, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import PrivateGate from './PrivateGate.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
@@ -815,14 +816,16 @@ export default function Choir() {
       )}
 
       {tab === 'sermons' && (
-        <SermonsPanel
-          sermons={sermons.map((s) => ({ ...s, documentUrl: (sermonDocs.find((d) => d.sermonId === s.id) || {}).documentUrl || null }))}
-          canEdit={access.canEdit} busy={busy}
-          onSave={async (s) => { setBusy(true); const r = await saveSermon(s); reportSkip(r); if (r?.id) await saveSermonDocument(r.id, s.documentUrl); setBusy(false); }}
-          onDelete={async (s) => { reportSkip(await deleteSermon(s.id)); }}
-          onReuse={async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType)); }}
-          onImport={() => importSermonsFromChannel()}
-        />
+        <PrivateGate area="Sermons" onCancel={() => setTab('week')}>
+          <SermonsPanel
+            sermons={sermons.map((s) => ({ ...s, documentUrl: (sermonDocs.find((d) => d.sermonId === s.id) || {}).documentUrl || null }))}
+            canEdit={access.canEdit} busy={busy}
+            onSave={async (s) => { setBusy(true); const r = await saveSermon(s); reportSkip(r); if (r?.id) await saveSermonDocument(r.id, s.documentUrl); setBusy(false); }}
+            onDelete={async (s) => { reportSkip(await deleteSermon(s.id)); }}
+            onReuse={async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType)); }}
+            onImport={() => importSermonsFromChannel()}
+          />
+        </PrivateGate>
       )}
 
       {tab === 'teamdocs' && (
