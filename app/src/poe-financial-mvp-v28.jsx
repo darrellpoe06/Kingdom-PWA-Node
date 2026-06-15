@@ -6856,9 +6856,27 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
   // viewer's anonymized 'Your home church' placeholder resolves to the COLG
   // public directory entry. COLG directory info is public-by-design (the named
   // first community per COMMUNITY-FIRST-MISSION), distinct from private seed.
-  const c = (church && church.name && church.name !== 'Your home church')
+  const resolvedChurch = (church && church.name && church.name !== 'Your home church')
     ? church
     : COLG_DEFAULT_CHURCH;
+  // Backfill the COLG live-broadcast channel onto a saved COLG home that predates
+  // the youtubeChannelId field (2026-06-15). A real saved record can drop a field
+  // the seed default carries, which suppressed Live Worship for COLG members whose
+  // home was saved before the field shipped. Only backfills when the record is
+  // identifiably COLG AND the id is actually missing — a genuinely different church
+  // with no channel id still correctly shows no broadcast (never COLG's stream on
+  // someone else's page). Reality-Trace P15/P16.
+  const looksLikeCOLG =
+    /church of the living god/i.test(resolvedChurch.name || '') ||
+    /love corner/i.test(resolvedChurch.nickname || '') ||
+    (resolvedChurch.site || '').includes('thechurchofthelivinggod');
+  const c = (looksLikeCOLG && !(resolvedChurch.youtubeChannelId || '').trim())
+    ? {
+        ...resolvedChurch,
+        youtubeChannelId: COLG_DEFAULT_CHURCH.youtubeChannelId,
+        media: { ...COLG_DEFAULT_CHURCH.media, ...(resolvedChurch.media || {}) },
+      }
+    : resolvedChurch;
   const showingDefaultHome = c.isDefaultHome === true;
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
