@@ -1,0 +1,121 @@
+{
+  "name": "Local-LLM health API (live: Ollama /api/ps + /api/tags + /api/version)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "llm-health",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9f7e2a10-llm0-4400-8400-bbbbbbbbbb01",
+      "name": "Webhook (llm-health)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        320
+      ],
+      "webhookId": "llm-health"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Local-LLM health API -- live readout of Ollama on the NAS. Read-only.\n// n8n's Code node has no global fetch; HTTP goes through this.helpers.httpRequest.\n// require('fs') IS allowed (same as wf30/wf-workflow-status) and reads only the\n// optional bearer file. Mirrors wf-workflow-status's shape + bearer gate.\n//\n// OLLAMA_BASE: from INSIDE the n8n container the host LAN IP 192.168.1.26 is\n// NOT routable (verified 2026-06-15). The Ollama container is reached via the\n// host-gateway alias declared in n8n's extra_hosts. Verified reachable. The\n// container service name 'ollama' also works when on the same docker network.\n\nconst fs = require('fs');\n\nconst OLLAMA_BASE = 'http://host.docker.internal:11434';\nconst BEARER_FILE = '/home/node/.n8n/n8n-webhook-bearer.txt';\nconst PIN_THRESHOLD_MS = 60 * 60 * 1000; // expiry > 1h out = a pin, not a 5-min keep_alive\n\nfunction readSecret(p) {\n  try { return fs.readFileSync(p, 'utf8').trim(); } catch (e) { return ''; }\n}\n\nconst input = $input.first().json || {};\nconst headers = (input.headers && typeof input.headers === 'object') ? input.headers : {};\n\n// Bearer gate (defense in depth; the NAS being LAN/Funnel-only is the real\n// boundary). If no bearer file exists, the check is skipped.\nconst expected = readSecret(BEARER_FILE);\nconst auth = String(headers.authorization || headers.Authorization || '');\nconst presented = auth.replace(/^Bearer\\s+/i, '').trim();\nif (expected && presented !== expected) {\n  return [{ json: { ok: false, error: 'unauthorized' } }];\n}\n\n// Inline calls (not a nested fn) so `this` keeps the n8n helper binding.\nlet ps, tags, version;\ntry {\n  ps = await this.helpers.httpRequest({ method: 'GET', url: OLLAMA_BASE + '/api/ps', json: true, timeout: 6000 });\n  tags = await this.helpers.httpRequest({ method: 'GET', url: OLLAMA_BASE + '/api/tags', json: true, timeout: 6000 });\n  version = await this.helpers.httpRequest({ method: 'GET', url: OLLAMA_BASE + '/api/version', json: true, timeout: 6000 });\n} catch (e) {\n  return [{ json: { ok: false, error: 'ollama unreachable: ' + String(e && e.message || e) } }];\n}\n\nconst now = Date.now();\nconst loadedRaw = (ps && Array.isArray(ps.models)) ? ps.models : [];\nconst loaded = loadedRaw.map(m => {\n  const expiresAt = m.expires_at || null;\n  let pinned = false;\n  if (expiresAt) {\n    const t = Date.parse(expiresAt);\n    // A far-future / non-counting-down expiry (keep_alive = -1) reads as pinned.\n    if (!Number.isFinite(t) || (t - now) > PIN_THRESHOLD_MS) pinned = true;\n  }\n  return { name: m.name || m.model || '(unnamed)', size_vram: Number(m.size_vram) || null, expires_at: expiresAt, pinned };\n});\n\nconst installed = ((tags && Array.isArray(tags.models)) ? tags.models : [])\n  .map(m => ({ name: m.name || m.model || '(unnamed)', size: Number(m.size) || null }));\n\nreturn [{ json: {\n  ok: true,\n  generated_at: new Date().toISOString(),\n  version: (version && version.version) ? String(version.version) : null,\n  loaded,\n  installed,\n  loaded_count: loaded.length,\n  installed_count: installed.length,\n  any_pinned: loaded.some(m => m.pinned),\n} }];"
+      },
+      "id": "9f7e2a10-llm0-4400-8400-bbbbbbbbbb02",
+      "name": "Read Ollama health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Accept, Authorization"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "9f7e2a10-llm0-4400-8400-bbbbbbbbbb03",
+      "name": "Respond with JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (llm-health)": {
+      "main": [
+        [
+          {
+            "node": "Read Ollama health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Ollama health": {
+      "main": [
+        [
+          {
+            "node": "Respond with JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "pwa-api"
+    },
+    {
+      "name": "llm-health"
+    },
+    {
+      "name": "sovereign-loop"
+    }
+  ],
+  "meta": {
+    "instanceId": "poe-family"
+  },
+  "pinData": {}
+}

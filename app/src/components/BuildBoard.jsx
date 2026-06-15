@@ -12,6 +12,7 @@
 // next as the work lands. Go-live dates are honest estimates, revised here.
 import React, { useState } from 'react';
 import WorkflowStatus from './WorkflowStatus.jsx';
+import LlmHealth from './LlmHealth.jsx';
 import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
 
 // status: 'shipped' | 'building' | 'next' | 'gated'
@@ -296,6 +297,8 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
       </p>
 
       <WorkflowStatus />
+
+      <LlmHealth />
     </div>
   );
 }
