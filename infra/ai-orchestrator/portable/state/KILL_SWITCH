@@ -1,0 +1,14 @@
+ENGAGED
+
+This file is the kill-switch, and it ships PRESENT on purpose.
+
+While this file exists, the orchestrator is INERT: it stands up, heartbeats, and
+obeys its Charter, but it will not self-drive or summon any vendor LLM -- no
+matter what else is configured. This is the June-6 runaway rule made physical:
+the default state is paused.
+
+To disengage the kill-switch (a deliberate, audited act):  ./disarm.sh --off
+or simply delete this file. Disengaging the kill-switch alone is NOT enough to
+arm autonomy -- you must also set the ARM flag (./arm.sh) and configure budgets.
+And even then, the skeleton has no self-drive logic to run; it only logs
+"standing by".

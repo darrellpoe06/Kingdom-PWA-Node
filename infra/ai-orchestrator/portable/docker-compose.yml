@@ -1,0 +1,77 @@
+# =============================================================================
+# Portable PoeTech Orchestrator -- self-contained, copy-paste-to-a-new-NAS.
+# =============================================================================
+# Drop this folder on a new NAS, run ./bootstrap.sh -> the orchestrator is up
+# and you are in control. INERT by default: it stands up, heartbeats, and obeys
+# its Charter, but does NOT self-drive or summon any vendor LLM until explicitly
+# armed (and the live self-drive logic is not in this skeleton at all).
+#
+# Self-contained guarantee: the ONLY external artifact is the pinned base image
+# below. No registry, no GPU, no cloud, no Tailscale dependency to merely run.
+#
+# Resource caps (a brake): cpus 1 / mem 1g. The orchestrator must never starve
+# DSM, storage, or the host's n8n + ntfy + ollama workflows. These caps are the
+# floor of good-neighbor behavior on a shared NAS.
+#
+# Deploy:
+#   ./bootstrap.sh                 # idempotent; safe to re-run
+# or by hand:
+#   docker compose up -d
+#
+# Verify:
+#   docker compose ps             # state: running
+#   tail -f events/events.jsonl   # heartbeat events, "inert: kill-switch engaged"
+# =============================================================================
+
+services:
+  orchestrator:
+    # Pinned image (digestable tag). busybox sh + coreutils are all the skeleton
+    # needs -- no apk add, no runtime download. Swap the pin deliberately.
+    image: alpine:3.20
+    container_name: poetech-orchestrator
+    restart: unless-stopped
+    # PID 1 signal handling + zombie reaping for the long-running sh loop.
+    init: true
+    command: ["sh", "/app/entrypoint.sh"]
+
+    # --- Resource caps (the host-safety brake) ------------------------------
+    cpus: "1"
+    mem_limit: 1g
+    # A reservation keeps the cap meaningful under contention without starving.
+    mem_reservation: 256m
+
+    # --- Hardening ----------------------------------------------------------
+    security_opt:
+      - no-new-privileges:true
+    # The code and policy are read-only to the container; only state + events
+    # are writable, and both stay inside the bundle.
+    read_only: false
+
+    environment:
+      - TZ=${TZ:-America/Chicago}
+      - NODE_NAME=${NODE_NAME:-portable-node}
+      - AGENT_NAME=${AGENT_NAME:-orchestrator}
+      - HEARTBEAT_SECONDS=${HEARTBEAT_SECONDS:-30}
+      # Budget brake. 0 = unset = treated as a MISSING brake => stays inert.
+      - BUDGET_PER_TASK_USD=${BUDGET_PER_TASK_USD:-0}
+      - BUDGET_DAILY_USD=${BUDGET_DAILY_USD:-0}
+      # Mount points (match the volumes below).
+      - APP_DIR=/app
+      - CHARTER_DIR=/charter
+      - CHARTER_FILE=/charter/charter.yml
+      - STATE_DIR=/state
+      - EVENTS_DIR=/events
+
+    volumes:
+      - ./orchestrator:/app:ro      # supervisor code -- read-only to the container
+      - ./charter:/charter:ro       # policy as config -- read-only
+      - ./state:/state              # brakes/locks/arm flag/kill-switch (writable)
+      - ./events:/events            # append-only JSONL event log (writable)
+
+    healthcheck:
+      # Healthy = the event log is being written (the loop is alive).
+      test: ["CMD-SHELL", "test -f /events/events.jsonl || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

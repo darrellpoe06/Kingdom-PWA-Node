@@ -1,0 +1,2 @@
+# Keeps ./events in git. The append-only event log (events.jsonl) is written here
+# at runtime and is gitignored -- see ../.gitignore.
