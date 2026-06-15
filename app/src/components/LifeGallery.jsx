@@ -13,7 +13,7 @@
 // images) reference the NAS in place rather than copy it.
 import React, { useState, useEffect } from 'react';
 import { compressImageFile } from '../lib/image.js';
-import { fetchChannelPhotos, fetchFamilyPhotos, uploadPhoto, hasBridgeToken } from '../lib/nas-photos.js';
+import { fetchChannelPhotos, fetchFamilyPhotos, uploadPhoto, hasBridgeToken, chatChannelFor } from '../lib/nas-photos.js';
 
 const CATEGORIES = ['Family', 'Business', 'Projects', 'Properties', 'Faith', 'Other'];
 
@@ -30,7 +30,10 @@ function FamilyNasGallery({ refreshKey }) {
     let cancelled = false;
     (async () => {
       const res = await fetchFamilyPhotos({ limit: 24 });
-      if (!cancelled && res) setPhotos(res.photos);
+      // Only photos the NAS actually has a thumbnail for — a null thumb (a
+      // screenshot or non-camera image Synology never thumbnailed) would paint
+      // a blank tile.
+      if (!cancelled && res) setPhotos((res.photos || []).filter(p => p.thumb));
       else if (!cancelled) setPhotos([]);
     })();
     return () => { cancelled = true; };
@@ -70,9 +73,17 @@ function NasPlacesStrip({ rentals = [], addLifePhotos, keptIds }) {
       const out = [];
       for (const r of rentals.slice(0, 8)) {
         if (!r || !r.name) continue;
-        const res = await fetchChannelPhotos(r.name, { limit: 3 });
+        // The photo bridge keys on the exact Synology Chat channel name, not the
+        // property's display name — so map through chatChannelFor (e.g. "805 N
+        // Prospect" -> "805NProspect"), or the channel never matches.
+        const channel = chatChannelFor(r);
+        if (!channel) continue;
+        // Over-fetch, then keep only thumbnailed photos so the strip never shows
+        // blank tiles, and cap at 3 for the hero strip.
+        const res = await fetchChannelPhotos(channel, { limit: 8 });
         if (cancelled) return;
-        if (res && res.photos.length) out.push({ id: r.id, name: r.name, photos: res.photos });
+        const withThumb = res ? res.photos.filter(p => p.thumb) : [];
+        if (withThumb.length) out.push({ id: r.id, name: r.name, photos: withThumb.slice(0, 3) });
       }
       if (!cancelled) setGroups(out);
     })();
