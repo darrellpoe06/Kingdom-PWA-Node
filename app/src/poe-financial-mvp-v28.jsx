@@ -5008,7 +5008,7 @@ function InstallPrompt() {
   if (!deferredEvt && !isIOS) return null;
 
   return (
-    <div className="install-prompt fixed bottom-4 left-4 right-20 sm:right-auto z-40 max-w-xs print:hidden">
+    <div className="install-prompt fixed bottom-4 left-4 right-20 sm:right-auto z-[60] max-w-xs print:hidden">
       <div className="bg-white border-2 border-[#1A1815] shadow-lg p-3">
         <div className="flex items-baseline justify-between gap-2 mb-2">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📲 Install PoeTech</div>
