@@ -3677,7 +3677,7 @@ html{scroll-padding-bottom:280px}
 [data-theme="white"] .border-\\[\\#1A1815\\]{border-color:#1D1D1F!important;border-radius:12px}
 [data-theme="white"] .border-2{border-radius:14px}
 [data-theme="white"] .text-\\[\\#1A1815\\]{color:#1D1D1F!important}
-[data-theme="white"] .text-\\[\\#5A5751\\]{color:#8E8E93!important}
+[data-theme="white"] .text-\\[\\#5A5751\\]{color:#636366!important}
 [data-theme="white"] .bg-\\[\\#1A1815\\]{background-color:#1D1D1F!important;border-radius:10px}
 /* iOS-style breathing room on body prose */
 [data-theme="white"] p,[data-theme="white"] li{line-height:1.55}
@@ -3705,8 +3705,8 @@ html{scroll-padding-bottom:280px}
 [data-theme="slate"] .text-\\[\\#5A5751\\]{color:#4A5260!important}
 [data-theme="slate"] .border-\\[\\#1A1815\\]{border-color:#1B1D1F!important;border-radius:22px}
 [data-theme="slate"] .border-2{border-radius:24px}
-[data-theme="slate"] .bg-\\[\\#1A1815\\]{background-color:#1F6FEB!important;border-radius:18px}
-[data-theme="slate"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#1B5FCC!important;color:#FFFFFF!important}
+[data-theme="slate"] .bg-\\[\\#1A1815\\]{background-color:#1B5FCC!important;border-radius:18px}
+[data-theme="slate"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#1850B0!important;color:#FFFFFF!important}
 /* Roomy body prose, One UI-style */
 [data-theme="slate"] p,[data-theme="slate"] li{line-height:1.6}
 /* Pill-shaped buttons + extra-rounded inputs */
@@ -3720,7 +3720,7 @@ html{scroll-padding-bottom:280px}
 [data-theme="sapphire"] .border-\\[\\#E8E4DC\\]{border-color:#BFDBFE!important}
 [data-theme="sapphire"] .bg-\\[\\#E8E4DC\\]{background-color:#BFDBFE!important}
 [data-theme="sapphire"] .text-\\[\\#1A1815\\]{color:#1E3A8A!important}
-[data-theme="sapphire"] .text-\\[\\#5A5751\\]{color:#3B82F6!important}
+[data-theme="sapphire"] .text-\\[\\#5A5751\\]{color:#1D4ED8!important}
 [data-theme="sapphire"] .border-\\[\\#1A1815\\]{border-color:#1E3A8A!important}
 [data-theme="sapphire"] .bg-\\[\\#1A1815\\]{background-color:#1E3A8A!important}
 
@@ -3731,7 +3731,7 @@ html{scroll-padding-bottom:280px}
 [data-theme="rose"] .border-\\[\\#E8E4DC\\]{border-color:#FBCFE8!important}
 [data-theme="rose"] .bg-\\[\\#E8E4DC\\]{background-color:#FBCFE8!important}
 [data-theme="rose"] .text-\\[\\#1A1815\\]{color:#831843!important}
-[data-theme="rose"] .text-\\[\\#5A5751\\]{color:#BE185D!important}
+[data-theme="rose"] .text-\\[\\#5A5751\\]{color:#9D174D!important}
 [data-theme="rose"] .border-\\[\\#1A1815\\]{border-color:#831843!important}
 [data-theme="rose"] .bg-\\[\\#1A1815\\]{background-color:#831843!important}
 
@@ -4062,17 +4062,12 @@ html{scroll-padding-bottom:280px}
           Per BUSINESS-PROCESS-CONNECTIONS Family-Voice-Is-The-Connection
           extension. Hidden during the picker landing to avoid cluttering
           the first impression. */}
-      {!isFirstTimeLanding && !suggestOpen && (
-        <button
-          type="button"
-          onClick={() => setSuggestOpen(true)}
-          aria-label="Send feedback or suggestion"
-          className="fixed bottom-4 right-4 z-40 bg-[#B85838] hover:bg-[#1A1815] text-white text-xs uppercase tracking-wider font-semibold px-3 py-2 shadow-lg focus:outline focus:outline-2 focus:outline-[#1A1815]"
-          style={{ fontFamily: '"Fraunces", serif' }}
-        >
-          Suggest
-        </button>
-      )}
+      {/* 2026-06-15 — ONE feedback entry point. The floating "Suggest" button
+          (a second, redundant door → n8n wf30) was removed; the 💬 Feedback
+          button (bottom-left → FeedbackModal → the Supabase queue + Governor
+          review) is the single home base the onboarding already points to.
+          Removing it also de-clutters the bottom-right corner. (The now-unused
+          suggest modal + submitSuggest are dead code, queued for cleanup.) */}
 
       {(() => {
         // Show once to a signed-in, non-family, non-demo user. Keyed only on
