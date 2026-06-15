@@ -15,6 +15,7 @@ import WorkflowStatus from './WorkflowStatus.jsx';
 import LlmHealth from './LlmHealth.jsx';
 import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
 import { FreshnessDot } from './FreshnessDot.jsx';
+import { KpiLegend } from './KpiLegend.jsx';
 
 // status: 'shipped' | 'building' | 'next' | 'gated'
 const ROADMAP = [
@@ -297,6 +298,10 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
       <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Dates are honest estimates and move as we learn — that&apos;s the point of showing them. No blame, just build.
       </p>
+
+      {/* The Key for every live KPI dot below (and the build-freshness dot in the
+          header) — one reachable place, documenting the shared status states. */}
+      <KpiLegend />
 
       <WorkflowStatus />
 

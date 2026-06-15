@@ -16,6 +16,20 @@
 // automation is running"; this is "what models are hot."
 import React, { useEffect, useState } from 'react';
 import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
+import { KpiDot } from './KpiDot.jsx';
+import { kpiColor } from '../lib/kpi-status.js';
+
+// Pure, testable: the card's one overall-health KPI, mapped onto the shared
+// status states (lib/kpi-status.js). A pinned model (the 2026-06-06 runaway
+// signature) is the attention signal; offline/loading is honest "no data" (idle,
+// never a misleading green).
+export function llmHealthKpi(phase, data) {
+  if (phase === 'loading') return { status: 'idle', label: 'Checking' };
+  if (phase !== 'ok' || !data) return { status: 'idle', label: 'Not connected' };
+  if (data.anyPinned) return { status: 'attention', label: 'Pinned — check' };
+  if (data.loadedCount === 0) return { status: 'good', label: 'Idle — healthy' };
+  return { status: 'good', label: `${data.loadedCount} loaded` };
+}
 
 // Bytes -> "X.Y GB". Defensive: null/garbage -> null (caller hides the field).
 export function formatGB(bytes) {
@@ -76,10 +90,15 @@ export default function LlmHealth() {
     return () => { cancelled = true; };
   }, []);
 
+  const kpi = llmHealthKpi(state.phase, state.data);
+
   return (
     <section className="bg-white border border-[#1A1815] p-4">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
-        🧠 Local LLMs · Ollama{state.phase === 'ok' && state.data?.version ? ` ${state.data.version}` : ''}
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+          🧠 Local LLMs · Ollama{state.phase === 'ok' && state.data?.version ? ` ${state.data.version}` : ''}
+        </div>
+        <KpiDot status={kpi.status} label={kpi.label} className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" />
       </div>
 
       {state.phase === 'loading' && (
@@ -107,7 +126,7 @@ export default function LlmHealth() {
               <div className="mt-2 border border-[#E8E4DC]">
                 {state.data.loaded.map((m, i) => (
                   <div key={m.name + i} className={`flex items-center gap-2 px-2 py-1.5 ${i < state.data.loaded.length - 1 ? 'border-b border-[#F2EEE6]' : ''}`}>
-                    <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: m.pinned ? '#B85838' : '#2A5A8E' }} title={m.pinned ? 'pinned (no expiry)' : 'loaded'} />
+                    <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: kpiColor(m.pinned ? 'attention' : 'good') }} title={m.pinned ? 'pinned (no expiry)' : 'loaded'} />
                     <span className="text-xs flex-1 min-w-0 truncate" style={{ fontFamily: '"Fraunces", serif' }}>{m.name}</span>
                     <span className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       {formatGB(m.sizeVram) ? `${formatGB(m.sizeVram)} vram` : ''}

@@ -10,6 +10,8 @@
 // "what's built"; this is "what's actually running right now."
 import React, { useEffect, useState } from 'react';
 import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
+import { KpiDot } from './KpiDot.jsx';
+import { kpiColor } from '../lib/kpi-status.js';
 
 // Pure, testable: turn the raw feed body into a normalized shape. Never throws.
 export function normalizeWorkflowStatus(json) {
@@ -34,15 +36,15 @@ export function normalizeWorkflowStatus(json) {
   };
 }
 
-const STATUS_DOT = {
-  success: '#5A6E3D',
-  error: '#B85838',
-  crashed: '#B85838',
-  running: '#2A5A8E',
-  waiting: '#5A5751',
-  'never-run': '#C9C3B8',
-  unknown: '#5A5751',
-};
+// The card's one overall KPI, on the shared status states (lib/kpi-status.js).
+// Per-row run-status words ('success' / 'error' / 'running' / ...) are also
+// synonyms the shared palette resolves, so the dots stay consistent app-wide.
+export function workflowStatusKpi(data) {
+  if (!data) return { status: 'idle', label: 'Not connected' };
+  if (data.recentErrors > 0) return { status: 'attention', label: `${data.recentErrors} recent error${data.recentErrors === 1 ? '' : 's'}` };
+  if (data.active === 0) return { status: 'idle', label: 'None running' };
+  return { status: 'good', label: `${data.active}/${data.total} running` };
+}
 
 export default function WorkflowStatus() {
   const [state, setState] = useState({ phase: 'loading', data: null, error: null });
@@ -65,9 +67,14 @@ export default function WorkflowStatus() {
     return () => { cancelled = true; };
   }, []);
 
+  const kpi = workflowStatusKpi(state.phase === 'ok' ? state.data : null);
+
   return (
     <section className="bg-white border border-[#1A1815] p-4">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">📡 Live automation status</div>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📡 Live automation status</div>
+        <KpiDot status={kpi.status} label={kpi.label} className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" />
+      </div>
 
       {state.phase === 'loading' && (
         <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Checking the automation fleet…</p>
@@ -93,10 +100,10 @@ export default function WorkflowStatus() {
           <div className="mt-2 max-h-64 overflow-y-auto border border-[#E8E4DC]">
             {state.data.workflows.map((w, i) => (
               <div key={w.name + i} className={`flex items-center gap-2 px-2 py-1.5 ${i < state.data.workflows.length - 1 ? 'border-b border-[#F2EEE6]' : ''}`}>
-                <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: STATUS_DOT[w.lastStatus] || STATUS_DOT.unknown }} title={w.lastStatus} />
+                <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: kpiColor(w.lastStatus) }} title={w.lastStatus} />
                 <span className="text-xs flex-1 min-w-0 truncate" style={{ fontFamily: '"Fraunces", serif' }}>{w.name}</span>
                 <span className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  {w.active ? 'on' : 'off'}{w.lastRun ? ` · ${String(w.lastRun).slice(0, 10)}` : ''}
+                  {w.lastStatus} · {w.active ? 'on' : 'off'}{w.lastRun ? ` · ${String(w.lastRun).slice(0, 10)}` : ''}
                 </span>
               </div>
             ))}

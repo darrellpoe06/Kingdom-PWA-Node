@@ -9,6 +9,12 @@
 // "never updated" (a retire candidate), which is the truth, not a guess.
 import React from 'react';
 import { assessLoops } from '../lib/loop-health.js';
+import { KpiDot } from './KpiDot.jsx';
+
+// Loop status -> shared KPI state (lib/kpi-status.js): fresh = good, stale =
+// attention, never-updated = problem. Used for both the per-loop badge and the
+// card's one summary KPI, so loop health reads like every other KPI in the app.
+export const LOOP_KPI = { fresh: 'good', stale: 'attention', never: 'problem' };
 
 const fmtAgo = (loop) => {
   if (loop.lastUpdate == null) return 'never updated from real data';
@@ -25,15 +31,24 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
   const attention = loops.filter((l) => l.status !== 'fresh');
   const fresh = loops.filter((l) => l.status === 'fresh');
 
+  // Shared-palette classes (literal so Tailwind JIT emits them): good #15803D,
+  // attention #B45309, problem #DC2626.
   const badge = (status) => status === 'fresh'
-    ? { t: '● updating', cls: 'text-[#5A6E3D] border-[#5A6E3D]' }
+    ? { t: '● updating', cls: 'text-[#15803D] border-[#15803D]' }
     : status === 'stale'
-      ? { t: '◐ stagnant', cls: 'text-[#B85838] border-[#B85838]' }
-      : { t: '○ never', cls: 'text-[#7A1F1F] border-[#7A1F1F]' };
+      ? { t: '◐ stagnant', cls: 'text-[#B45309] border-[#B45309]' }
+      : { t: '○ never', cls: 'text-[#DC2626] border-[#DC2626]' };
+
+  const summaryKpi = attention.length === 0
+    ? { status: 'good', label: 'All looping' }
+    : { status: 'attention', label: `${attention.length} need${attention.length === 1 ? 's' : ''} your call` };
 
   return (
     <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5" aria-labelledby="loop-health-h">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🩺 Loop Health</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🩺 Loop Health</div>
+        <KpiDot status={summaryKpi.status} label={summaryKpi.label} className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" />
+      </div>
       <h2 id="loop-health-h" className="text-xl sm:text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Is the app actually looping?</h2>
       <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
         Each loop's last <strong>real</strong> update. A loop that hasn't moved past its window asks to be kept or retired — nothing stagnates silently.
@@ -81,7 +96,7 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
           <ul className="space-y-0.5">
             {fresh.map((l) => (
               <li key={l.key} className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                <span className="text-[#5A6E3D]">●</span> {l.label} — {fmtAgo(l)}
+                <span className="text-[#15803D]">●</span> {l.label} — {fmtAgo(l)}
               </li>
             ))}
           </ul>
