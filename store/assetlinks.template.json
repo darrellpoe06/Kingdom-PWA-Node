@@ -1,0 +1,11 @@
+[
+  {
+    "_comment": "Digital Asset Links for the Android TWA. Replace the fingerprint with the SHA-256 printed by `bubblewrap build` (or shown in PWABuilder), then copy this file to app/public/.well-known/assetlinks.json and deploy. It must be reachable at https://poetech.us/.well-known/assetlinks.json or the TWA shows a browser bar. Do NOT ship it live with the placeholder fingerprint.",
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "us.poetech.app",
+      "sha256_cert_fingerprints": ["REPLACE_WITH_SHA256_FINGERPRINT"]
+    }
+  }
+]
