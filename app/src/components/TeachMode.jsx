@@ -22,7 +22,7 @@
 // Contrast (WCAG AA on white / #FAF8F4): #1A1815 body (>16:1), #5A5751 secondary
 // (~7:1), #5A6E3D + #7A1F1F + #B85838 accents (>=4.5:1), focus ring #B85838,
 // controls >=36px — verified against the rendered tokens.
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { MODULES, PROPOSED_COHORT_START, buildSchedule } from '../lib/church-classes.js';
 import { TEACH_CHANNEL, SESSION_TARGET_MIN, formatClock, buildSlide, holdingSlide } from '../lib/teach-present.js';
 
@@ -44,9 +44,27 @@ export default function TeachMode({ cohortStart = PROPOSED_COHORT_START, onClose
   const winRef = useRef(null);
 
   const last = MODULES.length - 1;
-  const schedule = buildSchedule(cohortStart);
+  // Memoized: the timer re-renders this once a second, but the 8-week schedule
+  // only changes when the cohort start does (never mid-session).
+  const schedule = useMemo(() => buildSchedule(cohortStart), [cohortStart]);
   const cur = schedule[week] || {};
   const nxt = schedule[week + 1] || null;
+
+  // weekRef + blankRef so the once-bound channel handler and the resend timeouts
+  // always read the LIVE week and blank state without stale closures.
+  const weekRef = useRef(week);
+  useEffect(() => { weekRef.current = week; }, [week]);
+  const blankRef = useRef(false);
+  useEffect(() => { blankRef.current = (audienceState === 'blank'); }, [audienceState]);
+
+  // The single broadcast path. Honors "blank": while blanked it sends the holding
+  // slide, NOT the lesson — so navigating weeks (or a ready/resend) never pops the
+  // content back onto a deliberately-held projector.
+  const sendCurrent = useCallback(() => {
+    const ch = chRef.current;
+    if (!ch) return;
+    try { ch.postMessage(blankRef.current ? holdingSlide() : buildSlide(weekRef.current, cohortStart)); } catch (e) {}
+  }, [cohortStart]);
 
   // --- BroadcastChannel: own it, answer the audience's "ready" handshake ---
   useEffect(() => {
@@ -55,26 +73,27 @@ export default function TeachMode({ cohortStart = PROPOSED_COHORT_START, onClose
     chRef.current = ch;
     const onMsg = (ev) => {
       if (ev?.data?.type === 'ready') {
-        // audience just opened (or reloaded) — send it the current slide
-        try { ch.postMessage(buildSlide(weekRef.current, cohortStart)); } catch (e) {}
+        // audience just opened (or reloaded) — send it the current state
+        sendCurrent();
         setAudienceState((s) => (s === 'blank' ? 'blank' : 'live'));
       }
     };
     ch.addEventListener('message', onMsg);
     return () => { try { ch.removeEventListener('message', onMsg); ch.close(); } catch (e) {} chRef.current = null; };
-  }, [cohortStart]);
+  }, [sendCurrent]);
 
-  // weekRef so the channel handler (bound once) always reads the live week
-  const weekRef = useRef(week);
-  useEffect(() => { weekRef.current = week; }, [week]);
+  // Broadcast on week change (and on mount) — blank-aware via sendCurrent.
+  useEffect(() => { sendCurrent(); }, [week, sendCurrent]);
 
-  // Broadcast the current slide whenever the week changes (and on mount).
+  // If the projector window is closed (or the display unplugged), reflect it in
+  // the status instead of claiming "live & synced" forever.
   useEffect(() => {
-    const ch = chRef.current;
-    if (!ch) return;
-    try { ch.postMessage(buildSlide(week, cohortStart)); } catch (e) {}
-    if (audienceState === 'blank') setAudienceState('live');
-  }, [week, cohortStart]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (audienceState === 'closed' || audienceState === 'blocked') return undefined;
+    const id = setInterval(() => {
+      if (winRef.current && winRef.current.closed) { winRef.current = null; setAudienceState('closed'); }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [audienceState]);
 
   // --- timer ---
   useEffect(() => {
@@ -104,18 +123,19 @@ export default function TeachMode({ cohortStart = PROPOSED_COHORT_START, onClose
     if (!w) { setAudienceState('blocked'); return; }
     winRef.current = w;
     setAudienceState('open');
-    // resend a few times in case the window's listener mounts after we post
-    [250, 750, 1500].forEach((ms) => setTimeout(() => {
-      try { chRef.current?.postMessage(buildSlide(weekRef.current, cohortStart)); } catch (e) {}
-    }, ms));
-  }, [cohortStart]);
+    // resend a few times in case the window's listener mounts after we post (the
+    // {ready} handshake is the real sync; this is a belt for slow first paint).
+    [250, 750, 1500].forEach((ms) => setTimeout(() => sendCurrent(), ms));
+  }, [sendCurrent]);
 
   const blankAudience = useCallback(() => {
+    blankRef.current = true;
     try { chRef.current?.postMessage(holdingSlide()); } catch (e) {}
     setAudienceState('blank');
   }, []);
 
   const resumeAudience = useCallback(() => {
+    blankRef.current = false;
     try { chRef.current?.postMessage(buildSlide(weekRef.current, cohortStart)); } catch (e) {}
     setAudienceState('live');
   }, [cohortStart]);

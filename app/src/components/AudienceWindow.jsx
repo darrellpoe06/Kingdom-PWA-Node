@@ -21,6 +21,7 @@ export default function AudienceWindow() {
   const [slide, setSlide] = useState(null);
   const [hold, setHold] = useState(null);
   const [canFs, setCanFs] = useState(false);
+  const [isFs, setIsFs] = useState(false);
 
   useEffect(() => {
     let ch;
@@ -39,7 +40,9 @@ export default function AudienceWindow() {
     // tell the presenter we are here so it (re)sends the current slide
     try { ch.postMessage({ type: 'ready' }); } catch (e) { /* non-fatal */ }
     setCanFs(typeof document !== 'undefined' && !!document.documentElement.requestFullscreen);
-    return () => { try { ch.removeEventListener('message', onMsg); ch.close(); } catch (e) {} };
+    const onFs = () => setIsFs(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFs);
+    return () => { try { ch.removeEventListener('message', onMsg); ch.close(); } catch (e) {} document.removeEventListener('fullscreenchange', onFs); };
   }, []);
 
   const goFullscreen = useCallback(() => {
@@ -54,10 +57,10 @@ export default function AudienceWindow() {
         minHeight: '100vh', background: '#14110E', color: '#FAF8F4',
         display: 'flex', flexDirection: 'column', justifyContent: 'center',
         padding: 'clamp(24px, 5vw, 72px)', fontFamily: '"Fraunces", Georgia, serif',
-        cursor: showHold ? 'default' : 'none',
+        cursor: (!showHold && isFs) ? 'none' : 'default', // only hide the pointer once projected fullscreen
       }}
     >
-      {canFs && (
+      {canFs && !isFs && (
         <button
           type="button"
           onClick={goFullscreen}
