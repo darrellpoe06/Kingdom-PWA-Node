@@ -10,6 +10,17 @@
 # Action; nothing here calls gh from a local shell. Nothing here touches the
 # protection rules themselves. No force, ever.
 #
+# WHY THE SWEEP (2026-06-16): the original version fired only on pull_request
+# events. PR #192 — the PR that first turned the repo's "Allow auto-merge"
+# setting ON — could not enable auto-merge on itself: the setting was OFF when
+# its pull_request run fired, and the workflow never re-fired without a fresh
+# push. Classic chicken-and-egg. The fix is to also run on check_suite:completed
+# (a PR that went green BEFORE auto-merge was enabled now gets picked up when
+# its checks finish, no push needed) and on workflow_dispatch (a manual sweep
+# button), and to make the job SWEEP every eligible open PR rather than only the
+# one in the triggering event's payload. Enabling auto-merge is idempotent, so
+# a PR that already has it stays untouched.
+#
 # Pairs with ci.yml (the required checks this defers to) and RELEASE-TIERS.md.
 
 name: Auto-merge
@@ -18,27 +29,55 @@ on:
   pull_request:
     types: [opened, reopened, ready_for_review, synchronize]
     branches: [main]
+  check_suite:
+    types: [completed]
+  workflow_dispatch: {}
 
 permissions:
   contents: write
   pull-requests: write
 
+# One sweep at a time; a newer run supersedes an in-flight one.
+concurrency:
+  group: auto-merge-sweep
+  cancel-in-progress: true
+
 jobs:
   enable-auto-merge:
     name: enable auto-merge (squash) on eligible PRs
     runs-on: ubuntu-latest
-    # Only release-lane branches; never drafts.
-    if: >-
-      github.event.pull_request.draft == false &&
-      (
-        startsWith(github.event.pull_request.head.ref, 'feat/') ||
-        startsWith(github.event.pull_request.head.ref, 'fix/') ||
-        startsWith(github.event.pull_request.head.ref, 'merge/') ||
-        startsWith(github.event.pull_request.head.ref, 'docs/')
-      )
     steps:
-      - name: Enable native auto-merge (waits for required checks)
+      - name: Enable native auto-merge on every eligible open PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-        run: gh pr merge --auto --squash "$PR_URL"
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Eligible = open, non-draft, targets main, head branch is a release
+          # lane (feat|fix|merge|docs), and auto-merge is NOT already enabled.
+          # Filtering happens here (not in a job-level `if:`) so the same job
+          # works uniformly across pull_request / check_suite / workflow_dispatch
+          # — only pull_request events carry a single PR in the payload.
+          mapfile -t prs < <(
+            gh pr list --repo "$REPO" --state open --base main \
+              --json number,headRefName,isDraft,autoMergeRequest \
+              --jq '.[]
+                    | select(.isDraft == false)
+                    | select(.headRefName | test("^(feat|fix|merge|docs)/"))
+                    | select(.autoMergeRequest == null)
+                    | .number'
+          )
+          if [ "${#prs[@]}" -eq 0 ]; then
+            echo "No eligible PRs awaiting auto-merge."
+            exit 0
+          fi
+          echo "Eligible PRs: ${prs[*]}"
+          for n in "${prs[@]}"; do
+            echo "Enabling auto-merge (squash) on #$n"
+            # Never fail the sweep on one PR: it may have merged or become
+            # ineligible (e.g. a required check already failed) between the
+            # list and the enable. Auto-merge still respects branch protection.
+            if ! gh pr merge --repo "$REPO" --auto --squash "$n"; then
+              echo "::warning::could not enable auto-merge on #$n (may have just merged or become ineligible)"
+            fi
+          done
