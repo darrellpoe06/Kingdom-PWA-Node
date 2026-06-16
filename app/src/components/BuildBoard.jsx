@@ -12,6 +12,7 @@
 // next as the work lands. Go-live dates are honest estimates, revised here.
 import React, { useState } from 'react';
 import WorkflowStatus from './WorkflowStatus.jsx';
+import OpsBoard from './OpsBoard.jsx';
 import LlmHealth from './LlmHealth.jsx';
 import LlmReview from './LlmReview.jsx';
 import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
@@ -305,6 +306,8 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
       <KpiLegend />
 
       <WorkflowStatus />
+
+      <OpsBoard />
 
       <LlmHealth />
 
