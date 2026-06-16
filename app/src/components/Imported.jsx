@@ -18,6 +18,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
+import { summarizeFinancialActivity } from '../lib/finance-activity.js';
+
+const fmtMoney = (n) => '$' + Math.round(n || 0).toLocaleString();
+const agoWords = (days) => days == null ? '' : days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
 
 // Security self-guard: this view surfaces real bank + Gmail PII from n8n
 // workflow 18. Mirrors importedAllowed in poe-financial-mvp-v28.jsx so the
@@ -163,6 +167,11 @@ export default function Imported() {
     });
   }, [data, filters.search]);
 
+  // The budget picture, driven by WHEN financial documents arrive from the sourced
+  // email/bank stream (Darrell 2026-06-16). Hook runs before the guard's early
+  // return so hook order stays stable. Real or honestly empty — never painted.
+  const activity = useMemo(() => data ? summarizeFinancialActivity(data, Date.now()) : null, [data]);
+
   // Unauthorized guard: render a notice, never the real transaction stream.
   if (!isImportedViewAuthorized()) {
     return (
@@ -196,6 +205,43 @@ export default function Imported() {
           Read-only view of bank + Gmail data ingested from your accounts. Source: <code className="text-[10px]">/volume1/PoeTech/finance-events/</code> via n8n workflow 18.
         </p>
       </div>
+
+      {/* Budget picture — painted by what has actually ARRIVED, not a manual stamp.
+          This is the "based on when a financial document comes in" surface. */}
+      {activity && (
+        <div className="border-2 border-[#1A1815] bg-[#FAF8F4] p-4">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Your budget picture · from what’s arriving</div>
+          {activity.lastDocAt ? (
+            <>
+              <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                Last financial document <strong>{agoWords(activity.lastDocAgoDays)}</strong>
+                {activity.lastSource ? <> — from <strong>{activity.lastSource}</strong></> : null}.
+              </p>
+              <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                <div className="border border-[#E8E4DC] bg-white p-2">
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">In · {activity.windowDays}d</div>
+                  <div className="text-base font-medium" style={{ color: '#166534', fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(activity.recentIn)}</div>
+                </div>
+                <div className="border border-[#E8E4DC] bg-white p-2">
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Out · {activity.windowDays}d</div>
+                  <div className="text-base font-medium" style={{ color: '#B85838', fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(activity.recentOut)}</div>
+                </div>
+                <div className="border border-[#E8E4DC] bg-white p-2">
+                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Documents</div>
+                  <div className="text-base font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{activity.count.toLocaleString()}</div>
+                </div>
+              </div>
+              <p className="text-[11px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                Painted from financial emails + bank events as they arrive — before you download a statement.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              No financial documents have arrived yet. As bank/billing emails (Chase, etc.) land in the connected inbox, the picture fills in here automatically.
+            </p>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="border border-[#DC2626] bg-[#FEE2E2] text-[#7F1D1D] p-3 text-xs">

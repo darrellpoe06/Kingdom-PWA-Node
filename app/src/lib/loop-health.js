@@ -31,7 +31,11 @@ export function daysSince(lastMs, nowMs) {
 // that don't live in `data` (localStorage markers, hardcoded constants).
 export const LOOPS = [
   { key: 'financial',     label: 'Financial data (accounts · debts · income)', staleDays: 35,
-    lastUpdate: (d) => toMs(d?.meta?.lastUpdated) },
+    // Freshest of: a manual data stamp OR the latest financial DOCUMENT that
+    // actually arrived from the sourced email/bank stream (env.financialDocAt).
+    // So the loop reads "updating" WHEN a Chase/etc. document comes in, not on a
+    // hand-set date (Darrell 2026-06-16: "based on when a financial document comes in").
+    lastUpdate: (d, env) => { const ts = [toMs(d?.meta?.lastUpdated), toMs(env?.financialDocAt)].filter((x) => x != null); return ts.length ? Math.max(...ts) : null; } },
   { key: 'ledger',        label: 'Transaction ledger',                          staleDays: 45,
     lastUpdate: (d) => { const ts = (d?.transactions || []).map(t => toMs(t?.date) ?? toMs(t?.createdAt)).filter(Boolean); return ts.length ? Math.max(...ts) : null; } },
   { key: 'cloud-snapshot',label: 'Cloud sync (family snapshot)',                staleDays: 21,

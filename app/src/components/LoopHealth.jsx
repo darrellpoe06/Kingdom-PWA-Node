@@ -23,11 +23,14 @@ const fmtAgo = (loop) => {
   return `updated ${loop.daysSince} days ago`;
 };
 
-export default function LoopHealth({ data = {}, decisions = {}, onDecision = null }) {
+export default function LoopHealth({ data = {}, decisions = {}, onDecision = null, financialDocAt = null }) {
   let snapshotMarker = null;
   try { snapshotMarker = (typeof window !== 'undefined' && window.localStorage) ? window.localStorage.getItem('poe-snapshot-marker') : null; } catch (e) { /* blocked */ }
 
-  const loops = assessLoops(data, Date.now(), { snapshotMarker });
+  // financialDocAt = the latest financial document that actually arrived from the
+  // sourced email/bank stream (ingestData) — so the financial loop reads "updating"
+  // when a Chase/etc. document comes in, not on a hand-set date.
+  const loops = assessLoops(data, Date.now(), { snapshotMarker, financialDocAt });
   const attention = loops.filter((l) => l.status !== 'fresh');
   const fresh = loops.filter((l) => l.status === 'fresh');
 
