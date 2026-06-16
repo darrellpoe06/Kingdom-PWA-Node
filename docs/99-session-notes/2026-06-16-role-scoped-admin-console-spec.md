@@ -73,7 +73,27 @@ Served-build evidence per role: each console rendering REAL, scoped data on that
 role's signed-in session + deploy SHA. No "done" without it. New gates for any
 "looked-fine-but-wasn't" class found.
 
-## Open dependency
-The Operations surface must land first. Coordinate the exact embed point + props
-with `local_edab489e` so there is ONE Operations component, surfaced inside the
-System console.
+## Operations surface — integration contract (CONFIRMED, #201 merged 92b5fc1)
+
+`local_edab489e` shipped it OUTSIDE the monolith, so it does NOT compete for the
+monolith lane. Embed, do not rebuild:
+
+- Component: `OpsBoard`, default export of `app/src/components/OpsBoard.jsx`.
+  **Props: NONE** — self-contained (fetches on mount, own Refresh). Embed in the
+  System console with `{isGovernor && <OpsBoard />}` (System/Darrell tier).
+- Data layer (if rendering without its UI chrome): `app/src/lib/github-ops.js` —
+  `fetchOps()`, `landOrder(pulls)`, `classifyLane(files)`, `GITHUB_SLUG`.
+  `fetchOps()` → `{ ok, fetchedAt, main, mainCi, pulls[], recentMerges[], notice }`;
+  reads the PUBLIC repo API unauthenticated (60 req/hr per IP, degrades honestly).
+- **Single home (decided):** OpsBoard moves INTO the System console and the
+  `{isGovernor && <OpsBoard />}` mount is REMOVED from BuildBoard in the SAME
+  (console) branch — one instance, so the 60/hr budget isn't double-spent. (No
+  shared-hook needed; do the BuildBoard removal atomically in the console branch.)
+
+## Land order (confirmed with local_edab489e)
+conference stack (#192) → Operations surface (#201) → **#200** (BG/Choir spaces +
+🔒 Admin entry) → **role-scoped Admin console (THIS, LAST)**. Rebase onto main
+after each prior merge; `conflict-map.sh --gate` enforces one-shared-file-branch-
+at-a-time and auto-detects this branch as the last MUST-SERIALIZE item. Keep it
+`hold` until #200 lands. #202 closed the GITHUB_TOKEN→db-migrate gap, so migrations
+auto-apply after auto-merge now.
