@@ -1,5 +1,10 @@
 // =============================================================================
-// Pulpit — Bishop Gwin's study (Darrell 2026-06-16).
+// The Word — Migdal — Bishop Gwin's study (Darrell 2026-06-16).
+//
+// User-facing name is "The Word — Migdal" (the migdal-'ets / wooden platform Ezra
+// the priest stood on to read the Word aloud — Nehemiah 8:4). The internal route
+// id stays 'pulpit' (churchView value + deep-link), an invisible implementation
+// detail; every label/heading/breadcrumb reads "The Word — Migdal".
 //
 // RELOCATED from the Choir module's "Sermons" sub-tab into its OWN Church space.
 // The Bishop's sermon study does not belong under Choir (worship-team functions);
@@ -272,7 +277,7 @@ export default function Pulpit() {
   if (!signedIn) {
     return (
       <div className="max-w-2xl">
-        <SectionTitle eyebrow="Church · pulpit">Pulpit</SectionTitle>
+        <SectionTitle eyebrow="Church · The Word — Migdal">The Word — Migdal</SectionTitle>
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to open the Bishop's study.</p>
       </div>
     );
@@ -280,7 +285,7 @@ export default function Pulpit() {
   if (!access.canSee) {
     return (
       <div className="max-w-2xl">
-        <SectionTitle eyebrow="Church · pulpit">Pulpit</SectionTitle>
+        <SectionTitle eyebrow="Church · The Word — Migdal">The Word — Migdal</SectionTitle>
         <div className="bg-white border border-[#E8E4DC] p-6 text-center">
           <div className="text-2xl mb-1" aria-hidden="true">📖</div>
           <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>This is the Bishop's study.</p>
@@ -292,8 +297,17 @@ export default function Pulpit() {
 
   return (
     <div className="max-w-2xl">
-      <SectionTitle eyebrow="Church · pulpit">Pulpit — the Bishop's study</SectionTitle>
+      <SectionTitle eyebrow="Church · The Word — Migdal">The Word — Migdal · the Bishop's study</SectionTitle>
       <p className="text-xs text-[#5A5751] -mt-2 mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Bishop Gwin's space to study and review his past messages, and to prepare new ones grounded in his own preaching.</p>
+
+      {/* Nehemiah 8 epigraph — the migdal (Neh 8:4, the wooden platform Ezra read
+          from) names this space; 8:8 names its purpose: read the Word, give the
+          sense, cause understanding. KJV (public domain); translation-flexible. */}
+      <blockquote className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-2 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-sm text-[#1A1815] italic">“So they read in the book in the law of God distinctly, and gave the sense, and caused them to understand the reading.”</p>
+        <footer className="text-[11px] text-[#5A5751] mt-1">— Nehemiah 8:8 (KJV). Ezra the priest read from a <span className="italic">migdal</span> of wood built for the purpose (Nehemiah 8:4).</footer>
+      </blockquote>
+
       <div className="flex gap-1 text-xs mb-3 overflow-x-auto">
         {TABS.map(([id, label]) => (
           <button key={id} type="button" onClick={() => setTab(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${tab === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>

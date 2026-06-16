@@ -4548,6 +4548,10 @@ html{scroll-padding-bottom:280px}
                 ['notes','🕊 Notes'],
                 ['church','Church'],
                 ['markets','Markets'],
+                // Admin surfaced at the top so users can SEE a steward space
+                // exists (visible-but-locked, like 🔒 Observation). ACCESS is
+                // gated at the render below — the entry being visible is the goal.
+                ['admin','🔒 Admin'],
               ].map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
@@ -4574,7 +4578,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'], ...(isChurchStaff ? [['pulpit','📖 Pulpit'],['observe','🔒 Observation']] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'], ...(isChurchStaff ? [['pulpit','📖 The Word'],['observe','🔒 Observation']] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4655,7 +4659,7 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'choir' && <Choir />}
         {view === 'church' && churchView === 'pulpit' && (isChurchStaff
           ? <Pulpit />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Pulpit is the Bishop's study. Sign in with a church staff account to view it.</div>)}
+          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Word — Migdal is the Bishop's study. Sign in with a church staff account to view it.</div>)}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Observation board is for church staff only. Sign in with a church staff account to view it.</div>)}
@@ -4734,7 +4738,15 @@ html{scroll-padding-bottom:280px}
           : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} onChangePin={() => setChangePinOpen(true)} />}
-        {view === 'admin' && <Admin />}
+        {view === 'admin' && ((isFamilyMember || !isPublicHost())
+          ? <Admin />
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
+              <p className="text-sm text-[#1A1815] font-semibold">Admin is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Sign in with a steward account to enter. Each steward serves only their own domain — the system, the Word, or the choir — and no one sees another's people or private data.</p>
+            </div>
+          ))}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
@@ -5326,9 +5338,9 @@ const FEEDBACK_AREAS = [
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
-    ['church-pulpit', "Church · 📖 Pulpit (Bishop's study — historical sermons + corpus-grounded prep)"],
-    ['pulpit-library', '└ Pulpit · Message library (watch · document · reuse)'],
-    ['pulpit-prep', '└ Pulpit · Prep from your corpus'],
+    ['church-pulpit', "Church · 📖 The Word — Migdal (Bishop's study — historical sermons + corpus-grounded prep)"],
+    ['pulpit-library', '└ The Word — Migdal · Message library (watch · document · reuse)'],
+    ['pulpit-prep', '└ The Word — Migdal · Prep from your corpus'],
     ['church-choir', 'Church · Choir (director hub)'],
     ['choir-week', '└ Choir · This week'],
     ['choir-schedule', '└ Choir · Schedule'],
