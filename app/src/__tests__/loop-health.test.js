@@ -35,6 +35,13 @@ describe('assessLoops — fresh / stale / never', () => {
     const fin = assessLoops(data, NOW).find((l) => l.key === 'financial');
     expect(fin.status).toBe('fresh');
   });
+  it('an arriving financial DOCUMENT makes the financial loop fresh, even with a stale manual stamp', () => {
+    // manual stamp is 75 days stale, but a Chase document arrived 2 days ago.
+    const data = { meta: { lastUpdated: '2026-04-01' } };
+    const fin = assessLoops(data, NOW, { financialDocAt: iso(NOW - 2 * 86400000) }).find((l) => l.key === 'financial');
+    expect(fin.status).toBe('fresh'); // driven by real document arrival, not the old stamp
+    expect(fin.daysSince).toBe(2);
+  });
   it('marks a loop with NO real update signal as NEVER (retire candidate)', () => {
     const ledger = assessLoops({}, NOW).find((l) => l.key === 'ledger'); // no transactions
     expect(ledger.status).toBe('never');
