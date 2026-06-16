@@ -32,7 +32,14 @@ import {
   buildBroadcastSchedule, broadcastProgressSummary, exportBroadcastCurriculumMarkdown,
   resolveBroadcastCohort, SOP_SEQUENCES, SOP_CAPTURE_PIPELINE,
 } from './lib/broadcast-class.js';
+import {
+  INFRA_META, INFRA_SESSION_FLOW, INFRA_PROPOSED_COHORT_START,
+  INFRA_INTEREST_TAG, INFRA_HELPER_TAG, INFRA_TUTOR_META,
+  buildInfraSchedule, infraProgressSummary, exportInfraCurriculumMarkdown,
+  resolveInfraCohort, INFRA_SOP_SEQUENCES,
+} from './lib/infrastructure-class.js';
 import { helperInterestText } from './lib/learn-framework.js';
+import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
@@ -65,6 +72,7 @@ import { ChurchObservation } from './components/ChurchObservation.jsx';
 import Pulpit from './components/Pulpit.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
+import Study from './components/Study.jsx';
 import { Queue } from './components/Queue.jsx';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -923,6 +931,20 @@ export const CHURCH_STAFF_EMAILS = new Set([
 ]);
 export const isChurchStaffEmail = (email) =>
   CHURCH_STAFF_EMAILS.has(String(email || '').toLowerCase());
+
+// Darrell's Study circle — the SMALLEST possible access set, by deliberate design
+// (no-leak, sovereign, private). Exactly: Darrell (owner), Christina (family /
+// one-flesh), and Bishop Gwin (king-priest). Built as an EXPLICIT union of the
+// family allowlist + BG, NOT `isFamilyEmail || isChurchStaffEmail`, so that ever
+// broadening church staff later does not silently widen this private space — the
+// circle is revisited intentionally if it is ever to change. The Study surface +
+// its device-local data are gated to this predicate; nothing here is public seed
+// or reachable by the wider team.
+export const STUDY_CIRCLE_EXTRA = new Set([
+  'bg@thechurchofthelivinggod.com', // Bishop Gwin
+]);
+export const isStudyCircleEmail = (email) =>
+  isFamilyEmail(email) || STUDY_CIRCLE_EXTRA.has(String(email || '').toLowerCase());
 
 // The wf18 Imported family-PII gate (from #131), extracted as a pure predicate
 // so the security property is directly testable and provably preserved: the
@@ -1927,6 +1949,9 @@ export default function PoeFinancialSystem() {
   // Church staff get the church staff-only surfaces (Observation) and nothing
   // more — never the family/Governor scope. Family are staff too (superset).
   const isChurchStaff = isFamilyMember || isChurchStaffEmail(authSession?.user?.email);
+  // The private Study circle (Darrell + Christina + BG). Gates both the nav entry
+  // (so the wider team never sees it) and the view render (defense in depth).
+  const isStudyCircle = isStudyCircleEmail(authSession?.user?.email);
   const PROFILES = [
     { id: 'darrell', name: isFamilyMember ? 'Darrell' : 'Adam', sub: 'full owner view', accent: '#1A1815' },
     { id: 'christina', name: isFamilyMember ? 'Christina' : 'Naomi', sub: 'personal + practice', accent: '#B85838' },
@@ -3562,10 +3587,15 @@ export default function PoeFinancialSystem() {
   // The Broadcast course (Darrell 2026-06-16) — its OWN cohort, same machinery.
   const setBroadcastCohortStart = (date) => setData(d => ({ ...d, broadcastCohort: { ...(d.broadcastCohort || {}), startDate: date } }));
   const confirmBroadcastCohort = (confirmed) => setData(d => ({ ...d, broadcastCohort: { ...(d.broadcastCohort || {}), confirmed: !!confirmed } }));
-  // SHARED Learn-framework state (consumed by BOTH courses): quiz results keyed by
-  // module id (real assessment record), and the learner's chosen depth/level.
+  // The Infrastructure course (Darrell 2026-06-16) — its OWN cohort, same machinery.
+  const setInfraCohortStart = (date) => setData(d => ({ ...d, infraCohort: { ...(d.infraCohort || {}), startDate: date } }));
+  const confirmInfraCohort = (confirmed) => setData(d => ({ ...d, infraCohort: { ...(d.infraCohort || {}), confirmed: !!confirmed } }));
+  // SHARED Learn-framework state (consumed by ALL three courses): quiz results keyed
+  // by module id (real assessment record), the learner's depth override, and the
+  // learner's AGE BAND (the master pacing control — one curriculum, age-right delivery).
   const recordClassQuiz = (moduleId, result) => setData(d => ({ ...d, classQuiz: { ...(d.classQuiz || {}), [moduleId]: result } }));
   const setLearnLevel = (level) => setData(d => ({ ...d, learnLevel: level }));
+  const setLearnAgeBand = (band) => setData(d => ({ ...d, learnAgeBand: band }));
   // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
   // build inbox. Persisted with the rest of the data record (device-local;
   // never synced to a shared surface — notes are siloed by design).
@@ -4560,6 +4590,11 @@ html{scroll-padding-bottom:280px}
                 ['about','About'],
                 ['__sep__', null],
                 ['notes','🕊 Notes'],
+                // Darrell's Study — private to the circle (Darrell/Christina/BG).
+                // Spread so the entry is absent from the DOM entirely for everyone
+                // else (no-leak); the feedback-area-guard still sees the literal
+                // pair below and requires its 'study' feedback area.
+                ...(isStudyCircle ? [['study','🕮 Study']] : []),
                 ['church','Church'],
                 ['markets','Markets'],
                 // Admin surfaced at the top so users can SEE a steward space
@@ -4727,11 +4762,63 @@ html{scroll-padding-bottom:280px}
             capturePipeline: SOP_CAPTURE_PIPELINE,
           };
 
-          // Graduate → next-cohort helper (both courses), via the same feedback pipe.
+          // The Infrastructure course (Darrell 2026-06-16) — third course, same
+          // shared framework + machinery. AGE-ADAPTIVE + venue-aware: it carries the
+          // generative-visual build-target disclosure (venueAware) and the Governor's
+          // engagement-by-age aggregate, both real (no fabrication).
+          const infraCohort = resolveInfraCohort(data.infraCohort);
+          const infraStart = infraCohort.startDate || INFRA_PROPOSED_COHORT_START;
+          const submitInfraInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${INFRA_INTEREST_TAG} ${(name || 'A team member').trim()} wants to join the infrastructure course.` })
+            : null;
+          const infraRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], INFRA_INTEREST_TAG) : null;
+          // Engagement-by-age aggregate (Governor only) from the real feedback stream.
+          const engagementByAge = isGov ? aggregateEngagementByAge([...(data.feedback || []), ...remoteFeedback]) : null;
+          const infrastructureCourse = {
+            meta: { ...INFRA_META, key: 'infrastructure' },
+            sessionFlow: INFRA_SESSION_FLOW,
+            schedule: buildInfraSchedule(infraStart),
+            cohortStart: infraStart,
+            cohortConfirmed: infraCohort.confirmed,
+            setCohortStart: setInfraCohortStart,
+            confirmCohort: confirmInfraCohort,
+            progressSummary: (p) => infraProgressSummary(p),
+            exportMarkdown: () => exportInfraCurriculumMarkdown(infraStart),
+            downloadName: 'the-infrastructure-how-we-build-it-sovereign-curriculum.md',
+            submitInterest: submitInfraInterest,
+            roster: infraRoster,
+            interestCopy: {
+              heading: 'Want to help build it?',
+              blurb: 'Tell Darrell you want to learn the infrastructure — the home stack and the church stack — and he’ll save you a spot in Cohort 1. Paced for every age; Christian’s already on the home path.',
+              cta: 'I want to build',
+              sent: '✓ Sent — Darrell will see you’re in. We build it together.',
+            },
+            tutorCourseMeta: INFRA_TUTOR_META,
+            sopSequences: INFRA_SOP_SEQUENCES,
+            capturePipeline: SOP_CAPTURE_PIPELINE,
+            venueAware: true,        // multi-screen venue cast + the generative-visual build target
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
+          // Graduate → next-cohort helper (all courses), via the same feedback pipe.
+          const helperTagFor = (courseKey) => (
+            courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
+              : courseKey === 'infrastructure' ? INFRA_HELPER_TAG
+                : '[Class helper]'
+          );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
                 area: 'church-learn', rating: 'love', category: 'feature-request',
-                text: helperInterestText(courseTitle, who, courseKey === 'broadcast' ? BROADCAST_HELPER_TAG : '[Class helper]'),
+                text: helperInterestText(courseTitle, who, helperTagFor(courseKey)),
+              })
+            : null;
+
+          // Feedback-tuned for every age (item 5): a real engagement signal, tagged
+          // with the learner's age band, rides the same cross-tenant feedback pipe.
+          const onLearnEngagement = authSession
+            ? ({ courseKey, courseTitle, moduleId, ageBand, signal }) => addFeedback({
+                area: 'church-learn', rating: 'neutral', category: 'general',
+                text: engagementFeedbackText({ courseKey, courseTitle, moduleId, ageBand, signal, who: authSession?.user?.email || 'A learner' }),
               })
             : null;
 
@@ -4749,10 +4836,14 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
+            extraCourses={[infrastructureCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
-            learnLevel={data.learnLevel || 'standard'}
+            learnLevel={data.learnLevel || 'auto'}
             setLearnLevel={setLearnLevel}
+            ageBand={data.learnAgeBand || 'adult'}
+            setAgeBand={setLearnAgeBand}
+            onEngagement={onLearnEngagement}
             submitHelper={submitHelper}
           />;
         })()}
@@ -4766,6 +4857,21 @@ html{scroll-padding-bottom:280px}
           </div>
         )}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
+        {/* Darrell's Study — private, circle-only (Darrell/Christina/BG). Gated
+            again here (defense in depth) so a deep-link can't reach it; data is
+            device-local + sovereign (study-space.js). */}
+        {view === 'study' && (isStudyCircle
+          ? <Study email={authSession?.user?.email} />
+          : (
+            <div className="max-w-2xl">
+              <SectionTitle eyebrow="Private">Darrell's Study</SectionTitle>
+              <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+                <div className="text-2xl mb-1" aria-hidden="true">🕮</div>
+                <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>This is a private space.</p>
+                <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>It belongs to a small circle and isn't open here.</p>
+              </div>
+            </div>
+          ))}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
               loopData={data} loopDecisions={data.loopDecisions || {}} onLoopDecision={onLoopDecision}
@@ -5393,6 +5499,9 @@ const FEEDBACK_AREAS = [
   ]},
   { group: 'Notes', items: [
     ['notes', '🕊 Notes · thinking space (capture → prayer / voice / incident / inquiry)'],
+  ]},
+  { group: "Study (private · circle only)", items: [
+    ['study', "🕮 Darrell's Study · reflections / processing / cultural research (device-local)"],
   ]},
   { group: 'Church', items: [
     ['church', 'Church · service times / media / prayer / ministry'],

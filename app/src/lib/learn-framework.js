@@ -155,3 +155,163 @@ export function helperInterestText(courseTitle, who, tag = '[Class helper]') {
   const name = (who || 'A learner').trim() || 'A learner';
   return `${tag} ${name} completed "${courseTitle}" and wants to help teach the next cohort.`;
 }
+
+// =============================================================================
+// AGE-ADAPTIVE DELIVERY — ONE curriculum, translated by age (Darrell 2026-06-16)
+// =============================================================================
+// "The same content renders per age band — short/visual/playful/hands-on for a
+// child, longer/deeper for an adult. Same truth, age-right delivery." This is a
+// SHARED-framework capability EVERY course reuses (the Infrastructure course +
+// Darrell's son Christian, 10, are the first concrete instance). It LAYERS on top
+// of the existing skill-level branching (`levels`/resolveLevel): an age band picks
+// a sensible default depth AND a developmental DELIVERY profile (segment length,
+// break cadence, how much content before a check, visual/hands-on weight, tone).
+//
+// The bands carry real developmental DEFAULTS — sustained attention roughly scales
+// with age, so younger learners get shorter segments, more frequent novelty/breaks,
+// quick wins, and more hands-on. These are STARTING defaults, deliberately tunable:
+// the continuous-feedback reel tracks engagement BY AGE BAND (lib/learn-engagement)
+// and these numbers are meant to be refined from real use — improving the timing
+// for one age improves the shared library for every course at once.
+//
+// Nothing here fabricates content. An age band only ever changes (a) WHICH authored
+// `levels` text is shown and (b) HOW the authored lesson is paced/chunked on screen.
+// When a band's preferred depth wasn't authored for a module, it falls back cleanly
+// to a simpler authored level and finally the base lesson — never an empty or
+// invented one.
+// ---------------------------------------------------------------------------
+export const AGE_BANDS = [
+  {
+    id: 'child', label: 'Child', range: '6–10',
+    depth: 'child', // preferred levels key; falls back child → teen → standard → base
+    segmentMinutes: 5, breakEveryMin: 10, contentBeforeCheck: 1,
+    visual: 'high', handsOn: 'high', tone: 'playful',
+    hint: 'Short bursts, lots of pictures, touch the real thing, a quick win every few minutes.',
+    pacing: 'One small idea at a time, then a quick win. Move and touch real things. Take a stretch break often.',
+  },
+  {
+    id: 'youth', label: 'Youth', range: '11–14',
+    depth: 'teen', segmentMinutes: 10, breakEveryMin: 20, contentBeforeCheck: 2,
+    visual: 'high', handsOn: 'high', tone: 'encouraging',
+    hint: 'Plain language, real examples, hands-on, a check after a couple of ideas.',
+    pacing: 'A couple of ideas, then check understanding. Keep it concrete and hands-on.',
+  },
+  {
+    id: 'teen', label: 'Teen', range: '15–17',
+    depth: 'teen', segmentMinutes: 15, breakEveryMin: 30, contentBeforeCheck: 2,
+    visual: 'normal', handsOn: 'high', tone: 'encouraging',
+    hint: 'Plainer language and more encouragement; can hold a longer thread.',
+    pacing: 'Teach a fuller idea, then check; tie it to something they can build.',
+  },
+  {
+    id: 'adult', label: 'Adult', range: '18–64',
+    depth: 'standard', segmentMinutes: 25, breakEveryMin: 0, contentBeforeCheck: 4,
+    visual: 'normal', handsOn: 'normal', tone: 'plain',
+    hint: 'A clear, balanced depth for most learners; the full lesson at once.',
+    pacing: 'Read the full lesson, then check understanding. Self-paced.',
+  },
+  {
+    id: 'senior', label: 'Senior / founding', range: '65+',
+    depth: 'senior', segmentMinutes: 15, breakEveryMin: 0, contentBeforeCheck: 3,
+    visual: 'normal', handsOn: 'normal', tone: 'respectful',
+    hint: 'Honors deep experience; gets to the why and the edge cases, at a patient pace.',
+    pacing: 'Unhurried; gets to the why and the edge cases; honors experience.',
+  },
+];
+export const DEFAULT_AGE_BAND = 'adult';
+
+export function normalizeAgeBand(id) {
+  return AGE_BANDS.some((b) => b.id === id) ? id : DEFAULT_AGE_BAND;
+}
+
+export function ageBandProfile(id) {
+  const want = normalizeAgeBand(id);
+  return AGE_BANDS.find((b) => b.id === want);
+}
+
+// The depth (levels key) an age band reads by default, with its fallback chain.
+// child → teen → standard ; youth/teen → teen → standard ; adult → standard ;
+// senior → senior → standard. resolveForAge applies it against the module's
+// authored `levels`, then the base lesson.
+export function depthChainForAge(id) {
+  const band = ageBandProfile(id);
+  const chain = [band.depth];
+  if (band.depth === 'child') chain.push('teen');
+  if (!chain.includes('standard')) chain.push('standard');
+  return chain;
+}
+
+// Resolve the lesson text for an age band. `levelOverride` (an explicit depth the
+// learner picked) wins over the band default so the existing skill-level control
+// still works as an advanced override. Returns { text, levelId, branched, band }.
+export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverride = null) {
+  const band = ageBandProfile(ageBandId);
+  const m = module || {};
+  const levels = m.levels && typeof m.levels === 'object' ? m.levels : null;
+  const chain = levelOverride ? [levelOverride, 'standard'] : depthChainForAge(ageBandId);
+  if (levels) {
+    for (const key of chain) {
+      if (typeof levels[key] === 'string' && levels[key]) {
+        return { text: levels[key], levelId: key, branched: true, band };
+      }
+    }
+  }
+  return { text: m.lesson || '', levelId: chain[0], branched: false, band };
+}
+
+// Split a lesson into developmentally-sized segments. Younger bands get shorter
+// chunks (fewer words per on-screen step) so a child isn't handed a wall of text;
+// the adult band returns the whole lesson as one segment. Splits on sentence
+// boundaries and never drops content — every word of the authored lesson survives,
+// only the chunking changes. Pure + deterministic (no Date/Math.random).
+const WORDS_PER_SEGMENT = { child: 45, youth: 90, teen: 140, adult: Infinity, senior: 120 };
+
+export function chunkLessonForAge(text, ageBandId = DEFAULT_AGE_BAND) {
+  const band = ageBandProfile(ageBandId);
+  const clean = typeof text === 'string' ? text.trim() : '';
+  if (!clean) return [];
+  const target = WORDS_PER_SEGMENT[band.id] ?? Infinity;
+  if (!Number.isFinite(target)) return [clean];
+  // Sentence-ish split that keeps the terminator with its sentence.
+  const sentences = clean.match(/[^.!?]+[.!?]*\s*/g) || [clean];
+  const segments = [];
+  let buf = '';
+  let words = 0;
+  for (const s of sentences) {
+    const w = s.trim().split(/\s+/).filter(Boolean).length;
+    buf += s;
+    words += w;
+    if (words >= target) {
+      segments.push(buf.trim());
+      buf = '';
+      words = 0;
+    }
+  }
+  if (buf.trim()) segments.push(buf.trim());
+  return segments.length ? segments : [clean];
+}
+
+// The full developmental TIMELINE for one module at one age band: the chunked
+// lesson plus the pacing knobs the UI uses to chunk, break, and check. Everything
+// here is derived from the band profile + the authored content — a real plan, not
+// a painted one.
+export function lessonPlanForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverride = null) {
+  const band = ageBandProfile(ageBandId);
+  const resolved = resolveForAge(module, ageBandId, levelOverride);
+  const segments = chunkLessonForAge(resolved.text, ageBandId);
+  // How many segments between a break/novelty nudge (0 = no nudges, e.g. adult).
+  const breakAfter = band.breakEveryMin > 0 && band.segmentMinutes > 0
+    ? Math.max(1, Math.round(band.breakEveryMin / band.segmentMinutes))
+    : 0;
+  return {
+    band,
+    levelId: resolved.levelId,
+    branched: resolved.branched,
+    segments,
+    totalSegments: segments.length,
+    segmentMinutes: band.segmentMinutes,
+    breakAfterSegments: breakAfter,
+    checkAfterSegments: Math.max(1, band.contentBeforeCheck),
+    estimatedMinutes: segments.length * band.segmentMinutes,
+  };
+}

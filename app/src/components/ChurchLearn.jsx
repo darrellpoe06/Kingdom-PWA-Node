@@ -39,8 +39,10 @@ import {
 } from '../lib/church-classes.js';
 import { askTutor } from '../lib/class-tutor.js';
 import {
-  LEARN_LEVELS, DEFAULT_LEVEL, resolveLevel, normalizeMedia, gradeQuiz, courseAssessment,
+  LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
+  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, lessonPlanForAge,
 } from '../lib/learn-framework.js';
+import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 
 const fmtDate = (d) => d
   ? d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
@@ -106,6 +108,78 @@ const DIAGRAMS = {
       {diagramBox(6, 70, 200, 'NVMe = local storage', '~7 GB/s — a drive, NOT a network')}
       {diagramBox(240, 70, 200, 'Cat6 = the network', '1GbE · 10GbE to ~55m')}
       <defs><marker id="arrow2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#B85838" /></marker></defs>
+    </svg>
+  ),
+  // --- Infrastructure course diagrams ---------------------------------------
+  'sovereign-stack-map': (
+    <svg viewBox="0 0 680 150" role="img" aria-label="Two mirrored stacks we own: the home stack and the church stack" className="w-full h-auto">
+      <title>The two sovereign stacks</title>
+      <text x="170" y="16" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1A1815" fontFamily="Fraunces, serif">Home stack</text>
+      {['NAS — store + serve', 'Gateway — walls + door', 'Local A.I.'].map((l, i) => <g key={`h${i}`}>{diagramBox(40, 26 + i * 38, 260, l, null)}</g>)}
+      <text x="510" y="16" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1A1815" fontFamily="Fraunces, serif">Church (COLG) stack</text>
+      {['Sovereign NAS (build)', 'Video wall + 4070 machines', 'Broadcast chain'].map((l, i) => <g key={`c${i}`}>{diagramBox(380, 26 + i * 38, 260, l, null)}</g>)}
+      <line x1="300" y1="64" x2="380" y2="64" stroke="#5A6E3D" strokeWidth="2" strokeDasharray="4 3" markerEnd="url(#arrowS)" />
+      <text x="340" y="56" textAnchor="middle" fontSize="8" fill="#5A6E3D" fontFamily="Fraunces, serif">same patterns</text>
+      <defs><marker id="arrowS" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5A6E3D" /></marker></defs>
+    </svg>
+  ),
+  'nas-anatomy': (
+    <svg viewBox="0 0 680 130" role="img" aria-label="One NAS box doing two jobs: storage (the barn) and services plus local A.I. (the brain)" className="w-full h-auto">
+      <title>Inside the NAS</title>
+      <rect x="20" y="14" width="640" height="100" fill="#FAF8F4" stroke="#1A1815" strokeWidth="1.5" />
+      <text x="160" y="34" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1A1815" fontFamily="Fraunces, serif">The barn — storage</text>
+      {[0, 1, 2, 3, 4, 5].map((i) => <rect key={i} x={60 + i * 35} y={46} width="26" height="52" fill="#5A6E3D" stroke="#1A1815" />)}
+      <text x="160" y="110" textAnchor="middle" fontSize="8.5" fill="#5A5751" fontFamily="Fraunces, serif">drive bays (RAID)</text>
+      <text x="500" y="34" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1A1815" fontFamily="Fraunces, serif">The brain — services + A.I.</text>
+      <text x="500" y="64" textAnchor="middle" fontSize="9" fill="#1A1815" fontFamily="Fraunces, serif">Xeon CPU · ECC RAM · NVMe cache</text>
+      <text x="500" y="86" textAnchor="middle" fontSize="9" fill="#5A5751" fontFamily="Fraunces, serif">n8n · Ollama · files · ntfy · (no GPU)</text>
+    </svg>
+  ),
+  'raid-redundancy': (
+    <svg viewBox="0 0 680 130" role="img" aria-label="RAID survives one drive failing; a backup is 3 copies, 2 media, 1 offsite" className="w-full h-auto">
+      <title>RAID and 3-2-1 backup</title>
+      <text x="150" y="16" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1A1815" fontFamily="Fraunces, serif">RAID — survives 1 drive dying</text>
+      {[0, 1, 2, 3].map((i) => <rect key={i} x={60 + i * 60} y={26} width="44" height="40" fill={i === 2 ? '#7A1F1F' : '#5A6E3D'} stroke="#1A1815" />)}
+      <text x="172" y="84" textAnchor="middle" fontSize="8.5" fill="#5A5751" fontFamily="Fraunces, serif">one fails (red) → array keeps running</text>
+      <text x="150" y="108" textAnchor="middle" fontSize="8.5" fill="#7A1F1F" fontFamily="Fraunces, serif">but RAID is NOT a backup</text>
+      {diagramBox(360, 20, 300, '3 copies · 2 media · 1 offsite', 'offsite = encrypted sealed blob at the church', '#FAF8F4', '#5A6E3D')}
+      <text x="510" y="100" textAnchor="middle" fontSize="8.5" fill="#5A5751" fontFamily="Fraunces, serif">a backup you never restored is only a hope</text>
+    </svg>
+  ),
+  'network-vlans': (
+    <svg viewBox="0 0 680 140" role="img" aria-label="The gateway is the internet door and the inside walls; VLANs separate family, COLG, TLC, properties, PoeTech" className="w-full h-auto">
+      <title>The gateway and its VLAN walls</title>
+      {diagramBox(250, 8, 180, 'Gateway (UCG-Max)', 'internet door + walls', '#FAF8F4', '#1A1815')}
+      <line x1="340" y1="52" x2="340" y2="70" stroke="#B85838" strokeWidth="2" />
+      {['Family', 'COLG', 'TLC', 'Properties', 'PoeTech'].map((l, i) => (
+        <g key={l}>
+          <rect x={20 + i * 130} y={78} width="118" height="44" fill="#FAF8F4" stroke="#5A6E3D" strokeWidth="1.5" />
+          <text x={79 + i * 130} y={104} textAnchor="middle" fontSize="10" fontWeight="600" fill="#1A1815" fontFamily="Fraunces, serif">{l}</text>
+        </g>
+      ))}
+      <text x="340" y="134" textAnchor="middle" fontSize="8.5" fill="#5A5751" fontFamily="Fraunces, serif">each VLAN is a walled-off room — TLC (clinical) stays isolated</text>
+    </svg>
+  ),
+  'remote-access': (
+    <svg viewBox="0 0 680 90" role="img" aria-label="A device reaches the NAS through an encrypted VPN tunnel; the public internet stays out" className="w-full h-auto">
+      <title>The private VPN tunnel</title>
+      {diagramBox(20, 24, 150, 'Your device', 'on the road')}
+      <line x1="170" y1="46" x2="270" y2="46" stroke="#5A6E3D" strokeWidth="3" markerEnd="url(#arrowR)" />
+      <text x="220" y="38" textAnchor="middle" fontSize="8" fill="#5A6E3D" fontFamily="Fraunces, serif">encrypted VPN</text>
+      {diagramBox(270, 24, 150, 'Tunnel', 'Tailscale / WireGuard', '#FAF8F4', '#5A6E3D')}
+      <line x1="420" y1="46" x2="500" y2="46" stroke="#5A6E3D" strokeWidth="3" markerEnd="url(#arrowR)" />
+      {diagramBox(500, 24, 160, 'NAS at home', 'public stays out', '#FAF8F4', '#1A1815')}
+      <defs><marker id="arrowR" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5A6E3D" /></marker></defs>
+    </svg>
+  ),
+  'vram-ladder': (
+    <svg viewBox="0 0 680 120" role="img" aria-label="Small models run on the CPU NAS; a 70B model needs about 48 GB of GPU VRAM, which is why a GPU box is planned" className="w-full h-auto">
+      <title>The VRAM ladder</title>
+      {diagramBox(20, 18, 300, 'Small model (≤13B)', 'runs on the CPU-only NAS', '#FAF8F4', '#5A6E3D')}
+      {diagramBox(360, 18, 300, '70B-class model', 'needs ~48 GB GPU VRAM', '#FAF8F4', '#7A1F1F')}
+      <text x="170" y="86" textAnchor="middle" fontSize="8.5" fill="#5A5751" fontFamily="Fraunces, serif">what we have today (NAS)</text>
+      <text x="510" y="86" textAnchor="middle" fontSize="8.5" fill="#7A1F1F" fontFamily="Fraunces, serif">GPU farm — planned, not bought yet (DR-0014)</text>
+      <text x="340" y="110" textAnchor="middle" fontSize="8.5" fill="#5A5751" fontFamily="Fraunces, serif">the church RTX 4070 wall machines are our real GPUs today</text>
     </svg>
   ),
 };
@@ -272,18 +346,163 @@ function SopLibrary({ sequences, pipeline }) {
 }
 
 // -----------------------------------------------------------------------------
+// AgePacedLesson — renders the authored lesson PACED to the learner's age band.
+// The same authored text is chunked into developmentally-sized segments
+// (learn-framework lessonPlanForAge); younger bands get a short stepper with break
+// nudges and a quick-win "Got it!" affordance, the adult band gets the whole lesson
+// at once. The text is never invented or summarized — only chunked. Reaching the
+// last segment fires onSegmentComplete once (real engagement signal).
+// -----------------------------------------------------------------------------
+function AgePacedLesson({ plan, onSegmentComplete }) {
+  const [idx, setIdx] = useState(0);
+  const firedRef = useRef(false);
+  if (!plan || !plan.segments || plan.segments.length === 0) return null;
+  const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band } = plan;
+
+  // Adult/single-segment: just show the whole lesson, no stepper.
+  if (totalSegments <= 1) {
+    return (
+      <p className="text-xs text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{segments[0]}</p>
+    );
+  }
+
+  const atLast = idx >= totalSegments - 1;
+  const advance = () => {
+    if (atLast) {
+      if (!firedRef.current && onSegmentComplete) { firedRef.current = true; onSegmentComplete(); }
+      return;
+    }
+    setIdx((i) => Math.min(totalSegments - 1, i + 1));
+  };
+  // Break nudge after every breakAfterSegments steps (young bands only).
+  const showBreak = breakAfterSegments > 0 && (idx + 1) % breakAfterSegments === 0 && !atLast;
+  const showCheckHint = (idx + 1) >= checkAfterSegments;
+
+  return (
+    <div className="mb-2 border border-[#E8E4DC] bg-white p-2">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold">
+          Step {idx + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
+        </span>
+        <div className="h-1.5 w-24 bg-[#E8E4DC]" role="progressbar" aria-valuenow={idx + 1} aria-valuemin={1} aria-valuemax={totalSegments} aria-label="Lesson step">
+          <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(((idx + 1) / totalSegments) * 100)}%` }} />
+        </div>
+      </div>
+      <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{segments[idx]}</p>
+      {showBreak && (
+        <p className="text-[11px] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>🙆 Quick stretch break — then keep going!</p>
+      )}
+      {showCheckHint && (
+        <p className="text-[11px] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>👇 When you’re ready, try the quick check below.</p>
+      )}
+      <div className="flex items-center gap-2 mt-2">
+        <button
+          type="button"
+          onClick={() => setIdx((i) => Math.max(0, i - 1))}
+          disabled={idx === 0}
+          className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+        >
+          ◀ Back
+        </button>
+        <button
+          type="button"
+          onClick={advance}
+          className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${atLast ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f]'}`}
+        >
+          {atLast ? 'Got it! ✓' : 'Next →'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// RpeBlock — every lesson runs the shared Research → Plan → Execute primitive.
+function RpeBlock({ rpe }) {
+  if (!rpe || (!rpe.research && !rpe.plan && !rpe.execute)) return null;
+  const steps = [
+    { k: '🔎 Research', v: rpe.research },
+    { k: '🗺️ Plan', v: rpe.plan },
+    { k: '🔧 Execute', v: rpe.execute },
+  ].filter((s) => s.v);
+  return (
+    <div className="mb-2 border-l-4 border-[#5A6E3D] bg-white p-2">
+      <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">Research → Plan → Execute</div>
+      <ol className="space-y-1">
+        {steps.map((s, i) => (
+          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <strong>{s.k}:</strong> {s.v}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+// HardwarePairing — Christian's home path: the REAL device to find, look at, and
+// (safely) touch. How a child learns best is hands-on with the real iron.
+function HardwarePairing({ hardware }) {
+  if (!Array.isArray(hardware) || hardware.length === 0) return null;
+  return (
+    <div className="mb-2 border border-dashed border-[#5A6E3D] bg-[#5A6E3D]/5 p-2">
+      <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">🖐️ Go find it — touch the real thing</div>
+      <ul className="space-y-2">
+        {hardware.map((h, i) => (
+          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <strong>{h.device}</strong>
+            {h.look && <div>👀 Look: {h.look}</div>}
+            {h.touch && <div>✋ Touch: {h.touch}</div>}
+            {h.safe && <div className="text-[#7A1F1F]">⚠️ Safe: {h.safe}</div>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// GenerativeVisualNote — HONEST disclosure (DR-0076): the venue can play one lesson
+// across every screen at each screen's level (multi-screen cast), and the big screen
+// can someday show live A.I.-generated visuals from the spoken words — but that
+// rides GPU hardware we don't have yet, so it is clearly a BUILD TARGET, not a claim.
+function GenerativeVisualNote() {
+  return (
+    <div className="mb-2 border border-[#E8E4DC] bg-white p-2">
+      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">On the big screen (venue)</div>
+      <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+        In the sanctuary this same lesson can play across every screen at the right level for each one (the video wall and the monitors together).
+      </p>
+      <p className="text-[11px] text-[#7A1F1F] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        <span className="uppercase tracking-wider text-[9px] border border-[#7A1F1F] px-1.5 py-0.5 mr-1">Build target</span>
+        {GENERATIVE_VISUAL_PIPELINE.summary} {GENERATIVE_VISUAL_PIPELINE.blockedReason}
+      </p>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // TutorPanel — the per-week solo guide. Authored walkthrough is ALWAYS shown
 // (so a learner can finish offline); the chat enriches it when the local LLM is
 // reachable, and degrades honestly when it is not. `tutorCourseMeta` lets the
 // SAME engine introduce itself per course (youth class vs broadcast training).
 // -----------------------------------------------------------------------------
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null }) {
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [offline, setOffline] = useState(false);
   const liveRef = useRef(null);
-  const lessonText = resolveLevel(module, level).text;
+  const startedRef = useRef(false);
+  // The authored lesson, PACED to the learner's age band (chunked, not summarized).
+  const plan = lessonPlanForAge(module, ageBand, levelOverride);
+
+  // Real engagement: this learner started this week (once per open).
+  React.useEffect(() => {
+    if (!startedRef.current && onEngagement) { startedRef.current = true; onEngagement('started', module.id); }
+  }, [module.id, onEngagement]);
+
+  const recordQuizAndEngage = (id, result) => {
+    if (onRecordQuiz) onRecordQuiz(id, result);
+    if (onEngagement) onEngagement(result.passed ? 'quiz-passed' : 'quiz-failed', id);
+  };
 
   const send = async () => {
     const text = draft.trim();
@@ -308,18 +527,26 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         🧭 Your guide for this week
       </div>
 
-      {/* Authored walkthrough — always available, never a dead end. Lesson depth
-          follows the learner's chosen skill level (resolveLevel). */}
-      {lessonText && (
-        <p className="text-xs text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{lessonText}</p>
-      )}
+      {/* Research → Plan → Execute — the shared doing-primitive, every lesson */}
+      <RpeBlock rpe={module.rpe} />
+
+      {/* Authored walkthrough — always available, never a dead end. PACED to the
+          learner's age band (chunked, not summarized); depth follows age + any
+          explicit override. */}
+      <AgePacedLesson plan={plan} onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)} />
 
       {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
       <MediaList module={module} />
 
+      {/* Christian's home path — go find, look at, and safely touch the real device */}
+      <HardwarePairing hardware={module.hardware} />
+
       <p className="text-xs text-[#1A1815] mb-2 mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
         <strong>{handsOnLabel}:</strong> {module.inApp}
       </p>
+
+      {/* Honest venue / generative-visual disclosure (build target) */}
+      {venueAware && <GenerativeVisualNote />}
       {module.launch && onLaunch && (
         <button
           type="button"
@@ -341,7 +568,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
       )}
 
       {/* Check-for-understanding quiz (real assessment) */}
-      <QuizBlock module={module} saved={quizSaved} onRecord={onRecordQuiz} />
+      <QuizBlock module={module} saved={quizSaved} onRecord={recordQuizAndEngage} />
 
       {/* The chat with the local tutor */}
       <div className="mt-3 border-t border-[#E8E4DC] pt-3">
@@ -415,6 +642,9 @@ function CourseView({
   onSendInterest = null,
   learnLevel = DEFAULT_LEVEL,
   setLearnLevel = null,
+  ageBand = DEFAULT_AGE_BAND,
+  setAgeBand = null,
+  onEngagement = null,
   quizState = {},
   recordQuiz = null,
   onBecomeHelper = null,
@@ -428,7 +658,11 @@ function CourseView({
     meta, schedule, cohortConfirmed, cohortStart, setCohortStart, confirmCohort,
     progressSummary: courseProgressSummary, exportMarkdown, downloadName,
     roster, interestCopy, tutorCourseMeta, sopSequences, capturePipeline,
+    venueAware = false, engagementByAge = null,
   } = course;
+  // The explicit depth override the learner picked, if any. 'auto' (default) means
+  // "follow my age band" — the age picker is the master control; this fine-tunes it.
+  const levelOverride = learnLevel && learnLevel !== 'auto' && learnLevel !== DEFAULT_AGE_BAND ? learnLevel : null;
   const handsOnLabel = meta.handsOnLabel || 'In the app';
   const prog = courseProgressSummary(progress);
   const canSendInterest = !!onSendInterest;
@@ -539,13 +773,42 @@ function CourseView({
         </div>
       )}
 
-      {/* Skill-level — the right depth for a teen vs a senior founding member */}
+      {/* Age band — the MASTER control: one curriculum, paced + pitched to the
+          learner's age (short/visual/playful for a child, deeper for an adult). */}
+      {setAgeBand && (
+        <div className="border border-[#E8E4DC] p-3 mb-5">
+          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Who’s learning? (sets the pace)</div>
+          <div role="group" aria-label="Choose the learner's age" className="flex flex-wrap gap-2">
+            {AGE_BANDS.map((b) => {
+              const on = ageBand === b.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={on}
+                  title={b.hint}
+                  onClick={() => setAgeBand(b.id)}
+                  className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+                >
+                  {b.label} <span className="opacity-70">{b.range}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            {ageBandProfile(ageBand).pacing}
+          </p>
+        </div>
+      )}
+
+      {/* Fine-tune depth (optional) — the existing skill-level branching, now an
+          override on top of the age band. "Auto" follows your age. */}
       {setLearnLevel && (
         <div className="border border-[#E8E4DC] p-3 mb-5">
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Set your depth</div>
-          <div role="group" aria-label="Choose your learning level" className="flex flex-wrap gap-2">
-            {LEARN_LEVELS.map((lv) => {
-              const on = learnLevel === lv.id;
+          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Fine-tune depth (optional)</div>
+          <div role="group" aria-label="Choose your learning depth" className="flex flex-wrap gap-2">
+            {[{ id: 'auto', label: 'Auto', hint: 'Follow my age band.' }, ...LEARN_LEVELS].map((lv) => {
+              const on = (learnLevel || 'auto') === lv.id;
               return (
                 <button
                   key={lv.id}
@@ -560,6 +823,37 @@ function CourseView({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Governor — engagement BY AGE BAND, from real use. Tunes the pacing
+          defaults: improving one age improves every course's library. */}
+      {isGovernor && engagementByAge && (
+        <div className="border border-[#E8E4DC] p-4 mb-5">
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Engagement by age</h3>
+            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{engagementByAge.totals?.records || 0} signals</span>
+          </div>
+          {(engagementByAge.totals?.records || 0) === 0 ? (
+            <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              No engagement signals yet. As learners use the courses, each age band’s real use shows here — and the pacing defaults get tuned from it.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {AGE_BANDS.map((b) => {
+                const row = engagementByAge.byBand?.[b.id];
+                if (!row || row.total === 0) return null;
+                return (
+                  <li key={b.id} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span>{b.label} <span className="text-[#5A5751]">{b.range}</span></span>
+                    <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {row.total} signals · score {row.score} · {row.counts['completed'] || 0} completed
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       )}
 
@@ -712,6 +1006,10 @@ function CourseView({
                     tutorCourseMeta={tutorCourseMeta}
                     handsOnLabel={handsOnLabel}
                     level={learnLevel}
+                    ageBand={ageBand}
+                    levelOverride={levelOverride}
+                    onEngagement={onEngagement}
+                    venueAware={venueAware}
                     quizSaved={quizState[m.id] || null}
                     onRecordQuiz={recordQuiz}
                   />
@@ -820,10 +1118,14 @@ export default function ChurchLearn({
   currentUserName = '',
   onLaunch = null, // (target:{view,churchView?}) => void — host maps to setView/setChurchView
   broadcast = null, // optional second-course descriptor (The Broadcast: How It All Works), assembled by the host
+  extraCourses = null, // optional array of additional fully-formed course descriptors (e.g. The Infrastructure)
   quizState = {},   // shared, keyed by module id: { [moduleId]: { passed, pct, at } }
   recordQuiz = null, // (moduleId, result) => void
-  learnLevel = DEFAULT_LEVEL, // shared learner depth preference
+  learnLevel = DEFAULT_LEVEL, // shared learner depth override ('auto' follows age)
   setLearnLevel = null,       // (levelId) => void
+  ageBand = DEFAULT_AGE_BAND,  // shared learner age band (the master pacing control)
+  setAgeBand = null,           // (bandId) => void
+  onEngagement = null,         // ({courseKey,courseTitle,moduleId,ageBand,signal}) => void — feedback-by-age
   submitHelper = null,        // (courseKey, courseTitle, who) => void — graduate → next-cohort helper
 }) {
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
@@ -867,20 +1169,38 @@ export default function ChurchLearn({
     tutorCourseMeta: null, // default youth-class tutor intro
   };
 
-  // The broadcast course descriptor comes fully-formed from the host (it owns the
-  // broadcast cohort + interest wiring). If it's absent, only the A.I. course shows.
-  const broadcastCourse = broadcast
-    ? {
-        ...broadcast,
-        key: 'broadcast',
-        submitInterest: broadcast.submitInterest
-          ? () => { broadcast.submitInterest((currentUserName || '').trim() || 'A team member'); setInterestSent((s) => ({ ...s, broadcast: true })); }
-          : null,
-      }
-    : null;
+  // Additional course descriptors come fully-formed from the host (each owns its
+  // cohort + interest wiring). The broadcast prop is kept for back-compat; any
+  // number of further courses (e.g. The Infrastructure) ride in via extraCourses.
+  // Each gets its interest CTA wrapped to flip this wrapper's per-course sent state.
+  const buildExtra = (c, fallbackWho) => {
+    if (!c) return null;
+    const key = c.meta?.key || c.key;
+    return {
+      ...c,
+      key,
+      submitInterest: c.submitInterest
+        ? () => { c.submitInterest((currentUserName || '').trim() || fallbackWho); setInterestSent((s) => ({ ...s, [key]: true })); }
+        : null,
+    };
+  };
 
-  const courses = broadcastCourse ? [aiCourse, broadcastCourse] : [aiCourse];
+  const broadcastCourse = buildExtra(
+    broadcast ? { ...broadcast, meta: { ...broadcast.meta, key: 'broadcast' } } : null,
+    'A team member',
+  );
+  const builtExtras = (Array.isArray(extraCourses) ? extraCourses : [])
+    .map((c) => buildExtra(c, 'A team member'))
+    .filter(Boolean);
+
+  const courses = [aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras];
   const active = courses.find((c) => c.key === activeKey) || aiCourse;
+
+  // Engagement-by-age: TutorPanel emits (signal, moduleId); the wrapper injects the
+  // active course + the learner's age band before handing it to the host's pipe.
+  const onCourseEngagement = onEngagement
+    ? (signal, moduleId) => onEngagement({ courseKey: active.key, courseTitle: active.meta.title, moduleId, ageBand, signal })
+    : null;
 
   // Graduate → next-cohort helper for the active course (rides the same pipe).
   const onBecomeHelper = submitHelper
@@ -928,6 +1248,9 @@ export default function ChurchLearn({
         onSendInterest={active.submitInterest}
         learnLevel={learnLevel}
         setLearnLevel={setLearnLevel}
+        ageBand={ageBand}
+        setAgeBand={setAgeBand}
+        onEngagement={onCourseEngagement}
         quizState={quizState}
         recordQuiz={recordQuiz}
         onBecomeHelper={onBecomeHelper}
