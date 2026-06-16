@@ -5161,21 +5161,42 @@ function TTSControls() {
 // notes to a specific surface. Adds a category picker (Bug · Confusion · Idea
 // · Praise · Copy / wording · Performance · Accessibility) so we can triage
 // the SME-review feedback by type. Pre-fills the user's currently-viewed tab.
+// FEEDBACK_AREAS — the "Which area?" list in the SME-review feedback form.
+// It MIRRORS the app's nav tree so a reviewer can give feedback on EVERY surface,
+// grouped by top-level tab with sub-tabs/sub-features indented (└). The nav itself
+// is the source of truth for the STRUCTURE — when a tab or sub-tab is added there,
+// add a matching entry here so this list never goes stale again. Nav locations:
+//   • Top-level tabs  — the <nav> array (~line 4505 in this file)
+//   • Books sub-tabs  — the Books sub-nav (~line 4533 in this file)
+//   • Church sub-tabs — the Church sub-nav (~line 4544 in this file)
+//   • Choir sub-tabs  — TABS in components/Choir.jsx
+//   • Projects/Build  — tabs in components/Projects.jsx (Build · Decisions · Review · Loops)
+// Sub-features finer than nav (e.g. Buffer Fund, the cross-reference strip) stay
+// indented under their page on purpose — that granularity is what makes SME
+// feedback actionable. Existing keys are STABLE (stored feedback rows reference
+// them); only add, don't rename.
 const FEEDBACK_AREAS = [
-  { group: 'Money', items: [
+  { group: 'Big Picture', items: [
     ['overview', 'Big Picture · dashboard'],
     ['action-queue', '└ Action Queue (Changes · Incidents · Projects)'],
     ['capacity-meter', '└ Family Capacity meter'],
     ['xref-strip', '└ Cross-reference strip (rooms · equipment · leases · capex · watchlist)'],
+  ]},
+  { group: 'Books', items: [
     ['books-entities', 'Books · Entities'],
     ['books-accounts', 'Books · Accounts (cash / credit split)'],
     ['buffer-fund', '└ Buffer Fund (slider + target)'],
+    ['debts', 'Books · Debts · Snowball / Avalanche'],
     ['books-transactions', 'Books · Transactions'],
     ['books-forecast', '└ 30/60/90 forecast vs trailing actuals'],
-    ['books-calendar', 'Books · Calendar (recurring · incidents · events)'],
-    ['books-1099', 'Books · 1099 tracking'],
+    ['books-imported', 'Books · Imported (bank / statement import)'],
     ['books-cart', 'Books · Subscriptions / Cart'],
-    ['debts', 'Debts · Snowball / Avalanche'],
+    ['books-1099', 'Books · 1099 tracking'],
+    ['books-calendar', 'Books · Calendar (recurring · incidents · events)'],
+    ['books-legal', 'Books · 🔒 Legal (entity / account legal flags)'],
+  ]},
+  { group: 'Inbound', items: [
+    ['inbound', '📞 Inbound · call / inquiry capture → routing'],
   ]},
   { group: 'Real Estate', items: [
     ['rentals', 'Real Estate · property list + map'],
@@ -5190,16 +5211,19 @@ const FEEDBACK_AREAS = [
     ['rentals-evaluator', '└ Investment evaluator (cap rate · DSCR · 1%)'],
     ['rentals-tenant-issue', '└ Tenant Not Paying → issue affordance'],
   ]},
-  { group: 'Markets · Church', items: [
-    ['markets', 'Markets · watchlist (Stooq feed)'],
-    ['church', 'Church · service times / media / prayer / ministry'],
-  ]},
   { group: 'Projects · Ops', items: [
     ['projects', 'Projects · Timeline + workload'],
     ['scopes', 'Projects · Scope-of-work agreements'],
     ['scope-payment', '└ Scope · materials-paid-by + payment policy'],
     ['inventory-forecast', 'Projects · Inventory & 12-month capital forecast'],
     ['savings-prompts', '└ Savings prompts per capex item'],
+    ['build-board', 'Projects · 🛠 PoeTech Build board (Building · Next · Gated · Shipped lanes)'],
+    ['build-kpi', '└ KPI status dots + Key (legend)'],
+    ['build-workflows', '└ Workflow status feed'],
+    ['build-llm-health', '└ Local-LLM health card'],
+    ['governance-decisions', 'Projects · ⚖ Decisions (Governor governance queue)'],
+    ['review-feed', 'Projects · 🔄 Review (freshness-loop staged proposals)'],
+    ['loop-health', 'Projects · 🩺 Loops (loop-health keep / retire)'],
     ['itsm-taxonomy', 'ITSM taxonomy (Change · Incident · Project)'],
   ]},
   { group: 'Practice · Dev/Ops', items: [
@@ -5211,6 +5235,29 @@ const FEEDBACK_AREAS = [
     ['services-portfolio', '└ PoeTech Services Portfolio'],
     ['skill-profiles', '└ Skill profiles'],
   ]},
+  { group: 'Notes', items: [
+    ['notes', '🕊 Notes · thinking space (capture → prayer / voice / incident / inquiry)'],
+  ]},
+  { group: 'Church', items: [
+    ['church', 'Church · service times / media / prayer / ministry'],
+    ['church-conference', '└ Conference · COLG National Assembly (schedule · meals · sessions)'],
+    ['church-event-center', '└ Event Center · room / event requests'],
+    ['church-engagement', 'Church · Engagement (trivia + messages)'],
+    ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
+    ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
+    ['church-choir', 'Church · Choir (director hub)'],
+    ['choir-week', '└ Choir · This week'],
+    ['choir-schedule', '└ Choir · Schedule'],
+    ['choir-sermons', '└ Choir · Sermons'],
+    ['choir-teamdocs', '└ Choir · Team Docs'],
+    ['choir-availability', '└ Choir · Availability'],
+    ['choir-messages', '└ Choir · Messages'],
+    ['choir-resources', '└ Choir · Resources'],
+    ['choir-roster', '└ Choir · Roster'],
+  ]},
+  { group: 'Markets', items: [
+    ['markets', 'Markets · watchlist (Stooq feed)'],
+  ]},
   { group: 'About · Tiers · System', items: [
     ['about-pricing', 'About · pricing tiers + features'],
     ['about-modules', 'About · planned modules + vote'],
@@ -5218,6 +5265,7 @@ const FEEDBACK_AREAS = [
     ['about-community', 'About · community partnership model'],
     ['tier-gating', 'Tier gating (Foundation / PoeTech+ / Family / Premium / Business)'],
     ['tier-switcher', 'Tier switcher (header dropdown)'],
+    ['admin', 'Admin · internal / Tailscale-hosted surfaces (footer link)'],
   ]},
   { group: 'Cross-cutting', items: [
     ['navigation', 'Navigation · tab order · separator'],
@@ -5226,6 +5274,9 @@ const FEEDBACK_AREAS = [
     ['tts', 'Text-to-Speech / Read aloud'],
     ['notifications', 'Browser reminders / notifications'],
     ['storage', 'Local-first storage / load / save'],
+    ['install-pwa', 'Install / PWA (Add to Home Screen · update prompt)'],
+    ['network-status', 'Network status / offline banner'],
+    ['auth-signin', 'Sign-in · multi-point auth · PIN gate'],
     ['mobile', 'Mobile responsiveness'],
     ['performance', 'Performance · render speed'],
     ['copy', 'Copy / wording / clarity'],
@@ -5254,6 +5305,9 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
     if (currentView === 'opportunities') return 'opportunities';
     if (currentView === 'markets') return 'markets';
     if (currentView === 'church') return 'church';
+    if (currentView === 'inbound') return 'inbound';
+    if (currentView === 'notes') return 'notes';
+    if (currentView === 'admin') return 'admin';
     if (currentView === 'about') return 'about-pricing';
     return 'overview';
   })();
