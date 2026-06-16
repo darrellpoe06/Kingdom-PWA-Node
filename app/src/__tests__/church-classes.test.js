@@ -7,14 +7,80 @@
 // says "set a date"), and a student's progress is counted from their real record.
 import { describe, it, expect } from 'vitest';
 import {
-  MODULES, CLASS_META, PROPOSED_COHORT_START,
+  MODULES, CLASS_META, PROPOSED_COHORT_START, CONFIRMED_COHORT, SESSION_FLOW, SESSION_MINUTES,
   weekToDate, weekday, buildSchedule, progressSummary, toMs,
+  exportCurriculumMarkdown, resolveCohort,
 } from '../lib/church-classes.js';
 
 describe('curriculum shape', () => {
   it('has the full 8-week module set with anchors', () => {
-    expect(MODULES).toHaveLength(CLASS_META.weeks);
+    expect(MODULES).toHaveLength(8);
+    expect(CLASS_META.weeks).toBe(8);
     expect(MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
+  });
+
+  it('includes the authored weeks 7 (guard heart/time) and 8 (teach next)', () => {
+    expect(MODULES[6].id).toBe('wk7-guard-heart-time');
+    expect(MODULES[6].anchor.ref).toContain('1 Corinthians 6:12');
+    expect(MODULES[7].id).toBe('wk8-teach-next');
+    expect(MODULES[7].anchor.ref).toContain('2 Timothy 2:2');
+  });
+
+  it('every week carries the facilitator guide + lesson depth', () => {
+    for (const m of MODULES) {
+      expect(typeof m.lesson).toBe('string');
+      expect(m.lesson.length).toBeGreaterThan(80);
+      expect(m.facilitator).toBeTruthy();
+      expect(Array.isArray(m.facilitator.talkingPoints)).toBe(true);
+      expect(m.facilitator.talkingPoints.length).toBeGreaterThan(0);
+      expect(typeof m.facilitator.howToRun).toBe('string');
+      expect(Array.isArray(m.facilitator.discussionPrompts)).toBe(true);
+      expect(m.facilitator.discussionPrompts.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('the session flow sums to the advertised 75 minutes', () => {
+    expect(SESSION_MINUTES).toBe(75);
+    expect(SESSION_FLOW.length).toBe(6);
+  });
+});
+
+describe('curriculum export (paper-trustable, full)', () => {
+  it('produces the FULL curriculum — all 8 weeks with facilitator detail', () => {
+    const md = exportCurriculumMarkdown('2026-07-11');
+    expect(md).toContain(CLASS_META.title);
+    for (const m of MODULES) {
+      expect(md).toContain(m.title);
+      expect(md).toContain(m.bigIdea);
+      // each week's facilitator content reaches the export
+      expect(md).toContain(m.facilitator.talkingPoints[0]);
+    }
+    expect(md).toContain('Week 1 —');
+    expect(md).toContain('Week 8 —');
+    expect(md).toContain('Facilitator guide');
+    expect(md).toContain('How to run the 75 minutes');
+  });
+
+  it('omits dates cleanly when no start is given', () => {
+    const md = exportCurriculumMarkdown(null);
+    expect(md).toContain('Week 1 —');
+    expect(md).not.toMatch(/Saturday, 2026/); // no painted date without a start
+  });
+});
+
+describe('cohort-date propagation (a learner outside the Governor sees the published date)', () => {
+  it('falls back to the published CONFIRMED_COHORT when the instance has none', () => {
+    const r = resolveCohort(null);
+    expect(r.startDate).toBe(CONFIRMED_COHORT.startDate);
+    expect(r.confirmed).toBe(!!CONFIRMED_COHORT.confirmed);
+  });
+  it('honors a Governor instance value when present', () => {
+    const r = resolveCohort({ startDate: '2026-08-01', confirmed: true });
+    expect(r.startDate).toBe('2026-08-01');
+    expect(r.confirmed).toBe(true);
+  });
+  it('an empty object still yields a usable published date', () => {
+    expect(resolveCohort({}).startDate).toBeTruthy();
   });
 });
 

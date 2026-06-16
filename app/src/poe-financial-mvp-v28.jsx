@@ -16,7 +16,7 @@ import AuthBanner from './components/AuthBanner.jsx';
 import Engagement from './components/Engagement.jsx';
 import Choir from './components/Choir.jsx';
 import ChurchLearn from './components/ChurchLearn.jsx';
-import { PROPOSED_COHORT_START } from './lib/church-classes.js';
+import { PROPOSED_COHORT_START, resolveCohort } from './lib/church-classes.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import Imported from './components/Imported.jsx';
@@ -4599,17 +4599,25 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
-        {view === 'church' && churchView === 'learn' && <ChurchLearn
-          cohortStart={data.classCohort?.startDate || PROPOSED_COHORT_START}
-          cohortConfirmed={!!data.classCohort?.confirmed}
-          setCohortStart={setClassCohortStart}
-          confirmCohort={confirmClassCohort}
-          progress={data.classProgress || {}}
-          toggleModule={authSession ? toggleClassModule : null}
-          addChurchVoice={authSession ? addChurchVoice : null}
-          isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
-          currentUserName={authSession?.user?.email || ''}
-        />}
+        {view === 'church' && churchView === 'learn' && (() => {
+          // Resolve the cohort a learner SEES: the Governor's live in-instance
+          // value when present, else the PUBLISHED confirmed date every build
+          // carries (resolveCohort) — so a learner outside Darrell's instance no
+          // longer sees only the static proposal. (DR-0076 cohort propagation.)
+          const cohort = resolveCohort(data.classCohort);
+          return <ChurchLearn
+            cohortStart={cohort.startDate || PROPOSED_COHORT_START}
+            cohortConfirmed={cohort.confirmed}
+            setCohortStart={setClassCohortStart}
+            confirmCohort={confirmClassCohort}
+            progress={data.classProgress || {}}
+            toggleModule={authSession ? toggleClassModule : null}
+            addChurchVoice={authSession ? addChurchVoice : null}
+            isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
+            currentUserName={authSession?.user?.email || ''}
+            onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
+          />;
+        })()}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
