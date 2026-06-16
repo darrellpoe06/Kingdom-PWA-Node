@@ -233,6 +233,16 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
         <p className="text-base leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           <strong>PoeTech serves the Body of Christ — multi-racial, a royal priesthood (1 Peter 2:9).</strong> The Black Church is its clearest economic exemplar: from the Free African Society of 1787 to the colleges built on washerwomen's pennies, a documented powerhouse the mainstream finance and tech industries — and federal policy — underserved and undermined for two centuries. The order is fixed: <em>prosper as your soul prospers</em> (3 John 1:2). The Spiritual Module is free on every tier; the financial tools follow, giving the understanding (Proverbs 4:7) to see how the wealth gap was engineered — not earned — and to operate outside the mechanisms. The metric is faithfulness, not yield — the steward of two talents and of five receive the same <em>"well done"</em> (Matthew 25:21). That is stewardship, not the prosperity gospel.
         </p>
+        {/* 2026-06-16 — Brand principle declared by Darrell. Deuteronomy 8:18 as a
+            stated PoeTech value: wealth is a God-given ABILITY, stewarded for the
+            covenant — not a self-made claim and not the prosperity gospel. Pairs with
+            the faithfulness-not-yield guardrail above (Matt 25:21) and the Phil 4:8
+            excellence guardrails in the mission. Verse quoted verbatim (KJV, as
+            Darrell provided it); PoeTech's own framing capitalizes He/His per the
+            Layer-0 typography rule, the verbatim quote preserves the translation. */}
+        <p className="text-base leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+          <strong>Wealth is a God-given ability, stewarded for the covenant.</strong> <em>"Thou shalt remember the LORD thy God: for it is he that giveth thee power to get wealth, that he may establish his covenant"</em> (Deuteronomy 8:18). The power to produce is His gift — not a self-made claim — and it is given to establish His covenant, not to enrich the self. So we steward it; we do not chase it. That is the same bright line as above: faithfulness, not yield. It is covenant, not the prosperity gospel. We believe Him.
+        </p>
         <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Projections, not promises. Better stewardship through technology — alongside qualified professionals and the church community, not replacing them.
         </p>
