@@ -1,0 +1,44 @@
+# Auto-merge bootstrap — hands-off promotion to main, gated by branch protection.
+#
+# For PRs that TARGET main from feat/*, fix/*, merge/*, or docs/* branches,
+# this enables GitHub's native auto-merge (squash). The PR then merges itself
+# the moment the required status checks pass — and ONLY then. This never
+# bypasses protection: auto-merge respects every required check and review
+# rule on main, and a PR whose checks fail simply never merges.
+#
+# Auth is the workflow's own GITHUB_TOKEN (granted below). gh runs INSIDE the
+# Action; nothing here calls gh from a local shell. Nothing here touches the
+# protection rules themselves. No force, ever.
+#
+# Pairs with ci.yml (the required checks this defers to) and RELEASE-TIERS.md.
+
+name: Auto-merge
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable-auto-merge:
+    name: enable auto-merge (squash) on eligible PRs
+    runs-on: ubuntu-latest
+    # Only release-lane branches; never drafts.
+    if: >-
+      github.event.pull_request.draft == false &&
+      (
+        startsWith(github.event.pull_request.head.ref, 'feat/') ||
+        startsWith(github.event.pull_request.head.ref, 'fix/') ||
+        startsWith(github.event.pull_request.head.ref, 'merge/') ||
+        startsWith(github.event.pull_request.head.ref, 'docs/')
+      )
+    steps:
+      - name: Enable native auto-merge (waits for required checks)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
