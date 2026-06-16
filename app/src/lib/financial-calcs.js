@@ -22,6 +22,7 @@ export {
   projectRentalSnowball,
   findExtraForTarget,
   frequencyToMonthly,
+  computePressure,
 } from '../poe-financial-mvp-v28.jsx';
 
 // -----------------------------------------------------------------------------
