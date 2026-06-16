@@ -7,6 +7,7 @@ import AppInterestAdmin from './components/AppInterestAdmin.jsx';
 import ConferenceRegister from './components/ConferenceRegister.jsx';
 import AudienceWindow from './components/AudienceWindow.jsx';
 import TeachMode from './components/TeachMode.jsx';
+import PasswordAuth from './components/PasswordAuth.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
 
@@ -24,10 +25,13 @@ window.storage = storage;
 //                 the heavy app (and its supabase/auth init) is dynamically imported
 //                 ONLY for the normal branch, so the projected window students see
 //                 stays a lean, no-auth slide renderer.
+//   ?login=1    — the simple email+password "create your profile / sign in" page,
+//                 standalone. A building block + a verifiable surface; the access
+//                 gate below wires it as the primary in-app sign-in.
 const __params = new URLSearchParams(window.location.search);
 const __standalone = __params.get('join') === '1' || __params.get('invites') === '1'
   || __params.get('register') === '1' || __params.get('audience') === '1'
-  || __params.get('teach') === '1';
+  || __params.get('teach') === '1' || __params.get('login') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
 if (__params.get('join') === '1') {
   __root.render(<React.StrictMode><ErrorBoundary><div className="min-h-screen p-4 sm:p-8"><AppInterestCapture source="join-link" /></div></ErrorBoundary></React.StrictMode>);
@@ -44,6 +48,16 @@ if (__params.get('join') === '1') {
   // proposal. The in-app button remains the authoritative entry.
   const __start = __params.get('start') || undefined;
   __root.render(<React.StrictMode><ErrorBoundary><TeachMode cohortStart={__start} onClose={() => window.close()} /></ErrorBoundary></React.StrictMode>);
+} else if (__params.get('login') === '1') {
+  __root.render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <div className="min-h-screen flex items-start justify-center p-6 sm:p-12">
+          <PasswordAuth onSignedIn={() => { window.location.search = ''; }} />
+        </div>
+      </ErrorBoundary>
+    </React.StrictMode>
+  );
 } else {
   // Full app, dynamically imported so the lightweight capture/admin/present boots
   // above never pull the entire PWA (+ its supabase/auth init) they don't need.
