@@ -313,6 +313,27 @@ export function progressSummary(progress = {}) {
   return { done, total: MODULES.length, pct: MODULES.length ? Math.round((done / MODULES.length) * 100) : 0 };
 }
 
+// Class-interest rides the cross-tenant FEEDBACK pipe (so a parishioner on their
+// own instance reaches the Governor's review). This tag marks those rows in the
+// shared feedback stream, and extractClassRoster pulls the roster back out of the
+// merged local + remote feedback — the same text survives both the local copy and
+// the Supabase round-trip (feedback_text -> text), so one filter covers both.
+export const CLASS_INTEREST_TAG = '[Class interest]';
+
+export function extractClassRoster(items, tag = CLASS_INTEREST_TAG) {
+  const seen = new Set();
+  const out = [];
+  for (const f of (items || [])) {
+    if (!f || typeof f.text !== 'string' || !f.text.startsWith(tag)) continue;
+    const key = f.id || (f.text + '|' + (f.createdAt || f.submittedAt || ''));
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const who = f.text.slice(tag.length).trim().split('wants to join')[0].trim() || f.displayName || 'A parishioner';
+    out.push({ id: f.id || key, who, at: f.createdAt || f.submittedAt || null });
+  }
+  return out;
+}
+
 // =============================================================================
 // Export — the WHOLE curriculum as printable Markdown (Darrell trusts paper).
 // =============================================================================
