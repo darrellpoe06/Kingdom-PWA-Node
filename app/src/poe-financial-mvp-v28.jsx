@@ -22,6 +22,8 @@ import { Rentals } from './components/Rentals.jsx';
 import { ProjectsWrapper, DateField } from './components/Projects.jsx';
 import { Opportunities } from './components/DevOps.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
+import PasswordAuth from './components/PasswordAuth.jsx';
+import { accessState } from './lib/access-gate.js';
 import Engagement from './components/Engagement.jsx';
 import Choir from './components/Choir.jsx';
 import ChurchLearn from './components/ChurchLearn.jsx';
@@ -1889,6 +1891,9 @@ export default function PoeFinancialSystem() {
   // them to localStorage too, duplicating data.
   const [remoteFeedback, setRemoteFeedback] = useState([]);
   const [authSession, setAuthSession] = useState(null);
+  // True once the first auth check resolves (signed in OR out) — gates the
+  // "no profile, no access" screen so it never flashes at a signed-in user.
+  const [authChecked, setAuthChecked] = useState(false);
   // 2026-06-11 — true once the signed-in public-host hydration finished;
   // gates persistence so demo data can never overwrite the owner's snapshot.
   const [authHydrated, setAuthHydrated] = useState(false);
@@ -2832,7 +2837,7 @@ export default function PoeFinancialSystem() {
   // below so individual edits propagate without waiting for re-sign-in.
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    let unsub = onAuthChange((session) => setAuthSession(session));
+    let unsub = onAuthChange((session) => { setAuthSession(session); setAuthChecked(true); });
     return unsub;
   }, []);
 
@@ -3781,6 +3786,20 @@ export default function PoeFinancialSystem() {
   }, [data.events]);
 
   const resetToSeed = async () => { if (confirm('Reset to seed data? Edits will be lost.')) { setData(SEED_DATA); setPressure(5); } };
+
+  // No profile, no access (Darrell 2026-06-16). On the public host a signed-out
+  // visitor gets the simple create-profile / sign-in front door — never the app,
+  // never sample/demo data. Private host (NAS/LAN/Tailscale) is unchanged. The
+  // 'loading' state renders nothing so the form never flashes at a signed-in user
+  // mid auth-check. See lib/access-gate.js (proven-to-catch test).
+  const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
+  if (__gate !== 'app') {
+    return (
+      <div data-theme={theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+        {__gate === 'gate' ? <PasswordAuth /> : null}
+      </div>
+    );
+  }
 
   return (
     <div data-theme={theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
