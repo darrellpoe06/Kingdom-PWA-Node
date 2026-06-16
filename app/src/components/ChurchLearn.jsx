@@ -119,10 +119,15 @@ function MediaList({ module }) {
   return (
     <div className="mt-3 space-y-3">
       {items.map((it, i) => {
-        if (it.type === 'diagram' && DIAGRAMS[it.key]) {
+        if (it.type === 'diagram') {
+          // A diagram is authored content, never "pending capture". If the key has
+          // no renderer (a data typo), show the caption rather than silently
+          // mislabeling it as a missing clip.
           return (
             <figure key={i} className="border border-[#E8E4DC] bg-white p-2">
-              {DIAGRAMS[it.key]}
+              {DIAGRAMS[it.key] || (
+                <p className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>[{it.title || 'diagram'}]</p>
+              )}
               {it.caption && <figcaption className="text-[10px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{it.caption}</figcaption>}
             </figure>
           );
