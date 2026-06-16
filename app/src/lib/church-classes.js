@@ -50,20 +50,26 @@ export const CONFIRMED_COHORT = {
 //   3. The static proposal — last resort.
 // Returns { startDate, confirmed } so a learner outside the Governor's instance
 // gets the confirmed date + confirmed flag, not just the bare proposal.
-export function resolveCohort(localCohort = null) {
+// Generic resolver — any course passes its OWN published confirmed cohort + static
+// proposal. Same precedence as resolveCohort; extracted so a second course (the
+// broadcast media-team class) gets identical, tested cohort-propagation behavior.
+export function resolveCohortGeneric(localCohort, confirmedCohort, proposedStart) {
+  const conf = confirmedCohort || {};
   const local = localCohort && typeof localCohort === 'object' ? localCohort : null;
   if (local && (local.startDate || typeof local.confirmed === 'boolean')) {
     return {
-      startDate: local.startDate || CONFIRMED_COHORT.startDate || PROPOSED_COHORT_START,
-      confirmed: typeof local.confirmed === 'boolean'
-        ? local.confirmed
-        : !!CONFIRMED_COHORT.confirmed,
+      startDate: local.startDate || conf.startDate || proposedStart,
+      confirmed: typeof local.confirmed === 'boolean' ? local.confirmed : !!conf.confirmed,
     };
   }
   return {
-    startDate: CONFIRMED_COHORT.startDate || PROPOSED_COHORT_START,
-    confirmed: !!CONFIRMED_COHORT.confirmed,
+    startDate: conf.startDate || proposedStart,
+    confirmed: !!conf.confirmed,
   };
+}
+
+export function resolveCohort(localCohort = null) {
+  return resolveCohortGeneric(localCohort, CONFIRMED_COHORT, PROPOSED_COHORT_START);
 }
 
 export const CLASS_META = {
@@ -107,6 +113,12 @@ export const MODULES = [
     inApp: 'Send your very first prompt in the app’s Council Chamber. Notice what it does well, and catch one thing it gets wrong.',
     anchor: { ref: '1 Thessalonians 5:21', theme: 'Test everything; hold on to what is good. That is the whole class in one verse.' },
     launch: { view: 'church', churchView: 'home' },
+    quiz: {
+      questions: [
+        { q: 'What is an LLM really doing when it answers you?', options: ['Looking up the true answer', 'Guessing the next word from patterns — it can be sure and still wrong', 'Remembering your life'], answer: 1, explain: 'It predicts the next word; it has no ground truth and can be confidently wrong. It is a tool, not an oracle.' },
+        { q: 'If it sounds completely sure, does that mean it’s right?', options: ['Yes, confidence = truth', 'No — confidence is not truth; test it', 'Only on weekdays'], answer: 1, explain: 'Sounding sure and being right are different things — the whole class is "test everything."' },
+      ],
+    },
     lesson: 'A large language model has read an enormous amount of writing and learned, very well, which word tends to come next. That is its whole trick — a brilliant pattern-guesser, not a knower. It has no eyes, no memory of your life, and no conscience; it can produce a confident paragraph that is simply made up (we call that a "hallucination"). So the first posture of a wise user is not awe and not fear — it is stewardship. It is a tool, like a hammer or a calculator: powerful in a trained hand, dangerous swung carelessly. We are learning to swing it on purpose.',
     facilitator: {
       talkingPoints: [
@@ -129,6 +141,12 @@ export const MODULES = [
     bigIdea: 'A clear question gets clear help. The four keys: what, when, why, how. Garbage in, garbage out — but a good question is a kind of skill.',
     inApp: 'Take one vague prompt and one clear prompt for the same thing. Compare the answers side by side. Feel the difference a good question makes.',
     anchor: { ref: 'Proverbs 18:13', theme: 'Answering before you listen is folly — and so is asking before you think.' },
+    quiz: {
+      questions: [
+        { q: 'What are the four keys to a clear prompt?', options: ['Who, where, which, whom', 'What, when, why, how', 'Fast, short, loud, fun'], answer: 1, explain: 'A prompt that names what, when, why, and how gets a clear answer; a foggy prompt gets a foggy one.' },
+        { q: 'What does "garbage in, garbage out" mean here?', options: ['The app is broken', 'The model mirrors the clarity you give it', 'You should delete bad answers'], answer: 1, explain: 'A vague question gets a vague answer; a good question is a real, transferable skill.' },
+      ],
+    },
     lesson: 'The quality of the answer is mostly decided before the model says a word — by the question. A vague prompt ("tell me about dogs") gets a vague, generic reply. A clear prompt names the four keys: WHAT you want, WHEN/where it applies, WHY you need it, and HOW you want it back (a list? a paragraph? for a fifth-grader?). Giving the model a role and an audience ("explain photosynthesis to my little sister") sharpens it further. This is a real skill — the same skill as asking a teacher, a parent, or a boss a good question — and it transfers far beyond A.I.',
     facilitator: {
       talkingPoints: [
@@ -152,6 +170,12 @@ export const MODULES = [
     inApp: 'Use the in-app Test tool on three A.I. answers. Find the one that is wrong on purpose. Verify a real fact before you believe it.',
     anchor: { ref: 'Philippians 4:8', theme: 'The filter for what is worth keeping in your mind: true, honorable, just, pure, lovely.' },
     launch: { view: 'notes' },
+    quiz: {
+      questions: [
+        { q: 'Which kind of A.I. answer is the MOST dangerous?', options: ['One that is obviously wrong', 'One that looks right but is wrong — because you’ll believe it', 'One that is too long'], answer: 1, explain: 'A confident, wrong-but-believable answer is the real danger; that’s why we verify before we trust.' },
+        { q: 'What’s the rule for a claim of fact?', options: ['Trust it if it sounds smart', 'Verify it against a real source, THEN trust', 'Repeat it quickly'], answer: 1, explain: 'Verify, then trust — not the other way around. Doubting well protects your mind and your name.' },
+      ],
+    },
     lesson: 'This is the hinge of the whole class, and it is the kid-sized version of the Verification Doctrine the platform itself runs on: an answer that LOOKS right and is WRONG is more dangerous than an answer that is obviously wrong, because you will believe it. So we never trust an answer because it sounds smart. We run it through the Test — true, honorable, just, pure, lovely, commendable, excellent, praiseworthy (Philippians 4:8) — and for any claim of fact we VERIFY it against a real source before we repeat it or hand it in. "Trust but verify" is too weak; the rule is verify, THEN trust. Learning to doubt well is not cynicism — it is how you protect your mind and your name.',
     facilitator: {
       talkingPoints: [
@@ -174,6 +198,12 @@ export const MODULES = [
     bigIdea: 'Use it to LEARN, not to cheat. It is your tutor, not your ghostwriter. The goal is a stronger you, not a shortcut that leaves you weaker.',
     inApp: 'Turn one hard school topic into your own study guide — in your own words, checked by you.',
     anchor: { ref: 'Daniel 1; Colossians 3:23', theme: 'Daniel mastered Babylon’s learning without losing who he was. Whatever you do, work at it with all your heart.' },
+    quiz: {
+      questions: [
+        { q: 'What’s the line between using A.I. to learn vs to cheat?', options: ['There is no line', 'Who ends up stronger — a tutor builds you up; a ghostwriter leaves you weaker (and is a lie on your work)', 'Whether the teacher finds out'], answer: 1, explain: 'Use it as a tutor that makes you stronger, not a ghostwriter that does your thinking.' },
+        { q: 'How did Daniel handle Babylon’s schooling?', options: ['He refused to learn anything', 'He mastered the learning without losing who he was', 'He cheated his way through'], answer: 1, explain: 'Use the system without being owned by it; honest effort is worship (Colossians 3:23).' },
+      ],
+    },
     lesson: 'There is a bright line between using A.I. to LEARN and using it to cheat, and it is about who ends up stronger. If the model does the thinking and you copy it, you walk away weaker and you have lied about your work. If the model is your tutor — quizzing you, explaining the hard part, checking your reasoning — you walk away stronger and the work is honestly yours. Daniel went to school in Babylon and out-learned everyone without losing who he was; he used the system without being owned by it. Whatever you do, do it with all your heart, as for the Lord (Colossians 3:23). A shortcut that leaves you emptier is not worth it.',
     facilitator: {
       talkingPoints: [
@@ -197,6 +227,12 @@ export const MODULES = [
     inApp: 'Help one person — a grandparent, an elder, a friend — do one real thing with the app this week.',
     anchor: { ref: 'Mark 10:43–45; Galatians 5:13', theme: 'Whoever wants to be great must serve. Use your freedom to serve one another in love.' },
     launch: { view: 'church', churchView: 'home' },
+    quiz: {
+      questions: [
+        { q: 'What’s the best use of this skill?', options: ['Only your own homework and games', 'To help someone else — greatness in the Kingdom is service', 'To win arguments'], answer: 1, explain: 'Whoever wants to be great must serve; aim the tool at the person next to you.' },
+        { q: 'How is serving an elder also good for YOU?', options: ['It isn’t', 'Teaching it forces you to really understand it', 'It gets you out of class'], answer: 1, explain: 'Helping a phone-shy elder is real ministry AND real skill-building.' },
+      ],
+    },
     lesson: 'A tool this powerful tempts you to point it only at yourself — my homework, my game, my questions. The Kingdom flips that: whoever wants to be great becomes a servant (Mark 10:43-45). The best thing you can do with this skill is aim it at someone else — write a prayer request with an elder who struggles with their phone, help a grandparent send a photo, build a younger kid a study helper. You have freedom with this tool; use it to serve one another in love (Galatians 5:13). Serving is also where your skill gets real: teaching a phone-shy elder forces you to actually understand the thing you learned.',
     facilitator: {
       talkingPoints: [
@@ -220,6 +256,12 @@ export const MODULES = [
     inApp: 'Design and build your project in the app. Get it working. Make it real.',
     anchor: { ref: 'Proverbs 22:29', theme: 'Do you see someone skilled in their work? They will stand before kings.' },
     launch: { view: 'notes' },
+    quiz: {
+      questions: [
+        { q: 'What’s the difference between a user and a maker?', options: ['Nothing', 'A user accepts what the app gives; a maker asks "what could this do for someone?" and builds it', 'A maker is just a faster user'], answer: 1, explain: 'You don’t need to be a programmer to start — a clear plan and one small real thing counts.' },
+        { q: 'What matters most about your project?', options: ['That it looks fancy', 'That it actually works and is real', 'That it’s the biggest'], answer: 1, explain: '"Real" beats "fancy" — skilled work has weight (Proverbs 22:29).' },
+      ],
+    },
     lesson: 'There is a quiet line between being a USER of technology and being a MAKER of it, and crossing it changes how you see everything. A user accepts whatever the app hands them; a maker asks "what could this DO for someone?" and builds it. You do not need to be a programmer to start — a good prompt, a clear plan, and one small useful thing (a scripture-memory helper, a study buddy, a chore tracker) is real building. Skilled work has weight: the one who is skilled in their work will stand before kings (Proverbs 22:29). We are not raising kids who are used BY the tool; we are raising builders who put it to work.',
     facilitator: {
       talkingPoints: [
@@ -243,6 +285,12 @@ export const MODULES = [
     inApp: 'Set your own limits — write your three rules, and notice the app’s privacy promise.',
     anchor: { ref: '1 Corinthians 6:12; Proverbs 4:23', theme: 'Do not be mastered by anything; guard your heart.' },
     launch: { view: 'about' },
+    quiz: {
+      questions: [
+        { q: 'When should you set your guardrails for a powerful tool?', options: ['After it becomes a problem', 'Before you need them — decide what you won’t share and when you’ll stop', 'Never'], answer: 1, explain: 'Guardrails go up before you need them; the tool serves your life, you’re not mastered by it.' },
+        { q: 'Which is one of the four "pulls" to watch for?', options: ['Eating lunch', 'Oversharing private things into a screen', 'Reading a book'], answer: 1, explain: 'The four pulls: over-reliance, time-sink, oversharing, and trusting a screen over people and God.' },
+      ],
+    },
     lesson: 'Everything powerful pulls at you, and this tool pulls in four ways. Over-reliance — letting it think so you stop thinking. Time-sink — an hour gone before you notice. Oversharing — typing private things into a screen you should have kept between you and the people who love you. And the quiet one: trusting a screen more than people and more than God. "Everything is permitted," Paul says, "but I will not be mastered by anything" (1 Corinthians 6:12). So we build guardrails BEFORE we need them: decide what you will never share, decide when you will stop, and remember the tool serves your life — never the other way around. PoeTech is built the same way on purpose — it has its own brakes, and it processes your data without selling it or keeping it. Above all else, guard your heart, because everything you do flows from it (Proverbs 4:23).',
     facilitator: {
       talkingPoints: [
@@ -265,6 +313,12 @@ export const MODULES = [
     bigIdea: 'The best students help teach the next group. You have grown from user, to discerner, to server, to maker — now to multiplier. Kings raise kings.',
     inApp: 'Pick the week that helped you most and prepare to teach it — your name goes on the helper list for the next cohort.',
     anchor: { ref: '2 Timothy 2:2; Matthew 28:19–20', theme: 'Entrust what you learned to faithful people who will teach others.' },
+    quiz: {
+      questions: [
+        { q: 'How do you prove you truly own what you learned?', options: ['By keeping it to yourself', 'By being able to teach it simply to someone younger', 'By finishing fastest'], answer: 1, explain: 'Mastery shows when you can teach it plainly — that’s the multiplier step.' },
+        { q: 'What is the ladder you climbed in this class?', options: ['User only', 'User → discerner → server → maker → multiplier', 'Just maker'], answer: 1, explain: 'You grew from user to multiplier; kings raise kings (2 Timothy 2:2).' },
+      ],
+    },
     lesson: 'This is the commissioning. Over eight weeks you have climbed a ladder — user, then discerner who tests what it says, then server who points it at others, then maker who builds, and now multiplier who hands it on. The proof that you truly own something is that you can teach it simply; if you can make one week clear to someone younger, you have mastered it. So each of you prepares a five-minute version of the one week that helped you most, and those five-minute lessons seed the next cohort. This is the whole pattern of the Kingdom: "what you heard from me, entrust to faithful people who will be able to teach others also" (2 Timothy 2:2), and "go and make disciples... teaching them" (Matthew 28:19-20). Kings raise kings.',
     facilitator: {
       talkingPoints: [
@@ -303,18 +357,30 @@ export function weekday(date) {
   return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getUTCDay()];
 }
 
-// Build the full schedule: one row per module with its real computed date.
-export function buildSchedule(startISO) {
-  return MODULES.map((m, i) => {
-    const date = weekToDate(startISO, i);
+// Build the full schedule for ANY module set: one row per module with its real
+// computed date. The course-specific buildSchedule delegates here.
+export function buildScheduleFor(modules, startISO, cadenceDays = CLASS_META.cadenceDays) {
+  return (modules || []).map((m, i) => {
+    const date = weekToDate(startISO, i, cadenceDays);
     return { ...m, week: i + 1, date, weekday: weekday(date) };
   });
 }
 
+// Build the full schedule: one row per module with its real computed date.
+export function buildSchedule(startISO) {
+  return buildScheduleFor(MODULES, startISO);
+}
+
+// A learner's real progress against ANY module set — counted from their record.
+export function progressSummaryFor(modules, progress = {}) {
+  const list = modules || [];
+  const done = list.filter((m) => !!progress[m.id]).length;
+  return { done, total: list.length, pct: list.length ? Math.round((done / list.length) * 100) : 0 };
+}
+
 // A student's real progress: how many modules they've personally completed.
 export function progressSummary(progress = {}) {
-  const done = MODULES.filter((m) => !!progress[m.id]).length;
-  return { done, total: MODULES.length, pct: MODULES.length ? Math.round((done / MODULES.length) * 100) : 0 };
+  return progressSummaryFor(MODULES, progress);
 }
 
 // Class-interest rides the cross-tenant FEEDBACK pipe (so a parishioner on their
@@ -345,24 +411,34 @@ export function extractClassRoster(items, tag = CLASS_INTEREST_TAG) {
 // Darrell (or any facilitator) can teach from a printout with nothing on a
 // screen. `startISO` lets the printout carry the real computed dates; pass null
 // to omit dates (e.g. before a cohort start is set).
-export function exportCurriculumMarkdown(startISO = null) {
-  const rows = startISO ? buildSchedule(startISO) : MODULES.map((m, i) => ({ ...m, week: i + 1, date: null, weekday: null }));
+// Generic exporter for ANY course. `course` = { meta, sessionFlow, modules,
+// footer? }. `meta` carries title/tagline/audience/format/weeks; the per-week
+// hands-on label is meta.handsOnLabel (defaults to "In the app"). The youth-class
+// exportCurriculumMarkdown delegates here so both courses print identically.
+export function exportCurriculumMarkdownFor(course, startISO = null) {
+  const meta = course?.meta || {};
+  const modules = course?.modules || [];
+  const sessionFlow = course?.sessionFlow || [];
+  const handsOnLabel = meta.handsOnLabel || 'In the app';
+  const minutes = sessionFlow.reduce((t, s) => t + (s.minutes || 0), 0);
+  const rows = startISO
+    ? buildScheduleFor(modules, startISO)
+    : modules.map((m, i) => ({ ...m, week: i + 1, date: null, weekday: null }));
   const fmt = (d) => (d && !Number.isNaN(d.getTime?.())
     ? `${weekday(d)}, ${d.toISOString().slice(0, 10)}`
     : null);
 
   const lines = [];
-  lines.push(`# ${CLASS_META.title}`);
+  lines.push(`# ${meta.title || ''}`);
   lines.push('');
-  lines.push(`_${CLASS_META.tagline}_`);
-  lines.push('');
-  lines.push(`**For:** ${CLASS_META.audience}`);
-  lines.push(`**Format:** ${CLASS_META.format}`);
-  lines.push(`**Length:** ${CLASS_META.weeks} weekly sessions · ~${SESSION_MINUTES} min each`);
+  if (meta.tagline) { lines.push(`_${meta.tagline}_`); lines.push(''); }
+  if (meta.audience) lines.push(`**For:** ${meta.audience}`);
+  if (meta.format) lines.push(`**Format:** ${meta.format}`);
+  lines.push(`**Length:** ${meta.weeks || rows.length} weekly sessions · ~${minutes} min each`);
   lines.push('');
   lines.push('## Every session follows the same rhythm');
   lines.push('');
-  SESSION_FLOW.forEach((s) => lines.push(`- **${s.minutes} min** — ${s.name}`));
+  sessionFlow.forEach((s) => lines.push(`- **${s.minutes} min** — ${s.name}`));
   lines.push('');
   lines.push('---');
   lines.push('');
@@ -375,7 +451,7 @@ export function exportCurriculumMarkdown(startISO = null) {
     lines.push(`**Big idea.** ${m.bigIdea}`);
     lines.push('');
     if (m.lesson) { lines.push(`**Lesson.** ${m.lesson}`); lines.push(''); }
-    lines.push(`**In the app.** ${m.inApp}`);
+    lines.push(`**${handsOnLabel}.** ${m.inApp}`);
     lines.push('');
     lines.push(`**Anchor — ${m.anchor.ref}.** ${m.anchor.theme}`);
     lines.push('');
@@ -402,7 +478,14 @@ export function exportCurriculumMarkdown(startISO = null) {
     lines.push('');
   });
 
-  lines.push('_Taught by Darrell Poe · The Church of the Living God · built on PoeTech._');
+  lines.push(meta.footer || '_Taught by Darrell Poe · The Church of the Living God · built on PoeTech._');
   lines.push('');
   return lines.join('\n');
+}
+
+export function exportCurriculumMarkdown(startISO = null) {
+  return exportCurriculumMarkdownFor(
+    { meta: CLASS_META, sessionFlow: SESSION_FLOW, modules: MODULES },
+    startISO,
+  );
 }

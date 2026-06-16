@@ -26,6 +26,13 @@ import Engagement from './components/Engagement.jsx';
 import Choir from './components/Choir.jsx';
 import ChurchLearn from './components/ChurchLearn.jsx';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
+import {
+  BROADCAST_META, BROADCAST_SESSION_FLOW, BROADCAST_PROPOSED_COHORT_START,
+  BROADCAST_INTEREST_TAG, BROADCAST_HELPER_TAG, BROADCAST_TUTOR_META,
+  buildBroadcastSchedule, broadcastProgressSummary, exportBroadcastCurriculumMarkdown,
+  resolveBroadcastCohort, SOP_SEQUENCES, SOP_CAPTURE_PIPELINE,
+} from './lib/broadcast-class.js';
+import { helperInterestText } from './lib/learn-framework.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
@@ -3552,6 +3559,13 @@ export default function PoeFinancialSystem() {
   });
   const setClassCohortStart = (date) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), startDate: date } }));
   const confirmClassCohort = (confirmed) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), confirmed: !!confirmed } }));
+  // The Broadcast course (Darrell 2026-06-16) — its OWN cohort, same machinery.
+  const setBroadcastCohortStart = (date) => setData(d => ({ ...d, broadcastCohort: { ...(d.broadcastCohort || {}), startDate: date } }));
+  const confirmBroadcastCohort = (confirmed) => setData(d => ({ ...d, broadcastCohort: { ...(d.broadcastCohort || {}), confirmed: !!confirmed } }));
+  // SHARED Learn-framework state (consumed by BOTH courses): quiz results keyed by
+  // module id (real assessment record), and the learner's chosen depth/level.
+  const recordClassQuiz = (moduleId, result) => setData(d => ({ ...d, classQuiz: { ...(d.classQuiz || {}), [moduleId]: result } }));
+  const setLearnLevel = (level) => setData(d => ({ ...d, learnLevel: level }));
   // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
   // build inbox. Persisted with the rest of the data record (device-local;
   // never synced to a shared surface — notes are siloed by design).
@@ -4678,6 +4692,49 @@ html{scroll-padding-bottom:280px}
             : null;
           const isGov = !!authSession && isFamilyEmail(authSession.user?.email);
           const classRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback]) : null;
+
+          // The Broadcast course descriptor (second course in the Learn tab). The
+          // host owns its cohort + interest wiring; the SOP library + tutor-meta
+          // ride along. Interest + graduate-helper notes use a DISTINCT tag so the
+          // Governor's roster can tell broadcast sign-ups apart from the youth class.
+          const bcCohort = resolveBroadcastCohort(data.broadcastCohort);
+          const bcStart = bcCohort.startDate || BROADCAST_PROPOSED_COHORT_START;
+          const submitBroadcastInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${BROADCAST_INTEREST_TAG} ${(name || 'A team member').trim()} wants to join the broadcast/media-team course.` })
+            : null;
+          const broadcastRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], BROADCAST_INTEREST_TAG) : null;
+          const broadcastCourse = {
+            meta: { ...BROADCAST_META, key: 'broadcast' },
+            sessionFlow: BROADCAST_SESSION_FLOW,
+            schedule: buildBroadcastSchedule(bcStart),
+            cohortStart: bcStart,
+            cohortConfirmed: bcCohort.confirmed,
+            setCohortStart: setBroadcastCohortStart,
+            confirmCohort: confirmBroadcastCohort,
+            progressSummary: (p) => broadcastProgressSummary(p),
+            exportMarkdown: () => exportBroadcastCurriculumMarkdown(bcStart),
+            downloadName: 'the-broadcast-how-it-all-works-curriculum.md',
+            submitInterest: submitBroadcastInterest,
+            roster: broadcastRoster,
+            interestCopy: {
+              heading: 'On the media team?',
+              blurb: 'Tell Darrell you want to take The Broadcast course and he’ll save you a spot in Cohort 1. Your name goes straight to his review — no form, no email.',
+              cta: 'Count me in',
+              sent: '✓ Sent — Darrell will see you’re in. See you at the booth.',
+            },
+            tutorCourseMeta: BROADCAST_TUTOR_META,
+            sopSequences: SOP_SEQUENCES,
+            capturePipeline: SOP_CAPTURE_PIPELINE,
+          };
+
+          // Graduate → next-cohort helper (both courses), via the same feedback pipe.
+          const submitHelper = authSession
+            ? (courseKey, courseTitle, who) => addFeedback({
+                area: 'church-learn', rating: 'love', category: 'feature-request',
+                text: helperInterestText(courseTitle, who, courseKey === 'broadcast' ? BROADCAST_HELPER_TAG : '[Class helper]'),
+              })
+            : null;
+
           return <ChurchLearn
             cohortStart={cohort.startDate || PROPOSED_COHORT_START}
             cohortConfirmed={cohort.confirmed}
@@ -4691,6 +4748,12 @@ html{scroll-padding-bottom:280px}
             isGovernor={isGov}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
+            broadcast={broadcastCourse}
+            quizState={data.classQuiz || {}}
+            recordQuiz={authSession ? recordClassQuiz : null}
+            learnLevel={data.learnLevel || 'standard'}
+            setLearnLevel={setLearnLevel}
+            submitHelper={submitHelper}
           />;
         })()}
         {view === 'church' && churchView === 'conference' && (
