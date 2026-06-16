@@ -35,14 +35,22 @@ export function tutorEndpoint() {
 // The per-week system prompt. Grounds the tutor in THIS week's real authored
 // content and in the class's own posture (tutor not ghostwriter, verify don't
 // trust). Kept pure + exported so it is unit-testable and identical on the NAS.
-export function tutorSystemPrompt(module) {
+export function tutorSystemPrompt(module, courseMeta = null) {
   const m = module || {};
   const fac = m.facilitator || {};
   const points = (fac.talkingPoints || []).map((t) => `- ${t}`).join('\n');
   const anchor = m.anchor ? `${m.anchor.ref} — ${m.anchor.theme}` : '';
+  // The intro + posture default to the youth class; a second course (the broadcast
+  // media-team class) passes its own courseMeta so the SAME tutor engine introduces
+  // itself correctly per course. The tutor/ghostwriter + test-and-verify discipline
+  // is held for BOTH courses (it's the platform's posture, not a per-class option).
+  const intro = (courseMeta && courseMeta.intro)
+    || 'You are a patient, encouraging A.I. tutor for a church youth class called "Learning A.I. The Way."';
+  const posture = (courseMeta && courseMeta.posture)
+    || 'You are guiding ONE student, on their own, through this week\'s activity. Be warm, plain-spoken, and brief.';
   return [
-    'You are a patient, encouraging A.I. tutor for a church youth class called "Learning A.I. The Way."',
-    'You are guiding ONE student, on their own, through this week\'s activity. Be warm, plain-spoken, and brief.',
+    intro,
+    posture,
     'You are a tutor, NOT a ghostwriter: help them think and do the work themselves; never just hand them the answer.',
     'Remind them, when it fits, to TEST and VERIFY what any A.I. (including you) tells them — you can be confidently wrong.',
     'Keep faith natural and never preachy. Capitalize references to God; do not capitalize the adversary.',
@@ -50,7 +58,7 @@ export function tutorSystemPrompt(module) {
     `THIS WEEK — ${m.title || ''}`,
     m.bigIdea ? `Big idea: ${m.bigIdea}` : '',
     m.lesson ? `Lesson: ${m.lesson}` : '',
-    m.inApp ? `Their activity in the app: ${m.inApp}` : '',
+    m.inApp ? `Their hands-on activity this week: ${m.inApp}` : '',
     anchor ? `Scripture anchor: ${anchor}` : '',
     points ? `Key points to draw out:\n${points}` : '',
     '',
@@ -61,11 +69,11 @@ export function tutorSystemPrompt(module) {
 // Build the request body the NAS workflow expects. `messages` is the running
 // chat ([{ role:'user'|'assistant', content }]). The system prompt is derived
 // from the module so the NAS never has to carry curriculum copy.
-export function buildTutorPayload(module, messages = []) {
+export function buildTutorPayload(module, messages = [], courseMeta = null) {
   return {
     model: TUTOR_MODEL,
     week: module?.id || null,
-    system: tutorSystemPrompt(module),
+    system: tutorSystemPrompt(module, courseMeta),
     messages: Array.isArray(messages)
       ? messages.filter((x) => x && x.content).map((x) => ({ role: x.role === 'assistant' ? 'assistant' : 'user', content: String(x.content) }))
       : [],
@@ -87,12 +95,12 @@ export function normalizeTutorReply(json) {
 // Ask the tutor. Local-first, honest-offline. Returns the normalized shape; on
 // any network error returns { ok:false } so the caller shows the authored
 // walkthrough instead of a fake answer.
-export async function askTutor(module, messages = [], { signal } = {}) {
+export async function askTutor(module, messages = [], { signal, courseMeta = null } = {}) {
   try {
     const r = await fetch(tutorEndpoint(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...n8nAuthHeaders(true) },
-      body: JSON.stringify(buildTutorPayload(module, messages)),
+      body: JSON.stringify(buildTutorPayload(module, messages, courseMeta)),
       signal,
     });
     const json = await r.json().catch(() => null);

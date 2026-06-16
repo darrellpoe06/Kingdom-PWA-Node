@@ -26,6 +26,13 @@ import Engagement from './components/Engagement.jsx';
 import Choir from './components/Choir.jsx';
 import ChurchLearn from './components/ChurchLearn.jsx';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
+import {
+  BROADCAST_META, BROADCAST_SESSION_FLOW, BROADCAST_PROPOSED_COHORT_START,
+  BROADCAST_INTEREST_TAG, BROADCAST_HELPER_TAG, BROADCAST_TUTOR_META,
+  buildBroadcastSchedule, broadcastProgressSummary, exportBroadcastCurriculumMarkdown,
+  resolveBroadcastCohort, SOP_SEQUENCES, SOP_CAPTURE_PIPELINE,
+} from './lib/broadcast-class.js';
+import { helperInterestText } from './lib/learn-framework.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
@@ -55,6 +62,7 @@ import { LifeGallery } from './components/LifeGallery.jsx';
 import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { EventCenterModule } from './components/EventCenterModule.jsx';
 import { ChurchObservation } from './components/ChurchObservation.jsx';
+import Pulpit from './components/Pulpit.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
@@ -1661,7 +1669,7 @@ function getInitialView() {
     const v = (sp.get('view') || '').toLowerCase().trim();
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
-    if (v === 'engagement' || v === 'choir') return 'church';
+    if (v === 'engagement' || v === 'choir' || v === 'pulpit') return 'church';
     const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
@@ -1674,7 +1682,7 @@ function getInitialChurchView() {
     if (typeof window === 'undefined') return 'home';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : v === 'learn' ? 'learn' : 'home';
+    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : v === 'pulpit' ? 'pulpit' : v === 'learn' ? 'learn' : 'home';
   } catch (e) { return 'home'; }
 }
 
@@ -3551,6 +3559,13 @@ export default function PoeFinancialSystem() {
   });
   const setClassCohortStart = (date) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), startDate: date } }));
   const confirmClassCohort = (confirmed) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), confirmed: !!confirmed } }));
+  // The Broadcast course (Darrell 2026-06-16) — its OWN cohort, same machinery.
+  const setBroadcastCohortStart = (date) => setData(d => ({ ...d, broadcastCohort: { ...(d.broadcastCohort || {}), startDate: date } }));
+  const confirmBroadcastCohort = (confirmed) => setData(d => ({ ...d, broadcastCohort: { ...(d.broadcastCohort || {}), confirmed: !!confirmed } }));
+  // SHARED Learn-framework state (consumed by BOTH courses): quiz results keyed by
+  // module id (real assessment record), and the learner's chosen depth/level.
+  const recordClassQuiz = (moduleId, result) => setData(d => ({ ...d, classQuiz: { ...(d.classQuiz || {}), [moduleId]: result } }));
+  const setLearnLevel = (level) => setData(d => ({ ...d, learnLevel: level }));
   // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
   // build inbox. Persisted with the rest of the data record (device-local;
   // never synced to a shared surface — notes are siloed by design).
@@ -4547,6 +4562,10 @@ html{scroll-padding-bottom:280px}
                 ['notes','🕊 Notes'],
                 ['church','Church'],
                 ['markets','Markets'],
+                // Admin surfaced at the top so users can SEE a steward space
+                // exists (visible-but-locked, like 🔒 Observation). ACCESS is
+                // gated at the render below — the entry being visible is the goal.
+                ['admin','🔒 Admin'],
               ].map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
@@ -4573,7 +4592,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'], ...(isChurchStaff ? [['observe','🔒 Observation']] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'], ...(isChurchStaff ? [['pulpit','📖 The Word'],['observe','🔒 Observation']] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4652,6 +4671,9 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
+        {view === 'church' && churchView === 'pulpit' && (isChurchStaff
+          ? <Pulpit />
+          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Word — Migdal is the Bishop's study. Sign in with a church staff account to view it.</div>)}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Observation board is for church staff only. Sign in with a church staff account to view it.</div>)}
@@ -4670,6 +4692,49 @@ html{scroll-padding-bottom:280px}
             : null;
           const isGov = !!authSession && isFamilyEmail(authSession.user?.email);
           const classRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback]) : null;
+
+          // The Broadcast course descriptor (second course in the Learn tab). The
+          // host owns its cohort + interest wiring; the SOP library + tutor-meta
+          // ride along. Interest + graduate-helper notes use a DISTINCT tag so the
+          // Governor's roster can tell broadcast sign-ups apart from the youth class.
+          const bcCohort = resolveBroadcastCohort(data.broadcastCohort);
+          const bcStart = bcCohort.startDate || BROADCAST_PROPOSED_COHORT_START;
+          const submitBroadcastInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${BROADCAST_INTEREST_TAG} ${(name || 'A team member').trim()} wants to join the broadcast/media-team course.` })
+            : null;
+          const broadcastRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], BROADCAST_INTEREST_TAG) : null;
+          const broadcastCourse = {
+            meta: { ...BROADCAST_META, key: 'broadcast' },
+            sessionFlow: BROADCAST_SESSION_FLOW,
+            schedule: buildBroadcastSchedule(bcStart),
+            cohortStart: bcStart,
+            cohortConfirmed: bcCohort.confirmed,
+            setCohortStart: setBroadcastCohortStart,
+            confirmCohort: confirmBroadcastCohort,
+            progressSummary: (p) => broadcastProgressSummary(p),
+            exportMarkdown: () => exportBroadcastCurriculumMarkdown(bcStart),
+            downloadName: 'the-broadcast-how-it-all-works-curriculum.md',
+            submitInterest: submitBroadcastInterest,
+            roster: broadcastRoster,
+            interestCopy: {
+              heading: 'On the media team?',
+              blurb: 'Tell Darrell you want to take The Broadcast course and he’ll save you a spot in Cohort 1. Your name goes straight to his review — no form, no email.',
+              cta: 'Count me in',
+              sent: '✓ Sent — Darrell will see you’re in. See you at the booth.',
+            },
+            tutorCourseMeta: BROADCAST_TUTOR_META,
+            sopSequences: SOP_SEQUENCES,
+            capturePipeline: SOP_CAPTURE_PIPELINE,
+          };
+
+          // Graduate → next-cohort helper (both courses), via the same feedback pipe.
+          const submitHelper = authSession
+            ? (courseKey, courseTitle, who) => addFeedback({
+                area: 'church-learn', rating: 'love', category: 'feature-request',
+                text: helperInterestText(courseTitle, who, courseKey === 'broadcast' ? BROADCAST_HELPER_TAG : '[Class helper]'),
+              })
+            : null;
+
           return <ChurchLearn
             cohortStart={cohort.startDate || PROPOSED_COHORT_START}
             cohortConfirmed={cohort.confirmed}
@@ -4683,6 +4748,12 @@ html{scroll-padding-bottom:280px}
             isGovernor={isGov}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
+            broadcast={broadcastCourse}
+            quizState={data.classQuiz || {}}
+            recordQuiz={authSession ? recordClassQuiz : null}
+            learnLevel={data.learnLevel || 'standard'}
+            setLearnLevel={setLearnLevel}
+            submitHelper={submitHelper}
           />;
         })()}
         {view === 'church' && churchView === 'conference' && (
@@ -4730,7 +4801,15 @@ html{scroll-padding-bottom:280px}
           : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} onChangePin={() => setChangePinOpen(true)} />}
-        {view === 'admin' && <Admin />}
+        {view === 'admin' && ((isFamilyMember || !isPublicHost())
+          ? <Admin />
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
+              <p className="text-sm text-[#1A1815] font-semibold">Admin is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Sign in with a steward account to enter. Each steward serves only their own domain — the system, the Word, or the choir — and no one sees another's people or private data.</p>
+            </div>
+          ))}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
@@ -5322,10 +5401,12 @@ const FEEDBACK_AREAS = [
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
+    ['church-pulpit', "Church · 📖 The Word — Migdal (Bishop's study — historical sermons + corpus-grounded prep)"],
+    ['pulpit-library', '└ The Word — Migdal · Message library (watch · document · reuse)'],
+    ['pulpit-prep', '└ The Word — Migdal · Prep from your corpus'],
     ['church-choir', 'Church · Choir (director hub)'],
     ['choir-week', '└ Choir · This week'],
     ['choir-schedule', '└ Choir · Schedule'],
-    ['choir-sermons', '└ Choir · Sermons'],
     ['choir-teamdocs', '└ Choir · Team Docs'],
     ['choir-availability', '└ Choir · Availability'],
     ['choir-messages', '└ Choir · Messages'],
