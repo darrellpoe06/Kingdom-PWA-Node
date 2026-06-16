@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0023 — app_interest: consented "I want the app / I'm having trouble" capture
+-- 0025 — app_interest: consented "I want the app / I'm having trouble" capture
 -- =============================================================================
 -- Darrell 2026-06-16: "I have people at my church who keep trying to download
 -- this app and they have been having issues. I want to know WHO those people are
@@ -10,6 +10,9 @@
 -- Boundary (Darrell 2026-06-16, "all of this before me and my wife Christina"):
 -- ONLY Darrell + Christina may read/manage the list. Anyone may SUBMIT (public
 -- form); no one but those two can ever read it back. Idempotent.
+--
+-- Numbered 0025 (was 0023) to avoid colliding with the conference branch's 0023
+-- and to land after the 0024 authenticated-grants restore.
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS app_interest (
@@ -35,6 +38,15 @@ CREATE TABLE IF NOT EXISTS app_interest (
 CREATE INDEX IF NOT EXISTS app_interest_created_idx ON app_interest (created_at DESC);
 
 ALTER TABLE app_interest ENABLE ROW LEVEL SECURITY;
+
+-- Table-level GRANTs. REQUIRED: this project lost its Supabase-default per-role
+-- grants, and the 0024 restore deliberately leaves `anon` untouched (no new
+-- logged-out exposure). RLS still gates ROWS; a grant only lets the role REACH
+-- the table. Without an explicit anon INSERT grant the public form 403s with
+-- 42501 — the exact Choir incident (see grant-guard + LESSONS). Self-contained so
+-- this migration works regardless of 0024's apply order.
+GRANT INSERT ON app_interest TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON app_interest TO authenticated;
 
 -- Anyone (even unauthenticated visitors) may SUBMIT interest. They can NEVER read
 -- it back — there is no SELECT policy for anon, so RLS denies reads by default.
