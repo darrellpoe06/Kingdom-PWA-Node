@@ -23,9 +23,12 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const MIGRATION = join(ROOT, 'infra/supabase/migrations-auto/0023-conference-event-center.sql');
+const MIGRATIONS = [
+  join(ROOT, 'infra/supabase/migrations-auto/0023-conference-event-center.sql'),
+  join(ROOT, 'infra/supabase/migrations-auto/0024-conference-venues.sql'),
+];
 
-export const CONFERENCE_TABLES = ['conferences', 'event_center_resources', 'event_sessions', 'event_participants'];
+export const CONFERENCE_TABLES = ['conferences', 'event_center_resources', 'event_sessions', 'event_participants', 'venues'];
 
 const stripComments = (s) => s.replace(/--[^\n]*/g, '');
 
@@ -83,10 +86,11 @@ export function scanConferenceRls(sqlOverride = null) {
   const problems = [];
   let sql = sqlOverride;
   if (sql == null) {
-    if (!existsSync(MIGRATION)) {
-      return { ok: false, problems: [`migration not found: ${MIGRATION}`], tables: [], policyCount: 0 };
+    const present = MIGRATIONS.filter((m) => existsSync(m));
+    if (present.length === 0) {
+      return { ok: false, problems: [`no conference migrations found: ${MIGRATIONS.join(', ')}`], tables: [], policyCount: 0 };
     }
-    sql = readFileSync(MIGRATION, 'utf8');
+    sql = present.map((m) => readFileSync(m, 'utf8')).join('\n');
   }
   const clean = stripComments(sql);
 

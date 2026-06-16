@@ -4541,7 +4541,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'], ...(isChurchStaff ? [['observe','🔒 Observation']] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'], ...(isChurchStaff ? [['observe','🔒 Observation']] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4634,6 +4634,15 @@ html{scroll-padding-bottom:280px}
           isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
           currentUserName={authSession?.user?.email || ''}
         />}
+        {view === 'church' && churchView === 'conference' && (
+          <div className="space-y-4">
+            {/* CONFERENCE / EVENT CENTER — promoted to its own Church sub-tab
+                (sibling to Learn). The front door (ConferenceModule) + the real
+                multi-attendee system across buildings (EventCenterModule). */}
+            <ConferenceModule conference={data.conference} updateConference={updateConference} />
+            <EventCenterModule />
+          </div>
+        )}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
@@ -7123,16 +7132,9 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
         addInquiry={addInquiry}
       />
 
-      {/* CONFERENCE — 77th National Assembly (2026-06-11). Second while the
-          Assembly is in season; Bishop Gwin edits details, builds the schedule,
-          and his feedback box feeds the build list directly. */}
-      <ConferenceModule conference={conference} updateConference={updateConference} />
-
-      {/* EVENT CENTER — the conference as a REAL multi-attendee system: shared,
-          instance-scoped, realtime rooms + sessions (capacity/breakouts) +
-          registrations. Self-contained (owns its own conference-sync); composes
-          alongside ConferenceModule's front door without coupling to it. */}
-      <EventCenterModule />
+      {/* CONFERENCE / EVENT CENTER moved to its own Church sub-tab (sibling to
+          Learn) on 2026-06-16 — see the churchView === 'conference' branch.
+          ChurchOneVoice above still carries conference RSVPs via updateConference. */}
 
       {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
           a post-vacation build; this is the entry point + placeholder. */}

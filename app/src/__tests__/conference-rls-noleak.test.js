@@ -9,15 +9,16 @@
 import { describe, it, expect } from 'vitest';
 import { scanConferenceRls, CONFERENCE_TABLES } from '../../../scripts/conference-rls-guard.mjs';
 
-describe('conference RLS — no cross-instance leak (real migration 0023)', () => {
-  it('sees all four conference tables (not vacuously empty)', () => {
+describe('conference RLS — no cross-instance leak (migrations 0023 + 0024)', () => {
+  it('sees all conference + venue tables (not vacuously empty)', () => {
     const { tables } = scanConferenceRls();
     for (const t of CONFERENCE_TABLES) expect(tables).toContain(t);
+    expect(CONFERENCE_TABLES).toContain('venues');
   });
 
-  it('checks a real set of policies (4 tables x ~4 commands)', () => {
+  it('checks a real set of policies (5 tables x ~4 commands)', () => {
     const { policyCount } = scanConferenceRls();
-    expect(policyCount).toBeGreaterThanOrEqual(12);
+    expect(policyCount).toBeGreaterThanOrEqual(16);
   });
 
   it('every policy is instance-scoped — no cross-instance read/write path', () => {
@@ -49,6 +50,16 @@ describe('conference RLS — no cross-instance leak (real migration 0023)', () =
     const { ok, problems } = scanConferenceRls(leak);
     expect(ok).toBe(false);
     expect(problems.join(' ')).toMatch(/event_participants.*instance-scoped/i);
+  });
+
+  it('CATCHES a venues SELECT that reads every instance (USING (true))', () => {
+    const leak = `
+      CREATE TABLE venues (id uuid, instance_id uuid);
+      ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
+      CREATE POLICY venues_read ON venues FOR SELECT USING (true);`;
+    const { ok, problems } = scanConferenceRls(leak);
+    expect(ok).toBe(false);
+    expect(problems.join(' ')).toMatch(/venues.*LEAK|venues.*instance-scoped/i);
   });
 
   it('CATCHES RLS forgotten entirely on a conference table', () => {

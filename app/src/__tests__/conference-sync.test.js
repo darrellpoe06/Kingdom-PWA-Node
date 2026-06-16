@@ -6,10 +6,11 @@
 // DR-0076 (measure, don't claim).
 import { describe, it, expect } from 'vitest';
 import {
-  toConferenceShape, toRoomShape, toSessionShape, toParticipantShape,
+  toConferenceShape, toRoomShape, toSessionShape, toParticipantShape, toVenueShape,
   deriveAccess, registrationCount, conferenceRsvpCount, effectiveCapacity,
   capacityStatus, breakoutsDuringMainService, buildingView, roomForSession,
-  SESSION_TYPES, REGISTRATION_STATUSES,
+  roomsForVenue, roomsSupporting, venueSeatTotal, venueById,
+  SESSION_TYPES, REGISTRATION_STATUSES, USE_TYPES,
   // preserved from lib/conference.js, re-exported through conference-sync:
   MEAL_TYPES, aggregateMeals, isMainService, resolveServiceSermon, resolveServiceSongs,
 } from '../lib/conference-sync.js';
@@ -45,9 +46,57 @@ describe('row -> shape round-trip (sync mappers)', () => {
     expect(toRoomShape({ id: 'r2', name: 'Foyer' }).features).toEqual([]);
   });
 
-  it('maps a conference front-door row', () => {
-    const c = toConferenceShape({ id: 'c1', name: '77th National Assembly', theme: 'Reviving Faith', dates_label: 'July 2026', status: 'active' });
-    expect(c).toMatchObject({ id: 'c1', name: '77th National Assembly', datesLabel: 'July 2026' });
+  it('maps a conference front-door row incl. venue', () => {
+    const c = toConferenceShape({ id: 'c1', name: '77th National Assembly', theme: 'Reviving Faith', dates_label: 'July 2026', venue_id: 'v1', status: 'active' });
+    expect(c).toMatchObject({ id: 'c1', name: '77th National Assembly', datesLabel: 'July 2026', venueId: 'v1' });
+  });
+
+  it('maps a venue row + carries venue_id/use_types onto rooms and sessions', () => {
+    const v = toVenueShape({ id: 'v1', name: 'South Campus Event Center', address: '1109 N 4th Street, Champaign, IL', sort_order: 1 });
+    expect(v).toMatchObject({ id: 'v1', name: 'South Campus Event Center', address: '1109 N 4th Street, Champaign, IL' });
+    expect(toRoomShape({ id: 'r1', name: 'Kitchen', venue_id: 'v1', use_types: ['food'] })).toMatchObject({ venueId: 'v1', useTypes: ['food'] });
+    expect(toRoomShape({ id: 'r2', name: 'Foyer' }).useTypes).toEqual([]);
+    expect(toSessionShape({ id: 's1', conference_id: 'c1', title: 'X', venue_id: 'v1' }).venueId).toBe('v1');
+  });
+});
+
+describe('venues (buildings) — multi-building scoping', () => {
+  const venues = [
+    { id: 'main', name: 'Main Campus', address: '312 E. Bradley Avenue, Champaign, IL 61820', status: 'active' },
+    { id: 'south', name: 'South Campus Event Center', address: '1109 N 4th Street, Champaign, IL', status: 'active' },
+  ];
+  const rooms = [
+    { id: 'r1', venueId: 'south', name: 'Main Sanctuary', capacity: 300, useTypes: ['service', 'class'], status: 'active' },
+    { id: 'r2', venueId: 'south', name: 'Fellowship Hall', capacity: 120, useTypes: ['class', 'food', 'service'], status: 'active' },
+    { id: 'r3', venueId: 'south', name: 'Kitchen', capacity: null, useTypes: ['food'], status: 'active' },
+    { id: 'r4', venueId: 'south', name: 'Bathrooms', capacity: null, useTypes: ['facility'], status: 'active' },
+    { id: 'r5', venueId: 'main', name: 'Sanctuary', capacity: 600, useTypes: ['service'], status: 'active' },
+  ];
+
+  it('roomsForVenue scopes rooms to a building', () => {
+    expect(roomsForVenue(rooms, 'south').map((r) => r.name)).toEqual(['Main Sanctuary', 'Fellowship Hall', 'Kitchen', 'Bathrooms']);
+    expect(roomsForVenue(rooms, 'main').map((r) => r.name)).toEqual(['Sanctuary']);
+  });
+
+  it('roomsSupporting picks the right room for a module (class/food/service), scoped to a building', () => {
+    expect(roomsSupporting(rooms, 'food', 'south').map((r) => r.name)).toEqual(['Fellowship Hall', 'Kitchen']);
+    expect(roomsSupporting(rooms, 'class', 'south').map((r) => r.name)).toEqual(['Main Sanctuary', 'Fellowship Hall']);
+    expect(roomsSupporting(rooms, 'service').map((r) => r.name)).toEqual(['Main Sanctuary', 'Fellowship Hall', 'Sanctuary']);
+  });
+
+  it('venueSeatTotal sums known room capacities per building (NULLs ignored)', () => {
+    expect(venueSeatTotal(rooms, 'south')).toBe(420); // 300 + 120 (kitchen/baths NULL)
+    expect(venueSeatTotal(rooms, 'main')).toBe(600);
+  });
+
+  it('venueById resolves a building or null', () => {
+    expect(venueById(venues, 'south')).toMatchObject({ name: 'South Campus Event Center' });
+    expect(venueById(venues, 'nope')).toBe(null);
+    expect(venueById(venues, null)).toBe(null);
+  });
+
+  it('exposes the use-type vocabulary', () => {
+    expect(USE_TYPES).toEqual(['service', 'class', 'food', 'facility']);
   });
 });
 
