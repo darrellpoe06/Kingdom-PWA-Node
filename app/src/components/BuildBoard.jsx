@@ -13,6 +13,7 @@
 import React, { useState } from 'react';
 import WorkflowStatus from './WorkflowStatus.jsx';
 import LlmHealth from './LlmHealth.jsx';
+import LlmReview from './LlmReview.jsx';
 import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
 import { FreshnessDot } from './FreshnessDot.jsx';
 import { KpiLegend } from './KpiLegend.jsx';
@@ -306,6 +307,8 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
       <WorkflowStatus />
 
       <LlmHealth />
+
+      <LlmReview />
     </div>
   );
 }
