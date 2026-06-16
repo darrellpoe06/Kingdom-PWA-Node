@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { buildQualityManifest } from '../scripts/quality-manifest.mjs';
 
 // DR-0061 (surfaces are live views of real flow): the Build board's automation
 // count must be a REAL number, not hand-typed. Count the actual n8n workflow
@@ -169,6 +170,50 @@ function readDecisionLedger() {
 }
 const decisionLedger = readDecisionLedger();
 
+// UI/UX & accessibility review registry (Darrell, 2026-06-16: "our app UI/UX
+// reviews -- are they in there?"). docs/reviews/REVIEWS.md is the single source
+// of truth; this parses its records at build time so the in-app Quality / Proof
+// panel shows the SAME real file -- no second source, no fabricated review. Each
+// record is a "### " block with **Field:** lines. Best-effort: a missing file
+// degrades to an empty (but honest) registry, never crashes the build.
+function readUiuxReviews() {
+  let raw = '';
+  try {
+    raw = readFileSync(fileURLToPath(new URL('../docs/reviews/REVIEWS.md', import.meta.url)), 'utf8');
+  } catch { return { ok: false, count: 0, items: [] }; }
+  const recordsSection = (raw.split(/^##\s+Records\b.*$/m)[1] || raw);
+  const blocks = recordsSection.split(/^###\s+/m).slice(1);
+  const field = (block, label) => {
+    const m = block.match(new RegExp(`\\*\\*${label}:\\*\\*\\s*([^\\n]+)`, 'i'));
+    return m ? m[1].trim() : '';
+  };
+  const items = blocks.map((b) => {
+    const head = (b.split('\n')[0] || '').trim();
+    const [idPart, ...titleParts] = head.split('·');
+    return {
+      id: (idPart || '').trim(),
+      title: titleParts.join('·').trim(),
+      date: field(b, 'Date'),
+      surface: field(b, 'Surface'),
+      type: field(b, 'Type').toLowerCase(),
+      status: field(b, 'Status').toLowerCase(),
+      findings: field(b, 'Findings'),
+      source: field(b, 'Source'),
+    };
+  }).filter((it) => /^REV-\d+/.test(it.id));
+  return { ok: items.length > 0, count: items.length, items };
+}
+const uiuxReviews = readUiuxReviews();
+
+// Quality / Proof manifest (Darrell, 2026-06-16: "proof should show up inside
+// the app"). Reads the REAL verification artifacts (CI gates, guard scripts,
+// closed-loop test files) and the live WCAG contrast measurement, with every
+// row file-verified. Best-effort: any failure degrades to an honest empty
+// manifest rather than crashing the build.
+let qualityProof;
+try { qualityProof = buildQualityManifest(); }
+catch (e) { qualityProof = { ok: false, error: (e && e.message) || 'manifest unavailable', gates: [], loops: [], contrast: { ok: false, pass: false, themes: [], violations: [] }, ci: { exists: false, steps: [] }, summary: {} }; }
+
 // base set so built assets resolve under the Synology Web Station alias portal
 // at /poetech-app/ on the shared QuickConnect URL.
 //
@@ -213,6 +258,8 @@ export default defineConfig({
     __WORKFLOW_STATS__: JSON.stringify(workflowStats),
     __GOVERNANCE_QUEUE__: JSON.stringify(governanceQueue),
     __DR_LEDGER__: JSON.stringify(decisionLedger),
+    __QUALITY_PROOF__: JSON.stringify(qualityProof),
+    __UIUX_REVIEWS__: JSON.stringify(uiuxReviews),
   },
   server: {
     proxy: {

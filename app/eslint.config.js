@@ -36,6 +36,8 @@ export default [
         __WORKFLOW_STATS__: 'readonly',
         __GOVERNANCE_QUEUE__: 'readonly',
         __DR_LEDGER__: 'readonly',
+        __QUALITY_PROOF__: 'readonly',
+        __UIUX_REVIEWS__: 'readonly',
       },
     },
     plugins: {
