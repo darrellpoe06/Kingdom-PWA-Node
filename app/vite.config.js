@@ -220,10 +220,18 @@ catch (e) { qualityProof = { ok: false, error: (e && e.message) || 'manifest una
 // Build markers (2026-05-28): inject build time + commit SHA at build so the
 // app can show "you are on build X" in the UI. Stops the recurring "is the
 // phone actually on the new build?" confusion when iOS Safari aggressively
-// caches HTML. The SHA comes from Vercel's automatically-injected
-// VERCEL_GIT_COMMIT_SHA env var; locally falls back to 'dev'.
+// caches HTML. The SHA comes from the CI host's commit env var — Vercel's
+// VERCEL_GIT_COMMIT_SHA, Cloudflare Pages' CF_PAGES_COMMIT_SHA, or GitHub
+// Actions' GITHUB_SHA (the off-Vercel pipeline; see
+// docs/99-session-notes/2026-06-16-research-review-off-vercel-hosting.md and
+// .github/workflows/deploy-cloudflare-pages.yml). Locally falls back to 'dev'.
 const buildTime = new Date().toISOString();
-const buildSha = (process.env.VERCEL_GIT_COMMIT_SHA || 'dev').slice(0, 7);
+const buildSha = (
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.CF_PAGES_COMMIT_SHA ||
+  process.env.GITHUB_SHA ||
+  'dev'
+).slice(0, 7);
 
 // SW versioning (LESSONS-LEARNED.md 2026-06-03, forward fix #4): public/sw.js
 // is copied to dist verbatim, so `define` can't reach it. This plugin rewrites

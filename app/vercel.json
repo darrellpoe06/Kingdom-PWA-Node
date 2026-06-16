@@ -1,4 +1,11 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "main": true
+    }
+  },
   "rewrites": [
     { "source": "/n8n/:path*", "destination": "https://poetech.tail5a2f35.ts.net/:path*" },
     { "source": "/poetech-app/(.*)", "destination": "/$1" }

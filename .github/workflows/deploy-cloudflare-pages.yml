@@ -1,0 +1,90 @@
+# Deploy to Cloudflare Pages — the off-Vercel production pipeline.
+#
+# WHY THIS EXISTS: Vercel's Hobby tier caps deployments at 100/day. Many
+# parallel feature branches each firing a preview build blew that cap, so a
+# green merge to main stopped serving to poetech.us until the window reset.
+# Cloudflare Pages has no daily-deploy cap and unlimited bandwidth on free.
+# Full research + cutover plan:
+#   docs/99-session-notes/2026-06-16-research-review-off-vercel-hosting.md
+#
+# CHURN CONTROL (the OTHER half of the root cause): this pipeline deploys ONLY
+# on push to main — never a per-branch preview. The preview fan-out that blew
+# the Vercel cap cannot recur here, regardless of how many lanes are active.
+#
+# SAFE-BY-DEFAULT / NO CUTOVER YET: the deploy job is gated on the repo variable
+# CF_PAGES_ENABLED == 'true'. Until Darrell sets that variable (and adds the
+# Cloudflare + VITE_ secrets below), this workflow SKIPS cleanly — it builds and
+# serves nothing, so it cannot break the live Vercel path. Activation is a single
+# variable flip plus secrets; see the cutover doc. This is NOT a required CI
+# check, so even a failure here never blocks the auto-merge lane.
+#
+# The /n8n same-origin proxy moves with us: app/functions/n8n/[[path]].js is a
+# Pages Function deployed alongside the static assets (replacing the Vercel
+# rewrite). SPA base + cache headers ride app/public/_redirects + _headers.
+
+name: Deploy (Cloudflare Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# One production deploy at a time. Do NOT cancel an in-flight deploy: a partial
+# publish is worse than waiting. A newer push simply queues behind the current.
+concurrency:
+  group: cf-pages-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: build + deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    # Gate: stays skipped until Darrell flips the variable on (post-research,
+    # credentials in place). Keeps the live Vercel serving untouched until then.
+    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build (static, base /poetech-app/)
+        run: npm run build
+        env:
+          # SW cache name + in-app build badge derive from this (vite.config.js).
+          GITHUB_SHA: ${{ github.sha }}
+          # All VITE_ vars are inlined into the public client bundle at build
+          # time. They are public-by-design (anon key + RLS, shared-secret bearer
+          # that pairs with a server gate) — copying them into CI secrets is not a
+          # secret-handling risk, but the cutover is not done until each is set.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
+          VITE_REVIEW_TOKEN: ${{ secrets.VITE_REVIEW_TOKEN }}
+          VITE_YOUTUBE_API_KEY: ${{ secrets.VITE_YOUTUBE_API_KEY }}
+          VITE_SYNOLOGY_CHAT_BOT_URL: ${{ secrets.VITE_SYNOLOGY_CHAT_BOT_URL }}
+          # NOTE: VITE_N8N_WEBHOOK_BASE is intentionally NOT set — it defaults to
+          # the same-origin "/n8n" path served by the Pages Function. Setting it
+          # to the bare Funnel URL would re-open the cross-origin 503 throttle.
+
+      - name: Deploy to Cloudflare Pages (functions + static)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: app
+          # Run from app/ so wrangler discovers app/functions/ and publishes the
+          # /n8n Pages Function alongside the static dist. --branch=main marks
+          # this a PRODUCTION deployment (the custom domain serves production).
+          command: pages deploy dist --project-name=poetech-app --branch=main

@@ -1,0 +1,13 @@
+# Cloudflare Pages routing — mirrors app/vercel.json rewrites.
+#
+# /n8n/* is handled by the Pages Function at functions/n8n/[[path]].js (an
+# external-origin proxy; _redirects cannot proxy external domains). Functions
+# run BEFORE these rules, so /n8n/* never falls through to here.
+#
+# The app is built with Vite base '/poetech-app/', so index.html references its
+# assets as /poetech-app/assets/... . The build output (dist) is published at
+# the site ROOT, so map the /poetech-app/ prefix back to root — exactly the
+# Vercel rewrite "/poetech-app/(.*) -> /$1". A 200 (rewrite, not redirect) keeps
+# the URL bar on /poetech-app/ so the service-worker scope + Supabase auth
+# redirect URLs (both pinned to /poetech-app/) stay correct.
+/poetech-app/*  /:splat  200
