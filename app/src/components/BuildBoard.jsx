@@ -307,7 +307,9 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
 
       <WorkflowStatus />
 
-      <OpsBoard />
+      {/* Orchestration internals (branches, PRs, lanes, SHAs) are a dev/ops
+          view for the Governor — public data, but noise for a family user. */}
+      {isGovernor && <OpsBoard />}
 
       <LlmHealth />
 
