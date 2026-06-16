@@ -34,9 +34,13 @@ export const PROPOSED_COHORT_START = '2026-07-11'; // a Saturday; the UI shows t
 // reads "proposed." When he confirms, set confirmed:true here (and startDate if it
 // moved) and the next deploy propagates it to everyone. A Governor's live in-app
 // confirm still overrides locally for his own preview — see resolveCohort().
+// PUBLISHED confirmed cohort — what every learner (incl. parishioners on their own
+// instance) sees. Darrell confirmed Cohort 1 for Saturday 2026-07-11 on 2026-06-16.
+// To move the class: change `startDate` to another Saturday (ISO yyyy-mm-dd) and
+// redeploy; the Learn tab shows the true weekday, so a non-Saturday is caught.
 export const CONFIRMED_COHORT = {
-  startDate: PROPOSED_COHORT_START,
-  confirmed: false,
+  startDate: '2026-07-11',
+  confirmed: true,
 };
 
 // Resolve the cohort a learner should SEE. Precedence:
