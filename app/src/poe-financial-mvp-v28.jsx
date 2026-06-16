@@ -43,6 +43,7 @@ import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { LifeGallery } from './components/LifeGallery.jsx';
 import { ConferenceModule } from './components/ConferenceModule.jsx';
+import { EventCenterModule } from './components/EventCenterModule.jsx';
 import { ChurchObservation } from './components/ChurchObservation.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
@@ -7126,6 +7127,12 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
           Assembly is in season; Bishop Gwin edits details, builds the schedule,
           and his feedback box feeds the build list directly. */}
       <ConferenceModule conference={conference} updateConference={updateConference} />
+
+      {/* EVENT CENTER — the conference as a REAL multi-attendee system: shared,
+          instance-scoped, realtime rooms + sessions (capacity/breakouts) +
+          registrations. Self-contained (owns its own conference-sync); composes
+          alongside ConferenceModule's front door without coupling to it. */}
+      <EventCenterModule />
 
       {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
           a post-vacation build; this is the entry point + placeholder. */}
