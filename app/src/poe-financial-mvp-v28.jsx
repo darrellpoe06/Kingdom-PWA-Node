@@ -1167,6 +1167,24 @@ function relativeWhen(eventDate) {
   return `in ${Math.round(diffMin / 43200)}mo`;
 }
 
+// Pressure -> real monthly money toward debt. Pure + exported so it is testable
+// and the local-LLM orchestrator can run it headless. EVERY input is real:
+// netCashFlow + rentGap are derived from the user's data; the discretionary lever
+// is a % of the user's REAL flexible spend (outflows.household), never a flat
+// assumed $2000; the tithe (charitableGiving) is never part of the cut base; and
+// reserves are deducted before anything is called "available."
+export function computePressure(map, totals, outflows = {}, reservesMonthly = 0) {
+  const rentCapture = (map.rentGapClosure / 100) * (totals.rentGap || 0);
+  const discretionaryBase = outflows.household || 0;
+  const discretionaryGain = (map.discretionaryCut / 100) * discretionaryBase;
+  const grossAvailable = (totals.netCashFlow || 0) + rentCapture + discretionaryGain;
+  return {
+    ...map, discretionaryBase, rentCapture, discretionaryGain, grossAvailable,
+    reservesDeducted: reservesMonthly,
+    extraAvailable: Math.max(0, grossAvailable - reservesMonthly),
+  };
+}
+
 export function projectDebt(debts, monthlyExtraAvailable, currentDate, maxMonths = 240) {
   let activeDebts = debts.filter((d) => !d.leaveAlone).map((d) => ({ ...d, currentBalance: d.balance, clearedAtMonth: null }));
   const projection = []; let totalInterestPaid = 0;
@@ -3616,13 +3634,14 @@ export default function PoeFinancialSystem() {
     [data.accounts]
   );
 
-  const pressureCalc = useMemo(() => {
-    const map = data.pressureMappings[pressure];
-    const rentCapture = (map.rentGapClosure / 100) * totals.rentGap;
-    const discretionaryGain = (map.discretionaryCut / 100) * 2000;
-    const grossAvailable = totals.netCashFlow + rentCapture + discretionaryGain;
-    return { ...map, rentCapture, discretionaryGain, grossAvailable, reservesDeducted: reserves.totalMonthly, extraAvailable: Math.max(0, grossAvailable - reserves.totalMonthly) };
-  }, [pressure, totals, data.pressureMappings, reserves]);
+  // Pressure -> real money toward debt. The discretionary lever is a % of the
+  // user's REAL flexible spend (outflows.household), not a flat assumed $2000
+  // (Darrell 2026-06-15: reports must be dynamic from real data). The tithe is
+  // never in the cut base. See computePressure (pure + tested).
+  const pressureCalc = useMemo(
+    () => computePressure(data.pressureMappings[pressure], totals, data.outflows, reserves.totalMonthly),
+    [pressure, totals, data.pressureMappings, data.outflows, reserves],
+  );
 
   const projection = useMemo(() => projectDebt(data.debts, pressureCalc.extraAvailable, currentDate, 240), [data.debts, pressureCalc.extraAvailable, currentDate]);
   const debtSnowball = useMemo(() => projectDebtSnowball(data.debts, debtSnowballExtra, debtSnowballSort, currentDate, 360), [data.debts, debtSnowballExtra, debtSnowballSort, currentDate]);
