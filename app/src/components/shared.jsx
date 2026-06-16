@@ -3,6 +3,7 @@
 // These are small, stateless, rarely-changed components used across many tabs.
 // See /docs/01-architecture/* for the long-term split plan.
 import React, { useState } from 'react';
+import TraceableNumber from './TraceableNumber.jsx';
 
 function MarketCard({ title, need, have }) {
   return (
@@ -208,9 +209,12 @@ function SectionTitle({ children, eyebrow }) {
   );
 }
 
-function MetricCell({ label, value, sub, accent, small }) {
+function MetricCell({ label, value, sub, accent, small, trace }) {
   const valueColor = accent === 'green' ? 'text-[#5A6E3D]' : accent === 'rust' ? 'text-[#B85838]' : 'text-[#1A1815]';
-  return (<div className="bg-[#FAF8F4] p-2.5 sm:p-3"><div className="text-[9px] uppercase tracking-[0.15em] text-[#5A5751] mb-1 leading-tight">{label}</div><div className={`${small ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'} ${valueColor} leading-tight`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{value}</div>{sub && <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mt-0.5 leading-tight">{sub}</div>}</div>);
+  const valueEl = (
+    <div className={`${small ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'} ${valueColor} leading-tight`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{value}</div>
+  );
+  return (<div className="bg-[#FAF8F4] p-2.5 sm:p-3"><div className="text-[9px] uppercase tracking-[0.15em] text-[#5A5751] mb-1 leading-tight">{label}</div>{trace ? <TraceableNumber trace={trace} label={label}>{valueEl}</TraceableNumber> : valueEl}{sub && <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mt-0.5 leading-tight">{sub}</div>}</div>);
 }
 
 // Named exports — main file imports these explicitly.

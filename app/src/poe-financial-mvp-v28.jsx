@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { SectionTitle, MetricCell } from './components/shared.jsx';
+import TraceableNumber from './components/TraceableNumber.jsx';
+import {
+  traceNetCashFlow,
+  traceCollectionRate,
+  traceToDebt,
+  traceReserves,
+  traceDebtFree,
+  traceRentalsFree,
+} from './lib/number-trace.js';
 import About from './components/About.jsx';
 import { LegalPlaceholder } from './components/Legal.jsx';
 import { Contractors1099 } from './components/Contractors1099.jsx';
@@ -4555,7 +4564,7 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <BigPictureDashboard totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} dispatchIncident={dispatchIncident} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
+        {view === 'overview' && <BigPictureDashboard data={data} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} dispatchIncident={dispatchIncident} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')}>
           <>
@@ -5642,7 +5651,7 @@ function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFe
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], dispatchIncident, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto }) {
+function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], dispatchIncident, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto }) {
   // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
   // item (if any) is currently expanded. Tapping the row body opens the full
   // details + lifecycle log + jump-link inline, so the user never loses
@@ -6100,9 +6109,9 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
 
       {/* HERO ROW — FORCED HORIZONTAL ON MOBILE */}
       <section className="grid grid-cols-3 gap-2 sm:gap-4">
-        <CompactHero label="Net cash flow" value={`${totals.netCashFlow >= 0 ? '+' : ''}${fmtCompact(totals.netCashFlow)}`} sub="per mo · all entities" accent={totals.netCashFlow >= 0 ? 'green' : 'rust'} />
-        <CompactHero label="Consumer debt free" value={projection.debtFreeDate} sub={`${projection.debtFreeYears.toFixed(1)}yr · pressure ${pressure}`} />
-        <CompactHero label="Rentals owned free" value={rentalSnowball.allClearedDate} sub={`${rentalSnowball.allClearedYears.toFixed(1)}yr · snowball`} />
+        <CompactHero label="Net cash flow" value={`${totals.netCashFlow >= 0 ? '+' : ''}${fmtCompact(totals.netCashFlow)}`} sub="per mo · all entities" accent={totals.netCashFlow >= 0 ? 'green' : 'rust'} trace={traceNetCashFlow(data, totals)} />
+        <CompactHero label="Consumer debt free" value={projection.debtFreeDate} sub={`${projection.debtFreeYears.toFixed(1)}yr · pressure ${pressure}`} trace={traceDebtFree(data, totals, projection, pressureCalc, 'date')} />
+        <CompactHero label="Rentals owned free" value={rentalSnowball.allClearedDate} sub={`${rentalSnowball.allClearedYears.toFixed(1)}yr · snowball`} trace={traceRentalsFree(data, rentalSnowball, snowballExtra, 'date')} />
       </section>
 
       {/* Phase 2B.2 — Bank reconciliation status strip. Surfaces the same
@@ -6231,10 +6240,10 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
         <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">What changes at this setting</div>
           <div className="grid grid-cols-2 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            <MetricCell label="Debt free in" value={`${projection.debtFreeYears.toFixed(1)} yr`} small />
-            <MetricCell label="Interest" value={fmtCompact(projection.totalInterestPaid)} small />
-            <MetricCell label="To debt/mo" value={fmt(pressureCalc.extraAvailable)} small />
-            <MetricCell label="Reserves" value={fmt(pressureCalc.reservesDeducted)} small accent="rust" />
+            <MetricCell label="Debt free in" value={`${projection.debtFreeYears.toFixed(1)} yr`} small trace={traceDebtFree(data, totals, projection, pressureCalc, 'years')} />
+            <MetricCell label="Interest" value={fmtCompact(projection.totalInterestPaid)} small trace={traceDebtFree(data, totals, projection, pressureCalc, 'interest')} />
+            <MetricCell label="To debt/mo" value={fmt(pressureCalc.extraAvailable)} small trace={traceToDebt(data, totals, pressureCalc)} />
+            <MetricCell label="Reserves" value={fmt(pressureCalc.reservesDeducted)} small accent="rust" trace={traceReserves(data, reserves)} />
           </div>
         </div>
       </section>
@@ -6258,7 +6267,7 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
             <div className="border-l-2 border-[#5A6E3D] pl-3">
               <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-0.5">On track</div>
               <div className="text-xs sm:text-sm">
-                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{totals.collectionRate.toFixed(1)}%</span> rent collection
+                <TraceableNumber trace={traceCollectionRate(data, totals)} label="rent collection rate"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{totals.collectionRate.toFixed(1)}%</span></TraceableNumber> rent collection
               </div>
             </div>
             {flaggedOpportunities.length > 0 && (
@@ -6298,12 +6307,15 @@ function BigPictureDashboard({ totals, pressure, setPressure, pressureCalc, proj
   );
 }
 
-function CompactHero({ label, value, sub, accent }) {
+function CompactHero({ label, value, sub, accent, trace }) {
   const colorClass = accent === 'green' ? 'text-[#5A6E3D]' : accent === 'rust' ? 'text-[#B85838]' : 'text-[#1A1815]';
+  const valueEl = (
+    <div className={`text-base sm:text-2xl leading-tight truncate ${colorClass}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{value}</div>
+  );
   return (
     <div className="bg-white border border-[#1A1815] p-2.5 sm:p-4 min-w-0">
       <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1 leading-tight">{label}</div>
-      <div className={`text-base sm:text-2xl leading-tight truncate ${colorClass}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{value}</div>
+      {trace ? <TraceableNumber trace={trace} label={label} className="max-w-full">{valueEl}</TraceableNumber> : valueEl}
       {sub && <div className="text-[9px] sm:text-xs text-[#5A5751] mt-1 leading-tight">{sub}</div>}
     </div>
   );
