@@ -9,9 +9,31 @@
 // ing youtube-title-parse.js. Drafts are excluded from the studyable history.
 // =============================================================================
 
+// The preachers & teachers roster, derived from REAL data: the distinct speakers
+// credited across the archived messages (drafts excluded), with how many each has
+// delivered, most first. BG is the primary voice; guest preachers/teachers who
+// fill in are rostered alongside from their own credited messages — no fabricated
+// roster, it IS who has preached. `isBG` flags the Gwin entries. Tolerates a
+// non-array corpus / garbage rows (degrades to []), never throws.
+export function speakerRoster(sermons) {
+  const list = Array.isArray(sermons) ? sermons.filter((s) => s && typeof s === 'object') : [];
+  const counts = new Map();
+  for (const s of list.filter((s) => s.status !== 'draft')) {
+    const name = (s.speaker || '').trim();
+    if (!name) continue;
+    counts.set(name, (counts.get(name) || 0) + 1);
+  }
+  return Array.from(counts, ([name, count]) => ({ name, count, isBG: /gwin/i.test(name) }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
 export function corpusPrep(sermons, query) {
   const q = String(query || '').trim().toLowerCase();
-  const all = (sermons || []).filter((s) => s.status !== 'draft');
+  // Tolerate a non-array corpus and null/garbage rows inside it: a malformed
+  // history degrades to "no matches," never a thrown error that white-screens
+  // The Word — Migdal.
+  const list = Array.isArray(sermons) ? sermons.filter((s) => s && typeof s === 'object') : [];
+  const all = list.filter((s) => s.status !== 'draft');
   const matches = q
     ? all.filter((s) => `${s.title || ''} ${s.scriptureRef || ''} ${s.notes || ''}`.toLowerCase().includes(q))
     : [];

@@ -37,11 +37,11 @@ import React, { useEffect, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
-  getChoirAccess, youtubeTimedUrl, parseTimecode, formatTimecode,
+  getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
   subscribeSermons, subscribeSermonDocuments, saveSermon, deleteSermon, reuseSermon,
   saveSermonDocument, importSermonsFromChannel, openSermonDocument,
 } from '../lib/choir-sync.js';
-import { corpusPrep } from '../lib/pulpit-prep.js';
+import { corpusPrep, speakerRoster } from '../lib/pulpit-prep.js';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) => {
@@ -114,7 +114,14 @@ function MessageForm({ initial, onSave, onCancel, busy }) {
 }
 
 function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
+  // Embed the service video INLINE (Darrell: embedding is cleaner than extracting
+  // frames). A collapsible YouTube iframe opens in place; if the URL can't be
+  // embedded we fall back to an external watch link at the right moment.
+  const [playing, setPlaying] = useState(false);
+  const baseEmbed = youtubeEmbedUrl(sermon.youtubeUrl);
+  const embed = baseEmbed && sermon.startSeconds ? `${baseEmbed}?start=${Math.floor(sermon.startSeconds)}` : baseEmbed;
   const watch = youtubeTimedUrl(sermon.youtubeUrl, sermon.startSeconds);
+  const watchLabel = `▶ Watch${sermon.startSeconds ? ` @ ${formatTimecode(sermon.startSeconds)}` : ''}`;
   return (
     <div className="p-3 border-b border-[#E8E4DC]">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
@@ -128,12 +135,18 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
       {sermon.speaker && <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
       {sermon.notes && <p className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.notes}</p>}
       <div className="flex gap-2 mt-1 flex-wrap">
-        {watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>▶ Watch{sermon.startSeconds ? ` @ ${formatTimecode(sermon.startSeconds)}` : ''}</a>}
+        {embed && <button type="button" onClick={() => setPlaying((p) => !p)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={playing}>{playing ? '▾ Hide video' : watchLabel}</button>}
+        {!embed && watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel}</a>}
         {sermon.documentUrl && <button type="button" onClick={async () => { const u = await openSermonDocument(sermon.documentUrl); if (u) window.open(u, '_blank', 'noopener'); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Document</button>}
         {canEdit && onReuse && <button type="button" onClick={() => onReuse(sermon)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse for new</button>}
         {canEdit && <button type="button" onClick={() => onEdit(sermon)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
         {canEdit && <button type="button" onClick={() => onDelete(sermon)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
       </div>
+      {playing && embed && (
+        <div className="mt-2 aspect-video">
+          <iframe src={embed} title={`${sermon.title} — service video`} className="w-full h-full border border-[#1A1815]" allow="encrypted-media; picture-in-picture" allowFullScreen loading="lazy" />
+        </div>
+      )}
     </div>
   );
 }
@@ -155,9 +168,22 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
   const drafts = (sermons || []).filter((s) => s.status === 'draft');
   const history = (sermons || []).filter((s) => s.status !== 'draft')
     .filter((s) => !q || `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''}`.toLowerCase().includes(q.toLowerCase()));
+  const roster = speakerRoster(sermons);
   return (
     <div>
-      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Every past message — Sundays + Wednesday Bible Study. Watch the service, open the original document, or reuse one as a draft to build a new message from.</p>
+      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Every past message — Sundays + Wednesday Bible Study. Bishop Gwin preaches most; guest preachers and teachers fill in so he can rest, and each message credits who delivered it. Watch the service, open the original document, or reuse one as a draft.</p>
+      {roster.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] mb-1">Preachers &amp; teachers</div>
+          <div className="flex flex-wrap gap-1.5">
+            {roster.map((p) => (
+              <span key={p.name} className={`text-[11px] px-2 py-0.5 border ${p.isBG ? 'bg-[#1A1815] text-[#FAF8F4] border-[#1A1815]' : 'bg-[#FAF8F4] text-[#1A1815] border-[#E8E4DC]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
+                {p.name}{p.isBG ? ' · primary' : ''} <span className={p.isBG ? 'opacity-70' : 'text-[#5A5751]'}>({p.count})</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {canEdit && (form ? (
         <MessageForm initial={form.initial} busy={busy} onSave={async (s) => { await onSave(s); setForm(null); }} onCancel={() => setForm(null)} />
       ) : (
