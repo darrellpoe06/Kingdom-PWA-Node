@@ -23,7 +23,7 @@
 // (~7:1), #5A6E3D + #7A1F1F + #B85838 accents (>=4.5:1), focus ring #B85838,
 // controls >=36px — verified against the rendered tokens.
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { MODULES, PROPOSED_COHORT_START, buildSchedule } from '../lib/church-classes.js';
+import { MODULES, PROPOSED_COHORT_START, buildSchedule, formatClassDate } from '../lib/church-classes.js';
 import { TEACH_CHANNEL, SESSION_TARGET_MIN, formatClock, buildSlide, holdingSlide } from '../lib/teach-present.js';
 
 // Split the parallel session's single howToRun string ("seg | seg | seg") into
@@ -196,7 +196,7 @@ export default function TeachMode({ cohortStart = PROPOSED_COHORT_START, onClose
         {/* what the students see right now (mirror) */}
         <div style={{ ...card, background: '#fff', borderLeft: '4px solid #1A1815' }}>
           <div style={{ fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>
-            On the class screen now · {cur.date ? cur.weekday + ', ' + cur.date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : 'date TBD'}
+            On the class screen now · {formatClassDate(cur.date) || 'date TBD'}
           </div>
           <h2 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 'clamp(22px, 3vw, 32px)', margin: '0 0 10px', letterSpacing: '-0.01em' }}>{cur.title}</h2>
           <p style={{ fontSize: 17, lineHeight: 1.5, margin: '0 0 10px' }}>{cur.bigIdea}</p>

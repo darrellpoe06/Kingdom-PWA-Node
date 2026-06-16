@@ -35,7 +35,7 @@
 import React, { useState, useRef } from 'react';
 import {
   CLASS_META, PROPOSED_COHORT_START,
-  buildSchedule, progressSummary, exportCurriculumMarkdown,
+  buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
 } from '../lib/church-classes.js';
 import { askTutor } from '../lib/class-tutor.js';
 import {
@@ -45,9 +45,7 @@ import {
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import TeachMode from './TeachMode.jsx';
 
-const fmtDate = (d) => d
-  ? d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
-  : null;
+const fmtDate = formatClassDate;
 
 // A friendly label for a launch target so the button reads in plain words.
 const launchLabel = (t) => {

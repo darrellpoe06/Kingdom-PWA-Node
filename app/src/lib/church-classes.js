@@ -357,6 +357,15 @@ export function weekday(date) {
   return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getUTCDay()];
 }
 
+// One class-date format ("Saturday, July 11, 2026"), shared by every surface that
+// shows a week's date (the learner timeline, the presenter mirror, the projected
+// class screen) so they can never drift. UTC — the dates are calendar days, not
+// instants. Returns null for a bad/missing date (callers show "date TBD").
+export function formatClassDate(date) {
+  if (!date || Number.isNaN(date.getTime?.())) return null;
+  return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
 // Build the full schedule for ANY module set: one row per module with its real
 // computed date. The course-specific buildSchedule delegates here.
 export function buildScheduleFor(modules, startISO, cadenceDays = CLASS_META.cadenceDays) {

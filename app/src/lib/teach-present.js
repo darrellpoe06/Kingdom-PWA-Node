@@ -18,7 +18,7 @@
 // curriculum read-only. The audience payload is dumb-by-design: it carries the
 // rendered slide content, so the two windows can never drift to different weeks.
 // =============================================================================
-import { MODULES, weekToDate, PROPOSED_COHORT_START } from './church-classes.js';
+import { MODULES, weekToDate, PROPOSED_COHORT_START, formatClassDate } from './church-classes.js';
 
 // Same-origin channel the presenter and the projected audience window share.
 export const TEACH_CHANNEL = 'poe-teach-v1';
@@ -37,9 +37,7 @@ export function formatClock(totalSeconds) {
   return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
 }
 
-const fmtDate = (d) => (d
-  ? d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
-  : null);
+const fmtDate = formatClassDate;
 
 // The payload the presenter broadcasts and the audience renders. Carries only
 // LEARNER content (title / bigIdea / inApp / anchor) — never facilitator notes,
