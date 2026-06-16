@@ -3240,13 +3240,16 @@ export default function PoeFinancialSystem() {
   const addFeedback = (item) => {
     const nowIso = new Date().toISOString();
     const initialStatus = item.status || 'new';
-    // Keep the base64 image OUT of localStorage (it would bloat the quota and
-    // every device's snapshot). It rides to Supabase via uploadFeedback; the
-    // local copy keeps only a marker.
-    const { screenshot, ...rest } = item;
+    // Keep the base64 images OUT of localStorage (they would bloat the quota
+    // and every device's snapshot). They ride to Supabase via uploadFeedback;
+    // the local copy keeps only a marker + count. Tolerate the legacy single
+    // `screenshot` field as well as the multi-image `screenshots` array.
+    const { screenshot, screenshots, ...rest } = item;
+    const imgs = Array.isArray(screenshots) ? screenshots : (screenshot ? [screenshot] : []);
     const seeded = {
       ...rest,
-      hasScreenshot: !!screenshot,
+      hasScreenshot: imgs.length > 0,
+      screenshotCount: imgs.length,
       id: `fb-${Date.now()}`,
       createdAt: nowIso,
       status: initialStatus,
@@ -3258,7 +3261,7 @@ export default function PoeFinancialSystem() {
       },
     };
     setData(d => ({ ...d, feedback: [...(d.feedback || []), seeded] }));
-    uploadFeedback(seeded, { activeTab: view, appVersion: data.meta?.appVersion, screenshot });
+    uploadFeedback(seeded, { activeTab: view, appVersion: data.meta?.appVersion, screenshots: imgs });
   };
   const deleteFeedback = (id) => setData(d => ({ ...d, feedback: (d.feedback || []).filter(f => f.id !== id) }));
   const dismissWelcome = () => setData(d => ({ ...d, welcomeDismissed: true }));
@@ -5390,35 +5393,39 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
   const [whatsWorking, setWhatsWorking] = useState('');
   const [whatsNot, setWhatsNot] = useState('');
   const [whatsMissing, setWhatsMissing] = useState('');
-  const [screenshot, setScreenshot] = useState(null); // compressed JPEG data URL
+  // 2026-06-16 — multi-image. Christina/parishioners asked to attach more than
+  // one screenshot at a time ("I can only select one at a time"). `screenshots`
+  // is an array of compressed JPEG data URLs; the file input is `multiple` and
+  // a new pick APPENDS so several batches accumulate.
+  const [screenshots, setScreenshots] = useState([]);
   const [formError, setFormError] = useState('');
 
   const toggleCategory = (k) => setCategories(prev => prev.includes(k) ? prev.filter(c => c !== k) : [...prev, k]);
 
   const onPickImage = async (fileList) => {
-    const file = fileList && fileList[0];
-    if (!file) return;
-    if (!/^image\//.test(file.type || '')) {
+    const files = Array.from(fileList || []).filter(f => /^image\//.test(f.type || ''));
+    if (files.length === 0) {
       setFormError('That file is not an image — a screenshot or photo works best.');
       return;
     }
     try {
-      // Compress hard: the image only needs to be legible and it travels in the
-      // row, so keep it small.
-      const dataUrl = await compressImageFile(file, 1280, 0.6);
-      setScreenshot(dataUrl);
+      // Compress each hard: images only need to be legible and they travel in
+      // the row, so keep them small. Append so multiple picks accumulate.
+      const dataUrls = await Promise.all(files.map(f => compressImageFile(f, 1280, 0.6)));
+      setScreenshots(prev => [...prev, ...dataUrls]);
       setFormError('');
     } catch (_) {
-      setFormError('Could not read that image. Try another, or submit without one.');
+      setFormError('Could not read one of those images. Try again, or submit without it.');
     }
   };
+  const removeScreenshot = (i) => setScreenshots(prev => prev.filter((_, j) => j !== i));
 
   const handleSubmit = () => {
-    if (!rating && categories.length === 0 && !whatsWorking && !whatsNot && !whatsMissing && !screenshot) {
+    if (!rating && categories.length === 0 && !whatsWorking && !whatsNot && !whatsMissing && screenshots.length === 0) {
       setFormError('Pick a rating, a category, jot a note, or attach an image — anything is helpful.');
       return;
     }
-    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshot });
+    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots });
   };
 
   const ratings = [
@@ -5494,18 +5501,21 @@ function FeedbackModal({ onClose, onSubmit, currentView }) {
             </div>
 
             <div>
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">📎 Screenshot or photo (optional)</div>
-              {!screenshot ? (
-                <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] text-xs text-[#5A5751] cursor-pointer hover:bg-[#FAF8F4] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
-                  <span>Attach an image to show us what you mean</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={e => { onPickImage(e.target.files); e.target.value = ''; }} />
-                </label>
-              ) : (
-                <div className="relative inline-block">
-                  <img src={screenshot} alt="Attached screenshot preview" className="max-h-32 border border-[#1A1815]" />
-                  <button type="button" onClick={() => setScreenshot(null)} aria-label="Remove image" className="absolute -top-2 -right-2 bg-[#1A1815] text-white w-6 h-6 text-xs leading-none hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">✕</button>
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">📎 Screenshots or photos (optional){screenshots.length > 0 ? ` · ${screenshots.length}` : ''}</div>
+              {screenshots.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {screenshots.map((src, i) => (
+                    <div key={i} className="relative inline-block">
+                      <img src={src} alt={`Attached screenshot ${i + 1} preview`} className="max-h-32 border border-[#1A1815]" />
+                      <button type="button" onClick={() => removeScreenshot(i)} aria-label={`Remove image ${i + 1}`} className="absolute -top-2 -right-2 bg-[#1A1815] text-white w-6 h-6 text-xs leading-none hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">✕</button>
+                    </div>
+                  ))}
                 </div>
               )}
+              <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] text-xs text-[#5A5751] cursor-pointer hover:bg-[#FAF8F4] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
+                <span>{screenshots.length > 0 ? 'Add another image' : 'Attach one or more images to show us what you mean'}</span>
+                <input type="file" accept="image/*" multiple className="hidden" onChange={e => { onPickImage(e.target.files); e.target.value = ''; }} />
+              </label>
             </div>
           </div>
 
@@ -5638,16 +5648,32 @@ function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFe
                 <p className="text-sm" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsMissing}</p>
               </div>
             )}
-            {f.screenshot ? (
-              <div className="mb-2">
-                <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold">📎 Screenshot</div>
-                <a href={f.screenshot} target="_blank" rel="noreferrer" title="Open full size">
-                  <img src={f.screenshot} alt="Feedback screenshot" className="max-h-48 border border-[#1A1815] mt-1" />
-                </a>
-              </div>
-            ) : f.hasScreenshot ? (
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-2">📎 Screenshot attached (open on the submitter's device or in Supabase)</div>
-            ) : null}
+            {(() => {
+              // Prefer the multi-image array; fall back to the legacy single
+              // `screenshot`, then to the marker for rows synced without images.
+              const imgs = Array.isArray(f.screenshots) && f.screenshots.length > 0
+                ? f.screenshots
+                : (f.screenshot ? [f.screenshot] : []);
+              if (imgs.length > 0) {
+                return (
+                  <div className="mb-2">
+                    <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold">📎 {imgs.length > 1 ? `${imgs.length} screenshots` : 'Screenshot'}</div>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {imgs.map((src, i) => (
+                        <a key={i} href={src} target="_blank" rel="noreferrer" title="Open full size">
+                          <img src={src} alt={`Feedback screenshot ${i + 1}`} className="max-h-48 border border-[#1A1815]" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              if (f.hasScreenshot) {
+                const n = f.screenshotCount || 1;
+                return <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-2">📎 {n > 1 ? `${n} screenshots` : 'Screenshot'} attached (open on the submitter's device or in Supabase)</div>;
+              }
+              return null;
+            })()}
           </div>
         )}
         renderCard={(f) => {

@@ -119,15 +119,32 @@ export async function uploadFeedback(item, meta = {}) {
     triage_status: 'new',
   };
 
-  // Optional screenshot (compressed JPEG data URL) — see migration 0003.
-  const screenshot = (typeof meta.screenshot === 'string' && meta.screenshot) ? meta.screenshot : null;
+  // Optional screenshots (compressed JPEG data URLs). The legacy single-image
+  // `screenshot` text column (migration 0003) keeps the FIRST image for back-
+  // compat; the full set rides the `screenshots` jsonb column (migration 0026).
+  // Accept the multi-image `meta.screenshots` array and the legacy single
+  // `meta.screenshot`.
+  const shots = Array.isArray(meta.screenshots)
+    ? meta.screenshots.filter(s => typeof s === 'string' && s)
+    : ((typeof meta.screenshot === 'string' && meta.screenshot) ? [meta.screenshot] : []);
+  const firstShot = shots[0] || null;
 
-  let { error } = await supabase.from('feedback').insert(screenshot ? { ...row, screenshot } : row);
-  // Defensive: if the screenshot column isn't live yet (a migration/PostgREST
-  // schema-cache race right at deploy), retry without it so the text feedback
-  // still lands. The image is the only thing lost, and only in that window.
-  if (error && screenshot) {
-    console.warn('[feedback-sync] insert with screenshot failed, retrying without it:', error);
+  // Insert with the richest payload the live schema supports, degrading on each
+  // schema-cache miss so the text feedback always lands. Worst case (a column
+  // not live yet at deploy): images 2..N, then all images, are dropped — only
+  // in that brief window, and never the feedback itself.
+  let error;
+  if (shots.length > 0) {
+    ({ error } = await supabase.from('feedback').insert({ ...row, screenshot: firstShot, screenshots: shots }));
+    if (error) {
+      console.warn('[feedback-sync] insert with screenshots[] failed, retrying with single screenshot:', error);
+      ({ error } = await supabase.from('feedback').insert({ ...row, screenshot: firstShot }));
+    }
+    if (error) {
+      console.warn('[feedback-sync] insert with screenshot failed, retrying without image:', error);
+      ({ error } = await supabase.from('feedback').insert(row));
+    }
+  } else {
     ({ error } = await supabase.from('feedback').insert(row));
   }
   if (error) {
@@ -140,7 +157,7 @@ export async function uploadFeedback(item, meta = {}) {
   postToChat(
     formatFeedbackMessage({
       displayName: row.display_name,
-      text: row.feedback_text + (screenshot ? '\n[+screenshot attached]' : ''),
+      text: row.feedback_text + (shots.length ? `\n[+${shots.length} screenshot${shots.length > 1 ? 's' : ''} attached]` : ''),
       sentiment: row.sentiment,
       activeTab: row.which_tab,
     })
@@ -253,7 +270,13 @@ function toPrototypeShape(row) {
     deviceLabel: row.device_label,
     triageStatus: row.triage_status,
     screenshot: row.screenshot || null,
-    hasScreenshot: !!row.screenshot,
+    // Full image set when the `screenshots` jsonb column is live; otherwise the
+    // single legacy `screenshot` stands in so older rows still render.
+    screenshots: Array.isArray(row.screenshots) && row.screenshots.length > 0
+      ? row.screenshots
+      : (row.screenshot ? [row.screenshot] : []),
+    hasScreenshot: !!(row.screenshot || (Array.isArray(row.screenshots) && row.screenshots.length > 0)),
+    screenshotCount: Array.isArray(row.screenshots) ? row.screenshots.length : (row.screenshot ? 1 : 0),
     // 'remote: true' lets the UI render a small badge so users can see
     // which feedback came from another device.
     remote: true,
