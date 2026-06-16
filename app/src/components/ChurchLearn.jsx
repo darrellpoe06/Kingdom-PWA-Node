@@ -175,6 +175,8 @@ export default function ChurchLearn({
   progress = {},
   toggleModule = null,
   addChurchVoice = null,
+  submitClassInterest = null, // (name) => void — routes interest CROSS-TENANT via the feedback pipe
+  classRoster = null,         // Governor-only: [{ text, who, at }] of everyone who tapped "I want to join"
   isGovernor = false,
   currentUserName = '',
   onLaunch = null, // (target:{view,churchView?}) => void — host maps to setView/setChurchView
@@ -186,16 +188,25 @@ export default function ChurchLearn({
   const schedule = buildSchedule(cohortStart);
   const prog = progressSummary(progress);
 
+  const canSendInterest = !!(submitClassInterest || addChurchVoice);
   const sendInterest = () => {
-    if (!addChurchVoice) return;
+    if (!canSendInterest) return;
     const who = (currentUserName || '').trim() || 'A parishioner';
-    addChurchVoice({
-      id: `class-${Date.now()}`,
-      kind: 'class-interest',
-      text: `${who} wants to join the "${CLASS_META.title}" A.I. class for the youth.`,
-      from: who,
-      at: new Date().toISOString(),
-    });
+    // Cross-tenant first: route through the feedback pipe so a parishioner on
+    // their OWN instance still reaches Darrell's review (a same-instance
+    // churchVoice note never would). Fall back to the local note if that
+    // handler isn't wired.
+    if (submitClassInterest) {
+      submitClassInterest(who);
+    } else {
+      addChurchVoice({
+        id: `class-${Date.now()}`,
+        kind: 'class-interest',
+        text: `${who} wants to join the "${CLASS_META.title}" A.I. class for the youth.`,
+        from: who,
+        at: new Date().toISOString(),
+      });
+    }
     setInterestSent(true);
   };
 
@@ -258,16 +269,42 @@ export default function ChurchLearn({
           <button
             type="button"
             onClick={sendInterest}
-            disabled={!addChurchVoice}
+            disabled={!canSendInterest}
             className="text-xs uppercase tracking-wider px-4 py-2.5 min-h-[40px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
             I want to join →
           </button>
         )}
-        {!addChurchVoice && (
+        {!canSendInterest && (
           <p className="text-[11px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to send your interest.</p>
         )}
       </div>
+
+      {/* Governor-only roster — who has asked to join, ACROSS instances. Fed from
+          the cross-tenant feedback pipe, so a parishioner on their own device
+          shows up here, not just same-instance members. */}
+      {isGovernor && Array.isArray(classRoster) && (
+        <div className="border border-[#E8E4DC] p-4 mb-5">
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Who wants in</h3>
+            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{classRoster.length} interested</span>
+          </div>
+          {classRoster.length === 0 ? (
+            <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              No one has tapped “I want to join” yet. When they do — from any device, on any instance — they appear here.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {classRoster.map((r, i) => (
+                <li key={r.id || i} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <span>{r.who || r.displayName || 'A parishioner'}</span>
+                  <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(r.at || r.createdAt || '').slice(0, 10)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Your progress — real, from the signed-in record */}
       {toggleModule && (

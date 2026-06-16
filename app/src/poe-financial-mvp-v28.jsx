@@ -16,7 +16,7 @@ import AuthBanner from './components/AuthBanner.jsx';
 import Engagement from './components/Engagement.jsx';
 import Choir from './components/Choir.jsx';
 import ChurchLearn from './components/ChurchLearn.jsx';
-import { PROPOSED_COHORT_START, resolveCohort } from './lib/church-classes.js';
+import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import Imported from './components/Imported.jsx';
@@ -4624,6 +4624,15 @@ html{scroll-padding-bottom:280px}
           // carries (resolveCohort) — so a learner outside Darrell's instance no
           // longer sees only the static proposal. (DR-0076 cohort propagation.)
           const cohort = resolveCohort(data.classCohort);
+          // Class interest rides the EXISTING cross-tenant feedback pipe (addFeedback
+          // -> uploadFeedback), so a parishioner signed in on their OWN instance still
+          // reaches the Governor's review — a same-instance churchVoice note never
+          // would. A text tag marks the rows; the roster filters local + remote by it.
+          const submitClassInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${CLASS_INTEREST_TAG} ${(name || 'A parishioner').trim()} wants to join the youth A.I. class.` })
+            : null;
+          const isGov = !!authSession && isFamilyEmail(authSession.user?.email);
+          const classRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback]) : null;
           return <ChurchLearn
             cohortStart={cohort.startDate || PROPOSED_COHORT_START}
             cohortConfirmed={cohort.confirmed}
@@ -4632,7 +4641,9 @@ html{scroll-padding-bottom:280px}
             progress={data.classProgress || {}}
             toggleModule={authSession ? toggleClassModule : null}
             addChurchVoice={authSession ? addChurchVoice : null}
-            isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
+            submitClassInterest={submitClassInterest}
+            classRoster={classRoster}
+            isGovernor={isGov}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
           />;
