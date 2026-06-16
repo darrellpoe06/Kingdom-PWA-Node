@@ -21,6 +21,12 @@
 # one in the triggering event's payload. Enabling auto-merge is idempotent, so
 # a PR that already has it stays untouched.
 #
+# HOLD OPT-OUT: a PR labeled `hold` is skipped. Auto-merge is the default;
+# holding is the explicit, human-governed exception — the gate for Tier C work
+# that is intentionally soaking (RELEASE-TIERS.md) or awaiting family/Governor
+# review. Remove the label when the soak/review is done and the next sweep (or
+# any pull_request event) enables auto-merge.
+#
 # Pairs with ci.yml (the required checks this defers to) and RELEASE-TIERS.md.
 
 name: Auto-merge
@@ -54,17 +60,18 @@ jobs:
         run: |
           set -euo pipefail
           # Eligible = open, non-draft, targets main, head branch is a release
-          # lane (feat|fix|merge|docs), and auto-merge is NOT already enabled.
-          # Filtering happens here (not in a job-level `if:`) so the same job
-          # works uniformly across pull_request / check_suite / workflow_dispatch
-          # — only pull_request events carry a single PR in the payload.
+          # lane (feat|fix|merge|docs), NOT labeled `hold`, and auto-merge is NOT
+          # already enabled. Filtering happens here (not in a job-level `if:`) so
+          # the same job works uniformly across pull_request / check_suite /
+          # workflow_dispatch — only pull_request events carry a single PR.
           mapfile -t prs < <(
             gh pr list --repo "$REPO" --state open --base main \
-              --json number,headRefName,isDraft,autoMergeRequest \
+              --json number,headRefName,isDraft,autoMergeRequest,labels \
               --jq '.[]
                     | select(.isDraft == false)
                     | select(.headRefName | test("^(feat|fix|merge|docs)/"))
                     | select(.autoMergeRequest == null)
+                    | select(any(.labels[].name; . == "hold") | not)
                     | .number'
           )
           if [ "${#prs[@]}" -eq 0 ]; then
