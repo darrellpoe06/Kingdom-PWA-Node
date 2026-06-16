@@ -55,6 +55,7 @@ import { LifeGallery } from './components/LifeGallery.jsx';
 import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { EventCenterModule } from './components/EventCenterModule.jsx';
 import { ChurchObservation } from './components/ChurchObservation.jsx';
+import Pulpit from './components/Pulpit.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
@@ -1661,7 +1662,7 @@ function getInitialView() {
     const v = (sp.get('view') || '').toLowerCase().trim();
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
-    if (v === 'engagement' || v === 'choir') return 'church';
+    if (v === 'engagement' || v === 'choir' || v === 'pulpit') return 'church';
     const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
@@ -1674,7 +1675,7 @@ function getInitialChurchView() {
     if (typeof window === 'undefined') return 'home';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : v === 'learn' ? 'learn' : 'home';
+    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : v === 'pulpit' ? 'pulpit' : v === 'learn' ? 'learn' : 'home';
   } catch (e) { return 'home'; }
 }
 
@@ -4573,7 +4574,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'], ...(isChurchStaff ? [['observe','🔒 Observation']] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'], ...(isChurchStaff ? [['pulpit','📖 Pulpit'],['observe','🔒 Observation']] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4652,6 +4653,9 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
+        {view === 'church' && churchView === 'pulpit' && (isChurchStaff
+          ? <Pulpit />
+          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Pulpit is the Bishop's study. Sign in with a church staff account to view it.</div>)}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Observation board is for church staff only. Sign in with a church staff account to view it.</div>)}
@@ -5322,10 +5326,12 @@ const FEEDBACK_AREAS = [
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
+    ['church-pulpit', "Church · 📖 Pulpit (Bishop's study — historical sermons + corpus-grounded prep)"],
+    ['pulpit-library', '└ Pulpit · Message library (watch · document · reuse)'],
+    ['pulpit-prep', '└ Pulpit · Prep from your corpus'],
     ['church-choir', 'Church · Choir (director hub)'],
     ['choir-week', '└ Choir · This week'],
     ['choir-schedule', '└ Choir · Schedule'],
-    ['choir-sermons', '└ Choir · Sermons'],
     ['choir-teamdocs', '└ Choir · Team Docs'],
     ['choir-availability', '└ Choir · Availability'],
     ['choir-messages', '└ Choir · Messages'],

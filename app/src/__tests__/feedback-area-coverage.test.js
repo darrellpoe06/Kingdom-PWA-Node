@@ -26,13 +26,16 @@ describe('the real app — every gated nav surface is selectable in the feedback
 
   it('the scanner actually SEES the nav (not vacuously empty)', () => {
     expect(s.topNav.length).toBeGreaterThan(5);
-    expect(s.choirTabs.length).toBe(8);
+    // Choir holds the worship-team sub-tabs only; BG's sermon study moved to the
+    // Pulpit Church sub-tab (2026-06-16), so Sermons is no longer a Choir tab.
+    expect(s.choirTabs.length).toBe(7);
     expect(s.keys.length).toBeGreaterThan(40);
     // The two tabs whose absence was the original bug must be scraped from nav.
     expect(s.topNav).toContain('inbound');
     expect(s.topNav).toContain('notes');
-    // Church sub-tabs must include the landing + the known sub-views.
-    for (const id of ['home', 'engagement', 'choir', 'learn']) expect(s.churchSub).toContain(id);
+    // Church sub-tabs must include the landing + the known sub-views (incl. the
+    // staff-gated Pulpit, which the scraper sees inside the conditional spread).
+    for (const id of ['home', 'engagement', 'choir', 'learn', 'pulpit']) expect(s.churchSub).toContain(id);
   });
 
   it('has ZERO coverage gaps', () => {
