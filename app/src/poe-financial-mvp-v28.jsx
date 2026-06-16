@@ -43,6 +43,7 @@ import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { LifeGallery } from './components/LifeGallery.jsx';
 import { ConferenceModule } from './components/ConferenceModule.jsx';
+import { ChurchObservation } from './components/ChurchObservation.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import { Queue } from './components/Queue.jsx';
@@ -891,6 +892,18 @@ const FAMILY_EMAIL_PROFILES = {
 };
 export const isFamilyEmail = (email) =>
   Object.prototype.hasOwnProperty.call(FAMILY_EMAIL_PROFILES, String(email || '').toLowerCase());
+
+// Church staff (The Church of the Living God). DISTINCT from family/Governor:
+// church staff get access to church STAFF-ONLY surfaces (e.g. the Observation
+// board) and NOTHING else — no family data, no financials, no Governor powers,
+// no real family names. Tenancy boundary stays intact (see DR-0074). Add staff
+// emails here as they get accounts; an allowlist (not a domain match) keeps it
+// auditable and avoids over-granting to anyone the church ever issues mail to.
+export const CHURCH_STAFF_EMAILS = new Set([
+  'bg@thechurchofthelivinggod.com', // Bishop Gwin
+]);
+export const isChurchStaffEmail = (email) =>
+  CHURCH_STAFF_EMAILS.has(String(email || '').toLowerCase());
 
 // The wf18 Imported family-PII gate (from #131), extracted as a pure predicate
 // so the security property is directly testable and provably preserved: the
@@ -1874,6 +1887,9 @@ export default function PoeFinancialSystem() {
   // email; every other state (anonymous, demo, picker, outside signed-in user)
   // keeps the sanitized pair.
   const isFamilyMember = isFamilyEmail(authSession?.user?.email);
+  // Church staff get the church staff-only surfaces (Observation) and nothing
+  // more — never the family/Governor scope. Family are staff too (superset).
+  const isChurchStaff = isFamilyMember || isChurchStaffEmail(authSession?.user?.email);
   const PROFILES = [
     { id: 'darrell', name: isFamilyMember ? 'Darrell' : 'Adam', sub: 'full owner view', accent: '#1A1815' },
     { id: 'christina', name: isFamilyMember ? 'Christina' : 'Naomi', sub: 'personal + practice', accent: '#B85838' },
@@ -3486,6 +3502,10 @@ export default function PoeFinancialSystem() {
   // Conference (COLG 77th National Assembly) — local-first like the rest of
   // the Church tab; merges onto the seed so partial saves never lose fields.
   const updateConference = (updates) => setData(d => ({ ...d, conference: { ...(d.conference || {}), ...updates } }));
+  // Church Observation (staff-only): the room-by-room photo board for the COLG
+  // building. Merges like conference so a partial write never drops spaces.
+  // In-app/device-local storage now; sovereign NAS write-path is the follow-up.
+  const updateChurchObservation = (updates) => setData(d => ({ ...d, churchObservation: { ...(d.churchObservation || {}), ...updates } }));
   // One Voice (Church tab) — serve notes + ideas/testimony land here,
   // persisted with the rest of the data record.
   const addChurchVoice = (entry) => setData(d => ({ ...d, churchVoice: [...(d.churchVoice || []), entry] }));
@@ -4520,7 +4540,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn']].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'], ...(isChurchStaff ? [['observe','🔒 Observation']] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4599,6 +4619,9 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
+        {view === 'church' && churchView === 'observe' && (isChurchStaff
+          ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
+          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Observation board is for church staff only. Sign in with a church staff account to view it.</div>)}
         {view === 'church' && churchView === 'learn' && <ChurchLearn
           cohortStart={data.classCohort?.startDate || PROPOSED_COHORT_START}
           cohortConfirmed={!!data.classCohort?.confirmed}

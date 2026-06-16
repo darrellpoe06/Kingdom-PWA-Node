@@ -40,13 +40,21 @@ const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:
 const btnDark = 'bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px]';
 const btnGhost = 'text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]';
 
+// Maps to the spec's event_participants.dietary column (2026-06-08 ingestion
+// spec, line 117) so the local RSVP shape already matches the eventual table.
+const DIET_OPTIONS = ['No preference', 'Vegetarian', 'Vegan', 'Gluten-free', 'Dairy-free', 'Other / allergy'];
+
 export function ConferenceModule({ conference, updateConference }) {
   const conf = { ...CONFERENCE_SEED, ...(conference || {}) };
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(conf);
   const [sessForm, setSessForm] = useState({ day: '', time: '', title: '', speaker: '' });
   const [showSessForm, setShowSessForm] = useState(false);
+  const [mealForm, setMealForm] = useState({ day: '', name: '', options: '', notes: '' });
+  const [showMealForm, setShowMealForm] = useState(false);
   const [rsvpName, setRsvpName] = useState('');
+  const [rsvpDiet, setRsvpDiet] = useState('No preference');
+  const [rsvpDietNote, setRsvpDietNote] = useState('');
   const [volForm, setVolForm] = useState({ name: '', area: 'Hospitality' });
   const [fbText, setFbText] = useState('');
   const [fbSent, setFbSent] = useState(false);
@@ -62,11 +70,23 @@ export function ConferenceModule({ conference, updateConference }) {
     if (!window.confirm('Remove this session from the schedule?')) return;
     updateConference({ sessions: (conf.sessions || []).filter(s => s.id !== id) });
   };
+  const addMeal = () => {
+    if (!mealForm.name.trim()) return;
+    updateConference({ meals: [...(conf.meals || []), { ...mealForm, id: `ml-${Date.now()}` }] });
+    setMealForm({ day: mealForm.day, name: '', options: '', notes: '' });
+    setShowMealForm(false);
+  };
+  const removeMeal = (id) => {
+    if (!window.confirm('Remove this meal from the menu?')) return;
+    updateConference({ meals: (conf.meals || []).filter(m => m.id !== id) });
+  };
   const addRsvp = () => {
     const n = rsvpName.trim();
     if (!n) return;
-    updateConference({ rsvps: [...(conf.rsvps || []), { id: `rv-${Date.now()}`, name: n, at: new Date().toISOString().slice(0, 10) }] });
+    updateConference({ rsvps: [...(conf.rsvps || []), { id: `rv-${Date.now()}`, name: n, diet: rsvpDiet, dietNote: rsvpDietNote.trim(), at: new Date().toISOString().slice(0, 10) }] });
     setRsvpName('');
+    setRsvpDiet('No preference');
+    setRsvpDietNote('');
   };
   const addVolunteer = () => {
     const n = volForm.name.trim();
@@ -106,6 +126,15 @@ export function ConferenceModule({ conference, updateConference }) {
       setFbSent('offline');
     }
   };
+
+  // Meal counts for leadership — the "registration with meal counts" the
+  // feedback hint has asked for since v0. Real tally off the RSVP roll.
+  const dietTally = (conf.rsvps || []).reduce((acc, r) => {
+    const k = r.diet || 'No preference';
+    acc[k] = (acc[k] || 0) + 1;
+    return acc;
+  }, {});
+  const dietSummary = Object.entries(dietTally).filter(([, n]) => n > 0);
 
   return (
     <section className={card} aria-labelledby="conference-h">
@@ -170,14 +199,55 @@ export function ConferenceModule({ conference, updateConference }) {
         )}
       </div>
 
+      {/* MEALS — what's being served, so attendees know and leadership can plan */}
+      <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">🍽 Meals · {(conf.meals || []).length}</h3>
+          <button type="button" onClick={() => setShowMealForm(!showMealForm)} className={btnGhost}>{showMealForm ? '× Cancel' : '+ Add meal'}</button>
+        </div>
+        {showMealForm && (
+          <div className="bg-[#FAF8F4] border border-[#B85838] p-2 mb-2 grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
+            <div><label className={labelCls}>Day</label><input className={fieldCls} placeholder="e.g., Tue Jul 15" value={mealForm.day} onChange={e => setMealForm({ ...mealForm, day: e.target.value })} /></div>
+            <div className="col-span-2"><label className={labelCls}>Meal</label><input className={fieldCls} placeholder="Dinner · Fellowship Hall" value={mealForm.name} onChange={e => setMealForm({ ...mealForm, name: e.target.value })} /></div>
+            <div className="col-span-2"><label className={labelCls}>Options served</label><input className={fieldCls} placeholder="Baked chicken · vegan plate · salad" value={mealForm.options} onChange={e => setMealForm({ ...mealForm, options: e.target.value })} /></div>
+            <div><label className={labelCls}>Notes</label><input className={fieldCls} placeholder="optional" value={mealForm.notes} onChange={e => setMealForm({ ...mealForm, notes: e.target.value })} /></div>
+            <button type="button" onClick={addMeal} className={`${btnDark} col-span-2 sm:col-span-6`}>Add to menu</button>
+          </div>
+        )}
+        {(conf.meals || []).length === 0 ? (
+          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No meals listed yet — add what's being served so attendees know what to expect. (Saves on this device for now; church-wide sync is coming.)</p>
+        ) : (
+          <ul className="space-y-1">
+            {(conf.meals || []).map(m => (
+              <li key={m.id} className="flex items-center gap-2 text-xs py-1 border-b border-[#E8E4DC] last:border-0" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="text-[10px] text-[#5A5751] w-28 shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.day}</span>
+                <span className="flex-1 min-w-0"><span className="font-semibold">{m.name}</span>{m.options ? <span className="text-[#5A5751]"> — {m.options}</span> : null}{m.notes ? <span className="text-[#5A6E3D] italic"> · {m.notes}</span> : null}</span>
+                <button type="button" onClick={() => removeMeal(m.id)} aria-label={`Remove ${m.name}`} className="text-[#5A5751] hover:text-[#B85838] px-2">×</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {dietSummary.length > 0 && (
+          <p className="text-[10px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            <span className="uppercase tracking-wider text-[#B85838] font-semibold">Meal counts:</span> {dietSummary.map(([k, n]) => `${n} ${k}`).join(' · ')}
+          </p>
+        )}
+      </div>
+
       {/* WHO'S COMING + WHO'S SERVING */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC] grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">🙋 I’m coming · {(conf.rsvps || []).length}</h3>
-          <div className="flex gap-1.5">
-            <input className={fieldCls} placeholder="Your name" value={rsvpName} onChange={e => setRsvpName(e.target.value)} />
+          <div className="flex gap-1.5 flex-wrap">
+            <input className={`${fieldCls} flex-1 min-w-[120px]`} placeholder="Your name" value={rsvpName} onChange={e => setRsvpName(e.target.value)} />
+            <select className={`${fieldCls} w-auto`} aria-label="Meal preference" value={rsvpDiet} onChange={e => setRsvpDiet(e.target.value)}>
+              {DIET_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
             <button type="button" onClick={addRsvp} className={btnDark}>RSVP</button>
           </div>
+          {rsvpDiet === 'Other / allergy' && (
+            <input className={`${fieldCls} mt-1.5`} placeholder="Tell us — allergy or specific need" value={rsvpDietNote} onChange={e => setRsvpDietNote(e.target.value)} />
+          )}
           {(conf.rsvps || []).length > 0 && (
             <p className="text-[11px] text-[#5A5751] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>{(conf.rsvps || []).slice(-6).map(r => r.name).join(' · ')}{(conf.rsvps || []).length > 6 ? ` · +${(conf.rsvps || []).length - 6} more` : ''}</p>
           )}
