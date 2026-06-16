@@ -1,0 +1,77 @@
+# Auto-open PR — push a release-lane branch, get a PR to main with zero local gh.
+#
+# WHY (2026-06-16): opening PRs with `gh pr create` from a local session threw an
+# interactive "Approve once" gate at the operator — the exact manual bottleneck
+# we are removing. This moves PR-opening INTO the Action, authed by the
+# workflow's own GITHUB_TOKEN. Push a feat/|fix/|merge/|docs/ branch and a PR to
+# main appears and (unless labeled `hold`) gets native auto-merge enabled, so it
+# lands on green with no human approval and no local gh.
+#
+# CI NOTE: a PR opened by GITHUB_TOKEN does NOT trigger `pull_request` workflows
+# (GitHub's anti-recursion rule), so the required checks would never attach. That
+# is why ci.yml ALSO runs on `push` to these lanes — the push that fires THIS
+# workflow runs CI on the same commit, and those checks attach to the SHA the PR
+# uses. Auto-merge then has real required checks to wait on. (auto-merge.yml's
+# check_suite sweep is the belt-and-suspenders that also picks it up.)
+#
+# Pairs with auto-merge.yml (the merge half) and RELEASE-TIERS.md (the `hold`
+# label keeps Tier C work out of the lane).
+
+name: Auto-open PR
+
+on:
+  push:
+    branches:
+      - 'feat/**'
+      - 'fix/**'
+      - 'merge/**'
+      - 'docs/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# One open-attempt per branch at a time.
+concurrency:
+  group: auto-open-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  open-pr:
+    name: open a PR to main (token-only) and enable auto-merge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Open a PR if none exists, then enable auto-merge unless held
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # Idempotent: skip creation if a PR for this branch is already open.
+          existing=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            num="$existing"
+            echo "PR #$num already open for $BRANCH."
+          else
+            title=$(git log -1 --pretty=%s)
+            body=$(git log -1 --pretty=%b)
+            num=$(gh pr create --repo "$REPO" --base main --head "$BRANCH" \
+                    --title "$title" \
+                    --body "${body:-Opened automatically on push. Rides auto-merge on green CI; label \`hold\` to keep it out of the merge lane.}" \
+                  | grep -oE '[0-9]+$' | tail -1)
+            echo "Opened PR #$num for $BRANCH."
+          fi
+          # Respect the hold gate (Tier C soak). Otherwise enable native
+          # auto-merge (squash) — it still defers to branch protection and the
+          # merge queue, so a red or queued PR never jumps the line.
+          has_hold=$(gh pr view "$num" --repo "$REPO" --json labels --jq 'any(.labels[].name; .=="hold")')
+          if [ "$has_hold" = "true" ]; then
+            echo "PR #$num is labeled 'hold'; leaving auto-merge OFF."
+          else
+            gh pr merge --repo "$REPO" --auto --squash "$num" \
+              || echo "::warning::could not enable auto-merge on #$num (may merge immediately or be ineligible)"
+          fi

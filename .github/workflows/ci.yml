@@ -10,7 +10,13 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    # main, plus the release lanes — a push to a lane runs CI on that commit so
+    # the checks attach to the SHA a token-opened PR uses (see auto-open-pr.yml;
+    # PRs opened by GITHUB_TOKEN don't trigger pull_request workflows).
+    branches: [main, 'feat/**', 'fix/**', 'merge/**', 'docs/**']
+  # Required checks must also run inside the merge queue's temporary ref, or a
+  # queued PR would wait forever. Harmless when the queue is off.
+  merge_group:
 
 jobs:
   app:
