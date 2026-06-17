@@ -5,7 +5,7 @@
 // pure wiring in lib/sw-update.js (node-env; no real browser needed).
 import { describe, it, expect } from 'vitest';
 import {
-  activateWorker, applyUpdate, wireUpdates, startUpdateChecks, UPDATE_EVENT,
+  activateWorker, applyUpdate, wireUpdates, startUpdateChecks, UPDATE_EVENT, UPDATED_EVENT,
 } from '../lib/sw-update.js';
 
 // --- Minimal fakes that model the real SW lifecycle event surface. ---
@@ -44,11 +44,22 @@ function makeNavigator({ controller = null } = {}) {
   };
 }
 
+function makeSessionStorage() {
+  const map = new Map();
+  return {
+    getItem(k) { return map.has(k) ? map.get(k) : null; },
+    setItem(k, v) { map.set(k, String(v)); },
+    removeItem(k) { map.delete(k); },
+    _map: map,
+  };
+}
+
 function makeWindow() {
   const events = {};
   return {
     reloads: 0,
     dispatched: [],
+    sessionStorage: makeSessionStorage(),
     location: { reload() { /* bound below */ } },
     addEventListener(type, cb) { (events[type] ||= []).push(cb); },
     fire(type) { (events[type] || []).forEach((cb) => cb()); },
@@ -61,6 +72,8 @@ function win() {
   w.location.reload = () => { w.reloads += 1; };
   return w;
 }
+
+const dispatchedTypes = (w) => w.dispatched.map((e) => e.type);
 
 describe('activateWorker — skip-waiting message', () => {
   it('posts SKIP_WAITING to the worker', () => {
@@ -155,6 +168,103 @@ describe('wireUpdates — controller swap reloads exactly once', () => {
   it('is inert without a registration or serviceWorker', () => {
     expect(wireUpdates(null, makeNavigator(), win()).state.reloaded).toBe(0);
     expect(wireUpdates(makeRegistration(), {}, win()).state.reloaded).toBe(0);
+  });
+
+  it('sets the durable sessionStorage sentinel BEFORE the reload', () => {
+    const reg = makeRegistration({ waiting: makeWorker() });
+    const nav = makeNavigator({ controller: makeWorker('activated') });
+    const w = win();
+    wireUpdates(reg, nav, w);
+    expect(w.sessionStorage.getItem('poetech:sw-reloading')).toBeNull();
+    nav.serviceWorker.fire('controllerchange');
+    expect(w.reloads).toBe(1);
+    // The sentinel must outlive the reload so the next page load can detect it.
+    expect(w.sessionStorage.getItem('poetech:sw-reloading')).toBe('1');
+  });
+});
+
+// The headline gate: the "banner persists / loops" symptom is a CROSS-reload
+// loop the old in-memory guard could not stop. The sentinel survives the reload;
+// these drive two page-lives over one shared sessionStorage (one tab).
+describe('wireUpdates — durable cross-reload loop guard (sentinel)', () => {
+  it('post-update load with a worker STILL waiting does NOT auto-skip-wait (no spin)', () => {
+    const ss = makeSessionStorage();
+    ss.setItem('poetech:sw-reloading', '1'); // we reloaded for an update last life
+
+    const stillWaiting = makeWorker('installed');
+    const reg = makeRegistration({ waiting: stillWaiting });
+    const nav = makeNavigator({ controller: makeWorker('activated') });
+    const w = win();
+    w.sessionStorage = ss;
+
+    const handle = wireUpdates(reg, nav, w);
+
+    expect(handle.loopRisk).toBe(true);
+    // Loop signature detected: do NOT auto-activate (that would re-loop)...
+    expect(stillWaiting.posted).toEqual([]);
+    expect(handle.state.autoApplied).toBe(0);
+    // ...but DO surface the manual banner as the escape hatch...
+    expect(dispatchedTypes(w)).toContain(UPDATE_EVENT);
+    // ...and clear the sentinel so we don't mis-detect forever.
+    expect(ss.getItem('poetech:sw-reloading')).toBeNull();
+  });
+
+  it('a MANUAL tap in the loop case still applies (controllerchange not blocked)', () => {
+    const ss = makeSessionStorage();
+    ss.setItem('poetech:sw-reloading', '1');
+    const stillWaiting = makeWorker('installed');
+    const reg = makeRegistration({ waiting: stillWaiting });
+    const nav = makeNavigator({ controller: makeWorker('activated') });
+    const w = win();
+    w.sessionStorage = ss;
+
+    wireUpdates(reg, nav, w);
+    // User taps the fallback banner -> skip-waiting -> swap -> exactly one reload.
+    applyUpdate(reg, w);
+    expect(stillWaiting.posted).toEqual([{ type: 'SKIP_WAITING' }]);
+    nav.serviceWorker.fire('controllerchange');
+    expect(w.reloads).toBe(1);
+  });
+
+  it('post-update load with NO worker waiting confirms via UPDATED_EVENT', () => {
+    const ss = makeSessionStorage();
+    ss.setItem('poetech:sw-reloading', '1');
+    const reg = makeRegistration({ waiting: null });
+    const nav = makeNavigator({ controller: makeWorker('activated') });
+    const w = win();
+    w.sessionStorage = ss;
+
+    const handle = wireUpdates(reg, nav, w);
+    expect(handle.loopRisk).toBe(false);
+    expect(handle.state.updatedShown).toBe(1);
+    expect(dispatchedTypes(w)).toContain(UPDATED_EVENT);
+    expect(dispatchedTypes(w)).not.toContain(UPDATE_EVENT); // no nagging banner
+    expect(ss.getItem('poetech:sw-reloading')).toBeNull();
+  });
+
+  it('end-to-end: auto-reload -> still-pending -> NO second auto-reload (loop broken)', () => {
+    const ss = makeSessionStorage(); // the one tab's storage, across both lives
+
+    // Page life 1: a worker is waiting, auto-applies, swap reloads once.
+    const w1 = win();
+    w1.sessionStorage = ss;
+    const reg1 = makeRegistration({ waiting: makeWorker('installed') });
+    const nav1 = makeNavigator({ controller: makeWorker('activated') });
+    wireUpdates(reg1, nav1, w1);
+    nav1.serviceWorker.fire('controllerchange');
+    expect(w1.reloads).toBe(1);
+    expect(ss.getItem('poetech:sw-reloading')).toBe('1');
+
+    // Page life 2 (the reload): the new build DIDN'T stick — a worker is STILL
+    // waiting. The in-memory guard reset, but the sentinel did not: no auto-spin.
+    const w2 = win();
+    w2.sessionStorage = ss;
+    const reg2 = makeRegistration({ waiting: makeWorker('installed') });
+    const nav2 = makeNavigator({ controller: makeWorker('activated') });
+    const h2 = wireUpdates(reg2, nav2, w2);
+    expect(h2.loopRisk).toBe(true);
+    expect(h2.state.autoApplied).toBe(0);
+    expect(reg2.waiting.posted).toEqual([]); // never auto-skip-waited again
   });
 });
 
