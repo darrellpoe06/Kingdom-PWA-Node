@@ -1,16 +1,21 @@
 // =============================================================================
-// k6 load test — conference public registration at ~1000-attendee scale
+// k6 load test — conference public registration at ~500-attendee scale
 // =============================================================================
 // Simulates the REAL path the congregation uses for the 77th National Assembly:
 // an ANONYMOUS insert into conference_public_registrations via the Supabase REST
 // (PostgREST) data API — exactly what app/src/lib/conference-register.js does
 // from the browser (supabase.from(...).insert(row)). No auth, no email, no OTP.
 //
+// SCOPE (Darrell 2026-06-17): the Assembly is at most ~500 people (high estimate),
+// and most pre-register over a window rather than in one burst. This test still
+// drives a CONSERVATIVE peak well above a realistic 500-spread so it finds margin,
+// not just the happy path.
+//
 // WHY THIS SHAPE: the registration path is anon-write by design (migration 0027),
 // so the Supabase email rate limit does NOT gate it. The thing to actually prove
-// is that 1000 concurrent anon REST inserts land as real rows under RLS without
-// 4xx/5xx, and that p95 latency stays sane. This script measures that — it does
-// NOT estimate it (DR-0076: measure, don't claim).
+// is that a ~500-attendee load of anon REST inserts lands as real rows under RLS
+// without 4xx/5xx, and that p95 latency stays sane. This script measures that — it
+// does NOT estimate it (DR-0076: measure, don't claim).
 //
 // SAFE BY DESIGN:
 //   - Runs against a STAGING / throwaway Supabase project, never production.
@@ -55,18 +60,19 @@ if (!SUPABASE_URL || !ANON_KEY) {
 const insertFail = new Counter('reg_insert_fail');
 const insertLatency = new Trend('reg_insert_latency_ms', true);
 
-// Ramp toward ~1000 registrations over a few minutes — a realistic "leader texts
-// the link to the whole congregation and everyone signs up over the service" burst,
-// plus a short spike stage to find the ceiling.
+// Ramp sized for a ~500-attendee Assembly — a realistic "leader texts the link and
+// people register over the service / over the pre-reg window" load, plus a short
+// spike stage (250 VUs) that sits ABOVE any plausible 500-event concurrency so the
+// test finds margin, not just the happy path.
 export const options = {
   scenarios: {
     congregation_signup: {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '1m', target: 50 },   // trickle in
-        { duration: '2m', target: 200 },  // main rush
-        { duration: '1m', target: 400 },  // spike — beyond the realistic peak
+        { duration: '1m', target: 40 },   // trickle in
+        { duration: '2m', target: 120 },  // main rush (realistic 500-event peak)
+        { duration: '1m', target: 250 },  // spike — well beyond a real 500 concurrency
         { duration: '1m', target: 0 },    // drain
       ],
       gracefulStop: '30s',
