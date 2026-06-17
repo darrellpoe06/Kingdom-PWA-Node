@@ -4,22 +4,27 @@ import { storage } from './shims/storage.js';
 import './index.css';
 import AppInterestCapture from './components/AppInterestCapture.jsx';
 import AppInterestAdmin from './components/AppInterestAdmin.jsx';
+import ConferenceRegister from './components/ConferenceRegister.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
 
 window.storage = storage;
 
 // Lightweight boots by URL param (outside the full app):
-//   ?join=1    — the public "get the app / I'm having trouble" capture. A shareable
-//                link Darrell can text to church folks who are struggling to install.
-//   ?invites=1 — the admin invite list (Darrell + Christina only; RLS-gated).
+//   ?join=1     — the public "get the app / I'm having trouble" capture. A shareable
+//                 link Darrell can text to church folks who are struggling to install.
+//   ?invites=1  — the admin invite list (Darrell + Christina only; RLS-gated).
+//   ?register=1 — the public, no-login CONFERENCE registration. A leader texts this
+//                 to the congregation; anyone registers in seconds, no account.
 const __params = new URLSearchParams(window.location.search);
-const __standalone = __params.get('join') === '1' || __params.get('invites') === '1';
+const __standalone = __params.get('join') === '1' || __params.get('invites') === '1' || __params.get('register') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
 if (__params.get('join') === '1') {
   __root.render(<React.StrictMode><ErrorBoundary><div className="min-h-screen p-4 sm:p-8"><AppInterestCapture source="join-link" /></div></ErrorBoundary></React.StrictMode>);
 } else if (__params.get('invites') === '1') {
   __root.render(<React.StrictMode><ErrorBoundary><AppInterestAdmin /></ErrorBoundary></React.StrictMode>);
+} else if (__params.get('register') === '1') {
+  __root.render(<React.StrictMode><ErrorBoundary><ConferenceRegister /></ErrorBoundary></React.StrictMode>);
 } else {
   // Full app, dynamically imported so the lightweight capture/admin boots above
   // never pull the entire PWA (+ its supabase/auth init) they don't need.

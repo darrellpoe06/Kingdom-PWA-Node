@@ -37,6 +37,11 @@ import {
   aggregateMeals, mealCountRows, MEAL_TYPES, SESSION_TYPES, USE_TYPES,
 } from '../lib/conference-sync.js';
 import { subscribeSermons, subscribeSongs } from '../lib/choir-sync.js';
+import {
+  subscribeRegistrations, setRegistrationStatus as setPublicRegStatus,
+  aggregateRegistrationMeals, totalHeads,
+} from '../lib/conference-register.js';
+import SectionBoundary from './SectionBoundary.jsx';
 
 // Shared visual tokens — identical to ConferenceModule (already WCAG AA + gated
 // by contrast-guard). Reusing them keeps this surface consistent + compliant.
@@ -154,10 +159,26 @@ function useFlash() {
   return [flash, show];
 }
 
-export function EventCenterModule() {
+function EventCenterModuleInner() {
   const ec = useEventCenter();
   const { mode, access, venues, conferences, rooms, sessions, participants, sermons, songs } = ec;
   const [flash, showFlash] = useFlash();
+
+  // Only a REAL organizer (synced + owner/admin) sees the operational tooling.
+  // Local-fallback / signed-in members do not — congregants register in the front
+  // door above and aren't buried in leadership tools.
+  const isOrganizer = mode === 'synced' && access.canEdit;
+
+  // The congregation's OPEN registrations (conference_public_registrations, 0027) —
+  // the real "who's coming" + meal counts. Organizer-only (RLS gates the read).
+  const [publicRegs, setPublicRegs] = useState([]);
+  useEffect(() => {
+    if (!isOrganizer) { setPublicRegs([]); return undefined; }
+    const unsub = subscribeRegistrations((rows) => setPublicRegs(rows || []));
+    return () => { try { unsub(); } catch { /* noop */ } };
+  }, [isOrganizer]);
+  const regMeals = useMemo(() => aggregateRegistrationMeals(publicRegs), [publicRegs]);
+  const regHeads = useMemo(() => totalHeads(publicRegs), [publicRegs]);
 
   const activeVenues = useMemo(() => venues.filter((v) => v.status !== 'archived'), [venues]);
   // Which building is being viewed/managed; 'all' = every building.
@@ -309,6 +330,19 @@ export function EventCenterModule() {
     );
   }
 
+  // Non-organizers (signed-out, local, or a plain member) don't see the operational
+  // tooling — they register in the front door above. A compact, honest note only.
+  if (!isOrganizer) {
+    return (
+      <section className={card} aria-labelledby="eventcenter-h">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center</div>
+        <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Rooms, sessions, capacity, and the registration roll are managed by church leadership. To register, use the form above.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className={card} aria-labelledby="eventcenter-h">
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -340,6 +374,45 @@ export function EventCenterModule() {
       {flash && (
         <p role="alert" className="text-[11px] text-[#B85838] bg-[#FBEFEA] border border-[#E8C4B5] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>{flash}</p>
       )}
+
+      {/* CONGREGATION REGISTRATIONS — the OPEN, no-login sign-ups (the real
+          headcount + meal counts). Organizer-only; RLS gates the read. */}
+      <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">🙋 Congregation registrations · {regHeads} {regHeads === 1 ? 'person' : 'people'}</h3>
+          <span className="text-[10px] text-[#5A5751]">{publicRegs.length} {publicRegs.length === 1 ? 'entry' : 'entries'}</span>
+        </div>
+        {publicRegs.length === 0 ? (
+          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No registrations yet — share the open link (in the Conference front door above) so the congregation can sign up.</p>
+        ) : (
+          <>
+            {mealCountRows(regMeals.counts).length > 0 && (
+              <p className="text-[10px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="uppercase tracking-wider text-[#B85838] font-semibold">Meal counts:</span> {mealCountRows(regMeals.counts).map(([k, n]) => `${n} ${k}`).join(' · ')}
+                {regMeals.notes.length > 0 ? ` · ${regMeals.notes.length} with dietary notes` : ''}
+              </p>
+            )}
+            <ul className="space-y-1 max-h-72 overflow-auto">
+              {publicRegs.map((r) => (
+                <li key={r.id} className="flex items-center gap-2 text-[11px] py-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <span className={`flex-1 min-w-0 ${r.status === 'cancelled' ? 'line-through text-[#5A5751]' : ''}`}>
+                    <span className="font-semibold text-[#1A1815]">{r.name}{r.partySize > 1 ? <span className="text-[#5A5751] font-normal"> +{r.partySize - 1}</span> : null}</span>
+                    <span className="text-[#5A5751]"> · {r.mealType}</span>
+                    {r.dietary ? <span className="text-[#5A6E3D]"> · {r.dietary}</span> : null}
+                    {r.days ? <span className="text-[#5A5751]"> · {r.days}</span> : null}
+                    {(r.email || r.phone) ? <span className="text-[#5A5751]"> · {r.email || r.phone}</span> : null}
+                  </span>
+                  <select aria-label={`Status for ${r.name}`} value={r.status} onChange={(e) => setPublicRegStatus(r.id, e.target.value)} className="text-[10px] border border-[#E8E4DC] bg-[#FAF8F4] p-1">
+                    <option value="new">New</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
 
       {/* VENUES — the buildings. Pick one to manage/book it, or see all. */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
@@ -551,11 +624,14 @@ export function EventCenterModule() {
         </div>
       )}
 
-      {/* REGISTRATION — who's coming + meal counts */}
+      {/* WALK-IN / SESSION REGISTRATION — the organizer's on-site + per-session
+          roll (event_participants, with capacity). Separate from the open
+          congregation registrations above (those are the public sign-ups). */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
-        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">
-          🙋 Registration · {conferenceRsvpCount(confParticipants, conference?.id)} attending
+        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">
+          🪑 Walk-in / session registration · {conferenceRsvpCount(confParticipants, conference?.id)} on the roll
         </h3>
+        <p className="text-[10px] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>For on-site check-in and assigning people to specific breakout sessions (capacity-tracked).</p>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-1.5 items-end">
           <div className="sm:col-span-2"><label className={labelCls} htmlFor="ec-rsvp-name">Name</label><input id="ec-rsvp-name" className={fieldCls} placeholder="Your name" value={rsvp.name} onChange={(e) => setRsvp({ ...rsvp, name: e.target.value })} /></div>
           <div><label className={labelCls} htmlFor="ec-rsvp-meal">Meal</label>
@@ -571,9 +647,9 @@ export function EventCenterModule() {
           </div>
           <button type="button" onClick={addRsvp} className={btnDark}>RSVP</button>
         </div>
-        {(rsvp.mealType === 'Other') && (
-          <input className={`${fieldCls} mt-1.5`} placeholder="Allergy or specific need" value={rsvp.dietary} onChange={(e) => setRsvp({ ...rsvp, dietary: e.target.value })} aria-label="Allergy or specific need" />
-        )}
+        {/* Allergy / dietary — ALWAYS available (not hidden behind "Other"), so a
+            Vegan or Gluten-free attendee with a nut allergy can still record it. */}
+        <input className={`${fieldCls} mt-1.5`} placeholder="Allergy or specific dietary need (optional)" value={rsvp.dietary} onChange={(e) => setRsvp({ ...rsvp, dietary: e.target.value })} aria-label="Allergy or specific dietary need" />
         {mealCountRows(mealAgg.counts).length > 0 && (
           <p className="text-[10px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             <span className="uppercase tracking-wider text-[#B85838] font-semibold">Meal counts:</span> {mealCountRows(mealAgg.counts).map(([k, n]) => `${n} ${k}`).join(' · ')}
@@ -604,6 +680,14 @@ export function EventCenterModule() {
         )}
       </div>
     </section>
+  );
+}
+
+export function EventCenterModule() {
+  return (
+    <SectionBoundary name="Event Center">
+      <EventCenterModuleInner />
+    </SectionBoundary>
   );
 }
 
