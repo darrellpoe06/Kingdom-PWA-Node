@@ -35,7 +35,7 @@
 import React, { useState, useRef } from 'react';
 import {
   CLASS_META, PROPOSED_COHORT_START,
-  buildSchedule, progressSummary, exportCurriculumMarkdown,
+  buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
 } from '../lib/church-classes.js';
 import { askTutor } from '../lib/class-tutor.js';
 import {
@@ -43,10 +43,9 @@ import {
   AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, lessonPlanForAge,
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
+import TeachMode from './TeachMode.jsx';
 
-const fmtDate = (d) => d
-  ? d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
-  : null;
+const fmtDate = formatClassDate;
 
 // A friendly label for a launch target so the button reads in plain words.
 const launchLabel = (t) => {
@@ -653,6 +652,7 @@ function CourseView({
   const [showFacilitator, setShowFacilitator] = useState(false);
   const [openTutorId, setOpenTutorId] = useState(null);
   const [exportNote, setExportNote] = useState('');
+  const [teaching, setTeaching] = useState(false);
 
   const {
     meta, schedule, cohortConfirmed, cohortStart, setCohortStart, confirmCohort,
@@ -698,6 +698,14 @@ function CourseView({
   const printCurriculum = () => {
     try { window.print(); } catch (e) { /* no-op */ }
   };
+
+  // Live two-screen teaching takes over the whole surface (presenter console here,
+  // projected class screen in a popped window). Governor-only; entered below.
+  // Gated to the A.I. course: TeachMode reads the youth-class MODULES directly,
+  // so it would paint the wrong curriculum on any other course.
+  if (teaching && meta.key === 'ai') {
+    return <TeachMode cohortStart={cohortStart} onClose={() => setTeaching(false)} />;
+  }
 
   return (
     <>
@@ -940,6 +948,15 @@ function CourseView({
           >
             {showFacilitator ? '✓ Facilitator guide showing' : 'Show facilitator guide'}
           </button>
+          {meta.key === 'ai' && (
+            <button
+              type="button"
+              onClick={() => setTeaching(true)}
+              className="ml-2 text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            >
+              ▶ Teach live (presenter + class screen)
+            </button>
+          )}
         </div>
       )}
 
