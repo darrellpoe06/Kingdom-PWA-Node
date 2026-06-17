@@ -18,6 +18,7 @@
 // =============================================================================
 import React, { useEffect, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import ChoirSongWorkshop from './ChoirSongWorkshop.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
@@ -568,7 +569,7 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
 // -----------------------------------------------------------------------------
 // Surface
 // -----------------------------------------------------------------------------
-const TABS = [['week', 'This week'], ['schedule', 'Schedule'], ['teamdocs', 'Team Docs'], ['availability', 'Availability'], ['messages', 'Messages'], ['resources', 'Resources'], ['roster', 'Roster']];
+const TABS = [['week', 'This week'], ['songs', 'Songs'], ['schedule', 'Schedule'], ['teamdocs', 'Team Docs'], ['availability', 'Availability'], ['messages', 'Messages'], ['resources', 'Resources'], ['roster', 'Roster']];
 
 export default function Choir() {
   const [signedIn, setSignedIn] = useState(false);
@@ -659,6 +660,8 @@ export default function Choir() {
           />
         </>
       )}
+
+      {tab === 'songs' && <ChoirSongWorkshop access={access} />}
 
       {tab === 'schedule' && (
         <>
