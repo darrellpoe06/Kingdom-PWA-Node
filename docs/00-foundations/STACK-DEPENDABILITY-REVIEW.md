@@ -19,6 +19,16 @@ root-cause record. Citations are repo-relative paths. The two anchor documents a
 (three parallel reviews against `main`). This is a research/doc artifact — **no production
 code was changed to produce it.**
 
+> **Binding frame (Darrell, 2026-06-17):** *"we still need open-source, just better
+> ways."* The dependability answer stays **inside the open-source / sovereign frame.** The
+> fix for fragility is **better open-source engineering — not vendor lock-in.** No verdict
+> below recommends trading a self-hostable component for a proprietary managed SaaS to "buy"
+> reliability. Every REPLACE/CONSOLIDATE proposes an **open-source, self-hostable, portable**
+> path with no monthly vendor dependency. Where a managed service is named as an interim, it
+> is explicitly a *stepping stone* with the sovereign end-state stated. This pairs with
+> `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md` (open-source core, sovereign, exportable, no
+> data-lock-in) and the `AI-FOUNDATION-INTERNAL-OPERATIONS.md` sovereignty principle.
+
 ---
 
 ## 0. The one-paragraph truth
@@ -58,13 +68,20 @@ the problem).
     auto-merge landed via `GITHUB_TOKEN` (§1.10), so merged SQL sat un-applied.
   - `fetchAll` is `SELECT *` unpaginated; append-only tables have no retention
     (rigorous review A6/A7). Family-scale fine; not yet rigorous at community scale.
-  - **Free plan** pauses a project after inactivity and caps rows/storage — a real
-    dependability cliff if it is ever the system of record for a paying community.
-- **Verdict: EARNS ITS PLACE.** Managed Postgres with RLS + realtime is exactly right for
-  a multi-device family app, and it carries no ops burden. The fixes are operational
-  (grant-guard already shipped; pagination/retention are queued). The one strategic note:
-  a **paid tier** is required before any community depends on it, and the
-  cloud-vs-sovereign question is real — see §1.2 and the data-split critique in §2.
+  - **Free cloud plan** pauses a project after inactivity and caps rows/storage — a real
+    dependability cliff if the *cloud* instance is ever the system of record for a
+    community. The sovereign answer is to **not depend on the proprietary cloud at all**
+    (see verdict).
+- **Verdict: EARNS ITS PLACE — and Supabase is open-source / self-hostable, so the
+  sovereign path is already in the repo.** Supabase is an open-source product (Postgres +
+  GoTrue + PostgREST + Realtime + Studio + Kong), and a **self-hosted NAS deployment is
+  already defined** at `infra/supabase/docker-compose.yml` (DS1621xs, fronted by Web
+  Station aliases `/supabase-studio/` + `/supabase-api/`). RLS + realtime is exactly the
+  right model for a multi-device family app. The dependability answer is **not** a paid
+  cloud tier — it is to **finish the self-hosted Supabase stack on the NAS and make it the
+  single source of truth** (§3.4), keeping the cloud project only as an optional managed
+  mirror or dev convenience, never the leash. Near-term fixes are operational (grant-guard
+  already shipped; pagination/retention queued). See §1.2 and the data-split critique (§2).
 
 ### 1.2 NAS Postgres 16 + pgvector — orchestrator registry (and intended n8n backend)
 
@@ -129,11 +146,16 @@ the problem).
     lines 5, 38-40). All activation state + credentials live in one SQLite file on a bind
     mount; that file's restart behavior is what deactivated wf18.
 - **Verdict: EARNS ITS PLACE (the tool) / CONSOLIDATE (how we run it).** n8n is the right
-  visual-automation engine for this and is mature. The dependability gap is *entirely*
+  visual-automation engine and is **fair-code / fully self-hosted** here (on the NAS, no
+  vendor cloud) — squarely inside the sovereign frame. The dependability gap is *entirely*
   operational: declarative activation, error-workflow wiring, header auth, committed
   mounts, and a Postgres backend. None of these is an n8n limitation — they are settings
   and discipline we haven't installed. `scripts/workflow-conformance.mjs` already
-  *detects* W1-W3 deterministically; it just doesn't yet *gate* on them.
+  *detects* W1-W3 deterministically; it just doesn't yet *gate* on them. **No swap is
+  warranted** — but if one ever were, it must stay open-source: Windmill (Apache-2.0,
+  scriptable, lightest migration), Node-RED (flow-based), or Temporal/Airflow (heavier,
+  code-first orchestration). The fix here is engineering discipline, not a different
+  product.
 
 ### 1.5 Tailscale (+ Funnel) — the network reach for n8n
 
@@ -161,15 +183,24 @@ the problem).
   (`.github/workflows/deploy-cloudflare-pages.yml` header). That is an **uncontrolled
   external dependency** gating whether the family's app updates — exactly the kind of
   third-party leash the sovereignty principle exists to remove.
-- **Verdict: REPLACE (in progress).** The off-Vercel Cloudflare Pages pipeline is **already
-  built and committed** (`deploy-cloudflare-pages.yml`, the `app/functions/n8n/[[path]].js`
-  Pages Function, `app/public/_redirects` + `_headers`), gated off behind `CF_PAGES_ENABLED`
-  and churn-controlled (deploys only on push to main, no per-branch previews). It awaits
-  Darrell's Cloudflare creds + DNS cutover (memory `project_off_vercel_cloudflare_pages`;
-  cutover plan `docs/99-session-notes/2026-06-16-cutover-plan-vercel-to-cloudflare-pages.md`).
-  Cloudflare Pages has no daily-deploy cap and unlimited free bandwidth — and the
-  same-origin `/n8n` proxy moves with it. **This is the right call and it's most of the
-  way there.**
+- **Verdict: REPLACE — sovereign end-state is self-hosted; Cloudflare Pages is an
+  acceptable interim, not the destination.** The app is a static bundle (`vite build` →
+  `dist/`) plus one same-origin `/n8n` proxy — both are **trivially self-hostable on the
+  NAS we already own.** The sovereign end-state: serve `dist/` from **Caddy or Nginx on the
+  NAS** (Caddy gives automatic HTTPS in a few config lines) with the `/n8n` reverse-proxy
+  rule co-located — no third-party host in the path at all. The scaffolding for this is
+  *already present*: `deploy-to-synology.ps1` builds and `scp`s `dist/` to the NAS today,
+  served by Synology Web Station at `/poetech-app/`. The remaining gap is a real web server
+  (Caddy/Nginx) in front for clean HTTPS + the proxy, and reachability for off-LAN family
+  (Tailscale, or a Funnel/own-domain).
+  **Interim:** the off-Vercel **Cloudflare Pages** pipeline is already built and committed
+  (`deploy-cloudflare-pages.yml`, `app/functions/n8n/[[path]].js`, `app/public/_redirects` +
+  `_headers`), gated off behind `CF_PAGES_ENABLED`, churn-controlled (push-to-main only).
+  It immediately removes the Vercel 100/day cap at $0 — a fine **stepping stone** off the
+  capped dependency. But it is still a proprietary host; per the binding frame it is the
+  *bridge*, and **NAS-served Caddy/Nginx is the destination.** (Memory
+  `project_off_vercel_cloudflare_pages`; cutover plan
+  `docs/99-session-notes/2026-06-16-cutover-plan-vercel-to-cloudflare-pages.md`.)
 
 ### 1.7 Ollama / local LLM — sovereign inference
 
@@ -281,9 +312,10 @@ Everything above is mostly "install the missing discipline." These three are rea
    *This is a design choice to resolve, not a bug to patch.* (§3.4.)
 
 2. **Vercel is an uncontrolled external dependency on the family's app uptime.**
-   A third party's free-tier deploy cap decided whether poetech.us updated. The fix
-   (Cloudflare Pages, sovereign-er and uncapped) is built and gated off, awaiting cutover.
-   (§1.6, §3.5.)
+   A third party's free-tier deploy cap decided whether poetech.us updated. The *sovereign*
+   fix is to self-host the static bundle + `/n8n` proxy on the **NAS via Caddy/Nginx** (the
+   `deploy-to-synology.ps1` path already exists); Cloudflare Pages is an acceptable interim
+   to escape the cap at $0, explicitly a stepping stone, not the destination. (§1.6, §3.5.)
 
 3. **The "AI orchestrator engine" is a plan, not a running system.**
    Much of the vision leans on autonomous orchestration; operationally it is inert behind
@@ -298,8 +330,11 @@ Actions, the PWA/SW. Those tools are sound. Their failures were seams and operat
 
 ## 3. Dependability target-state — what makes this same vision dependable
 
-The vision does not need different tools. It needs the **seams instrumented and the
-hand-offs automated.** Six targets, each tied to a real failure above.
+The vision does not need different tools, and it does not need a proprietary host or a
+managed-SaaS crutch. It needs **dependable open-source**: the same self-hostable components
+we already run, with the **seams instrumented and the hand-offs automated.** Every target
+below is self-hostable, portable, and carries no monthly vendor dependency — dependability
+bought with engineering, not with lock-in. Six targets, each tied to a real failure above.
 
 ### 3.1 Declarative deployment — "built" always means "running"
 A workflow is activated **by code on deploy, never by a human toggle.** Use the n8n CLI
@@ -333,8 +368,12 @@ next. The bank feed should not depend on a **manual QFX download** — enable e-
 emails so wf21/21b auto-feed wf15 (wf18 doc, fix section). db-migrate is already idempotent
 (applies all guarded SQL every run) — that is the pattern to copy everywhere.
 
-### 3.4 A single source of truth — resolve the cloud/NAS split
-Decide, per data domain, **one** home and make the others derived/cache:
+### 3.4 A single source of truth — one self-hosted Supabase/Postgres on the NAS
+The sovereign resolution to the cloud/NAS split is **self-hosted Supabase on the NAS**
+(`infra/supabase/docker-compose.yml`, already defined) as the single system of record —
+not leaning harder on the proprietary cloud. The cloud project, if kept at all, becomes an
+optional managed mirror, never the leash. Decide, per data domain, **one** home and make
+the others derived/cache:
 - **Finance:** either (a) land NAS-captured events into the same Postgres the app reads
   (the app stops depending on a sovereign webhook), or (b) keep the sovereign JSON loop but
   treat wf18 as a *monitored, declaratively-activated, auth'd* read API with a staleness
@@ -346,10 +385,15 @@ Decide, per data domain, **one** home and make the others derived/cache:
 - This is the largest single dependability lever and a **governance decision** for Darrell,
   not an auto-applied change.
 
-### 3.5 Get off Vercel — controlled hosting
-Flip `CF_PAGES_ENABLED`, set the Cloudflare + `VITE_` secrets, cut DNS. Removes the
-100/day cap and the per-branch preview fan-out that caused the outage. The pipeline and the
-`/n8n` Pages Function are already built (§1.6); this is a credentials + DNS task, watched.
+### 3.5 Get off Vercel — sovereign hosting on hardware we own
+End-state: serve the static `dist/` bundle + the `/n8n` reverse proxy from **Caddy or
+Nginx on the NAS** — open-source, self-hosted, no third-party host in the path. Caddy gives
+automatic HTTPS in a handful of config lines; the `deploy-to-synology.ps1` build-and-copy
+path already exists, so this is "add a real web server in front + sort off-LAN reach
+(Tailscale / Funnel / own domain)." **Interim, if useful:** flip `CF_PAGES_ENABLED` + set
+the secrets to land on Cloudflare Pages — it escapes the 100/day cap at $0 today (pipeline
+already built, §1.6) — but treat it as the bridge to NAS-served Caddy/Nginx, not the
+finish line.
 
 ### 3.6 Boot persistence on the network seam
 A Synology boot task that re-arms the Tailscale Funnel on reboot (§1.5), so the app→n8n
@@ -370,8 +414,8 @@ staged inactive or are deliberate governance decisions.
 | **3** | **Verified alert delivery + workflow-aliveness check** (wf20 alerts on "expected-active workflow is inactive"; route critical alerts to a channel Darrell confirms he sees) | Turns the silent failure into a push he gets. ntfy/wf20 already exist; this closes the gap that let wf18 hide. Ships inactive → enable attended (3 brakes). | Low-Med | Yes — read-only/report |
 | **4** | **Promote `workflow-conformance.mjs` from report-only to a CI gate** (fail on missing `errorWorkflow` (W2) / missing brakes (W1) before any workflow can be marked live) | Makes "every failure is silent" un-shippable; proven-to-catch precedent (DR-0076). Detector already written. | Low | Yes — CI only |
 | **5** | **Declarative activation + committed mounts** (deploy script imports + `--active`; all `/data/*` mounts in committed compose; retire per-mount scripts) | Kills the "built ≠ running" + data-loss-on-recreate classes (W4). | Med | Yes — NAS-side, staged |
-| **6** | **Cloudflare Pages cutover** (flip `CF_PAGES_ENABLED`, secrets, DNS) | Removes the Vercel cap as an uptime dependency. Built; needs creds + DNS, watched. | Med (Darrell's creds) | **Do after the conference** — DNS cutover is the one step with broad blast radius |
-| **7** | **Single-source-of-truth decision** (finance loop → app-readable Postgres or monitored sovereign API; n8n SQLite → NAS Postgres) | The biggest architectural lever; resolves the data split. | High — **governance decision** | Yes — decide now, implement post-conference |
+| **6** | **Get off the capped host** — interim: flip `CF_PAGES_ENABLED` (Cloudflare Pages, $0, uncapped); end-state: serve `dist/` + `/n8n` from **Caddy/Nginx on the NAS** | Removes the Vercel cap as an uptime dependency; the NAS path keeps hosting sovereign. Interim built; NAS path uses the existing `deploy-to-synology.ps1`. | Med (interim) → Med-High (NAS web server) | **DNS cutover after the conference** — broad blast radius |
+| **7** | **Single source of truth = self-hosted Supabase/Postgres on the NAS** (`infra/supabase/docker-compose.yml`); land the finance loop + n8n state into it; retire the cloud-vs-NAS split | The biggest architectural lever; sovereign, open-source, no vendor leash. | High — **governance decision** | Yes — decide now, implement post-conference |
 
 **The fast trust-restoring win is steps 1-3:** get the data flowing again, stop the app
 from presenting stale data as fresh, and make the next silent failure page Darrell instead
@@ -382,12 +426,15 @@ deliberate, watched, post-conference moves.
 
 ## 5. Trade-offs and honest caveats
 
-- **Sovereignty vs. dependability tension is real.** The NAS-hosted sovereign loop is more
-  private *and* more fragile (no managed uptime, manual mounts, one restart deactivated a
-  webhook). Cloud-managed pieces (Supabase, Vercel) are more dependable *and* less
-  sovereign. The right answer is **per-domain**: keep sovereign what must be sovereign
-  (the raw finance feed, the audit ledger), and put a managed, monitored layer in front of
-  it — don't make the family's daily experience depend on an un-monitored sovereign seam.
+- **Sovereignty vs. dependability is a false trade — the fix is engineering, not a vendor.**
+  The NAS-hosted sovereign loop is more private but today more fragile (manual mounts, one
+  restart deactivated a webhook). The tempting shortcut is to lean on a cloud-managed vendor
+  for "free" uptime — but that re-introduces the lock-in the mission rejects
+  (`DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`). The right answer is **make the sovereign,
+  self-hosted stack itself dependable**: restart policies, committed mounts, declarative
+  activation, health checks, daily backups, a real web server. That is the whole point of
+  Darrell's frame — *better open-source ways*, so the family's daily experience never
+  depends on either an un-monitored sovereign seam **or** a third party's free-tier whims.
 - **The orchestrator being inert is a feature, not a failure** — but it means we cannot
   yet lean on autonomous self-healing. Dependability in the near term is *boring*: health
   checks, declarative deploy, staleness badges. That's fine; boring is dependable.
