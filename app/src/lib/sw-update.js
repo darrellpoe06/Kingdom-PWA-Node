@@ -1,33 +1,113 @@
 // PWA service-worker update lifecycle — pure, testable wiring.
 //
-// THE BUG (live build 41258af): pressing the in-app "Reload to update" banner
-// (and the zero-click auto-update) left users on the OLD build. Detection
-// worked (the banner appeared), but actuation did not swap the build. Two root
-// causes, fixed here + in app/public/sw.js:
+// THE BUG (live builds 41258af -> C50B895): the in-app "Reload to update" banner
+// appeared, but tapping it did NOT reliably move the device to the new build —
+// the banner persisted / looped. Detection worked; actuation did not stick. For
+// a conference congregation that is ~40% not tech-comfortable, the update must
+// be SEAMLESS — applied automatically, no decision to make — so this module now
+// does that and treats the banner as a rare fallback, not the primary path.
 //
-//   1. STALE APP SHELL. After the new worker took over, the reload re-fetched
-//      the navigation (index.html) through the HTTP cache. iOS Safari (and any
-//      intermediary) can hand back a stale shell that still points at the old
-//      asset bundle — so the "fresh" reload re-served the old build. Fixed in
-//      sw.js: the navigate handler now fetches the shell with { cache:
-//      'no-store' } (network-first that actually bypasses the cache), and the
-//      precache primes with { cache: 'reload' }. Hashed asset bundles were
-//      never the problem (content-addressed; a new hash is always a cache miss
-//      -> network), so only the shell needed hardening.
+// THREE root causes, fixed here + in app/public/sw.js:
 //
-//   2. LIFECYCLE WIRING. The reload-on-controllerchange must fire EXACTLY ONCE
-//      and ONLY for a real controller SWAP — never for the first-install
-//      clients.claim() (that would be a spurious first-visit reload and could
-//      mask first paint). The skip-waiting message must reach the WAITING
-//      worker (the banner button) so it actually activates.
+//   1. NON-DURABLE LOOP GUARD. The old "reload exactly once" guard was an
+//      in-memory counter (state.reloaded) that RESET on every reload — so it
+//      could not stop a CROSS-reload loop (reload -> new worker still pending ->
+//      reload -> ...), which is exactly the "banner persists / loops" symptom on
+//      Android (Samsung Internet / Chrome variants) and iOS standalone. Fixed
+//      with a sessionStorage sentinel (RELOAD_SENTINEL) that SURVIVES the reload:
+//      we set it immediately before reloading and read it on the next page load.
+//      If we reloaded for an update yet a worker is STILL waiting, that is the
+//      loop signature -> we refuse to auto-reload again and fall back to the
+//      manual banner instead of spinning the device.
+//
+//   2. RELOAD-BEFORE-CONTROL RACE. The reload must fire ONLY after the new worker
+//      takes control. We postMessage SKIP_WAITING to the waiting worker, listen
+//      for navigator.serviceWorker 'controllerchange', and ONLY THEN reload —
+//      exactly once, never on the first-install clients.claim() (hadController),
+//      never twice in one page life (in-memory guard), never into a detected
+//      loop (sentinel). applyUpdate (the manual button) never reloads the OLD
+//      shell directly while a worker is pending; it skip-waits and lets
+//      controllerchange do the single reload.
+//
+//   3. STALE APP SHELL. After the swap, the reload could re-fetch index.html from
+//      the HTTP cache (iOS Safari over-caches HTML), re-serving the OLD bundle.
+//      Fixed in sw.js: navigate handler fetches the shell { cache: 'no-store' };
+//      precache primes { cache: 'reload' }. (Hashed asset bundles never needed a
+//      guard — a new hash is always a cache miss -> network.)
+//
+// SEAMLESS BY DEFAULT: on detecting a pending worker we auto skip-wait it, so the
+// controllerchange -> single reload happens with NO user action. The UPDATE_EVENT
+// is still dispatched so the UI can show a fallback banner ONLY if the automatic
+// path doesn't complete (the component delays the banner; if the auto-reload
+// fires first, the banner never paints). After a successful update reload we
+// dispatch UPDATED_EVENT so the UI can show a tiny, non-blocking "Updated to the
+// latest version" confirmation AFTER the fact — never a decision the user must
+// make.
 //
 // Everything takes injected navigator / window / registration handles so the
 // suite drives the full lifecycle deterministically without a real browser
-// (node-env vitest; see __tests__/sw-update.test.js). This mirrors the repo's
-// "extract the security-critical decision into a pure module + lock it with an
-// exhaustive test" pattern (lib/multi-point-auth.js).
+// (node-env vitest; see __tests__/sw-update.test.js). Mirrors the repo's
+// "extract the critical decision into a pure module + lock it with an exhaustive
+// test" pattern (lib/multi-point-auth.js).
 
 export const UPDATE_EVENT = 'poetech:update-available';
+export const UPDATED_EVENT = 'poetech:updated';
+
+// sessionStorage key. Set immediately before an update reload; read on the next
+// page load. sessionStorage persists across same-tab navigations (and the PWA
+// standalone window is one tab), so it is the durable loop-guard the in-memory
+// counter could not be. Cleared on the post-reload load.
+const RELOAD_SENTINEL = 'poetech:sw-reloading';
+
+// ---- null-safe session-storage + reload helpers (all injectable for tests) ----
+
+function getSession(win) {
+  try {
+    return win && win.sessionStorage && typeof win.sessionStorage.getItem === 'function'
+      ? win.sessionStorage
+      : null;
+  } catch (_) {
+    // Some browsers throw on sessionStorage access in private mode.
+    return null;
+  }
+}
+
+function readReloading(win) {
+  const ss = getSession(win);
+  if (!ss) return null;
+  try { return ss.getItem(RELOAD_SENTINEL); } catch (_) { return null; }
+}
+
+function markReloading(win) {
+  const ss = getSession(win);
+  if (!ss) return;
+  try { ss.setItem(RELOAD_SENTINEL, '1'); } catch (_) { /* noop */ }
+}
+
+function clearReloading(win) {
+  const ss = getSession(win);
+  if (!ss) return;
+  try { ss.removeItem(RELOAD_SENTINEL); } catch (_) { /* noop */ }
+}
+
+function doReload(win) {
+  try {
+    if (win && win.location && typeof win.location.reload === 'function') win.location.reload();
+  } catch (_) {
+    /* noop */
+  }
+}
+
+function dispatch(win, type, detail) {
+  try {
+    const evt = (win && typeof win.CustomEvent === 'function')
+      ? new win.CustomEvent(type, { detail })
+      : { type, detail };
+    if (win && typeof win.dispatchEvent === 'function') win.dispatchEvent(evt);
+  } catch (_) {
+    /* noop — the banner/toast is a fallback, not load-bearing */
+  }
+}
 
 // Ask a specific worker (the waiting / freshly-installed one) to activate now.
 // Returns true if the message was posted. Null-safe.
@@ -41,38 +121,38 @@ export function activateWorker(worker) {
   }
 }
 
-// The banner's "Reload to update" button calls this. Prefer SKIP_WAITING on the
-// waiting worker — the controllerchange listener wired by wireUpdates() then
-// performs the single reload once control passes. If there is no waiting worker
-// (already activating / activated, e.g. zero-click already fired), fall back to
-// a direct reload so the click is never a no-op.
+// The fallback banner's "Reload to update" button calls this. Skip-wait the
+// pending worker (waiting, or one still installing) — the controllerchange
+// listener wired by wireUpdates() then performs the single reload once control
+// passes. Only when there is genuinely NO pending worker do we reload directly
+// (guarded by the sentinel so the post-reload load can detect it), so a tap is
+// never a silent no-op — but it never reloads the OLD shell while a new worker
+// is sitting waiting (that was the loop).
 export function applyUpdate(registration, win) {
   const w = win || (typeof window !== 'undefined' ? window : undefined);
   try {
-    if (registration && registration.waiting) {
-      activateWorker(registration.waiting);
+    const pending = registration && (registration.waiting || registration.installing);
+    if (pending) {
+      activateWorker(pending);
       return 'skip-waiting';
     }
   } catch (_) {
     /* fall through to reload */
   }
-  try {
-    if (w && w.location && typeof w.location.reload === 'function') w.location.reload();
-  } catch (_) {
-    /* noop */
-  }
+  markReloading(w);
+  doReload(w);
   return 'reload';
 }
 
 // Wire a registration's update lifecycle. Returns a small handle for tests.
 //   registration: SW registration ({ waiting, installing, addEventListener })
 //   nav:          navigator-like ({ serviceWorker: { controller, addEventListener } })
-//   win:          window-like ({ location: { reload }, dispatchEvent, CustomEvent? })
+//   win:          window-like ({ location: { reload }, dispatchEvent, sessionStorage? })
 export function wireUpdates(registration, nav, win) {
   const sw = nav && nav.serviceWorker;
-  const state = { reloaded: 0, announced: 0 };
+  const state = { reloaded: 0, announced: 0, updatedShown: 0, autoApplied: 0 };
   if (!registration || !sw || typeof sw.addEventListener !== 'function') {
-    return { state, hadController: false };
+    return { state, hadController: false, loopRisk: false };
   }
 
   // Was the page already controlled when we wired up? If NOT, the first
@@ -82,23 +162,40 @@ export function wireUpdates(registration, nav, win) {
   // controller swap (old build -> new build).
   const hadController = !!sw.controller;
 
+  // Did we just reload to apply an update? The sentinel survives the reload.
+  const justReloaded = readReloading(win) != null;
+  if (justReloaded) clearReloading(win);
+
+  // Loop signature: we reloaded for an update last page-life, yet a worker is
+  // STILL waiting now — the new build is not sticking (e.g. a stale shell, or a
+  // browser that swallowed the swap). Auto-applying again would spin the device,
+  // so we DON'T auto-skip-wait; we leave the manual banner as the escape hatch.
+  // (controllerchange-driven reload is NOT blocked, so a manual tap still works.)
+  const loopRisk = justReloaded && !!registration.waiting;
+
   const announce = () => {
     state.announced += 1;
-    try {
-      const evt = (typeof win.CustomEvent === 'function')
-        ? new win.CustomEvent(UPDATE_EVENT, { detail: { reg: registration } })
-        : { type: UPDATE_EVENT, detail: { reg: registration } };
-      if (typeof win.dispatchEvent === 'function') win.dispatchEvent(evt);
-    } catch (_) {
-      /* noop — the banner is a fallback, not load-bearing */
-    }
+    dispatch(win, UPDATE_EVENT, { reg: registration });
   };
 
-  // Case 1: a worker was already waiting at load — surface the banner and
-  // zero-click skip-waiting it.
+  // Quiet, non-blocking confirmation AFTER a successful update reload. Most users
+  // only ever see THIS — the seamless apply means they never saw a prompt.
+  if (justReloaded && !loopRisk) {
+    state.updatedShown += 1;
+    dispatch(win, UPDATED_EVENT, {});
+  }
+
+  // Seamless apply: tell the pending worker to take over now. Suppressed only
+  // when we've detected a loop — then the manual banner governs.
+  const autoApply = (worker) => {
+    announce(); // banner intent; the UI delays it and drops it if the reload wins
+    if (loopRisk) return;
+    if (activateWorker(worker)) state.autoApplied += 1;
+  };
+
+  // Case 1: a worker was already waiting at load.
   if (registration.waiting && sw.controller) {
-    announce();
-    activateWorker(registration.waiting);
+    autoApply(registration.waiting);
   }
 
   // Case 2: a new worker installs during this session.
@@ -108,28 +205,25 @@ export function wireUpdates(registration, nav, win) {
       if (!installing || typeof installing.addEventListener !== 'function') return;
       installing.addEventListener('statechange', () => {
         if (installing.state === 'installed' && sw.controller) {
-          announce();
-          activateWorker(installing);
+          autoApply(installing);
         }
       });
     });
   }
 
-  // Reload EXACTLY ONCE when control passes to the new worker — but only on a
-  // real swap (hadController), never on the first-install claim. The guard also
-  // makes repeated controllerchange events idempotent (no reload loop).
+  // Reload EXACTLY ONCE when control passes to the new worker — only on a real
+  // swap (hadController), never on first-install claim, never twice in one page
+  // life (in-memory guard). The sentinel is set BEFORE the reload so the next
+  // page load detects the loop signature and the "updated" confirmation.
   sw.addEventListener('controllerchange', () => {
     if (!hadController) return;
     if (state.reloaded) return;
     state.reloaded += 1;
-    try {
-      if (win && win.location && typeof win.location.reload === 'function') win.location.reload();
-    } catch (_) {
-      /* noop */
-    }
+    markReloading(win);
+    doReload(win);
   });
 
-  return { state, hadController };
+  return { state, hadController, loopRisk };
 }
 
 // Proactively ask the browser to re-check for a new worker. The browser only
