@@ -8,6 +8,13 @@ import { BuildBoard } from './BuildBoard.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
 import LoopHealth from './LoopHealth.jsx';
+import Discussions from './Discussions.jsx';
+import {
+  ETERNAL_STAGES, stageOfProject, stageMeta, statusForStage, nextStage,
+  stageProgress, lifecycleTrail, archivePatch, isArchived,
+} from '../lib/project-management.js';
+import { discussionsForProject, kindMeta } from '../lib/discussions.js';
+import { evaluateHandoffGate, buildHandoff } from '../lib/orchestrator-handoff.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
@@ -123,11 +130,11 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null }) {
   const [subView, setSubView] = useState('list');
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
-  const tabs = [['list','Projects · Timeline'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
+  const tabs = [['list','Projects · Timeline'],['discussions','💬 Discussions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
   // The Review surface shows the freshness loop's staged proposals (DR-0072) —
   // family-internal oversight, so it rides the same Governor gate.
@@ -146,7 +153,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       </div>
       {subView === 'list' && (
         <>
-          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} />
+          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} isGovernor={isGovernor} discussions={discussions} addDiscussion={addDiscussion} wakeData={wakeData} onOpenDiscussions={() => setSubView('discussions')} />
           {/* 2026-05-24 — Feedback Log → Promote queue is now positioned
               between All Projects (above) and the 12-Month Capital Forecast
               (below) so the "decide what becomes a project" loop is visually
@@ -158,9 +165,12 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
           <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} compact />
         </>
       )}
+      {subView === 'discussions' && (
+        <Discussions discussions={discussions} projects={projects} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion} currentUserId={currentUserId} currentUserPersona={currentUserPersona} isGovernor={isGovernor} />
+      )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
-      {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} />}
+      {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} projects={projects} discussions={discussions} currentUserId={currentUserId} />}
       {subView === 'governance' && isGovernor && <GovernanceQueue />}
       {subView === 'review' && isGovernor && <ReviewFeed />}
       {subView === 'loops' && isGovernor && <LoopHealth data={loopData} decisions={loopDecisions} onDecision={onLoopDecision} financialDocAt={financialDocAt} />}
@@ -285,7 +295,156 @@ function ProjectClarity({ project, updateProject }) {
   );
 }
 
-function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject, currentUserId = null, currentUserPersona = null, familyMembers = [] }) {
+// ProjectManage — the active-management panel that turns a project ROW from a
+// view into a cockpit: move it through the eternal-sequence (Research → Plan →
+// Execute → Done), see its real lifecycle trail, archive it, read the discussions
+// driving it, and (governor) record a BRAKED hand-off to a lane. Everything reads
+// or writes the REAL project fields (status + lifecycle, via updateProject) and
+// the REAL discussions table — no painted state.
+function ProjectManage({ project, updateProject, discussions = [], addDiscussion = null, currentUserPersona = null, isGovernor = false, wakeData = null, onOpenDiscussions = null }) {
+  const [open, setOpen] = useState(false);
+  const [lane, setLane] = useState('');
+  const [handoffMsg, setHandoffMsg] = useState('');
+  const stage = stageOfProject(project);
+  const sm = stageMeta(stage);
+  const prog = stageProgress(project);
+  const next = nextStage(stage);
+  const trail = lifecycleTrail(project);
+  const driving = discussionsForProject(discussions, project.id);
+  const archived = isArchived(project);
+
+  const moveToStage = (stageKey, note) => {
+    const status = statusForStage(stageKey);
+    updateProject(project.id, { status, _by: 'user', _note: note || `moved to ${stageMeta(stageKey).label}` });
+  };
+  const doArchive = () => {
+    if (!confirm(`Archive "${project.title}"? It's kept for the record, just out of the active list.`)) return;
+    updateProject(project.id, archivePatch());
+  };
+  const doHandoff = () => {
+    if (!addDiscussion) return;
+    const gate = evaluateHandoffGate(wakeData);
+    const record = buildHandoff({
+      project, action: `at stage ${sm.label}`, lane, gate,
+      persona: currentUserPersona, nowIso: new Date().toISOString(),
+    });
+    addDiscussion(record);
+    setLane('');
+    setHandoffMsg(gate.allowed
+      ? 'Hand-off staged. Brakes are clear — it would run when the deep-drive is wired (still your call).'
+      : `Hand-off staged + held by the Cage: ${gate.reasons[0] || 'a brake is holding'}`);
+  };
+
+  return (
+    <div className="mt-2">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="text-xs uppercase tracking-wider text-[#2A5A8E] hover:text-white hover:bg-[#2A5A8E] border border-[#2A5A8E] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+        {open ? '× Close manage' : `🧭 Manage · ${sm.label}${driving.length ? ` · ${driving.length} discussion${driving.length === 1 ? '' : 's'}` : ''}`}
+      </button>
+
+      {open && (
+        <div className="mt-2 p-3 bg-[#FAF8F4] border border-[#2A5A8E] space-y-3">
+          {/* Eternal-sequence stage control */}
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1.5">Eternal sequence · Research → Plan → Execute</div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {ETERNAL_STAGES.filter((s) => !s.terminal).map((s) => {
+                const here = s.key === stage;
+                return (
+                  <button key={s.key} type="button" aria-pressed={here} onClick={() => moveToStage(s.key)}
+                    className="text-[10px] px-2.5 py-1.5 border uppercase tracking-wider min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    style={here ? { backgroundColor: '#2A5A8E', color: 'white', borderColor: '#2A5A8E' } : { color: '#5A5751', borderColor: '#E8E4DC' }}>
+                    {s.glyph} {s.label}
+                  </button>
+                );
+              })}
+              {next && (
+                <button type="button" onClick={() => moveToStage(next, `advanced to ${stageMeta(next).label}`)}
+                  className="text-[10px] px-2.5 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] uppercase tracking-wider min-h-[36px] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  ▶ Advance to {stageMeta(next).label}
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              {sm.blurb}{prog.pct != null ? ` · ${prog.step} of ${prog.of}` : ' · parked'}
+            </p>
+          </div>
+
+          {/* Real lifecycle trail */}
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">How it moved ({trail.length})</div>
+            {trail.length === 0 ? (
+              <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No transitions logged yet.</p>
+            ) : (
+              <ul className="space-y-0.5">
+                {trail.slice(0, 6).map((e, i) => (
+                  <li key={i} className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(e.at || '').slice(0, 10)}</span>
+                    {' · '}{e.fromPhase ? `${e.fromPhase} → ` : ''}<span className="text-[#1A1815]">{e.toPhase}</span>
+                    {e.note ? ` — ${e.note}` : ''}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Driving discussions */}
+          <div>
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Discussions driving this ({driving.length})</div>
+              {onOpenDiscussions && (
+                <button type="button" onClick={onOpenDiscussions} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">+ open Discussions</button>
+              )}
+            </div>
+            {driving.length === 0 ? (
+              <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None linked yet — capture one in the Discussions tab and link it to this project.</p>
+            ) : (
+              <ul className="space-y-0.5">
+                {driving.slice(0, 5).map((d) => (
+                  <li key={d.id} className="text-[11px]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span aria-hidden="true">{kindMeta(d.kind).glyph}</span> <span className="text-[#5A5751] uppercase tracking-wider text-[9px]">{kindMeta(d.kind).label}</span> · {d.title}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Archive */}
+          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[#E8E4DC]">
+            {archived ? (
+              <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">⏸ Archived — kept for the record</span>
+            ) : (
+              <button type="button" onClick={doArchive} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-white border border-[#E8E4DC] hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">⏸ Archive</button>
+            )}
+          </div>
+
+          {/* Braked hand-off to a lane — governor only. Records the intent; the
+              Cage governs whether it could ever run. Never auto-dispatches. */}
+          {isGovernor && addDiscussion && (
+            <div className="pt-2 border-t border-[#E8E4DC]">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1">🛰 Hand off to a lane (braked)</div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <input value={lane} onChange={(e) => setLane(e.target.value)} placeholder="lane (e.g. church-build)"
+                  aria-label={`Lane to hand ${project.title} off to`}
+                  className="flex-1 min-w-[140px] p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#2A5A8E]" />
+                <button type="button" onClick={doHandoff}
+                  className="text-[10px] px-2.5 py-1.5 border border-[#2A5A8E] text-[#2A5A8E] uppercase tracking-wider min-h-[36px] hover:bg-[#2A5A8E] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  Stage hand-off
+                </button>
+              </div>
+              {handoffMsg && <p className="text-[10px] text-[#1A1815] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{handoffMsg}</p>}
+              <p className="text-[9px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                Records the intent as a hand-off discussion. It stays behind the Cage (budget + lock + kill-switch) — nothing auto-runs; the deep autonomous-drive is staged.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, discussions = [], addDiscussion = null, wakeData = null, onOpenDiscussions = null }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [scope, setScope] = useState(() => defaultProjectScope(projects, currentUserId, currentUserPersona));
@@ -754,6 +913,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                     </div>
                   )}
                   <ProjectClarity project={p} updateProject={updateProject} />
+                  <ProjectManage project={p} updateProject={updateProject} discussions={discussions} addDiscussion={addDiscussion} currentUserPersona={currentUserPersona} isGovernor={isGovernor} wakeData={wakeData} onOpenDiscussions={onOpenDiscussions} />
                   {totalDays && p.status !== 'complete' && (
                     <div className="h-1 bg-[#E8E4DC] mb-2">
                       <div className="h-full" style={{ width: `${progressPct}%`, backgroundColor: domainColor(p.domain) }}></div>

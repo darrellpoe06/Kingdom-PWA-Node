@@ -16,6 +16,7 @@ import OpsBoard from './OpsBoard.jsx';
 import QualityProof from './QualityProof.jsx';
 import ConflictLoop from './ConflictLoop.jsx';
 import WakeOrchestrator from './WakeOrchestrator.jsx';
+import ProjectMgmtPulse from './ProjectMgmtPulse.jsx';
 import LlmHealth from './LlmHealth.jsx';
 import LlmReview from './LlmReview.jsx';
 import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
@@ -175,7 +176,7 @@ export function RecentlyShipped() {
   );
 }
 
-export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
+export function BuildBoard({ onViewDecisions = null, isGovernor = false, projects = [], discussions = [], currentUserId = null }) {
   const [openId, setOpenId] = useState(null);
   // Open decisions waiting on the governor — read from the real queue (#4).
   const openDecisions = normalizeGovernanceQueue(GOVERNANCE_QUEUE).openCount;
@@ -309,6 +310,12 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
       <KpiLegend />
 
       <WorkflowStatus />
+
+      {/* Project management — live read of the family's real projects +
+          discussions (stage board, what's driving the work, staged hand-offs).
+          Governor-gated: family-internal management data, and the no-leak filter
+          inside keeps private discussions out of the counts. */}
+      {isGovernor && <ProjectMgmtPulse projects={projects} discussions={discussions} currentUserId={currentUserId} isGovernor={isGovernor} />}
 
       {/* Orchestration internals (branches, PRs, lanes, SHAs) are a dev/ops
           view for the Governor — public data, but noise for a family user. */}
