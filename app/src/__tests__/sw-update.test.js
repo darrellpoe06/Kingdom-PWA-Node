@@ -5,7 +5,8 @@
 // pure wiring in lib/sw-update.js (node-env; no real browser needed).
 import { describe, it, expect } from 'vitest';
 import {
-  activateWorker, applyUpdate, wireUpdates, startUpdateChecks, UPDATE_EVENT, UPDATED_EVENT,
+  activateWorker, applyUpdate, wireUpdates, startUpdateChecks, isUpdateStuck,
+  UPDATE_EVENT, UPDATED_EVENT, UPDATE_STUCK_EVENT,
 } from '../lib/sw-update.js';
 
 // --- Minimal fakes that model the real SW lifecycle event surface. ---
@@ -56,6 +57,7 @@ function makeSessionStorage() {
 
 function makeWindow() {
   const events = {};
+  const timers = [];
   return {
     reloads: 0,
     dispatched: [],
@@ -64,6 +66,11 @@ function makeWindow() {
     addEventListener(type, cb) { (events[type] ||= []).push(cb); },
     fire(type) { (events[type] || []).forEach((cb) => cb()); },
     dispatchEvent(evt) { this.dispatched.push(evt); return true; },
+    // Controllable fake timer so the applyUpdate safety-net reload is
+    // deterministic: scheduling records the callback, flushTimers() fires it.
+    setTimeout(cb) { timers.push(cb); return timers.length; },
+    flushTimers() { const due = timers.splice(0); due.forEach((cb) => cb()); },
+    pendingTimers() { return timers.length; },
   };
 }
 
@@ -87,7 +94,7 @@ describe('activateWorker — skip-waiting message', () => {
   });
 });
 
-describe('applyUpdate — the banner button', () => {
+describe('applyUpdate — the indicator tap', () => {
   it('skip-waits the WAITING worker (does not reload directly)', () => {
     const waiting = makeWorker('installed');
     const reg = makeRegistration({ waiting });
@@ -101,6 +108,43 @@ describe('applyUpdate — the banner button', () => {
     const w = win();
     expect(applyUpdate(reg, w)).toBe('reload');
     expect(w.reloads).toBe(1);
+  });
+
+  // THE FIX for "tap RELOAD TO UPDATE does nothing": a tap is never a silent
+  // no-op. If controllerchange does not drive a navigation, the armed safety net
+  // forces exactly one guarded reload so the update still applies.
+  it('arms a timed fallback reload so the tap is never a silent no-op', () => {
+    const waiting = makeWorker('installed');
+    const reg = makeRegistration({ waiting });
+    const w = win();
+    applyUpdate(reg, w);
+    expect(w.reloads).toBe(0);              // nothing yet — give the swap its chance
+    expect(w.pendingTimers()).toBe(1);      // ...but a fallback is armed
+    // controllerchange never fired -> the safety net fires.
+    w.flushTimers();
+    expect(w.reloads).toBe(1);
+    // The sentinel is set by the fallback so the next load can detect a non-stick.
+    expect(w.sessionStorage.getItem('poetech:sw-reloading')).toBe('1');
+  });
+
+  it('does NOT set the sentinel until an actual reload happens (no false loop)', () => {
+    const waiting = makeWorker('installed');
+    const reg = makeRegistration({ waiting });
+    const w = win();
+    applyUpdate(reg, w);
+    // Posting SKIP_WAITING alone must not mark a reload — only the reload does.
+    expect(w.sessionStorage.getItem('poetech:sw-reloading')).toBeNull();
+  });
+
+  it('respects an injected timeout/setTimeout (tests stay deterministic)', () => {
+    const waiting = makeWorker('installed');
+    const reg = makeRegistration({ waiting });
+    const w = win();
+    let scheduledDelay = null;
+    const fakeSetTimeout = (cb, ms) => { scheduledDelay = ms; cb(); };
+    applyUpdate(reg, w, { timeoutMs: 1234, setTimeout: fakeSetTimeout });
+    expect(scheduledDelay).toBe(1234);
+    expect(w.reloads).toBe(1); // injected timer fired synchronously here
   });
 });
 
@@ -203,10 +247,26 @@ describe('wireUpdates — durable cross-reload loop guard (sentinel)', () => {
     // Loop signature detected: do NOT auto-activate (that would re-loop)...
     expect(stillWaiting.posted).toEqual([]);
     expect(handle.state.autoApplied).toBe(0);
-    // ...but DO surface the manual banner as the escape hatch...
+    // ...but DO surface the manual indicator as the escape hatch...
     expect(dispatchedTypes(w)).toContain(UPDATE_EVENT);
+    // ...escalate to the honest "close & reopen" hint (stuck flag + event)...
+    expect(w.__pwaUpdateStuck).toBe(true);
+    expect(isUpdateStuck(w)).toBe(true);
+    expect(dispatchedTypes(w)).toContain(UPDATE_STUCK_EVENT);
     // ...and clear the sentinel so we don't mis-detect forever.
     expect(ss.getItem('poetech:sw-reloading')).toBeNull();
+  });
+
+  it('a healthy post-update load is NOT marked stuck', () => {
+    const ss = makeSessionStorage();
+    ss.setItem('poetech:sw-reloading', '1');
+    const reg = makeRegistration({ waiting: null }); // new build stuck/active
+    const nav = makeNavigator({ controller: makeWorker('activated') });
+    const w = win();
+    w.sessionStorage = ss;
+    wireUpdates(reg, nav, w);
+    expect(isUpdateStuck(w)).toBe(false);
+    expect(dispatchedTypes(w)).not.toContain(UPDATE_STUCK_EVENT);
   });
 
   it('a MANUAL tap in the loop case still applies (controllerchange not blocked)', () => {

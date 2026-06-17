@@ -46,6 +46,19 @@ describe('freshnessDescriptor', () => {
   it('green and red are distinct colors', () => {
     expect(freshnessDescriptor(false).color).not.toBe(freshnessDescriptor(true).color);
   });
+
+  it('stuck -> RED, escalates from "reload" to a "close & reopen" hint (no dead tap)', () => {
+    const d = freshnessDescriptor(true, true);
+    expect(d.stale).toBe(true);
+    expect(d.stuck).toBe(true);
+    expect(d.color).toBe(STALE_COLOR);
+    // The escalated copy must NOT say "reload" (which proved not to work) and
+    // must tell the user to fully close & reopen.
+    expect(d.label).not.toMatch(/reload/i);
+    expect(d.label).toMatch(/close|reopen/i);
+    expect(d.title).toMatch(/close|reopen/i);
+    expect(d.ariaLabel).toMatch(/close|reopen/i);
+  });
 });
 
 describe('updateWaiting (the stale signal)', () => {

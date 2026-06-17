@@ -62,7 +62,6 @@ import { inquiriesSync } from './lib/inquiries-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { compressImageFile } from './lib/image.js';
-import { applyUpdate } from './lib/sw-update.js';
 import { FreshnessDot } from './components/FreshnessDot.jsx';
 import SelfServeWelcome from './components/SelfServeWelcome.jsx';
 import PinGate from './components/PinGate.jsx';
@@ -5173,99 +5172,48 @@ function AdvisementBanner() {
 }
 
 
-// Floating button bottom-right · reads the visible view · speed options
 // =============================================================================
-// UpdatePrompt — the UI half of the SEAMLESS auto-update (lib/sw-update.js).
+// UpdateConfirmation — the ONLY floating piece of the update flow, and it is
+// post-hoc feedback, never a prompt. The actionable "update available" indicator
+// is the single inline header badge (<FreshnessDot>, lib/freshness.js): it lives
+// in the build stamp, never overlays the header controls (business switcher /
+// theme / text-size), and tapping it runs the unbreakable apply flow. The old
+// floating "✨ New version ready · Reload to update" popup that overlaid the
+// header — a SECOND prompt for one update — was removed; the header badge is the
+// one quiet indicator and it auto-clears to "Latest" once the update applies.
 //
-// By design, almost no one sees the actionable banner: when a new version is
-// ready, sw-update.js auto skip-waits it and reloads ONCE on controllerchange,
-// so the device moves to the new build with no tap. For a conference congregation
-// that is ~40% not tech-comfortable, that is the whole point — updates are
-// effortless.
-//
-// Two surfaces, both non-blocking:
-//   1. FALLBACK banner — shown ONLY if the automatic reload hasn't happened
-//      within FALLBACK_BANNER_MS of UPDATE_EVENT (e.g. a browser swallowed the
-//      swap, or sw-update detected a loop and deliberately left it to a human).
-//      If the auto-reload wins the race, this component unmounts with the page
-//      and the banner never paints. The single tap RELIABLY applies: it posts
-//      SKIP_WAITING and the controllerchange listener does the one reload.
-//   2. "Updated" confirmation — a tiny toast shown AFTER a successful update
-//      reload (UPDATED_EVENT), auto-dismissing. Never a decision; just feedback.
-const FALLBACK_BANNER_MS = 3500;
+// What remains here is a slim confirmation toast shown AFTER a successful update
+// reload (UPDATED_EVENT): the seamless auto-apply means most users never saw a
+// prompt, so this is the only acknowledgement they get. Pinned to the BOTTOM
+// (not the top) so it never covers the header. Auto-dismisses. role="status" +
+// aria-live announces it to a screen reader without stealing focus (WCAG 4.1.3).
 const UPDATED_TOAST_MS = 4000;
 
 function UpdatePrompt() {
-  const [reg, setReg] = useState(null);
-  const [showBanner, setShowBanner] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    let bannerTimer = null;
     let confirmTimer = null;
-
-    const armBanner = (r) => {
-      if (r) setReg(r);
-      // Delay the actionable banner: give the seamless auto-reload time to win.
-      // If it does, this component unmounts before the timer fires.
-      if (bannerTimer) clearTimeout(bannerTimer);
-      bannerTimer = setTimeout(() => setShowBanner(true), FALLBACK_BANNER_MS);
-    };
-
-    const onUpdate = (e) => armBanner(e && e.detail && e.detail.reg);
     const onUpdated = () => {
-      // Seamless apply completed on a prior page life — confirm quietly.
       setConfirmed(true);
       if (confirmTimer) clearTimeout(confirmTimer);
       confirmTimer = setTimeout(() => setConfirmed(false), UPDATED_TOAST_MS);
     };
-
-    window.addEventListener('poetech:update-available', onUpdate);
     window.addEventListener('poetech:updated', onUpdated);
-    // Late-mount catch: if UPDATE_EVENT fired before we subscribed, the
-    // registration handle is still on window.
-    if (window.__pwaReg && window.__pwaReg.waiting) armBanner(window.__pwaReg);
-
     return () => {
-      window.removeEventListener('poetech:update-available', onUpdate);
       window.removeEventListener('poetech:updated', onUpdated);
-      if (bannerTimer) clearTimeout(bannerTimer);
       if (confirmTimer) clearTimeout(confirmTimer);
     };
   }, []);
 
-  // Quiet post-update confirmation. role="status" + aria-live so a screen reader
-  // announces it without stealing focus (WCAG 4.1.3 status messages).
-  if (confirmed) {
-    return (
-      <div className="update-confirm fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-sm print:hidden" role="status" aria-live="polite">
-        <div className="bg-[#1A1815] text-white border-2 border-[#1A1815] shadow-xl px-4 py-2.5 flex items-center gap-2">
-          <span aria-hidden="true">✓</span>
-          <span className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>Updated to the latest version.</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!reg || !showBanner || dismissed) return null;
-
-  const reload = () => applyUpdate(reg, window);
+  if (!confirmed) return null;
 
   return (
-    <div className="update-prompt fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-sm print:hidden" role="status" aria-live="polite">
-      <div className="bg-[#1A1815] text-white border-2 border-[#1A1815] shadow-xl p-3">
-        <div className="flex items-baseline justify-between gap-2 mb-1.5">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#FAF8F4] font-semibold opacity-90">✨ New version ready</div>
-          <button type="button" onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-[10px] uppercase tracking-wider opacity-70 hover:opacity-100">×</button>
-        </div>
-        <p className="text-xs leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          A fresh version of PoeTech is ready. Tap to use it now — your data stays put.
-        </p>
-        <button type="button" onClick={reload} className="w-full bg-[#B85838] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#FAF8F4] hover:text-[#1A1815]">
-          Reload to update
-        </button>
+    <div className="update-confirm fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm px-2 print:hidden" role="status" aria-live="polite">
+      <div className="bg-[#1A1815] text-white border-2 border-[#1A1815] shadow-xl px-4 py-2.5 flex items-center gap-2">
+        <span aria-hidden="true">✓</span>
+        <span className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>Updated to the latest version.</span>
       </div>
     </div>
   );

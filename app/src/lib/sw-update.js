@@ -52,6 +52,23 @@
 
 export const UPDATE_EVENT = 'poetech:update-available';
 export const UPDATED_EVENT = 'poetech:updated';
+// Dispatched when an update could not be applied automatically AND a prior reload
+// did not stick (loop signature) — the honest "close & reopen" escape hatch. The
+// indicator reads this to escalate its message from "reload" (which isn't working)
+// to a hard-relaunch hint, instead of silently spinning.
+export const UPDATE_STUCK_EVENT = 'poetech:update-stuck';
+
+// Manual-tap safety net. applyUpdate() posts SKIP_WAITING and lets the
+// controllerchange listener (wired by wireUpdates) perform the single reload —
+// the correct, race-free path. But controllerchange is not guaranteed to fire in
+// every engine/state (a swallowed swap, a slow/failed claim, a scope mismatch),
+// and when it doesn't the OLD behavior was a SILENT NO-OP: the tap did nothing
+// and the indicator persisted (exactly Darrell's report). So a tap also arms a
+// guarded fallback: if the page hasn't navigated within this window, force one
+// reload. If controllerchange wins first, the page is already gone and this never
+// runs. The sentinel makes the post-reload load detect a genuine non-stick (loop)
+// rather than spin. Tuned long enough for a normal swap to win the race.
+export const FALLBACK_RELOAD_MS = 2000;
 
 // sessionStorage key. Set immediately before an update reload; read on the next
 // page load. sessionStorage persists across same-tab navigations (and the PWA
@@ -109,6 +126,14 @@ function dispatch(win, type, detail) {
   }
 }
 
+// Has the update path become stuck (a reload didn't make the new build stick)?
+// Null-safe. Read by the indicator to show the "close & reopen" hint instead of
+// a "reload" that has proven not to work on this device.
+export function isUpdateStuck(win) {
+  const w = win || (typeof window !== 'undefined' ? window : undefined);
+  try { return !!(w && w.__pwaUpdateStuck); } catch (_) { return false; }
+}
+
 // Ask a specific worker (the waiting / freshly-installed one) to activate now.
 // Returns true if the message was posted. Null-safe.
 export function activateWorker(worker) {
@@ -121,27 +146,61 @@ export function activateWorker(worker) {
   }
 }
 
-// The fallback banner's "Reload to update" button calls this. Skip-wait the
-// pending worker (waiting, or one still installing) — the controllerchange
-// listener wired by wireUpdates() then performs the single reload once control
-// passes. Only when there is genuinely NO pending worker do we reload directly
-// (guarded by the sentinel so the post-reload load can detect it), so a tap is
-// never a silent no-op — but it never reloads the OLD shell while a new worker
-// is sitting waiting (that was the loop).
-export function applyUpdate(registration, win) {
+// The visible "Update — reload" indicator calls this. Skip-wait the pending
+// worker (waiting, or one still installing); the controllerchange listener wired
+// by wireUpdates() then performs the single reload once control passes — the
+// correct, race-free path that never reloads the OLD shell while a new worker is
+// sitting waiting (that was the loop).
+//
+// UNBREAKABLE GUARANTEE (the fix for "tap does nothing"): a tap can never be a
+// silent no-op. After posting SKIP_WAITING we arm a guarded timed fallback —
+// if controllerchange has NOT driven a navigation within FALLBACK_RELOAD_MS, we
+// force one reload ourselves. If the swap wins the race first, the page has
+// already navigated and the timer never runs. The post-reload load then either
+// confirms (no worker waiting -> UPDATED) or, if the new build still didn't
+// stick, surfaces the honest "close & reopen" hint (loop signature) — never an
+// indicator that spins forever doing nothing.
+//
+// opts (all optional, for tests): { timeoutMs, setTimeout } inject the timer.
+export function applyUpdate(registration, win, opts = {}) {
   const w = win || (typeof window !== 'undefined' ? window : undefined);
+  let pending = null;
   try {
-    const pending = registration && (registration.waiting || registration.installing);
-    if (pending) {
-      activateWorker(pending);
-      return 'skip-waiting';
-    }
+    pending = registration && (registration.waiting || registration.installing);
   } catch (_) {
-    /* fall through to reload */
+    /* pending stays null */
   }
-  markReloading(w);
-  doReload(w);
-  return 'reload';
+
+  // No worker to hand control to — a plain guarded reload (the user asked to
+  // refresh; honor it). The sentinel lets the next load detect the outcome.
+  if (!pending) {
+    markReloading(w);
+    doReload(w);
+    return 'reload';
+  }
+
+  activateWorker(pending);
+
+  // Arm the safety net. We do NOT set the reload sentinel here — only the actual
+  // reload (controllerchange handler, or this timer) sets it, so a swap that
+  // succeeds without us is not mis-read as a loop on the next load.
+  const setT = opts.setTimeout
+    || (w && typeof w.setTimeout === 'function' ? w.setTimeout.bind(w) : null)
+    || (typeof setTimeout !== 'undefined' ? setTimeout : null);
+  const delay = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : FALLBACK_RELOAD_MS;
+  if (setT) {
+    try {
+      setT(() => {
+        // Reaching here means controllerchange did NOT navigate us in time —
+        // force the single reload so the tap is never a dead end.
+        markReloading(w);
+        doReload(w);
+      }, delay);
+    } catch (_) {
+      /* if scheduling fails, the controllerchange path is still in play */
+    }
+  }
+  return 'skip-waiting';
 }
 
 // Wire a registration's update lifecycle. Returns a small handle for tests.
@@ -183,6 +242,14 @@ export function wireUpdates(registration, nav, win) {
   if (justReloaded && !loopRisk) {
     state.updatedShown += 1;
     dispatch(win, UPDATED_EVENT, {});
+  }
+
+  // Loop detected: a reload didn't make the new build stick. Mark the app
+  // "stuck" so the indicator escalates from "reload" (proven not to work here)
+  // to an honest "fully close & reopen" hint, and never spins the device.
+  if (loopRisk) {
+    try { if (win) win.__pwaUpdateStuck = true; } catch (_) { /* noop */ }
+    dispatch(win, UPDATE_STUCK_EVENT, { reg: registration });
   }
 
   // Seamless apply: tell the pending worker to take over now. Suppressed only
