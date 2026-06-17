@@ -21,6 +21,7 @@ import React, { useState } from 'react';
 import { CONFERENCE_IDENTITY } from '../lib/conference-identity.js';
 import ConferenceRegisterForm from './ConferenceRegisterForm.jsx';
 import SectionBoundary from './SectionBoundary.jsx';
+import TextSizeControl from './TextSizeControl.jsx';
 
 // One value point in the "what registering does for you" strip. Icon is decorative.
 function ValuePoint({ icon, title, children }) {
@@ -41,6 +42,11 @@ export default function ConferenceRegister() {
   return (
     <div className="min-h-screen bg-[#FAF8F4] p-4 sm:p-8">
       <div className="max-w-md mx-auto">
+        {/* Large-print FIRST, before anything to read (WCAG 1.4.4). This is the
+            page seniors open from a texted link — give them the "make it bigger"
+            control up top. The boot already applied any saved choice; this lets
+            them set it here, no account needed, and it sticks on their device. */}
+        <TextSizeControl variant="panel" className="mb-4" />
         {/* Header + form share ONE white card so the terracotta eyebrow meets
             WCAG AA (4.56:1 on white; it falls to 4.41 on the cream page bg). */}
         <div className="bg-white border border-[#1A1815] p-5 sm:p-6">

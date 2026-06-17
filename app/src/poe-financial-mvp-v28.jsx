@@ -45,6 +45,7 @@ import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-en
 import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
+import TextSizeControl from './components/TextSizeControl.jsx';
 import Imported from './components/Imported.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
@@ -4566,6 +4567,10 @@ html{scroll-padding-bottom:280px}
               </button>
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
+              {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
+                  the two "make this comfortable to look at" controls live together.
+                  Scales the whole app from one place; choice saved per device. */}
+              <TextSizeControl variant="header" />
               <div className="flex gap-1 items-center" role="group" aria-label="Theme selector">
                 {[
                   // White and Slate take design inspiration from the two phone

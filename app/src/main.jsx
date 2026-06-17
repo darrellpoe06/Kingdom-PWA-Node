@@ -10,8 +10,15 @@ import TeachMode from './components/TeachMode.jsx';
 import PasswordAuth from './components/PasswordAuth.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
+import { initTextSize } from './lib/text-size.js';
 
 window.storage = storage;
+
+// Large-print accessibility (WCAG 1.4.4): apply the per-device text-size choice
+// BEFORE React paints, so there is no flash of default text that then jumps.
+// Runs for the full app AND every standalone boot below — the conference page a
+// senior opens is already large if they set it large. See lib/text-size.js.
+initTextSize();
 
 // Lightweight boots by URL param (outside the full app):
 //   ?join=1     — the public "get the app / I'm having trouble" capture. A shareable
