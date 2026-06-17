@@ -54,6 +54,7 @@ export function toSermonShape(row) {
     serviceType: row.service_type ?? 'sunday',
     title: row.title,
     speaker: row.speaker ?? null,
+    speakerId: row.speaker_id ?? null,   // canonical speaker entity (0037); null on the public RPC path
     scriptureRef: row.scripture_ref ?? null,
     serviceSlot: row.service_slot ?? null,
     youtubeUrl: row.youtube_url ?? null,
@@ -73,6 +74,19 @@ export function toResourceShape(row) {
     url: row.url ?? null,
     note: row.note ?? null,
     createdAt: row.created_at ?? null,
+  };
+}
+
+// Canonical preacher/teacher entity (0037). The typeahead source so a new
+// message resolves to an existing speaker instead of re-spelling free text.
+export function toSpeakerShape(row) {
+  return {
+    id: row.id,
+    canonicalName: row.canonical_name,
+    nameKey: row.name_key ?? null,
+    aliases: Array.isArray(row.aliases) ? row.aliases : [],
+    isPrimary: !!row.is_primary,
+    roleTitle: row.role_title ?? null,
   };
 }
 
@@ -347,6 +361,9 @@ export const subscribeMembers = makeSubscriber('choir_members', toMemberShape, {
 export const subscribeChoirMessages = makeSubscriber('choir_messages', toChoirMessageShape, { col: 'created_at', asc: true });
 export const subscribeAbsences = makeSubscriber('choir_absences', toAbsenceShape, { col: 'start_date', asc: true });
 export const subscribeSermons = makeSubscriber('choir_sermons', toSermonShape, { col: 'service_date', asc: false });
+// Canonical speakers (0037) — owner/admin reads the set for the add-message
+// typeahead, so a new credit resolves to an existing person, not a new spelling.
+export const subscribeSpeakers = makeSubscriber('church_speakers', toSpeakerShape, { col: 'canonical_name', asc: true });
 
 // The Word — Migdal PUBLIC library. Calls the SECURITY DEFINER RPC
 // theword_public_sermons() (migration 0029), which returns ONLY published

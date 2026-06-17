@@ -9,20 +9,44 @@
 // ing youtube-title-parse.js. Drafts are excluded from the studyable history.
 // =============================================================================
 
+// Normalized identity key for a speaker name — lowercase, strip everything but
+// [a-z0-9]. The CLIENT mirror of SQL speaker_norm() (migration 0037): collapses
+// case, spacing (incl. non-breaking/double spaces — the invisible duplicate that
+// made the SAME display name count twice), and punctuation. Defense-in-depth so
+// the roster groups identically whether or not a row already carries speaker_id.
+export function speakerKey(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
 // The preachers & teachers roster, derived from REAL data: the distinct speakers
 // credited across the published messages (drafts excluded), most first. BG is the
 // primary voice; guest preachers/teachers who fill in are rostered alongside from
 // their own credited messages — no fabricated roster, it IS who has preached.
-// `isBG` flags the Gwin entries. Tolerates a non-array corpus / garbage rows.
+//
+// Speaker is a canonical ENTITY now (0037): each message points at a speaker_id
+// and carries the entity's canonical_name in `speaker`. We group by that entity
+// (speakerId) so the nine historical Gwin spellings collapse to ONE row; rows
+// without an id yet fall back to the normalized name key. The display name is the
+// canonical spelling, and `isBG` reflects the entity's primary flag when present
+// (real data) — falling back to a /gwin/i name check for the public path, whose
+// RPC returns the already-canonical text without the id. Tolerates garbage rows.
 export function speakerRoster(sermons) {
   const list = Array.isArray(sermons) ? sermons.filter((s) => s && typeof s === 'object') : [];
-  const counts = new Map();
+  const groups = new Map(); // key -> { name, count, primary }
   for (const s of list.filter((s) => s.status !== 'draft')) {
     const name = (s.speaker || '').trim();
     if (!name) continue;
-    counts.set(name, (counts.get(name) || 0) + 1);
+    const key = s.speakerId || speakerKey(name);
+    const g = groups.get(key) || { name, count: 0, primary: false };
+    g.count += 1;
+    if (s.speakerIsPrimary) g.primary = true;
+    // Keep the longest spelling seen as the display name (most complete); the
+    // canonical_name written by 0037 is already uniform, this just stays stable.
+    if (name.length > g.name.length) g.name = name;
+    groups.set(key, g);
   }
-  return Array.from(counts, ([name, count]) => ({ name, count, isBG: /gwin/i.test(name) }))
+  return Array.from(groups.values())
+    .map((g) => ({ name: g.name, count: g.count, isBG: g.primary || /gwin/i.test(g.name) }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
