@@ -38,9 +38,23 @@ initTextSize();
 const __params = new URLSearchParams(window.location.search);
 const __standalone = __params.get('join') === '1' || __params.get('invites') === '1'
   || __params.get('register') === '1' || __params.get('audience') === '1'
-  || __params.get('teach') === '1' || __params.get('login') === '1';
+  || __params.get('teach') === '1' || __params.get('login') === '1'
+  || __params.get('oauth_popup') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
-if (__params.get('join') === '1') {
+if (__params.get('oauth_popup') === '1') {
+  // We ARE the Google sign-in popup (see lib/oauth-popup.js). The session was
+  // parsed out of the URL fragment by supabase on import; tell the opener and
+  // close. The full PWA never loads here — this window exists only to complete
+  // OAuth and vanish, so the user keeps their place in the opener tab.
+  __root.render(
+    <React.StrictMode>
+      <div className="min-h-screen flex items-center justify-center p-6 text-center" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">
+        <p className="text-sm text-[#5A5751]">Signing you in… you can close this window.</p>
+      </div>
+    </React.StrictMode>
+  );
+  import('./lib/oauth-popup.js').then(({ completeOAuthPopup }) => { completeOAuthPopup(); }).catch(() => {});
+} else if (__params.get('join') === '1') {
   __root.render(<React.StrictMode><ErrorBoundary><div className="min-h-screen p-4 sm:p-8"><AppInterestCapture source="join-link" /></div></ErrorBoundary></React.StrictMode>);
 } else if (__params.get('invites') === '1') {
   __root.render(<React.StrictMode><ErrorBoundary><AppInterestAdmin /></ErrorBoundary></React.StrictMode>);

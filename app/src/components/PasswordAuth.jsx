@@ -17,7 +17,11 @@
 import React, { useState } from 'react';
 import { signUpWithPassword, signInWithPassword, validateCredentials, sendRoyaltyLink } from '../lib/supabase.js';
 
-export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn = null }) {
+// `embedded` hides this component's own eyebrow + big heading + intro line so it
+// can sit inside a frame that already supplies them (e.g. AuthModal). The form,
+// the create/sign-in toggle, and the Royalty Link fallback are unchanged — so
+// there is still no lockout path no matter where it renders.
+export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn = null, embedded = false }) {
   const [mode, setMode] = useState(initialMode); // 'signup' | 'signin'
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [error, setError] = useState('');
@@ -83,14 +87,18 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   }
 
   return (
-    <div className="max-w-sm">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech</div>
-      <h2 className="text-2xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
-        {isSignup ? 'Create your profile' : 'Welcome back'}
-      </h2>
-      <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-        {isSignup ? 'Name, email, and a password — that’s it. This device stays signed in.' : 'Sign in with your email and password.'}
-      </p>
+    <div className={embedded ? '' : 'max-w-sm'}>
+      {!embedded && (
+        <>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech</div>
+          <h2 className="text-2xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+            {isSignup ? 'Create your profile' : 'Welcome back'}
+          </h2>
+          <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+            {isSignup ? 'Name, email, and a password — that’s it. This device stays signed in.' : 'Sign in with your email and password.'}
+          </p>
+        </>
+      )}
 
       <form onSubmit={submit} noValidate>
         {isSignup && (
