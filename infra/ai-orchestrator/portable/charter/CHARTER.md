@@ -113,6 +113,26 @@ events, and it never runs as a bare loop. Missing any one brake means inert.
 - fires_off_real_events_only: true
 - never_bare_loop: true
 
+### The wake / handoff bridge
+
+The bridge that fulfills "wakes, starts, and instructs vendor models ... and
+restarts a vendor session after it has gone offline" is a real, machine-readable
+contract, not a clock. Before a vendor goes offline it emits a **handoff** —
+`{ wake_at, lane, task, state_pointer, suggested_vendor }` — written to the
+bundle's `state/handoffs/` inbox. The always-on scheduler (`orchestrator/lib/wake.sh`,
+GPU-free, in the capped supervisor) scans the inbox each tick and logs which
+handoffs are due. At wake-time, when a handoff is due and every brake is GO, the
+host-side router (`scripts/wake-router.mjs`) summons the tiered, cheapest-capable
+vendor with the Charter + lane/task + state pointer. This is event-driven
+self-activation off a real handoff (DR-0071), never a bare timer loop.
+
+Vendor-summoning on wake carries a **dedicated fourth gate beyond the three
+brakes**: a `WAKE_SUMMON` consent flag (ships absent). Even an armed orchestrator
+schedules and logs due handoffs but summons no vendor until this explicit consent
+is set — arming standby and consenting to autonomous summon are separate,
+deliberate, attended acts. The full contract lives in
+`../../handoff/HANDOFF-CONTRACT.md` and `../../handoff/schema.json`.
+
 ## §3a — RESOURCE & PORTABILITY
 
 The orchestrator itself is capped small — one CPU, one gigabyte — and that cap is

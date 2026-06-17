@@ -52,7 +52,9 @@ export function isRuntimeFile(relPosix) {
     relPosix === '.env' ||
     (relPosix.startsWith('events/') && relPosix.endsWith('.jsonl')) ||
     relPosix === 'state/ARMED' ||
+    relPosix === 'state/WAKE_SUMMON' ||
     relPosix.startsWith('state/orchestrator.lock/') ||
+    relPosix.startsWith('state/handoffs/') ||
     (relPosix.startsWith('state/spend-') && relPosix.endsWith('.txt'))
   );
 }
