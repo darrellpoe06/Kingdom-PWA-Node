@@ -13,6 +13,7 @@
 // inputs, aria-live on the result + errors. Honeypot swallows bot submissions.
 import React, { useState } from 'react';
 import { MEAL_TYPES, validateRegistration, submitRegistration } from '../lib/conference-register.js';
+import ConferenceAccountOnRamp from './ConferenceAccountOnRamp.jsx';
 
 const labelCls = 'block text-xs font-semibold text-[#1A1815] mb-1';
 const inputCls = 'w-full border border-[#1A1815] px-3 py-2.5 min-h-[44px] text-sm text-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]';
@@ -21,6 +22,7 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
   const [form, setForm] = useState({ name: '', email: '', phone: '', mealType: 'Regular', dietary: '', days: '', partySize: '' });
   const [errors, setErrors] = useState({});
   const [state, setState] = useState('idle'); // idle | sending | sent | error
+  const [regId, setRegId] = useState(null); // the just-created row id, for the optional account link
   const [hp, setHp] = useState(''); // honeypot — bots fill it, humans never see it
 
   const set = (k) => (e) => {
@@ -36,6 +38,7 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
     if (!v.ok) return;
     setState('sending');
     const res = await submitRegistration({ ...form, conferenceName, source });
+    if (res.ok) setRegId(res.id || null);
     setState(res.ok ? 'sent' : 'error');
   };
 
@@ -48,11 +51,16 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
         </p>
         <button
           type="button"
-          onClick={() => { setForm({ name: '', email: '', phone: '', mealType: 'Regular', dietary: '', days: '', partySize: '' }); setErrors({}); setState('idle'); if (onDone) onDone(); }}
+          onClick={() => { setForm({ name: '', email: '', phone: '', mealType: 'Regular', dietary: '', days: '', partySize: '' }); setErrors({}); setRegId(null); setState('idle'); if (onDone) onDone(); }}
           className="text-xs uppercase tracking-wider px-4 py-2.5 min-h-[44px] border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
         >
           Register someone else
         </button>
+
+        {/* OPTIONAL second step of the funnel: create an account so this very
+            registration carries into app membership. Skipping it changes nothing —
+            the registration above is already saved. */}
+        <ConferenceAccountOnRamp regId={regId} name={form.name} email={form.email} />
       </div>
     );
   }
