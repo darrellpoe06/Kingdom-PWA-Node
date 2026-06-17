@@ -36,6 +36,8 @@ export {
 };
 
 export const SESSION_TYPES = ['main_service', 'breakout', 'other'];
+// What a room can be used for, so the right module picks the right room.
+export const USE_TYPES = ['service', 'class', 'food', 'facility'];
 export const REGISTRATION_STATUSES = ['registered', 'waitlist', 'cancelled', 'checked_in'];
 // Statuses that occupy a seat (for capacity math). Cancelled + waitlist do not.
 const SEAT_STATUSES = new Set(['registered', 'checked_in']);
@@ -53,6 +55,17 @@ function resolveDisplayName(session, explicit) {
 
 // --- Pure mappers (DB row -> camelCase shape; exported for tests) ------------
 
+export function toVenueShape(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    address: row.address ?? null,
+    notes: row.notes ?? null,
+    sortOrder: row.sort_order ?? 0,
+    status: row.status ?? 'active',
+  };
+}
+
 export function toConferenceShape(row) {
   return {
     id: row.id,
@@ -60,6 +73,7 @@ export function toConferenceShape(row) {
     theme: row.theme ?? null,
     host: row.host ?? null,
     location: row.location ?? null,
+    venueId: row.venue_id ?? null,
     startDate: row.start_date ?? null,
     endDate: row.end_date ?? null,
     datesLabel: row.dates_label ?? null,
@@ -73,9 +87,11 @@ export function toConferenceShape(row) {
 export function toRoomShape(row) {
   return {
     id: row.id,
+    venueId: row.venue_id ?? null,
     name: row.name,
     capacity: Number.isFinite(row.capacity) ? row.capacity : (row.capacity ?? null),
     features: Array.isArray(row.features) ? row.features : [],
+    useTypes: Array.isArray(row.use_types) ? row.use_types : [],
     locationNote: row.location_note ?? null,
     sortOrder: row.sort_order ?? 0,
     status: row.status ?? 'active',
@@ -92,6 +108,7 @@ export function toSessionShape(row) {
     title: row.title,
     speaker: row.speaker ?? null,
     sessionType: row.session_type ?? 'breakout',
+    venueId: row.venue_id ?? null,
     roomResourceId: row.room_resource_id ?? null,
     capacity: row.capacity ?? null,
     sermonRef: row.sermon_ref ?? null,
@@ -221,6 +238,30 @@ export function roomForSession(session, rooms) {
   return (rooms || []).find((r) => r.id === session.roomResourceId) || null;
 }
 
+// --- Venues (buildings) ------------------------------------------------------
+// Active rooms in a building.
+export function roomsForVenue(rooms, venueId) {
+  return (rooms || []).filter((r) => r.status !== 'archived' && r.venueId === venueId);
+}
+// Rooms (optionally within a building) that support a given use_type — so Learn
+// picks a 'class' room, meals pick a 'food' room, a service picks a 'service'
+// room. A room with no tags is eligible for anything (unscoped).
+export function roomsSupporting(rooms, useType, venueId) {
+  return (rooms || [])
+    .filter((r) => r.status !== 'archived')
+    .filter((r) => venueId == null || r.venueId === venueId)
+    .filter((r) => !r.useTypes || r.useTypes.length === 0 || r.useTypes.includes(useType));
+}
+// Total known seats in a building (sum of room capacities; NULLs ignored).
+export function venueSeatTotal(rooms, venueId) {
+  return roomsForVenue(rooms, venueId).reduce((n, r) => n + (Number.isFinite(r.capacity) ? r.capacity : 0), 0);
+}
+// Resolve the venue object for a session/room (or null).
+export function venueById(venues, venueId) {
+  if (!venueId) return null;
+  return (venues || []).find((v) => v.id === venueId) || null;
+}
+
 // --- Access ------------------------------------------------------------------
 
 export async function getConferenceAccess(displayName) {
@@ -270,6 +311,7 @@ function makeSubscriber(table, mapRow, orderBy) {
   };
 }
 
+export const subscribeVenues = makeSubscriber('venues', toVenueShape, { col: 'sort_order', asc: true });
 export const subscribeConferences = makeSubscriber('conferences', toConferenceShape, { col: 'created_at', asc: true });
 export const subscribeRooms = makeSubscriber('event_center_resources', toRoomShape, { col: 'sort_order', asc: true });
 export const subscribeSessions = makeSubscriber('event_sessions', toSessionShape, { col: 'sort_order', asc: true });
@@ -293,6 +335,7 @@ export async function saveConference(conf, displayName) {
     theme: conf.theme ?? null,
     host: conf.host ?? null,
     location: conf.location ?? null,
+    venue_id: conf.venueId || null,
     start_date: conf.startDate || null,
     end_date: conf.endDate || null,
     dates_label: conf.datesLabel ?? null,
@@ -308,13 +351,38 @@ export async function saveConference(conf, displayName) {
   return error ? { skipped: 'insert-error', error } : { saved: true, id: data?.id };
 }
 
+export async function saveVenue(venue, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const row = {
+    name: venue.name ?? '',
+    address: venue.address ?? null,
+    notes: venue.notes ?? null,
+    sort_order: Number.isFinite(venue.sortOrder) ? venue.sortOrder : 0,
+    status: venue.status ?? 'active',
+  };
+  if (venue.id) {
+    const { error } = await supabase.from('venues').update({ ...row, updated_by: ctx.userId }).eq('id', venue.id);
+    return error ? { skipped: 'update-error', error } : { saved: true, id: venue.id };
+  }
+  const { data, error } = await supabase.from('venues').insert({ ...row, instance_id: ctx.tenantId, created_by: ctx.userId }).select('id').single();
+  return error ? { skipped: 'insert-error', error } : { saved: true, id: data?.id };
+}
+
+export async function deleteVenue(id) {
+  const { error } = await supabase.from('venues').delete().eq('id', id);
+  return error ? { skipped: 'delete-error', error } : { deleted: true };
+}
+
 export async function saveRoom(room, displayName) {
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
   const row = {
+    venue_id: room.venueId || null,
     name: room.name ?? '',
     capacity: Number.isFinite(room.capacity) ? room.capacity : null,
     features: Array.isArray(room.features) ? room.features : [],
+    use_types: Array.isArray(room.useTypes) ? room.useTypes : [],
     location_note: room.locationNote ?? null,
     sort_order: Number.isFinite(room.sortOrder) ? room.sortOrder : 0,
     status: room.status ?? 'active',
@@ -343,6 +411,7 @@ export async function saveSession(sessionItem, displayName) {
     title: sessionItem.title ?? '',
     speaker: sessionItem.speaker ?? null,
     session_type: SESSION_TYPES.includes(sessionItem.sessionType) ? sessionItem.sessionType : 'breakout',
+    venue_id: sessionItem.venueId || null,
     room_resource_id: sessionItem.roomResourceId || null,
     capacity: Number.isFinite(sessionItem.capacity) ? sessionItem.capacity : null,
     sermon_ref: sessionItem.sermonRef || null,

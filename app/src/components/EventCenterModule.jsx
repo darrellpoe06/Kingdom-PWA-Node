@@ -28,13 +28,13 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import {
   getConferenceAccess,
-  subscribeConferences, subscribeRooms, subscribeSessions, subscribeParticipants,
-  saveConference, saveRoom, deleteRoom, saveSession, deleteSession,
+  subscribeVenues, subscribeConferences, subscribeRooms, subscribeSessions, subscribeParticipants,
+  saveVenue, saveConference, saveRoom, deleteRoom, saveSession, deleteSession,
   saveParticipant, setRegistrationStatus, deleteParticipant,
   registrationCount, conferenceRsvpCount, effectiveCapacity, capacityStatus,
-  buildingView, roomForSession,
+  buildingView, roomForSession, roomsForVenue, venueSeatTotal, venueById,
   isMainServiceSession, sessionSermon, sessionSongs, toggleSongId,
-  aggregateMeals, mealCountRows, MEAL_TYPES, SESSION_TYPES,
+  aggregateMeals, mealCountRows, MEAL_TYPES, SESSION_TYPES, USE_TYPES,
 } from '../lib/conference-sync.js';
 import { subscribeSermons, subscribeSongs } from '../lib/choir-sync.js';
 
@@ -58,10 +58,29 @@ function writeLocal(obj) {
 let localSeq = 0;
 const localId = (p) => `local-${p}-${Date.now()}-${localSeq++}`;
 
+// Seed the local-fallback store with the two REAL COLG buildings + the South
+// Campus rooms (tagged by use_type), so the signed-out demo mirrors the synced
+// seed (migration 0024). Capacities NULL — leaders set real numbers in-app.
+function seedLocalVenues(l) {
+  if (l.venues && l.venues.length) return false;
+  const main = { id: localId('venue'), name: 'Main Campus', address: '312 E. Bradley Avenue, Champaign, IL 61820', sortOrder: 0, status: 'active' };
+  const south = { id: localId('venue'), name: 'South Campus Event Center', address: '1109 N 4th Street, Champaign, IL', sortOrder: 1, status: 'active' };
+  l.venues = [main, south];
+  l.rooms = [
+    ...(l.rooms || []),
+    { id: localId('room'), venueId: south.id, name: 'Main Sanctuary', capacity: null, features: [], useTypes: ['service', 'class'], locationNote: 'Services + large gatherings (high capacity)', sortOrder: 0, status: 'active' },
+    { id: localId('room'), venueId: south.id, name: 'Fellowship Hall', capacity: null, features: [], useTypes: ['class', 'food', 'service'], locationNote: 'Classes / events / dining; service overflow (medium capacity)', sortOrder: 1, status: 'active' },
+    { id: localId('room'), venueId: south.id, name: 'Kitchen', capacity: null, features: [], useTypes: ['food'], locationNote: 'Food prep; ties to meals / catering', sortOrder: 2, status: 'active' },
+    { id: localId('room'), venueId: south.id, name: 'Bathrooms', capacity: null, features: [], useTypes: ['facility'], locationNote: 'Facility (not booked)', sortOrder: 3, status: 'active' },
+  ];
+  return true;
+}
+
 // useEventCenter — one interface over BOTH backends. mode tells the UI which.
 function useEventCenter() {
   const [mode, setMode] = useState('loading'); // loading | synced | local
   const [access, setAccess] = useState({ signedIn: false, canSee: false, canEdit: false });
+  const [venues, setVenues] = useState([]);
   const [conferences, setConferences] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -79,6 +98,7 @@ function useEventCenter() {
       setAccess(acc);
       if (acc.signedIn && acc.canSee) {
         setMode('synced');
+        unsubs.push(subscribeVenues((r) => !cancelled && setVenues(r)));
         unsubs.push(subscribeConferences((r) => !cancelled && setConferences(r)));
         unsubs.push(subscribeRooms((r) => !cancelled && setRooms(r)));
         unsubs.push(subscribeSessions((r) => !cancelled && setSessions(r)));
@@ -92,6 +112,8 @@ function useEventCenter() {
       } else {
         setMode('local');
         const l = readLocal();
+        if (seedLocalVenues(l)) writeLocal(l);
+        setVenues(l.venues || []);
         setConferences(l.conference ? [l.conference] : []);
         setRooms(l.rooms || []);
         setSessions(l.sessions || []);
@@ -105,6 +127,7 @@ function useEventCenter() {
   useEffect(() => {
     if (mode !== 'local') return;
     const l = readLocal();
+    setVenues(l.venues || []);
     setConferences(l.conference ? [l.conference] : []);
     setRooms(l.rooms || []);
     setSessions(l.sessions || []);
@@ -119,7 +142,7 @@ function useEventCenter() {
   }, []);
 
   return {
-    mode, access, conferences, rooms, sessions, participants, sermons, songs,
+    mode, access, venues, conferences, rooms, sessions, participants, sermons, songs,
     bumpLocal,
   };
 }
@@ -133,8 +156,12 @@ function useFlash() {
 
 export function EventCenterModule() {
   const ec = useEventCenter();
-  const { mode, access, conferences, rooms, sessions, participants, sermons, songs } = ec;
+  const { mode, access, venues, conferences, rooms, sessions, participants, sermons, songs } = ec;
   const [flash, showFlash] = useFlash();
+
+  const activeVenues = useMemo(() => venues.filter((v) => v.status !== 'archived'), [venues]);
+  // Which building is being viewed/managed; 'all' = every building.
+  const [venueFilter, setVenueFilter] = useState('all');
 
   // The active conference: first active row (most churches run one at a time).
   const conference = useMemo(
@@ -150,6 +177,11 @@ export function EventCenterModule() {
     [participants, conference],
   );
   const activeRooms = useMemo(() => rooms.filter((r) => r.status !== 'archived'), [rooms]);
+  // Rooms shown in the Rooms section, filtered to the selected building.
+  const visibleRooms = useMemo(
+    () => (venueFilter === 'all' ? activeRooms : activeRooms.filter((r) => r.venueId === venueFilter)),
+    [activeRooms, venueFilter],
+  );
   const building = useMemo(() => buildingView(confSessions, activeRooms), [confSessions, activeRooms]);
   const mealAgg = useMemo(
     () => aggregateMeals(confParticipants.filter((p) => p.registrationStatus !== 'cancelled')),
@@ -170,10 +202,25 @@ export function EventCenterModule() {
   }, [mode, ec, showFlash]);
 
   // ---- form state -----------------------------------------------------------
-  const [roomForm, setRoomForm] = useState({ name: '', capacity: '', features: '' });
-  const [sessForm, setSessForm] = useState({ day: '', time: '', title: '', speaker: '', sessionType: 'breakout', roomResourceId: '', capacity: '', sermonRef: '', musicSet: [] });
+  const [venueForm, setVenueForm] = useState({ name: '', address: '' });
+  const [showVenueForm, setShowVenueForm] = useState(false);
+  const [roomForm, setRoomForm] = useState({ name: '', capacity: '', features: '', venueId: '', useTypes: [] });
+  const [sessForm, setSessForm] = useState({ day: '', time: '', title: '', speaker: '', sessionType: 'breakout', venueId: '', roomResourceId: '', capacity: '', sermonRef: '', musicSet: [] });
   const [showSessForm, setShowSessForm] = useState(false);
   const [rsvp, setRsvp] = useState({ name: '', mealType: 'Regular', dietary: '', sessionId: '' });
+
+  // Default a room/session's building to the one currently in view.
+  const defaultVenueId = venueFilter !== 'all' ? venueFilter : (activeVenues[0]?.id || '');
+
+  const addVenue = async () => {
+    if (!venueForm.name.trim()) return;
+    await runWrite(
+      () => saveVenue({ name: venueForm.name.trim(), address: venueForm.address.trim(), sortOrder: activeVenues.length }),
+      (l) => { l.venues = [...(l.venues || []), { id: localId('venue'), name: venueForm.name.trim(), address: venueForm.address.trim(), sortOrder: (l.venues || []).length, status: 'active' }]; },
+    );
+    setVenueForm({ name: '', address: '' });
+    setShowVenueForm(false);
+  };
 
   const ensureConference = useCallback(async () => {
     if (conference) return conference;
@@ -193,11 +240,13 @@ export function EventCenterModule() {
     if (!roomForm.name.trim()) return;
     const features = roomForm.features.split(/[,·\n]/).map((s) => s.trim()).filter(Boolean);
     const cap = roomForm.capacity === '' ? null : Number(roomForm.capacity);
+    const venueId = roomForm.venueId || defaultVenueId || null;
+    const useTypes = roomForm.useTypes;
     await runWrite(
-      () => saveRoom({ name: roomForm.name.trim(), capacity: cap, features, sortOrder: activeRooms.length }),
-      (l) => { l.rooms = [...(l.rooms || []), { id: localId('room'), name: roomForm.name.trim(), capacity: cap, features, sortOrder: (l.rooms || []).length, status: 'active' }]; },
+      () => saveRoom({ name: roomForm.name.trim(), capacity: cap, features, useTypes, venueId, sortOrder: activeRooms.length }),
+      (l) => { l.rooms = [...(l.rooms || []), { id: localId('room'), venueId, name: roomForm.name.trim(), capacity: cap, features, useTypes, sortOrder: (l.rooms || []).length, status: 'active' }]; },
     );
-    setRoomForm({ name: '', capacity: '', features: '' });
+    setRoomForm({ name: '', capacity: '', features: '', venueId: roomForm.venueId, useTypes: [] });
   };
   const removeRoom = async (id) => {
     if (!window.confirm('Remove this room?')) return;
@@ -209,10 +258,11 @@ export function EventCenterModule() {
     const conf = await ensureConference();
     if (!conf) return;
     const cap = sessForm.capacity === '' ? null : Number(sessForm.capacity);
+    const venueId = sessForm.venueId || defaultVenueId || null;
     const base = {
       conferenceId: conf.id, day: sessForm.day.trim(), time: sessForm.time.trim(),
       title: sessForm.title.trim(), speaker: sessForm.speaker.trim(),
-      sessionType: sessForm.sessionType, roomResourceId: sessForm.roomResourceId || null,
+      sessionType: sessForm.sessionType, venueId, roomResourceId: sessForm.roomResourceId || null,
       capacity: cap, sermonRef: sessForm.sessionType === 'main_service' ? (sessForm.sermonRef || null) : null,
       musicSet: sessForm.sessionType === 'main_service' ? sessForm.musicSet : [],
     };
@@ -220,7 +270,7 @@ export function EventCenterModule() {
       () => saveSession(base),
       (l) => { l.sessions = [...(l.sessions || []), { ...base, id: localId('sess'), status: 'active', sortOrder: (l.sessions || []).length }]; },
     );
-    setSessForm({ day: sessForm.day, time: '', title: '', speaker: '', sessionType: 'breakout', roomResourceId: '', capacity: '', sermonRef: '', musicSet: [] });
+    setSessForm({ day: sessForm.day, time: '', title: '', speaker: '', sessionType: 'breakout', venueId: sessForm.venueId, roomResourceId: '', capacity: '', sermonRef: '', musicSet: [] });
     setShowSessForm(false);
   };
   const removeSession = async (id) => {
@@ -259,9 +309,6 @@ export function EventCenterModule() {
     );
   }
 
-  const seatLeftRooms = activeRooms.filter((r) => Number.isFinite(r.capacity));
-  const totalBuildingSeats = seatLeftRooms.reduce((n, r) => n + r.capacity, 0);
-
   return (
     <section className={card} aria-labelledby="eventcenter-h">
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -294,31 +341,92 @@ export function EventCenterModule() {
         <p role="alert" className="text-[11px] text-[#B85838] bg-[#FBEFEA] border border-[#E8C4B5] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>{flash}</p>
       )}
 
-      {/* ROOMS — the whole-building inventory */}
+      {/* VENUES — the buildings. Pick one to manage/book it, or see all. */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
         <div className="flex items-baseline justify-between gap-2 mb-2">
-          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">🚪 Rooms · {activeRooms.length}{totalBuildingSeats ? ` · ${totalBuildingSeats} seats` : ''}</h3>
+          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">🏢 Buildings · {activeVenues.length}</h3>
+          {canEdit && <button type="button" onClick={() => setShowVenueForm(!showVenueForm)} className={btnGhost}>{showVenueForm ? '× Cancel' : '+ Add building'}</button>}
+        </div>
+        {canEdit && showVenueForm && (
+          <div className="bg-[#FAF8F4] border border-[#B85838] p-2 mb-2 grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
+            <div className="sm:col-span-2"><label className={labelCls} htmlFor="ec-v-name">Building name</label><input id="ec-v-name" className={fieldCls} placeholder="South Campus Event Center" value={venueForm.name} onChange={(e) => setVenueForm({ ...venueForm, name: e.target.value })} /></div>
+            <div className="sm:col-span-3"><label className={labelCls} htmlFor="ec-v-addr">Address</label><input id="ec-v-addr" className={fieldCls} placeholder="1109 N 4th Street, Champaign, IL" value={venueForm.address} onChange={(e) => setVenueForm({ ...venueForm, address: e.target.value })} /></div>
+            <button type="button" onClick={addVenue} className={`${btnDark} sm:col-span-1`}>Add</button>
+          </div>
+        )}
+        <div className="flex flex-wrap gap-1.5">
+          <button type="button" aria-pressed={venueFilter === 'all'} onClick={() => setVenueFilter('all')}
+            className={`text-[11px] px-2.5 py-1 border ${venueFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>All buildings</button>
+          {activeVenues.map((v) => {
+            const seats = venueSeatTotal(activeRooms, v.id);
+            const on = venueFilter === v.id;
+            return (
+              <button key={v.id} type="button" aria-pressed={on} onClick={() => setVenueFilter(v.id)} title={v.address || v.name}
+                className={`text-[11px] px-2.5 py-1 border ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>
+                {v.name} · {roomsForVenue(activeRooms, v.id).length} {roomsForVenue(activeRooms, v.id).length === 1 ? 'room' : 'rooms'}{seats ? ` · ${seats} seats` : ''}
+              </button>
+            );
+          })}
+        </div>
+        {venueFilter !== 'all' && venueById(activeVenues, venueFilter)?.address && (
+          <p className="text-[10px] text-[#5A5751] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>📍 {venueById(activeVenues, venueFilter).address}</p>
+        )}
+      </div>
+
+      {/* ROOMS — the per-building inventory */}
+      <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">
+            🚪 Rooms{venueFilter !== 'all' ? ` · ${venueById(activeVenues, venueFilter)?.name || ''}` : ''} · {visibleRooms.length}
+          </h3>
         </div>
         {canEdit && (
           <div className="bg-[#FAF8F4] border border-[#B85838] p-2 mb-2 grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
             <div className="col-span-2"><label className={labelCls} htmlFor="ec-room-name">Room name</label><input id="ec-room-name" className={fieldCls} placeholder="Main Sanctuary" value={roomForm.name} onChange={(e) => setRoomForm({ ...roomForm, name: e.target.value })} /></div>
+            <div><label className={labelCls} htmlFor="ec-room-bldg">Building</label>
+              <select id="ec-room-bldg" className={fieldCls} value={roomForm.venueId || defaultVenueId} onChange={(e) => setRoomForm({ ...roomForm, venueId: e.target.value })}>
+                {activeVenues.length === 0 && <option value="">— add a building first —</option>}
+                {activeVenues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+            </div>
             <div><label className={labelCls} htmlFor="ec-room-cap">Capacity</label><input id="ec-room-cap" type="number" min="0" className={fieldCls} placeholder="600" value={roomForm.capacity} onChange={(e) => setRoomForm({ ...roomForm, capacity: e.target.value })} /></div>
-            <div className="col-span-2"><label className={labelCls} htmlFor="ec-room-feat">Features</label><input id="ec-room-feat" className={fieldCls} placeholder="projector · sound · kitchen" value={roomForm.features} onChange={(e) => setRoomForm({ ...roomForm, features: e.target.value })} /></div>
+            <div className="col-span-2 sm:col-span-2"><label className={labelCls} htmlFor="ec-room-feat">Features</label><input id="ec-room-feat" className={fieldCls} placeholder="projector · sound" value={roomForm.features} onChange={(e) => setRoomForm({ ...roomForm, features: e.target.value })} /></div>
+            <div className="col-span-2 sm:col-span-5">
+              <span className={labelCls}>Supports (which module can use this room)</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {USE_TYPES.map((u) => {
+                  const on = roomForm.useTypes.includes(u);
+                  return (
+                    <button key={u} type="button" aria-pressed={on}
+                      onClick={() => setRoomForm({ ...roomForm, useTypes: on ? roomForm.useTypes.filter((x) => x !== u) : [...roomForm.useTypes, u] })}
+                      className={`text-[10px] px-2 py-1 border capitalize ${on ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>
+                      {on ? '✓ ' : ''}{u}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <button type="button" onClick={addRoom} className={`${btnDark} col-span-2 sm:col-span-1`}>Add room</button>
           </div>
         )}
-        {activeRooms.length === 0 ? (
-          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms yet{canEdit ? ' — add the spaces in the building (the main hall, classrooms, fellowship hall) so sessions can be assigned and capacity tracked.' : '.'}</p>
+        {visibleRooms.length === 0 ? (
+          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms in this building yet{canEdit ? ' — add the spaces (main hall, classrooms, fellowship hall, kitchen) and tag what each supports so sessions can be assigned and capacity tracked.' : '.'}</p>
         ) : (
           <ul className="space-y-1">
-            {activeRooms.map((r) => (
-              <li key={r.id} className="flex items-center gap-2 text-xs py-1 border-b border-[#E8E4DC] last:border-0" style={{ fontFamily: '"Fraunces", serif' }}>
-                <span className="font-semibold flex-1 min-w-0">{r.name}</span>
-                <span className="text-[#5A5751]">{Number.isFinite(r.capacity) ? `${r.capacity} seats` : 'capacity —'}</span>
-                {r.features?.length > 0 && <span className="text-[10px] text-[#5A6E3D] hidden sm:inline">{r.features.join(' · ')}</span>}
-                {canEdit && <button type="button" onClick={() => removeRoom(r.id)} aria-label={`Remove ${r.name}`} className="text-[#5A5751] hover:text-[#B85838] px-2">×</button>}
-              </li>
-            ))}
+            {visibleRooms.map((r) => {
+              const venue = venueById(activeVenues, r.venueId);
+              return (
+                <li key={r.id} className="flex items-center gap-2 text-xs py-1 border-b border-[#E8E4DC] last:border-0" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <span className="font-semibold min-w-0">{r.name}</span>
+                  {venueFilter === 'all' && venue && <span className="text-[9px] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1 py-0.5">{venue.name}</span>}
+                  <span className="flex-1 min-w-0 flex flex-wrap gap-1">
+                    {(r.useTypes || []).map((u) => <span key={u} className="text-[9px] uppercase tracking-wider text-[#5A6E3D] border border-[#D6DEC8] px-1 py-0.5 capitalize">{u}</span>)}
+                  </span>
+                  <span className="text-[#5A5751] shrink-0">{Number.isFinite(r.capacity) ? `${r.capacity} seats` : 'capacity —'}</span>
+                  {canEdit && <button type="button" onClick={() => removeRoom(r.id)} aria-label={`Remove ${r.name}`} className="text-[#5A5751] hover:text-[#B85838] px-2">×</button>}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -340,10 +448,17 @@ export function EventCenterModule() {
               </select>
             </div>
             <div><label className={labelCls} htmlFor="ec-s-cap">Capacity</label><input id="ec-s-cap" type="number" min="0" className={fieldCls} placeholder="room default" value={sessForm.capacity} onChange={(e) => setSessForm({ ...sessForm, capacity: e.target.value })} /></div>
-            <div className="col-span-2"><label className={labelCls} htmlFor="ec-s-room">Room</label>
+            <div><label className={labelCls} htmlFor="ec-s-venue">Building</label>
+              <select id="ec-s-venue" className={fieldCls} value={sessForm.venueId || defaultVenueId}
+                onChange={(e) => setSessForm({ ...sessForm, venueId: e.target.value, roomResourceId: '' })}>
+                {activeVenues.length === 0 && <option value="">— add a building —</option>}
+                {activeVenues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+            </div>
+            <div><label className={labelCls} htmlFor="ec-s-room">Room</label>
               <select id="ec-s-room" className={fieldCls} value={sessForm.roomResourceId} onChange={(e) => setSessForm({ ...sessForm, roomResourceId: e.target.value })}>
                 <option value="">— unassigned —</option>
-                {activeRooms.map((r) => <option key={r.id} value={r.id}>{r.name}{Number.isFinite(r.capacity) ? ` (${r.capacity})` : ''}</option>)}
+                {roomsForVenue(activeRooms, sessForm.venueId || defaultVenueId).map((r) => <option key={r.id} value={r.id}>{r.name}{Number.isFinite(r.capacity) ? ` (${r.capacity})` : ''}</option>)}
               </select>
             </div>
             <div><label className={labelCls} htmlFor="ec-s-speaker">Speaker</label><input id="ec-s-speaker" className={fieldCls} placeholder="optional" value={sessForm.speaker} onChange={(e) => setSessForm({ ...sessForm, speaker: e.target.value })} /></div>
@@ -393,6 +508,7 @@ export function EventCenterModule() {
               const count = registrationCount(confParticipants, s.id);
               const st = capacityStatus(count, cap);
               const isMain = isMainServiceSession(s);
+              const venue = venueById(activeVenues, s.venueId);
               const sermon = isMain ? sessionSermon(s, sermons) : null;
               const setSongs = isMain ? sessionSongs(s, songs) : [];
               return (
@@ -402,7 +518,7 @@ export function EventCenterModule() {
                       style={{ borderColor: isMain ? '#B85838' : '#5A6E3D', color: isMain ? '#B85838' : '#5A6E3D' }}>{SESSION_TYPE_LABEL[s.sessionType]}</span>
                     <span className="text-[10px] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{[s.day, s.time].filter(Boolean).join(' · ')}</span>
                     <span className="flex-1 min-w-0 font-semibold">{s.title}{s.speaker ? <span className="text-[#5A5751] font-normal"> — {s.speaker}</span> : null}</span>
-                    {room && <span className="text-[10px] text-[#5A5751] shrink-0">{room.name}</span>}
+                    {(venue || room) && <span className="text-[10px] text-[#5A5751] shrink-0">{[venue?.name, room?.name].filter(Boolean).join(' · ')}</span>}
                     <KpiDot status={st.tone} label={st.label} className="text-[10px] shrink-0" />
                     {canEdit && <button type="button" onClick={() => removeSession(s.id)} aria-label={`Remove ${s.title}`} className="text-[#5A5751] hover:text-[#B85838] px-1">×</button>}
                   </div>
