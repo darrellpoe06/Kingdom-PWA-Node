@@ -54,7 +54,7 @@ export default function OpsBoard() {
             type="button"
             onClick={load}
             disabled={state.phase === 'loading'}
-            className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#1A1815] hover:bg-[#FAF8F4] disabled:opacity-50"
+            className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#1A1815] hover:bg-[#FAF8F4] disabled:opacity-50"
           >
             {state.phase === 'loading' ? 'Reading…' : 'Refresh'}
           </button>
@@ -83,7 +83,7 @@ export default function OpsBoard() {
           {/* In-flight PRs, in suggested land order. */}
           {ordered.length > 0 ? (
             <div className="mb-2">
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">
                 In flight — suggested land order ({ordered.length})
               </div>
               <ul className="space-y-1">
@@ -112,7 +112,7 @@ export default function OpsBoard() {
               </ul>
               {/* Held PRs are deliberately parked out of the lane. */}
               {data.pulls.filter((p) => p.hold).length > 0 && (
-                <p className="text-[10px] text-[#5A5751] mt-1">
+                <p className="text-[0.625rem] text-[#5A5751] mt-1">
                   Parked (<span className="font-semibold">hold</span>):{' '}
                   {data.pulls.filter((p) => p.hold).map((p) => `#${p.number}`).join(', ')} — awaiting review, won't auto-merge.
                 </p>
@@ -125,7 +125,7 @@ export default function OpsBoard() {
           {/* Recently merged into main, with real SHAs. */}
           {data.recentMerges && data.recentMerges.length > 0 && (
             <div className="mb-1">
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Recently landed</div>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Recently landed</div>
               <ul className="space-y-0.5">
                 {data.recentMerges.slice(0, 6).map((c) => (
                   <li key={c.sha} className="text-xs text-[#5A5751]">
@@ -142,9 +142,9 @@ export default function OpsBoard() {
           )}
 
           {data.notice && (
-            <p className="text-[10px] text-[#B85838] mt-1">{data.notice}</p>
+            <p className="text-[0.625rem] text-[#B85838] mt-1">{data.notice}</p>
           )}
-          <p className="text-[9px] text-[#5A5751] mt-2">
+          <p className="text-[0.5625rem] text-[#5A5751] mt-2">
             Live from <span className="font-mono">github.com/{GITHUB_SLUG}</span> · public repo, read-only, no token in the app.
           </p>
         </>

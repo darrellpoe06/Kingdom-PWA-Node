@@ -56,7 +56,7 @@ function ReadinessChip({ status }) {
   const m = READY_META[status] || READY_META.wiring;
   return (
     <span
-      className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wider font-semibold"
+      className="inline-flex items-center gap-1 text-[0.5625rem] uppercase tracking-wider font-semibold"
       style={{ color: m.color, fontFamily: '"JetBrains Mono", monospace' }}
     >
       <span aria-hidden="true">{m.symbol}</span>{m.label}
@@ -75,7 +75,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
     return (
       <div className="space-y-4">
         <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] font-semibold">🔒 Command, Control &amp; Serve Center</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] font-semibold">🔒 Command, Control &amp; Serve Center</div>
           <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             This is the steward&apos;s seat — the cockpit from which the app is built and observed. Access is reserved for the family stewards.
           </p>
@@ -92,10 +92,10 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
           three faculties operate within: command in order to serve. */}
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">
             🕊 Command, Control &amp; Serve Center
           </div>
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] inline-flex items-center gap-1.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] inline-flex items-center gap-1.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
             <span>live build {BUILD_SHA}{BUILD_TIME ? ` · ${BUILD_TIME.slice(0, 10)}` : ''}</span>
             <FreshnessDot />
           </div>
@@ -103,12 +103,12 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           One seat to <strong>see</strong> the whole system, <strong>command</strong> what gets built, <strong>control</strong> the work, and do it all in order to <strong>serve</strong> — the steward at the helm, for the family and the community.
         </p>
-        <div className="mt-2 text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+        <div className="mt-2 text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           <span className="text-[#5A5751]">Seated:</span>{' '}
           <strong>{seat.name || 'Steward'}</strong>
           <span className="text-[#5A5751]"> · {seat.roleLabel}</span>
         </div>
-        <p className="text-[10px] text-[#5A6E3D] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A6E3D] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
           {seat.charge}
         </p>
       </section>
@@ -117,8 +117,8 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
           comment: READ / DECIDE / VERIFY happen in the seat; HAND-OFF crosses
           into the Cage where the three brakes live. "Go" is the steward's. */}
       <section className="bg-[#FAF8F4] border border-[#B85838] p-3">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⛓ Staged &amp; braked — the steward holds the leash</div>
-        <p className="text-[11px] text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⛓ Staged &amp; braked — the steward holds the leash</div>
+        <p className="text-[0.6875rem] text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           {brakeStatusLine()}
         </p>
         <ol className="mt-2 flex flex-wrap items-stretch gap-1.5" aria-label="Self-hosting loop stages">
@@ -128,11 +128,11 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
               className="flex-1 min-w-[120px] border p-2"
               style={{ borderColor: s.inSeat ? '#5A6E3D' : '#B85838', backgroundColor: 'white' }}
             >
-              <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: s.inSeat ? '#5A6E3D' : '#B85838', fontFamily: '"JetBrains Mono", monospace' }}>
+              <div className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: s.inSeat ? '#5A6E3D' : '#B85838', fontFamily: '"JetBrains Mono", monospace' }}>
                 {i + 1}. {s.label}{!s.inSeat && ' →'}
               </div>
-              <div className="text-[10px] text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s.what}</div>
-              <div className="text-[9px] uppercase tracking-wider mt-1" style={{ color: s.inSeat ? '#5A6E3D' : '#B85838' }}>
+              <div className="text-[0.625rem] text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s.what}</div>
+              <div className="text-[0.5625rem] uppercase tracking-wider mt-1" style={{ color: s.inSeat ? '#5A6E3D' : '#B85838' }}>
                 {s.inSeat ? 'in the seat' : 'behind the Cage'}
               </div>
             </li>
@@ -169,13 +169,13 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
       {/* Active faculty header — tagline + honest readiness note. */}
       <section className="bg-white border border-[#1A1815] p-3">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
-          <h3 className="text-[11px] uppercase tracking-[0.25em] font-semibold text-[#1A1815]">
+          <h3 className="text-[0.6875rem] uppercase tracking-[0.25em] font-semibold text-[#1A1815]">
             <span aria-hidden="true" className="mr-1">{activeFaculty.glyph}</span>{activeFaculty.label}
           </h3>
           <ReadinessChip status={ready[activeFaculty.key]?.status} />
         </div>
         <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{activeFaculty.tagline}</p>
-        <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{ready[activeFaculty.key]?.note}</p>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{ready[activeFaculty.key]?.note}</p>
       </section>
 
       {/* SEE — real system + quality state. */}
@@ -215,7 +215,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
                 Open Projects &amp; Build →
               </button>
             </div>
-            <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
               The priorities + discussions cockpit is wiring up in the projects-management lane. When it lands, it composes here in the seat — sequenced so the two builds don&apos;t collide.
             </p>
           </section>
@@ -226,7 +226,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
       {tab === 'serve' && (
         <div className="space-y-3">
           <section className="bg-white border border-[#1A1815] p-4">
-            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🕊 Command in order to serve</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🕊 Command in order to serve</div>
             <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
               The seat exists to <strong>serve and steward</strong>, not to dominate. Every command issued from here answers the same standing test: does this lift the family <em>and</em> the community, and create rather than extract?
             </p>
@@ -239,7 +239,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
         </div>
       )}
 
-      <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Every surface here is a live view of real system state — composed into one seat, not scattered. Status chips show real readiness; a partial faculty says so.
       </p>
     </div>

@@ -95,7 +95,7 @@ function TriviaCard({ signedIn }) {
 
   return (
     <section aria-labelledby="trivia-heading" className="bg-white border border-[#1A1815] p-5 mb-6">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
         Featured Trivia &middot; {SERMON_ANCHOR.reference}
       </div>
       <h3
@@ -108,7 +108,7 @@ function TriviaCard({ signedIn }) {
       <p className="text-xs text-[#5A5751] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
         Two questions from the garden arrest &mdash; John 18. Answer below.
       </p>
-      <p className="text-[11px] text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
         From the message of {fmtAnchor(ANCHOR_ISO)}. Fresh questions will follow the
         pastor&rsquo;s weekly message once the church inbox is connected.
       </p>
@@ -126,7 +126,7 @@ function TriviaCard({ signedIn }) {
               >
                 <span className="text-[#5A5751] mr-1">{i + 1}.</span>
                 {q.prompt}{' '}
-                <span className="text-[11px] uppercase tracking-wider text-[#5A5751]">
+                <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
                   ({q.scripture})
                 </span>
               </label>
@@ -217,7 +217,7 @@ function MessageThread({ signedIn }) {
 
   return (
     <section aria-labelledby="thread-heading" className="bg-white border border-[#1A1815] p-5">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
         Family Thread &middot; Live
       </div>
       <h3
@@ -254,12 +254,12 @@ function MessageThread({ signedIn }) {
                   >
                     {m.displayName}
                     {m.mine && (
-                      <span className="text-[10px] uppercase tracking-wider text-[#5A5751] ml-1">
+                      <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-1">
                         (you)
                       </span>
                     )}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-[#5A5751] ml-2">
+                  <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-2">
                     {formatTime(m.createdAt)}
                   </span>
                   <p className="text-[#1A1815] break-words" style={{ fontFamily: '"Fraunces", serif' }}>

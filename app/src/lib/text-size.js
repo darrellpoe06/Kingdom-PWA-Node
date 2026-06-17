@@ -13,8 +13,16 @@
 // proportionally from a single setting — the clean, WCAG-correct approach, not
 // per-component overrides. This is a shared-core / shell accessibility primitive:
 // set once, every feature module inherits it for free (hybrid-modular direction,
-// DR-0078). Small fixed-px chrome labels (badges, uppercase tracking) intentionally
-// stay put so layout does not break; the reading-critical body text scales.
+// DR-0078). ONE universal control lives in the app header (no per-module duplicate).
+//
+// Coverage rule (decided by Darrell 2026-06-17): text in a reading surface that
+// did NOT grow at A+++ was a bug — small fixed-px labels (text-[10px] etc.) are
+// absolute px and do not inherit the root scale. The fix is to author those as
+// rem at the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical
+// at Normal, but now scaling with the control. Converted across the named reading
+// surfaces (The Word, Engagement, the Center/ops boards, Choir); flex-wrap layouts
+// absorb the 1.5x at Largest, so nothing shatters. New reading text uses rem, never
+// fixed px. (Deep-chrome px in the financial monolith stays a tracked follow-up.)
 //
 // Persistence is PER DEVICE in localStorage (process-don't-store default), kept
 // separate from the cloud-synced theme so a member sets it ONCE on their own

@@ -268,7 +268,7 @@ function DiscussionCard({ d, projectTitle, canManage, onEdit, onStatus, onDelete
       {(d.links && (d.links.study_ref || d.links.dr_ref)) && (
         <div className="text-[10px] text-[#5A5751] mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
           {d.links.dr_ref && <span><span className="uppercase tracking-wider text-[#5A4A2E]">⚖ Ledger · </span>{d.links.dr_ref}</span>}
-          {d.links.study_ref && <span><span className="uppercase tracking-wider text-[#7A5A8E]">🕮 Study · </span>{d.links.study_ref}</span>}
+          {d.links.study_ref && <span><span className="uppercase tracking-wider text-[#7A5A8E]">📓 Study · </span>{d.links.study_ref}</span>}
         </div>
       )}
 

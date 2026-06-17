@@ -44,7 +44,7 @@ const serviceLabel = (t) => (t === 'rehearsal' ? 'Thursday rehearsal' : t === 's
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
-const LABEL = 'text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1';
+const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 
 // -----------------------------------------------------------------------------
 // Song display (link + collapsible embedded video)
@@ -63,7 +63,7 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{song.title}</span>
-          {song.scriptureRef && <span className="text-[11px] text-[#5A5751]">{song.scriptureRef}</span>}
+          {song.scriptureRef && <span className="text-[0.6875rem] text-[#5A5751]">{song.scriptureRef}</span>}
         </div>
         <div className="flex items-center gap-2">
           {embed && (
@@ -80,7 +80,7 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
           {canEdit && onDelete && <button type="button" onClick={() => onDelete(song)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
         </div>
       </div>
-      {song.notes && <p className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{song.notes}</p>}
+      {song.notes && <p className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{song.notes}</p>}
       {wordsOpen && song.lyrics && (
         <pre className="mt-2 p-2 bg-[#FAF8F4] border border-[#E8E4DC] text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{song.lyrics}</pre>
       )}
@@ -123,7 +123,7 @@ function SongForm({ initial, onSave, onCancel, busy }) {
   const save = () => onSave({ ...f, startSeconds: parseTimecode(f.startTime) });
   return (
     <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit song' : 'Add song'}</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit song' : 'Add song'}</div>
       <div><label className={LABEL} htmlFor="cs-title">Title</label><input id="cs-title" className={FIELD} value={f.title} onChange={set('title')} placeholder="Song title" /></div>
       <div><label className={LABEL} htmlFor="cs-yt">YouTube link (the video the choir learns from)</label><input id="cs-yt" className={FIELD} value={f.youtubeUrl} onChange={set('youtubeUrl')} placeholder="https://youtu.be/…" /></div>
       <div className="grid grid-cols-3 gap-2">
@@ -164,7 +164,7 @@ function ServiceForm({ initial, onSave, onCancel, busy }) {
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   return (
     <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit date' : 'Add to schedule'}</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit date' : 'Add to schedule'}</div>
       <div className="grid grid-cols-2 gap-2">
         <div><label className={LABEL} htmlFor="cv-date">Date</label><input id="cv-date" type="date" className={FIELD} value={f.serviceDate} onChange={set('serviceDate')} /></div>
         <div><label className={LABEL} htmlFor="cv-type">Type</label>
@@ -195,7 +195,7 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
   return (
     <div className="bg-white border border-[#1A1815] p-3">
       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{serviceLabel(svc.serviceType)} · {fmtDate(svc.serviceDate)}{svc.title ? ` · ${svc.title}` : ''}</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{serviceLabel(svc.serviceType)} · {fmtDate(svc.serviceDate)}{svc.title ? ` · ${svc.title}` : ''}</div>
         <div className="flex items-center gap-2">
           {svc.youtubeUrl && <a href={svc.youtubeUrl} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>▶ Watch service</a>}
           {canEdit && !past && <button type="button" onClick={() => onAddSong(svc)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Add song</button>}
@@ -204,7 +204,7 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
       {list.length ? list.map((s) => <SongRow key={s.id} song={s} canEdit={canEdit} onEdit={past ? null : onEditSong} onDelete={past ? null : onDeleteSong} onReuse={onReuse} />)
         : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No songs {past ? 'recorded' : 'assigned'} yet.</p>}
       {!past && out.length > 0 && (
-        <p className="text-[11px] text-[#991B1B] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.6875rem] text-[#991B1B] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Out this day: {out.map((a) => a.memberName + (a.backupName ? ` (backup: ${a.backupName}${a.backupStatus === 'confirmed' ? ' ✓' : ''})` : '')).join(', ')}
         </p>
       )}
@@ -229,7 +229,7 @@ function ThisWeekPanel({ schedule, songs, absences, canEdit, onAddSong, onEditSo
         if (!group.length) return null;
         return (
           <div key={bucket}>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] mb-2">{label}</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] mb-2">{label}</div>
             <div className="space-y-3">
               {group.map((svc) => (
                 <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} />
@@ -250,7 +250,7 @@ function ThisWeekPanel({ schedule, songs, absences, canEdit, onAddSong, onEditSo
           </button>
           {showPast && (
             <div className="space-y-3 mt-2">
-              <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past Sunday to see what was sung, watch the service, and reuse a song onto a future date.</p>
+              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past Sunday to see what was sung, watch the service, and reuse a song onto a future date.</p>
               {past.map((svc) => (
                 <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onReuse={onReuse} past />
               ))}
@@ -273,7 +273,7 @@ function SchedulePanel({ schedule, canEdit, onAdd, onEdit, onDelete }) {
             <div key={svc.id} className="flex items-baseline justify-between gap-2 flex-wrap p-3 border-b border-[#E8E4DC]">
               <div>
                 <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtDate(svc.serviceDate)}</span>
-                <span className="text-[11px] text-[#5A5751] ml-2">{serviceLabel(svc.serviceType)}{svc.title ? ` · ${svc.title}` : ''}</span>
+                <span className="text-[0.6875rem] text-[#5A5751] ml-2">{serviceLabel(svc.serviceType)}{svc.title ? ` · ${svc.title}` : ''}</span>
               </div>
               {canEdit && (
                 <div className="flex gap-2">
@@ -299,7 +299,7 @@ function MessagesPanel({ messages, onSend }) {
       <div className="bg-white border border-[#1A1815] p-3 max-h-80 overflow-y-auto" aria-live="polite">
         {messages.length ? messages.map((m) => (
           <div key={m.id} className={`mb-2 ${m.mine ? 'text-right' : ''}`}>
-            <div className="text-[10px] text-[#5A5751]">{m.displayName}{m.createdAt ? ` · ${new Date(m.createdAt).toLocaleString()}` : ''}</div>
+            <div className="text-[0.625rem] text-[#5A5751]">{m.displayName}{m.createdAt ? ` · ${new Date(m.createdAt).toLocaleString()}` : ''}</div>
             <div className={`inline-block px-2 py-1 text-sm ${m.mine ? 'bg-[#1A1815] text-white' : 'bg-[#FAF8F4] border border-[#E8E4DC]'}`} style={{ fontFamily: '"Fraunces", serif' }}>{m.body}</div>
           </div>
         )) : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No messages yet. Post the week's focus for the choir to review.</p>}
@@ -329,8 +329,8 @@ function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
     <div>
       {canEdit && onInvite && (
         <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-3 mb-3">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Invite a member to the choir</div>
-          <p className="text-[11px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Send an email invite. When they sign in to PoeTech they'll see the Choir tab. Use "Co-director" for someone who should edit.</p>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Invite a member to the choir</div>
+          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Send an email invite. When they sign in to PoeTech they'll see the Choir tab. Use "Co-director" for someone who should edit.</p>
           <div className="flex items-end gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]"><label className={LABEL} htmlFor="ci-email">Email</label><input id="ci-email" type="email" className={FIELD} value={inv.email} onChange={(e) => setInv((p) => ({ ...p, email: e.target.value }))} placeholder="member@email.com" /></div>
             <div><label className={LABEL} htmlFor="ci-role">Access</label>
@@ -340,7 +340,7 @@ function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
             </div>
             <button type="button" disabled={!inv.email.trim()} onClick={sendInvite} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Invite</button>
           </div>
-          {invMsg && <p className="text-[11px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{invMsg}</p>}
+          {invMsg && <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{invMsg}</p>}
         </div>
       )}
       {canEdit && (adding ? (
@@ -370,7 +370,7 @@ function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
             <div key={m.id} className="flex items-baseline justify-between gap-2 p-3 border-b border-[#E8E4DC]">
               <div>
                 <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.displayName}</span>
-                <span className="text-[11px] text-[#5A5751] ml-2">{[m.section, m.choirRole !== 'member' ? roleLabel(m.choirRole) : null].filter(Boolean).join(' · ')}</span>
+                <span className="text-[0.6875rem] text-[#5A5751] ml-2">{[m.section, m.choirRole !== 'member' ? roleLabel(m.choirRole) : null].filter(Boolean).join(' · ')}</span>
               </div>
               {canEdit && <button type="button" onClick={() => onRemove(m)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
             </div>
@@ -415,7 +415,7 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Let the choir know when you'll be out and request a backup to cover your part. The list shows everyone scheduled out so the director can plan ahead.</p>
       {open ? (
         <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 mb-3">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Schedule time out</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Schedule time out</div>
           <div>
             <label className={LABEL} htmlFor="av-who">Who's out</label>
             <select id="av-who" className={FIELD} value={f.memberId} onChange={(e) => setF((p) => ({ ...p, memberId: e.target.value, backupMemberId: '' }))}>
@@ -434,7 +434,7 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
               <option value="">No backup requested</option>
               {suggestions.map((m) => <option key={m.id} value={m.id}>{m.displayName}{m.section ? ` (${m.section})` : ''}</option>)}
             </select>
-            {f.memberId !== '' && !suggestions.length && <p className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No same-section members are free that day.</p>}
+            {f.memberId !== '' && !suggestions.length && <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No same-section members are free that day.</p>}
           </div>
           <div className="flex gap-2">
             <button type="button" disabled={!f.startDate} onClick={submit} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Schedule out</button>
@@ -449,11 +449,11 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
             <div key={a.id} className="p-3 border-b border-[#E8E4DC]">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{a.memberName}</span>
-                <span className="text-[11px] text-[#5A5751]">{fmtDate(a.startDate)}{a.endDate && a.endDate !== a.startDate ? ` – ${fmtDate(a.endDate)}` : ''}</span>
+                <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(a.startDate)}{a.endDate && a.endDate !== a.startDate ? ` – ${fmtDate(a.endDate)}` : ''}</span>
               </div>
-              {a.reason && <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{a.reason}</p>}
+              {a.reason && <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{a.reason}</p>}
               {a.backupName && (
-                <p className="text-[11px] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                <p className="text-[0.6875rem] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                   Backup: <strong>{a.backupName}</strong>{' '}
                   <span className={a.backupStatus === 'confirmed' ? 'text-[#166534]' : a.backupStatus === 'declined' ? 'text-[#991B1B]' : 'text-[#5A5751]'}>· {a.backupStatus}</span>
                 </p>
@@ -502,7 +502,7 @@ function ResourcesPanel({ resources, canEdit, onAdd, onDelete }) {
               <div>
                 {r.url ? <a href={r.url} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</a>
                   : <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</span>}
-                {r.note && <span className="text-[11px] text-[#5A5751] ml-2">{r.note}</span>}
+                {r.note && <span className="text-[0.6875rem] text-[#5A5751] ml-2">{r.note}</span>}
               </div>
               {canEdit && <button type="button" onClick={() => onDelete(r)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
             </div>
@@ -550,9 +550,9 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
           {docs.map((d) => (
             <div key={d.id} className="flex items-baseline justify-between gap-2 p-3 border-b border-[#E8E4DC]">
               <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-[9px] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{teamTypeLabel(d.docType)}</span>
+                <span className="text-[0.5625rem] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{teamTypeLabel(d.docType)}</span>
                 <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.title}</span>
-                {d.docDate && <span className="text-[11px] text-[#5A5751]">{fmtDate(d.docDate)}</span>}
+                {d.docDate && <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(d.docDate)}</span>}
               </div>
               <div className="flex gap-2">
                 {d.documentUrl && <button type="button" onClick={() => open(d)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Open</button>}
