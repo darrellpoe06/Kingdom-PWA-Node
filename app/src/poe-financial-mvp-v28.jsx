@@ -187,17 +187,32 @@ export const SEED_DATA = {
     { id: 'e-tlc',      name: 'Wellness Counseling Practice LLC', type: 'business', notes: "Naomi's MSW practice", visibleTo: ['darrell', 'christina'] },
   ],
   accounts: [
-    { id: 'a-chase-pers-8168', entityId: 'e-personal', name: 'Personal Checking A', institution: 'Bank A', type: 'checking', fragment: '...8168', balance: 4223 },
-    { id: 'a-chase-pers-3322', entityId: 'e-personal', name: 'Personal Checking B', institution: 'Bank A', type: 'checking', fragment: '...3322', balance: 1200 },
-    { id: 'a-cc-amex-dp', entityId: 'e-personal', name: 'Card J (Adam)', institution: 'Card J', type: 'credit', fragment: '...AD', balance: -19811 },
-    { id: 'a-cc-chase-freedom', entityId: 'e-personal', name: 'Card F (Rewards)', institution: 'Bank A', type: 'credit', fragment: '', balance: -12992 },
-    { id: 'a-cc-chase-sapph', entityId: 'e-personal', name: 'Card F (Travel)', institution: 'Bank A', type: 'credit', fragment: '', balance: -29948 },
-    { id: 'a-poeprops-op', entityId: 'e-poeprops', name: 'Steward RE Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0 },
-    { id: 'a-poetech-op', entityId: 'e-poetech', name: 'Cornerstone Tech Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0 },
-    { id: 'a-poetech-cc', entityId: 'e-poetech', name: 'Business Card A', institution: 'Bank B', type: 'credit', fragment: '...6281', balance: -7308 },
-    { id: 'a-tlc-op', entityId: 'e-tlc', name: 'Wellness Practice Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0 },
+    // `openingBalance` = the account's balance at the start of its transaction
+    // ledger. The displayed "Right now" balance is DERIVED: openingBalance +
+    // sum of that account's cleared (settled) transactions. See the derived-
+    // balance block in the Books → Tx component. The seed openings are set so
+    // the derived "now" matches the intended display on first load, then moves
+    // as real entries clear. Chase ...8168 opens at -130.29 because its cleared
+    // seed history nets +4,353.29 → derived now = 4,223. Accounts with no seed
+    // transactions open at their balance (cleared sum = 0 → now = opening).
+    { id: 'a-chase-pers-8168', entityId: 'e-personal', name: 'Personal Checking A', institution: 'Bank A', type: 'checking', fragment: '...8168', balance: 4223, openingBalance: -130.29 },
+    { id: 'a-chase-pers-3322', entityId: 'e-personal', name: 'Personal Checking B', institution: 'Bank A', type: 'checking', fragment: '...3322', balance: 1200, openingBalance: 1200 },
+    { id: 'a-cc-amex-dp', entityId: 'e-personal', name: 'Card J (Adam)', institution: 'Card J', type: 'credit', fragment: '...AD', balance: -19811, openingBalance: -19811 },
+    { id: 'a-cc-chase-freedom', entityId: 'e-personal', name: 'Card F (Rewards)', institution: 'Bank A', type: 'credit', fragment: '', balance: -12992, openingBalance: -12992 },
+    { id: 'a-cc-chase-sapph', entityId: 'e-personal', name: 'Card F (Travel)', institution: 'Bank A', type: 'credit', fragment: '', balance: -29948, openingBalance: -29948 },
+    { id: 'a-poeprops-op', entityId: 'e-poeprops', name: 'Steward RE Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0, openingBalance: 0 },
+    { id: 'a-poetech-op', entityId: 'e-poetech', name: 'Cornerstone Tech Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0, openingBalance: 0 },
+    { id: 'a-poetech-cc', entityId: 'e-poetech', name: 'Business Card A', institution: 'Bank B', type: 'credit', fragment: '...6281', balance: -7308, openingBalance: -7308 },
+    { id: 'a-tlc-op', entityId: 'e-tlc', name: 'Wellness Practice Operating', institution: 'TBD', type: 'checking', fragment: 'TBD', balance: 0, openingBalance: 0 },
   ],
   transactions: [
+    // Older settled history (dated back ~75 days from the demo "today" of
+    // 2026-05-15) so the trailing -30/-60/-90 actuals are REAL per-period sums
+    // that differ by window instead of one repeated constant. These are part of
+    // the ...8168 cleared ledger that derives its "Right now" balance.
+    { id: 't-h90', date: '2026-03-05', accountId: 'a-chase-pers-8168', amount: -1450.00, description: 'Mortgage payment', category: 'housing' },
+    { id: 't-h60', date: '2026-04-02', accountId: 'a-chase-pers-8168', amount: -842.17, description: 'Groceries + household', category: 'groceries' },
+    { id: 't-h30', date: '2026-04-20', accountId: 'a-chase-pers-8168', amount: -520.00, description: 'Utilities (gas + electric)', category: 'utilities' },
     { id: 't1', date: '2026-05-01', accountId: 'a-chase-pers-8168', amount: 500.00, description: 'Online Transfer from CHK ...8168', category: 'transfer', isTransfer: true },
     { id: 't5', date: '2026-05-04', accountId: 'a-chase-pers-8168', amount: 1150.00, description: 'Zelle from TENANT A (rent)', category: 'rental-income', entityOverride: 'e-poeprops' },
     { id: 't7', date: '2026-05-06', accountId: 'a-chase-pers-8168', amount: 2099.93, description: 'Regional University Payroll', category: 'salary' },
@@ -229,6 +244,14 @@ export const SEED_DATA = {
     { id: 'ro-msw-license', name: 'Naomi MSW license renewal', amount: 208, frequency: 'biennial', nextDue: '2027-11-30', entityId: 'e-tlc', category: 'professional', enabled: true },
     { id: 'ro-ceu-msw', name: 'CEU costs (Naomi MSW)', amount: 500, frequency: 'annual', nextDue: '2026-11-01', entityId: 'e-tlc', category: 'professional', enabled: true },
     { id: 'ro-state-farm', name: 'State Farm — home + auto', amount: 823, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-personal', category: 'insurance', enabled: true },
+    // Personal bill-pay obligations attributed to the ...8168 bill-pay account
+    // via `accountId` so they flow into that account's "after upcoming" card and
+    // its forward 30/60/90 forecast. Spread across the three horizons (≤30d,
+    // 30-60d, 60-90d) so the projected columns are genuinely different. The -65
+    // Phone charge is the nearest, so +30d differs from "Right now" by exactly it.
+    { id: 'ro-phone', name: 'Phone (family plan)', amount: 65, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-personal', category: 'utilities', enabled: true, accountId: 'a-chase-pers-8168' },
+    { id: 'ro-est-tax-q2', name: 'Estimated tax — Q2', amount: 1200, frequency: 'quarterly', nextDue: '2026-07-01', entityId: 'e-personal', category: 'tax', enabled: true, accountId: 'a-chase-pers-8168' },
+    { id: 'ro-hoa', name: 'HOA dues (semi-annual)', amount: 410, frequency: 'semi-annual', nextDue: '2026-08-01', entityId: 'e-personal', category: 'housing', enabled: true, accountId: 'a-chase-pers-8168' },
   ],
   // Round 10 — incidents extended with ITSM urgency taxonomy. Old records
   // without these fields keep working; the storage migration backfills sane
@@ -8556,6 +8579,10 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
         description: r.name,
         amount: -Math.abs(r.amount),
         category: r.category || 'subscription',
+        // Carry the obligation's account through so it flows into that account's
+        // "after upcoming" projection and forward forecast. Obligations without
+        // an accountId stay unattributed (counted in totals, not per-account).
+        accountId: r.accountId,
         _source: 'recurring',
         _frequency: r.frequency,
         _entityId: r.entityId,
@@ -8565,8 +8592,20 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
 
   const upcoming = [...futureTx.map(t => ({ ...t, _source: 'transaction' })), ...recurringUpcoming].sort((a, b) => a.date.localeCompare(b.date));
 
-  // Per-account current balance lookup
-  const balanceByAccount = (data.accounts || []).reduce((acc, a) => { acc[a.id] = a.balance; return acc; }, {});
+  // DERIVED balances — every "Right now" figure recomputes from underlying
+  // transactions, never a stored literal. "Right now" = openingBalance + the
+  // sum of that account's CLEARED (settled, date <= today) transactions. Any
+  // real entry added later flows through here and moves every dependent figure
+  // (the primary card, inline per-row "(now $X)", and the 30/60/90 forecast).
+  // openingBalance falls back to the stored `balance` for accounts that predate
+  // the field (and for user-created accounts with no ledger yet → now = balance).
+  const clearedByAccount = (data.transactions || []).reduce((acc, t) => {
+    if (!t.accountId || !t.date || t.date > todayISO) return acc;
+    acc[t.accountId] = (acc[t.accountId] || 0) + (t.amount || 0);
+    return acc;
+  }, {});
+  const liveBalance = (a) => (a.openingBalance != null ? a.openingBalance : (a.balance || 0)) + (clearedByAccount[a.id] || 0);
+  const balanceByAccount = (data.accounts || []).reduce((acc, a) => { acc[a.id] = liveBalance(a); return acc; }, {});
 
   // For Upcoming: walk transactions chronologically per account, tracking
   // projected running balance so each row can show what the account will
@@ -8608,11 +8647,15 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
     const cashAccounts = (data.accounts || []).filter(a => CASH_ACCOUNT_TYPES.includes(a.type));
     const perAccount = {};
     cashAccounts.forEach(a => {
+      // "Now" and the forward windows seed from the DERIVED balance (opening +
+      // cleared history), not the stored literal, so the forecast moves with the
+      // ledger and ties out to the primary card's "Right now".
+      const now = liveBalance(a);
       perAccount[a.id] = {
         id: a.id, name: a.name, fragment: a.fragment, type: a.type,
-        balance: a.balance, isPrimary: !!a.isPrimary,
+        balance: now, isPrimary: !!a.isPrimary,
         // forward windows
-        w30: a.balance, w60: a.balance, w90: a.balance,
+        w30: now, w60: now, w90: now,
         // backward windows — net cash movement over the prior period (sum of actuals)
         a30: 0, a60: 0, a90: 0,
       };
@@ -8967,9 +9010,11 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
       {(() => {
         const primary = (data.accounts || []).find(a => a.isPrimary) || (data.accounts || []).find(a => a.type === 'checking') || (data.accounts || [])[0];
         if (!primary) return null;
-        // Project after all upcoming charges that hit this account
+        // "Right now" is DERIVED from this account's cleared ledger, not the
+        // stored literal. Then project after all upcoming charges that hit it.
+        const rightNow = liveBalance(primary);
         const futureImpact = upcoming.filter(t => t.accountId === primary.id).reduce((s, t) => s + (t.amount || 0), 0);
-        const projected = primary.balance + futureImpact;
+        const projected = rightNow + futureImpact;
         return (
           <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
@@ -8982,7 +9027,7 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
             <div className="grid grid-cols-2 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
               <div className="bg-white p-3">
                 <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Right now</div>
-                <div className={`text-2xl ${primary.balance < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(primary.balance)}</div>
+                <div className={`text-2xl ${rightNow < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(rightNow)}</div>
               </div>
               <div className="bg-white p-3">
                 <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">After upcoming charges clear</div>
