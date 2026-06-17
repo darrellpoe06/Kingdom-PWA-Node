@@ -19,6 +19,7 @@
 // labelled inputs, aria-live status.
 import React, { useEffect, useState } from 'react';
 import supabase, { signInWithGoogle, signUpWithPassword, validateCredentials } from '../lib/supabase.js';
+import { signInWithGooglePopup } from '../lib/oauth-popup.js';
 import { setPendingConferenceLink, resolvePendingConferenceLink, claimConferenceRegistration } from '../lib/conference-link.js';
 
 const labelCls = 'block text-xs font-semibold text-[#1A1815] mb-1';
@@ -55,8 +56,24 @@ export default function ConferenceAccountOnRamp({ regId = null, name = '', email
 
   const startGoogle = async () => {
     setError('');
-    // Park the link BEFORE redirecting; the full app claims it on the way back.
+    // Park the link FIRST so it resolves whether we sign in via the in-place
+    // popup OR fall back to a full-page redirect.
     setPendingConferenceLink(regId);
+    let res;
+    try {
+      res = await signInWithGooglePopup();
+    } catch {
+      res = { error: { message: 'Could not start Google sign-in.' } };
+    }
+    if (res && res.ok) {
+      // Signed in WITHOUT leaving the page — claim the parked registration now.
+      const linked = await resolvePendingConferenceLink();
+      setState(linked && linked.ok ? 'linked' : 'email-sent');
+      return;
+    }
+    if (res && res.cancelled) return; // popup closed without signing in — stay on the offer
+    // Popup blocked/unsupported/failed: classic full-page redirect. The link is
+    // already parked, so the full app claims it on return.
     try {
       const { error: oauthErr } = await signInWithGoogle();
       if (oauthErr) setError(oauthErr.message || 'Could not start Google sign-in — please try again, or use email below.');
