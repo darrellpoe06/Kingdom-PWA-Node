@@ -1,6 +1,6 @@
 // =============================================================================
 // conference-link-guard — deterministic link-safety / no-leak gate for the
-// conference registration -> optional account on-ramp (0027 + 0031).
+// conference registration -> optional account on-ramp (0027 + 0032).
 // DR-0076: prove it, don't claim it. DR-0060: proven-to-catch.
 // =============================================================================
 // The funnel links a public conference registration to a PoeTech account WITHOUT
@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MIGRATIONS = [
   join(ROOT, 'infra/supabase/migrations-auto/0027-conference-public-registration.sql'),
-  join(ROOT, 'infra/supabase/migrations-auto/0031-conference-registration-account-link.sql'),
+  join(ROOT, 'infra/supabase/migrations-auto/0032-conference-registration-account-link.sql'),
 ];
 
 export const REG_TABLE = 'conference_public_registrations';

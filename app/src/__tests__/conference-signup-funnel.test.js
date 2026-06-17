@@ -2,7 +2,7 @@
 // conference signup FUNNEL — open registration + OPTIONAL account on-ramp
 // =============================================================================
 // Proves the funnel contract (Darrell 2026-06-17) against a faithful model of the
-// 0027 + 0031 RLS/RPC behavior (NOT a live cloud round-trip — that needs a
+// 0027 + 0032 RLS/RPC behavior (NOT a live cloud round-trip — that needs a
 // service-role key; the live closed-loop is verified separately and reported):
 //
 //   1. OPEN register WITHOUT an account works — and returns a row id to link with.
@@ -201,7 +201,7 @@ describe('funnel step 5 — pending link survives the OAuth redirect round-trip'
 
 // --- the structural guard + proven-to-catch (DR-0060) ------------------------
 describe('conference-link guard — link is self-scoped + leak-proof (real migrations)', () => {
-  it('PASSES on the shipped 0027 + 0031 migrations', () => {
+  it('PASSES on the shipped 0027 + 0032 migrations', () => {
     const { ok, problems } = scanConferenceLink();
     expect(ok, problems.join('; ')).toBe(true);
   });

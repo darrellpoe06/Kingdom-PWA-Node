@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0031 — conference registration -> optional account ON-RAMP (the funnel)
+-- 0032 — conference registration -> optional account ON-RAMP (the funnel)
 -- =============================================================================
 -- Declared by Darrell 2026-06-17. The open, no-login congregation registration
 -- (0027) is the easy front door and STAYS exactly as frictionless as it is. This
