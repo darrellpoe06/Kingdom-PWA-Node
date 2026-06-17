@@ -88,6 +88,7 @@ import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
+import { isReconciled } from './lib/reconciliation.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -8754,6 +8755,17 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
                 ✓ bank-confirmed
               </span>
             )}
+            {/* Stored, evidence-backed reconciliation (migration 0036). Only
+                paints when the itemized invoices actually roll up to this one
+                debit (isReconciled) — a green badge always means the math held.
+                Sits beside the derived bank-confirmed badge above. */}
+            {t.reconciliation?.matched && isReconciled(t.reconciliation, t.amount) && (
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                style={{ backgroundColor: '#16A34A22', color: '#16A34A', border: '1px solid #16A34A' }}
+                title={`Reconciled to the bank withdrawal${(t.reconciliation.matched_to || []).includes('email') ? ' (confirmed by receipt email)' : ''}. ${(t.reconciliation.orders || []).length} invoice(s) roll up to ${fmt(t.reconciliation.total)}.`}>
+                ✓ matched to bank{(t.reconciliation.matched_to || []).includes('email') ? ' · email' : ''}
+              </span>
+            )}
             {t._status && t._source === 'bank-ingest' && t._status !== 'unknown' && (
               <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
                 style={{
@@ -8766,6 +8778,30 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
               </span>
             )}
           </div>
+          {/* Invoice rollup (migration 0036): one bank debit, several merchant
+              invoices. Shows that the parts sum to the whole so the single
+              ledger amount is never mistaken for triple-counting. */}
+          {t.reconciliation?.matched && Array.isArray(t.reconciliation.orders) && t.reconciliation.orders.length > 0 && (
+            <details className="mt-1 text-[11px]">
+              <summary className="cursor-pointer text-[#5A5751] hover:text-[#1A1815] select-none" style={{ fontFamily: '"Fraunces", serif' }}>
+                {t.reconciliation.orders.length} invoices → one {t.reconciliation.method === 'visa-debit' ? 'debit' : 'charge'}{t.reconciliation.card_last4 ? ` ···${t.reconciliation.card_last4}` : ''} · {fmt(t.reconciliation.total)}
+              </summary>
+              <div className="mt-1 pl-3 border-l-2 border-[#E8E4DC] space-y-1">
+                {t.reconciliation.orders.map((o, oi) => (
+                  <div key={oi} className="flex items-baseline justify-between gap-2">
+                    <span className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {o.patient ? `${o.patient} · ` : ''}{o.lines && o.lines.length ? o.lines.join(' + ') : (o.order ? `Order ${o.order}` : 'Invoice')}
+                    </span>
+                    <span className="text-[#1A1815] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(o.paid)}</span>
+                  </div>
+                ))}
+                <div className="flex items-baseline justify-between gap-2 pt-1 border-t border-[#E8E4DC] font-semibold">
+                  <span className="uppercase tracking-wider text-[9px] text-[#5A6E3D]">rolls up to bank debit</span>
+                  <span className="text-[#5A6E3D] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(t.reconciliation.total)}</span>
+                </div>
+              </div>
+            </details>
+          )}
           {afterBal !== null && (() => {
             const short = shortfallFor(t);
             return (

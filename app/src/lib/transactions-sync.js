@@ -15,6 +15,7 @@
 //     account_id (uuid, populated by trigger from account_slug),
 //     txn_date, amount, description, category, is_transfer,
 //     entity_override (uuid), linked_to_kind, linked_to_id,
+//     reconciliation (jsonb — bank-match attestation + invoice rollup, 0036),
 //     slug, account_slug, entity_override_slug }
 // =============================================================================
 import { createTableSync } from './table-sync.js';
@@ -35,6 +36,7 @@ export const transactionsSync = createTableSync({
       description:          item.description ?? null,
       category:             item.category ?? null,
       is_transfer:          !!item.isTransfer,
+      reconciliation:       item.reconciliation ?? null,
     };
   },
 
@@ -50,6 +52,7 @@ export const transactionsSync = createTableSync({
       description:    row.description,
       category:       row.category,
       isTransfer:     !!row.is_transfer,
+      reconciliation: row.reconciliation ?? null,
       updatedAt:      row.updated_at,
       createdAt:      row.created_at,
     };
