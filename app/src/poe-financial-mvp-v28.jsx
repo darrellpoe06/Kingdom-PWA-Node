@@ -56,6 +56,7 @@ import { debtsSync } from './lib/debts-sync.js';
 import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from './lib/discussions-sync.js';
+import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
@@ -81,6 +82,8 @@ import CommandServeCenter from './components/CommandServeCenter.jsx';
 import ChurchVideoWall from './components/ChurchVideoWall.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
+import CreationWorkspace from './components/CreationWorkspace.jsx';
+import SectionBoundary from './components/SectionBoundary.jsx';
 import Study from './components/Study.jsx';
 import { Queue } from './components/Queue.jsx';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -1702,7 +1705,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin','center'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','admin','center'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -2795,6 +2798,9 @@ export default function PoeFinancialSystem() {
         // Discussions (0035) — the discuss-then-document records that drive
         // projects, pooled to the family instance the same proven way.
         { sync: discussionsSync,  key: 'discussions',  localList: (latest.discussions || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteDiscussions },
+        // Creation Workspaces (0037) — composed documents/images, pooled to the
+        // family instance the same proven way so a document opens on any device.
+        { sync: workspacesSync,   key: 'workspaces',   localList: (latest.workspaces || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteWorkspaces },
         { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
         // v2.13 — the QC record (work orders + dispatch + lifecycle trail)
         // and the shared 1099 worker roster pool to the family instance.
@@ -3168,6 +3174,53 @@ export default function PoeFinancialSystem() {
       }
     }
     setData(d => ({ ...d, discussions: (d.discussions || []).filter(x => x.id !== id) }));
+  };
+
+  // ---- Creation Workspaces (0037) — the in-app document / image creation space.
+  // Same optimistic-local-then-cloud pattern as addDiscussion; fails soft on a
+  // sync error so the device copy always survives. addWorkspace RETURNS the new
+  // local id so the editor can switch from "new" to "editing this record".
+  const addWorkspace = (item) => {
+    const nowIso = new Date().toISOString();
+    const localId = `ws-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId, createdAt: nowIso, updatedAt: nowIso, createdBy: authSession?.user?.id || null };
+    setData(d => ({ ...d, workspaces: [...(d.workspaces || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      workspacesSync.upload(seeded)
+        .then(res => {
+          if (res && res.uploaded && res.remoteId) {
+            setData(d => ({ ...d, workspaces: (d.workspaces || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
+          }
+        })
+        .catch(e => console.warn('[workspaces-sync] add upload failed', e));
+    }
+    return localId;
+  };
+  const updateWorkspace = (id, updates) => setData(d => {
+    const stamped = { ...updates, updatedAt: new Date().toISOString() };
+    const next = (d.workspaces || []).map(x => (x.id === id ? { ...x, ...stamped } : x));
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(x => x.id === id);
+      if (updated && updated.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(WORKSPACE_COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (Object.keys(patch).length > 0) {
+          workspacesSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[workspaces-sync] update failed', e));
+        }
+      }
+    }
+    return { ...d, workspaces: next };
+  });
+  const deleteWorkspace = (id) => {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.workspaces || []).find(x => x.id === id);
+      if (local && local.remoteUuid) {
+        workspacesSync.deleteRow(local.remoteUuid).catch(e => console.warn('[workspaces-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, workspaces: (d.workspaces || []).filter(x => x.id !== id) }));
   };
 
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
@@ -4491,6 +4544,10 @@ html{scroll-padding-bottom:280px}
                 ['about','About'],
                 ['__sep__', null],
                 ['notes','🕊 Notes'],
+                // Create — the document / image creation workspace (Notes group:
+                // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
+                // Available to every signed-in user; persistence is instance-scoped.
+                ['create','🎨 Create'],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -4776,6 +4833,20 @@ html{scroll-padding-bottom:280px}
             no-double-book + responsibilities + revenue), RLS-enforced. */}
         {view === 'church' && churchView === 'events' && <EventManagement isChurchStaff={isChurchStaff} />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
+        {/* Create — the document / image creation workspace. Wrapped in its own
+            SectionBoundary so a thrown error degrades just this surface (no
+            white-screen), per the unbreakable basics. */}
+        {view === 'create' && (
+          <SectionBoundary name="Creation Workspace">
+            <CreationWorkspace
+              workspaces={data.workspaces || []}
+              addWorkspace={addWorkspace}
+              updateWorkspace={updateWorkspace}
+              deleteWorkspace={deleteWorkspace}
+              currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+            />
+          </SectionBoundary>
+        )}
         {/* Darrell's Study — private, circle-only (Darrell/Christina/BG). Gated
             again here (defense in depth) so a deep-link can't reach it; data is
             device-local + sovereign (study-space.js). */}
@@ -5383,6 +5454,7 @@ const FEEDBACK_AREAS = [
   ]},
   { group: 'Notes', items: [
     ['notes', '🕊 Notes · thinking space (capture → prayer / voice / incident / inquiry)'],
+    ['create', '🎨 Create · creation workspace (document → image export)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "🕮 Darrell's Study · reflections / processing / cultural research (device-local)"],
