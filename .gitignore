@@ -101,3 +101,4 @@ docs/.sandbox-write-test.md
 
 # Generated backfill artifacts
 scripts/out/
+infra/supabase/seeds/

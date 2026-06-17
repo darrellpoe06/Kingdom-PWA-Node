@@ -1,0 +1,308 @@
+// =============================================================================
+// ChurchVideoWall — the Sanctuary LED Video Wall as a real CAPITAL PROJECT
+// =============================================================================
+// First tracked facilities/CapEx project for The Church of the Living God — The
+// Love Corner. The wall: LED Nation USA, P2.97mm fine-pitch panels, ~9 ft H x
+// 11-12 ft W, hardware delivered + staged behind the stage curtain awaiting
+// install. Built from the verified email thread; nothing here is invented.
+//
+// PRIVACY (binding, and the repo is PUBLIC): NO dollar figures, invoice numbers,
+// or donation amounts appear in this file or the bundle. The money is fetched
+// from the gated tables (0027) for owner/admin ONLY (video-wall-sync), and the
+// monolith renders this page to church STAFF only. The spec / pixel-math /
+// opportunities / constraints below are NON-financial engineering content
+// (public-safe), so they live in code; every figure lives only server-side.
+//
+// Self-contained like <Choir /> / <EventCenterModule />: owns its own
+// video-wall-sync subscriptions, no parent props. Reuses the AA-compliant visual
+// tokens (already passing contrast-guard).
+// =============================================================================
+import React, { useState, useEffect, useMemo } from 'react';
+import { KpiDot } from './KpiDot.jsx';
+import {
+  getVideoWallAccess, subscribeProjects, subscribeBudgetLines,
+  pixelMath, budgetTotals, donationProgress,
+} from '../lib/video-wall-sync.js';
+
+// Shared visual tokens — identical to the conference/event-center surfaces.
+const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
+const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+const serif = { fontFamily: '"Fraunces", serif' };
+
+// --- Public-safe spec (NON-financial; verified from the email thread) ---------
+const SPEC = {
+  vendor: 'LED Nation USA',
+  vendorUrl: 'https://lednationusa.com',
+  pitchMm: 2.97,
+  panelSpec: 'Mirackle P2.97mm fine-pitch indoor LED',
+  heightFt: 9,
+  widthFtMin: 11,
+  widthFtMax: 12,
+};
+
+// Status timeline — dates/labels are non-financial narrative (public-safe).
+// Milestones only — invoice numbers and amounts stay in the gated budget (below),
+// never in this public file. The dates/labels here are non-financial narrative.
+const TIMELINE = [
+  { when: '2024', title: 'First estimate', body: 'A smaller 9.8 x 6.6 ft / 24-panel build was quoted. Later superseded by the current purchase.', tone: 'idle' },
+  { when: 'Jun 2026', title: 'Purchased', body: 'The full P2.97mm wall ordered from LED Nation USA; invoice forwarded 2026-06-08. Figures in the gated budget below.', tone: 'good' },
+  { when: 'Jun 2026', title: 'Delivered + staged', body: 'Hardware delivered and staged BEHIND THE STAGE CURTAIN.', tone: 'good' },
+  { when: 'Pending', title: 'Installation', body: 'Rigging + signal chain + commissioning. Not yet scheduled.', tone: 'attention' },
+];
+
+const OPPORTUNITIES = [
+  'Full-brightness Scripture, lyrics, and sermon points in a lit room — projection can’t match fine-pitch LED for the congregation in the back rows.',
+  'Live program output for the media-team broadcast course: the same wall feeds the in-room view and the stream graphics, so trainees learn on the real signal chain.',
+  'Carries The Word — Migdal: BG’s study notes, the passage, and the message title can present from the app straight to the wall during service.',
+  'A sovereign in-house display the church owns outright — no recurring projector lamps, no rental, content stays on church-controlled machines.',
+  'Reusable for the Conference / Event Center: breakout rooms and main-service sessions can mirror to the wall when the sanctuary hosts the assembly.',
+];
+
+const CONSTRAINTS = [
+  { h: 'Power & heat', b: 'A fine-pitch wall this size draws real current and sheds heat. Confirm a dedicated circuit (and headroom) plus airflow behind the curtain before continuous service use.' },
+  { h: 'Rigging & structure', b: 'Wall ~9 ft H x 11-12 ft W: the mounting structure must carry the cabinet load safely with proper attachment to the building. Needs a rigging/structural check, not a guess.' },
+  { h: 'Signal chain', b: 'Source machines (dual RTX 4070 builds) -> processor/scaler -> sending card -> receiving cards per cabinet, over Cat6 runs. Local content reads off NVMe for sustained bandwidth. Each link is a single point of failure to plan for.' },
+  { h: 'Operational load', b: 'Someone runs it every service. The media-team course is how that role is trained; until then, keep the operating procedure simple and documented.' },
+  { h: 'Spares & redundancy', b: 'Fine-pitch panels take physical knocks (front rows, kids). Hold spare cabinets/modules and a spare receiving card so a dead tile is a swap, not a dark service.' },
+  { h: 'Sightlines & brightness', b: 'Confirm every seat sees it without glare, and set brightness/color so it reads on camera for the stream without blinding the room.' },
+  { h: 'Sovereign sources', b: 'Keep content + playback on church-owned machines (no cloud-locked player), so the wall keeps working if the internet doesn’t and no vendor can hold the display hostage.' },
+];
+
+function StatusBadge({ status }) {
+  const map = {
+    planning: ['Planning', 'idle'], purchased: ['Purchased', 'good'], delivered: ['Delivered', 'good'],
+    staged: ['Staged — awaiting install', 'attention'], installing: ['Installing', 'attention'],
+    live: ['Live', 'good'], 'on-hold': ['On hold', 'problem'],
+  };
+  const [label, tone] = map[status] || [status, 'idle'];
+  return <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider"><KpiDot status={tone} /> {label}</span>;
+}
+
+const money = (n) => n == null ? null : n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+// A budget figure with its source. The number LINKS to its source when a URL
+// exists; otherwise the source is shown as a labeled citation (email/invoice in
+// the paperwork has no web URL — we cite it, we don't fabricate a link).
+function BudgetLine({ line }) {
+  const struck = line.kind === 'superseded';
+  return (
+    <div className="py-2.5 border-b border-[#E8E4DC] last:border-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm text-[#1A1815]" style={serif}>{line.label}</span>
+        <span className={`text-sm tabular-nums whitespace-nowrap ${struck ? 'line-through text-[#5A5751]' : 'text-[#1A1815] font-semibold'}`}>
+          {line.amount != null ? money(line.amount) : 'Not yet quoted'}
+        </span>
+      </div>
+      {line.sourceLabel && (
+        <div className="mt-1 text-[11px] text-[#5A5751]">
+          Source:{' '}
+          {line.sourceUrl
+            ? <a href={line.sourceUrl} target="_blank" rel="noreferrer" className="text-[#B85838] underline hover:text-[#1A1815]">{line.sourceLabel}</a>
+            : <span>{line.sourceLabel}</span>}
+        </div>
+      )}
+      {line.note && <div className="mt-0.5 text-[11px] text-[#5A5751] italic">{line.note}</div>}
+    </div>
+  );
+}
+
+export default function ChurchVideoWall() {
+  const [access, setAccess] = useState({ signedIn: false, canSee: false, canEdit: false });
+  const [projects, setProjects] = useState(null);   // null = loading
+  const [lines, setLines] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    getVideoWallAccess().then((a) => { if (alive) setAccess(a); });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!access.canSee) return undefined;
+    const unsubP = subscribeProjects((rows) => setProjects(rows));
+    const unsubL = subscribeBudgetLines((rows) => setLines(rows));
+    return () => { unsubP(); unsubL(); };
+  }, [access.canSee]);
+
+  const project = useMemo(
+    () => (projects || []).find((p) => p.slug === 'sanctuary-video-wall') || (projects || [])[0] || null,
+    [projects],
+  );
+  const projectLines = useMemo(
+    () => project ? (lines || []).filter((l) => l.projectId === project.id) : [],
+    [lines, project],
+  );
+
+  const px = useMemo(() => pixelMath(SPEC), []);
+  const totals = useMemo(() => budgetTotals(projectLines), [projectLines]);
+  const donation = useMemo(() => donationProgress(project || {}), [project]);
+
+  const status = project?.status || 'staged';
+
+  return (
+    <div className="space-y-4">
+      {/* HEADER — church name pair (legal + community nickname, side by side) */}
+      <div className={card}>
+        <div className={labelCls}>Capital Project · Facilities / CapEx</div>
+        <h2 className="mt-1 text-xl sm:text-2xl text-[#1A1815]" style={serif}>Sanctuary LED Video Wall</h2>
+        <div className="mt-1 text-sm text-[#1A1815]" style={serif}>
+          The Church of the Living God <span className="text-[#B85838]">&mdash; The Love Corner</span>
+        </div>
+        <p className="mt-0.5 text-[11px] text-[#5A5751] italic">
+          The legal name and the community&rsquo;s name, side by side &mdash; the biblical name-pair pattern (Abram &rarr; Abraham, Simon &rarr; Peter, Saul &rarr; Paul).
+        </p>
+        <div className="mt-3"><StatusBadge status={status} /></div>
+        <p className="mt-3 text-sm text-[#5A5751]">
+          {project?.summary || 'Fine-pitch indoor LED video wall for the main sanctuary — replaces projection so the congregation reads Scripture, lyrics, and the broadcast feed at full brightness in a lit room.'}
+        </p>
+        <p className="mt-2 text-[12px] text-[#1A1815]">
+          {project?.installNote || 'Hardware delivered and staged BEHIND THE STAGE CURTAIN; awaiting installation.'}
+        </p>
+      </div>
+
+      {/* STAGE-VISUAL IMAGE SLOT — filled from the church YouTube once Darrell
+          confirms the video link. Left as an explicit placeholder, not faked. */}
+      <div className={card}>
+        <div className={labelCls}>Stage view</div>
+        {project?.heroImageUrl ? (
+          <img src={project.heroImageUrl} alt="Sanctuary stage / video wall" className="mt-2 w-full max-h-72 object-cover border border-[#E8E4DC]" />
+        ) : (
+          <div className="mt-2 flex items-center justify-center h-40 sm:h-56 border border-dashed border-[#C9C2B6] bg-[#FAF8F4] text-center px-4">
+            <span className="text-[12px] text-[#5A5751]">Stage visuals from the church YouTube will be added here once the video link is confirmed.</span>
+          </div>
+        )}
+      </div>
+
+      {/* SPEC — public-safe engineering content */}
+      <div className={card}>
+        <div className={labelCls}>Specification</div>
+        <dl className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+          <div><dt className="text-[11px] text-[#5A5751]">Panels</dt><dd className="text-[#1A1815]" style={serif}>{SPEC.panelSpec}</dd></div>
+          <div><dt className="text-[11px] text-[#5A5751]">Pixel pitch</dt><dd className="text-[#1A1815]" style={serif}>P{SPEC.pitchMm}mm (fine-pitch)</dd></div>
+          <div><dt className="text-[11px] text-[#5A5751]">Wall size</dt><dd className="text-[#1A1815]" style={serif}>~{SPEC.heightFt} ft H &times; {SPEC.widthFtMin}&ndash;{SPEC.widthFtMax} ft W</dd></div>
+          <div className="col-span-2 sm:col-span-3">
+            <dt className="text-[11px] text-[#5A5751]">Vendor</dt>
+            <dd><a href={SPEC.vendorUrl} target="_blank" rel="noreferrer" className="text-[#B85838] underline hover:text-[#1A1815]" style={serif}>{SPEC.vendor}</a></dd>
+          </div>
+        </dl>
+      </div>
+
+      {/* PIXEL-PITCH MATH — derived, every assumption labeled */}
+      {px && (
+        <div className={card}>
+          <div className={labelCls}>Resolution (derived)</div>
+          <div className="mt-2 text-sm text-[#1A1815]" style={serif}>
+            ~{px.heightPx.toLocaleString()} px tall &times; {px.widthPxMin.toLocaleString()}&ndash;{px.widthPxMax.toLocaleString()} px wide
+            <span className="text-[#5A5751]"> &nbsp;(≈ {px.megapixelsMin}&ndash;{px.megapixelsMax} MP)</span>
+          </div>
+          <div className="mt-1 text-[12px] text-[#5A5751]">
+            {px.fits4kSingleOutput
+              ? 'Within a single 4K output (~8.3 MP) — the dual-4070 machines give headroom + redundancy, not a resolution requirement.'
+              : 'Exceeds a single 4K output — plan multi-output / processor tiling across the dual-4070 machines.'}
+          </div>
+          <ul className="mt-2 space-y-1">
+            {px.assumptions.map((a, i) => (
+              <li key={i} className="text-[11px] text-[#5A5751] flex gap-1.5"><span className="text-[#B85838]">&middot;</span><span>{a}</span></li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* BUDGET — GATED. Money is fetched (owner/admin) or hidden. */}
+      <div className={card}>
+        <div className="flex items-center justify-between">
+          <div className={labelCls}>Budget &middot; 🔒 staff only</div>
+          {access.canSee && projectLines.length > 0 && (
+            <div className="text-sm font-semibold text-[#1A1815]">{money(totals.currentTotal)}</div>
+          )}
+        </div>
+        {!access.canSee ? (
+          <p className="mt-2 text-[12px] text-[#5A5751]">Budget figures are church financial data — sign in with a church owner/admin account to view them.</p>
+        ) : projects == null ? (
+          <p className="mt-2 text-[12px] text-[#5A5751]">Loading…</p>
+        ) : projectLines.length === 0 ? (
+          <p className="mt-2 text-[12px] text-[#5A5751]">No budget lines yet. After migration 0027 applies, run the gitignored seed (infra/supabase/seeds/colg-video-wall.sql) once in Studio to load the grounded figures — they stay server-side, never in the public bundle.</p>
+        ) : (
+          <div className="mt-2">
+            {projectLines.map((l) => <BudgetLine key={l.id} line={l} />)}
+            <div className="mt-2 text-[11px] text-[#5A5751]">
+              Current cost reflects only active lines; superseded history is struck through.
+              {totals.hasUnquoted && ` ${totals.unquotedCount} accessory line(s) not yet quoted.`}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* DONATION TRACKER — GATED. Pledged vs received; "awaiting" until known. */}
+      <div className={card}>
+        <div className={labelCls}>Donations &middot; 🔒 staff only</div>
+        {!access.canSee ? (
+          <p className="mt-2 text-[12px] text-[#5A5751]">Donation totals are gated to church owner/admin accounts.</p>
+        ) : !donation.known ? (
+          <p className="mt-2 text-[12px] text-[#5A5751]">
+            {project?.donationNote || 'Funded by community "Video Wall Donation" envelopes (BG).'} Pledged and received totals are entered by staff once counted — no figure is shown until it’s real.
+          </p>
+        ) : (
+          <div className="mt-2">
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="text-[#1A1815]">Received {money(donation.received)}</span>
+              <span className="text-[#5A5751]">of {money(donation.pledged)} pledged</span>
+            </div>
+            <div className="mt-1.5 h-2 bg-[#E8E4DC]" role="progressbar" aria-valuenow={donation.pct ?? 0} aria-valuemin={0} aria-valuemax={100} aria-label="Donations received vs pledged">
+              <div className="h-2 bg-[#B85838]" style={{ width: `${donation.pct ?? 0}%` }} />
+            </div>
+            {donation.remaining != null && <div className="mt-1 text-[11px] text-[#5A5751]">{money(donation.remaining)} remaining</div>}
+          </div>
+        )}
+      </div>
+
+      {/* STATUS TIMELINE — public-safe narrative */}
+      <div className={card}>
+        <div className={labelCls}>Timeline</div>
+        <ol className="mt-2 space-y-3">
+          {TIMELINE.map((t, i) => (
+            <li key={i} className="flex gap-3">
+              <div className="pt-1"><KpiDot status={t.tone} /></div>
+              <div>
+                <div className="text-sm text-[#1A1815]" style={serif}><span className="text-[11px] uppercase tracking-wider text-[#5A5751] mr-2">{t.when}</span>{t.title}</div>
+                <div className="text-[12px] text-[#5A5751]">{t.body}</div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* OPPORTUNITIES */}
+      <div className={card}>
+        <div className={labelCls}>Opportunities</div>
+        <ul className="mt-2 space-y-1.5">
+          {OPPORTUNITIES.map((o, i) => (
+            <li key={i} className="text-[13px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&rarr;</span><span>{o}</span></li>
+          ))}
+        </ul>
+      </div>
+
+      {/* CONSTRAINTS */}
+      <div className={card}>
+        <div className={labelCls}>Constraints to resolve before install</div>
+        <div className="mt-2 space-y-2.5">
+          {CONSTRAINTS.map((c, i) => (
+            <div key={i}>
+              <div className="text-[13px] font-semibold text-[#1A1815]" style={serif}>{c.h}</div>
+              <div className="text-[12px] text-[#5A5751]">{c.b}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CONNECTIONS — ties to the broadcast course + The Word feed */}
+      <div className={card}>
+        <div className={labelCls}>Connected to</div>
+        <ul className="mt-2 space-y-1.5 text-[13px] text-[#1A1815]">
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>Media-team broadcast course</b> &mdash; trainees learn the real signal chain that drives this wall.</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>The Word &mdash; Migdal</b> &mdash; BG&rsquo;s study notes and the passage present from the app to the wall during service.</span></li>
+        </ul>
+      </div>
+    </div>
+  );
+}
