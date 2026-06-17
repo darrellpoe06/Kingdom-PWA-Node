@@ -135,12 +135,17 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
         <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {sermon.serviceType === 'wednesday' ? 'Wed' : 'Sun'}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
       </div>
       {sermon.speaker && <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
+      {sermon.repreachSourceName && (
+        <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+          ↻ Re-preached — original by {sermon.repreachSourceName}{sermon.repreachSourceTitle ? `: “${sermon.repreachSourceTitle}”` : ''}
+        </p>
+      )}
       {sermon.notes && <p className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.notes}</p>}
       <div className="flex gap-2 mt-1 flex-wrap">
         {embed && <button type="button" onClick={() => setPlaying((p) => !p)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={playing}>{playing ? '▾ Hide video' : watchLabel}</button>}
         {!embed && watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel}</a>}
         {sermon.documentUrl && <button type="button" onClick={async () => { const u = await openSermonDocument(sermon.documentUrl); if (u) window.open(u, '_blank', 'noopener'); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Document</button>}
-        {canEdit && onReuse && <button type="button" onClick={() => onReuse(sermon)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse for new</button>}
+        {canEdit && onReuse && <button type="button" onClick={() => onReuse(sermon)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Re-preach this</button>}
         {canEdit && onEdit && <button type="button" onClick={() => onEdit(sermon)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
         {canEdit && onDelete && <button type="button" onClick={() => onDelete(sermon)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
       </div>
@@ -309,19 +314,31 @@ export default function Pulpit() {
   const reportSkip = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Your changes were not stored — try again.`); else setErr(''); };
 
   // Tag each message with its canonical speaker's primary flag (0037) so the
-  // roster credits BG as primary from real entity data, not a name regex.
+  // roster credits BG as primary from real entity data, not a name regex; and
+  // resolve re-preach lineage (0038) — the original deliverer + source title —
+  // so a re-preached message shows BOTH BG and whose message he re-preached.
   const speakerById = new Map(speakers.map((sp) => [sp.id, sp]));
-  const withDocs = sermons.map((s) => ({
-    ...s,
-    documentUrl: (sermonDocs.find((d) => d.sermonId === s.id) || {}).documentUrl || null,
-    speakerIsPrimary: !!speakerById.get(s.speakerId)?.isPrimary,
-  }));
+  const sermonsById = new Map(sermons.map((s) => [s.id, s]));
+  const primarySpeaker = speakers.find((sp) => sp.isPrimary) || null;
+  const withDocs = sermons.map((s) => {
+    const src = s.sourceSermonId ? sermonsById.get(s.sourceSermonId) : null;
+    const sourceName = (s.sourceSpeakerId && speakerById.get(s.sourceSpeakerId)?.canonicalName) || src?.speaker || null;
+    return {
+      ...s,
+      documentUrl: (sermonDocs.find((d) => d.sermonId === s.id) || {}).documentUrl || null,
+      speakerIsPrimary: !!speakerById.get(s.speakerId)?.isPrimary,
+      repreachSourceName: sourceName,
+      repreachSourceTitle: src?.title || null,
+    };
+  });
   const libraryItems = canManage ? withDocs : publicSermons;
   const tabs = theWordTabs(canManage);
 
   const onSave = async (s) => { setBusy(true); const r = await saveSermon(s); reportSkip(r); if (r?.id) await saveSermonDocument(r.id, s.documentUrl); setBusy(false); };
   const onDelete = async (s) => { reportSkip(await deleteSermon(s.id)); };
-  const onReuse = async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType)); setTab('library'); };
+  // Re-preach: BG (the primary speaker) curates a new draft from the source,
+  // crediting himself while linking the original deliverer's material (0038).
+  const onReuse = async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType, primarySpeaker)); setTab('library'); };
 
   return (
     <div className="max-w-2xl">
