@@ -19,7 +19,7 @@
 // .. midnight OLED black).
 
 import { useEffect, useState } from 'react';
-import { UPDATE_EVENT } from './sw-update.js';
+import { UPDATE_EVENT, UPDATE_STUCK_EVENT, isUpdateStuck } from './sw-update.js';
 import { KPI_STATUS } from './kpi-status.js';
 
 // Build freshness is the FIRST instance of the shared KPI status system
@@ -30,12 +30,27 @@ export const FRESH_COLOR = KPI_STATUS.good.color;    // green — latest
 export const STALE_COLOR = KPI_STATUS.problem.color; // red   — old / update available
 
 // Pure descriptor for a freshness state. `stale === true` => a newer build is
-// waiting. Carries the canonical KPI `status` key plus everything a renderer
-// needs to stay color-safe: a color AND independent text (label / title / aria).
-export function freshnessDescriptor(stale) {
+// waiting. `stuck === true` => an update reload didn't make the new build stick
+// (a reload loop was caught), so "reload" has proven not to work on this device
+// and we escalate to the honest "close & reopen" hint. Carries the canonical KPI
+// `status` key plus everything a renderer needs to stay color-safe: a color AND
+// independent text (label / title / aria).
+export function freshnessDescriptor(stale, stuck = false) {
+  if (stale && stuck) {
+    return {
+      stale: true,
+      stuck: true,
+      status: 'problem',
+      color: STALE_COLOR,
+      label: 'Update ready — close & reopen',
+      title: 'A newer build is ready but an in-place reload did not apply it. Fully close the app (swipe it away / quit the browser tab) and reopen to finish updating.',
+      ariaLabel: 'Update ready — fully close the app and reopen to finish updating',
+    };
+  }
   return stale
     ? {
         stale: true,
+        stuck: false,
         status: 'problem',
         color: STALE_COLOR,
         label: 'Update available — reload',
@@ -44,6 +59,7 @@ export function freshnessDescriptor(stale) {
       }
     : {
         stale: false,
+        stuck: false,
         status: 'good',
         color: FRESH_COLOR,
         label: 'Latest',
@@ -67,6 +83,8 @@ export function updateWaiting(win) {
 // React hook: returns true once a newer build is waiting. Seeds from the parked
 // registration (catches the case where the update event fired before this
 // component mounted) and then flips on the `poetech:update-available` event.
+// Also re-checks on the stuck event, so a component using only this hook still
+// re-renders when the state escalates (the descriptor reads stuck separately).
 export function useStaleBuild(win) {
   const w = win || (typeof window !== 'undefined' ? window : undefined);
   const [stale, setStale] = useState(() => updateWaiting(w));
@@ -74,9 +92,28 @@ export function useStaleBuild(win) {
     if (!w || typeof w.addEventListener !== 'function') return undefined;
     const mark = () => setStale(true);
     w.addEventListener(UPDATE_EVENT, mark);
+    w.addEventListener(UPDATE_STUCK_EVENT, mark);
     // Late-mount catch: the event may have fired before we subscribed.
     if (updateWaiting(w)) setStale(true);
-    return () => w.removeEventListener(UPDATE_EVENT, mark);
+    return () => {
+      w.removeEventListener(UPDATE_EVENT, mark);
+      w.removeEventListener(UPDATE_STUCK_EVENT, mark);
+    };
   }, [w]);
   return stale;
+}
+
+// React hook: returns true once the update path is stuck (a reload didn't make
+// the new build stick). Seeds from the window flag and flips on the stuck event.
+export function useUpdateStuck(win) {
+  const w = win || (typeof window !== 'undefined' ? window : undefined);
+  const [stuck, setStuck] = useState(() => isUpdateStuck(w));
+  useEffect(() => {
+    if (!w || typeof w.addEventListener !== 'function') return undefined;
+    const mark = () => setStuck(true);
+    w.addEventListener(UPDATE_STUCK_EVENT, mark);
+    if (isUpdateStuck(w)) setStuck(true);
+    return () => w.removeEventListener(UPDATE_STUCK_EVENT, mark);
+  }, [w]);
+  return stuck;
 }
