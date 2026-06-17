@@ -3938,6 +3938,21 @@ html{scroll-padding-bottom:280px}
 [data-theme="midnight"] .border-\\[\\#5A6E3D\\]{border-color:#86EFAC!important}
 [data-theme="midnight"] .bg-\\[\\#B85838\\]{background-color:#FB923C!important}
 [data-theme="midnight"] .bg-\\[\\#5A6E3D\\]{background-color:#86EFAC!important}
+/* WCAG 2.1 AA fix (2026-06-17): the #2A5A8E blue accent (Build board "Next"
+   status, links) had NO midnight remap, so it stayed dark blue on black =
+   2.84:1 — unreadable. The contrast guard never caught it because it only
+   evaluated body-text tokens, not accents. Remap to light blue #7FB3F0 (text
+   9.6:1 on #000, 8.4:1 on the #141414 card) and a brighter fill for the active
+   filled badge (white on #2563EB = 5.2:1). The accent contrast check added to
+   contrast-guard.mjs now fails the build if this drifts. */
+[data-theme="midnight"] .text-\\[\\#2A5A8E\\]{color:#7FB3F0!important}
+[data-theme="midnight"] .border-\\[\\#2A5A8E\\]{border-color:#7FB3F0!important}
+[data-theme="midnight"] .bg-\\[\\#2A5A8E\\]{background-color:#2563EB!important}
+/* #5A5751 already remaps as TEXT to #888888 (6.0:1); give its border/fill a
+   midnight value too so the "Gated" tab reads on black (was dark-gray-on-black).
+   White on the #3A3A3A fill = 11.3:1. */
+[data-theme="midnight"] .border-\\[\\#5A5751\\]{border-color:#888888!important}
+[data-theme="midnight"] .bg-\\[\\#5A5751\\]{background-color:#3A3A3A!important}
 /* WCAG 2.1 AA fix (2026-06-10): #5A6E3D remaps to bright mint #86EFAC under
    midnight, which is readable as a text color on black but fails as a FILLED
    badge background with white text (1.4:1). Force near-black text on the

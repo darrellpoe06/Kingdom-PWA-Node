@@ -26,8 +26,12 @@
 // says so.
 //
 // Governor-gated (isFamilyEmail), no-leak: nothing here renders for a non-steward.
-// WCAG AA: text colors on white are verified — #1A1815, #5A5751 (7.2:1),
-// #5A6E3D (5.6:1), #B85838 (4.7:1), #2A5A8E (7.1:1).
+// WCAG AA, BOTH light and dark: every accent is a THEMEABLE class (text-[#…]),
+// never an inline color, so the per-[data-theme] remap carries it. On the
+// default/light surfaces #1A1815, #5A5751 (7.2:1), #5A6E3D (5.6:1), #B85838
+// (4.7:1 on the white card); on midnight they remap to bright tokens (#E5E5E5,
+// #888888, #86EFAC, #FB923C) that clear AA on black. The contrast guard now
+// enforces this per-theme + scans for any inline color that would regress it.
 import React, { useState } from 'react';
 import OpsBoard from './OpsBoard.jsx';
 import QualityProof from './QualityProof.jsx';
@@ -47,17 +51,21 @@ const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev'
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
 
 // Honest per-faculty readiness chip. Color follows real state, never decorative.
+// `cls` is the THEMEABLE text class (not an inline color) so the per-[data-theme]
+// remap applies — an inline color stays dark on the midnight surface (the
+// dark-mode-contrast bug this PR closes). The contrast guard's inline-color
+// scanner now fails the build if any of these regress to inline `style` colors.
 const READY_META = {
-  live:    { color: '#5A6E3D', symbol: '●', label: 'Live' },
-  partial: { color: '#B85838', symbol: '◐', label: 'Partial — wiring' },
-  wiring:  { color: '#5A5751', symbol: '○', label: 'Wiring up' },
+  live:    { cls: 'text-[#5A6E3D]', symbol: '●', label: 'Live' },
+  partial: { cls: 'text-[#B85838]', symbol: '◐', label: 'Partial — wiring' },
+  wiring:  { cls: 'text-[#5A5751]', symbol: '○', label: 'Wiring up' },
 };
 function ReadinessChip({ status }) {
   const m = READY_META[status] || READY_META.wiring;
   return (
     <span
-      className="inline-flex items-center gap-1 text-[0.5625rem] uppercase tracking-wider font-semibold"
-      style={{ color: m.color, fontFamily: '"JetBrains Mono", monospace' }}
+      className={`inline-flex items-center gap-1 text-[0.5625rem] uppercase tracking-wider font-semibold ${m.cls}`}
+      style={{ fontFamily: '"JetBrains Mono", monospace' }}
     >
       <span aria-hidden="true">{m.symbol}</span>{m.label}
     </span>
@@ -122,21 +130,25 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
           {brakeStatusLine()}
         </p>
         <ol className="mt-2 flex flex-wrap items-stretch gap-1.5" aria-label="Self-hosting loop stages">
-          {SELF_HOSTING_LOOP.map((s, i) => (
-            <li
-              key={s.key}
-              className="flex-1 min-w-[120px] border p-2"
-              style={{ borderColor: s.inSeat ? '#5A6E3D' : '#B85838', backgroundColor: 'white' }}
-            >
-              <div className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: s.inSeat ? '#5A6E3D' : '#B85838', fontFamily: '"JetBrains Mono", monospace' }}>
-                {i + 1}. {s.label}{!s.inSeat && ' →'}
-              </div>
-              <div className="text-[0.625rem] text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s.what}</div>
-              <div className="text-[0.5625rem] uppercase tracking-wider mt-1" style={{ color: s.inSeat ? '#5A6E3D' : '#B85838' }}>
-                {s.inSeat ? 'in the seat' : 'behind the Cage'}
-              </div>
-            </li>
-          ))}
+          {SELF_HOSTING_LOOP.map((s, i) => {
+            // Themeable accent classes (not inline colors) so midnight remaps them.
+            const accentText = s.inSeat ? 'text-[#5A6E3D]' : 'text-[#B85838]';
+            const accentBorder = s.inSeat ? 'border-[#5A6E3D]' : 'border-[#B85838]';
+            return (
+              <li
+                key={s.key}
+                className={`flex-1 min-w-[120px] border p-2 bg-white ${accentBorder}`}
+              >
+                <div className={`text-[0.625rem] uppercase tracking-wider font-semibold ${accentText}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  {i + 1}. {s.label}{!s.inSeat && ' →'}
+                </div>
+                <div className="text-[0.625rem] text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s.what}</div>
+                <div className={`text-[0.5625rem] uppercase tracking-wider mt-1 ${accentText}`}>
+                  {s.inSeat ? 'in the seat' : 'behind the Cage'}
+                </div>
+              </li>
+            );
+          })}
         </ol>
       </section>
 
@@ -145,6 +157,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
         {FACULTIES.map((f) => {
           const active = tab === f.key;
           const r = ready[f.key];
+          const rMeta = READY_META[r?.status] || READY_META.wiring;
           return (
             <button
               key={f.key}
@@ -152,14 +165,11 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
               role="tab"
               aria-selected={active}
               onClick={() => setTab(f.key)}
-              className="text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] inline-flex items-center gap-1.5 focus:outline focus:outline-2 focus:outline-[#B85838]"
-              style={active
-                ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' }
-                : { color: '#1A1815', borderColor: '#1A1815' }}
+              className={`text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] inline-flex items-center gap-1.5 focus:outline focus:outline-2 focus:outline-[#B85838] border-[#1A1815] ${active ? 'bg-[#1A1815] text-white' : 'text-[#1A1815]'}`}
             >
               <span aria-hidden="true">{f.glyph}</span>{f.label}
-              <span aria-hidden="true" style={{ color: active ? 'white' : (READY_META[r?.status] || READY_META.wiring).color }}>
-                {(READY_META[r?.status] || READY_META.wiring).symbol}
+              <span aria-hidden="true" className={active ? 'text-white' : rMeta.cls}>
+                {rMeta.symbol}
               </span>
             </button>
           );
