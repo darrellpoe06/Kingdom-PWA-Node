@@ -50,6 +50,7 @@ const GATE_REGISTRY = [
   { id: 'tenancy',      name: 'Tenancy / data-isolation guard',  catches: 'A query that could read across instances (one family seeing another). DR-0060.', script: 'scripts/tenancy-guard.mjs',         test: `${APP_TESTS}/tenancy-guard.test.js` },
   { id: 'grant',        name: 'DB authenticated-grant guard',     catches: 'A new table missing its authenticated GRANT (the 42501 that 403d Choir saves).', script: 'scripts/grant-guard.mjs',           test: `${APP_TESTS}/grant-guard.test.js` },
   { id: 'conf-rls',     name: 'Conference RLS no-leak',           catches: 'Conference rows readable outside their instance (cross-tenant event leak).',   script: 'scripts/conference-rls-guard.mjs', test: `${APP_TESTS}/conference-rls-noleak.test.js` },
+  { id: 'conf-link',    name: 'Conference link-safety / no-leak', catches: 'A registration->account link that reads the roll, hijacks a claimed row, or sets a non-caller user.', script: 'scripts/conference-link-guard.mjs', test: `${APP_TESTS}/conference-signup-funnel.test.js` },
   { id: 'fab-overlap',  name: 'Floating-action overlap guard',   catches: 'Stacked floating controls overlapping into an untappable / hidden target.',     script: 'scripts/fab-overlap-guard.mjs',     test: `${APP_TESTS}/fab-overlap-guard.test.js` },
   { id: 'feedback-area',name: 'Feedback area-coverage guard',    catches: 'A nav tab / sub-tab shipped with no feedback area pointing at it.',             script: 'scripts/feedback-area-guard.mjs',   test: `${APP_TESTS}/feedback-area-coverage.test.js` },
   { id: 'pin-plaintext',name: 'PIN never-plaintext guard',       catches: 'A PIN written to storage in plaintext instead of hashed.',                      script: null,                                test: `${APP_TESTS}/pin-no-plaintext.test.js` },
@@ -63,6 +64,7 @@ const GATE_REGISTRY = [
 // is exactly what these lock against.
 const LOOP_REGISTRY = [
   { id: 'choir-save',     name: 'Choir save loop',            proves: 'A choir schedule/sermon save persists and reports saved:true (the 2026-06-16 incident lane).', test: `${APP_TESTS}/choir-sync-writes.test.js` },
+  { id: 'conf-funnel',    name: 'Conference signup funnel loop', proves: 'Open register works without an account; opt-in links the registration to the new account; skip stays fully registered.', test: `${APP_TESTS}/conference-signup-funnel.test.js` },
   { id: 'family-voice',   name: 'One Voice (family input) loop', proves: 'A family member speaks/types once and the words route to the right destination and come back.',  test: `${APP_TESTS}/one-voice-routing.test.js` },
   { id: 'one-voice-disp', name: 'One Voice -> dispatch loop',  proves: 'A One Voice need becomes a real dispatch work order, not a dropped message.',                    test: `${APP_TESTS}/one-voice-dispatch.test.js` },
   { id: 'feedback',       name: 'Feedback loop',              proves: 'Feedback (with screenshots) is captured and every surface has somewhere to send it.',           test: `${APP_TESTS}/feedback-screenshots.test.js` },

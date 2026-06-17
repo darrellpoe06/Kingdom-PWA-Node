@@ -89,19 +89,39 @@ export function totalHeads(registrations) {
     .reduce((sum, r) => sum + normalizePartySize(r.partySize), 0);
 }
 
-// Submit one public registration. Best-effort but HONEST: returns {ok:true} or
+// Generate a client-side row id so the registrant's own browser KNOWS the id of
+// the row it just created — without any read-back (anon has no SELECT on the roll).
+// That id is what the optional account on-ramp later passes to the claim RPC to
+// LINK this registration to the new account (see lib/conference-link.js). The
+// table's PK accepts a supplied uuid (overriding gen_random_uuid()); a duplicate
+// would simply fail the insert (no overwrite, no leak). Falls back to null on
+// ancient browsers without crypto.randomUUID — registration still works; only the
+// link step is skipped.
+function newRegistrationId() {
+  try {
+    if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+      return globalThis.crypto.randomUUID();
+    }
+  } catch { /* fall through */ }
+  return null;
+}
+
+// Submit one public registration. Best-effort but HONEST: returns {ok:true, id} or
 // {ok:false, error}; never throws (a thrown insert must not break the form), but
-// the caller MUST surface a false result — the row is the deliverable.
+// the caller MUST surface a false result — the row is the deliverable. The returned
+// id (when present) lets the OPTIONAL account on-ramp link this registration.
 export async function submitRegistration(form = {}) {
   const row = buildRegistrationRow(form);
   if (!row.name) return { ok: false, error: { message: 'name-required' } };
+  const id = newRegistrationId();
+  if (id) row.id = id;
   try {
     const { error } = await supabase.from('conference_public_registrations').insert(row);
     if (error) {
       console.warn('[conference-register] submit failed:', error.message || error);
       return { ok: false, error };
     }
-    return { ok: true };
+    return { ok: true, id: id || null };
   } catch (e) {
     console.warn('[conference-register] submit threw:', e);
     return { ok: false, error: e };

@@ -59,6 +59,13 @@ if (__params.get('join') === '1') {
     </React.StrictMode>
   );
 } else {
+  // Conference funnel: a registrant who chose "create an account" via Google was
+  // redirected away and lands back HERE (the OAuth redirect strips ?register=1).
+  // Claim their parked conference registration as soon as a session is available,
+  // so the one-time attendee's registration carries into their new app membership.
+  // No-op when nothing is parked. Self-contained; does not touch the monolith.
+  import('./lib/conference-link.js').then(({ wirePendingConferenceLink }) => { wirePendingConferenceLink(); }).catch(() => {});
+
   // Full app, dynamically imported so the lightweight capture/admin/present boots
   // above never pull the entire PWA (+ its supabase/auth init) they don't need.
   import('./poe-financial-mvp-v28.jsx').then(({ default: PoeFinancialSystem }) => {
