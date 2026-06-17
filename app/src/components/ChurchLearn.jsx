@@ -44,6 +44,7 @@ import {
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import TeachMode from './TeachMode.jsx';
+import TextSizeControl from './TextSizeControl.jsx';
 
 const fmtDate = formatClassDate;
 
@@ -1231,6 +1232,10 @@ export default function ChurchLearn({
         <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           {active.meta.title}
         </h2>
+
+        {/* Large-print for the lessons (WCAG 1.4.4). A learner of any age who needs
+            bigger text sets it here; it applies app-wide and is saved per device. */}
+        <TextSizeControl variant="panel" className="mb-4" />
 
         {/* Course picker — only shown when there's more than one course */}
         {courses.length > 1 && (
