@@ -72,6 +72,7 @@ const LOOP_REGISTRY = [
   { id: 'loop-health',    name: 'Loop self-review loop',      proves: 'The app reviews its OWN loops for stagnation and surfaces keep/retire.',                        test: `${APP_TESTS}/loop-health.test.js` },
   { id: 'governance',     name: 'Governance-decision loop',   proves: 'Open governance decisions parse from the real queue file and surface in-app.',                  test: `${APP_TESTS}/governance-queue.test.js` },
   { id: 'llm-review',     name: 'Local-LLM review loop',      proves: 'The local-model diff review returns into the app as advisory findings (or says it is offline).', test: `${APP_TESTS}/llm-review.test.js` },
+  { id: 'conflict-eval',  name: 'Conflict-evaluation loop',   proves: 'Orchestration conflicts are recorded as events; the loop ranks hot files + decomposition so conflicts trend DOWN as we grow.', test: `${APP_TESTS}/conflict-analytics.test.js` },
 ];
 
 // --- verification (the only source of truth for a row's status) ---------------

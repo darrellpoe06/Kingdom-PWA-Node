@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { buildQualityManifest } from '../scripts/quality-manifest.mjs';
+import { buildConflictManifest } from '../scripts/orchestration/conflict-analytics.mjs';
 
 // DR-0061 (surfaces are live views of real flow): the Build board's automation
 // count must be a REAL number, not hand-typed. Count the actual n8n workflow
@@ -214,6 +215,14 @@ let qualityProof;
 try { qualityProof = buildQualityManifest(); }
 catch (e) { qualityProof = { ok: false, error: (e && e.message) || 'manifest unavailable', gates: [], loops: [], contrast: { ok: false, pass: false, themes: [], violations: [] }, ci: { exists: false, steps: [] }, summary: {} }; }
 
+// Conflict-evaluation loop (Darrell, 2026-06-17: "fewer conflicts as we move
+// forward"). Reads the REAL conflict-events spine and emits the hot-files +
+// conflict-rate trend + ranked decomposition. Best-effort: degrades to an honest
+// empty manifest rather than crashing the build.
+let conflictLoop;
+try { conflictLoop = buildConflictManifest(); }
+catch (e) { conflictLoop = { ok: false, error: (e && e.message) || 'manifest unavailable', eventCount: 0, hotFiles: [], contendedAreas: [], rate: { buckets: [], trend: 'baseline' }, decomposition: [], problems: [] }; }
+
 // base set so built assets resolve under the Synology Web Station alias portal
 // at /poetech-app/ on the shared QuickConnect URL.
 //
@@ -267,6 +276,7 @@ export default defineConfig({
     __GOVERNANCE_QUEUE__: JSON.stringify(governanceQueue),
     __DR_LEDGER__: JSON.stringify(decisionLedger),
     __QUALITY_PROOF__: JSON.stringify(qualityProof),
+    __CONFLICT_LOOP__: JSON.stringify(conflictLoop),
     __UIUX_REVIEWS__: JSON.stringify(uiuxReviews),
   },
   server: {
