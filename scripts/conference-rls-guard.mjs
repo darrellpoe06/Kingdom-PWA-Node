@@ -26,9 +26,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MIGRATIONS = [
   join(ROOT, 'infra/supabase/migrations-auto/0023-conference-event-center.sql'),
   join(ROOT, 'infra/supabase/migrations-auto/0024-conference-venues.sql'),
+  join(ROOT, 'infra/supabase/migrations-auto/0031-conference-anticipated-actual.sql'),
 ];
 
-export const CONFERENCE_TABLES = ['conferences', 'event_center_resources', 'event_sessions', 'event_participants', 'venues'];
+export const CONFERENCE_TABLES = ['conferences', 'event_center_resources', 'event_sessions', 'event_participants', 'venues', 'conference_actuals'];
 
 const stripComments = (s) => s.replace(/--[^\n]*/g, '');
 

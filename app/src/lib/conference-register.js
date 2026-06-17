@@ -63,7 +63,9 @@ export function buildRegistrationRow(form = {}) {
   };
 }
 
-// DB row -> camelCase shape for the organizer view.
+// DB row -> camelCase shape for the organizer view. checkedInAt/checkedInHeads
+// (migration 0031) are the ACTUAL arrival: a NULL checkedInAt = not arrived yet /
+// a no-show; checkedInHeads = how many of the party actually came.
 export function toRegistrationShape(row) {
   return {
     id: row.id,
@@ -78,7 +80,14 @@ export function toRegistrationShape(row) {
     source: row.source ?? null,
     status: row.status ?? 'new',
     createdAt: row.created_at ?? null,
+    checkedInAt: row.checked_in_at ?? null,
+    checkedInHeads: Number.isFinite(row.checked_in_heads) ? row.checked_in_heads : (row.checked_in_heads ?? null),
   };
+}
+
+// Whether a registration has been checked in (actually arrived).
+export function isCheckedIn(reg) {
+  return !!(reg && reg.checkedInAt);
 }
 
 // Total HEADS across registrations (sum of party_size, excluding cancelled) — the
@@ -150,6 +159,40 @@ export async function setRegistrationStatus(id, status) {
   if (!REGISTRATION_STATUSES.includes(status)) return { ok: false, error: 'bad-status' };
   try {
     const { error } = await supabase.from('conference_public_registrations').update({ status }).eq('id', id);
+    if (error) return { ok: false, error };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e };
+  }
+}
+
+// Check a registration IN — the ACTUAL arrival capture (the greeter's one tap).
+// heads defaults to the registered party size; a greeter may record fewer if some
+// of the party didn't come. checkedInAt is the server clock (now()). Owner/admin
+// only (RLS); fails soft + honest like every other write here.
+export async function checkInRegistration(id, heads) {
+  if (!id) return { ok: false, error: { message: 'id-required' } };
+  const h = Math.max(1, Math.floor(Number(heads)) || 1);
+  try {
+    const { error } = await supabase
+      .from('conference_public_registrations')
+      .update({ checked_in_at: new Date().toISOString(), checked_in_heads: h })
+      .eq('id', id);
+    if (error) return { ok: false, error };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e };
+  }
+}
+
+// Undo a check-in (a greeter tapped the wrong row) — clears the ACTUAL arrival.
+export async function undoCheckIn(id) {
+  if (!id) return { ok: false, error: { message: 'id-required' } };
+  try {
+    const { error } = await supabase
+      .from('conference_public_registrations')
+      .update({ checked_in_at: null, checked_in_heads: null })
+      .eq('id', id);
     if (error) return { ok: false, error };
     return { ok: true };
   } catch (e) {
