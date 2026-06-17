@@ -86,6 +86,68 @@ Even fully armed, **this skeleton does nothing dangerous** — it logs
 `armed_standby` ("standing by, no vendor summon") because the live dispatch logic
 is intentionally not implemented here.
 
+## The wake / handoff bridge
+
+The bridge that lets a vendor model **go offline and be woken back up** to resume
+its lane. Before going offline, a vendor emits a structured **handoff** — *when*
+to wake, *what* to resume, *where* the durable state lives — into the
+`state/handoffs/` inbox. Two halves carry it:
+
+- **The scheduler** (`orchestrator/lib/wake.sh`, inside this capped supervisor,
+  GPU-free): scans the inbox every tick and logs each handoff as `wake_due` /
+  `wake_pending` / `wake_deferred`. It **never** summons a vendor — the
+  self-contained bundle carries no vendor stack.
+- **The router** (`../../../scripts/wake-router.mjs`, host-side Node): at
+  wake-time, when a handoff is due **and every brake is GO**, it summons the
+  tiered cheapest-capable vendor (local → Gemini → Claude per the affinity map)
+  with the Charter + lane/task + state pointer. It records real spend against the
+  budget brake and emits an event for every action. **Default = plan-only**
+  (validates, schedules, logs intent — calls nothing) until armed.
+
+The full contract is in [`handoff/HANDOFF-CONTRACT.md`](handoff/HANDOFF-CONTRACT.md)
+(schema: [`handoff/schema.json`](handoff/schema.json)). This is event-driven
+self-activation off a real handoff (DR-0071), **never** a bare timer loop.
+
+> **Self-contained line.** The bundle's guarantee covers the **scheduler** (the
+> inert `wake.sh` half) — it needs nothing beyond the pinned image. The **router**
+> half (the live vendor summon) lives in the PoeTech repo (`scripts/wake-router.mjs`)
+> and runs from a repo checkout on the NAS host that reaches Ollama + the vendor
+> APIs — the same split as `scripts/orchestrator-v0.mjs`. The command examples
+> below assume you run them from this bundle dir inside that checkout.
+
+### Try it inert (no vendor is ever called)
+
+```bash
+# Drop the shipped example into the inbox and see the router schedule it:
+mkdir -p state/handoffs && cp handoff/example.handoff.json state/handoffs/test.json
+node ../../../scripts/wake-router.mjs --latest --now=2026-06-16T23:00:00Z
+# => [plan-only] ... due=true ... brakes=HOLD ...   (it logs intent; calls nothing)
+```
+
+### Arm the wake bridge (later, deliberately — Tier C, only with someone watching)
+
+Vendor-summoning on wake has a **dedicated fourth gate** beyond the three brakes:
+the `WAKE_SUMMON` consent flag. Even an armed orchestrator schedules + logs due
+handoffs but summons no vendor until this is set. Paste-ready (works from
+anywhere — adjust the path if your bundle lives elsewhere on the NAS):
+
+```bash
+cd /volume1/PoeTech/portable          # the deployed bundle dir on the NAS
+# 1) set REAL budgets (a missing budget is a missing brake):
+sed -i 's/^BUDGET_PER_TASK_USD=.*/BUDGET_PER_TASK_USD=2/' .env
+sed -i 's/^BUDGET_DAILY_USD=.*/BUDGET_DAILY_USD=25/' .env
+# 2) disengage the kill-switch, 3) arm standby, 4) consent to vendor-summon:
+./disarm.sh --off
+./arm.sh
+./wake-arm.sh
+docker compose restart
+# Now a due handoff can be summoned (within budget):
+node ../../../scripts/wake-router.mjs --latest --summon
+```
+
+Turn summon back off (scheduling continues): `./wake-disarm.sh`.
+Full panic stop (force inert): `./disarm.sh --on`.
+
 ## Resource caps (host-safety brake)
 
 `docker-compose.yml` caps the container at **`cpus: '1'` / `mem_limit: 1g`** (plus
@@ -102,16 +164,23 @@ portable/
   docker-compose.yml   # the orchestrator container, cpus 1 / mem 1g
   .env.example         # copy to .env (bootstrap does this); budgets default 0
   arm.sh / disarm.sh   # deliberate, audited arm/disarm + panic stop
+  wake-arm.sh / wake-disarm.sh  # consent to / withdraw vendor-summon on wake
   charter/
-    charter.yml        # POLICY AS CONFIG (skeleton) -- read at runtime, read-only
+    CHARTER.md         # canonical policy (source of truth) -- the wake bridge is in §3
+    charter.yml        # POLICY AS CONFIG -- GENERATED from CHARTER.md, read at runtime
     README.md          # what the Charter is; canonical version approved separately
+  handoff/
+    HANDOFF-CONTRACT.md  # the wake/handoff contract spec
+    schema.json          # JSON Schema (draft-07) for a handoff
+    example.handoff.json # a worked example
   orchestrator/
     entrypoint.sh      # the supervisor loop (POSIX sh; inert skeleton)
     lib/
       eventlog.sh      # append-only JSONL writer
       brakes.sh        # budget + concurrency + kill-switch + ARM gate
+      wake.sh          # the wake-scheduler: scans state/handoffs/, logs due/pending
   state/
-    KILL_SWITCH        # ships ENGAGED (tracked); ARM flag + lock + spend are runtime
+    KILL_SWITCH        # ships ENGAGED (tracked); ARM/WAKE_SUMMON + lock + spend + handoffs are runtime
   events/
     events.jsonl       # append-only event log (runtime; gitignored)
   MANIFEST.json        # freshness manifest (sha256 of every shipped file) -- see below

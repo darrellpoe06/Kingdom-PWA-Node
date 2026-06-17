@@ -34,8 +34,10 @@ HEARTBEAT_SECONDS="${HEARTBEAT_SECONDS:-30}"
 . "$APP_DIR/lib/eventlog.sh"
 # shellcheck source=lib/brakes.sh
 . "$APP_DIR/lib/brakes.sh"
+# shellcheck source=lib/wake.sh
+. "$APP_DIR/lib/wake.sh"
 
-mkdir -p "$STATE_DIR" "$EVENTS_DIR" 2>/dev/null || true
+mkdir -p "$STATE_DIR" "$EVENTS_DIR" "$STATE_DIR/handoffs" 2>/dev/null || true
 
 # --- Charter read (policy as mounted config) --------------------------------
 # The supervisor reads ONE senior safety value from the Charter: whether live
@@ -77,6 +79,13 @@ echo "orchestrator: up. INERT by default. $(inert_reason). Ctrl-C / SIGTERM to s
 
 # --- Supervisor loop --------------------------------------------------------
 while true; do
+  # Wake-scheduler: scan the handoff inbox every tick and log which handoffs are
+  # DUE / pending / deferred. This NEVER summons a vendor -- the bundle carries no
+  # vendor stack (self-contained guarantee); the live summon is host-side
+  # (scripts/wake-router.mjs), behind every brake. The scheduler is the always-on,
+  # GPU-free presence that turns a real handoff event into a scheduled wake.
+  scan_handoffs
+
   if all_brakes_go && [ "$SELF_DRIVE" = "true" ]; then
     # NOTE: this branch is intentionally unreachable in the skeleton --
     # self_drive_implemented ships false. When the live Cage arms autonomy,

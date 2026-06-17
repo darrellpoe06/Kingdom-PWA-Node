@@ -2,7 +2,9 @@
 .env
 events/*.jsonl
 state/ARMED
+state/WAKE_SUMMON
 state/orchestrator.lock/
 state/spend-*.txt
+state/handoffs/
 
 # NOTE: state/KILL_SWITCH is intentionally TRACKED -- it ships engaged.

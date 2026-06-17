@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://poetech.us/schemas/orchestrator-handoff.v1.json",
+  "title": "PoeTech Orchestrator Handoff (Wake Contract) v1",
+  "description": "The structured, machine-readable handoff a vendor model emits BEFORE it goes offline. The always-on NAS wake-scheduler reads it, schedules the wake, and at wake-time summons the right vendor (tiered, cheapest-capable-first) with the Charter + lane/task + state pointer. One handoff = one real event (DR-0071). NEVER a bare timer loop. Summoning runs only behind the three brakes + the WAKE_SUMMON flag.",
+  "type": "object",
+  "required": ["v", "id", "issued_at", "issued_by", "wake_at", "lane", "task", "state_pointer"],
+  "additionalProperties": false,
+  "properties": {
+    "v": {
+      "const": 1,
+      "description": "Contract version. Bump only on a breaking schema change."
+    },
+    "id": {
+      "type": "string",
+      "minLength": 6,
+      "maxLength": 128,
+      "description": "Stable unique id for this handoff (e.g. 'handoff-2026-06-16-darrells-study'). Used for dedupe + the lock + audit."
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC ISO-8601 timestamp the handoff was written."
+    },
+    "issued_by": {
+      "type": "string",
+      "enum": ["claude", "gemini", "local", "human"],
+      "description": "Which vendor/agent emitted this handoff (the one going offline)."
+    },
+    "wake_at": {
+      "type": "object",
+      "description": "When to wake. Exactly ONE of {at, after_seconds, condition} drives the schedule. 'at' and 'after_seconds' are time-based and fully supported by the scheduler. 'condition' is a named, pluggable predicate the router evaluates at scan time; an unknown condition is treated as NOT-due and logged (honest: never guess due).",
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC ISO-8601 absolute wake time. Derived from the offline message's stated 'I'll be back up at ...'."
+        },
+        "after_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2592000,
+          "description": "Relative wake delay from issued_at, in seconds (cap 30 days). Used when only a duration is known."
+        },
+        "condition": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Named predicate the router knows how to check (e.g. 'ci-green:PR-210', 'file-exists:/data/x'). Pluggable; unknown => not-due."
+        },
+        "not_before": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional floor: even if the condition is met, do not wake before this UTC time."
+        }
+      }
+    },
+    "lane": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "The durable work lane this handoff resumes (e.g. 'darrells-study', 'conference-registration'). Names the stream of work, not a single turn."
+    },
+    "task": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "What to resume: the concrete next action, in plain language, self-contained enough for a cold vendor session to act on with only the Charter + state_pointer."
+    },
+    "work_type": {
+      "type": "string",
+      "enum": ["code", "refactor", "agentic", "writing", "longcontext", "multimodal", "research", "default"],
+      "default": "default",
+      "description": "Drives the affinity map (vendor-llm-routing-strategy). The router uses this with the tier ladder to pick the cheapest CAPABLE vendor."
+    },
+    "private": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sovereignty gate. true => LOCAL-ONLY, never a vendor, in every mode (TLC firewall / DR-0056 / DR-0073). PHI / family-private work sets this."
+    },
+    "state_pointer": {
+      "type": "object",
+      "description": "WHERE the durable lane state lives so the woken vendor can pick up cold. The handoff carries a pointer, never the bulk state.",
+      "required": ["kind", "ref"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["git-branch", "git-pr", "repo-path", "nas-path", "event-log", "url"],
+          "description": "What ref points at."
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "The pointer itself (a branch name, PR number, repo-relative path, NAS path, etc.)."
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Optional human hint about the state (e.g. 'tests at commit X are red on the auth case')."
+        }
+      }
+    },
+    "suggested_vendor": {
+      "type": "string",
+      "enum": ["local", "claude", "gemini", "auto"],
+      "default": "auto",
+      "description": "Which vendor the issuer SUGGESTS resuming with. Advisory only: the router's tiered cheapest-capable-first policy + the affinity map decide. 'auto' = let the router choose."
+    },
+    "offline_message": {
+      "type": "string",
+      "maxLength": 4000,
+      "description": "Optional verbatim final message the issuer left (e.g. Claude's 'I'll be back up at 14:00 UTC; resume the auth test fix'). Human-readable; the structured fields above are authoritative for scheduling."
+    },
+    "budget_hint_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Optional per-task spend hint. NEVER overrides the hard budget brake; the smaller of this and the configured per-task ceiling applies."
+    }
+  }
+}

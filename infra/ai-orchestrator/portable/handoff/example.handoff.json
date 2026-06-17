@@ -1,0 +1,22 @@
+{
+  "v": 1,
+  "id": "handoff-2026-06-16-darrells-study",
+  "issued_at": "2026-06-16T18:30:00Z",
+  "issued_by": "claude",
+  "wake_at": {
+    "at": "2026-06-16T22:00:00Z",
+    "not_before": "2026-06-16T21:00:00Z"
+  },
+  "lane": "darrells-study",
+  "task": "Resume the Study surface: wire the eternal-algorithms render path to real study-space state and confirm the loop-feedback save round-trips. Run `npm run verify` before reporting; if green, open the PR.",
+  "work_type": "code",
+  "private": false,
+  "state_pointer": {
+    "kind": "git-branch",
+    "ref": "feat/darrells-study",
+    "note": "Untracked work-in-progress under app/src/components/Study.jsx and app/src/lib/study-space.js; tests under app/src/__tests__/study-space.test.js."
+  },
+  "suggested_vendor": "claude",
+  "offline_message": "Going offline at 18:30 UTC, back up ~22:00 UTC. Resume the darrells-study lane: finish the study-space wiring, then verify and PR.",
+  "budget_hint_usd": 1.5
+}
