@@ -240,7 +240,7 @@ async function main() {
     const cost = estimateCostUsd(res.model, res.usage);
     const newSpent = recordSpend(cost.usd);
     logEvent('wake_summon_done',
-      `vendor=${res.vendor} route=${res.route} model=${res.model} `
+      `lane=${handoff.lane} vendor=${res.vendor} route=${res.route} model=${res.model} `
       + `tokens[in=${res.usage.input_tokens} out=${res.usage.output_tokens}] `
       + `cost=${cost.known ? '$' + cost.usd.toFixed(4) : 'unknown-model'} daily_spent=$${newSpent.toFixed(4)}`);
     console.log(`\n=== RESUMED via ${res.vendor.toUpperCase()} (${res.route}) ===\n${res.text}\n`);

@@ -14,6 +14,7 @@ import React, { useState } from 'react';
 import WorkflowStatus from './WorkflowStatus.jsx';
 import OpsBoard from './OpsBoard.jsx';
 import QualityProof from './QualityProof.jsx';
+import WakeOrchestrator from './WakeOrchestrator.jsx';
 import LlmHealth from './LlmHealth.jsx';
 import LlmReview from './LlmReview.jsx';
 import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
@@ -315,6 +316,10 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false }) {
       {/* Quality / Proof — QA + reviews report their own real results in-app.
           Governor-gated for the same reason as the orchestration board. */}
       {isGovernor && <QualityProof />}
+
+      {/* Wake Orchestrator cockpit — control + observability for the wake/handoff
+          engine on the NAS. Governor-gated: arming controls + internal state. */}
+      {isGovernor && <WakeOrchestrator />}
 
       <LlmHealth />
 
