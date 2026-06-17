@@ -5407,6 +5407,7 @@ const FEEDBACK_AREAS = [
     ['pulpit-prep', '└ The Word — Migdal · Prep from your corpus'],
     ['church-choir', 'Church · Choir (director hub)'],
     ['choir-week', '└ Choir · This week'],
+    ['choir-songs', '└ Choir · Songs (Song Workshop)'],
     ['choir-schedule', '└ Choir · Schedule'],
     ['choir-teamdocs', '└ Choir · Team Docs'],
     ['choir-availability', '└ Choir · Availability'],
