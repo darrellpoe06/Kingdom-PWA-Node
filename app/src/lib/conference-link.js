@@ -7,7 +7,7 @@
 // registration LINKED to that account (one-time attendee -> app member), without
 // re-entering anything. Skipping it leaves the registrant fully registered.
 //
-// The linking RPC (claim_conference_registration, migration 0031) is SECURITY
+// The linking RPC (claim_conference_registration, migration 0032) is SECURITY
 // DEFINER and self-scoped: it links an UNCLAIMED row to the CALLER's own auth.uid()
 // only. We pass the row id the registrant's own browser generated at submit time
 // (conference-register.submitRegistration) — never read back from the roll (anon
@@ -87,7 +87,7 @@ export function wirePendingConferenceLink() {
 }
 
 // A member's own linked registration(s) — the funnel "carries into membership"
-// read. Goes through the self-scoped get_my RPC (0031), never the roll. Returns
+// read. Goes through the self-scoped get_my RPC (0032), never the roll. Returns
 // {ok, rows}. Never throws.
 export async function fetchMyConferenceRegistrations() {
   try {
