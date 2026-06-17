@@ -45,6 +45,7 @@ import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-en
 import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
+import TTSControl from './components/TTSControl.jsx';
 import TextSizeControl from './components/TextSizeControl.jsx';
 import Imported from './components/Imported.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
@@ -4963,7 +4964,7 @@ html{scroll-padding-bottom:280px}
         )}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
       </main>
-      <TTSControls />
+      <TTSControl />
       <InstallPrompt />
       <UpdatePrompt />
       <NetworkStatus />
@@ -5400,105 +5401,6 @@ function InstallPrompt() {
           </>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function TTSControls() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isReading, setIsReading] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [rate, setRate] = useState(1.5);
-  const [supported] = useState(typeof window !== 'undefined' && 'speechSynthesis' in window);
-
-  const stopReading = () => {
-    if (!supported) return;
-    window.speechSynthesis.cancel();
-    setIsReading(false);
-    setIsPaused(false);
-  };
-
-  const startReading = () => {
-    if (!supported) return;
-    window.speechSynthesis.cancel();
-    // Get visible page content — prefer the main element
-    const main = document.querySelector('main') || document.body;
-    if (!main) return;
-    // Clone and strip floating UI elements (TTS button itself, feedback modal)
-    const clone = main.cloneNode(true);
-    clone.querySelectorAll('.tts-controls, .feedback-modal, [aria-hidden="true"]').forEach(el => el.remove());
-    const text = clone.innerText.trim().replace(/\s+/g, ' ').slice(0, 32000);
-    if (!text) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = rate;
-    utterance.onend = () => { setIsReading(false); setIsPaused(false); };
-    utterance.onerror = () => { setIsReading(false); setIsPaused(false); };
-    window.speechSynthesis.speak(utterance);
-    setIsReading(true);
-    setIsPaused(false);
-  };
-
-  const togglePause = () => {
-    if (!supported) return;
-    if (isPaused) {
-      window.speechSynthesis.resume();
-      setIsPaused(false);
-    } else {
-      window.speechSynthesis.pause();
-      setIsPaused(true);
-    }
-  };
-
-  useEffect(() => {
-    return () => { if (supported) window.speechSynthesis.cancel(); };
-  }, [supported]);
-
-  if (!supported) return null;
-
-  return (
-    <div className="tts-controls fixed bottom-4 right-4 z-40 print:hidden">
-      {isOpen ? (
-        <div className="bg-white border-2 border-[#1A1815] p-3 shadow-lg min-w-[240px]">
-          <div className="flex items-baseline justify-between mb-3">
-            <div>
-              <div className="text-[9px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
-              <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready'}</div>
-            </div>
-            <button type="button" onClick={() => { stopReading(); setIsOpen(false); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
-          </div>
-          <div className="grid grid-cols-3 gap-1 mb-3">
-            {!isReading ? (
-              <button type="button" onClick={startReading} className="col-span-3 bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">▶ Read this page</button>
-            ) : (
-              <>
-                <button type="button" onClick={togglePause} className="bg-[#1A1815] text-white px-2 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
-                <button type="button" onClick={stopReading} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-2 py-2 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white">⏹ Stop</button>
-              </>
-            )}
-          </div>
-          <div className="mb-2">
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Speed: {rate.toFixed(1)}x</div>
-            <div className="grid grid-cols-5 gap-1">
-              {[
-                { label: '1.0x', value: 1.0 },
-                { label: '1.5x', value: 1.5 },
-                { label: '2.0x', value: 2.0 },
-                { label: '2.5x', value: 2.5 },
-                { label: '3.0x', value: 3.0 },
-              ].map(s => (
-                <button key={s.label} onClick={() => { setRate(s.value); if (isReading) { stopReading(); setTimeout(startReading, 100); } }} className={`px-2 py-1.5 text-[10px] uppercase tracking-wider border ${rate === s.value ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{s.label}</button>
-              ))}
-            </div>
-          </div>
-          <p className="text-[9px] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
-            Reads the visible page so anyone can conduct business — even without reading the screen.
-          </p>
-        </div>
-      ) : (
-        <button type="button" onClick={() => setIsOpen(true)} aria-label="Open text-to-speech controls" title="Read aloud" className="bg-[#1A1815] text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4]">
-          🔊
-        </button>
-      )}
     </div>
   );
 }

@@ -116,6 +116,13 @@ In Settings → Reading & Audio:
 ### Why Speed Control Matters
 People process language at different speeds. A reader who thinks fast can absorb a passage at 1.5x or 2x in less time without losing comprehension. A reader who needs more time can drop to 0.8x or 0.7x. Both should be served.
 This is `EXCELLENCE-STANDARD.md` enacted: the product respects the user's cognition.
+### Current implementation (shipped)
+The read-aloud primitive lives in `app/src/lib/tts.js` (engine + `useTextToSpeech` hook) with the floating control in `app/src/components/TTSControl.jsx` — the HEAR half of the see/hear accessibility pair (its SEE companion is the large-print / text-size primitive shipping alongside). It is the browser Web Speech provider behind a swappable engine. Text is SEGMENTED into short, sentence-sized utterances so a speed change re-speaks the current segment at the new rate (audible live, from where the listener was) — this also sidesteps Chrome's ~15s long-utterance cutoff and iOS Safari truncation. Voice enumeration handles the async `voiceschanged` event and picks the most natural English voice; rate + voice persist per device; an unsupported device degrades to nothing (no crash). Unit-tested, proven-to-catch in `app/src/__tests__/tts.test.js`.
+### Phase 2 — better voices (DEFERRED; not now)
+The Web Speech voices are *acceptable*, not natural. Two upgrade paths exist for when we need them; both keep the swappable-provider seam above so feature code calling the engine never changes:
+- **Cloud TTS** (ElevenLabs / AWS Polly Neural / Google Cloud TTS) — the most natural voices, lowest effort. Cost: per-character billing and audio leaving our infrastructure to a vendor — a DATA-AS-EMPOWERMENT-NOT-EXTRACTION tension; acceptable only for non-sensitive public copy, never for private family/financial content.
+- **Sovereign local TTS** (Piper / Coqui) — natural AND sovereign: the model runs on the planned GPU / AI-media hardware (`AI-MEDIA-PRODUCTION-PLATFORM-VISION.md`), no audio leaves the house, no per-character cost. Higher setup; the right long-term home for anything private.
+**When:** this rides the local-LLM / GPU hardware build-out — not a now item. Until then the browser provider is the correct, free, unbreakable default. Recorded here so the path isn't re-derived later.
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:
