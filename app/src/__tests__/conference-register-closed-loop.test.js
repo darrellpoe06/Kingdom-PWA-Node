@@ -77,6 +77,19 @@ describe('closed loop: submit (anon) -> organizer sees it -> anon cannot', () =>
     expect(totalHeads(rows)).toBe(4); // 1 (Adam) + 3 (Naomi's party)
   });
 
+  it('create -> register -> appears: the organizer-set conference name flows through to what the organizer sees', async () => {
+    // Organizer "creates"/configures the conference (sets its name); the public
+    // form carries that name; the organizer sees the registration tagged with it.
+    const CONF = '77th National Assembly';
+    await submitRegistration({ name: 'Naomi', mealType: 'Vegan', conferenceName: CONF, source: 'public-link' });
+    h.state.role = 'organizer';
+    const { ok, rows } = await fetchRegistrations();
+    expect(ok).toBe(true);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].conferenceName).toBe(CONF);
+    expect(rows[0].name).toBe('Naomi');
+  });
+
   it('an ANONYMOUS viewer cannot read the roll (no read-back leak)', async () => {
     await submitRegistration({ name: 'Naomi', mealType: 'Vegan' });
     h.state.role = 'anon';

@@ -42,6 +42,7 @@ import {
   aggregateRegistrationMeals, totalHeads,
 } from '../lib/conference-register.js';
 import SectionBoundary from './SectionBoundary.jsx';
+import ConferenceSetupChecklist from './ConferenceSetupChecklist.jsx';
 
 // Shared visual tokens — identical to ConferenceModule (already WCAG AA + gated
 // by contrast-guard). Reusing them keeps this surface consistent + compliant.
@@ -330,8 +331,10 @@ function EventCenterModuleInner() {
     );
   }
 
-  // Non-organizers (signed-out, local, or a plain member) don't see the operational
-  // tooling — they register in the front door above. A compact, honest note only.
+  // Non-organizers don't get the operational tooling. A signed-in plain member
+  // (synced) just sees a note. A signed-OUT visitor (local) additionally gets a
+  // READ-ONLY setup-checklist PREVIEW (no data, no edits) so a leader evaluating
+  // on their own device can see the setup map before signing in.
   if (!isOrganizer) {
     return (
       <section className={card} aria-labelledby="eventcenter-h">
@@ -339,6 +342,19 @@ function EventCenterModuleInner() {
         <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Rooms, sessions, capacity, and the registration roll are managed by church leadership. To register, use the form above.
         </p>
+        {mode === 'local' && (
+          <div className="mt-4">
+            <p className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1.5">Setup preview · sign in as a leader to manage</p>
+            <ConferenceSetupChecklist
+              conference={conference}
+              venues={activeVenues}
+              rooms={activeRooms}
+              sessions={confSessions}
+              registrations={[]}
+              headCount={0}
+            />
+          </div>
+        )}
       </section>
     );
   }
@@ -374,6 +390,20 @@ function EventCenterModuleInner() {
       {flash && (
         <p role="alert" className="text-[11px] text-[#B85838] bg-[#FBEFEA] border border-[#E8C4B5] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>{flash}</p>
       )}
+
+      {/* SETUP CHECKLIST (config skeleton) — what's configured vs still blank,
+          driven by real state. The KNOWN facts (South Campus + rooms) show done;
+          the BLANKS (dates / schedule) show amber with a hint. */}
+      <div className="mt-4">
+        <ConferenceSetupChecklist
+          conference={conference}
+          venues={activeVenues}
+          rooms={activeRooms}
+          sessions={confSessions}
+          registrations={publicRegs}
+          headCount={regHeads}
+        />
+      </div>
 
       {/* CONGREGATION REGISTRATIONS — the OPEN, no-login sign-ups (the real
           headcount + meal counts). Organizer-only; RLS gates the read. */}
