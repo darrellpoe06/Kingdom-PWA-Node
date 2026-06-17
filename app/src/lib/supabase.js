@@ -104,6 +104,48 @@ export async function sendRoyaltyLink(email) {
   return { data, error };
 }
 
+// -----------------------------------------------------------------------------
+// Email + password — the SIMPLE primary path (Darrell 2026-06-16). A profile is
+// created at install (name + email + password) and the installed PWA stays signed
+// in on the device. No link to click, nothing to break, nothing that looks like a
+// virus. The Royalty Link / OAuth helpers above remain as fallbacks.
+//
+// IMPORTANT (Darrell's one dashboard action): for instant access at install,
+// Supabase Auth → Providers → Email → "Confirm email" must be OFF, so signUp
+// returns a live session immediately instead of waiting on a confirmation email
+// (which would reintroduce the exact email round-trip we're removing). The
+// password itself is the credential; RLS + roles are the real gate.
+// -----------------------------------------------------------------------------
+
+export function validateCredentials(email, password) {
+  const e = (email || '').trim();
+  if (!e || !e.includes('@')) return { error: { message: 'Please enter a valid email address.' } };
+  if (!password || password.length < 8) return { error: { message: 'Password must be at least 8 characters.' } };
+  return { email: e };
+}
+
+/**
+ * Create an account at install: email + password, with the display name stored
+ * in user_metadata. With "Confirm email" off, this returns a live session right
+ * away → the person is in. Returns { data, error }.
+ */
+export async function signUpWithPassword(email, password, displayName) {
+  const v = validateCredentials(email, password);
+  if (v.error) return v;
+  return supabase.auth.signUp({
+    email: v.email,
+    password,
+    options: { data: { name: (displayName || '').trim() || null } },
+  });
+}
+
+/** Sign in an existing account with email + password. Returns { data, error }. */
+export async function signInWithPassword(email, password) {
+  const v = validateCredentials(email, password);
+  if (v.error) return v;
+  return supabase.auth.signInWithPassword({ email: v.email, password });
+}
+
 /**
  * Initiate the Google OAuth sign-in flow. The browser navigates away to
  * Google's consent screen, then back to our app via the Supabase callback
