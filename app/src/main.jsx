@@ -8,6 +8,7 @@ import ConferenceRegister from './components/ConferenceRegister.jsx';
 import AudienceWindow from './components/AudienceWindow.jsx';
 import TeachMode from './components/TeachMode.jsx';
 import PasswordAuth from './components/PasswordAuth.jsx';
+import VenueRequest from './components/VenueRequest.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
 import { initTextSize } from './lib/text-size.js';
@@ -35,10 +36,13 @@ initTextSize();
 //   ?login=1    — the simple email+password "create your profile / sign in" page,
 //                 standalone. A building block + a verifiable surface; the access
 //                 gate below wires it as the primary in-app sign-in.
+//   ?request-space=1 — the public, no-login "request a space" form for COMMUNITY
+//                 use of the campuses (funerals / weddings / gatherings).
 const __params = new URLSearchParams(window.location.search);
 const __standalone = __params.get('join') === '1' || __params.get('invites') === '1'
   || __params.get('register') === '1' || __params.get('audience') === '1'
   || __params.get('teach') === '1' || __params.get('login') === '1'
+  || __params.get('request-space') === '1'
   || __params.get('oauth_popup') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
 if (__params.get('oauth_popup') === '1') {
@@ -79,6 +83,8 @@ if (__params.get('oauth_popup') === '1') {
       </ErrorBoundary>
     </React.StrictMode>
   );
+} else if (__params.get('request-space') === '1') {
+  __root.render(<React.StrictMode><ErrorBoundary><VenueRequest /></ErrorBoundary></React.StrictMode>);
 } else {
   // Conference funnel: a registrant who chose "create an account" via Google was
   // redirected away and lands back HERE (the OAuth redirect strips ?register=1).

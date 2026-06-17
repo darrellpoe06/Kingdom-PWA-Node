@@ -74,6 +74,7 @@ import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { EventCenterModule } from './components/EventCenterModule.jsx';
 import { ConferenceVariance } from './components/ConferenceVariance.jsx';
 import { ChurchObservation } from './components/ChurchObservation.jsx';
+import EventManagement from './components/EventManagement.jsx';
 import Pulpit from './components/Pulpit.jsx';
 import ChurchVideoWall from './components/ChurchVideoWall.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
@@ -1697,7 +1698,7 @@ function getInitialView() {
     const v = (sp.get('view') || '').toLowerCase().trim();
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
-    if (v === 'engagement' || v === 'choir' || v === 'pulpit') return 'church';
+    if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
     const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
@@ -1710,7 +1711,7 @@ function getInitialChurchView() {
     if (typeof window === 'undefined') return 'home';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : v === 'pulpit' ? 'pulpit' : v === 'learn' ? 'learn' : 'home';
+    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : v === 'pulpit' ? 'pulpit' : v === 'learn' ? 'learn' : v === 'events' ? 'events' : 'home';
   } catch (e) { return 'home'; }
 }
 
@@ -4475,7 +4476,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['pulpit','📖 The Word'], ...(isChurchStaff ? [['videowall','📺 Video Wall'],['observe','🔒 Observation']] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit','📖 The Word'], ...(isChurchStaff ? [['videowall','📺 Video Wall'],['observe','🔒 Observation']] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4711,6 +4712,11 @@ html{scroll-padding-bottom:280px}
             <ConferenceVariance />
           </div>
         )}
+        {/* Venues — COMMUNITY use of the two campuses (funerals / weddings /
+            gatherings), DISTINCT from the church's own Conference. Community-facing
+            request front door for everyone; staff get the back-office (calendar +
+            no-double-book + responsibilities + revenue), RLS-enforced. */}
+        {view === 'church' && churchView === 'events' && <EventManagement isChurchStaff={isChurchStaff} />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {/* Darrell's Study — private, circle-only (Darrell/Christina/BG). Gated
             again here (defense in depth) so a deep-link can't reach it; data is
@@ -5317,6 +5323,7 @@ const FEEDBACK_AREAS = [
     ['church', 'Church · service times / media / prayer / ministry'],
     ['church-conference', '└ Conference · COLG National Assembly (schedule · meals · sessions)'],
     ['church-event-center', '└ Event Center · room / event requests'],
+    ['church-events', '└ Venues · community use of the two campuses (requests · calendar · responsibilities · revenue)'],
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-videowall', 'Church · 📺 Video Wall (🔒 sanctuary LED capital project — budget · donations · spec)'],
