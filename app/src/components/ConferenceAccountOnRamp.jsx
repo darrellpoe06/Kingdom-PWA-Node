@@ -132,12 +132,12 @@ export default function ConferenceAccountOnRamp({ regId = null, name = '', email
   // The optional offer (signed-out registrant).
   return (
     <div className="mt-4 pt-4 border-t border-[#E8E4DC]">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Optional</div>
+      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Optional · Free</div>
       <h4 className="text-base font-semibold text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-        Stay connected with a free PoeTech account
+        Your church, all in one place
       </h4>
-      <p className="text-xs text-[#5A5751] mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-        Keep your registration, get conference updates, and access the app. Totally optional — you’re already registered.
+      <p className="text-xs text-[#5A5751] mt-1 mb-3 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+        Create a free PoeTech account and your registration, Assembly updates, and church resources stay together in one app — built for our community, never sold. Totally optional; you’re already registered.
       </p>
 
       {error && <p className="text-xs text-[#7A1F1F] mb-2" role="alert" aria-live="assertive">{error}</p>}
