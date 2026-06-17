@@ -17,11 +17,15 @@ import { MODULES, extractClassRoster, CLASS_INTEREST_TAG } from '../lib/church-c
 import {
   BROADCAST_MODULES, BROADCAST_INTEREST_TAG, BROADCAST_HELPER_TAG, BROADCAST_TUTOR_META,
 } from '../lib/broadcast-class.js';
+import { INFRA_MODULES, INFRA_INTEREST_TAG } from '../lib/infrastructure-class.js';
 import { SOP_SEQUENCES } from '../lib/broadcast-sops.js';
+import { INFRA_SOP_SEQUENCES } from '../lib/infrastructure-sops.js';
 import { gradeQuiz, courseAssessment, resolveLevel, normalizeMedia } from '../lib/learn-framework.js';
 import { tutorSystemPrompt } from '../lib/class-tutor.js';
 
-const ALL = [...MODULES, ...BROADCAST_MODULES];
+// All three courses share ONE progress + quiz map, ONE diagram registry, and the
+// cross-tenant feedback pipe — so the integrity checks run across the whole set.
+const ALL = [...MODULES, ...BROADCAST_MODULES, ...INFRA_MODULES];
 
 describe('cross-course data integrity (one shared progress + quiz map)', () => {
   it('NO module-id collides across the two courses', () => {
@@ -29,7 +33,7 @@ describe('cross-course data integrity (one shared progress + quiz map)', () => {
     expect(new Set(ids).size).toBe(ids.length); // a dup id would corrupt shared records
   });
   it('every module id is non-empty and unique within its own course', () => {
-    for (const course of [MODULES, BROADCAST_MODULES]) {
+    for (const course of [MODULES, BROADCAST_MODULES, INFRA_MODULES]) {
       const ids = course.map((m) => m.id);
       expect(ids.every(Boolean)).toBe(true);
       expect(new Set(ids).size).toBe(ids.length);
@@ -64,17 +68,22 @@ describe('every quiz is actually passable (no typo can strand a learner)', () =>
 });
 
 describe('media links are not dead (clip → SOP, diagram → renderer)', () => {
-  const sopIds = new Set(SOP_SEQUENCES.map((s) => s.id));
+  // Union of every course's SOP library — a clip may link into either.
+  const sopIds = new Set([...SOP_SEQUENCES, ...INFRA_SOP_SEQUENCES].map((s) => s.id));
   it('every clip that names a sopId resolves to a real SOP sequence', () => {
-    for (const m of BROADCAST_MODULES) {
+    for (const m of [...BROADCAST_MODULES, ...INFRA_MODULES]) {
       for (const it of normalizeMedia(m)) {
         if (it.type === 'clip' && it.sopId) expect(sopIds.has(it.sopId)).toBe(true);
       }
     }
   });
-  it('every diagram key used in a module has a renderer in ChurchLearn (no silent dead diagram)', () => {
+  it('every diagram key used in any module has a renderer in ChurchLearn (no silent dead diagram)', () => {
     const src = readFileSync(fileURLToPath(new URL('../components/ChurchLearn.jsx', import.meta.url)), 'utf8');
-    const diagramBlock = src.slice(src.indexOf('const DIAGRAMS'), src.indexOf('const DIAGRAMS') + 4000);
+    // Slice the WHOLE DIAGRAMS object (it ends just before MediaList) so newly
+    // added course diagrams are covered, not just the first few.
+    const start = src.indexOf('const DIAGRAMS');
+    const end = src.indexOf('function MediaList', start);
+    const diagramBlock = src.slice(start, end > start ? end : start + 12000);
     const usedKeys = ALL.flatMap((m) => normalizeMedia(m)).filter((x) => x.type === 'diagram').map((x) => x.key);
     expect(usedKeys.length).toBeGreaterThan(0);
     for (const key of usedKeys) expect(diagramBlock).toContain(`'${key}'`);
@@ -86,15 +95,20 @@ describe('roster tags do not cross-contaminate between courses', () => {
     { id: '1', text: `${CLASS_INTEREST_TAG} Jayden wants to join the youth A.I. class.` },
     { id: '2', text: `${BROADCAST_INTEREST_TAG} Bradley wants to join the broadcast/media-team course.` },
     { id: '3', text: `${BROADCAST_HELPER_TAG} Chris completed the course and wants to help.` },
-    { id: '4', text: 'The buttons are too small' },
+    { id: '4', text: `${INFRA_INTEREST_TAG} Christian wants to join the infrastructure course.` },
+    { id: '5', text: 'The buttons are too small' },
   ];
   it('the youth roster sees ONLY youth interest', () => {
     const r = extractClassRoster(feed, CLASS_INTEREST_TAG);
     expect(r.map((x) => x.who)).toEqual(['Jayden']);
   });
-  it('the broadcast roster sees ONLY broadcast interest — not the helper note, not youth', () => {
+  it('the broadcast roster sees ONLY broadcast interest — not the helper note, not youth, not infra', () => {
     const r = extractClassRoster(feed, BROADCAST_INTEREST_TAG);
     expect(r.map((x) => x.who)).toEqual(['Bradley']);
+  });
+  it('the infrastructure roster sees ONLY infrastructure interest', () => {
+    const r = extractClassRoster(feed, INFRA_INTEREST_TAG);
+    expect(r.map((x) => x.who)).toEqual(['Christian']);
   });
 });
 
