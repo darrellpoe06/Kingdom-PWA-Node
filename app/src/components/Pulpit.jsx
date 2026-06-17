@@ -33,7 +33,7 @@ import TextSizeControl from './TextSizeControl.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
-  subscribeSermons, subscribeSermonDocuments, saveSermon, deleteSermon, reuseSermon,
+  subscribeSermons, subscribeSermonDocuments, subscribeSpeakers, saveSermon, deleteSermon, reuseSermon,
   saveSermonDocument, importSermonsFromChannel, openSermonDocument, fetchPublicSermons,
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
@@ -55,7 +55,7 @@ const LABEL = 'text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1';
 // -----------------------------------------------------------------------------
 // Message add/edit form (leadership only)
 // -----------------------------------------------------------------------------
-function MessageForm({ initial, onSave, onCancel, busy }) {
+function MessageForm({ initial, onSave, onCancel, busy, speakers = [] }) {
   const [f, setF] = useState({
     id: initial?.id || null,
     serviceDate: initial?.serviceDate || todayIso(),
@@ -94,7 +94,14 @@ function MessageForm({ initial, onSave, onCancel, busy }) {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <div><label className={LABEL} htmlFor="pm-speaker">Speaker</label><input id="pm-speaker" className={FIELD} value={f.speaker} onChange={set('speaker')} placeholder="Bishop Lloyd E. Gwin" /></div>
+        <div>
+          <label className={LABEL} htmlFor="pm-speaker">Speaker</label>
+          <input id="pm-speaker" className={FIELD} value={f.speaker} onChange={set('speaker')} placeholder="Bishop Lloyd E. Gwin" list="pm-speaker-list" autoComplete="off" />
+          <datalist id="pm-speaker-list">
+            {speakers.map((sp) => <option key={sp.id} value={sp.canonicalName} />)}
+          </datalist>
+          <p className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Pick an existing name so the roster stays one person per preacher; a new name starts a new guest entry.</p>
+        </div>
         <div><label className={LABEL} htmlFor="pm-scr">Scripture</label><input id="pm-scr" className={FIELD} value={f.scriptureRef} onChange={set('scriptureRef')} placeholder="e.g. 1 Peter 5" /></div>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -152,7 +159,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
 // management controls + the in-progress drafts; everyone else sees only the
 // published list (the RPC returns no drafts to them).
 // -----------------------------------------------------------------------------
-function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy }) {
+function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [] }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [q, setQ] = useState('');
   const [importMsg, setImportMsg] = useState('');
@@ -185,7 +192,7 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
         </div>
       )}
       {canEdit && (form ? (
-        <MessageForm initial={form.initial} busy={busy} onSave={async (s) => { await onSave(s); setForm(null); }} onCancel={() => setForm(null)} />
+        <MessageForm initial={form.initial} busy={busy} speakers={speakers} onSave={async (s) => { await onSave(s); setForm(null); }} onCancel={() => setForm(null)} />
       ) : (
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <button type="button" onClick={() => setForm({ initial: null })} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Add message</button>
@@ -270,6 +277,7 @@ export default function Pulpit() {
   const [sermons, setSermons] = useState([]);        // leadership: table (incl drafts)
   const [publicSermons, setPublicSermons] = useState([]); // everyone else: RPC (published)
   const [sermonDocs, setSermonDocs] = useState([]);  // owner/admin only (RLS)
+  const [speakers, setSpeakers] = useState([]);      // canonical speaker entities (0037) — typeahead source
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -286,7 +294,7 @@ export default function Pulpit() {
   // Leadership streams the table (all messages incl. drafts + the private docs).
   useEffect(() => {
     if (!canManage) return undefined;
-    const unsubs = [subscribeSermons(setSermons), subscribeSermonDocuments(setSermonDocs)];
+    const unsubs = [subscribeSermons(setSermons), subscribeSermonDocuments(setSermonDocs), subscribeSpeakers(setSpeakers)];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, [canManage]);
 
@@ -301,7 +309,14 @@ export default function Pulpit() {
 
   const reportSkip = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Your changes were not stored — try again.`); else setErr(''); };
 
-  const withDocs = sermons.map((s) => ({ ...s, documentUrl: (sermonDocs.find((d) => d.sermonId === s.id) || {}).documentUrl || null }));
+  // Tag each message with its canonical speaker's primary flag (0037) so the
+  // roster credits BG as primary from real entity data, not a name regex.
+  const speakerById = new Map(speakers.map((sp) => [sp.id, sp]));
+  const withDocs = sermons.map((s) => ({
+    ...s,
+    documentUrl: (sermonDocs.find((d) => d.sermonId === s.id) || {}).documentUrl || null,
+    speakerIsPrimary: !!speakerById.get(s.speakerId)?.isPrimary,
+  }));
   const libraryItems = canManage ? withDocs : publicSermons;
   const tabs = theWordTabs(canManage);
 
@@ -343,7 +358,7 @@ export default function Pulpit() {
 
       {tab === 'library' && (
         <LibraryPanel
-          sermons={libraryItems} canEdit={canManage} busy={busy}
+          sermons={libraryItems} canEdit={canManage} busy={busy} speakers={speakers}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
         />
