@@ -11,9 +11,10 @@
 // Accessibility (WCAG 2.1 AA on white): #1A1815 body, #5A5751 secondary, #7A1F1F /
 // #5A6E3D accents, labelled inputs, #B85838 focus ring, >=44px targets, aria-live
 // on the result + errors.
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { detectPlatform, installSteps, validateInterest, isStandalone } from '../lib/install-help.js';
 import { submitInterest } from '../lib/interest-sync.js';
+import { FIELD_CAPS, looksLikeBot } from '../lib/sanitize-input.js';
 
 export default function AppInterestCapture({ onClose = null, source = 'app', canPrompt = false }) {
   const platform = useMemo(() => detectPlatform(), []);
@@ -22,6 +23,7 @@ export default function AppInterestCapture({ onClose = null, source = 'app', can
   const [errors, setErrors] = useState({});
   const [state, setState] = useState('idle'); // idle | sending | sent | error
   const [hp, setHp] = useState(''); // honeypot — bots fill it, humans never see it
+  const openedAt = useRef(Date.now()); // for the timing trap
 
   const set = (k) => (e) => {
     const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -30,7 +32,8 @@ export default function AppInterestCapture({ onClose = null, source = 'app', can
 
   const submit = async (e) => {
     e.preventDefault();
-    if (hp) { setState('sent'); return; } // silently swallow bot submissions
+    // Anti-bot, invisible to humans: honeypot filled OR submitted impossibly fast.
+    if (looksLikeBot({ honeypot: hp, elapsedMs: Date.now() - openedAt.current })) { setState('sent'); return; }
     const v = validateInterest(form);
     setErrors(v.errors);
     if (!v.ok) return;
@@ -74,21 +77,21 @@ export default function AppInterestCapture({ onClose = null, source = 'app', can
       <form onSubmit={submit} noValidate>
         <div className="mb-3">
           <label htmlFor="ai-name" className={labelCls}>Your name</label>
-          <input id="ai-name" type="text" value={form.name} onChange={set('name')} className={inputCls} autoComplete="name" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'ai-name-err' : undefined} />
+          <input id="ai-name" type="text" maxLength={FIELD_CAPS.name} value={form.name} onChange={set('name')} className={inputCls} autoComplete="name" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'ai-name-err' : undefined} />
           {errors.name && <p id="ai-name-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.name}</p>}
         </div>
         <div className="mb-3">
           <label htmlFor="ai-email" className={labelCls}>Email <span className="text-[#5A5751] font-normal">(where we send your invite)</span></label>
-          <input id="ai-email" type="email" value={form.email} onChange={set('email')} className={inputCls} autoComplete="email" aria-invalid={!!errors.email} aria-describedby={errors.email ? 'ai-email-err' : undefined} />
+          <input id="ai-email" type="email" maxLength={FIELD_CAPS.email} value={form.email} onChange={set('email')} className={inputCls} autoComplete="email" aria-invalid={!!errors.email} aria-describedby={errors.email ? 'ai-email-err' : undefined} />
           {errors.email && <p id="ai-email-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.email}</p>}
         </div>
         <div className="mb-3">
           <label htmlFor="ai-phone" className={labelCls}>Phone <span className="text-[#5A5751] font-normal">(optional)</span></label>
-          <input id="ai-phone" type="tel" value={form.phone} onChange={set('phone')} className={inputCls} autoComplete="tel" />
+          <input id="ai-phone" type="tel" maxLength={FIELD_CAPS.phone} value={form.phone} onChange={set('phone')} className={inputCls} autoComplete="tel" />
         </div>
         <div className="mb-3">
           <label htmlFor="ai-issue" className={labelCls}>What’s going on? <span className="text-[#5A5751] font-normal">(optional — tell us what’s not working)</span></label>
-          <textarea id="ai-issue" rows={2} value={form.issue} onChange={set('issue')} className={inputCls} />
+          <textarea id="ai-issue" rows={2} maxLength={FIELD_CAPS.issue} value={form.issue} onChange={set('issue')} className={inputCls} />
         </div>
 
         <label className="flex items-start gap-2 mb-2 text-xs text-[#1A1815]">

@@ -10,6 +10,7 @@
 // visitor uses the anon key, which the insert policy allows.
 // =============================================================================
 import supabase from './supabase.js';
+import { cleanField, FIELD_CAPS } from './sanitize-input.js';
 
 // Darrell + Christina — the only eyes on the list ("all of this before me and my
 // wife Christina"). Mirrors migration 0023's RLS allow-list; the DB is the real
@@ -34,18 +35,22 @@ async function currentEmail() {
 // (unlike a sync mirror) here the row IS the deliverable, so we surface failure.
 export async function submitInterest(form = {}) {
   const signedInEmail = await currentEmail();
+  // Every text field cleaned + length-capped (HTML tags + control/invisible/bidi
+  // chars stripped). user_agent / referrer are attacker-controllable too (a direct
+  // POST can set any header-ish value), so they are capped as well. The 0033 CHECK
+  // constraints are the enforceable server-side backstop.
   const row = {
-    name: (form.name || '').trim() || null,
-    email: (form.email || '').trim() || null,
-    phone: (form.phone || '').trim() || null,
-    issue: (form.issue || '').trim() || null,
-    platform: form.platform || null,
-    user_agent: (typeof navigator !== 'undefined' ? navigator.userAgent : null),
-    referrer: (typeof document !== 'undefined' ? (document.referrer || null) : null),
+    name: cleanField(form.name, FIELD_CAPS.name) || null,
+    email: cleanField(form.email, FIELD_CAPS.email) || null,
+    phone: cleanField(form.phone, FIELD_CAPS.phone) || null,
+    issue: cleanField(form.issue, FIELD_CAPS.issue, { multiline: true }) || null,
+    platform: cleanField(form.platform, FIELD_CAPS.platform) || null,
+    user_agent: cleanField(typeof navigator !== 'undefined' ? navigator.userAgent : '', FIELD_CAPS.userAgent) || null,
+    referrer: cleanField(typeof document !== 'undefined' ? document.referrer : '', FIELD_CAPS.referrer) || null,
     is_minor: !!form.isMinor,
     parent_confirmed: !!form.parentConfirmed,
-    source: form.source || 'app',
-    signed_in_email: signedInEmail,
+    source: cleanField(form.source, FIELD_CAPS.source) || 'app',
+    signed_in_email: cleanField(signedInEmail, FIELD_CAPS.signedInEmail) || null,
     status: 'new',
   };
   try {

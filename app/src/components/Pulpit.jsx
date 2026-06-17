@@ -29,6 +29,7 @@
 // =============================================================================
 import React, { useEffect, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import TextSizeControl from './TextSizeControl.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
@@ -324,6 +325,11 @@ export default function Pulpit() {
         <p className="text-sm text-[#1A1815] italic">“So they read in the book in the law of God distinctly, and gave the sense, and caused them to understand the reading.”</p>
         <footer className="text-[11px] text-[#5A5751] mt-1">— Nehemiah 8:8 (KJV). Ezra the priest read from a <span className="italic">migdal</span> of wood built for the purpose (Nehemiah 8:4).</footer>
       </blockquote>
+
+      {/* Large-print, right where the reading happens (WCAG 1.4.4). "Cause them to
+          understand the reading" (Neh 8:8) — a reader who can't see the words can't
+          understand them. Applies app-wide; choice saved per device. */}
+      <TextSizeControl variant="panel" className="mb-4" />
 
       {tabs.length > 1 && (
         <div className="flex gap-1 text-xs mb-3 overflow-x-auto">
