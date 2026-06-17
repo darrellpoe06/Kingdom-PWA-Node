@@ -6,8 +6,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   detectSourceType, ideaEmbedUrl, parseSongLine, parseSongList,
-  toIdeaShape, toSongCommentShape, toVoteShape,
-  splitByStatus, groupCommentsBySong, tallyVotes,
+  toIdeaShape, toSongCommentShape, toVoteShape, toLeadShape,
+  splitByStatus, groupCommentsBySong, tallyVotes, groupLeadsBySong, myLeadSongIds,
 } from '../lib/song-workshop-sync.js';
 
 describe('detectSourceType', () => {
@@ -130,6 +130,42 @@ describe('tallyVotes', () => {
     expect(map.get('s1')).toEqual({ count: 2, mine: true });
     expect(map.get('s2')).toEqual({ count: 1, mine: false });
     expect(map.get('s3')).toBeUndefined();
+  });
+});
+
+describe('toLeadShape', () => {
+  it('maps a lead row, normalizes role, and flags mine by member_user_id', () => {
+    const row = { id: 'l1', song_id: 's1', member_user_id: 'me', member_name: 'Christina', role: 'co-lead' };
+    expect(toLeadShape(row, 'me')).toEqual({ id: 'l1', songId: 's1', memberUserId: 'me', memberName: 'Christina', role: 'co-lead', mine: true });
+    expect(toLeadShape(row, 'other').mine).toBe(false);
+  });
+  it('defaults an unknown/blank role to lead and a missing name to Member', () => {
+    expect(toLeadShape({ id: 'l', song_id: 's', role: 'bogus' }, null)).toMatchObject({ role: 'lead', memberName: 'Member', mine: false });
+  });
+});
+
+describe('groupLeadsBySong', () => {
+  it('buckets by song, lead(s) before co-leads then by name', () => {
+    const map = groupLeadsBySong([
+      { id: 'a', songId: 's1', memberName: 'Zoe', role: 'co-lead' },
+      { id: 'b', songId: 's1', memberName: 'Christina', role: 'lead' },
+      { id: 'c', songId: 's1', memberName: 'Anna', role: 'co-lead' },
+      { id: 'd', songId: 's2', memberName: 'BG', role: 'lead' },
+    ]);
+    expect(map.get('s1').map((l) => l.memberName)).toEqual(['Christina', 'Anna', 'Zoe']);
+    expect(map.get('s2').map((l) => l.memberName)).toEqual(['BG']);
+  });
+});
+
+describe('myLeadSongIds', () => {
+  it('collects only the songIds the current member leads', () => {
+    const set = myLeadSongIds([
+      { songId: 's1', mine: true },
+      { songId: 's2', mine: false },
+      { songId: 's3', mine: true },
+    ]);
+    expect([...set].sort()).toEqual(['s1', 's3']);
+    expect(set.has('s2')).toBe(false);
   });
 });
 

@@ -124,6 +124,17 @@ export function toVoteShape(row, myUserId) {
   return { id: row.id, songId: row.song_id, userId: row.user_id ?? null, mine: !!myUserId && row.user_id === myUserId };
 }
 
+export function toLeadShape(row, myUserId) {
+  return {
+    id: row.id,
+    songId: row.song_id,
+    memberUserId: row.member_user_id ?? null,
+    memberName: row.member_name ?? 'Member',
+    role: row.role === 'co-lead' ? 'co-lead' : 'lead',
+    mine: !!myUserId && row.member_user_id === myUserId,
+  };
+}
+
 // Bucket ideas by lifecycle for the three-section UI. Pure + stable-sorted
 // (newest first within each bucket) so the render order doesn't jitter.
 export function splitByStatus(ideas) {
@@ -158,6 +169,26 @@ export function tallyVotes(votes) {
     map.set(v.songId, cur);
   }
   return map;
+}
+
+// songId -> [leads], lead(s) before co-leads then by name (stable card order).
+export function groupLeadsBySong(leads) {
+  const map = new Map();
+  for (const l of leads || []) {
+    if (!map.has(l.songId)) map.set(l.songId, []);
+    map.get(l.songId).push(l);
+  }
+  const rank = (l) => (l.role === 'lead' ? 0 : 1);
+  for (const arr of map.values()) arr.sort((a, b) => rank(a) - rank(b) || String(a.memberName).localeCompare(String(b.memberName)));
+  return map;
+}
+
+// The set of songIds the current member is assigned to lead/co-lead — drives the
+// "songs I'm leading" view and the "Your lead" flag on a card.
+export function myLeadSongIds(leads) {
+  const set = new Set();
+  for (const l of leads || []) if (l.mine) set.add(l.songId);
+  return set;
 }
 
 // --- Realtime subscribers (mirror choir-sync.makeSubscriber) -----------------
@@ -195,6 +226,7 @@ function makeSubscriber(table, mapRow, orderBy) {
 export const subscribeSongIdeas    = makeSubscriber('choir_song_ideas',    toIdeaShape,        { col: 'created_at', asc: false });
 export const subscribeSongComments = makeSubscriber('choir_song_comments', toSongCommentShape, { col: 'created_at', asc: true });
 export const subscribeSongVotes    = makeSubscriber('choir_song_votes',    toVoteShape,        null);
+export const subscribeSongLeads    = makeSubscriber('choir_song_leads',    toLeadShape,        { col: 'created_at', asc: true });
 
 // --- Writes ------------------------------------------------------------------
 
@@ -291,4 +323,36 @@ export async function toggleSongVote(songId, hasVoted, displayName) {
   }
   const { error } = await supabase.from('choir_song_votes').insert({ instance_id: ctx.tenantId, song_id: songId, user_id: ctx.userId });
   return error ? { skipped: 'insert-error', error } : { saved: true, voted: true };
+}
+
+// Director-only (RLS enforces): assign a member as the lead (or co-lead) on a
+// song. member = { userId?, name }. The UNIQUE(song_id, member_user_id) guard
+// stops assigning the same account twice on one song.
+export async function assignLead(songId, member, role, displayName) {
+  const name = (member?.name || '').trim();
+  if (!songId || !name) return { skipped: 'empty' };
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const { error } = await supabase.from('choir_song_leads').insert({
+    instance_id: ctx.tenantId,
+    song_id: songId,
+    member_user_id: member?.userId ?? null,
+    member_name: name.slice(0, 120),
+    role: role === 'co-lead' ? 'co-lead' : 'lead',
+    assigned_by: ctx.userId,
+  });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
+}
+
+// Director-only: switch a lead between lead and co-lead.
+export async function setLeadRole(id, role) {
+  if (!['lead', 'co-lead'].includes(role)) return { skipped: 'bad-role' };
+  const { error } = await supabase.from('choir_song_leads').update({ role }).eq('id', id);
+  return error ? { skipped: 'update-error', error } : { saved: true };
+}
+
+// Director-only: unassign a lead.
+export async function removeLead(id) {
+  const { error } = await supabase.from('choir_song_leads').delete().eq('id', id);
+  return error ? { skipped: 'delete-error', error } : { deleted: true };
 }
