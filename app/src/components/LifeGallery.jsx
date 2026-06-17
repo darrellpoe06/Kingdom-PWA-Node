@@ -249,9 +249,9 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
             })}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {shown.map(p => (
+            {shown.map((p, i) => (
               <figure key={p.id} className="border border-[#E8E4DC] bg-[#FAF8F4]">
-                <button type="button" onClick={() => setLightbox({ src: p.src, alt: p.caption || p.category || 'Life photo' })} title="Open full size" className="block w-full">
+                <button type="button" onClick={() => setLightbox({ items: shown.map(x => ({ src: x.src, alt: x.caption || x.category || 'Life photo', caption: x.caption || '', date: x.date || '' })), index: i })} title="Open full size" className="block w-full">
                   <img src={p.src} alt={p.caption || p.category || 'Life photo'} className="w-full h-40 object-cover hover:opacity-90 cursor-zoom-in" />
                 </button>
                 <figcaption className="p-2">
@@ -294,7 +294,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
       <p className="text-[10px] text-[#5A5751] mt-3 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
         🔒 Never sold, never mined, never used to train a model — there is no such pipeline here. Today these photos live on this device; backing them up to a space you own — your own NAS, or a private PoeTech space you can export any time — is coming next, so a lost phone never loses them. Save any photo above right now.
       </p>
-      <Lightbox src={lightbox?.src} alt={lightbox?.alt} onClose={() => setLightbox(null)} />
+      <Lightbox items={lightbox?.items} index={lightbox?.index || 0} src={lightbox?.src} alt={lightbox?.alt} onClose={() => setLightbox(null)} />
     </section>
   );
 }

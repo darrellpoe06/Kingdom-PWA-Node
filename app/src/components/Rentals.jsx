@@ -10,6 +10,8 @@ import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
 import { hasBridgeToken, chatChannelFor, fetchChannelPhotos } from '../lib/nas-photos.js';
 import Lightbox from './Lightbox.jsx';
+import { summarizePhotoSource } from '../lib/photo-source-health.js';
+import { KpiDot } from './KpiDot.jsx';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -708,16 +710,14 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
                     <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No photos yet. Add before/after shots to see this room change over the years.</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {[...(rm.photos || [])].sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(p => (
+                      {(() => { const roomPhotos = [...(rm.photos || [])].sort((a, b) => (a.date || '').localeCompare(b.date || '')); return roomPhotos.map((p, pi) => (
                         <div key={p.id} className="w-24">
-                          <a href={p.src} target="_blank" rel="noopener noreferrer" title="Open full size">
-                            <button type="button" onClick={() => setLightbox({ src: p.src, alt: p.caption || `${rm.name} photo` })} className="block"><img src={p.src} alt={p.caption || `${rm.name} photo`} className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" /></button>
-                          </a>
+                          <button type="button" onClick={() => setLightbox({ items: roomPhotos.map(x => ({ src: x.src, alt: x.caption || `${rm.name} photo`, caption: x.caption || '', date: x.date || '' })), index: pi })} title="Open full size" className="block"><img src={p.src} alt={p.caption || `${rm.name} photo`} className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" /></button>
                           <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</div>
                           <input className="w-full text-[10px] p-1 border border-[#E8E4DC] bg-white mt-0.5" placeholder="caption" defaultValue={p.caption || ''} onBlur={e => { if ((e.target.value || '') !== (p.caption || '')) setRoomPhotoCaption(rm.id, p.id, e.target.value); }} />
                           <button type="button" onClick={() => deleteRoomPhoto(rm.id, p.id)} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] mt-0.5">× remove</button>
                         </div>
-                      ))}
+                      )); })()}
                     </div>
                   )}
                 </div>
@@ -745,7 +745,7 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
           )}
         </div>
       </details>
-      <Lightbox src={lightbox?.src} alt={lightbox?.alt} onClose={() => setLightbox(null)} />
+      <Lightbox items={lightbox?.items} index={lightbox?.index || 0} onClose={() => setLightbox(null)} />
     </div>
   );
 }
@@ -1132,6 +1132,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const PHOTO_PAGE = 18;
   const [photoImport, setPhotoImport] = useState(null);
   const [photoShowN, setPhotoShowN] = useState(50);
+  // The shared gallery lightbox for the Property Photos grid: { items, index }.
+  const [photoLightbox, setPhotoLightbox] = useState(null);
   // Load up to `target` photos by paging the bridge in 48-photo chunks (the
   // script's per-request cap) so a space can show 50 / 100 / 500+ at once.
   const loadPhotosUpTo = async (r, target) => {
@@ -1785,7 +1787,24 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                               {photoImport.status === 'staged' && (
                                 <>
                                   {(r.rooms || []).length === 0 && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Add a room above first, then assign photos to it.</p>}
-                                  <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.photos.length} photos from this property&apos;s chat. Pick a room for each and tap Add — see the place change over the years.</p>
+                                  <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Tap any photo to view it full-size and browse the set. Pick a room and tap Add to file one — see the place change over the years.</p>
+                                  {/* Honest source readout — every tile resolves from a real source (your
+                                      Synology Chat archive -> the NAS preview that property already has).
+                                      A tile with no preview is a photo never backed up to your NAS; this
+                                      flag counts it so a blank wall is never silent. (photo-source-health) */}
+                                  {(() => {
+                                    const h = summarizePhotoSource(photoImport.photos, { total: photoImport.total });
+                                    return (
+                                      <div className="flex items-center gap-2 flex-wrap my-1">
+                                        <KpiDot status={h.status} label={h.label} className="text-[10px]" />
+                                        {h.missing > 0 && (
+                                          <span className="text-[9px] text-[#8A8580] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                                            “not in backup” = shared into chat but never backed up to your NAS (screenshots, other phones).
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                   <div className="flex items-center gap-1.5 my-1.5 flex-wrap">
                                     <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Show:</span>
                                     {[50, 100, 500].map(n => (
@@ -1793,13 +1812,31 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     ))}
                                     <span className="text-[9px] text-[#5A5751] italic">{photoImport.photos.length} loaded</span>
                                   </div>
+                                  {(() => {
+                                    // The lightbox browses only the photos that actually have a NAS
+                                    // preview — the renderable set. Tapping a thumb opens at its place.
+                                    const viewable = photoImport.photos.filter(p => p.thumb);
+                                    const openAt = (id) => {
+                                      const idx = viewable.findIndex(v => v.id === id);
+                                      if (idx < 0) return;
+                                      setPhotoLightbox({
+                                        items: viewable.map(v => ({ src: v.thumb, alt: v.text || 'property photo', caption: v.text || '', date: v.date || '' })),
+                                        index: idx,
+                                      });
+                                    };
+                                    return (
                                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
                                     {photoImport.photos.map(p => (
                                       <div key={p.id} className="border border-[#E8E4DC] bg-[#FAF8F4] p-1">
                                         {p.thumb ? (
-                                          <img src={p.thumb} alt={p.text || 'property photo'} className="w-full h-24 object-cover border border-[#E8E4DC]" loading="lazy" />
+                                          <button type="button" onClick={() => openAt(p.id)} title="Tap to view full size" className="block w-full">
+                                            <img src={p.thumb} alt={p.text || 'property photo'} className="w-full h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" loading="lazy" />
+                                          </button>
                                         ) : (
-                                          <div className="w-full h-24 flex items-center justify-center text-[9px] text-[#5A5751] italic border border-dashed border-[#E8E4DC] text-center px-1">not in backup</div>
+                                          <div className="w-full h-24 flex flex-col items-center justify-center gap-0.5 text-[8px] text-[#8A8580] italic border border-dashed border-[#D8D4CC] bg-[#F4F2EE] text-center px-1" title="Shared into chat but not backed up to your NAS — no preview to show.">
+                                            <span aria-hidden="true" className="text-base not-italic">🖼️</span>
+                                            <span>not in backup</span>
+                                          </div>
                                         )}
                                         <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date}</div>
                                         {p.text && <div className="text-[9px] text-[#5A5751] truncate" title={p.text} style={{ fontFamily: '"Fraunces", serif' }}>{p.text}</div>}
@@ -1832,6 +1869,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                       </div>
                                     ))}
                                   </div>
+                                    );
+                                  })()}
                                   {photoImport.lastCount === PHOTO_PAGE && (
                                     <button type="button" onClick={() => fetchPhotoPage(r, photoImport.offset + PHOTO_PAGE)} className="w-full text-[10px] uppercase tracking-wider py-1.5 border border-[#1A1815] hover:bg-[#FAF8F4]">Load more photos</button>
                                   )}
@@ -2086,6 +2125,10 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           </p>
         </div>
       </section>
+
+      {/* Shared gallery lightbox for the Property Photos from Chat grid —
+          tap a thumbnail to open it big and browse the whole set. */}
+      <Lightbox items={photoLightbox?.items} index={photoLightbox?.index || 0} onClose={() => setPhotoLightbox(null)} />
     </div>
   );
 }
