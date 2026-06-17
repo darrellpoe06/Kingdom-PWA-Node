@@ -2131,110 +2131,6 @@ export default function PoeFinancialSystem() {
     }
   };
 
-  // Family Suggest button — 2026-05-29. Floating button visible on every
-  // screen. Opens a small modal where any family member can drop feedback
-  // (bug / feature / copy edit / question / strategic). POSTs to n8n
-  // workflow 30 (/webhook/family-feedback) which writes to
-  // /data/finance-events/family-feedback/ and pushes ntfy. Foundation
-  // Agent's 7am cron (workflow 31, queued) summarizes for the morning
-  // digest. Per BUSINESS-PROCESS-CONNECTIONS Family-Voice-Is-The-Connection
-  // extension: family voice is wired within 24 hours, every time.
-  //
-  // The sender is read from the current profile in localStorage. Falls
-  // back to 'unknown' if no profile is set (demo mode visitors).
-  const [suggestOpen, setSuggestOpen] = useState(false);
-  const [suggestForm, setSuggestForm] = useState({ type: '', message: '' });
-  // 2026-06-13 — Christina asked to attach a screenshot "for clarification."
-  // suggestImage holds a compressed JPEG data URL (or null); it rides the same
-  // /webhook/family-feedback POST and lands as a sidecar image on the NAS.
-  const [suggestImage, setSuggestImage] = useState(null);
-  const [suggestState, setSuggestState] = useState({ submitting: false, success: false, error: null, id: null });
-  const onSuggestImage = async (fileList) => {
-    const file = fileList && fileList[0];
-    if (!file) return;
-    if (!/^image\//.test(file.type || '')) {
-      setSuggestState(s => ({ ...s, error: 'That file is not an image. A screenshot or photo works best.' }));
-      return;
-    }
-    try {
-      // Compress hard — feedback screenshots only need to be legible, and the
-      // data URL travels in a JSON body, so keep it small.
-      const dataUrl = await compressImageFile(file, 1280, 0.6);
-      setSuggestImage(dataUrl);
-      setSuggestState(s => ({ ...s, error: null }));
-    } catch (_) {
-      setSuggestState(s => ({ ...s, error: 'Could not read that image. Try another, or send your note without one.' }));
-    }
-  };
-  const submitSuggest = async () => {
-    if (!suggestForm.message || suggestForm.message.trim().length < 3) {
-      setSuggestState({ submitting: false, success: false, error: 'Tell us what you noticed - a sentence or two is plenty.', id: null });
-      return;
-    }
-    setSuggestState({ submitting: true, success: false, error: null, id: null });
-    const base = N8N_BASE;
-    if (!base) {
-      setSuggestState({ submitting: false, success: false, error: 'Feedback channel is temporarily offline. Please try again later or email darrellpoe06@gmail.com.', id: null });
-      return;
-    }
-    let senderHandle = 'unknown';
-    try {
-      const prof = (typeof window !== 'undefined' && window.localStorage)
-        ? window.localStorage.getItem('poe-current-profile')
-        : null;
-      if (prof === 'darrell') senderHandle = 'dpoe';
-      else if (prof === 'christina') senderHandle = 'cpoe';
-      else if (prof === 'christiana') senderHandle = 'christiana';
-      else if (prof === 'christian') senderHandle = 'christian'; // twin son, 10
-      else if (prof === 'christyn') senderHandle = 'christyn';   // twin daughter, 10
-      else if (prof === 'family') senderHandle = 'dpoe';
-    } catch (_) { /* localStorage blocked or unavailable */ }
-    const screenContext = {
-      path: (typeof window !== 'undefined' && window.location) ? window.location.pathname + window.location.search : '/',
-      // 2026-06-11 fix: this previously referenced activeTab/tab, neither of
-      // which exists — every feedback row landed with tab:null. `view` is the
-      // real current-tab state. account makes "whose feedback" unambiguous.
-      tab: (typeof view === 'string') ? view : null,
-      account: (authSession && authSession.user && authSession.user.email) ? authSession.user.email : null,
-      persona: (typeof demoPersona === 'string') ? demoPersona : null,
-      is_demo: typeof isDemoMode === 'boolean' ? isDemoMode : null
-    };
-    try {
-      const url = `${base.replace(/\/+$/, '')}/webhook/family-feedback`;
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({
-          sender: senderHandle,
-          type: suggestForm.type || 'other',
-          message: suggestForm.message.trim(),
-          screen_context: screenContext,
-          user_agent: (typeof navigator !== 'undefined') ? navigator.userAgent : '',
-          source: 'poetech.us',
-          // Optional compressed JPEG data URL; wf30 writes it as a sidecar file.
-          screenshot: suggestImage || null
-        })
-      });
-      const json = await r.json().catch(() => ({}));
-      if (!r.ok || json.ok === false) {
-        setSuggestState({ submitting: false, success: false, error: json.error || `Submission failed (HTTP ${r.status}). Please try again.`, id: null });
-        return;
-      }
-      setSuggestState({ submitting: false, success: true, error: null, id: json.id || null });
-      // Auto-close success state after 3s so the floating button doesn't
-      // stay obtrusive after a successful submission.
-      setTimeout(() => {
-        setSuggestOpen(false);
-        setSuggestForm({ type: '', message: '' });
-        setSuggestImage(null);
-        setSuggestState({ submitting: false, success: false, error: null, id: null });
-      }, 3000);
-    } catch (e) {
-      setSuggestState({ submitting: false, success: false, error: `Could not reach the feedback endpoint: ${e.message}.`, id: null });
-    }
-  };
-
   // Data-dump release (Layers 1-3) — 2026-05-29. The five-layer spec's
   // user-facing entry. Drop a bank file, see your money in our lens, see
   // your stewardship skill profile, see matched services. Session-only;
@@ -4214,19 +4110,6 @@ html{scroll-padding-bottom:280px}
         </div>
       )}
 
-      {/* Family Suggest button — 2026-05-29. Floating lower-right on every
-          screen. Always visible for family members to drop feedback as they
-          notice things. POSTs to n8n workflow 30 (/webhook/family-feedback).
-          Per BUSINESS-PROCESS-CONNECTIONS Family-Voice-Is-The-Connection
-          extension. Hidden during the picker landing to avoid cluttering
-          the first impression. */}
-      {/* 2026-06-15 — ONE feedback entry point. The floating "Suggest" button
-          (a second, redundant door → n8n wf30) was removed; the 💬 Feedback
-          button (bottom-left → FeedbackModal → the Supabase queue + Governor
-          review) is the single home base the onboarding already points to.
-          Removing it also de-clutters the bottom-right corner. (The now-unused
-          suggest modal + submitSuggest are dead code, queued for cleanup.) */}
-
       {(() => {
         // Show once to a signed-in, non-family, non-demo user. Keyed only on
         // auth + email + a localStorage flag — touches no data/seed/hydration.
@@ -4234,68 +4117,6 @@ html{scroll-padding-bottom:280px}
         const show = !!authSession && !!ssEmail && !isFamilyEmail(ssEmail) && !isAnyDemoMode && !selfServeWelcomeDismissed;
         return show ? <SelfServeWelcome name={ssEmail.split('@')[0]} onDismiss={dismissSelfServeWelcome} /> : null;
       })()}
-
-      {suggestOpen && (
-        <div role="dialog" aria-modal="true" aria-labelledby="suggest-h" className="fixed inset-0 z-50 bg-[#1A1815]/90 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-5 sm:p-6">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Your voice</div>
-            {!suggestState.success ? (
-              <>
-                <h2 id="suggest-h" className="text-xl sm:text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>What do you see?</h2>
-                <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Bug, idea, copy edit, question - all welcome. Family voices ship within a day.</p>
-                <div className="space-y-3">
-                  <div>
-                    <label htmlFor="sg-type" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Kind (optional)</label>
-                    <select id="sg-type" value={suggestForm.type} onChange={e => setSuggestForm({ ...suggestForm, type: e.target.value })} className="w-full p-2 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]">
-                      <option value="">(pick one or leave blank)</option>
-                      <option value="bug">Bug - something is broken</option>
-                      <option value="feature">Feature - I wish it did X</option>
-                      <option value="copy">Copy edit - the words read off</option>
-                      <option value="question">Question - I don't understand X</option>
-                      <option value="strategic">Strategic - bigger direction note</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="sg-message" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">What you noticed <span className="text-[#B85838]">*</span></label>
-                    <textarea id="sg-message" rows="4" value={suggestForm.message} onChange={e => setSuggestForm({ ...suggestForm, message: e.target.value })} className="w-full p-2 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="A sentence or two is plenty. Specifics help us ship faster." autoFocus />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Screenshot or photo (optional)</label>
-                    {!suggestImage ? (
-                      <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] bg-white text-xs text-[#5A5751] cursor-pointer hover:bg-[#F2EEE6] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
-                        <span>Attach an image to show us</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={e => { onSuggestImage(e.target.files); e.target.value = ''; }} />
-                      </label>
-                    ) : (
-                      <div className="relative inline-block">
-                        <img src={suggestImage} alt="Attached screenshot preview" className="max-h-32 border border-[#1A1815]" />
-                        <button type="button" onClick={() => setSuggestImage(null)} aria-label="Remove image" className="absolute -top-2 -right-2 bg-[#1A1815] text-white w-6 h-6 text-xs leading-none hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">✕</button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {suggestState.error && (
-                  <div className="mt-3 p-2 bg-[#DC2626]/10 border border-[#DC2626] text-xs text-[#DC2626]" style={{ fontFamily: '"Fraunces", serif' }}>
-                    {suggestState.error}
-                  </div>
-                )}
-                <div className="flex gap-2 mt-4 flex-wrap">
-                  <button type="button" disabled={suggestState.submitting} onClick={submitSuggest} className="flex-1 bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">{suggestState.submitting ? 'Sending…' : 'Send to the team'}</button>
-                  <button type="button" disabled={suggestState.submitting} onClick={() => { setSuggestOpen(false); setSuggestImage(null); setSuggestState({ submitting: false, success: false, error: null, id: null }); }} className="px-3 py-2 border border-[#1A1815] text-[#1A1815] text-xs uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
-                </div>
-                <p className="text-[9px] text-[#5A5751] italic text-center mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Goes to a private inbox on our own infrastructure. We see it within minutes.</p>
-              </>
-            ) : (
-              <>
-                <h2 id="suggest-h" className="text-xl sm:text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>We hear you.</h2>
-                <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Your note is captured. The team reviews family voices first - usually within a day.</p>
-                <p className="text-[10px] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Confirmation ID: <span className="font-mono">{suggestState.id || '(saved)'}</span></p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Data-dump release modal — 2026-05-29. Layer 1+2+3 sequenced as a
           multi-step modal. Upload → parsed view → analytics → profile →
