@@ -70,6 +70,7 @@ import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { LifeGallery } from './components/LifeGallery.jsx';
 import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { EventCenterModule } from './components/EventCenterModule.jsx';
+import { ConferenceVariance } from './components/ConferenceVariance.jsx';
 import { ChurchObservation } from './components/ChurchObservation.jsx';
 import Pulpit from './components/Pulpit.jsx';
 import ChurchVideoWall from './components/ChurchVideoWall.jsx';
@@ -4877,6 +4878,10 @@ html{scroll-padding-bottom:280px}
                 multi-attendee system across buildings (EventCenterModule). */}
             <ConferenceModule conference={data.conference} updateConference={updateConference} />
             <EventCenterModule />
+            {/* ANTICIPATED vs ACTUAL — event-day check-in + the variance view
+                (no-show rate, meals served, rooms used). Organizer-gated; reads
+                the same real registration roll + rooms the engine does. */}
+            <ConferenceVariance />
           </div>
         )}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}

@@ -9,16 +9,17 @@
 import { describe, it, expect } from 'vitest';
 import { scanConferenceRls, CONFERENCE_TABLES } from '../../../scripts/conference-rls-guard.mjs';
 
-describe('conference RLS — no cross-instance leak (migrations 0023 + 0024)', () => {
-  it('sees all conference + venue tables (not vacuously empty)', () => {
+describe('conference RLS — no cross-instance leak (migrations 0023 + 0024 + 0031)', () => {
+  it('sees all conference + venue + actuals tables (not vacuously empty)', () => {
     const { tables } = scanConferenceRls();
     for (const t of CONFERENCE_TABLES) expect(tables).toContain(t);
     expect(CONFERENCE_TABLES).toContain('venues');
+    expect(CONFERENCE_TABLES).toContain('conference_actuals');
   });
 
-  it('checks a real set of policies (5 tables x ~4 commands)', () => {
+  it('checks a real set of policies (6 tables x ~4 commands)', () => {
     const { policyCount } = scanConferenceRls();
-    expect(policyCount).toBeGreaterThanOrEqual(16);
+    expect(policyCount).toBeGreaterThanOrEqual(20);
   });
 
   it('every policy is instance-scoped — no cross-instance read/write path', () => {
