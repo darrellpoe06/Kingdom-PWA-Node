@@ -25,9 +25,16 @@ The math was *already* computed in code, but three degeneracies made every outpu
 
 ## The fix (make the math live; keep the seed)
 
-Seed *values* are intentional demo data and were **not** replaced. Instead the math now recomputes from underlying transactions, and minimal underlying seed entries were added so the computed figures are plausible and genuinely vary:
+Seed *values* are intentional demo data and were **not** replaced. The math now recomputes from underlying transactions through a shared helper (`app/src/lib/account-balances.js` — `settledSum` / `accountBalance` / `deriveBalances`, with proven-to-catch unit tests in `app/src/__tests__/account-balances.test.js`), and minimal underlying seed entries were added so the computed figures are plausible and genuinely vary:
 
 1. **`Right now` is derived** = `openingBalance` + cleared (settled, date ≤ today) history for that account. Added an explicit `openingBalance` to each seed account so the derived "now" equals the intended seed display on first load, then moves as real entries clear.
+
+### Verified computed Chase …8168 figures (demo today = 2026-05-15)
+
+- **Right now:** $4,223.00 (display unchanged — now derived: opening −130.29 + settled 4,353.29)
+- **After upcoming charges clear:** $2,548.00 (was identical $4,223)
+- **Forecast +30 / +60 / +90:** $4,158 / $2,958 / $2,548 (was flat $4,223; +30 = Right now − the −$65 phone)
+- **Trailing −30 / −60 / −90:** +$6,645.46 / +$5,803.29 / +$4,353.29 (was +$7,165 repeated)
 2. **`After upcoming charges clear`** = `Right now` + that account's upcoming items. Recurring obligations now carry an `accountId`, so the **-$65 Phone** (and the other personal bill-pay obligations) actually flow through and the number differs.
 3. **30 / 60 / 90 forecast** = derived `Right now` + obligations dated within each horizon → genuinely different per column.
 4. **Prior 30 / 60 / 90 actuals** = real per-period sums; older seed transactions were added so the windows differ instead of repeating one constant.
