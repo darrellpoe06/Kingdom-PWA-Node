@@ -77,11 +77,17 @@ const ROADMAP = [
   { id: 'vision-training', title: 'Melanin-accurate vision (opt-in)', what: 'Opt in to train vision that works accurately on every skin tone — default off, your choice.', status: 'gated', when: 'after consent design + legal review (Illinois BIPA)' },
 ];
 
+// Each stage carries THEMEABLE classes (text/bg/border), not just a raw hex, so
+// the per-[data-theme] remap applies. Using `color` inline (the old way) left
+// the "Next" blue and "Gated" grey as dark-on-dark in the midnight theme — the
+// contrast bug this closes. `color` is retained only for reference/tests; the
+// UI renders from the class fields. The contrast guard scans for any regression
+// back to inline colors.
 const STATUS = {
-  shipped:  { label: 'Shipped',  color: '#5A6E3D', symbol: '✓', blurb: 'Live now' },
-  building: { label: 'Building',  color: '#B85838', symbol: '◐', blurb: 'In progress' },
-  next:     { label: 'Next',      color: '#2A5A8E', symbol: '→', blurb: 'Planned' },
-  gated:    { label: 'Gated',     color: '#5A5751', symbol: '⏸', blurb: 'Waiting on a decision' },
+  shipped:  { label: 'Shipped',  color: '#5A6E3D', text: 'text-[#5A6E3D]', bg: 'bg-[#5A6E3D]', border: 'border-[#5A6E3D]', symbol: '✓', blurb: 'Live now' },
+  building: { label: 'Building',  color: '#B85838', text: 'text-[#B85838]', bg: 'bg-[#B85838]', border: 'border-[#B85838]', symbol: '◐', blurb: 'In progress' },
+  next:     { label: 'Next',      color: '#2A5A8E', text: 'text-[#2A5A8E]', bg: 'bg-[#2A5A8E]', border: 'border-[#2A5A8E]', symbol: '→', blurb: 'Planned' },
+  gated:    { label: 'Gated',     color: '#5A5751', text: 'text-[#5A5751]', bg: 'bg-[#5A5751]', border: 'border-[#5A5751]', symbol: '⏸', blurb: 'Waiting on a decision' },
 };
 const ORDER = ['building', 'next', 'gated', 'shipped'];
 
@@ -195,7 +201,7 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false, project
   // cross-cutting view over Building + Next: the board adjusting to the real
   // flow of work, not the plan it started with.
   const overdueItems = ROADMAP.filter(r => daysLate(r) > 0).sort((a, b) => daysLate(b) - daysLate(a));
-  const OVERDUE = { label: 'Past Due', color: '#B85838', symbol: '⚠', blurb: 'Past target, still in progress' };
+  const OVERDUE = { label: 'Past Due', color: '#B85838', text: 'text-[#B85838]', bg: 'bg-[#B85838]', border: 'border-[#B85838]', symbol: '⚠', blurb: 'Past target, still in progress' };
 
   const counts = Object.fromEntries(ORDER.map(k => [k, ROADMAP.filter(r => r.status === k).length]));
   counts.overdue = overdueItems.length;
@@ -257,8 +263,7 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false, project
               role="tab"
               aria-selected={active}
               onClick={() => { setTab(k); setOpenId(null); }}
-              className="text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
-              style={active ? { backgroundColor: st.color, color: 'white', borderColor: st.color } : { color: st.color, borderColor: st.color }}
+              className={`text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${st.border} ${active ? `${st.bg} text-white` : st.text}`}
             >
               <span aria-hidden="true" className="mr-1">{st.symbol}</span>{st.label} ({k === 'overdue' ? counts.overdue : counts[k]})
             </button>
@@ -267,7 +272,7 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false, project
       </div>
 
       <section>
-        <h3 className="text-[10px] uppercase tracking-[0.25em] font-semibold mb-2" style={{ color: s.color }}>
+        <h3 className={`text-[10px] uppercase tracking-[0.25em] font-semibold mb-2 ${s.text}`}>
           <span aria-hidden="true" className="mr-1">{s.symbol}</span>{s.label} · {s.blurb} ({items.length})
         </h3>
         <div className="bg-white border border-[#1A1815]">
@@ -285,11 +290,11 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false, project
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
                     <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{r.title}</span>
                     <span className="text-[10px] uppercase tracking-wider flex items-center gap-2 flex-wrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <span style={{ color: STATUS[r.status].color }}>
+                      <span className={STATUS[r.status].text}>
                         {r.status === 'shipped' ? `shipped ${r.when}` : r.status === 'gated' ? 'gated' : `target ${r.when}`}
                       </span>
                       {late > 0 && (
-                        <span className="font-semibold" style={{ color: '#B85838' }}>⚠ {late} {late === 1 ? 'day' : 'days'} late</span>
+                        <span className="font-semibold text-[#B85838]">⚠ {late} {late === 1 ? 'day' : 'days'} late</span>
                       )}
                     </span>
                   </div>
