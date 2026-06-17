@@ -77,6 +77,7 @@ import { ConferenceVariance } from './components/ConferenceVariance.jsx';
 import { ChurchObservation } from './components/ChurchObservation.jsx';
 import EventManagement from './components/EventManagement.jsx';
 import Pulpit from './components/Pulpit.jsx';
+import CommandServeCenter from './components/CommandServeCenter.jsx';
 import ChurchVideoWall from './components/ChurchVideoWall.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
@@ -1700,7 +1701,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','admin','center'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4496,6 +4497,12 @@ html{scroll-padding-bottom:280px}
                 ...(isStudyCircle ? [['study','🕮 Study']] : []),
                 ['church','Church'],
                 ['markets','Markets'],
+                // Command, Control & Serve Center — the steward's seat (the
+                // cockpit from which the app is built + observed). Family/Governor
+                // only; spread so the entry is absent from the DOM entirely for
+                // everyone else (no-leak), like Study. The component carries a
+                // defense-in-depth locked fallback for any deep-link.
+                ...(isFamilyMember ? [['center','🎛 Center']] : []),
                 // Admin surfaced at the top so users can SEE a steward space
                 // exists (visible-but-locked, like 🔒 Observation). ACCESS is
                 // gated at the render below — the entry being visible is the goal.
@@ -4819,6 +4826,15 @@ html{scroll-padding-bottom:280px}
           : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} onChangePin={() => setChangePinOpen(true)} />}
+        {view === 'center' && (
+          <CommandServeCenter
+            isGovernor={isFamilyMember}
+            persona={personaOf(authSession?.user?.email)}
+            email={authSession?.user?.email || null}
+            onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
+          />
+        )}
+
         {view === 'admin' && ((isFamilyMember || !isPublicHost())
           ? <Admin />
           : (
@@ -5369,6 +5385,13 @@ const FEEDBACK_AREAS = [
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "🕮 Darrell's Study · reflections / processing / cultural research (device-local)"],
+  ]},
+  { group: "Command, Control & Serve Center (🔒 steward seat)", items: [
+    ['center', '🎛 Center · the steward seat (one cockpit to see / command / control / serve)'],
+    ['center-see', '└ See · Operations · Quality / Proof · KPI key (real system state)'],
+    ['center-command', '└ Command · braked orchestrator · conflict loop (direct the build)'],
+    ['center-control', '└ Control · projects · priorities · discussions (links to Projects)'],
+    ['center-serve', '└ Serve · servant-king framing · role-scoped access'],
   ]},
   { group: 'Church', items: [
     ['church', 'Church · service times / media / prayer / ministry'],

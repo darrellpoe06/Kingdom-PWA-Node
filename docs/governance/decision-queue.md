@@ -98,6 +98,16 @@ Darrell (2026-06-13): *"What would you like in the build backlog is whatever mak
 
 ---
 
+## LANE COORDINATION (informational — not awaiting a decision)
+
+For sibling lanes so the capstone doesn't collide. No call needed from you.
+
+- **2026-06-17 · Command, Control & Serve Center (C2S) seat landed as a composing shell — `feat/command-serve-center`.** The unifying capstone: ONE top-level steward seat (nav id `center`, family/Governor-gated, no-leak) that COMPOSES the real on-main surfaces under four faculties — **See** (OpsBoard · QualityProof · KpiLegend), **Command** (WakeOrchestrator · ConflictLoop), **Control** (links to the live Projects/Build), **Serve** (servant-king framing + role scope). New files only: `CommandServeCenter.jsx`, `lib/command-serve-center.js`, its test; **4 surgical monolith lines** (import + VALID + gated nav tuple + render). **Did NOT touch `BuildBoard.jsx` or any projects-mgmt file** — collision-free by construction. Braked: the seat is the READ/DECIDE/HAND-OFF loop only; autonomous execution stays behind the Cage (WakeOrchestrator engine, inert). Gates green: build · lint · 1052 tests (incl. proven-to-catch no-fake-green + brake assertions) · feedback-area guard · contrast guard. No-leak path live-verified (non-steward sees only the locked seat; zero orchestrator/ops leak).
+  - **Sequenced follow-ups (NOT done now, to avoid colliding with active lanes):** (a) the **CONTROL cockpit** (priorities + discussions, `feat/projects-management-discussions` lane) composes INTO the seat when it lands — the seat links to live Projects until then; (b) **de-dup**: the Governor-internal block in `BuildBoard.jsx` (OpsBoard/QualityProof/ConflictLoop/WakeOrchestrator) is duplicated in the seat for one cycle — fold it out of BuildBoard once the projects-mgmt + drive-to-completion lanes settle, so it lives in the seat only.
+  - **Heads-up for whoever owns it:** PR #212 (`feat/wake-orchestrator-cockpit`) is a stale duplicate — its content already merged as #213 (`c50b895`). Safe to close.
+
+---
+
 ## DECIDED — history
 
 _(Decided items move here with the date and outcome, so the queue stays short and the record stays.)_
