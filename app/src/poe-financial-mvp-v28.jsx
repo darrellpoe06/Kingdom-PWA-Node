@@ -4592,7 +4592,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'], ...(isChurchStaff ? [['pulpit','📖 The Word'],['observe','🔒 Observation']] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['pulpit','📖 The Word'], ...(isChurchStaff ? [['observe','🔒 Observation']] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4671,9 +4671,9 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
-        {view === 'church' && churchView === 'pulpit' && (isChurchStaff
-          ? <Pulpit />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Word — Migdal is the Bishop's study. Sign in with a church staff account to view it.</div>)}
+        {/* The Word — Migdal: PUBLIC library for everyone; the component itself
+            gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
+        {view === 'church' && churchView === 'pulpit' && <Pulpit />}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Observation board is for church staff only. Sign in with a church staff account to view it.</div>)}

@@ -9,6 +9,33 @@
 // ing youtube-title-parse.js. Drafts are excluded from the studyable history.
 // =============================================================================
 
+// The preachers & teachers roster, derived from REAL data: the distinct speakers
+// credited across the published messages (drafts excluded), most first. BG is the
+// primary voice; guest preachers/teachers who fill in are rostered alongside from
+// their own credited messages — no fabricated roster, it IS who has preached.
+// `isBG` flags the Gwin entries. Tolerates a non-array corpus / garbage rows.
+export function speakerRoster(sermons) {
+  const list = Array.isArray(sermons) ? sermons.filter((s) => s && typeof s === 'object') : [];
+  const counts = new Map();
+  for (const s of list.filter((s) => s.status !== 'draft')) {
+    const name = (s.speaker || '').trim();
+    if (!name) continue;
+    counts.set(name, (counts.get(name) || 0) + 1);
+  }
+  return Array.from(counts, ([name, count]) => ({ name, count, isBG: /gwin/i.test(name) }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+// Which tabs a viewer of The Word — Migdal sees. Pure so the access rule is
+// unit-tested: EVERYONE gets the public "Message library"; ONLY leadership
+// (canManage = owner/admin) additionally gets "Prep from your corpus". A non-
+// privileged user can never reach the prep tab.
+export function theWordTabs(canManage) {
+  const tabs = [['library', 'Message library']];
+  if (canManage) tabs.push(['prep', 'Prep from your corpus']);
+  return tabs;
+}
+
 export function corpusPrep(sermons, query) {
   const q = String(query || '').trim().toLowerCase();
   const all = (sermons || []).filter((s) => s.status !== 'draft');

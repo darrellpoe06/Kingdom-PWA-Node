@@ -347,6 +347,20 @@ export const subscribeMembers = makeSubscriber('choir_members', toMemberShape, {
 export const subscribeChoirMessages = makeSubscriber('choir_messages', toChoirMessageShape, { col: 'created_at', asc: true });
 export const subscribeAbsences = makeSubscriber('choir_absences', toAbsenceShape, { col: 'start_date', asc: true });
 export const subscribeSermons = makeSubscriber('choir_sermons', toSermonShape, { col: 'service_date', asc: false });
+
+// The Word — Migdal PUBLIC library. Calls the SECURITY DEFINER RPC
+// theword_public_sermons() (migration 0029), which returns ONLY published
+// (non-draft), colg-scoped messages — no drafts, no prep notes, no documents.
+// Works for ANYONE, including signed-out/anon (the RPC is granted to anon), so
+// the congregation + the unchurched can watch the sermon library (Father's-
+// Business reach). The table itself stays owner/admin (RLS), so prep/drafts never
+// leak. Degrades to [] on error — the public surface never throws.
+export async function fetchPublicSermons() {
+  const { data, error } = await supabase.rpc('theword_public_sermons');
+  if (error) { console.warn('[the-word] public library fetch failed:', error); return []; }
+  return (data || []).map((r) => toSermonShape(r));
+}
+
 export const subscribeResources = makeSubscriber('choir_resources', toResourceShape, { col: 'created_at', asc: true });
 export const subscribeTeamDocuments = makeSubscriber('choir_team_documents', toTeamDocShape, { col: 'doc_date', asc: false });
 
