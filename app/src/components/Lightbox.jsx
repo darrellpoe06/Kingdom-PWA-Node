@@ -32,7 +32,11 @@ export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose
     ? items
     : (src ? [{ src, alt }] : []);
 
-  const [cur, setCur] = useState(index);
+  // Clamp into range up front so the very first paint is always a real photo —
+  // never a blank frame waiting on an effect (matters for out-of-range callers
+  // and server render alike).
+  const clampIndex = (i, n) => (n ? Math.min(Math.max(0, i | 0), n - 1) : 0);
+  const [cur, setCur] = useState(() => clampIndex(index, list.length));
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [broken, setBroken] = useState(false);
@@ -45,8 +49,7 @@ export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose
   // new photo (or a different set). Keyed on index + set size so reopening at a
   // different photo always lands where asked.
   useEffect(() => {
-    const n = list.length;
-    setCur(n ? Math.min(Math.max(0, index), n - 1) : 0);
+    setCur(clampIndex(index, list.length));
   }, [index, list.length]);
 
   // Reset zoom/pan/broken whenever the shown photo changes.
@@ -124,9 +127,12 @@ export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose
   };
 
   const stop = (e) => e.stopPropagation();
+  // Close only when the backdrop ITSELF is clicked — not when a click bubbles up
+  // from the ✕, an arrow, or the controls (which would fire onClose twice).
+  const onBackdrop = (e) => { if (e.target === e.currentTarget) onClose && onClose(); };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={photo.alt || 'Photo viewer'} onClick={onClose}
+    <div role="dialog" aria-modal="true" aria-label={photo.alt || 'Photo viewer'} onClick={onBackdrop}
       className="fixed inset-0 z-[120] bg-black/90 flex items-center justify-center select-none" style={{ touchAction: 'none' }}>
 
       <button type="button" aria-label="Close" onClick={onClose}
