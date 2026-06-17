@@ -13,18 +13,39 @@
 // calls stay thin and never throw.
 import supabase from './supabase.js';
 import { MEAL_TYPES, normalizeMealType, aggregateMeals, mealCountRows } from './conference.js';
+import { cleanField, fieldsOverCap, FIELD_CAPS } from './sanitize-input.js';
 
 export { MEAL_TYPES, normalizeMealType, aggregateMeals, mealCountRows };
 
 export const REGISTRATION_STATUSES = ['new', 'confirmed', 'cancelled'];
 
+// The user-typed fields on the public form and their caps (subset of FIELD_CAPS).
+// conference_name + source are set by the app, not the user, so they are cleaned in
+// buildRegistrationRow but not surfaced as user-facing length errors here.
+const USER_FIELD_CAPS = {
+  name: FIELD_CAPS.name,
+  email: FIELD_CAPS.email,
+  phone: FIELD_CAPS.phone,
+  dietary: FIELD_CAPS.dietary,
+  days: FIELD_CAPS.days,
+};
+const OVER_CAP_MSG = {
+  name: `Please shorten your name (max ${FIELD_CAPS.name} characters).`,
+  email: `That email is too long (max ${FIELD_CAPS.email} characters).`,
+  phone: `That phone number is too long (max ${FIELD_CAPS.phone} characters).`,
+  dietary: `Please shorten the allergy / dietary note (max ${FIELD_CAPS.dietary} characters).`,
+  days: `Please shorten the days note (max ${FIELD_CAPS.days} characters).`,
+};
+
 // Validate a public registration. Name is the only hard requirement — keep the
 // barrier to entry as low as possible for a mixed / elderly congregation. Email
 // is optional but, if given, must look like an email so an invite can reach them.
-// party_size, when given, must be a sane positive count.
+// party_size, when given, must be a sane positive count. Over-cap fields are
+// rejected with a friendly message (the DB CHECK constraints in migration 0033 are
+// the enforceable server-side backstop for anyone who bypasses this form).
 export function validateRegistration(form = {}) {
   const errors = {};
-  const name = String(form.name ?? '').trim();
+  const name = cleanField(form.name, FIELD_CAPS.name);
   if (!name) errors.name = 'Please enter your name so we can check you in.';
 
   const email = String(form.email ?? '').trim();
@@ -38,6 +59,13 @@ export function validateRegistration(form = {}) {
       errors.partySize = 'How many in your party? (1–99)';
     }
   }
+
+  // Over-length fields (a paste or a hostile oversized payload) get a clear,
+  // shorten-it message rather than a silent truncation.
+  for (const field of fieldsOverCap(form, USER_FIELD_CAPS)) {
+    if (!errors[field]) errors[field] = OVER_CAP_MSG[field] || 'That value is too long — please shorten it.';
+  }
+
   return { ok: Object.keys(errors).length === 0, errors };
 }
 
@@ -48,17 +76,21 @@ export function normalizePartySize(v) {
 }
 
 // Build the conference_public_registrations row from the form. Pure + spec-shaped.
+// EVERY user-supplied text field is run through cleanField: HTML tags + control /
+// invisible / bidi chars stripped, whitespace normalized, length hard-capped. This
+// keeps the STORED value inert (defense-in-depth behind React's render escaping) and
+// bounded (defense-in-depth behind the 0033 CHECK constraints).
 export function buildRegistrationRow(form = {}) {
   return {
-    conference_name: String(form.conferenceName ?? '').trim() || null,
-    name: String(form.name ?? '').trim(),
-    email: String(form.email ?? '').trim() || null,
-    phone: String(form.phone ?? '').trim() || null,
+    conference_name: cleanField(form.conferenceName, FIELD_CAPS.conferenceName) || null,
+    name: cleanField(form.name, FIELD_CAPS.name),
+    email: cleanField(form.email, FIELD_CAPS.email) || null,
+    phone: cleanField(form.phone, FIELD_CAPS.phone) || null,
     meal_type: normalizeMealType(form.mealType),
-    dietary: String(form.dietary ?? '').trim() || null,
-    days: String(form.days ?? '').trim() || null,
+    dietary: cleanField(form.dietary, FIELD_CAPS.dietary) || null,
+    days: cleanField(form.days, FIELD_CAPS.days) || null,
     party_size: normalizePartySize(form.partySize),
-    source: form.source || 'public-link',
+    source: cleanField(form.source, FIELD_CAPS.source) || 'public-link',
     status: 'new',
   };
 }

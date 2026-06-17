@@ -77,11 +77,26 @@ export function installSteps(platform, canPrompt = false) {
   }
 }
 
+import { fieldsOverCap, FIELD_CAPS } from './sanitize-input.js';
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// User-typed fields on the interest form + their caps; issue is the multiline one.
+const INTEREST_CAPS = {
+  name: FIELD_CAPS.name, email: FIELD_CAPS.email, phone: FIELD_CAPS.phone, issue: FIELD_CAPS.issue,
+};
+const INTEREST_OVER_CAP_MSG = {
+  name: `Please shorten the name (max ${FIELD_CAPS.name} characters).`,
+  email: `That email is too long (max ${FIELD_CAPS.email} characters).`,
+  phone: `That phone number is too long (max ${FIELD_CAPS.phone} characters).`,
+  issue: `Please shorten that note (max ${FIELD_CAPS.issue} characters).`,
+};
 
 // Validate a consented interest submission. Returns { ok, errors:{field:msg} }.
 // Requires a name and a contactable email; phone/issue optional. A flagged minor
-// must have the parent-confirm box checked before we accept it.
+// must have the parent-confirm box checked before we accept it. Over-length fields
+// are rejected with a friendly message (DB CHECK constraints in 0033 are the
+// enforceable backstop for anyone bypassing this form).
 export function validateInterest(form = {}) {
   const errors = {};
   const name = (form.name || '').trim();
@@ -91,6 +106,9 @@ export function validateInterest(form = {}) {
   else if (!EMAIL_RE.test(email)) errors.email = 'That email doesn’t look right.';
   if (form.isMinor && !form.parentConfirmed) {
     errors.parentConfirmed = 'For anyone under 18, a parent or guardian needs to confirm.';
+  }
+  for (const field of fieldsOverCap(form, INTEREST_CAPS, { multiline: ['issue'] })) {
+    if (!errors[field]) errors[field] = INTEREST_OVER_CAP_MSG[field] || 'That value is too long — please shorten it.';
   }
   return { ok: Object.keys(errors).length === 0, errors };
 }

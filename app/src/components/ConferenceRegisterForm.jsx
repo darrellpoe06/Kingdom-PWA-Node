@@ -11,8 +11,9 @@
 // Accessibility (WCAG 2.1 AA on white, mirrors AppInterestCapture): #1A1815 body,
 // #5A5751 secondary, #7A1F1F error, #B85838 focus ring, >=44px targets, labelled
 // inputs, aria-live on the result + errors. Honeypot swallows bot submissions.
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { MEAL_TYPES, validateRegistration, submitRegistration } from '../lib/conference-register.js';
+import { FIELD_CAPS, looksLikeBot } from '../lib/sanitize-input.js';
 import ConferenceAccountOnRamp from './ConferenceAccountOnRamp.jsx';
 
 const labelCls = 'block text-xs font-semibold text-[#1A1815] mb-1';
@@ -24,6 +25,7 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
   const [state, setState] = useState('idle'); // idle | sending | sent | error
   const [regId, setRegId] = useState(null); // the just-created row id, for the optional account link
   const [hp, setHp] = useState(''); // honeypot — bots fill it, humans never see it
+  const openedAt = useRef(Date.now()); // when this (re)started — for the timing trap
 
   const set = (k) => (e) => {
     const v = e.target.value;
@@ -32,7 +34,9 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
 
   const submit = async (e) => {
     e.preventDefault();
-    if (hp) { setState('sent'); return; } // silently swallow bot submissions
+    // Anti-bot, invisible to humans: honeypot filled, OR submitted impossibly fast.
+    // Both are swallowed as a fake success so a bot gets no signal to tune against.
+    if (looksLikeBot({ honeypot: hp, elapsedMs: Date.now() - openedAt.current })) { setState('sent'); return; }
     const v = validateRegistration(form);
     setErrors(v.errors);
     if (!v.ok) return;
@@ -51,7 +55,7 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
         </p>
         <button
           type="button"
-          onClick={() => { setForm({ name: '', email: '', phone: '', mealType: 'Regular', dietary: '', days: '', partySize: '' }); setErrors({}); setRegId(null); setState('idle'); if (onDone) onDone(); }}
+          onClick={() => { setForm({ name: '', email: '', phone: '', mealType: 'Regular', dietary: '', days: '', partySize: '' }); setErrors({}); setRegId(null); setState('idle'); openedAt.current = Date.now(); if (onDone) onDone(); }}
           className="text-xs uppercase tracking-wider px-4 py-2.5 min-h-[44px] border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
         >
           Register someone else
@@ -69,19 +73,19 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
     <form onSubmit={submit} noValidate className="max-w-md">
       <div className="mb-3">
         <label htmlFor="cr-name" className={labelCls}>Your name</label>
-        <input id="cr-name" type="text" value={form.name} onChange={set('name')} className={inputCls} autoComplete="name" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'cr-name-err' : undefined} />
+        <input id="cr-name" type="text" maxLength={FIELD_CAPS.name} value={form.name} onChange={set('name')} className={inputCls} autoComplete="name" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'cr-name-err' : undefined} />
         {errors.name && <p id="cr-name-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.name}</p>}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="mb-1">
           <label htmlFor="cr-email" className={labelCls}>Email <span className="text-[#5A5751] font-normal">(optional)</span></label>
-          <input id="cr-email" type="email" value={form.email} onChange={set('email')} className={inputCls} autoComplete="email" aria-invalid={!!errors.email} aria-describedby={errors.email ? 'cr-email-err' : undefined} />
+          <input id="cr-email" type="email" maxLength={FIELD_CAPS.email} value={form.email} onChange={set('email')} className={inputCls} autoComplete="email" aria-invalid={!!errors.email} aria-describedby={errors.email ? 'cr-email-err' : undefined} />
           {errors.email && <p id="cr-email-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.email}</p>}
         </div>
         <div className="mb-1">
           <label htmlFor="cr-phone" className={labelCls}>Phone <span className="text-[#5A5751] font-normal">(optional)</span></label>
-          <input id="cr-phone" type="tel" value={form.phone} onChange={set('phone')} className={inputCls} autoComplete="tel" />
+          <input id="cr-phone" type="tel" maxLength={FIELD_CAPS.phone} value={form.phone} onChange={set('phone')} className={inputCls} autoComplete="tel" />
         </div>
       </div>
 
@@ -103,12 +107,12 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
           or Gluten-free guest with a nut allergy can still tell catering. */}
       <div className="mb-3 mt-2">
         <label htmlFor="cr-dietary" className={labelCls}>Allergy or specific dietary need <span className="text-[#5A5751] font-normal">(optional)</span></label>
-        <input id="cr-dietary" type="text" value={form.dietary} onChange={set('dietary')} className={inputCls} placeholder="e.g., nut allergy, no pork" />
+        <input id="cr-dietary" type="text" maxLength={FIELD_CAPS.dietary} value={form.dietary} onChange={set('dietary')} className={inputCls} placeholder="e.g., nut allergy, no pork" />
       </div>
 
       <div className="mb-3">
         <label htmlFor="cr-days" className={labelCls}>Which days will you come? <span className="text-[#5A5751] font-normal">(optional)</span></label>
-        <input id="cr-days" type="text" value={form.days} onChange={set('days')} className={inputCls} placeholder="e.g., Fri & Sat, or all week" />
+        <input id="cr-days" type="text" maxLength={FIELD_CAPS.days} value={form.days} onChange={set('days')} className={inputCls} placeholder="e.g., Fri & Sat, or all week" />
       </div>
 
       {/* honeypot: visually hidden, off-tab; bots fill it, people don't */}
