@@ -13,6 +13,13 @@
 # and prints a priority-ordered LAND ORDER (least-conflict-first within the
 # serialized lane).
 #
+# THE RULE THIS ENFORCES (Darrell, 2026-06-16): NEW SURFACE => NEW MODULE. Build
+# new surfaces as their own files (components/Foo.jsx + lib/foo.js), never as a
+# new block inside the monolith app/src/poe-financial-mvp-v28.jsx. Module files
+# are disjoint => PARALLEL-SAFE => many land concurrently. A branch that shows up
+# MUST-SERIALIZE for touching the monolith is the smell: it probably should have
+# been a module. (Mechanical serialize/rebase is ordering, NOT a person-hold.)
+#
 # git-only + unattended-safe: it does NOT shell out to gh/vercel (the
 # no-interactive-cli-guard forbids that in this directory), so promote.sh and
 # the orchestrator can call it every cycle without risk of an interactive hang.
@@ -138,6 +145,19 @@ done
 if [ -n "$mig_dupes" ]; then
   printf '\n!! MIGRATION-NUMBER COLLISION across in-flight branches: %s\n' "$mig_dupes"
   printf '   (run the allocator: scripts/orchestration/migration-order-check.mjs --next)\n'
+fi
+
+# New-surface=new-module reminder: list the branches forced into the serialized
+# lane by touching the monolith — each is a candidate that should have been its
+# own module (disjoint => parallel-safe).
+mono_branches=""
+for i in "${!branches[@]}"; do
+  [ "${B_MONO[$i]}" = "YES" ] && mono_branches="$mono_branches ${branches[$i]}"
+done
+if [ -n "$mono_branches" ]; then
+  printf '\nNEW-SURFACE=NEW-MODULE: these touch the monolith (serialized lane):%s\n' "$mono_branches"
+  printf '   Going forward, build new surfaces as their own files (components/Foo.jsx + lib/foo.js),\n'
+  printf '   mounted with a one-line import — disjoint files land in parallel, no serialize gate.\n'
 fi
 
 # Land order: PARALLEL-SAFE first (land freely), then the serialized lane ordered
