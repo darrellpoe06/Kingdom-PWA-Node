@@ -7,7 +7,55 @@
 
 ---
 
-## VERDICT — short version
+## VERIFIED LIVE 2026-06-17 — the two hard blockers are now CLEARED
+
+Re-checked against production after another session shipped the feature. Both structural blockers from the original report are **resolved, verified live (not assumed):**
+
+- **Feature shipped + deployed — CONFIRMED.** Conference registration merged to `main` ([#214](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/214)) and **is in the live production bundle**: `grep -c conference_public_registrations` against `https://poetech.us/poetech-app/assets/index-CMuHIMyi.js` returns **1** (was 0 on the old bundle). `0027` + `ConferenceRegisterForm.jsx` are on `origin/main`.
+- **`0027` applied on cloud — CONFIRMED by live probe.** Anon `SELECT` on `conference_public_registrations` returns **42501 "permission denied for table"** (table EXISTS, anon correctly has no SELECT) — *not* PGRST205 "not found." An anon `POST` (the real registration path) returned **HTTP 201** — a row was created. The table, the anon INSERT grant, the force-instance trigger, and RLS are all live and working.
+
+**So for the conference REGISTRATION path at ~500: the answer is now YES, today — verified end-to-end.** What remains is only the *recommended* (not blocking) load test for measured proof.
+
+> **Housekeeping (transparency):** the live INSERT probe created one real row — `name="__readiness_probe__"`, `source="readiness-probe"`. Anon cannot delete it (RLS owner/admin only). Darrell/Christina/BG: delete it from the organizer view, or in Studio:
+> `DELETE FROM conference_public_registrations WHERE source = 'readiness-probe';`
+
+> **New since the original report:** `main` now also carries [#189 "simple login — email+password, no profile no access"](https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/189), which gates the *app* behind sign-in. This does **not** affect the anon `?register=1` registration path (still open, verified above). It does add an **email+password** signup method alongside OTP/OAuth — note that with `mailer_autoconfirm:false` (confirmed live), password signup still sends a confirmation email and so shares the same 2/hr built-in email wall as OTP. Google OAuth remains the limit-free path. Re-verify provider/confirm settings if account-signup volume becomes a real path for the 500.
+
+---
+
+## RE-SCOPED TO ~500 (2026-06-17) — the operative answer
+
+Darrell corrected the target: the Assembly is **at most ~500 people (high estimate)**, not 1000, and **much of that 500 is the EXISTING congregation pre-registering ahead of time** (a trickle over days/weeks), not 500 brand-new accounts created in one concurrent burst. This simplifies the answer a lot. The 1000-scale analysis further below is retained as the conservative upper bound; provider enablement was CONFIRMED against the live project (`/auth/v1/settings`) and rate limits are sourced from Supabase's own docs/config (no fabricated numbers).
+
+### Can it take 500 today? — verdict
+
+- **Conference registration (anon path, the actual conference flow): YES at 500 — once the two structural blockers clear.** 500 anonymous inserts spread over a pre-reg window is *trivial* load (it was already fine at 1000). The only things in the way are unchanged and have nothing to do with capacity: **(1)** the feature is still **unshipped** (uncommitted branch), and **(2)** migration **`0027` is still unapplied**. Clear those and 500 registrations is a non-event.
+- **Account signup via Google OAuth at 500: YES today.** Enabled now (CONFIRMED live). 500 across diverse IPs (cellular/home) over a pre-reg window sits far under every limit. No fix required.
+- **Account signup via Email OTP at 500: still throttled by the built-in 2/hr sender if done concurrently — but the pre-reg window softens it.** Even spread out, 2/hr (~48/day) is awkward. Custom SMTP is **still wise but lower-urgency** at 500, and only actually *required* if the email link is a primary signup path rather than a fallback behind OAuth.
+
+### Why pre-registration by existing members shrinks it further
+
+- **"Existing congregation" mostly means returning users, not new accounts.** A returning user signs *in* (or already has a persisted session) — that creates **no new user and sends no signup email**, so it touches neither the email wall nor the new-account path. The real new-account load is only the genuinely-new fraction of the 500.
+- **"Pre-registering ahead of time" means no concurrent burst.** Both walls that could bite — the 2/hr email sender (project-wide) and the 150/hr-per-IP `/token` cap — are *burst* problems. A window spread over days, from many home/cellular IPs, never concentrates load. The same-WiFi-all-at-once scenario simply doesn't occur for pre-reg.
+- **Net:** the most likely real shape — existing members pre-registering via the anon link (no account at all) plus a handful of new OAuth signups — is **fully covered today** once the feature ships and `0027` is applied.
+
+### Minimal fix list for 500 (not 1000)
+
+| # | Action | Needed for 500? | Who |
+|---|---|---|---|
+| 1 | **Ship `feat/conference-public-registration`** to main | **YES — hard blocker** (capacity-independent) | System |
+| 2 | **Apply migration `0027`** on cloud + verify the `db-migrate` run | **YES — hard blocker** | Darrell (Studio) |
+| 3 | **Lead signup with Google OAuth** (already enabled) | **YES — and already done** | — |
+| 4 | **Custom SMTP** for the email-link path | **Optional at 500** — wise, low urgency; required only if email is a primary signup path or used in a burst | Darrell provisions provider+keys; System wires dashboard |
+| 5 | **Cloudflare Pages cutover** | **Optional at 500** — 500 PWA loads is trivial bandwidth; do it for the deploy-cap fix, not for capacity | Darrell (creds+DNS) |
+| 6 | **Supabase Pro plan** | **Optional** — headroom/backups insurance, not required for 500 anon inserts | Darrell |
+| 7 | **Run the k6 load test at ~500** (`scripts/load-test/conference-register-k6.js`, now scoped to 500) | Recommended — turns "fine" into measured proof | System (against staging once 0027 lands) |
+
+**Bottom line at 500:** there is **no capacity wall** for the conference. The blockers are purely **ship-it + apply-the-migration** (items 1–2). Google OAuth already covers account signups at this scale; custom SMTP drops from "#1 blocker" to "nice-to-have." Everything below is the retained conservative 1000-scale analysis.
+
+---
+
+## VERDICT — short version (original 1000-scale framing)
 
 **No, not today — but the real blocker is NOT the one the question assumed.**
 
