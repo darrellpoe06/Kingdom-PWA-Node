@@ -4495,7 +4495,7 @@ html{scroll-padding-bottom:280px}
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
                 // pair below and requires its 'study' feedback area.
-                ...(isStudyCircle ? [['study','🕮 Study']] : []),
+                ...(isStudyCircle ? [['study','📓 Study']] : []),
                 ['church','Church'],
                 ['markets','Markets'],
                 // Command, Control & Serve Center — the steward's seat (the
@@ -4785,7 +4785,7 @@ html{scroll-padding-bottom:280px}
             <div className="max-w-2xl">
               <SectionTitle eyebrow="Private">Darrell's Study</SectionTitle>
               <div className="bg-white border border-[#E8E4DC] p-6 text-center">
-                <div className="text-2xl mb-1" aria-hidden="true">🕮</div>
+                <div className="text-2xl mb-1" aria-hidden="true">📓</div>
                 <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>This is a private space.</p>
                 <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>It belongs to a small circle and isn't open here.</p>
               </div>
@@ -5385,7 +5385,7 @@ const FEEDBACK_AREAS = [
     ['notes', '🕊 Notes · thinking space (capture → prayer / voice / incident / inquiry)'],
   ]},
   { group: "Study (private · circle only)", items: [
-    ['study', "🕮 Darrell's Study · reflections / processing / cultural research (device-local)"],
+    ['study', "📓 Darrell's Study · reflections / processing / cultural research (device-local)"],
   ]},
   { group: "Command, Control & Serve Center (🔒 steward seat)", items: [
     ['center', '🎛 Center · the steward seat (one cockpit to see / command / control / serve)'],

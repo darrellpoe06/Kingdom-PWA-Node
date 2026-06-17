@@ -17,7 +17,7 @@
 export const DISCUSSION_KINDS = [
   { key: 'directive',  label: 'Directive',  glyph: '➤', blurb: 'A marching order — what to do.' },
   { key: 'decision',   label: 'Decision',   glyph: '⚖', blurb: 'What we chose, and why (the rationale, in-app).' },
-  { key: 'reflection', label: 'Reflection', glyph: '🕮', blurb: 'The Word/Study-grounded thinking behind it.' },
+  { key: 'reflection', label: 'Reflection', glyph: '📓', blurb: 'The Word/Study-grounded thinking behind it.' },
   { key: 'handoff',    label: 'Hand-off',   glyph: '🛰', blurb: 'Feed this to a lane — braked, never auto-run.' },
 ];
 

@@ -293,7 +293,7 @@ export default function Study({ email }) {
           library (the 4th-dimensional source that powers the two-layer
           progressive disclosure of the briefings + courses). */}
       <div className="flex gap-1 text-xs mb-4 flex-wrap" role="tablist" aria-label="Study spaces">
-        <button type="button" role="tab" aria-selected={space === 'workspace'} onClick={() => setSpace('workspace')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'workspace' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>🕮 Workspace</button>
+        <button type="button" role="tab" aria-selected={space === 'workspace'} onClick={() => setSpace('workspace')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'workspace' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>📓 Workspace</button>
         <button type="button" role="tab" aria-selected={space === 'algorithms'} onClick={() => setSpace('algorithms')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'algorithms' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>✦ Eternal Algorithms</button>
       </div>
 

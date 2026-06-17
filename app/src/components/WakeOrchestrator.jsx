@@ -103,12 +103,12 @@ export default function WakeOrchestrator() {
   return (
     <section className="bg-white border border-[#1A1815] p-4">
       <div className="flex items-center justify-between gap-2 mb-1">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
           ⏰ Wake Orchestrator · cockpit
         </div>
-        <KpiDot status={kpi.status} label={kpi.label} className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" />
+        <KpiDot status={kpi.status} label={kpi.label} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" />
       </div>
-      <p className="text-[10px] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.625rem] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
         The NAS runs the engine; this is the cockpit. A vendor leaves a handoff before going offline; the NAS wakes it back up — tiered + braked.
       </p>
 
@@ -119,10 +119,10 @@ export default function WakeOrchestrator() {
       {state.phase === 'offline' && (
         <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           <p>The orchestrator feed isn&apos;t connected yet — showing nothing rather than guessing.</p>
-          <p className="mt-1 text-[11px]">To light it up: deploy the portable bundle on the NAS and import <span className="font-mono">wf-wake-orchestrator</span> (it reads the bundle&apos;s <span className="font-mono">state/</span> files and serves them same-origin).</p>
+          <p className="mt-1 text-[0.6875rem]">To light it up: deploy the portable bundle on the NAS and import <span className="font-mono">wf-wake-orchestrator</span> (it reads the bundle&apos;s <span className="font-mono">state/</span> files and serves them same-origin).</p>
           <details className="mt-2">
-            <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-[#B85838]">Paste-ready arm step (Tier C — attended only)</summary>
-            <pre className="mt-1 p-2 bg-[#1A1815] text-[#F2EEE6] text-[10px] overflow-x-auto whitespace-pre" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{ARM_STEPS}</pre>
+            <summary className="cursor-pointer text-[0.6875rem] uppercase tracking-wider text-[#B85838]">Paste-ready arm step (Tier C — attended only)</summary>
+            <pre className="mt-1 p-2 bg-[#1A1815] text-[#F2EEE6] text-[0.625rem] overflow-x-auto whitespace-pre" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{ARM_STEPS}</pre>
           </details>
         </div>
       )}
@@ -131,13 +131,13 @@ export default function WakeOrchestrator() {
         <div className="space-y-3">
           {/* BRAKE + BUDGET STATUS */}
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Brakes &amp; budget</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Brakes &amp; budget</div>
             <div className="border border-[#E8E4DC]">
               {brakeRows(d.brakes).map((row, i, arr) => (
                 <div key={row.key} className={`flex items-center gap-2 px-2 py-1.5 ${i < arr.length - 1 ? 'border-b border-[#F2EEE6]' : ''}`}>
                   <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: kpiColor(row.status) }} />
                   <span className="text-xs flex-1 min-w-0" style={{ fontFamily: '"Fraunces", serif' }}>{row.label}</span>
-                  <span className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{row.detail}</span>
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{row.detail}</span>
                 </div>
               ))}
             </div>
@@ -150,7 +150,7 @@ export default function WakeOrchestrator() {
 
           {/* CONTROLS (Governor) */}
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Controls</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Controls</div>
             <div className="flex flex-wrap gap-1.5">
               <ControlButton action="kill" busy={busy} onClick={control} kind="panic" />
               <ControlButton action="unkill" busy={busy} onClick={control} />
@@ -160,20 +160,20 @@ export default function WakeOrchestrator() {
               <ControlButton action="wake-disarm" busy={busy} onClick={control} />
             </div>
             {controlNote && (
-              <p className={`mt-1 text-[10px] ${controlNote.kind === 'error' ? 'text-[#DC2626]' : 'text-[#15803D]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className={`mt-1 text-[0.625rem] ${controlNote.kind === 'error' ? 'text-[#DC2626]' : 'text-[#15803D]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
                 {controlNote.text}
               </p>
             )}
-            <p className="mt-1 text-[9px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="mt-1 text-[0.5625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               Controls flip the real state files; the engine re-reads them on its next tick. Arming is Tier C — attended only.
             </p>
           </div>
 
           {/* SCHEDULED WAKES / HANDOFF LOG */}
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Handoffs &amp; scheduled wakes ({d.handoffs.length})</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Handoffs &amp; scheduled wakes ({d.handoffs.length})</div>
             {d.handoffs.length === 0 ? (
-              <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No handoffs in the inbox — nothing scheduled.</p>
+              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No handoffs in the inbox — nothing scheduled.</p>
             ) : (
               <div className="border border-[#E8E4DC]">
                 {d.handoffs.map((h, i, arr) => (
@@ -181,12 +181,12 @@ export default function WakeOrchestrator() {
                     <div className="flex items-center gap-2">
                       <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: kpiColor(h.due ? 'attention' : 'idle') }} title={h.due ? 'due' : 'pending'} />
                       <span className="text-xs flex-1 min-w-0 truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{h.lane || h.id}</span>
-                      <span className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         {h.due ? 'DUE' : 'pending'} · {h.wakeAtLabel}
                       </span>
                     </div>
-                    <div className="text-[11px] text-[#1A1815] mt-0.5 truncate" style={{ fontFamily: '"Fraunces", serif' }}>{h.task}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    <div className="text-[0.6875rem] text-[#1A1815] mt-0.5 truncate" style={{ fontFamily: '"Fraunces", serif' }}>{h.task}</div>
+                    <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       from {h.issuedBy || '?'} · suggests {h.suggestedVendor}
                     </div>
                   </div>
@@ -198,14 +198,14 @@ export default function WakeOrchestrator() {
           {/* VENDOR SUMMONS */}
           {d.summons.length > 0 && (
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Recent vendor summons</div>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Recent vendor summons</div>
               <div className="border border-[#E8E4DC]">
                 {d.summons.map((s, i, arr) => (
                   <div key={s.ts + i} className={`flex items-center gap-2 px-2 py-1.5 ${i < arr.length - 1 ? 'border-b border-[#F2EEE6]' : ''}`}>
                     <span className="text-xs flex-1 min-w-0 truncate" style={{ fontFamily: '"Fraunces", serif' }}>
                       <span className="font-semibold">{s.vendor || '?'}</span> · {s.lane}
                     </span>
-                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       {s.costUsd > 0 ? `$${s.costUsd.toFixed(4)}` : '$0'} · {String(s.ts).slice(11, 16)}
                     </span>
                   </div>
@@ -217,20 +217,20 @@ export default function WakeOrchestrator() {
           {/* EVENT REEL */}
           {d.events.length > 0 && (
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Event reel</div>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Event reel</div>
               <div className="max-h-40 overflow-y-auto border border-[#E8E4DC]">
                 {d.events.map((e, i, arr) => (
                   <div key={e.ts + i} className={`flex items-baseline gap-2 px-2 py-1 ${i < arr.length - 1 ? 'border-b border-[#F2EEE6]' : ''}`}>
-                    <span className="text-[9px] uppercase tracking-wider text-[#B85838] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.event}</span>
-                    <span className="text-[10px] text-[#5A5751] flex-1 min-w-0 truncate" style={{ fontFamily: '"Fraunces", serif' }}>{e.detail}</span>
-                    <span className="text-[9px] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(e.ts).slice(11, 16)}</span>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.event}</span>
+                    <span className="text-[0.625rem] text-[#5A5751] flex-1 min-w-0 truncate" style={{ fontFamily: '"Fraunces", serif' }}>{e.detail}</span>
+                    <span className="text-[0.5625rem] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(e.ts).slice(11, 16)}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          <p className="text-[9px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.5625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
             Live from the NAS — real bundle state, not a guess.{d.generatedAt ? ` Read ${String(d.generatedAt).slice(11, 19)}Z.` : ''}
           </p>
         </div>
@@ -252,7 +252,7 @@ function ControlButton({ action, busy, onClick, kind }) {
       onClick={() => onClick(action)}
       disabled={!!busy}
       aria-label={meta.label}
-      className={`text-[10px] uppercase tracking-wider px-2.5 py-1 min-h-[32px] border focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50 ${
+      className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1 min-h-[32px] border focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50 ${
         panic
           ? 'bg-[#DC2626] text-white border-[#DC2626] hover:bg-[#B91C1C]'
           : meta.toward === 'live'

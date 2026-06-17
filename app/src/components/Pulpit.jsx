@@ -29,7 +29,6 @@
 // =============================================================================
 import React, { useEffect, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
-import TextSizeControl from './TextSizeControl.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
@@ -50,7 +49,7 @@ const byDateDesc = (a, b) => String(b.serviceDate || '').localeCompare(String(a.
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
-const LABEL = 'text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1';
+const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 
 // -----------------------------------------------------------------------------
 // Message add/edit form (leadership only)
@@ -73,7 +72,7 @@ function MessageForm({ initial, onSave, onCancel, busy }) {
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   return (
     <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit message' : 'Add message'}</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit message' : 'Add message'}</div>
       <div><label className={LABEL} htmlFor="pm-title">Title</label><input id="pm-title" className={FIELD} value={f.title} onChange={set('title')} placeholder="Message title" /></div>
       <div className="grid grid-cols-3 gap-2">
         <div><label className={LABEL} htmlFor="pm-date">Date</label><input id="pm-date" type="date" className={FIELD} value={f.serviceDate} onChange={set('serviceDate')} /></div>
@@ -123,13 +122,13 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{sermon.title}</span>
-          {sermon.status === 'draft' && <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
-          {sermon.scriptureRef && <span className="text-[11px] text-[#5A5751]">{sermon.scriptureRef}</span>}
+          {sermon.status === 'draft' && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
+          {sermon.scriptureRef && <span className="text-[0.6875rem] text-[#5A5751]">{sermon.scriptureRef}</span>}
         </div>
-        <span className="text-[11px] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {sermon.serviceType === 'wednesday' ? 'Wed' : 'Sun'}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
+        <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {sermon.serviceType === 'wednesday' ? 'Wed' : 'Sun'}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
       </div>
-      {sermon.speaker && <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
-      {sermon.notes && <p className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.notes}</p>}
+      {sermon.speaker && <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
+      {sermon.notes && <p className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.notes}</p>}
       <div className="flex gap-2 mt-1 flex-wrap">
         {embed && <button type="button" onClick={() => setPlaying((p) => !p)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={playing}>{playing ? '▾ Hide video' : watchLabel}</button>}
         {!embed && watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel}</a>}
@@ -174,10 +173,10 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Every past message — Sundays + Wednesday Bible Study, newest first. Bishop Gwin preaches most; guest preachers and teachers fill in so he can rest, and each message credits who delivered it. Watch the service right here.{canEdit ? ' Add, reuse, and manage messages below.' : ''}</p>
       {roster.length > 0 && (
         <div className="mb-3">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] mb-1">Preachers &amp; teachers</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] mb-1">Preachers &amp; teachers</div>
           <div className="flex flex-wrap gap-1.5">
             {roster.map((p) => (
-              <span key={p.name} className={`text-[11px] px-2 py-0.5 border ${p.isBG ? 'bg-[#1A1815] text-[#FAF8F4] border-[#1A1815]' : 'bg-[#FAF8F4] text-[#1A1815] border-[#E8E4DC]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
+              <span key={p.name} className={`text-[0.6875rem] px-2 py-0.5 border ${p.isBG ? 'bg-[#1A1815] text-[#FAF8F4] border-[#1A1815]' : 'bg-[#FAF8F4] text-[#1A1815] border-[#E8E4DC]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
                 {p.name}{p.isBG ? ' · primary' : ''} <span className={p.isBG ? 'opacity-70' : 'text-[#5A5751]'}>({p.count})</span>
               </span>
             ))}
@@ -190,13 +189,13 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <button type="button" onClick={() => setForm({ initial: null })} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Add message</button>
           {onImport && <button type="button" onClick={runImport} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Import from channel</button>}
-          {importMsg && <span className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{importMsg}</span>}
+          {importMsg && <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{importMsg}</span>}
         </div>
       ))}
 
       {canEdit && drafts.length > 0 && (
         <div className="mb-3">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] mb-1">In progress (private)</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] mb-1">In progress (private)</div>
           <div className="bg-white border border-[#5A6E3D]">
             {drafts.sort(byDateDesc).map((s) => <MessageRow key={s.id} sermon={s} canEdit={canEdit} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />)}
           </div>
@@ -209,7 +208,7 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
       </div>
       {history.length ? (
         <>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] mb-1">{history.length} message{history.length === 1 ? '' : 's'}</p>
+          <p className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] mb-1">{history.length} message{history.length === 1 ? '' : 's'}</p>
           <div className="bg-white border border-[#1A1815]">
             {history.map((s) => <MessageRow key={s.id} sermon={s} canEdit={canEdit} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />)}
           </div>
@@ -230,8 +229,8 @@ function PrepPanel({ sermons, canEdit, onReuse }) {
   return (
     <div className="space-y-3">
       <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-3">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Prep from your own messages</div>
-        <p className="text-[11px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Prep from your own messages</div>
+        <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Study help grounded in <strong>your</strong> corpus — your {total} past message{total === 1 ? '' : 's'}. Enter a theme or a scripture and see what you have already preached on it, the scriptures you have leaned on, and start a new draft from any of them. (The Word-first local Church model will draft an outline from this material once it is deployed; today this does real retrieval over your history, nothing invented.)
         </p>
         <label className="sr-only" htmlFor="pp-q">Theme or scripture</label>
@@ -242,12 +241,12 @@ function PrepPanel({ sermons, canEdit, onReuse }) {
         matches.length ? (
           <>
             <div className="bg-white border border-[#1A1815] p-3">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] mb-1">Scriptures you have preached on this {span ? `· ${span}` : ''}</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] mb-1">Scriptures you have preached on this {span ? `· ${span}` : ''}</div>
               {scriptures.length
-                ? <div className="flex flex-wrap gap-1.5">{scriptures.map((s) => <span key={s} className="text-[11px] bg-[#FAF8F4] border border-[#E8E4DC] px-1.5 py-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s}</span>)}</div>
-                : <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No scripture references recorded on these yet.</p>}
+                ? <div className="flex flex-wrap gap-1.5">{scriptures.map((s) => <span key={s} className="text-[0.6875rem] bg-[#FAF8F4] border border-[#E8E4DC] px-1.5 py-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s}</span>)}</div>
+                : <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No scripture references recorded on these yet.</p>}
             </div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751]">{matches.length} of your message{matches.length === 1 ? '' : 's'} touch “{query.trim()}”</p>
+            <p className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751]">{matches.length} of your message{matches.length === 1 ? '' : 's'} touch “{query.trim()}”</p>
             <div className="bg-white border border-[#1A1815]">
               {matches.map((s) => <MessageRow key={s.id} sermon={s} canEdit={canEdit} onEdit={() => {}} onDelete={() => {}} onReuse={canEdit ? onReuse : null} />)}
             </div>
@@ -323,13 +322,15 @@ export default function Pulpit() {
           sense, cause understanding. KJV (public domain); translation-flexible. */}
       <blockquote className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-2 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
         <p className="text-sm text-[#1A1815] italic">“So they read in the book in the law of God distinctly, and gave the sense, and caused them to understand the reading.”</p>
-        <footer className="text-[11px] text-[#5A5751] mt-1">— Nehemiah 8:8 (KJV). Ezra the priest read from a <span className="italic">migdal</span> of wood built for the purpose (Nehemiah 8:4).</footer>
+        <footer className="text-[0.6875rem] text-[#5A5751] mt-1">— Nehemiah 8:8 (KJV). Ezra the priest read from a <span className="italic">migdal</span> of wood built for the purpose (Nehemiah 8:4).</footer>
       </blockquote>
 
-      {/* Large-print, right where the reading happens (WCAG 1.4.4). "Cause them to
-          understand the reading" (Neh 8:8) — a reader who can't see the words can't
-          understand them. Applies app-wide; choice saved per device. */}
-      <TextSizeControl variant="panel" className="mb-4" />
+      {/* Large-print is the ONE universal control in the header (WCAG 1.4.4) — it
+          scales the whole app from a single place, so there is no separate adjuster
+          here. "Cause them to understand the reading" (Neh 8:8): the reading text on
+          this surface uses rem units (lib/text-size.js) so it grows with that one
+          control. A duplicate per-module stepper used to live here; removed so there
+          is one control to learn, not two that look the same. */}
 
       {tabs.length > 1 && (
         <div className="flex gap-1 text-xs mb-3 overflow-x-auto">
