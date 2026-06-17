@@ -70,6 +70,7 @@ import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { EventCenterModule } from './components/EventCenterModule.jsx';
 import { ChurchObservation } from './components/ChurchObservation.jsx';
 import Pulpit from './components/Pulpit.jsx';
+import ChurchVideoWall from './components/ChurchVideoWall.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import Study from './components/Study.jsx';
@@ -4627,7 +4628,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['pulpit','📖 The Word'], ...(isChurchStaff ? [['observe','🔒 Observation']] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['pulpit','📖 The Word'], ...(isChurchStaff ? [['videowall','📺 Video Wall'],['observe','🔒 Observation']] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4709,6 +4710,9 @@ html{scroll-padding-bottom:280px}
         {/* The Word — Migdal: PUBLIC library for everyone; the component itself
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
         {view === 'church' && churchView === 'pulpit' && <Pulpit />}
+        {view === 'church' && churchView === 'videowall' && (isChurchStaff
+          ? <ChurchVideoWall />
+          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Video Wall capital project holds church financial data. Sign in with a church staff account to view it.</div>)}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Observation board is for church staff only. Sign in with a church staff account to view it.</div>)}
@@ -5563,6 +5567,7 @@ const FEEDBACK_AREAS = [
     ['church-event-center', '└ Event Center · room / event requests'],
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
+    ['church-videowall', 'Church · 📺 Video Wall (🔒 sanctuary LED capital project — budget · donations · spec)'],
     ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
     ['church-pulpit', "Church · 📖 The Word — Migdal (Bishop's study — historical sermons + corpus-grounded prep)"],
     ['pulpit-library', '└ The Word — Migdal · Message library (watch · document · reuse)'],
