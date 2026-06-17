@@ -4,7 +4,7 @@
 // because it is REAL retrieval over his own messages, nothing invented). These
 // pin the behavior so a future change can't quietly turn it into fabrication.
 import { describe, it, expect } from 'vitest';
-import { corpusPrep } from '../lib/pulpit-prep.js';
+import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 
 const CORPUS = [
   { id: 1, title: 'You Were Built To Win', scriptureRef: 'Romans 8', notes: 'victory in Christ', serviceDate: '2024-05-12', status: 'active' },
@@ -41,5 +41,39 @@ describe('corpusPrep — real retrieval over BG\'s own messages', () => {
   it('a single-year match reports just that year', () => {
     const r = corpusPrep(CORPUS, 'frontier');
     expect(r.span).toBe('2026');
+  });
+});
+
+describe('speakerRoster — credits every preacher/teacher from real messages', () => {
+  const MULTI = [
+    { id: 1, title: 'A', speaker: 'Bishop Lloyd E. Gwin', serviceDate: '2026-06-14', status: 'active' },
+    { id: 2, title: 'B', speaker: 'Bishop Lloyd E. Gwin', serviceDate: '2026-06-07', status: 'active' },
+    { id: 3, title: 'C', speaker: 'Sister Jasmine Johnson', serviceDate: '2026-05-31', status: 'active' },
+    { id: 4, title: 'D', speaker: 'Bishop Gwin', serviceDate: '2026-07-01', status: 'draft' }, // draft excluded
+    { id: 5, title: 'E', speaker: '', serviceDate: '2026-05-24', status: 'active' }, // no credit, skipped
+  ];
+  it('rosters distinct speakers by count, most first; guests alongside BG; Gwin = primary', () => {
+    const r = speakerRoster(MULTI);
+    expect(r.map((x) => x.name)).toEqual(['Bishop Lloyd E. Gwin', 'Sister Jasmine Johnson']);
+    expect(r[0].count).toBe(2);
+    expect(r.find((x) => x.name === 'Bishop Lloyd E. Gwin').isBG).toBe(true);
+    expect(r.find((x) => x.name === 'Sister Jasmine Johnson').isBG).toBe(false);
+  });
+  it('excludes drafts + uncredited; tolerates garbage', () => {
+    expect(speakerRoster(MULTI).some((x) => x.name === 'Bishop Gwin')).toBe(false);
+    expect(speakerRoster(null)).toEqual([]);
+    expect(speakerRoster([null, 42, {}])).toEqual([]);
+  });
+});
+
+describe('theWordTabs — access gating (the non-privileged user can NEVER reach prep)', () => {
+  it('a non-privileged viewer (canManage=false) gets ONLY the public library tab', () => {
+    const tabs = theWordTabs(false);
+    expect(tabs.map((t) => t[0])).toEqual(['library']);
+    expect(tabs.some((t) => t[0] === 'prep')).toBe(false);
+  });
+  it('leadership (canManage=true) additionally gets the prep tab', () => {
+    const tabs = theWordTabs(true);
+    expect(tabs.map((t) => t[0])).toEqual(['library', 'prep']);
   });
 });
