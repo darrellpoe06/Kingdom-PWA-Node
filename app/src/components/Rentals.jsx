@@ -12,6 +12,7 @@ import { hasBridgeToken, chatChannelFor, fetchChannelPhotos } from '../lib/nas-p
 import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
+import { derivePortfolio, isPersonalProp } from '../lib/rental-portfolio.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -820,7 +821,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // v28+ Rentals expansion: add/edit property + autocomplete + map + evaluator
   const [showPropForm, setShowPropForm] = useState(false);
   const [editingPropId, setEditingPropId] = useState(null);
-  const blankProp = () => ({ name: '', address: '', city: '', state: '', zip: '', tenantName: '', lat: null, lon: null, propertyType: 'single-family', rent: 0, status: 'paying', entityId: 'e-poeprops', purchasePrice: 0, purchaseDate: '', estimatedValue: 0, mortgageBalance: 0, mortgageRate: 6.5, monthlyPI: 0, escrow: 0, notes: '' });
+  const blankProp = () => ({ name: '', address: '', city: '', state: '', zip: '', tenantName: '', lat: null, lon: null, propertyType: 'single-family', units: 1, rent: 0, status: 'paying', entityId: 'e-poeprops', purchasePrice: 0, purchaseDate: '', estimatedValue: 0, mortgageBalance: 0, mortgageRate: 6.5, monthlyPI: 0, escrow: 0, notes: '' });
   const [propForm, setPropForm] = useState(blankProp());
   const [suggestions, setSuggestions] = useState([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
@@ -962,6 +963,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       tenantName: r.tenantName || '',
       lat: r.lat ?? null, lon: r.lon ?? null,
       propertyType: r.propertyType || 'single-family',
+      units: r.units || 1,
       rent: r.rent || 0, status: r.status || 'paying', entityId: r.entityId || 'e-poeprops',
       purchasePrice: r.purchasePrice || 0, purchaseDate: r.purchaseDate || '', estimatedValue: r.estimatedValue || 0,
       mortgageBalance: r.mortgage?.balance || 0, mortgageRate: r.mortgage?.rate || 6.5,
@@ -981,6 +983,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       tenantName: propForm.tenantName,
       lat: propForm.lat, lon: propForm.lon,
       propertyType: propForm.propertyType,
+      units: Math.max(1, parseInt(propForm.units, 10) || 1),
       rent: parseFloat(propForm.rent) || 0,
       actual: parseFloat(propForm.rent) || 0,
       status: propForm.status,
@@ -1242,6 +1245,18 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     return runs.map(r => ({ ...r, delta: r.totalInterest - cheapest, isCheapest: r.totalInterest === cheapest }));
   }, [rentals, snowballExtra, currentDate]);
   const allRatesEqual = rentals.length > 1 && rentals.every(r => r.mortgage.rate === rentals[0].mortgage.rate);
+
+  // ── Derived portfolio model (DR-0076: a header/rollup is a LIVE view of the
+  //    real property records, never a painted literal). The math lives in
+  //    lib/rental-portfolio.js so it's pure + unit-tested. A "door" = a rentable
+  //    unit; a property can hold several (r.units, default 1). Everything below
+  //    recomputes from the rentals actually rendered, scoped to the rental
+  //    portfolio, so the moment a property — or its unit count — is added or
+  //    edited, the door count and the rollup move with it.
+  const portfolio = derivePortfolio(rentals, entities);
+  const { portfolioRentals, doorCount, portfolioLabel, rentGap, collectionRate, portfolioCount } = portfolio;
+  const rollup = portfolio;
+
   return (
     <div className="space-y-8">
       <section className="bg-white border border-[#1A1815] p-5">
@@ -1250,13 +1265,21 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>Own each property outright within seven years, so the seventh year is real rest.</p>
       </section>
       <section>
-        <SectionTitle>11 Doors · Steward Real Estate LLC</SectionTitle>
+        <SectionTitle>{doorCount} {doorCount === 1 ? 'Door' : 'Doors'} · {portfolioLabel}</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-4">
-          <MetricCell label="Mortgage debt" value={fmtCompact(totals.totalRentalDebt)} sub="est." small accent="rust" />
-          <MetricCell label="Monthly P&I" value={fmt(totals.totalRentalPI)} small />
-          <MetricCell label="Monthly rent" value={fmt(totals.rentalExpected)} sub={`${totals.collectionRate.toFixed(0)}%`} small accent="green" />
-          <MetricCell label="Rent gap" value={fmt(totals.rentGap)} small accent={totals.rentGap > 0 ? 'rust' : 'green'} />
+          <MetricCell label="Mortgage debt" value={fmtCompact(rollup.mortgageDebt)} sub={rollup.missingDebt > 0 ? `${portfolioCount - rollup.missingDebt} of ${portfolioCount}` : 'est.'} small accent="rust" />
+          <MetricCell label="Monthly P&I" value={fmt(rollup.monthlyPI)} small />
+          <MetricCell label="Monthly rent" value={fmt(rollup.monthlyRent)} sub={`${collectionRate.toFixed(0)}%`} small accent="green" />
+          <MetricCell label="Rent gap" value={fmt(rentGap)} small accent={rentGap > 0 ? 'rust' : 'green'} />
         </div>
+        {(rollup.missingDebt > 0 || rollup.missingRent > 0) && (
+          <p className="text-[11px] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+            {rollup.missingDebt > 0 && <>{rollup.missingDebt} {rollup.missingDebt === 1 ? 'property needs a mortgage figure' : 'properties need mortgage figures'}</>}
+            {rollup.missingDebt > 0 && rollup.missingRent > 0 && ' · '}
+            {rollup.missingRent > 0 && <>{rollup.missingRent} {rollup.missingRent === 1 ? 'needs rent entered' : 'need rent entered'}</>}
+            {' '}— excluded from the totals above, not zeroed in.
+          </p>
+        )}
         {/* Portfolio room-income opportunity — sums the per-room occupancy
             model across every property so the total money-on-the-table from
             vacant rooms is one glance away. Only shows when rooms are tracked. */}
@@ -1337,6 +1360,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Current tenant name (optional)</label>
               <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Tracy Williams — leave blank for personal or vacant" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} />
               <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>If set, the tenant name shows on the property card. Property name (address) stays the property's primary label.</p>
+            </div>
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Doors / units</label>
+              <input type="number" min="1" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.units} onChange={e => setPropForm({ ...propForm, units: e.target.value })} />
+              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Rentable doors in this property — a single-family = 1, a fourplex = 4. Feeds the portfolio door count up top.</p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
@@ -1445,13 +1473,10 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         )}
 
         {(() => {
-          // A property is PERSONAL when it's the family's own home (primary/
-          // secondary-home, owner-occupied, or under the personal entity) — NOT
-          // merely because rent isn't entered yet. Rentals stay rentals even
-          // before their rent imports (Darrell 2026-06-13: "2111 should be in
-          // Personal Properties, not Rentals"; rents import via the report flow).
-          const isPersonalProp = (r) => r.propertyType === 'primary-home' || r.propertyType === 'secondary-home' || r.status === 'owner-occupied' || r.entityId === 'e-personal';
-          const incomeProducing = rentals.filter(r => !isPersonalProp(r));
+          // Income-producing = the portfolio set (non-personal), hoisted above as
+          // portfolioRentals so the header door count, the rollup, and this list
+          // all derive from one definition. Personal = the family's own homes.
+          const incomeProducing = portfolioRentals;
           const personal = rentals.filter(isPersonalProp);
           const renderPropertyRow = (r, i, lastIdx) => {
             // Round 10 — Tenant-late surfacing. If status is 'late', show a
@@ -1991,7 +2016,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               )}
               {incomeProducing.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}</div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</div>
                   <div className="bg-white border border-[#1A1815]">
                     {incomeProducing.map((r, i) => renderPropertyRow(r, i, incomeProducing.length - 1))}
                   </div>
@@ -2036,7 +2061,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
             <details className="mt-2">
               <summary className="text-[10px] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show individual property balances</summary>
               <div className="mt-2 space-y-1 text-xs">
-                {[...rentals].sort((a, b) => b.mortgage.balance - a.mortgage.balance).slice(0, 11).map(r => (
+                {[...rentals].sort((a, b) => b.mortgage.balance - a.mortgage.balance).map(r => (
                   <div key={r.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
                     <span style={{ fontFamily: '"Fraunces", serif' }}>{r.address} <span className="text-[#5A5751]">· {r.mortgage.rate}%</span></span>
                     <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(r.mortgage.balance)}</span>
@@ -2055,7 +2080,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       <section>
         <SectionTitle>7-Year Goal · Feasibility</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-5">
-          {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all 11 doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYearTarget)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p>}
+          {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all {doorCount} doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYearTarget)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p>}
         </div>
       </section>
       <section>
