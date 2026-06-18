@@ -21,6 +21,8 @@
 --                       delete = the member who added it, OR owner/admin
 --   choir_song_comments read = member; insert = member as self; delete = author or owner/admin
 --   choir_song_votes    read = member; insert = member as self; delete = own vote (toggle)
+--   choir_song_leads    read = member (everyone sees who's leading); write = owner/admin
+--                       ONLY (the director assigns leads/co-leads)
 --
 -- DEPENDS ON: schema-v2.1-infra.sql (instances, user_role_in_instance) and
 --             0011-choir-module.sql (user_in_choir()).
@@ -85,12 +87,35 @@ CREATE INDEX IF NOT EXISTS choir_song_votes_instance_idx ON choir_song_votes(ins
 CREATE INDEX IF NOT EXISTS choir_song_votes_song_idx     ON choir_song_votes(song_id);
 
 -- ---------------------------------------------------------------------------
+-- 3b. LEADS — choir_song_leads (who sings/carries a song; director-assigned).
+--     A link row per assignment so a song can have a lead AND co-leads. The
+--     member_user_id lets the assigned person see "songs I'm leading"; it's
+--     NULL for a roster member without an app account yet (member_name still
+--     shows who on the card).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS choir_song_leads (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id    uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+  song_id        uuid NOT NULL REFERENCES choir_song_ideas(id) ON DELETE CASCADE,
+  member_user_id uuid REFERENCES auth.users(id),
+  member_name    text NOT NULL CHECK (char_length(member_name) BETWEEN 1 AND 120),
+  role           text NOT NULL DEFAULT 'lead' CHECK (role IN ('lead','co-lead')),
+  assigned_by    uuid REFERENCES auth.users(id),
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (song_id, member_user_id)
+);
+CREATE INDEX IF NOT EXISTS choir_song_leads_instance_idx ON choir_song_leads(instance_id);
+CREATE INDEX IF NOT EXISTS choir_song_leads_song_idx     ON choir_song_leads(song_id);
+CREATE INDEX IF NOT EXISTS choir_song_leads_member_idx   ON choir_song_leads(member_user_id);
+
+-- ---------------------------------------------------------------------------
 -- 4. GRANTS — explicit, because the cloud project lost its default authenticated
 --    GRANT (0024 incident; new tables 403 before RLS until granted). No anon.
 -- ---------------------------------------------------------------------------
 GRANT SELECT, INSERT, UPDATE, DELETE ON choir_song_ideas    TO authenticated;
 GRANT SELECT, INSERT, DELETE         ON choir_song_comments  TO authenticated;
 GRANT SELECT, INSERT, DELETE         ON choir_song_votes     TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON choir_song_leads     TO authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 5. RLS
@@ -98,6 +123,7 @@ GRANT SELECT, INSERT, DELETE         ON choir_song_votes     TO authenticated;
 ALTER TABLE choir_song_ideas    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE choir_song_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE choir_song_votes    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE choir_song_leads    ENABLE ROW LEVEL SECURITY;
 
 -- choir_song_ideas: any member reads + adds (as self); director (owner/admin)
 -- has the say on status; the adder or a director may remove.
@@ -137,6 +163,22 @@ CREATE POLICY choir_song_votes_insert ON choir_song_votes FOR INSERT
 CREATE POLICY choir_song_votes_delete ON choir_song_votes FOR DELETE
   USING (user_id = auth.uid());
 
+-- choir_song_leads: every member SEES who's leading; only the director
+-- (owner/admin) assigns / re-roles / unassigns.
+DROP POLICY IF EXISTS choir_song_leads_read   ON choir_song_leads;
+DROP POLICY IF EXISTS choir_song_leads_insert ON choir_song_leads;
+DROP POLICY IF EXISTS choir_song_leads_update ON choir_song_leads;
+DROP POLICY IF EXISTS choir_song_leads_delete ON choir_song_leads;
+CREATE POLICY choir_song_leads_read   ON choir_song_leads FOR SELECT
+  USING (user_in_choir(instance_id));
+CREATE POLICY choir_song_leads_insert ON choir_song_leads FOR INSERT
+  WITH CHECK (user_role_in_instance(instance_id) IN ('owner','admin'));
+CREATE POLICY choir_song_leads_update ON choir_song_leads FOR UPDATE
+  USING (user_role_in_instance(instance_id) IN ('owner','admin'))
+  WITH CHECK (user_role_in_instance(instance_id) IN ('owner','admin'));
+CREATE POLICY choir_song_leads_delete ON choir_song_leads FOR DELETE
+  USING (user_role_in_instance(instance_id) IN ('owner','admin'));
+
 -- ---------------------------------------------------------------------------
 -- 6. updated_at touch trigger on the ideas table (status changes, edits).
 -- ---------------------------------------------------------------------------
@@ -159,7 +201,7 @@ CREATE TRIGGER choir_song_ideas_touch_updated
 DO $realtime$
 DECLARE
   t text;
-  tables text[] := ARRAY['choir_song_ideas','choir_song_comments','choir_song_votes'];
+  tables text[] := ARRAY['choir_song_ideas','choir_song_comments','choir_song_votes','choir_song_leads'];
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
     CREATE PUBLICATION supabase_realtime;

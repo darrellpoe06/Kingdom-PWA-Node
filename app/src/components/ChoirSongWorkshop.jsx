@@ -21,12 +21,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import TextSizeControl from './TextSizeControl.jsx';
 import SectionBoundary from './SectionBoundary.jsx';
+import { subscribeMembers } from '../lib/choir-sync.js';
 import {
-  subscribeSongIdeas, subscribeSongComments, subscribeSongVotes,
+  subscribeSongIdeas, subscribeSongComments, subscribeSongVotes, subscribeSongLeads,
   addSongIdea, addSongIdeaList, setIdeaStatus, deleteSongIdea,
-  addSongComment, toggleSongVote,
+  addSongComment, toggleSongVote, assignLead, removeLead,
   ideaEmbedUrl, splitByStatus, groupCommentsBySong, tallyVotes, parseSongList,
+  groupLeadsBySong, myLeadSongIds,
 } from '../lib/song-workshop-sync.js';
+
+const STATUS_LABEL = { idea: 'Candidate', final: 'Final', pool: 'Pool' };
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -107,12 +111,76 @@ function CommentThread({ comments, onSend }) {
 }
 
 // ---------------------------------------------------------------------------
-// SongCard — one idea: player + vote + comments + (director) status controls.
+// Lead display + (director) assignment. Everyone sees who's leading; only the
+// director assigns / unassigns.
 // ---------------------------------------------------------------------------
-function SongCard({ idea, comments, vote, canEdit, onVote, onComment, onStatus, onDelete }) {
+function LeadLine({ leads }) {
+  if (!leads.length) return null;
+  return (
+    <div className="text-[11px] mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+      {leads.map((l) => (
+        <span key={l.id} className={l.mine ? 'font-semibold text-[#B85838]' : 'text-[#1A1815]'}>
+          🎤 {l.role === 'co-lead' ? 'Co-lead' : 'Lead'}: {l.memberName}{l.mine ? ' (you)' : ''}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function LeadPanel({ leads, members, onAssign, onRemove }) {
+  const [memberId, setMemberId] = useState('');
+  const [role, setRole] = useState('lead');
+  const taken = new Set(leads.map((l) => l.memberName));
+  const options = members.filter((m) => !taken.has(m.displayName));
+  const submit = () => {
+    const m = members.find((x) => String(x.id) === String(memberId));
+    if (!m) return;
+    onAssign({ userId: m.userId, name: m.displayName }, role);
+    setMemberId('');
+  };
+  return (
+    <div className="mt-2 border-t border-[#E8E4DC] pt-2">
+      {leads.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {leads.map((l) => (
+            <span key={l.id} className="inline-flex items-center gap-1 text-[11px] bg-[#FAF8F4] border border-[#E8E4DC] px-1.5 py-0.5">
+              {l.role === 'co-lead' ? 'Co-lead' : 'Lead'}: {l.memberName}
+              <button type="button" onClick={() => onRemove(l.id)} aria-label={`Remove ${l.memberName} as ${l.role}`} className="text-[#991B1B] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]">✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2 items-end">
+        <div>
+          <label className={LABEL} htmlFor={`lead-m-${leads[0]?.songId || 'new'}`}>Assign lead</label>
+          <select id={`lead-m-${leads[0]?.songId || 'new'}`} className={`${FIELD} w-auto`} value={memberId} onChange={(e) => setMemberId(e.target.value)}>
+            <option value="">Choose member…</option>
+            {options.map((m) => <option key={m.id} value={m.id}>{m.displayName}{m.section ? ` (${m.section})` : ''}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={LABEL} htmlFor={`lead-r-${leads[0]?.songId || 'new'}`}>Role</label>
+          <select id={`lead-r-${leads[0]?.songId || 'new'}`} className={`${FIELD} w-auto`} value={role} onChange={(e) => setRole(e.target.value)}>
+            <option value="lead">Lead</option>
+            <option value="co-lead">Co-lead</option>
+          </select>
+        </div>
+        <button type="button" onClick={submit} disabled={!memberId} className={`${BTN} bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815] disabled:opacity-50`}>Assign</button>
+      </div>
+      {!options.length && !members.length && <p className="text-[11px] text-[#5A5751] mt-1">Add choir members on the Roster tab to assign leads.</p>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SongCard — one idea: player + vote + comments + leads + (director) controls.
+// ---------------------------------------------------------------------------
+function SongCard({ idea, comments, vote, leads, members, canEdit, onVote, onComment, onStatus, onDelete, onAssignLead, onRemoveLead }) {
   const [showComments, setShowComments] = useState(false);
+  const [showLeads, setShowLeads] = useState(false);
   const count = vote?.count || 0;
   const mine = !!vote?.mine;
+  const iLead = leads.some((l) => l.mine);
   const isFinal = idea.status === 'final';
 
   return (
@@ -123,11 +191,13 @@ function SongCard({ idea, comments, vote, canEdit, onVote, onComment, onStatus, 
             <span className="text-[9px] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{idea.sourceType === 'youtube' ? 'YouTube' : 'Link'}</span>
             <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-[#1A1815] break-words">{idea.title}</span>
             {isFinal && <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">★ Final</span>}
+            {iLead && <span className="text-[9px] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5">★ Your lead</span>}
           </div>
           <div className="text-[10px] text-[#5A5751] mt-0.5">
             Added by {idea.addedByName}{idea.createdAt ? ` · ${fmtWhen(idea.createdAt)}` : ''}
             {idea.keyLabel ? ` · Key ${idea.keyLabel}` : ''}{idea.arrangement ? ` · ${idea.arrangement}` : ''}
           </div>
+          <LeadLine leads={leads} />
           {idea.note && <p className="text-sm text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{idea.note}</p>}
         </div>
         <button
@@ -148,6 +218,11 @@ function SongCard({ idea, comments, vote, canEdit, onVote, onComment, onStatus, 
           {showComments ? 'Hide' : 'Comments'} ({comments.length})
         </button>
         {canEdit && (
+          <button type="button" onClick={() => setShowLeads((v) => !v)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>
+            {showLeads ? 'Hide leads' : `Leads (${leads.length})`}
+          </button>
+        )}
+        {canEdit && (
           <div className="flex flex-wrap gap-2 ml-auto" role="group" aria-label="Director decision">
             {idea.status !== 'final' && <button type="button" onClick={() => onStatus('final')} className={`${BTN} bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815]`}>★ Mark final</button>}
             {idea.status !== 'idea' && <button type="button" onClick={() => onStatus('idea')} className={`${BTN} border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white`}>To candidates</button>}
@@ -158,6 +233,7 @@ function SongCard({ idea, comments, vote, canEdit, onVote, onComment, onStatus, 
       </div>
 
       {showComments && <CommentThread comments={comments} onSend={onComment} />}
+      {canEdit && showLeads && <LeadPanel leads={leads} members={members} onAssign={onAssignLead} onRemove={onRemoveLead} />}
     </div>
   );
 }
@@ -223,12 +299,17 @@ export default function ChoirSongWorkshop({ access }) {
   const [ideas, setIdeas] = useState([]);
   const [comments, setComments] = useState([]);
   const [votes, setVotes] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [members, setMembers] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [poolOpen, setPoolOpen] = useState(false);
 
   useEffect(() => {
-    const unsubs = [subscribeSongIdeas(setIdeas), subscribeSongComments(setComments), subscribeSongVotes(setVotes)];
+    const unsubs = [
+      subscribeSongIdeas(setIdeas), subscribeSongComments(setComments),
+      subscribeSongVotes(setVotes), subscribeSongLeads(setLeads), subscribeMembers(setMembers),
+    ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, []);
 
@@ -236,7 +317,13 @@ export default function ChoirSongWorkshop({ access }) {
 
   const grouped = useMemo(() => groupCommentsBySong(comments), [comments]);
   const tally = useMemo(() => tallyVotes(votes), [votes]);
+  const leadsBySong = useMemo(() => groupLeadsBySong(leads), [leads]);
+  const mySet = useMemo(() => myLeadSongIds(leads), [leads]);
   const { finals, candidates, pool } = useMemo(() => splitByStatus(ideas), [ideas]);
+  const myLeads = useMemo(
+    () => ideas.filter((i) => mySet.has(i.id)).map((i) => ({ idea: i, role: (leadsBySong.get(i.id) || []).find((l) => l.mine)?.role || 'lead' })),
+    [ideas, mySet, leadsBySong],
+  );
 
   const onAddOne = async (f) => { setBusy(true); reportSkip(await addSongIdea(f)); setBusy(false); };
   const onAddList = async (text) => { setBusy(true); reportSkip(await addSongIdeaList(text)); setBusy(false); };
@@ -245,11 +332,15 @@ export default function ChoirSongWorkshop({ access }) {
     idea,
     comments: grouped.get(idea.id) || [],
     vote: tally.get(idea.id),
+    leads: leadsBySong.get(idea.id) || [],
+    members,
     canEdit,
     onVote: async () => { reportSkip(await toggleSongVote(idea.id, !!tally.get(idea.id)?.mine)); },
     onComment: async (body) => { reportSkip(await addSongComment(idea.id, body)); },
     onStatus: async (status) => { reportSkip(await setIdeaStatus(idea.id, status)); },
     onDelete: async () => { reportSkip(await deleteSongIdea(idea.id)); },
+    onAssignLead: async (member, role) => { reportSkip(await assignLead(idea.id, member, role)); },
+    onRemoveLead: async (id) => { reportSkip(await removeLead(id)); },
   });
 
   const total = ideas.length;
@@ -266,6 +357,21 @@ export default function ChoirSongWorkshop({ access }) {
       <AddBar busy={busy} onAddOne={onAddOne} onAddList={onAddList} />
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
+
+      {myLeads.length > 0 && (
+        <section className="mb-4 bg-[#FAF8F4] border border-[#B85838] p-3">
+          <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-2">🎤 Songs you're leading ({myLeads.length})</h3>
+          <ul className="space-y-1">
+            {myLeads.map(({ idea, role }) => (
+              <li key={idea.id} className="text-sm text-[#1A1815] flex items-baseline gap-2 flex-wrap" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span style={{ fontWeight: 600 }}>{idea.title}</span>
+                <span className="text-[9px] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5">{role === 'co-lead' ? 'Co-lead' : 'Lead'}</span>
+                <span className="text-[10px] text-[#5A5751]">{STATUS_LABEL[idea.status]}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {total === 0 && (
         <div className="bg-white border border-[#E8E4DC] p-6 text-center">
