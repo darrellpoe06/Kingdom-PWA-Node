@@ -50,7 +50,10 @@ export const FACULTIES = [
     label: 'Control',
     glyph: '🎛',
     tagline: 'Manage the work — projects, priorities, discussions, decisions.',
-    surfaces: ['ProjectsWrapper'],
+    // The live management pulse composes IN the seat (consolidated here from the
+    // Build board, where it was buried); the full Projects / Build surface opens
+    // from a deep-link.
+    surfaces: ['ProjectMgmtPulse', 'ProjectsWrapper'],
   },
   {
     key: 'serve',
@@ -119,10 +122,12 @@ export function centerReadiness() {
       note: 'The orchestrator cockpit (arm / disarm / kill, budget, concurrency) is live on main and ships INERT — kill-switch engaged, feed not deployed. Arming stays a deliberate, attended act. The deep autonomous self-build stays staged and braked.',
     },
     control: {
-      // The base Projects/Build surface is live; the priorities + discussions
-      // cockpit is in-flight in the projects-mgmt lane (not on main yet).
-      status: 'partial',
-      note: 'Projects and the Build board are live on main. The priorities + discussions cockpit is wiring up in the projects-management lane; this seat links to the live surface today and composes the cockpit once that lane lands (sequenced, not collided).',
+      // The live project-management pulse (real projects by stage, the
+      // discussions driving the work, braked hand-offs) now composes IN the seat
+      // — consolidated here from the Build board where it was buried. The full
+      // Projects / Build surface opens from a deep-link for editing.
+      status: 'live',
+      note: 'The live project-management pulse — real projects by eternal stage, the discussions driving the work, and braked hand-offs — composes here in the seat; the full Projects and Build board open from here for editing. Real synced rows, no painted numbers.',
     },
     serve: {
       // The framing + role-scoping IS the seat; it is live. Community-serving
