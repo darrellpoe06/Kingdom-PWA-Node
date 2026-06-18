@@ -92,6 +92,30 @@ export function checkTabStrips(sources) {
     .map(({ label }) => ({ label }));
 }
 
+// --- Invariant 3: tab strips route through the ONE shared primitive ----------
+//
+// Reachability (invariant 2) is the floor; CONSISTENCY is the standard. Darrell
+// loves the main nav's right-to-left scroll ("easy and fluid," "classy") and
+// wants EVERY tab row to feel exactly that way. That only holds if every
+// active-underline tab strip inherits the SAME behavior from one place — the
+// <TabScroll> primitive (native momentum overflow + thin affordance + no
+// back-gesture chaining). A hand-rolled `overflow-x-auto` row would scroll, but
+// not identically. So: any file that renders the underline tab pattern MUST use
+// <TabScroll>. This is the "register it in the consistency standard so new tab
+// rows inherit it automatically" gate (Darrell 2026-06-18) — proven-to-catch a
+// new bare-overflow tab strip that drifts from the shared feel.
+export function usesSharedTabScroll(src) {
+  return /<TabScroll\b/.test(src);
+}
+
+// A drifting tab strip = renders the underline tab pattern but does NOT route
+// through the shared primitive (so it would not share the main nav's feel).
+export function checkTabStripPrimitive(sources) {
+  return sources
+    .filter(({ src }) => rendersTabButtons(src) && !usesSharedTabScroll(src))
+    .map(({ label }) => ({ label }));
+}
+
 // --- Combined scan over the real source tree ---------------------------------
 
 export function scan() {
@@ -102,12 +126,13 @@ export function scan() {
     shellViolations: shellsMissingClip(monolith),
     tabFileCount: sources.filter(s => rendersTabButtons(s.src)).length,
     tabViolations: checkTabStrips(sources),
+    primitiveViolations: checkTabStripPrimitive(sources),
   };
 }
 
 // --- CLI -------------------------------------------------------------------
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const { shellLineCount, shellViolations, tabFileCount, tabViolations } = scan();
+  const { shellLineCount, shellViolations, tabFileCount, tabViolations, primitiveViolations } = scan();
   console.log('# TAB OVERFLOW / WHITE-VOID GUARD\n');
   console.log(`App-shell lines: ${shellLineCount} · tab-strip files: ${tabFileCount}\n`);
   let ok = true;
@@ -121,8 +146,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(`FAIL — ${tabViolations.length} tab strip(s) with no horizontal scroll/wrap (tabs unreachable):`);
     tabViolations.forEach(v => console.log(`      · ${v.label}`));
   }
+  if (primitiveViolations.length) {
+    ok = false;
+    console.log(`FAIL — ${primitiveViolations.length} tab strip(s) not routed through the shared <TabScroll> primitive (would drift from the main nav's fluid feel):`);
+    primitiveViolations.forEach(v => console.log(`      · ${v.label}`));
+  }
   if (ok) {
-    console.log('PASS — app shell clips horizontal overflow; every tab strip scrolls or wraps.');
+    console.log('PASS — app shell clips overflow; every tab strip scrolls AND shares the <TabScroll> fluid feel.');
     process.exit(0);
   }
   process.exit(1);
