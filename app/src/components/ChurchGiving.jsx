@@ -162,8 +162,9 @@ export function ChurchGivePanel({ church, onClose }) {
 }
 
 // ChurchGiveFloater — the persistent pill on Church surfaces. Distinct from the
-// Feedback floater: bottom-RIGHT, giving-green, gift icon. Manages its own open
-// state so the monolith wiring is a single mount.
+// Give floater: bottom-RIGHT, stacked ABOVE the TTS floater (bottom-20 vs the
+// TTS bar's bottom-4) so the two never pile on one corner — giving-green, gift
+// icon. Manages its own open state so the monolith wiring is a single mount.
 export function ChurchGiveFloater({ church }) {
   const [open, setOpen] = React.useState(false);
   return (
@@ -174,7 +175,7 @@ export function ChurchGiveFloater({ church }) {
           onClick={() => setOpen(true)}
           aria-label="Give to the church"
           title="Give to the church — and the blessing of giving according to the Word"
-          className="fixed bottom-4 right-4 z-30 flex items-center gap-1.5 px-4 py-3 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden"
+          className="fixed bottom-20 right-4 z-30 flex items-center gap-1.5 px-4 py-3 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden"
           style={{ borderRadius: '999px' }}
         >
           <GiftIcon /> Give
