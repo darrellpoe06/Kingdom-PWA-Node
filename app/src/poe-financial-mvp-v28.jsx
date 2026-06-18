@@ -4544,7 +4544,7 @@ html{scroll-padding-bottom:280px}
       )}
 
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+        <div className="w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
               screens so the tier-preview dropdown and Subscribe/Feedback buttons
               can't crowd "Financial Control System." Side-by-side only on large
@@ -4611,7 +4611,7 @@ html{scroll-padding-bottom:280px}
           </div>
         </div>
         <nav className="border-t border-[#E8E4DC]">
-          <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
+          <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
             {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
                 first, About anchors the right side of the primary group, then a
                 visible vertical divider separates the secondary "life" tabs
@@ -4662,7 +4662,7 @@ html{scroll-padding-bottom:280px}
         </nav>
         {view === 'books' && (
           <div className="border-t border-[#E8E4DC] bg-white">
-            <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
+            <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
               <div className="flex gap-1 text-xs">
                 {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
@@ -4673,7 +4673,7 @@ html{scroll-padding-bottom:280px}
         )}
         {view === 'church' && (
           <div className="border-t border-[#E8E4DC] bg-white">
-            <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
+            <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
               <div className="flex gap-1 text-xs">
                 {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
@@ -4684,7 +4684,7 @@ html{scroll-padding-bottom:280px}
         )}
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-24">
+      <main className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {view === 'overview' && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mb-6">
             <AdvisementBanner />
