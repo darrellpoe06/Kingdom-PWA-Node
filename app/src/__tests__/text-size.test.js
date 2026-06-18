@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   TEXT_SIZE_STEPS, DEFAULT_TEXT_SIZE, stepFor, isValidTextSize,
   applyTextSize, loadTextSize, saveTextSize, initTextSize, setTextSize,
+  chromeMultFor, chromeScaleFor, CHROME_SCALE_FACTOR,
 } from '../lib/text-size.js';
 
 // A tiny in-memory localStorage stand-in (Node test env has no DOM storage).
@@ -21,12 +22,16 @@ function makeStore() {
   };
 }
 
-// A minimal documentElement stand-in to observe applyTextSize's DOM writes.
+// A minimal documentElement stand-in to observe applyTextSize's DOM writes,
+// including the CSS custom properties the content-vs-chrome scope split publishes
+// via style.setProperty (read back through _props).
 function makeDoc() {
   const attrs = {};
+  const props = {};
+  const style = { setProperty: (k, v) => { props[k] = v; }, _props: props };
   return {
     documentElement: {
-      style: {},
+      style,
       setAttribute: (k, v) => { attrs[k] = v; },
       _attrs: attrs,
     },
@@ -92,6 +97,73 @@ describe('applyTextSize root scaling', () => {
 
   it('is safe with no document (test/SSR env)', () => {
     expect(() => applyTextSize('large', undefined)).not.toThrow();
+  });
+});
+
+// Scope split (Darrell 2026-06-17): CONTENT scales fully, CHROME (display title +
+// nav) is capped so it stays roughly fixed. A .ts-chrome-region applies
+// --ts-chrome-scale as `zoom`; chromeMultFor is the cap target and chromeScaleFor
+// the zoom that reaches it from the scaled root.
+// Proven-to-catch: each assert fails if the chrome would balloon with content.
+describe('content-vs-chrome scope split', () => {
+  it('chromeMultFor is identity at Normal (chrome === content at 1x)', () => {
+    expect(chromeMultFor(1)).toBe(1);
+  });
+
+  it('chromeMultFor grows far slower than content — capped, never ballooned', () => {
+    // At Largest, content is 1.5x but chrome must stay near 1x (here ~1.125x).
+    expect(chromeMultFor(1.5)).toBeCloseTo(1.125, 6);
+    // The cap must always be strictly between "no growth" and "full growth".
+    for (const s of TEXT_SIZE_STEPS) {
+      if (s.mult === 1) continue;
+      const cap = chromeMultFor(s.mult);
+      expect(cap).toBeGreaterThan(1);
+      expect(cap).toBeLessThan(s.mult);
+    }
+  });
+
+  it('chrome follows exactly CHROME_SCALE_FACTOR of the content growth', () => {
+    expect(chromeMultFor(1.3)).toBeCloseTo(1 + 0.3 * CHROME_SCALE_FACTOR, 6);
+    expect(CHROME_SCALE_FACTOR).toBeGreaterThan(0);
+    expect(CHROME_SCALE_FACTOR).toBeLessThan(1);
+  });
+
+  it('chromeScaleFor is the zoom that nets the cap: root(mult) * zoom === chromeMult', () => {
+    expect(chromeScaleFor(1)).toBe(1); // Normal: no-op
+    for (const s of TEXT_SIZE_STEPS) {
+      const zoom = chromeScaleFor(s.mult);
+      // The rendered chrome size = root scale * zoom, which must equal the cap.
+      expect(s.mult * zoom).toBeCloseTo(chromeMultFor(s.mult), 6);
+      // Above Normal the region zooms OUT (<1) to undo most of the root growth.
+      if (s.mult > 1) expect(zoom).toBeLessThan(1);
+    }
+    expect(chromeScaleFor(1.5)).toBeCloseTo(0.75, 6);
+  });
+
+  it('chrome math degrades to identity for bad input, never throws', () => {
+    expect(chromeMultFor(undefined)).toBe(1);
+    expect(chromeMultFor(0)).toBe(1);
+    expect(chromeMultFor(-2)).toBe(1);
+    expect(chromeScaleFor(undefined)).toBe(1);
+    expect(chromeScaleFor(0)).toBe(1);
+  });
+
+  it('applyTextSize publishes the scope-split variables so a region can cap itself', () => {
+    const doc = makeDoc();
+    applyTextSize('largest', doc);
+    const props = doc.documentElement.style._props;
+    expect(props['--ts-mult']).toBe('1.5');
+    expect(props['--ts-chrome-mult']).toBe(String(chromeMultFor(1.5)));
+    expect(props['--ts-chrome-scale']).toBe(String(chromeScaleFor(1.5)));
+  });
+
+  it('at Normal every scope-split variable is 1 — the cap is an exact no-op', () => {
+    const doc = makeDoc();
+    applyTextSize('normal', doc);
+    const props = doc.documentElement.style._props;
+    expect(props['--ts-mult']).toBe('1');
+    expect(props['--ts-chrome-mult']).toBe('1');
+    expect(props['--ts-chrome-scale']).toBe('1');
   });
 });
 
