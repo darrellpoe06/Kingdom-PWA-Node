@@ -217,14 +217,31 @@ function ModuleCard({ moduleKey, status, title, repo, desc, features, moduleInte
 // without changing any tab styling. Extracted so a new sub-tab surface can't
 // ship an un-scrollable strip again. `overscroll-x-contain` keeps the swipe
 // from chaining to the browser's back-gesture on mobile.
-function TabScroll({ children, chrome = false, className = '', label }) {
+//
+// THE ONE tab-strip primitive (Darrell 2026-06-18): every active-underline tab
+// row in the app — the main header nav he loves, Books / Church sub-navs, and
+// every component sub-tab strip — routes through here, so they all inherit the
+// IDENTICAL fluid right-to-left scroll/swipe (native momentum overflow + thin
+// affordance + no back-gesture chaining). The tab-overflow-guard enforces it:
+// a hand-rolled tab strip (bare overflow-x-auto) no longer passes.
+//   - `chrome`        marks the row as fixed nav chrome (`.ts-chrome-region`
+//                     zoom-caps font+box so the nav stays put while body text
+//                     scales — used by the header/Books/Church navs only).
+//   - `className`     extra classes for the OUTER scroll box (e.g. the header's
+//                     `px-1 sm:px-6 lg:px-8` gutters, a sub-strip's `mb-3`).
+//   - `rowClassName`  extra classes for the INNER flex row (e.g. the main nav's
+//                     `sm:text-sm items-stretch`) — lets a caller tune sizing
+//                     WITHOUT touching the scroll behavior every row shares.
+//   - `label`         when set, marks the row `role="tablist"` + aria-label
+//                     (pass only where the children are `role="tab"`).
+function TabScroll({ children, chrome = false, className = '', rowClassName = '', label }) {
   return (
     <div
       className={`tab-scroll w-full overflow-x-auto overscroll-x-contain ${className}`}
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <div
-        className={`${chrome ? 'ts-chrome-region ' : ''}flex gap-1 text-xs`}
+        className={`${chrome ? 'ts-chrome-region ' : ''}flex gap-1 text-xs ${rowClassName}`.trim()}
         role={label ? 'tablist' : undefined}
         aria-label={label}
       >

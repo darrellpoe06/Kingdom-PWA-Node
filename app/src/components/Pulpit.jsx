@@ -28,7 +28,7 @@
 // visible #B85838 focus outline.
 // =============================================================================
 import React, { useEffect, useState } from 'react';
-import { SectionTitle } from './shared.jsx';
+import { SectionTitle, TabScroll } from './shared.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
@@ -348,11 +348,11 @@ export default function Pulpit() {
           is one control to learn, not two that look the same. */}
 
       {tabs.length > 1 && (
-        <div className="flex gap-1 text-xs mb-3 overflow-x-auto">
+        <TabScroll className="mb-3">
           {tabs.map(([id, label]) => (
             <button key={id} type="button" onClick={() => setTab(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${tab === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
           ))}
-        </div>
+        </TabScroll>
       )}
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}

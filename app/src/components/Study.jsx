@@ -21,7 +21,7 @@
 // body, #5A5751 secondary, labelled inputs, visible #B85838 focus outline (AA).
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { SectionTitle } from './shared.jsx';
+import { SectionTitle, TabScroll } from './shared.jsx';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import EternalAlgorithms from './EternalAlgorithms.jsx';
 import UiIcon from './UiIcon.jsx';
@@ -300,14 +300,15 @@ export default function Study({ email }) {
 
       {space === 'algorithms' ? <EternalAlgorithms email={email} /> : (
       <>
-      {/* Room tabs */}
-      <div className="flex gap-1 text-xs mb-3 overflow-x-auto" role="tablist" aria-label="Study rooms">
+      {/* Room tabs — shared <TabScroll> primitive (same fluid scroll as the
+          main nav); children keep role="tab", so the row is a real tablist. */}
+      <TabScroll className="mb-3" label="Study rooms">
         {KIND_ORDER.map((k) => (
           <button key={k} type="button" role="tab" aria-selected={kind === k} onClick={() => { setKind(k); setEditing(null); }} className={`px-3 py-2 whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${kind === k ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>
             <UiIcon name={KINDS[k].icon} /> {KINDS[k].label} · {counts[k]}
           </button>
         ))}
-      </div>
+      </TabScroll>
 
       <p className="text-xs text-[#5A5751] mb-3" style={serif}>{KINDS[kind].blurb}</p>
 
