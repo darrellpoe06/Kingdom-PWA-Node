@@ -249,12 +249,108 @@ export function scanInline() {
   return { fails, warns };
 }
 
+// --- background-coverage scanner (both directions, midnight) ---------------
+// The 2026-06-17 blind spot: the guard checked only the 6 palette TEXT tokens
+// against 3 fixed surfaces. Real components use dozens of Tailwind color classes
+// (bg-[#F2F4EC], text-[#7A1F1F], ...). Midnight is the only DARK theme, so under
+// it body text flips light and surfaces flip dark — which means EVERY used text
+// token must render light enough to read on a dark surface, and EVERY used bg
+// token must render dark enough for light text. A class midnight does NOT remap
+// keeps its light/dark default and breaks one of those: a dark text token →
+// dark-on-dark (the #7A1F1F error text, 32x); a near-white bg tint → light-on-
+// light (the Eternal Algorithms OUTCOME band, #F2F4EC). Both are now hard fails.
+const DARK_THEME = 'midnight';
+const MIDNIGHT_CARD_SURFACE = '#141414'; // the LIGHTER midnight surface — worst case for light text
+const BG_TOO_LIGHT_LUM = 0.5;            // a midnight surface this light carries NO readable light text
+// Accent ACTION backgrounds that intentionally stay bright in midnight and flip
+// their text dark via the compound `.bg-[X].text-white{color:#1A1815}` rules.
+// They are bright-on-purpose, so the "bg must render dark" rule does not apply.
+const ACCENT_ACTION_BG = ['#5a6e3d', '#b85838', '#2a5a8e'];
+
+// Parse the midnight remap table: class-key -> rendered color, for bg + text.
+// Skips :hover states and the compound `.bg-x.text-white` flips (handled above).
+export function parseMidnightRemap(src) {
+  const bg = {}, text = {};
+  for (const raw of src.split('\n')) {
+    if (!raw.includes(`[data-theme="${DARK_THEME}"]`)) continue;
+    const line = raw.replace(/\\\\/g, '').replace(/\\/g, '');
+    if (/:hover/.test(line)) continue;
+    if (/\.text-white\{/.test(line)) continue;
+    const bgm = line.match(/\.bg-(?:\[(#[0-9a-f]{6})\]|(white|black))\{background-color:\s*(#[0-9a-f]{6})/i);
+    if (bgm) { bg[(bgm[1] || bgm[2]).toLowerCase()] = bgm[3]; continue; }
+    const tm = line.match(/\.text-\[(#[0-9a-f]{6})\]\{color:\s*(#[0-9a-f]{6})/i);
+    if (tm) text[tm[1].toLowerCase()] = tm[2];
+  }
+  return { bg, text };
+}
+
+// Collect the color CLASS tokens actually USED in a source file. bg covers hex +
+// the white/black keywords; text covers hex only (bare text-black/white have
+// legit print: + dark:-variant uses that aren't [data-theme] surfaces).
+export function collectColorTokens(src) {
+  const bg = new Set(), text = new Set();
+  for (const m of src.matchAll(/bg-\[(#[0-9A-Fa-f]{6})\]/g)) bg.add(m[1].toLowerCase());
+  for (const m of src.matchAll(/\bbg-(white|black)\b/g)) bg.add(m[1].toLowerCase());
+  for (const m of src.matchAll(/text-\[(#[0-9A-Fa-f]{6})\]/g)) text.add(m[1].toLowerCase());
+  return { bg, text };
+}
+
+function renderBgInMidnight(key, remap) {
+  if (remap.bg[key]) return remap.bg[key];
+  if (key === 'white') return '#FFFFFF';
+  if (key === 'black') return '#000000';
+  return key; // hex with no remap renders as itself
+}
+function renderTextInMidnight(key, remap) {
+  return remap.text[key] || key; // hex with no remap renders as itself
+}
+
+// Pure check: given the midnight remap + the used token sets, return both-
+// direction violations. Importable + deterministic, so vitest can prove it
+// catches the break with no filesystem.
+export function checkTokenCoverage(remap, used) {
+  const violations = [];
+  for (const key of used.bg) {
+    if (ACCENT_ACTION_BG.includes(key)) continue;
+    const rendered = renderBgInMidnight(key, remap);
+    const L = relLum(rendered);
+    if (L != null && L >= BG_TOO_LIGHT_LUM) {
+      violations.push({ theme: DARK_THEME, dir: 'light-on-light', what: `bg-[${key}] background`, rendered, lum: +L.toFixed(2) });
+    }
+  }
+  for (const key of used.text) {
+    const rendered = renderTextInMidnight(key, remap);
+    const r = contrastRatio(rendered, MIDNIGHT_CARD_SURFACE);
+    if (r != null && r < AA_NORMAL) {
+      violations.push({ theme: DARK_THEME, dir: 'dark-on-dark', what: `text-[${key}] text`, rendered, ratio: +r.toFixed(2) });
+    }
+  }
+  return violations;
+}
+
+// Scan the live monolith + every component file for used color tokens, parse the
+// midnight remap, and return the both-direction coverage violations.
+export function scanTokenCoverage() {
+  if (!existsSync(MONOLITH)) return { violations: [], remap: { bg: {}, text: {} }, used: { bg: new Set(), text: new Set() } };
+  const monoSrc = readFileSync(MONOLITH, 'utf8');
+  const remap = parseMidnightRemap(monoSrc);
+  const used = { bg: new Set(), text: new Set() };
+  const add = (src) => { const t = collectColorTokens(src); t.bg.forEach((x) => used.bg.add(x)); t.text.forEach((x) => used.text.add(x)); };
+  add(monoSrc);
+  let files = [];
+  try { files = readdirSync(COMPONENTS_DIR).filter((f) => f.endsWith('.jsx')); } catch { /* no dir in some test envs */ }
+  for (const f of files) { try { add(readFileSync(join(COMPONENTS_DIR, f), 'utf8')); } catch { /* unreadable */ } }
+  return { violations: checkTokenCoverage(remap, used), remap, used };
+}
+
 // --- CLI -------------------------------------------------------------------
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const { themes, violations, warnings } = scanContrast();
   const { fails, warns } = scanInline();
-  console.log('# CONTRAST GUARD (per-theme WCAG 2.1 AA + inline-color scan)\n');
+  const { violations: tokenFails, used } = scanTokenCoverage();
+  console.log('# CONTRAST GUARD (per-theme WCAG 2.1 AA + inline + token coverage)\n');
   console.log(`Themes parsed: ${Object.keys(themes).join(', ') || '(none)'}\n`);
+  console.log(`Midnight token coverage: ${used.bg.size} bg + ${used.text.size} text classes checked (both directions)\n`);
 
   if (warnings && warnings.length) {
     console.log('Allowlisted (documented + dated — see CONTRAST_ALLOWLIST):');
@@ -267,9 +363,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log('');
   }
 
-  const hardFail = violations.length > 0 || fails.length > 0;
+  const hardFail = violations.length > 0 || fails.length > 0 || tokenFails.length > 0;
   if (!hardFail) {
-    console.log(`PASS — every theme meets AA (body + accents, incl. midnight); ${GUARDED_INLINE_FILES.join(', ')} carry no un-themeable inline colors.`);
+    console.log(`PASS — every theme meets AA (body + accents, incl. midnight); ${GUARDED_INLINE_FILES.join(', ')} carry no un-themeable inline colors; every used color class renders AA in midnight (no dark-on-dark, no light-on-light).`);
     process.exit(0);
   }
   if (violations.length) {
@@ -279,6 +375,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (fails.length) {
     console.log(`FAIL — ${fails.length} un-themeable inline color(s) in guarded files:`);
     for (const f of fails) console.log(`  - ${f.file}:${f.line} ${f.what}: ${f.color} = ${f.ratio}:1 on ${f.surface} (need ${AA_NORMAL})`);
+  }
+  if (tokenFails.length) {
+    console.log(`FAIL — ${tokenFails.length} midnight token-coverage violation(s) (used class with no/insufficient midnight remap):`);
+    for (const t of tokenFails) console.log(`  - [${t.theme}] ${t.dir}: ${t.what} renders ${t.rendered} (${t.dir === 'dark-on-dark' ? `${t.ratio}:1 on ${MIDNIGHT_CARD_SURFACE}, need ${AA_NORMAL}` : `relLum ${t.lum} >= ${BG_TOO_LIGHT_LUM}, light text unreadable`})`);
   }
   process.exit(1);
 }

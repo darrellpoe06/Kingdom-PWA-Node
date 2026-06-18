@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   parseThemes, checkContrast, checkContrastDetailed, contrastRatio, scanContrast,
   scanInline, scanInlineStyleColors, scanInlineThemeableColors,
+  parseMidnightRemap, collectColorTokens, checkTokenCoverage, scanTokenCoverage,
 } from '../../../scripts/contrast-guard.mjs';
 
 describe('contrast math (WCAG 2.1)', () => {
@@ -126,5 +127,60 @@ describe('contrast guard — inline-color scanner', () => {
     const { fails } = scanInline();
     const msg = fails.map(f => `${f.file}:${f.line} ${f.what}`).join('; ');
     expect(fails, msg).toEqual([]);
+  });
+});
+
+// Midnight token-coverage (2026-06-17, consolidated): the guard only checked the
+// 6 palette text tokens against 3 fixed surfaces, so any OTHER used color class
+// that midnight didn't remap slipped through — dark text token -> dark-on-dark
+// (#7A1F1F error text), near-white bg tint -> light-on-light (the #F2F4EC OUTCOME
+// band). This block proves the check catches BOTH directions and is not vacuous.
+describe('contrast guard — midnight token coverage (both directions)', () => {
+  it('parses the midnight remap table (bg + text) and reads class tokens from source', () => {
+    const remap = parseMidnightRemap(`
+[data-theme="midnight"] .bg-\\[\\#F2F4EC\\]{background-color:#16211A!important}
+[data-theme="midnight"] .text-\\[\\#7A1F1F\\]{color:#FCA5A5!important}
+`);
+    expect(remap.bg['#f2f4ec']).toBe('#16211A');
+    expect(remap.text['#7a1f1f']).toBe('#FCA5A5');
+    const used = collectColorTokens(`<div className="bg-[#F2F4EC] text-[#7A1F1F] bg-white">x</div>`);
+    expect(used.bg.has('#f2f4ec')).toBe(true);
+    expect(used.bg.has('white')).toBe(true);
+    expect(used.text.has('#7a1f1f')).toBe(true);
+  });
+
+  it('CATCHES a dark TEXT token with no midnight remap (dark-on-dark)', () => {
+    const v = checkTokenCoverage({ bg: {}, text: {} }, { bg: new Set(), text: new Set(['#7a1f1f']) });
+    expect(v.some(x => x.dir === 'dark-on-dark' && x.what.includes('#7a1f1f'))).toBe(true);
+  });
+
+  it('CATCHES a near-white BG token with no midnight remap (light-on-light)', () => {
+    const v = checkTokenCoverage({ bg: {}, text: {} }, { bg: new Set(['#f2f4ec']), text: new Set() });
+    expect(v.some(x => x.dir === 'light-on-light' && x.what.includes('#f2f4ec'))).toBe(true);
+  });
+
+  it('PASSES once both tokens are remapped (text bright, bg dark)', () => {
+    const remap = { bg: { '#f2f4ec': '#16211A' }, text: { '#7a1f1f': '#FCA5A5' } };
+    const v = checkTokenCoverage(remap, { bg: new Set(['#f2f4ec']), text: new Set(['#7a1f1f']) });
+    expect(v).toEqual([]);
+  });
+
+  it('does NOT flag an accent ACTION background (bright on purpose, flips text dark)', () => {
+    // bg-[#5A6E3D] renders bright mint #86EFAC (relLum > 0.5) but is allowlisted.
+    const remap = { bg: { '#5a6e3d': '#86EFAC' }, text: {} };
+    const v = checkTokenCoverage(remap, { bg: new Set(['#5a6e3d']), text: new Set() });
+    expect(v).toEqual([]);
+  });
+
+  it('does NOT flag a mid-dark action bg (red button, dark enough for light text)', () => {
+    const v = checkTokenCoverage({ bg: {}, text: {} }, { bg: new Set(['#dc2626']), text: new Set() });
+    expect(v.some(x => x.what.includes('#dc2626'))).toBe(false);
+  });
+
+  it('the LIVE monolith + components have ZERO midnight token-coverage violations', () => {
+    const { violations, used } = scanTokenCoverage();
+    const msg = violations.map(v => `[${v.dir}] ${v.what} -> ${v.rendered} (${v.ratio ?? v.lum})`).join('; ');
+    expect(used.bg.size + used.text.size).toBeGreaterThan(20); // not vacuously empty
+    expect(violations, msg).toEqual([]);
   });
 });
