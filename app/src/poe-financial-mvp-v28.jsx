@@ -81,6 +81,7 @@ import Pulpit from './components/Pulpit.jsx';
 import CommandServeCenter from './components/CommandServeCenter.jsx';
 import ChurchVideoWall from './components/ChurchVideoWall.jsx';
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
+import { ChurchGiveFloater } from './components/ChurchGiving.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import CreationWorkspace from './components/CreationWorkspace.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
@@ -5050,6 +5051,10 @@ html{scroll-padding-bottom:280px}
         </button>
       )}
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} />}
+      {/* Give floater — Church surfaces only (bottom-right; Feedback owns
+          bottom-left). Links out to the congregation's own giving page + the
+          blessing of giving according to the Word. See components/ChurchGiving. */}
+      {view === 'church' && <ChurchGiveFloater church={data.church} />}
     </div>
   );
 }
