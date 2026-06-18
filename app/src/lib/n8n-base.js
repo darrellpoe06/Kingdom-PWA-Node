@@ -17,42 +17,48 @@
 // Full diagnosis:
 //   docs/99-session-notes/2026-06-01-research-review-wf18-unreachable.md
 //
-// The fix
-// -------
-// Route every webhook call through the same-origin Vercel rewrite
-// "/n8n/* -> Funnel" (see app/vercel.json). The browser then issues a
-// same-origin request to poetech.us, and Vercel egress proxies to the Funnel.
-// The Funnel sees ONE trusted client (Vercel egress) instead of every family
-// browser, so the cross-origin throttling condition is eliminated.
+// The fix (superseded — see 2026-06-17 update below)
+// --------------------------------------------------
+// The 2026-06-02 fix routed webhook calls through a same-origin Vercel rewrite
+// "/n8n/* -> Funnel" (see app/vercel.json) to dodge the cross-origin throttle.
+//
+// 2026-06-17 supersession
+// -----------------------
+// The "/n8n" rewrite itself was the failure: Vercel's edge router CANNOT
+// complete the TLS handshake to *.ts.net Funnel targets
+// (ROUTER_EXTERNAL_TARGET_HANDSHAKE_ERROR -> HTTP 502), so every Books ->
+// Imported call 502'd before reaching n8n. Verified working paths: the public
+// Funnel +bearer returns 200 with real data (2020 bank / 1878 gmail rows) for
+// an external client, AND it emits correct CORS for poetech.us (OPTIONS 204,
+// GET Access-Control-Allow-Origin). So the browser is now pointed DIRECTLY at
+// the Funnel; only the Vercel rewrite hop was broken.
 //
 // Resolution order
 // ----------------
-//   1. If VITE_N8N_WEBHOOK_BASE is set AND does not point at the throttled
-//      Funnel host, honor it. This lets a future proper subdomain (the
-//      post-vacation Caddy + Let's Encrypt build) override cleanly.
-//   2. Otherwise default to the relative "/n8n" path served by the rewrite.
+//   1. If VITE_N8N_WEBHOOK_BASE is set, honor it (a future proper subdomain
+//      overrides cleanly).
+//   2. Otherwise default to the Tailscale Funnel directly.
 //
-// Note on neutralizing the Funnel host: the binding "Always-Now Viable Fix"
-// directive (2026-06-02) asked for a "/n8n" default with the env var allowed
-// to override. But the Vercel env var currently still holds the absolute
-// Funnel URL, so a plain default would be overridden and the bug would persist
-// until the dashboard is changed by hand. To close the bug today without a
-// dashboard dependency while Darrell is on vacation, a base still pointing at
-// the throttled Funnel host is treated as stale and replaced with the
-// same-origin rewrite path. Once the env var is cleared (or repointed at a
-// real subdomain) post-vacation, that override path is exercised normally.
+// Reversible: restore the '/n8n' default (and the vercel.json rewrite) to roll
+// back. Watch multi-device load in case the Funnel throttles under family-wide
+// concurrent fetches — that is the "get off Vercel" data point on the board.
 // =============================================================================
 
 const RAW = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
 
-// The throttled Tailscale Funnel host. Any base pointing here is neutralized
-// in favor of the same-origin rewrite path.
-const THROTTLED_FUNNEL = /tail5a2f35\.ts\.net/i;
+// 2026-06-17 update: route the browser DIRECTLY to the Tailscale Funnel.
+// The Funnel serves correct CORS for poetech.us (OPTIONS preflight 204, GET 200
+// with Access-Control-Allow-Origin), so a same-origin rewrite is unnecessary.
+// The old "/n8n" Vercel rewrite is REMOVED because Vercel's edge router cannot
+// complete the TLS handshake to *.ts.net Funnel targets
+// (ROUTER_EXTERNAL_TARGET_HANDSHAKE_ERROR -> 502) before the request ever
+// reaches n8n. Reversible by restoring the rewrite default below ('/n8n').
+const FUNNEL = 'https://poetech.tail5a2f35.ts.net';
 
 // Resolved base, trailing slashes stripped so callers never produce "//".
-export const N8N_BASE = (RAW && !THROTTLED_FUNNEL.test(RAW))
-  ? RAW.replace(/\/+$/, '')
-  : '/n8n';
+// An explicit VITE_N8N_WEBHOOK_BASE override still wins (e.g. a future proper
+// subdomain); otherwise the Funnel is the default target the browser calls.
+export const N8N_BASE = RAW ? RAW.replace(/\/+$/, '') : FUNNEL;
 
 // =============================================================================
 // L16 — Bearer header for the wf18 imported-transactions PII webhook.
