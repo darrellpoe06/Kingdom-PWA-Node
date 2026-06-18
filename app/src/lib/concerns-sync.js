@@ -1,5 +1,5 @@
 // =============================================================================
-// concerns-sync — cross-device sync for the concerns table (0038)
+// concerns-sync — cross-device sync for the concerns table (0039)
 // =============================================================================
 // A concern captured on Darrell's laptop should show up on Christina's phone
 // without a re-export — the same proven table-sync path projects / discussions
@@ -11,7 +11,7 @@
 //     source: 'manual', sortRank: null, links: {...},
 //     createdBy: '<uuid>', createdAt, updatedAt }
 //
-// Remote shape (0038 concerns row): target_date / when_note / sort_rank / jsonb links.
+// Remote shape (0039 concerns row): target_date / when_note / sort_rank / jsonb links.
 // =============================================================================
 import { createTableSync, unionPreservingLocal } from './table-sync.js';
 

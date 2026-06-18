@@ -1,6 +1,7 @@
 -- =============================================================================
--- 0038 — concerns: the in-app Concerns & Solutions board
+-- 0039 — concerns: the in-app Concerns & Solutions board
 -- =============================================================================
+-- (Numbered 0039 to avoid colliding with the held PR #249's 0038 migration.)
 -- Declared by Darrell (re-run 2026-06-18). The feedback loop must return INSIDE
 -- the app, not in a doc Darrell has to route by hand. A concern is a real,
 -- dated problem with the system or the build, paired with the SOLUTION we

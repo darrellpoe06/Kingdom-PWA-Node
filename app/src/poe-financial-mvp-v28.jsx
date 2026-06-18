@@ -2469,7 +2469,7 @@ export default function PoeFinancialSystem() {
               : (d.incidents || []),
             recurringObligations: Array.isArray(parsed.data.recurringObligations) ? parsed.data.recurringObligations : (d.recurringObligations || []),
             scopes: Array.isArray(parsed.data.scopes) ? parsed.data.scopes : (d.scopes || []),
-            // Concerns (0038) — the curated Concerns & Solutions rows. Hydrated
+            // Concerns (0039) — the curated Concerns & Solutions rows. Hydrated
             // defensively so a concern added while signed-out survives a reload
             // (cloud sync covers the signed-in path on top of this).
             concerns: Array.isArray(parsed.data.concerns) ? parsed.data.concerns : (d.concerns || []),
@@ -2829,7 +2829,7 @@ export default function PoeFinancialSystem() {
         // Discussions (0035) — the discuss-then-document records that drive
         // projects, pooled to the family instance the same proven way.
         { sync: discussionsSync,  key: 'discussions',  localList: (latest.discussions || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteDiscussions },
-        // Concerns (0038) — the Concerns & Solutions board's curated rows, pooled
+        // Concerns (0039) — the Concerns & Solutions board's curated rows, pooled
         // to the family instance the same proven way. (Seed-baseline + feedback
         // read-through are composed in the component, never persisted here.)
         { sync: concernsSync,     key: 'concerns',     localList: (latest.concerns || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteConcerns },
@@ -3211,7 +3211,7 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, discussions: (d.discussions || []).filter(x => x.id !== id) }));
   };
 
-  // ---- Concerns (0038) — the Concerns & Solutions board's curated rows. Same
+  // ---- Concerns (0039) — the Concerns & Solutions board's curated rows. Same
   // optimistic-local-then-cloud pattern as addDiscussion; fails soft on a sync
   // error so the device copy always survives. The dated seed baseline and the
   // feedback read-through are composed in the component (lib/concerns.js), never

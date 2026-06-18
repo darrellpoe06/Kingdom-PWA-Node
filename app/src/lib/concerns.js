@@ -10,7 +10,7 @@
 //   1. SEED_CONCERNS — the dated baseline below. Platform truth, the same for
 //      everyone with access, edited in code as part of shipping — exactly like
 //      BuildBoard's ROADMAP constant. Honest status on each.
-//   2. DB concerns (0038 `concerns` table, via concerns-sync) — net-new concerns
+//   2. DB concerns (0039 `concerns` table, via concerns-sync) — net-new concerns
 //      the family / Governor add, edit, re-date, and re-status. Fully synced.
 //   3. feedback rows (read-through) — every submitted feedback item renders as a
 //      concern automatically, so the loop returns in-app without hand-routing.
