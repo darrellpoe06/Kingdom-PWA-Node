@@ -84,6 +84,7 @@ import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ThinkingSpace } from './components/ThinkingSpace.jsx';
 import CreationWorkspace from './components/CreationWorkspace.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
+import UiIcon from './components/UiIcon.jsx';
 import Study from './components/Study.jsx';
 import { Queue } from './components/Queue.jsx';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -4574,23 +4575,23 @@ html{scroll-padding-bottom:280px}
               {[
                 ['overview','Big Picture'],
                 ['books','Books'],
-                ['inbound','📞 Inbound'],
+                ['inbound', <><UiIcon name="phone" /> Inbound</>],
                 ['rentals','Real Estate'],
                 ['projects','Projects'],
                 ['practice','Practice'],
                 ['opportunities','Dev/Ops'],
                 ['about','About'],
                 ['__sep__', null],
-                ['notes','🕊 Notes'],
+                ['notes', <><UiIcon name="dove" /> Notes</>],
                 // Create — the document / image creation workspace (Notes group:
                 // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
                 // Available to every signed-in user; persistence is instance-scoped.
-                ['create','🎨 Create'],
+                ['create', <><UiIcon name="palette" /> Create</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
                 // pair below and requires its 'study' feedback area.
-                ...(isStudyCircle ? [['study','📓 Study']] : []),
+                ...(isStudyCircle ? [['study', <><UiIcon name="book" /> Study</>]] : []),
                 ['church','Church'],
                 ['markets','Markets'],
                 // Command, Control & Serve Center — the steward's seat (the
@@ -4598,11 +4599,11 @@ html{scroll-padding-bottom:280px}
                 // only; spread so the entry is absent from the DOM entirely for
                 // everyone else (no-leak), like Study. The component carries a
                 // defense-in-depth locked fallback for any deep-link.
-                ...(isFamilyMember ? [['center','🎛 Center']] : []),
+                ...(isFamilyMember ? [['center', <><UiIcon name="sliders" /> Center</>]] : []),
                 // Admin surfaced at the top so users can SEE a steward space
                 // exists (visible-but-locked, like 🔒 Observation). ACCESS is
                 // gated at the render below — the entry being visible is the goal.
-                ['admin','🔒 Admin'],
+                ['admin', <><UiIcon name="lock" /> Admin</>],
               ].map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
@@ -4618,7 +4619,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal','🔒 Legal']].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
+                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
@@ -4629,7 +4630,7 @@ html{scroll-padding-bottom:280px}
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="max-w-7xl mx-auto px-1 sm:px-6 overflow-x-auto">
               <div className="flex gap-1 text-xs">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit','📖 The Word'], ...(isChurchStaff ? [['videowall','📺 Video Wall'],['observe','🔒 Observation']] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
               </div>
