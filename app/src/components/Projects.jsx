@@ -3,7 +3,7 @@
 // PROJECT_DOMAINS + PROJECT_STATUSES constants. Inline edit per row
 // shipped r20; this is the structural extraction.
 import React, { useState, useMemo } from 'react';
-import { MetricCell, SectionTitle } from './shared.jsx';
+import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
@@ -144,13 +144,16 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   if (isGovernor) tabs.push(['loops','🩺 Loops']);
   return (
     <div className="space-y-4">
-      <div className="border-b border-[#E8E4DC]">
-        <div className="flex gap-1 text-xs">
-          {tabs.map(([id, label]) => (
-            <button key={id} onClick={() => setSubView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${subView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-          ))}
-        </div>
-      </div>
+      {/* The sub-tab strip scrolls horizontally so every section stays reachable
+          on a phone — Decisions / Review / Loops fall off the right edge of a
+          full-width <main> (#264) otherwise, and the un-scrollable overflow used
+          to expose a white band beside the dark theme. <TabScroll> owns the
+          scroll; see shared.jsx. */}
+      <TabScroll className="border-b border-[#E8E4DC]" label="Project sections">
+        {tabs.map(([id, label]) => (
+          <button key={id} onClick={() => setSubView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${subView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+        ))}
+      </TabScroll>
       {subView === 'list' && (
         <>
           <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} isGovernor={isGovernor} discussions={discussions} addDiscussion={addDiscussion} wakeData={wakeData} onOpenDiscussions={() => setSubView('discussions')} />

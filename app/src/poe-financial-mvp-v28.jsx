@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { SectionTitle, MetricCell } from './components/shared.jsx';
+import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
 import TraceableNumber from './components/TraceableNumber.jsx';
 import {
   traceNetCashFlow,
@@ -3825,14 +3825,22 @@ export default function PoeFinancialSystem() {
   const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
   if (__gate !== 'app') {
     return (
-      <div data-theme={theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+      <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
         {__gate === 'gate' ? <PasswordAuth /> : null}
       </div>
     );
   }
 
   return (
-    <div data-theme={theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+    // overflow-x-clip — the page must NEVER scroll horizontally. Any element wider
+    // than the viewport (e.g. an overflowing sub-tab row) is clipped at the themed
+    // shell instead of pushing the page wide and exposing the white <body> to the
+    // right of this box (the 2026-06-18 Projects "white void" regression in dark
+    // mode). `clip` (not `hidden`) leaves overflow-y visible, so the sticky header
+    // and normal vertical page scroll are unaffected. This is the structural guard;
+    // the root cause — tab strips that don't scroll internally — is fixed via the
+    // <TabScroll> primitive so content stays REACHABLE, not just clipped away.
+    <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       <style>{`
 /* Mobile keyboard fix */
@@ -4618,16 +4626,18 @@ html{scroll-padding-bottom:280px}
           </div>
         </div>
         <nav className="border-t border-[#E8E4DC]">
-          <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
-            {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
-                first, About anchors the right side of the primary group, then a
-                visible vertical divider separates the secondary "life" tabs
-                (Church + Markets) which live to the far right. */}
-            {/* Primary nav is CHROME: .ts-chrome-region caps the whole row (tab
-                font + padding) via zoom so the menu stays roughly fixed while body
-                content scales (text-size scope split). Holds only rem tabs — no
-                fixed-px control lives here, so nothing already-fixed is shrunk. */}
-            <div className="ts-chrome-region flex gap-1 text-xs sm:text-sm items-stretch">
+          {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
+              first, About anchors the right side of the primary group, then a
+              visible vertical divider separates the secondary "life" tabs
+              (Church + Markets) which live to the far right. */}
+          {/* THE reference tab row Darrell loves ("easy and fluid," "classy").
+              Routed through the shared <TabScroll> primitive so every other tab
+              strip in the app inherits this exact right-to-left scroll feel.
+              `chrome` = .ts-chrome-region caps the whole row (tab font + padding)
+              via zoom so the menu stays roughly fixed while body content scales
+              (text-size scope split). Holds only rem tabs — no fixed-px control
+              lives here, so nothing already-fixed is shrunk. */}
+          <TabScroll chrome className="px-1 sm:px-6 lg:px-8" rowClassName="sm:text-sm items-stretch">
               {[
                 ['overview','Big Picture'],
                 ['books','Books'],
@@ -4668,31 +4678,30 @@ html{scroll-padding-bottom:280px}
                   <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 );
               })}
-            </div>
-          </div>
+          </TabScroll>
         </nav>
         {view === 'books' && (
           <div className="border-t border-[#E8E4DC] bg-white">
-            <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
-              {/* Books sub-nav is CHROME: .ts-chrome-region caps the row via zoom. */}
-              <div className="ts-chrome-region flex gap-1 text-xs">
+            {/* Books sub-nav routes through the shared <TabScroll> primitive
+                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
+                caps the row via zoom while body text scales. */}
+            <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
                 {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
-              </div>
-            </div>
+            </TabScroll>
           </div>
         )}
         {view === 'church' && (
           <div className="border-t border-[#E8E4DC] bg-white">
-            <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
-              {/* Church sub-nav is CHROME: .ts-chrome-region caps the row via zoom. */}
-              <div className="ts-chrome-region flex gap-1 text-xs">
+            {/* Church sub-nav routes through the shared <TabScroll> primitive
+                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
+                caps the row via zoom while body text scales. */}
+            <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
                 {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
-              </div>
-            </div>
+            </TabScroll>
           </div>
         )}
       </header>
@@ -9128,13 +9137,13 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
 
 
       <section>
-        <div className="border-b border-[#E8E4DC] mb-3">
-          <div className="flex gap-1 text-xs">
+        {/* Tx sub-tabs route through the shared <TabScroll> primitive so they
+            scroll/swipe exactly like the main nav. */}
+        <TabScroll className="border-b border-[#E8E4DC] mb-3">
             {[['upcoming', `Upcoming · ${upcoming.length}`], ['history', `History · ${history.length}`]].map(([id, label]) => (
               <button key={id} onClick={() => setTxView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${txView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
             ))}
-          </div>
-        </div>
+        </TabScroll>
 
         <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
           <div className="flex gap-1 flex-wrap text-xs">
