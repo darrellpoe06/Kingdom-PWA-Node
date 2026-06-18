@@ -4,11 +4,19 @@
 // Goal (Darrell 2026-06-15): a SOLO learner finishes all 8 weeks without Darrell
 // present. The tutor walks them through that week's activity.
 //
-// SOVEREIGN, LOCAL-FIRST (the Charter): the tutor routes through the SAME family
-// n8n path the rest of the app uses (the same-origin /n8n rewrite, lib/n8n-base)
-// to Ollama on the NAS — model `qwen2.5`. No vendor LLM is called from the
-// client; vendor escalation, if ever, happens server-side per the Charter and
-// within budget. The endpoint here is always the local path.
+// SOVEREIGN, LOCAL-FIRST (the Charter): the tutor routes through the family
+// same-origin /n8n rewrite to Ollama on the NAS — model `qwen2.5`. No vendor
+// LLM is called from the client; vendor escalation, if ever, happens
+// server-side per the Charter and within budget. The endpoint here is always
+// the local relative path.
+//
+// 2026-06-17: the shared lib/n8n-base.js default was repointed to the Tailscale
+// Funnel directly (the Vercel "/n8n" rewrite can't TLS-handshake to *.ts.net ->
+// 502 for the finance/imported/wake surfaces). The tutor does NOT follow that
+// move: its Charter gate (class-tutor.test.js, DR-0076) requires a same-origin
+// RELATIVE path and forbids an absolute Funnel/vendor URL in the client bundle.
+// So the tutor pins its own '/n8n' base here instead of importing N8N_BASE.
+// (Its NAS reachability is a separate open item — see the Concern board.)
 //
 // HONEST OFFLINE (DR-0076): when the NAS route isn't reachable, askTutor returns
 // { ok:false } and the UI falls back to the AUTHORED walkthrough (the week's
@@ -19,7 +27,12 @@
 // The class itself teaches this: the tutor is a tool, tested and verified, not a
 // source of truth (week 1 + week 3). Its replies carry the same caution.
 // =============================================================================
-import { N8N_BASE, n8nAuthHeaders } from './n8n-base.js';
+import { n8nAuthHeaders } from './n8n-base.js';
+
+// The tutor's own same-origin base. Pinned to the relative '/n8n' rewrite (NOT
+// the shared N8N_BASE, which now defaults to the absolute Funnel) so the Charter
+// sovereignty gate holds: a relative path, never an absolute Funnel/vendor URL.
+const TUTOR_BASE = '/n8n';
 
 // The sovereign, local-first model the tutor asks for. Kept as a constant so the
 // test can prove the client routes local (qwen2.5), not to a vendor.
@@ -29,7 +42,7 @@ export const TUTOR_MODEL = 'qwen2.5';
 // Never an absolute vendor or Funnel URL (the rewrite avoids cross-origin
 // throttling; see lib/n8n-base.js).
 export function tutorEndpoint() {
-  return `${N8N_BASE.replace(/\/+$/, '')}/webhook/class-tutor`;
+  return `${TUTOR_BASE.replace(/\/+$/, '')}/webhook/class-tutor`;
 }
 
 // The per-week system prompt. Grounds the tutor in THIS week's real authored
