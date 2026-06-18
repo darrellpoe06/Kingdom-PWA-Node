@@ -1,3 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ===========================================================================
+   Text-size scope split — CONTENT scales, CHROME is capped (Darrell 2026-06-17)
+   ===========================================================================
+   The large-print primitive (lib/text-size.js) scales the document root, so all
+   rem-based content grows for free. Display/nav chrome must NOT balloon with it:
+   the page title and the nav/menu should stay roughly fixed while the body/cell
+   text is what scales.
+
+   A chrome REGION marked `.ts-chrome-region` applies --ts-chrome-scale as `zoom`,
+   which undoes most of the root scale for that region — capping its FONT *and* its
+   box (padding, gaps, line height) together, so the region neither balloons its
+   text nor pushes content down. `zoom` is a re-layout in every current engine, so
+   full width and `position: sticky` are preserved (verified live). At Normal the
+   scale is exactly 1 — an EXACT no-op (pixel-identical to today).
+
+   Apply `.ts-chrome-region` ONLY to chrome rows that hold rem-driven display/nav
+   type and NO already-fixed (px) controls — the page-title row and each nav row —
+   so nothing already fixed is shrunk. That is the rule for new display/nav chrome
+   that should stay roughly fixed while body content scales. */
+.ts-chrome-region {
+  zoom: var(--ts-chrome-scale, 1);
+}
