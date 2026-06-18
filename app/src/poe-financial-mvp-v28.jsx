@@ -69,6 +69,8 @@ import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGat
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
 import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/device-trust.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
+import { concernsSync, mergeRemoteConcerns, CONCERN_COLUMN_OF } from './lib/concerns-sync.js';
+import { SEED_CONCERNS } from './lib/concerns.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { LifeGallery } from './components/LifeGallery.jsx';
@@ -2467,6 +2469,10 @@ export default function PoeFinancialSystem() {
               : (d.incidents || []),
             recurringObligations: Array.isArray(parsed.data.recurringObligations) ? parsed.data.recurringObligations : (d.recurringObligations || []),
             scopes: Array.isArray(parsed.data.scopes) ? parsed.data.scopes : (d.scopes || []),
+            // Concerns (0038) — the curated Concerns & Solutions rows. Hydrated
+            // defensively so a concern added while signed-out survives a reload
+            // (cloud sync covers the signed-in path on top of this).
+            concerns: Array.isArray(parsed.data.concerns) ? parsed.data.concerns : (d.concerns || []),
             practiceInquiries: Array.isArray(parsed.data.practiceInquiries) ? parsed.data.practiceInquiries : (d.practiceInquiries || []),
             inquiries: Array.isArray(parsed.data.inquiries) ? parsed.data.inquiries : (d.inquiries || []),
             checkoutIntents: Array.isArray(parsed.data.checkoutIntents) ? parsed.data.checkoutIntents : (d.checkoutIntents || []),
@@ -2823,6 +2829,10 @@ export default function PoeFinancialSystem() {
         // Discussions (0035) — the discuss-then-document records that drive
         // projects, pooled to the family instance the same proven way.
         { sync: discussionsSync,  key: 'discussions',  localList: (latest.discussions || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteDiscussions },
+        // Concerns (0038) — the Concerns & Solutions board's curated rows, pooled
+        // to the family instance the same proven way. (Seed-baseline + feedback
+        // read-through are composed in the component, never persisted here.)
+        { sync: concernsSync,     key: 'concerns',     localList: (latest.concerns || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteConcerns },
         // Creation Workspaces (0037) — composed documents/images, pooled to the
         // family instance the same proven way so a document opens on any device.
         { sync: workspacesSync,   key: 'workspaces',   localList: (latest.workspaces || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteWorkspaces },
@@ -3199,6 +3209,75 @@ export default function PoeFinancialSystem() {
       }
     }
     setData(d => ({ ...d, discussions: (d.discussions || []).filter(x => x.id !== id) }));
+  };
+
+  // ---- Concerns (0038) — the Concerns & Solutions board's curated rows. Same
+  // optimistic-local-then-cloud pattern as addDiscussion; fails soft on a sync
+  // error so the device copy always survives. The dated seed baseline and the
+  // feedback read-through are composed in the component (lib/concerns.js), never
+  // persisted into this table — only what the family adds here syncs.
+  const addConcern = (item) => {
+    const nowIso = new Date().toISOString();
+    const localId = `cn-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId, createdAt: nowIso, createdBy: authSession?.user?.id || null };
+    setData(d => ({ ...d, concerns: [...(d.concerns || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      concernsSync.upload(seeded)
+        .then(res => {
+          if (res && res.uploaded && res.remoteId) {
+            setData(d => ({ ...d, concerns: (d.concerns || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
+          }
+        })
+        .catch(e => console.warn('[concerns-sync] add upload failed', e));
+    }
+  };
+  const updateConcern = (id, updates) => setData(d => {
+    // A seed-baseline concern (id 'seed-...') has no DB row yet. The first edit
+    // promotes it into the concerns table so the change persists + syncs; from
+    // then on it updates by remoteUuid like any other row.
+    const isSeed = typeof id === 'string' && id.startsWith('seed-');
+    const existing = (d.concerns || []).find(x => x.id === id);
+    if (isSeed && !existing) {
+      // Promote: materialize the baseline seed (looked up from SEED_CONCERNS so
+      // the NOT-NULL `concern` text is always present) as a real DB concern
+      // carrying its edits. Keep the stable seed id so the component's de-dupe
+      // (a DB row supersedes the same-id seed) hides the baseline copy.
+      const base = SEED_CONCERNS.find(s => s.id === id) || {};
+      const promoted = { ...base, id, createdAt: new Date().toISOString(), createdBy: authSession?.user?.id || null, source: 'manual', ...updates };
+      if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+        concernsSync.upload(promoted)
+          .then(res => {
+            if (res && res.uploaded && res.remoteId) {
+              setData(dd => ({ ...dd, concerns: (dd.concerns || []).map(x => (x.id === id ? { ...x, remoteUuid: res.remoteId } : x)) }));
+            }
+          })
+          .catch(e => console.warn('[concerns-sync] seed-promote upload failed', e));
+      }
+      return { ...d, concerns: [...(d.concerns || []), promoted] };
+    }
+    const next = (d.concerns || []).map(x => (x.id === id ? { ...x, ...updates } : x));
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(x => x.id === id);
+      if (updated && updated.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(CONCERN_COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (Object.keys(patch).length > 0) {
+          concernsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[concerns-sync] update failed', e));
+        }
+      }
+    }
+    return { ...d, concerns: next };
+  });
+  const deleteConcern = (id) => {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.concerns || []).find(x => x.id === id);
+      if (local && local.remoteUuid) {
+        concernsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[concerns-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, concerns: (d.concerns || []).filter(x => x.id !== id) }));
   };
 
   // ---- Creation Workspaces (0037) — the in-app document / image creation space.
@@ -4973,6 +5052,7 @@ html{scroll-padding-bottom:280px}
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
               loopData={data} loopDecisions={data.loopDecisions || {}} onLoopDecision={onLoopDecision}
               discussions={data.discussions || []} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion}
+              concerns={data.concerns || []} feedback={[...(data.feedback || []), ...remoteFeedback]} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern}
               financialDocAt={(() => { const ms = latestFinancialDocMs(ingestData); return ms ? new Date(ms).toISOString() : null; })()}
               onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
@@ -5503,6 +5583,7 @@ const FEEDBACK_AREAS = [
     ['build-kpi', '└ KPI status dots + Key (legend)'],
     ['build-workflows', '└ Workflow status feed'],
     ['build-llm-health', '└ Local-LLM health card'],
+    ['concerns-board', 'Projects · ⚠ Concerns & Solutions board (open · in-progress · done + feedback read-through)'],
     ['governance-decisions', 'Projects · ⚖ Decisions (Governor governance queue)'],
     ['review-feed', 'Projects · 🔄 Review (freshness-loop staged proposals)'],
     ['loop-health', 'Projects · 🩺 Loops (loop-health keep / retire)'],
