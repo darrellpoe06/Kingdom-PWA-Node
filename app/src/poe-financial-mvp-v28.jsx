@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
 import TraceableNumber from './components/TraceableNumber.jsx';
 import {
@@ -9,24 +9,24 @@ import {
   traceDebtFree,
   traceRentalsFree,
 } from './lib/number-trace.js';
-import About from './components/About.jsx';
+const About = lazy(() => import('./components/About.jsx'));
 import { LegalPlaceholder } from './components/Legal.jsx';
-import { Contractors1099 } from './components/Contractors1099.jsx';
-import { Cart } from './components/Cart.jsx';
+const Contractors1099 = lazy(() => import('./components/Contractors1099.jsx').then(m => ({ default: m.Contractors1099 })));
+const Cart = lazy(() => import('./components/Cart.jsx').then(m => ({ default: m.Cart })));
 import { BooksEntities } from './components/BooksEntities.jsx';
-import { Practice } from './components/Practice.jsx';
-import { Markets } from './components/Markets.jsx';
+const Practice = lazy(() => import('./components/Practice.jsx').then(m => ({ default: m.Practice })));
+const Markets = lazy(() => import('./components/Markets.jsx').then(m => ({ default: m.Markets })));
 import { Debts } from './components/Debts.jsx';
 import { Inbound } from './components/Inbound.jsx';
-import { Rentals } from './components/Rentals.jsx';
+const Rentals = lazy(() => import('./components/Rentals.jsx').then(m => ({ default: m.Rentals })));
 import { ProjectsWrapper, DateField } from './components/Projects.jsx';
-import { Opportunities } from './components/DevOps.jsx';
+const Opportunities = lazy(() => import('./components/DevOps.jsx').then(m => ({ default: m.Opportunities })));
 import AuthBanner from './components/AuthBanner.jsx';
 import PasswordAuth from './components/PasswordAuth.jsx';
 import { accessState } from './lib/access-gate.js';
-import Engagement from './components/Engagement.jsx';
-import Choir from './components/Choir.jsx';
-import ChurchLearn from './components/ChurchLearn.jsx';
+const Engagement = lazy(() => import('./components/Engagement.jsx'));
+const Choir = lazy(() => import('./components/Choir.jsx'));
+const ChurchLearn = lazy(() => import('./components/ChurchLearn.jsx'));
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from './lib/church-live.js';
 import {
@@ -72,21 +72,21 @@ import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { LifeGallery } from './components/LifeGallery.jsx';
-import { ConferenceModule } from './components/ConferenceModule.jsx';
-import { EventCenterModule } from './components/EventCenterModule.jsx';
-import { ConferenceVariance } from './components/ConferenceVariance.jsx';
-import { ChurchObservation } from './components/ChurchObservation.jsx';
-import EventManagement from './components/EventManagement.jsx';
-import Pulpit from './components/Pulpit.jsx';
-import CommandServeCenter from './components/CommandServeCenter.jsx';
-import ChurchVideoWall from './components/ChurchVideoWall.jsx';
+const ConferenceModule = lazy(() => import('./components/ConferenceModule.jsx').then(m => ({ default: m.ConferenceModule })));
+const EventCenterModule = lazy(() => import('./components/EventCenterModule.jsx').then(m => ({ default: m.EventCenterModule })));
+const ConferenceVariance = lazy(() => import('./components/ConferenceVariance.jsx').then(m => ({ default: m.ConferenceVariance })));
+const ChurchObservation = lazy(() => import('./components/ChurchObservation.jsx').then(m => ({ default: m.ChurchObservation })));
+const EventManagement = lazy(() => import('./components/EventManagement.jsx'));
+const Pulpit = lazy(() => import('./components/Pulpit.jsx'));
+const CommandServeCenter = lazy(() => import('./components/CommandServeCenter.jsx'));
+const ChurchVideoWall = lazy(() => import('./components/ChurchVideoWall.jsx'));
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ChurchGiveFloater } from './components/ChurchGiving.jsx';
-import { ThinkingSpace } from './components/ThinkingSpace.jsx';
-import CreationWorkspace from './components/CreationWorkspace.jsx';
+const ThinkingSpace = lazy(() => import('./components/ThinkingSpace.jsx').then(m => ({ default: m.ThinkingSpace })));
+const CreationWorkspace = lazy(() => import('./components/CreationWorkspace.jsx'));
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
-import Study from './components/Study.jsx';
+const Study = lazy(() => import('./components/Study.jsx'));
 import { Queue } from './components/Queue.jsx';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -4707,6 +4707,7 @@ html{scroll-padding-bottom:280px}
       </header>
 
       <main className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
+        <Suspense fallback={<div role="status" aria-live="polite" className="py-16 text-center text-sm opacity-60">Loading...</div>}>
         {view === 'overview' && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mb-6">
             <AdvisementBanner />
@@ -5039,6 +5040,7 @@ html{scroll-padding-bottom:280px}
           </div>
         )}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
+        </Suspense>
       </main>
       <TTSControl />
       <InstallPrompt />
