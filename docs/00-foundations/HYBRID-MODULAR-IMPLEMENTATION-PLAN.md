@@ -144,22 +144,65 @@ Per DR-0076, verified by `find` on 2026-06-17 — **these are cited by `SWIMLANE
 
 ---
 
-## STEP 4 — "openclaw" research (honest findings)
+## STEP 4 — OpenClaw evaluation (confirmed tool; full fit assessment)
 
-**Verdict: I can identify a real, plausibly-matching tool — but because the name reached me as a likely voice transcription, confirm it's the one you meant before we wire anything.**
+**Tool confirmed by Darrell 2026-06-17:** [OpenClaw](https://openclaw.ai/) — `github.com/openclaw/openclaw`, docs at `docs.openclaw.ai`. "The AI that actually does things": an open-source, self-hostable personal-assistant agent that *executes actions* (clears inbox, sends email, manages calendar, checks in for flights) from WhatsApp / Telegram / any chat app, with an Ecosystem/Apps model. The earlier identification uncertainty is now closed; the 1997 `pjasicek/OpenClaw` platformer game is unrelated and dropped. The findings below were fetched from `docs.openclaw.ai` + the GitHub repo on 2026-06-17 and are flagged where a fact came from a search snippet rather than primary text.
 
-The name resolves to **two distinct real projects**, only one of which is build-pipeline relevant:
+### 4.1 LICENSE & sovereignty — **PASSES** (with one condition)
 
-1. **`openclaw/openclaw`** ([github.com/openclaw/openclaw](https://github.com/openclaw/openclaw)) — the relevant one. A **self-hosted, open-source personal AI agent**. Confirmed directly from the repo: **MIT-licensed core** (third-party deps noted separately), **self-hostable**, runs as a single long-lived **Gateway** process (a daemon installed via `openclaw onboard --install-daemon`) that handles channels, sessions, tool execution, and memory. **Model-agnostic** — Claude / GPT-4o / Gemini, and (per secondary sources) local models via Ollama; the repo itself says "prefer a current flagship model from the provider you trust." It connects to **many chat channels including Synology Chat, Slack, Signal, iMessage, Telegram, WhatsApp** — notably Synology Chat, given your NAS. It has a **coding-agent skill** (`openclaw/openclaw/skills/coding-agent`) and markets actions like "diagnose build failures, change deployment configs, submit pull requests." It reportedly crossed 100k GitHub stars in late January 2026.
-2. **`pjasicek/OpenClaw`** ([github.com/pjasicek/OpenClaw](https://github.com/pjasicek/OpenClaw)) — a C++ reimplementation of the **1997 Captain Claw platformer game.** Almost certainly **not** what you meant; listed only to disambiguate.
+- **License: MIT** (verbatim from the repo's license badge — "MIT License"). Fully open-source, ~59,944 commits on main, complete source readable/forkable. No "open-core/paid-tier-to-function" split found.
+- **Self-hostable: yes.** "Self-hosted… runs on your hardware, your rules." Installs via `npm i -g openclaw@latest` (or pnpm), with **Docker and Nix** packages; recommended setup is `openclaw onboard --install-daemon`.
+- **The one sovereignty condition — the model backend.** The headline docs say you need "an API key from your chosen provider," which *read alone* implies a vendor-cloud dependency. **Verified false as a hard requirement:** OpenClaw's provider catalog explicitly includes **local model servers — Ollama, LM Studio, vLLM, SGLang** — and supports a **"Local only"** mode that runs against a reachable Ollama host with **no vendor cloud and no vendor key.** Auto-discovery reads the local Ollama at `http://127.0.0.1:11434`; a local model is referenced as `ollama/<model>:latest`. (Caveat from the docs: local use wants a **≥64k-token context window**, so it needs real local hardware — your planned GPU box, DR-0053 — to be useful.)
+- **Verdict on the rule:** **OpenClaw passes Darrell's open-source-only + sovereign rule** *provided it is configured Ollama-local-only* (or local-first). Configured against a vendor API it would violate the sovereignty posture — so the sovereignty is a **configuration choice we control**, not a property guaranteed by the tool. Aligns with AI-FOUNDATION-INTERNAL-OPERATIONS (internal surfaces on the NAS), DATA-AS-EMPOWERMENT (open-source, exportable), and DB-home-sovereign-primary.
 
-**Does it fit the sovereign / open-source-only rule?** On the evidence, **yes for the core**: MIT, self-hostable on the NAS, model-agnostic including local Ollama, and it speaks Synology Chat — it aligns with AI-FOUNDATION-INTERNAL-OPERATIONS (sovereign, internal surfaces on the NAS) and DATA-AS-EMPOWERMENT (open-source core, exportable). Caveats held honestly:
+### 4.2 ARCHITECTURE — Node Gateway daemon, model-agnostic, channel-fronted
 
-- **It is a chat-ops *gateway*, not a CI/merge-queue engine.** It would not *replace* the swimlane/conflict-map/auto-merge machinery in STEP 3 — it would sit *in front of* it as a sovereign control surface: you (or the local orchestrator) drive lanes from Synology Chat, openclaw executes the existing scripts. That is a genuine fit with the "sovereign-resume bridge" in SWIMLANES §5 and the orchestrator-as-boss design — but it is an **addition**, not a swap.
-- **Coding-agent maturity for *this* pipeline is unverified.** The repo *claims* PR-submission; I have not seen it drive a real multi-PR decomposition under the three-brakes rule (`feedback_autonomous_automation_three_brakes`). Any autonomous, timer-driven use is **Tier C, ships inactive, needs budget + concurrency-lock + kill-switch** — the 2026-06-06 runaway makes that non-negotiable.
-- **Residual identification uncertainty:** "openclaw" could still be a transcription of something else (e.g. a different agent/build tool). If `openclaw/openclaw` is not what you meant, the closest adjacent candidates surfaced were **`nearai/ironclaw`** (an "Agent OS focused on privacy/security/extensibility") and **`Gen-Verse/OpenClaw-RL`** (RL agent training). Tell me which and the plan re-points.
+- **Runtime:** Node.js — **Node 24 recommended, Node 22.19+ minimum.**
+- **How it runs:** a single long-lived **Gateway** process (daemon) that is the whole system — channel connections, session state, the agent loop, model calls, tool execution, and memory persistence. Surfaces hang off it: chat channels, a CLI, a Web UI, a macOS app, and mobile nodes. One process to run; no separate services.
+- **Models:** model-agnostic via a `<provider>/<model-id>` config. ~60+ providers (Anthropic, OpenAI, Google, Mistral, DeepSeek, Groq, xAI, OpenRouter, LiteLLM…) **and the local set above.** So it can front **our sovereign/local LLMs (Ollama) directly** — which is the only configuration we'd sanction.
+- **Channels:** Discord, Google Chat, iMessage, Matrix, Microsoft Teams, Signal, Slack, Telegram, WhatsApp, and more (via built-in channels + plugins). *(Synology Chat appeared in an earlier search snippet but was NOT in the primary channel list I fetched today — treat Synology-Chat support as unconfirmed until checked against the plugin registry.)*
+- **Action/tool model:** "built for coding agents with tool use, sessions, memory, and multi-agent routing," with "isolated sessions per agent, workspace, or sender" and an Ecosystem/Apps + plugin model for capabilities. The docs I fetched **did not spell out how individual tools/actions are defined and bounded** — that detail lives in the Apps/plugins + Sandboxing runbooks and must be read before trusting any action surface (DR-0076: don't assume the gate exists).
 
-**Recommendation:** treat openclaw as a **Tier-C, inactive, NAS-hosted evaluation** — stand up the Gateway on the NAS wired to Synology Chat + local Ollama, give it **read-only** access to the orchestration scripts first, and judge its coding-agent on a *throwaway* task before it ever touches a real decomposition PR. Do **not** put it in the autonomous loop until it has all three brakes and you've watched it run. No capability is assumed beyond what's verified above.
+### 4.3 SAFETY — the gating concern (binding: no autonomous action without the three brakes)
+
+This is the crux. OpenClaw is, by design, an agent that **executes actions autonomously** — which intersects head-on with Darrell's binding rule (`feedback_autonomous_automation_three_brakes`, post-2026-06-06 runaway) and the Cage. What it ships with:
+
+- **Access control (present):** sender allowlists (`allowFrom`), `requireMention: true`, and a **pairing-approval** handshake for DM access (`openclaw pairing approve <channel> <code>`, `dmPolicy="pairing"`) — unknown senders are blocked. This gates *who can talk to it*.
+- **Sandboxing (present, partial):** non-main sessions can run sandboxed (`agents.defaults.sandbox.mode: 'non-main'`); the docs ship a **Security** page, a **Gateway exposure runbook**, and a **Sandboxing** page, explicitly: "before exposing anything remotely, read Security, Gateway exposure runbook, Sandboxing, and Configuration."
+- **The gap that matters (absent / unconfirmed):** I found **no per-action human-in-the-loop confirmation gate** — no "approve before it sends the email / moves the money / opens the PR." Its safety model is **sender-level + session-sandbox**, *not* action-level approval. For a tool whose pitch is "actually does things," that is the missing brake.
+- **How it must sit in our system:** OpenClaw does **not** satisfy the three brakes on its own, so it **never runs off-leash.** It sits **behind** our existing primitives, not beside them:
+  1. **Budget** — token/turn/wall-clock ceiling per run (the orchestrator/Cage enforces; OpenClaw is given a bounded task, not an open mandate).
+  2. **Concurrency lock** — single-instance; a new fire skips if a prior run is live (the Cage's lock, not OpenClaw's).
+  3. **Kill-switch** — dead-man's-switch / auto-pause on overrun or missed heartbeat (external to OpenClaw; it cannot be the thing that also decides to keep going).
+  Plus the **bright lines stay human:** money movement, credentials, TLC/PHI, the family's theological voice, irreversible OS actions — OpenClaw is **never** authorized for these regardless of config (CLAUDE.md + `pre-authorized-policies.yaml`). Where OpenClaw lacks a per-action approval gate, the Cage/orchestrator **supplies one in front of it**, or the action class is denied. Default-deny, allowlist-up.
+
+### 4.4 FIT — where it genuinely fits, and where it does not
+
+| Role | Fit | Why |
+|---|---|---|
+| **(a) Family/community-facing sovereign agent layer** — the "clicks become API calls," family-voice executor: a parishioner or family member texts a request, a NAS-resident agent acts on the PoeTech surfaces. | **STRONG — the headline fit.** | This is *exactly* what OpenClaw is built for (chat-app front end + action execution + per-sender sessions), it's the literal realization of AI-FOUNDATION-INTERNAL-OPERATIONS ("anything that's a click today should be an API call tomorrow… browsers are for humans deciding, not systems doing"), and Ollama-local keeps it sovereign. **Conditioned on the brakes + bright lines + an action-approval gate in front.** |
+| **(b) Chat-driven ops interface** — drive the swimlanes / orchestration scripts from a phone chat (the human-in-the-loop control surface for the lane engine). | **MODERATE — a real, bounded fit.** | Matches the SWIMLANES §5 "sovereign-resume bridge" and orchestrator-as-boss design: a person (or the local orchestrator) issues lane commands from chat, OpenClaw executes the **existing** `conflict-map.sh` / `lanes.sh` / `conflict-analytics.mjs` and reports. **Read-only / report-first to start**; it executes scripts only behind the brakes. It is an **addition in front of** the merge-queue, never a replacement for it. |
+| **(c) The actual app-BUILDING / CI pipeline** — authoring the hybrid-modular decomposition PRs, running the gates, merging. | **WEAK — not the right tool; do not adopt for this.** | The build pipeline is already served by the orchestrator + Code sessions + `auto-merge.yml`/`auto-open-pr.yml` + the verification gates. OpenClaw is a *personal-assistant action agent*, not a CI/merge-queue engine; its coding-agent skill is **unverified for multi-PR work under our gates**, and it has no native budget/lock/kill-switch. Slotting it into the build loop adds an autonomous actor to the highest-risk change (the monolith decomposition) for no capability we lack. **Keep the build pipeline as STEP 3 describes.** |
+
+### 4.5 Honest verdict
+
+**EVALUATE-FURTHER for role (a), pilot role (b) read-only, NOT-A-FIT for build (c).**
+
+- **Adopt-for-(a) family/community sovereign executor — *after* a bounded evaluation**, not on faith. Stand up the Gateway on the NAS, **Ollama-local-only**, paired/allowlisted to the family, behind the Cage's budget + concurrency-lock + kill-switch, with a **per-action approval gate** (built or enforced in front, since OpenClaw lacks one) and the bright-line action classes hard-denied. **Tier C, ships inactive, turned on only attended** (CLAUDE.md). Judge it on a throwaway, non-bright-line task before any real one.
+- **Pilot-(b) chat-ops** as **report-only** first (it reads lane state + reports), promoting to script-execution only once (a) the brakes wrap it and (b) you've watched it run.
+- **Do NOT put OpenClaw in the build/CI loop (c).** That stays with the orchestrator + Code sessions already in STEP 3.
+- **No capability is assumed beyond what was verified above.** Unconfirmed items flagged: Synology-Chat channel support; the exact per-action tool/permission granularity; coding-agent maturity. These are read-before-trust, not assumed.
+
+### 4.6 Decision entry (promotion-ready for the governance queue)
+
+> **OpenClaw adoption — sovereign family/community action agent.**
+> **Unblocks:** the "clicks become API calls" family-voice executor (AI-FOUNDATION-INTERNAL-OPERATIONS) + a chat-driven ops control surface for the swimlanes.
+> **Decision:** approve a **Tier-C, inactive, NAS-hosted, Ollama-local-only** evaluation of OpenClaw for role (a) + a **report-only** pilot for role (b) — **conditioned on** the three brakes (budget / concurrency-lock / kill-switch) wrapping it, a per-action approval gate in front, the bright-line classes hard-denied, and turn-on only while watched. **Not adopted for build/CI (role c).**
+> **Track:** local agent (this/cloud session can't reach the LAN; OpenClaw runs on the NAS).
+> **Recommendation:** approve the bounded evaluation; it is the safest rung and proves the family-executor loop with zero unattended spend and no bright-line exposure.
+> **Governs:** Darrell. `DECISION:` __________
+>
+> *On Darrell's approval, promote this verbatim to `docs/governance/decision-queue.md` as the next OPEN item and open a DR (next free id after DR-0078) recording the adoption scope + the brakes condition. Held here rather than written to the queue directly to avoid racing the concurrently-edited queue file.*
 
 ---
 
@@ -173,6 +216,6 @@ Every structural claim above was read from the repo on 2026-06-17, not from memo
 - Conflict ranking: `docs/orchestration/conflict-events.jsonl` + `conflict-analytics.mjs` (monolith + migrations tied #1, 3× each, trend UP).
 - Missing scripts: `find` confirmed `ground.sh` / `promote.sh` / `migration-order-check.mjs` absent from `scripts/orchestration/` (present only in `.claude/worktrees/*` copies for the first, none for the latter two).
 - `CONSISTENCY-STANDARD.md`: `grep`/`glob` confirmed **no such file** and no doc containing the string.
-- openclaw: license + self-hostable + gateway model verified by fetching `github.com/openclaw/openclaw` directly; Ollama/channel/star-count details from search snippets (flagged as such).
+- OpenClaw (STEP 4): license (MIT), self-hostable, Node 24/22.19+, Gateway daemon, the provider catalog (incl. **local Ollama / LM Studio / vLLM / SGLang** + a "Local only" mode), and the safety model (sender allowlists + pairing approval + non-main sandbox; **no per-action confirmation gate found**) verified by fetching `docs.openclaw.ai` + `github.com/openclaw/openclaw` on 2026-06-17. Synology-Chat channel support flagged **unconfirmed** (search snippet only, absent from the primary channel list). Per-action tool granularity + coding-agent maturity flagged read-before-trust, not assumed.
 
 *This is a plan. The first thing that would actually move — Stage 1, the `surfaces.js` registry — does not run until Darrell says go and the conference has shipped.*
