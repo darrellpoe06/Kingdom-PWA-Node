@@ -28,7 +28,7 @@ import Engagement from './components/Engagement.jsx';
 import Choir from './components/Choir.jsx';
 import ChurchLearn from './components/ChurchLearn.jsx';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
-import { liveStatus } from './lib/church-live.js';
+import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from './lib/church-live.js';
 import {
   BROADCAST_META, BROADCAST_SESSION_FLOW, BROADCAST_PROPOSED_COHORT_START,
   BROADCAST_INTEREST_TAG, BROADCAST_HELPER_TAG, BROADCAST_TUTOR_META,
@@ -3965,6 +3965,51 @@ html{scroll-padding-bottom:280px}
    CTA). Near-black text -> ~9.3:1. On hover these buttons go dark (the rule
    below) and flip back to light text, so no conflict. */
 [data-theme="midnight"] .bg-\\[\\#B85838\\].text-white{color:#1A1815!important}
+/* WCAG 2.1 AA fix (2026-06-17, consolidated) — semantic color tokens that had
+   NO midnight remap. Body text flips light under midnight, but these dark text
+   tokens did NOT, so they rendered dark-on-dark (e.g. #7A1F1F error text 32x);
+   and these near-white tint BANDS did NOT, so light-flipped text sat on them
+   light-on-light (the Eternal Algorithms OUTCOME band, #F2F4EC). Both directions
+   are now covered: every semantic TEXT token remaps BRIGHT (>=9.7:1 on the
+   #141414 card), every tint BACKGROUND remaps DARK (light text >=13:1, secondary
+   #888888 >=4.68:1). The background-coverage check in contrast-guard.mjs now
+   fails the build if any used text token renders dark or any used bg token
+   renders light in midnight. */
+/* error / red text -> bright red */
+[data-theme="midnight"] .text-\\[\\#7A1F1F\\]{color:#FCA5A5!important}
+[data-theme="midnight"] .text-\\[\\#7F1D1D\\]{color:#FCA5A5!important}
+[data-theme="midnight"] .text-\\[\\#991B1B\\]{color:#FCA5A5!important}
+[data-theme="midnight"] .text-\\[\\#9A3412\\]{color:#FCA5A5!important}
+[data-theme="midnight"] .text-\\[\\#DC2626\\]{color:#FCA5A5!important}
+/* success / green text -> bright mint (matches the #5A6E3D accent remap) */
+[data-theme="midnight"] .text-\\[\\#15803D\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#166534\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#3F5226\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#3F5A2A\\]{color:#86EFAC!important}
+/* gold / amber / brown text -> bright amber */
+[data-theme="midnight"] .text-\\[\\#8A6E1F\\]{color:#FCD34D!important}
+[data-theme="midnight"] .text-\\[\\#8B6F47\\]{color:#FCD34D!important}
+[data-theme="midnight"] .text-\\[\\#B45309\\]{color:#FCD34D!important}
+[data-theme="midnight"] .text-\\[\\#5A4A2E\\]{color:#FCD34D!important}
+/* blue text -> bright blue */
+[data-theme="midnight"] .text-\\[\\#1F6FEB\\]{color:#93C5FD!important}
+/* purple text -> bright lavender */
+[data-theme="midnight"] .text-\\[\\#7A5A8E\\]{color:#C4B5FD!important}
+/* near-white tint BANDS -> dark, faintly hued so the band still reads as a band
+   on the #141414 card (its colored left border already carries the semantics) */
+[data-theme="midnight"] .bg-\\[\\#F2F4EC\\]{background-color:#16211A!important}
+[data-theme="midnight"] .bg-\\[\\#F2F5EC\\]{background-color:#16211A!important}
+[data-theme="midnight"] .bg-\\[\\#F0F4EA\\]{background-color:#16211A!important}
+[data-theme="midnight"] .bg-\\[\\#FDE7DC\\]{background-color:#231614!important}
+[data-theme="midnight"] .bg-\\[\\#FBEFEA\\]{background-color:#231614!important}
+[data-theme="midnight"] .bg-\\[\\#FEE2E2\\]{background-color:#231614!important}
+[data-theme="midnight"] .bg-\\[\\#FBF2F2\\]{background-color:#231614!important}
+[data-theme="midnight"] .bg-\\[\\#FAF1EC\\]{background-color:#231614!important}
+[data-theme="midnight"] .bg-\\[\\#FBF7EC\\]{background-color:#211D13!important}
+[data-theme="midnight"] .bg-\\[\\#EFE9DF\\]{background-color:#1B1916!important}
+[data-theme="midnight"] .bg-\\[\\#F0ECE4\\]{background-color:#1B1916!important}
+[data-theme="midnight"] .bg-\\[\\#F4F2EE\\]{background-color:#1B1916!important}
+[data-theme="midnight"] .bg-\\[\\#FCFBF8\\]{background-color:#1B1916!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#2A2A2A!important;color:#E5E5E5!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:text-\\[\\#1A1815\\]:hover{color:#E5E5E5!important}
@@ -7249,34 +7294,41 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
 
-  // LIVE WORSHIP (2026-06-14; service-window-gated 2026-06-17) — embed the
-  // church's CURRENT live broadcast by CHANNEL, not by a single video id, so it
-  // auto-follows every future stream with no weekly edits. The
-  // /embed/live_stream?channel= form needs no API key. We do NOT paint a "LIVE
-  // NOW" badge of our own — the client cannot truthfully detect live state
-  // without the YouTube Data API (a vendor dependency we're avoiding), and a
-  // hardcoded badge would be a painted state (Reality-Trace P15).
+  // LIVE WORSHIP (2026-06-14; service-window-gated 2026-06-17; ROLLING-LATEST
+  // 2026-06-17) — embed the church's worship by CHANNEL, never a single video
+  // id, so it auto-follows every future stream with no weekly edits. Two no-key
+  // YouTube embeds, no API key, no vendor lock (see lib/church-live.js):
+  //   • live   : /embed/live_stream?channel=UC...  — the current live broadcast.
+  //   • latest : /embed/videoseries?list=UU...     — the channel's uploads
+  //              playlist, newest-first, so it opens on the MOST RECENT message
+  //              (after a stream ends, that IS the finished stream) and rolls
+  //              forward on its own as new streams land.
   //
-  // BUG FIX 2026-06-17: that channel embed does NOT show a clean "offline" card
-  // when nothing is live — for a channel carrying a stale/zombie scheduled
-  // broadcast (COLG's channel has one dated June 9, 2019), YouTube paints a
-  // perpetual "Waiting for <that 2019 stream>" frame. Auto-mounting the iframe
-  // 24/7 meant the visitor saw a frozen, forever-waiting 2019 frame any time
-  // outside a live service — the exact dead-frame the UNBREAKABLE standard
-  // forbids. Fix: only auto-mount the player inside a plausible service window
-  // derived from the church's real published schedule (lib/church-live.js).
-  // Outside it we render a graceful offline card (next service + watch-latest
-  // link), with an explicit click-to-load escape hatch for off-schedule
-  // streams. No hardcoded video id is ever the "live" source.
+  // Darrell's directive: "the live stream should show the latest live stream
+  // until the next one is streaming, and repeat." So the slot is NEVER a
+  // dead/waiting frame: inside a plausible service window (honest, no-key gate
+  // from the church's real published schedule) we mount the LIVE embed; the rest
+  // of the time we roll the latest upload. The window gate also avoids the
+  // earlier bug where the bare live_stream embed paints a frozen "Waiting for
+  // <stale 2019 stream>" frame when nothing is live — outside the window we
+  // simply never mount that embed; we mount the latest-upload embed instead.
+  // We do NOT paint our own "LIVE NOW" badge — the client cannot truthfully
+  // detect live state without the YouTube Data API (Reality-Trace P15). A real
+  // live/offline detector (same-origin n8n proxy, no key) is the follow-up.
   const liveChannelId = (c.youtubeChannelId || '').trim();
-  const liveEmbedUrl = liveChannelId ? `https://www.youtube.com/embed/live_stream?channel=${liveChannelId}` : null;
+  const liveSrc = liveStreamEmbedUrl(liveChannelId);     // live broadcast embed
+  const latestSrc = latestUploadEmbedUrl(liveChannelId); // rolling latest upload
   const channelUrl = c.media?.youtube || (liveChannelId ? `https://www.youtube.com/channel/${liveChannelId}` : null);
   const onlineServices = (c.services || []).filter(s => s && s.online !== false);
   // Honest, no-API-key live gate: are we inside a published online-service
-  // window right now? The player auto-mounts only then (or when the visitor
-  // explicitly opens it); otherwise the offline card shows the next service.
+  // window right now? Inside it (or on explicit open) we show the live embed;
+  // otherwise we roll the latest upload — never a blank/waiting frame.
   const liveNow = liveStatus(onlineServices);
-  const showLivePlayer = !!liveEmbedUrl && (liveNow.live || openLivePlayer);
+  const showLive = !!liveSrc && (liveNow.live || openLivePlayer);
+  // The source actually mounted: live broadcast in-window, else latest upload.
+  const playerSrc = showLive ? liveSrc : latestSrc;
+  // Render the section whenever we have ANY honest source (live or latest).
+  const hasWorshipPlayer = !!liveSrc || !!latestSrc;
 
   const submitPrayer = () => {
     const requester = prForm.anonymous ? '(anonymous)' : (prForm.requester || '').trim();
@@ -7343,22 +7395,20 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
 
   return (
     <div className="space-y-6">
-      {/* LIVE WORSHIP (2026-06-14; service-window-gated 2026-06-17) — TOP of the
-          Church tab by Darrell's direction: when the church is streaming, the
-          broadcast is the most prominent thing on the unchurched on-ramp —
-          worship before anything else. Embedded by CHANNEL (not a single video
-          id) so it auto-follows every future stream with no weekly edits.
-          The player auto-mounts ONLY inside a plausible service window derived
-          from the church's real published schedule (lib/church-live.js); the
-          channel embed cannot show a clean offline state and would otherwise
-          paint a frozen, forever-waiting stale-broadcast frame (the COLG channel
-          carries a zombie 2019 scheduled stream). Outside the window we show a
-          graceful offline card with the next service and a watch-latest link,
-          plus an explicit click-to-load for off-schedule streams. We do not
-          paint our own "LIVE NOW" badge — the client cannot truthfully detect
-          live state without the YouTube Data API (Reality-Trace P15). A real
-          live/offline detector (same-origin n8n proxy, no key) is the follow-up. */}
-      {liveEmbedUrl && (
+      {/* LIVE WORSHIP (2026-06-14; service-window-gated 2026-06-17; ROLLING-LATEST
+          2026-06-17) — TOP of the Church tab by Darrell's direction: worship is
+          the most prominent thing on the unchurched on-ramp. Embedded by CHANNEL
+          (never a single video id) so it auto-follows every future stream with
+          no weekly edits. Rolling-latest: inside a plausible service window the
+          LIVE broadcast plays; the rest of the time the channel's MOST RECENT
+          upload plays (after a stream ends, that IS the finished stream), and
+          rolls forward on its own as new streams land — never a dead/waiting
+          frame. The honest service window comes from the church's real published
+          schedule (lib/church-live.js); we do not paint our own "LIVE NOW" badge
+          (the client cannot truthfully detect live state without the YouTube
+          Data API — Reality-Trace P15). A real live/offline detector
+          (same-origin n8n proxy, no key) is the follow-up. */}
+      {hasWorshipPlayer && (
         <section aria-labelledby="live-worship-h" className="bg-white border-2 border-[#B85838] p-4">
           <div className="flex items-baseline justify-between gap-2 flex-wrap">
             <h3 id="live-worship-h" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
@@ -7366,18 +7416,19 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
             </h3>
             <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#5A5751]">
               <span className="w-2 h-2 rounded-full bg-[#B85838]" aria-hidden="true" />
-              {showLivePlayer ? 'Plays here when live' : 'Auto-plays at service time'}
+              {showLive ? 'Live service' : 'Latest message'}
             </span>
           </div>
           <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-            When {c.name || 'the church'} is streaming, the service plays right here — no need to leave the app. Outside service times you'll see the next service below; come back then, or watch the latest message on YouTube.
+            When {c.name || 'the church'} is streaming, the live service plays right here automatically. Between services the most recent message keeps playing — and the next live stream rolls in on its own when it starts.
           </p>
 
-          {showLivePlayer ? (
+          {playerSrc ? (
             <div className="mt-3 aspect-video bg-[#1A1815]">
               <iframe
-                src={liveEmbedUrl}
-                title={`${c.name || 'Church'} — live worship broadcast`}
+                key={playerSrc}
+                src={playerSrc}
+                title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
                 className="w-full h-full border border-[#1A1815]"
                 allow="encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
@@ -7385,36 +7436,21 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
               />
             </div>
           ) : (
-            /* Offline card — NO iframe is mounted, so YouTube's stale/zombie
-               "waiting" frame can never auto-appear. Honest next-service hint
-               plus an explicit opt-in to open the player for off-schedule
-               streams, and the always-available watch-latest link out. */
+            /* Fallback ONLY when no embeddable source resolves (e.g. a
+               non-standard channel id with no derivable uploads playlist):
+               never a dead frame — link straight out to the channel. */
             <div className="mt-3 aspect-video bg-[#1A1815] text-white flex flex-col items-center justify-center text-center gap-3 p-4">
-              <p className="text-sm font-semibold">No live service playing right now</p>
-              {liveNow.next && (
-                <p className="text-xs text-white/80" style={{ fontFamily: '"Fraunces", serif' }}>
-                  Next service: {liveNow.next.label ? `${liveNow.next.label} · ` : ''}{liveNow.next.day} {liveNow.next.time}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOpenLivePlayer(true)}
+              <p className="text-sm font-semibold">Watch {c.name || 'the church'} on YouTube</p>
+              {channelUrl && (
+                <a
+                  href={channelUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 bg-[#B85838] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#9A4729] focus:outline focus:outline-2 focus:outline-white"
                 >
-                  <span aria-hidden="true">▶</span> Open the live player
-                </button>
-                {channelUrl && (
-                  <a
-                    href={channelUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 border border-white/40 text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-white/10 focus:outline focus:outline-2 focus:outline-white"
-                  >
-                    Watch the latest on YouTube
-                  </a>
-                )}
-              </div>
+                  Open the channel
+                </a>
+              )}
             </div>
           )}
 
@@ -7425,6 +7461,18 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
                 {onlineServices.map(s => `${s.day} ${s.time}`).join(' · ')}
               </p>
             )}
+            {/* Escape hatch: an off-schedule stream may be live outside the
+                published window. While we're showing the latest upload, let the
+                visitor switch to the live broadcast on demand. */}
+            {!showLive && liveSrc && (
+              <button
+                type="button"
+                onClick={() => setOpenLivePlayer(true)}
+                className="inline-flex items-center gap-1 text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                Streaming now? Switch to the live player
+              </button>
+            )}
             {channelUrl && (
               <a
                 href={channelUrl}
@@ -7432,7 +7480,7 @@ function Church({ church, prayerRequests, addPrayerRequest, markPrayerRequestSen
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]"
               >
-                <span aria-hidden="true">▶</span> Watch the latest on YouTube
+                Watch on YouTube
               </a>
             )}
           </div>
