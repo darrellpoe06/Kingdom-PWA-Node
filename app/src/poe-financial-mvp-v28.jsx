@@ -4544,7 +4544,10 @@ html{scroll-padding-bottom:280px}
       )}
 
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
-        <div className="w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+        {/* Header vertical padding is CHROME: pinned to fixed px so it does not
+            scale with the root multiplier (text-size scope split) — keeps the bar
+            from growing taller and pushing content down at larger sizes. */}
+        <div className="w-full px-3 sm:px-6 lg:px-8 py-[12px] sm:py-[16px]">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
               screens so the tier-preview dropdown and Subscribe/Feedback buttons
               can't crowd "Financial Control System." Side-by-side only on large
@@ -4552,7 +4555,10 @@ html{scroll-padding-bottom:280px}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
               <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Family OS <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
-              <h1 className="text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Financial Control System</h1>
+              {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
+                  zoom so it stays roughly fixed while body content scales fully
+                  (text-size scope split, 2026-06-17). */}
+              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Financial Control System</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
               {/* Round 5 — Tier indicator + dev-only switcher. Round 7 fix:
@@ -4616,7 +4622,11 @@ html{scroll-padding-bottom:280px}
                 first, About anchors the right side of the primary group, then a
                 visible vertical divider separates the secondary "life" tabs
                 (Church + Markets) which live to the far right. */}
-            <div className="flex gap-1 text-xs sm:text-sm items-stretch">
+            {/* Primary nav is CHROME: .ts-chrome-region caps the whole row (tab
+                font + padding) via zoom so the menu stays roughly fixed while body
+                content scales (text-size scope split). Holds only rem tabs — no
+                fixed-px control lives here, so nothing already-fixed is shrunk. */}
+            <div className="ts-chrome-region flex gap-1 text-xs sm:text-sm items-stretch">
               {[
                 ['overview','Big Picture'],
                 ['books','Books'],
@@ -4663,7 +4673,8 @@ html{scroll-padding-bottom:280px}
         {view === 'books' && (
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
-              <div className="flex gap-1 text-xs">
+              {/* Books sub-nav is CHROME: .ts-chrome-region caps the row via zoom. */}
+              <div className="ts-chrome-region flex gap-1 text-xs">
                 {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
@@ -4674,7 +4685,8 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && (
           <div className="border-t border-[#E8E4DC] bg-white">
             <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
-              <div className="flex gap-1 text-xs">
+              {/* Church sub-nav is CHROME: .ts-chrome-region caps the row via zoom. */}
+              <div className="ts-chrome-region flex gap-1 text-xs">
                 {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
