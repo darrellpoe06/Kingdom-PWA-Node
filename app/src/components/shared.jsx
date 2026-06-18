@@ -200,6 +200,40 @@ function ModuleCard({ moduleKey, status, title, repo, desc, features, moduleInte
   );
 }
 
+// TabScroll — the horizontal scroll container for a sub-tab strip.
+//
+// Every tab row MUST stay reachable on a phone-width screen. A bare
+// `flex gap-1` row of `whitespace-nowrap` tabs does not shrink below its
+// content, so when there are more tabs than fit it overflows the page — and
+// because #264 made <main> full-width with no page-level horizontal scroll,
+// that overflow (a) shoved the dark theme aside and exposed a white band on the
+// right (the 2026-06-18 Projects "white void" regression) and (b) left the
+// trailing tabs (Decisions / Review / Loops) with no way to scroll to them.
+//
+// This primitive owns ONLY the scroll + flex layout — the proven
+// header/Books/Church pattern (overflow-x-auto wrapper + `flex gap-1` row),
+// plus touch momentum and a thin visible scrollbar affordance (.tab-scroll).
+// Accent colors stay with the caller's own <button> children, so it drops in
+// without changing any tab styling. Extracted so a new sub-tab surface can't
+// ship an un-scrollable strip again. `overscroll-x-contain` keeps the swipe
+// from chaining to the browser's back-gesture on mobile.
+function TabScroll({ children, chrome = false, className = '', label }) {
+  return (
+    <div
+      className={`tab-scroll w-full overflow-x-auto overscroll-x-contain ${className}`}
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
+      <div
+        className={`${chrome ? 'ts-chrome-region ' : ''}flex gap-1 text-xs`}
+        role={label ? 'tablist' : undefined}
+        aria-label={label}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function SectionTitle({ children, eyebrow }) {
   return (
     <div className="mb-5 pb-3 border-b-2 border-[#1A1815] section-title-wrapper">
@@ -218,4 +252,4 @@ function MetricCell({ label, value, sub, accent, small, trace }) {
 }
 
 // Named exports — main file imports these explicitly.
-export { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle, MetricCell };
+export { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle, MetricCell, TabScroll };
