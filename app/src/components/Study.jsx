@@ -24,6 +24,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import EternalAlgorithms from './EternalAlgorithms.jsx';
+import UiIcon from './UiIcon.jsx';
 import {
   KINDS, KIND_ORDER, DEFAULT_LABEL,
   loadStudy, saveStudy, seedIfEmpty,
@@ -146,7 +147,7 @@ function EntryCard({ entry, onEdit, onDelete, onPin }) {
     <div className={`bg-white border p-3 ${entry.pinned ? 'border-[#B85838]' : 'border-[#E8E4DC]'}`}>
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span style={{ ...serif, fontWeight: 600 }} className="text-[#1A1815]">{entry.pinned ? '📌 ' : ''}{KINDS[entry.kind].icon} {entry.title || 'Untitled'}</span>
+          <span style={{ ...serif, fontWeight: 600 }} className="text-[#1A1815]">{entry.pinned ? <><UiIcon name="pin" /> </> : ''}<UiIcon name={KINDS[entry.kind].icon} /> {entry.title || 'Untitled'}</span>
           {entry.seed && <span className="text-[9px] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">seed theme</span>}
         </div>
         <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${badge.cls}`}>{badge.text}</span>
@@ -293,8 +294,8 @@ export default function Study({ email }) {
           library (the 4th-dimensional source that powers the two-layer
           progressive disclosure of the briefings + courses). */}
       <div className="flex gap-1 text-xs mb-4 flex-wrap" role="tablist" aria-label="Study spaces">
-        <button type="button" role="tab" aria-selected={space === 'workspace'} onClick={() => setSpace('workspace')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'workspace' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>📓 Workspace</button>
-        <button type="button" role="tab" aria-selected={space === 'algorithms'} onClick={() => setSpace('algorithms')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'algorithms' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>✦ Eternal Algorithms</button>
+        <button type="button" role="tab" aria-selected={space === 'workspace'} onClick={() => setSpace('workspace')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'workspace' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}><UiIcon name="book" /> Workspace</button>
+        <button type="button" role="tab" aria-selected={space === 'algorithms'} onClick={() => setSpace('algorithms')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'algorithms' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}><UiIcon name="sparkle" /> Eternal Algorithms</button>
       </div>
 
       {space === 'algorithms' ? <EternalAlgorithms email={email} /> : (
@@ -303,7 +304,7 @@ export default function Study({ email }) {
       <div className="flex gap-1 text-xs mb-3 overflow-x-auto" role="tablist" aria-label="Study rooms">
         {KIND_ORDER.map((k) => (
           <button key={k} type="button" role="tab" aria-selected={kind === k} onClick={() => { setKind(k); setEditing(null); }} className={`px-3 py-2 whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${kind === k ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>
-            {KINDS[k].icon} {KINDS[k].label} · {counts[k]}
+            <UiIcon name={KINDS[k].icon} /> {KINDS[k].label} · {counts[k]}
           </button>
         ))}
       </div>
@@ -331,7 +332,7 @@ export default function Study({ email }) {
         </div>
       ) : (
         <div className="bg-[#FAF8F4] border border-dashed border-[#E8E4DC] p-6 text-center">
-          <div className="text-2xl mb-1" aria-hidden="true">{KINDS[kind].icon}</div>
+          <div className="text-2xl mb-1 text-[#5A5751]"><UiIcon name={KINDS[kind].icon} /></div>
           <p className="text-sm text-[#1A1815] font-semibold" style={serif}>{query ? 'Nothing matches that search.' : `This room is empty.`}</p>
           <p className="text-xs text-[#5A5751] mt-1" style={serif}>{query ? 'Try a different word.' : `Start a ${KINDS[kind].label.toLowerCase()} above — it stays here, on this device, for the circle.`}</p>
         </div>

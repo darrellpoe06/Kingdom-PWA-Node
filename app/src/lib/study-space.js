@@ -26,10 +26,12 @@
 // The three rooms of the Study. One unified entry model carries all three; the
 // `kind` distinguishes them so the distillation path (deep <-> plain) and search
 // are shared logic, not three one-offs.
+// `icon` is a UiIcon name (bundled inline SVG), not a unicode emoji: emoji tofu
+// to a box on devices whose font lacks the glyph. See components/UiIcon.jsx.
 export const KINDS = Object.freeze({
-  reflection: { key: 'reflection', label: 'Reflection', icon: '🕊', blurb: 'Captured deep exchange — the 4th-dimensional source the briefings unfold from.' },
-  processing: { key: 'processing', label: 'Processing', icon: '⚒', blurb: 'Notes, code-for-building scratch, ideas being organized for a wider audience.' },
-  research:   { key: 'research',   label: 'Cultural research', icon: '🌍', blurb: 'Research a culture and rework the truth to reach it (all things to all men).' },
+  reflection: { key: 'reflection', label: 'Reflection', icon: 'dove', blurb: 'Captured deep exchange — the 4th-dimensional source the briefings unfold from.' },
+  processing: { key: 'processing', label: 'Processing', icon: 'tools', blurb: 'Notes, code-for-building scratch, ideas being organized for a wider audience.' },
+  research:   { key: 'research',   label: 'Cultural research', icon: 'globe', blurb: 'Research a culture and rework the truth to reach it (all things to all men).' },
 });
 export const KIND_ORDER = Object.freeze(['reflection', 'processing', 'research']);
 
