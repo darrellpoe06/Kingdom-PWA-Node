@@ -3825,14 +3825,22 @@ export default function PoeFinancialSystem() {
   const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
   if (__gate !== 'app') {
     return (
-      <div data-theme={theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+      <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
         {__gate === 'gate' ? <PasswordAuth /> : null}
       </div>
     );
   }
 
   return (
-    <div data-theme={theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+    // overflow-x-clip — the page must NEVER scroll horizontally. Any element wider
+    // than the viewport (e.g. an overflowing sub-tab row) is clipped at the themed
+    // shell instead of pushing the page wide and exposing the white <body> to the
+    // right of this box (the 2026-06-18 Projects "white void" regression in dark
+    // mode). `clip` (not `hidden`) leaves overflow-y visible, so the sticky header
+    // and normal vertical page scroll are unaffected. This is the structural guard;
+    // the root cause — tab strips that don't scroll internally — is fixed via the
+    // <TabScroll> primitive so content stays REACHABLE, not just clipped away.
+    <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       <style>{`
 /* Mobile keyboard fix */

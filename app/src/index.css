@@ -24,3 +24,29 @@
 .ts-chrome-region {
   zoom: var(--ts-chrome-scale, 1);
 }
+
+/* ===========================================================================
+   Tab strips scroll horizontally — never overflow the page (Darrell 2026-06-18)
+   ===========================================================================
+   A sub-tab row with more tabs than fit must scroll WITHIN itself, not push the
+   page wide. The <TabScroll> primitive (components/shared.jsx) sets overflow-x:
+   auto + touch momentum; this gives the row a thin, theme-neutral scrollbar so
+   there is a VISIBLE affordance that more tabs exist to the side. The track only
+   renders when the row actually overflows (overflow-x:auto), so a row that fits
+   shows no bar. The semi-transparent thumb reads on both the cream light themes
+   and the midnight black theme. Pairs with overflow-x:clip on the app shell,
+   which guarantees the page itself can never scroll sideways into a white band. */
+.tab-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 120, 120, 0.55) transparent;
+}
+.tab-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.tab-scroll::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 120, 0.55);
+  border-radius: 3px;
+}
+.tab-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
