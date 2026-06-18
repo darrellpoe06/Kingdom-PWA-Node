@@ -43,6 +43,12 @@ describe('FACULTIES — the four faculties of the seat', () => {
     const command = FACULTIES.find((f) => f.key === 'command');
     expect(command.surfaces).toContain('WakeOrchestrator');
   });
+  it('Control composes the live project-management pulse (consolidated from the Build board)', () => {
+    const control = FACULTIES.find((f) => f.key === 'control');
+    // The pulse used to be buried at the bottom of the Build board; it now has
+    // ONE home — composed in the Control faculty of the seat.
+    expect(control.surfaces).toContain('ProjectMgmtPulse');
+  });
 });
 
 describe('seatOf — who is seated', () => {
@@ -78,9 +84,14 @@ describe('centerReadiness — honest per-faculty status (NO FAKE GREEN)', () => 
   it('does NOT paint Command green — its engine ships inert, so it is partial', () => {
     expect(r.command.status).toBe('partial');
   });
-  it('does NOT paint Control green — the cockpit is in-flight, so it is partial', () => {
-    expect(r.control.status).toBe('partial');
-    expect(r.control.note).toMatch(/projects-management lane|wiring/i);
+  it('Control is live once the management pulse composes in the seat — and says what is real', () => {
+    // Honest, not fake-green: Control is 'live' BECAUSE the real ProjectMgmtPulse
+    // (real synced projects + discussions + hand-offs) now renders in the seat,
+    // not because the label was flipped. The no-fake-green guard still has teeth
+    // via Command (its engine ships inert → 'partial', asserted above).
+    expect(r.control.status).toBe('live');
+    expect(r.control.note).toMatch(/pulse|discussions|hand-offs/i);
+    expect(r.control.note).toMatch(/no painted numbers/i);
   });
   it('See is live — its surfaces are all on main today', () => {
     expect(r.see.status).toBe('live');

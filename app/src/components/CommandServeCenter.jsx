@@ -13,9 +13,9 @@
 // What it composes (every one is real on main today, self-fetching, no props):
 //   • See     → OpsBoard, QualityProof, KpiLegend  (live system + quality state)
 //   • Command → WakeOrchestrator (the braked orchestrator), ConflictLoop
-//   • Control → links to the live Projects / Build surface; the priorities +
-//               discussions cockpit is wiring up in the projects-management lane
-//               and composes here once it lands (sequenced, not collided).
+//   • Control → ProjectMgmtPulse (the live projects + discussions + hand-offs
+//               pulse, consolidated here from the Build board where it was
+//               buried) + a deep-link to the full Projects / Build surface.
 //   • Serve   → the seat itself: role-scoped access, the steward at the helm.
 //
 // BRAKES (CLAUDE.md, non-negotiable): this seat is the READ / DECIDE / HAND-OFF
@@ -37,6 +37,7 @@ import OpsBoard from './OpsBoard.jsx';
 import QualityProof from './QualityProof.jsx';
 import ConflictLoop from './ConflictLoop.jsx';
 import WakeOrchestrator from './WakeOrchestrator.jsx';
+import ProjectMgmtPulse from './ProjectMgmtPulse.jsx';
 import { KpiLegend } from './KpiLegend.jsx';
 import { FreshnessDot } from './FreshnessDot.jsx';
 import {
@@ -72,7 +73,7 @@ function ReadinessChip({ status }) {
   );
 }
 
-export function CommandServeCenter({ isGovernor = false, persona = null, email = null, onNavigate = null }) {
+export function CommandServeCenter({ isGovernor = false, persona = null, email = null, onNavigate = null, projects = [], discussions = [], currentUserId = null }) {
   const seat = seatOf({ email, persona, isFamily: !!isGovernor });
   const ready = centerReadiness();
   const [tab, setTab] = useState('see');
@@ -206,14 +207,17 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
         </div>
       )}
 
-      {/* CONTROL — the work. Links to the live Projects / Build surface; the
-          priorities + discussions cockpit composes here once its lane lands. No
-          painted data — an honest link plus the real readiness note above. */}
+      {/* CONTROL — the work. The live project-management pulse (real projects by
+          stage, the discussions driving them, braked hand-offs) composes here in
+          the seat — it used to be buried at the bottom of the Build board; now it
+          lives in its one home. The full Projects / Build surface opens from here
+          for editing. No painted data — the pulse reads real synced rows. */}
       {tab === 'control' && (
         <div className="space-y-3">
+          <ProjectMgmtPulse projects={projects} discussions={discussions} currentUserId={currentUserId} isGovernor={isGovernor} />
           <section className="bg-white border border-[#1A1815] p-3">
             <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-              Projects, priorities, and the Build board are the control surface. Open them here:
+              Open the full Projects &amp; Build surface to edit projects, scopes, capital, discussions, and the public build roadmap:
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
@@ -225,9 +229,6 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
                 Open Projects &amp; Build →
               </button>
             </div>
-            <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              The priorities + discussions cockpit is wiring up in the projects-management lane. When it lands, it composes here in the seat — sequenced so the two builds don&apos;t collide.
-            </p>
           </section>
         </div>
       )}

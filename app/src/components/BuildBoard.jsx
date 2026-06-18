@@ -12,16 +12,17 @@
 // next as the work lands. Go-live dates are honest estimates, revised here.
 import React, { useState } from 'react';
 import WorkflowStatus from './WorkflowStatus.jsx';
-import OpsBoard from './OpsBoard.jsx';
-import QualityProof from './QualityProof.jsx';
-import ConflictLoop from './ConflictLoop.jsx';
-import WakeOrchestrator from './WakeOrchestrator.jsx';
-import ProjectMgmtPulse from './ProjectMgmtPulse.jsx';
 import LlmHealth from './LlmHealth.jsx';
 import LlmReview from './LlmReview.jsx';
 import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
 import { FreshnessDot } from './FreshnessDot.jsx';
 import { KpiLegend } from './KpiLegend.jsx';
+// The Governor build/dev functions (Operations, Quality & Proof, the conflict
+// loop, the wake orchestrator, and the live project-management pulse) no longer
+// live buried at the bottom of this page. They are consolidated into the one
+// steward seat — the Command, Control & Serve Center — grouped under its
+// faculties and surfaced at the top there. This page keeps its public purpose:
+// the build, in the open. A Governor gets a deep-link to the Center below.
 
 // status: 'shipped' | 'building' | 'next' | 'gated'
 const ROADMAP = [
@@ -192,7 +193,7 @@ export function RecentlyShipped() {
   );
 }
 
-export function BuildBoard({ onViewDecisions = null, isGovernor = false, projects = [], discussions = [], currentUserId = null }) {
+export function BuildBoard({ onViewDecisions = null, onNavigate = null, isGovernor = false }) {
   const [openId, setOpenId] = useState(null);
   // Open decisions waiting on the governor — read from the real queue (#4).
   const openDecisions = normalizeGovernanceQueue(GOVERNANCE_QUEUE).openCount;
@@ -248,6 +249,29 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false, project
           </button>
         )}
       </section>
+
+      {/* Governor deep-link — the build/dev FUNCTIONS used to be buried at the
+          bottom of this page (Operations, Quality, conflicts, the orchestrator,
+          the project-management pulse). They now live together in one seat, the
+          Command, Control & Serve Center, surfaced at the top there. Near the top
+          here, family-only, themeable classes (no inline color — contrast guard). */}
+      {isGovernor && (
+        <section className="bg-[#FAF8F4] border border-[#1A1815] p-3">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🎛 Steward build &amp; ops functions</div>
+          <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            Operations, Quality &amp; Proof, the conflict loop, the wake orchestrator, and the live project-management pulse are gathered in one seat — the Command, Control &amp; Serve Center — instead of scattered down this page.
+          </p>
+          <button
+            type="button"
+            onClick={() => onNavigate && onNavigate('center')}
+            disabled={!onNavigate}
+            aria-label="Open the Command, Control & Serve Center"
+            className="mt-2 inline-flex items-center text-[10px] uppercase tracking-wider text-[#1A1815] hover:text-white hover:bg-[#1A1815] border border-[#1A1815] px-2.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-[#1A1815]"
+          >
+            Open the Center →
+          </button>
+        </section>
+      )}
 
       {/* Stage sub-tabs — pick a stage and see just that short list, instead of
           one long scroll down the phone. Past Due leads when anything slipped. */}
@@ -324,30 +348,12 @@ export function BuildBoard({ onViewDecisions = null, isGovernor = false, project
           header) — one reachable place, documenting the shared status states. */}
       <KpiLegend />
 
+      {/* Automation pipeline + local-LLM health stay here as part of the PUBLIC
+          "built in the open" transparency story. The Governor-only build/dev
+          functions (Operations, Quality, conflicts, the orchestrator, the
+          project-management pulse) moved to the Center — one home each, not
+          duplicated and not buried (deep-link above). */}
       <WorkflowStatus />
-
-      {/* Project management — live read of the family's real projects +
-          discussions (stage board, what's driving the work, staged hand-offs).
-          Governor-gated: family-internal management data, and the no-leak filter
-          inside keeps private discussions out of the counts. */}
-      {isGovernor && <ProjectMgmtPulse projects={projects} discussions={discussions} currentUserId={currentUserId} isGovernor={isGovernor} />}
-
-      {/* Orchestration internals (branches, PRs, lanes, SHAs) are a dev/ops
-          view for the Governor — public data, but noise for a family user. */}
-      {isGovernor && <OpsBoard />}
-
-      {/* Quality / Proof — QA + reviews report their own real results in-app.
-          Governor-gated for the same reason as the orchestration board. */}
-      {isGovernor && <QualityProof />}
-
-      {/* Conflict-evaluation loop — the orchestration learns from its own
-          collisions so conflicts trend down as we grow (hot files + ranked
-          decomposition). Governor-gated: orchestration internals. */}
-      {isGovernor && <ConflictLoop />}
-
-      {/* Wake Orchestrator cockpit — control + observability for the wake/handoff
-          engine on the NAS. Governor-gated: arming controls + internal state. */}
-      {isGovernor && <WakeOrchestrator />}
 
       <LlmHealth />
 
