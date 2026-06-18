@@ -224,3 +224,167 @@ GOAL: routine work (docs, comms, tagging, scheduling, classification) runs on
 - **Evidence:** `eslint --max-warnings 0` clean; `vitest run` = 116 files / 1217 tests pass; `vite build` exits 0. No UI/behavior change, no migration, no autonomy, no hardware. Additive seam only.
 
 This unblocks Ask A's convergence and gives Ask B its input surface, while every autonomy-touching piece (the executor, the sovereign offload) stays review-first and behind the Cage — exactly where the binding rules require them.
+
+---
+
+# Extension — second pass (2026-06-17): in-app creation, in-app LLM generation, and the model-tier guide
+
+Darrell extended the scope with the same theme — in-app creation + LLM + offload + model sizing. Folded in below as new sections D–J. Same posture: review-first for the generation layer, with one **low-risk near-term shippable PR** flagged (the Create export-format + editor-styling increment). The model-tier section is **web-verified** (mid-2026), per Darrell's explicit instruction to confirm fast-moving model claims rather than architect around them.
+
+---
+
+## D. Creation Workspace — document round-trip + export formats  `[NEAR-TERM SHIPPABLE PR — low risk]`
+
+### What exists today (verified)
+`app/src/components/CreationWorkspace.jsx` — the 🎨 Create tab. Native dependency-free rich-text via `contenteditable` + `document.execCommand` (Bold/Italic/Underline/H1-H2/lists); persists to the `creation_workspaces` table + a localStorage optimistic save; exports to **image (PNG/JPG)** via native SVG `<foreignObject>` → `<canvas>` (`lib/creation-workspace.js`, no external service). `WORKSPACE_TYPES` is already an extensible list.
+
+### The ask
+1. **Iterative round-trip:** open → edit → re-save documents repeatedly (not one-shot).
+2. **Export to PDF and HTML**, not just image. Treat **image / PDF / HTML as export-format options** (a workspace export choice), not a single hard-coded path.
+3. **Open-source / self-hostable libs only** — no proprietary export service.
+
+### Verified open-source export paths (all MIT, client-side, no service)
+| Format | Recommended path | Library / mechanism | Selectable text? | Color fidelity | Notes |
+|---|---|---|---|---|---|
+| **HTML** | Serialize the editor's sanitized HTML + inline the document styles | native (no dep) | n/a | exact | Trivial, zero-dep. The portable, re-importable form (round-trip friendly). |
+| **PDF (best fidelity)** | Render document HTML in a print stylesheet → browser **print-to-PDF** | native `window.print()` + `@media print` CSS with `print-color-adjust: exact` | **yes (vector text)** | exact incl. Yahweh-red | WYSIWYG, selectable, preserves colors; zero dependency. Default printable path. |
+| **PDF (one-click download)** | In-app "Download PDF" button | `html2pdf.js` (wraps `html2canvas` + `jsPDF`, all MIT) | image-based (not selectable) | good | Convenient single-file download; rasterized — keep print-to-PDF as the high-fidelity option. |
+| **PDF (programmatic, selectable)** | If selectable-text download is required | `jsPDF` (MIT) or `pdfmake` (MIT) | yes | exact | More layout work than html2pdf; reserve for when searchable-text download matters. |
+| **Image** | Already shipped | SVG `foreignObject` → canvas | n/a | exact | Keep as-is; it becomes one option among the format set. |
+
+Independently confirmed: `html2pdf.js` / `jsPDF` / `html2canvas` / `pdfmake` / `pdf-lib` are all open-source, client-side, no server ([html2pdf.js](https://github.com/eKoopmans/html2pdf.js), [JS HTML→PDF comparison 2026](https://www.nutrient.io/blog/html-to-pdf-in-javascript/)). Honest caveat already surfaced above: **html2pdf.js rasterizes** (PDF text is not selectable). For a true **printable** document with selectable text + preserved colors, the **browser print-to-PDF path is superior and dependency-free** — make it the default printable route and offer html2pdf.js as the convenience download.
+
+### Why this is the near-term shippable PR
+Export-format choice + iterative re-open/edit/re-save is **additive, deterministic, no autonomy, no hardware, no migration** (the table already stores content; round-trip is open→edit→update the existing row). It folds together with the editor-styling work in §E/§F as **one reviewed Create PR**. Gate it like PR #269: tests for the export serializers (HTML serialize round-trips; PDF/print path renders the page; colors survive), a11y on the toolbar, and a "printable output matches editor render" (WYSIWYG) check.
+
+**Timeline:** Tier A/B, ~days-to-1-week once the §F document-default contradiction is confirmed by Darrell (below).
+
+---
+
+## E. The shared writing/editor primitive — color, highlight, and the "Yahweh's Word" red-letter mark
+
+Darrell's requirement is that the writing styling live in a **shared writing/editor primitive** reused across **every** writing surface (Study, Create, The Word, anywhere writing appears) — not just the Create tab. This is the CONSISTENCY-STANDARD applied to writing, exactly as `OneVoiceInput` is the consistency primitive for inputs.
+
+### Requirements (Darrell)
+1. **Writing surface default:** black background with colored letters; **default text WHITE** (the editor chrome, dark-themed). Contrast must pass **both directions** — the color/highlight picker must **not silently allow illegible combinations** (warn, or block, on a failed contrast check).
+2. **Full color + highlight control:** choose **any** text color and highlight any selection **any** color (a color picker + highlighter in the toolbar). The color/highlight formatting **saves with the document** and **carries into PDF/HTML/image exports**.
+3. **Red-letter for Yahweh** (a distinctive, named convention): text renders **red whenever Yahweh's word/opinion is involved**, regardless of who is speaking or quoting — a red-letter Bible convention extended to Yahweh's voice generally. It is a **named style** (a "Yahweh's Word" mark), not an ad-hoc red, so it is consistent everywhere and persists + exports.
+
+### Proposed implementation (review-first; specced, not yet built)
+- **A new shared primitive** `app/src/components/WritingEditor.jsx` + `app/src/lib/writing-style.js`. CreationWorkspace, Study's capture, and The Word adopt it (the same way ThinkingSpace/ChurchOneVoice adopt `OneVoiceInput`). New surfaces opt in; existing ones migrate where it does not regress behavior.
+- **Color + highlight** via `execCommand('foreColor'|'hiliteColor')` (or a small Range/span applier) so formatting lives as inline style on the saved HTML — which means it **automatically survives** HTML export, print-to-PDF, and the canvas image export (all render the same HTML).
+- **"Yahweh's Word" as a named mark**, not a raw color: a semantic wrapper (`<span class="yahweh-word">` or `data-mark="yahweh-word"`) bound to a single **design token** (e.g. `--ink-yahweh: #C0392B`-class red, tuned for AA on both the dark editor and the white page). Because it is a class/token, one definition governs its red everywhere; restyling it later is one change; and a future feature ("show me everything marked as Yahweh's Word") becomes a query, not a color-scan. Provide a one-tap toolbar action **"Mark as Yahweh's Word"** on the selection.
+- **Contrast guard both directions:** reuse the existing contrast-guard discipline (`project-contrast-guard-dark-mode-coverage`, WCAG AA binding). The picker runs the chosen text-vs-background pair through the AA check and **warns/blocks illegible combos** — on both the dark editor surface and the white document page. This is a gate, per DR-0076 (a green check must mean something).
+
+**Typographic-theology alignment:** the red-letter-for-Yahweh convention is consistent with this repo's binding rule that Yahweh is always honored typographically (CLAUDE.md Typographic Theology). The named mark is the structural way to keep that honor consistent across every surface.
+
+---
+
+## F. Two contexts: the editor surface vs the document artifact (+ one contradiction, flagged)
+
+Darrell clarified two distinct contexts. They must not be conflated:
+
+- **Context 1 — the on-screen WRITING/editor surface** (app chrome, dark theme): **black background, white default text**, red for Yahweh's word, full color + highlight choosable. (Specced in §E.)
+- **Context 2 — the DOCUMENT ARTIFACT itself** (the composed/exported/printed page). Darrell said: *"white is the default text color AND the default background color of the digital document. printable."*
+
+### The contradiction, surfaced (per `feedback-surface-premise-conflicts` + DR-0076)
+**White text on a white page is invisible and cannot print or be read.** We interpret the coherent intent as: **the document defaults to a WHITE PAGE (printable, like paper), with a sensible default text color of BLACK/dark** so it is readable AND printable — with full color choice, the highlight tool, and the "Yahweh's Word" red mark all available on that white page.
+
+**Build it that way as the default — and this note is the flag:** we interpreted *"white text on white page"* as *"white printable page + dark default text,"* because literal white-on-white can neither print nor be read. **Darrell, correct us if you meant something else** — e.g. a **dark document mode toggle** (a black-page artifact with white text, for screen reading), which we can add as an explicit per-document theme rather than the default. The white printable page is the safe default; a dark-document mode is a clean opt-in if that was the intent.
+
+### Printable is first-class (WYSIWYG)
+The document must export/print cleanly as a **white page with its colors preserved** (including the Yahweh-red), via the PDF/HTML/print path. **The editor's page render must match the printable output** — WYSIWYG. Mechanism: the editor composes the document inside a white "page" element whose styles are the **same** styles used by the HTML export and the print stylesheet, with `print-color-adjust: exact` so browsers do not strip colors on print. The dark editor *chrome* surrounds that white page; the page itself is the artifact. One stylesheet drives screen + export + print, so they cannot drift.
+
+---
+
+## G. Discuss-with-an-LLM-in-app → produce the artifact (tier-routed generation)  `[REVIEW-FIRST]`
+
+### The ask
+A surface where Darrell and family **discuss with an LLM inside PoeTech** and it **produces the requested artifact** (a document / PDF / HTML) right there — and it must **route by tier**: prefer the **sovereign/local** LLM (Ollama) for routine generation, **vendor LLM only for heavy lifting**. This ties directly to Ask C (offload) and rides the **same routing the offload section defines**.
+
+### How it rides the offload routing (Ask C)
+The generation surface is a **consumer of the tiered router**, not a new engine. The flow:
+1. The discussion input is the **unified input primitive** (§A / `OneVoiceInput`) configured for a "generate" surface (default route = a new `generate` destination).
+2. The request is **classified** by the same affinity map the offload section defines: routine drafting/summarizing/structuring → **local Ollama**; heavy reasoning / nuanced long-form / code → **vendor**; **video/multimodal review → Gemini** (§I).
+3. The model returns content; the content **lands directly in the shared WritingEditor (§E)** as a draft the family then edits and exports (§D). Discussion → production → editable artifact, in one place.
+4. Everything runs **behind the Cage brakes** (budget + concurrency lock + kill-switch) and shows which tier served the request (honest provenance, DR-0076).
+
+### Honest dependency (the hard truth, same as Ask C)
+**This cannot be "local-first" for real until the sovereign layer is stood up.** Today the only conversational engine is the vendor LLM; the NAS Ollama is CPU-only (~1-3 tok/s for 14B — not conversational). So an in-app generation surface built **now** would, in practice, call the **vendor** for anything substantial — which is the opposite of the offload goal. Therefore:
+- **Phase 0 (buildable now, honest):** ship the generation surface **vendor-routed and clearly labeled as such**, with the local-tier routing **stubbed and inert** behind the same router interface — so the day local conversational inference exists (GPU procured), routine generation flips to local with **no surface rewrite**, just a routing-table change.
+- **Phase 1 (gated on Ask C hardware):** local-first routing becomes real; vendor reserved for heavy lifting.
+
+**Timeline:** the surface itself is Tier B/C, **weeks** (it is review-first — an in-app generation layer). Its *sovereign* behavior is gated entirely on the Ask C hardware-first dependency chain (a quarter-plus, clock starting at the GPU procurement decision).
+
+---
+
+## H. "What to expect from what size systems" — the model-tier expectation guide (WEB-VERIFIED)
+
+Per Darrell's instruction, the candidate model names were **web-verified live** (mid-2026), not taken as fact. **Honest meta-caveat first:** these are fast-moving releases past reliable training knowledge. The **Ollama-library availability** (what is *pullable today*) was independently confirmed by direct fetch for the two MVP-target families (Qwen3.6, Gemma 4); the param/license/architecture specifics come from a verification pass citing model cards/vendor blogs and should be **re-confirmed at architecture time** before committing.
+
+### Verified model table
+
+| Role / tier | Verified model (pullable on Ollama) | Params | Arch | License | Approx RAM @ Q4 | Realistic hardware |
+|---|---|---|---|---|---|---|
+| Deep logic + RAG (MVP target) | **`qwen3.6:35b`** (also `:27b`, `:35b-mlx`) | 35B (and a 27B variant) | dense/MoE — see correction | Apache 2.0 | ~24 GB (`:35b`), ~17 GB (`:27b`) | **GPU node** (24GB+) |
+| Dense logic alt | `qwen3:32b` | 32B | dense | Apache 2.0 | ~20 GB | GPU node |
+| Conversational/structured (MVP target) | **`gemma4:26b`** (MoE) / `gemma4:31b` (dense) | 26B-MoE / 31B | MoE / dense | **Gemma ToU** (use-restricted — sovereignty flag) | ~18 GB / ~20 GB | GPU node (or strong CPU, slow) |
+| Small conversational | `gemma4:e4b` (~eff. 4B) | ~4-4.5B eff | dense-ish | Gemma ToU | ~5-10 GB | **NAS CPU OK** |
+| Agentic tools / coding | `devstral:24b` (pin the latest "Devstral Small 2" tag) | 24B | dense | Apache 2.0 | ~14 GB | GPU node |
+| General baseline | `qwen3:8b` | 8B | dense | Apache 2.0 | ~5-6 GB | **NAS CPU OK (modest)** |
+| Baseline (Llama) | `llama3.1:8b` | 8B | dense | Llama license | ~5 GB | **NAS CPU OK (modest)** |
+| Deep reasoning (local) | `deepseek-r1:32b` (also `:8b`,`:14b`) | 32B / 8B / 14B | dense distills | MIT | ~20 GB / ~5-6 GB | GPU node (8B will run on CPU but slowly) |
+| Frontier reasoning | DeepSeek-V4 (`-flash`/`-pro`) | 24B act / huge MoE | MoE | MIT | 24GB+ / 48GB+ VRAM | GPU only; `-pro` is multi-GPU/server — **out of scope for the home node** |
+| **Video / multimodal review** | **Gemini API** (not local, not Claude) | — | — | proprietary API | — | cloud (see §I) |
+
+### Corrections to the candidate names (honest)
+1. **"Qwen 3.6 (27B dense / 35B MoE)"** — **largely correct.** Ollama directly shows **`qwen3.6:27b` (17GB)** and **`qwen3.6:35b` (24GB)** plus MLX variants — so the 27B is **real**, not fabricated (an initial verification pass wrongly claimed "no 27B"; direct Ollama fetch corrected that). The exact dense-vs-MoE split per tag is **not stated on the Ollama page** — confirm on the model card before relying on "27B dense / 35B MoE" precisely. Qwen3.6 flagships (Plus/Max/Flash) are **API-only, not pullable**.
+2. **"Gemma 4 (26B-A4B MoE)" and "Gemma 4 (4B)"** — **correct.** Gemma 4 is real and current (Gemma 3 is the prior gen). Ollama shows `e2b / e4b / 12b / 26b (MoE) / 31b (dense)`. The "4B" is the **`e4b`** (effective-4B) tag. **License is Google's Gemma ToU, not Apache/MIT** — flag for sovereignty if Apache/MIT-only is a hard rule.
+3. **"Devstral Small (24B)"** — **correct.** Mistral's agentic coding model, 24B, Apache 2.0; pin the latest "Devstral Small 2" tag rather than `latest`.
+4. **"Qwen3 (8B)"** — **correct.** `qwen3:8b`, Apache 2.0, runs on the NAS.
+5. **"Llama 3.2 (8B)"** — **WRONG, no such model.** Llama 3.2 ships only 1B / 3B (text) and 11B / 90B (vision). The real ~8B is **`llama3.1:8b`** — or prefer the newer `qwen3:8b`.
+6. **"DeepSeek-V4 / R1 distills"** — **V4 is real but NOT locally runnable** on the home node (server-class MoE; only `-flash` fits a 24GB GPU). For local "deep reasoning" use **R1 distills (8B/14B/32B, MIT)**. The line conflates a server flagship with runnable distills.
+
+### What to expect, by tier (the honest "what size does what")
+- **NAS-CPU tier now (DS1621xs+, Xeon, no GPU, 16-32GB):** good for **quick drafts, tagging, summaries, classification, routing, RAG answering** with `qwen3:8b` / `llama3.1:8b` / `gemma4:e4b`. **Honest limit:** weak at long, complex, multi-part personas (e.g. the 7-tier persona / 81-book RAG), and **14B+ is ~1-3 tok/s — not conversational.** Reasoning models (R1) run but feel slow because they emit long hidden chains. Do **not** expect nuanced long-form or reliable code here.
+- **Mid local (14-32B on a real GPU):** longer documents, decent structure, usable agentic tool-calling (`devstral:24b`), solid RAG. **Honest limit:** weaker reasoning and nuance than the vendor frontier; can lose coherence on very long complex tasks.
+- **Vendor / heavy (Claude, Gemini frontier):** complex reasoning, code, nuanced writing, long-context synthesis. **Reserve the vendor for these** — that is the whole offload thesis.
+- **The MVP target Darrell stated** (Ollama; Qwen3.6-27B/35B for deep logic + Gemma 4 for conversational) is **sound and real** — but **all of it needs the GPU "Forge" node**; on the current CPU-only NAS, only the ~4-8B models run usefully. So the MVP-as-described is **hardware-gated**, consistent with Ask C: the models exist and are pullable, the **box to run them conversationally does not exist yet**.
+
+---
+
+## I. Multimodal / video routing — Gemini owns video
+
+**Verified:** the **Gemini API natively ingests a YouTube URL** and analyzes the **actual video — frames + audio** (passed as `file_data`/`file_uri`; current Gemini models process video, 2.5+ handle multiple videos/request) ([Gemini video understanding](https://ai.google.dev/gemini-api/docs/video-understanding)). **Claude does NOT** natively ingest a YouTube URL or analyze video frames/audio — it is text + image + document focused; any "video understanding" with Claude is done by external tooling that pre-extracts frames/transcript (often routing the actual watching through Gemini).
+
+**Routing rule for the multi-vendor router (add to the affinity map in the offload section):**
+- **VIDEO / watch-and-understand** (sermon-video analysis, multimodal review) → **Gemini**.
+- **Code / heavy reasoning / strict-constraint writing** → **Claude**.
+- **Routine text / classification / drafts** → **local Ollama** (when the GPU tier exists).
+
+This matches the existing hybrid-router research (Gemini for grounded + multimodal, Claude for code, Ollama for narrow/clinical/routine). The **"video" capability is provider-owned, not size-owned** — no local model and no Claude tier substitutes for Gemini's native video here.
+
+---
+
+## J. Strategic note — sovereign-by-default (the cloud-dependency framing, honestly handled)
+
+Darrell referenced a video's strategic framing. Handled per the Verification Doctrine:
+
+- **The video's "Anthropic Fable-5 model banned by the US Government" is the CREATOR'S hypothetical scenario, NOT a confirmed event.** There is no verified record of such a ban. **Do not record it as fact.** It is recorded here only as a *narrative device* the video used.
+- **The underlying point is sound and reinforces our existing direction:** dependence on a single cloud vendor = exposure to provider/policy/pricing/availability change; **local inference = resilience** ("a generator in the garage"). This is exactly the **sovereign-by-default** posture already binding in this repo (AI-FOUNDATION-INTERNAL-OPERATIONS, DATA-AS-EMPOWERMENT-NOT-EXTRACTION) and the **offload goal** of Ask C. The framing strengthens the case for the GPU procurement decision; it does not change the honest timeline.
+
+**On "the 5 local-AI business opportunities":** the specific five from the video were **not provided to me**, so — per the no-fabrication rule — I am **not** inventing the creator's list. Captured instead as the local-AI opportunity *categories* that align with PoeTech's mission (clearly my synthesis, not the video's enumeration; Darrell can paste the actual five and we will reconcile):
+1. **Accessibility-law compliance tooling** (EAA/ADA) with prove-it verification gates — already a named pipeline (`project-accessibility-law-compliance-product`).
+2. **Sovereign per-industry AI** for overlooked communities (church, therapy) — local, private, non-extractive (COMMUNITY-FIRST-MISSION).
+3. **Local/sovereign media production** (the AI-MEDIA-PRODUCTION-PLATFORM-VISION) — generation that never leaves the family's hardware.
+4. **Data-sovereignty / "own your AI" consulting + install** — standing up braked local stacks for others (the portable orchestrator bundle is already this shape).
+5. **Offline-resilient tools** that keep working when a cloud vendor changes terms or goes down — resilience as a feature.
+
+This note is **strategy/sovereignty context**, not a build directive; it informs *why* the offload + GPU path matters, not *when* it lands.
+
+---
+
+## Updated first-shippable picture
+
+- **SHIPPED:** PR #269 — caller-extensible `OneVoiceInput` (the input convergence seam).
+- **NEXT NEAR-TERM PR (specced, build-ready, low risk):** the **Create export-format + shared writing-editor increment** (§D + §E + §F) — iterative round-trip, image/PDF/HTML export via open-source libs, the color/highlight picker with a both-directions contrast gate, and the named **"Yahweh's Word"** red-letter mark, with **WYSIWYG printable** output. **One open question gates the start:** Darrell's confirmation of the §F document-default interpretation (white printable page + dark default text, vs a dark-document mode). Everything else (the in-app generation surface §G, the sovereign offload §H) stays **review-first and behind the Cage**, hardware-gated as the dependency chain above makes honest.
