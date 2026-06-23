@@ -35,12 +35,26 @@ describe('SEED_CONCERNS — honest, real, dated', () => {
   it('marks the confirmed-done items done and the open ones open (status told honestly)', () => {
     const byId = Object.fromEntries(SEED_CONCERNS.map((c) => [c.id, c]));
     expect(byId['seed-wf18-import-down'].status).toBe('done');
-    expect(byId['seed-pwa-reload-update'].status).toBe('done');
+    // seed-pwa-reload-update was 'done' (2026-06-10) but real 2026-06-14/15
+    // reports show the Update-now prompt still doesn't clear — reopened to
+    // 'in-progress' (Verification Doctrine: "done" must be evidence-backed).
+    expect(byId['seed-pwa-reload-update'].status).toBe('in-progress');
     expect(byId['seed-darkmode-contrast'].status).toBe('done');
     expect(byId['seed-cloud-nas-split'].status).toBe('open');
     expect(byId['seed-vercel-cap'].status).toBe('open');
     expect(byId['seed-review-sequences'].status).toBe('open');
     expect(byId['seed-feedback-auto-eval'].targetDate).toBe('2026-07-01');
+  });
+  it('carries the 2026-06-23 feedback-derived concerns, each honestly anchored', () => {
+    const fb = SEED_CONCERNS.filter((c) => c.id.startsWith('seed-fb-'));
+    expect(fb.length).toBe(20);
+    for (const c of fb) {
+      // de-identified: no raw email leaked into the shipped bundle
+      expect(c.concern).not.toMatch(/@/);
+      // every concern is anchored by a real date or an honest whenNote
+      expect(Boolean(c.targetDate) || Boolean(c.whenNote)).toBe(true);
+      expect(c.area && c.area.length).toBeGreaterThan(0);
+    }
   });
 });
 
