@@ -9,11 +9,21 @@
 
 ---
 
-## 0. Why this doc exists now (the trigger)
+## 0. Why this doc exists now (the trigger + the goal)
 
-Darrell has lost trust in cloud Claude over the last four weeks; **today the weekly usage cap stalled the local-LLM cutover work** — the exact failure this purchase is meant to end. The binding need is **continuity**: a sovereign box that keeps the build moving when the vendor is capped, down, or refusing. This is a research-first decision for a **$4–6k+** purchase (Darrell's research-first rule).
+Darrell has lost trust in cloud Claude over the last four weeks; **today the weekly usage cap stalled the local-LLM cutover work**. But the cap is the symptom, not the goal.
 
-**This is a re-open at a higher budget, not a re-derivation.** The repo already concluded a **deferred dual-RTX-3090 (~$2k, 48 GB)** farm-augment ([DR-0014](../decisions/DR-0014-hardware-budget-directive-procurement-plan.md), [DR-0053](../decisions/DR-0053-cuda-box-decoupled-from-r4-no-purchase-yet.md), [AI-INFRASTRUCTURE-HARDWARE-OPTIONS](_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md)). The **delta**: coding is now the **primary** workload (build the modular PoeTech app + n8n pipeline), continuity is **urgent**, and the budget is raised. That changes the math — see §6.
+**The goal, stated plainly (Darrell, 2026-06-23): the best PRIVATE, SOVEREIGN coding rig he can afford, OUTSIDE vendor cloud LLMs. "What I need and more for programming — not cloud-grade."**
+
+The **primary drivers** are, in order:
+
+1. **Privacy / legal exposure (PRIMARY).** No questions, no code, no context should go to any cloud where it could be **logged, retained, subpoenaed, or used against him**. Nothing leaves his control. The rig must be **fully offline-capable and air-gappable** — coding must work with the network unplugged.
+2. **Strong OPEN coding-model throughput per dollar.** Best open-coder tok/s per dollar, running locally.
+3. **Continuity.** The build never stalls on a cap, an outage, or a refusal.
+
+**Cloud-parity is explicitly NOT the bar.** This box is not trying to match Claude/Opus on the hardest agentic tasks — it is trying to be **more than enough for his programming, on his own hardware, with his data never leaving the building.** Throughput-per-dollar and data-never-leaves outrank benchmark parity in every screen below.
+
+**This is a re-open at a higher budget, not a re-derivation.** The repo already concluded a **deferred dual-RTX-3090 (~$2k, 48 GB)** farm-augment ([DR-0014](../decisions/DR-0014-hardware-budget-directive-procurement-plan.md), [DR-0053](../decisions/DR-0053-cuda-box-decoupled-from-r4-no-purchase-yet.md), [AI-INFRASTRUCTURE-HARDWARE-OPTIONS](_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md)). The **delta**: coding is now the **primary** workload (build the modular PoeTech app + n8n pipeline), **privacy/air-gap is now a primary driver**, and the budget is raised. That changes the math — see §6.
 
 ---
 
@@ -54,27 +64,30 @@ All-in build = GPU + workstation parts (CPU, 128 GB RAM, PSU, NVMe, case) where 
 
 | Need (weight) | What it requires | Best fit |
 |---|---|---|
-| **Agentic coding — build the modular app + n8n (HIGHEST)** | A 24–32B coder (Qwen2.5-Coder 32B / Devstral) running **fast** (40+ tok/s) for real daily offload | **5090** (45–55) ≫ Mac (12–22) ≫ Spark (8–12) |
-| **Continuity when cloud is capped (HIGH — the trigger)** | Box is up and snappy without any vendor | Any CUDA box; 5090 best for coding-shaped continuity |
+| **Privacy / air-gappable — data never leaves (HIGHEST)** | Coding works fully offline; no code/context to any cloud; network-unpluggable | **Every local box qualifies equally** — privacy is a property of *local*, not of one vendor's box |
+| **Open-coder throughput per dollar (HIGHEST)** | A 24–32B open coder (Qwen2.5-Coder 32B / Devstral) running **fast** (40+ tok/s) per dollar spent | **5090** (45–55) ≫ Mac (12–22) ≫ Spark (8–12) |
+| **Continuity (HIGH — the trigger)** | Box is up and snappy with **zero** dependence on a vendor | Any CUDA box; 5090 best for coding-shaped continuity |
 | **Transcription (Whisper-class)** | faster-whisper / WhisperX — **CUDA-native, far faster on NVIDIA** | CUDA boxes; Mac runs MLX-Whisper but slower |
 | **NDI / CUDA media future** | NDI + CUDA encode/decode, TensorRT, Frigate GPU detection — **all CUDA-only** | CUDA boxes only — **Mac is a dead-end here** |
 | **Per-industry sovereign LLM teams** | Run several models concurrently → wants VRAM headroom (vLLM) | 96 GB (PRO 6000) > 64 GB (dual 5090) > 32 GB (single 5090, swaps) |
-| **Sovereign / low ongoing cost** | Self-hosted, no per-token bill | All qualify |
 
-**Honest gap (DR-0076, no overselling):** the best open coders today — **Qwen2.5-Coder 32B** and **Devstral Small 24B** — are excellent for completion, single-file generation, refactors, mechanical multi-file edits, code review, and n8n-node scaffolding. They are **not** at Claude-Opus level on the *hardest* multi-file agentic build tasks (deep cross-module reasoning, long-horizon tool-use chains). **Realistic split: local carries ~70–80% of daily build work and 100% of continuity; vendor escalation (the existing DR-0056 ladder) covers the hard ~20%.** No local box on this list closes that last 20% in June 2026. Buy the box to *own the 80% and never stall* — not to fully replace cloud coding on day one.
+**Privacy is the great equalizer here:** *every* box on the list keeps data fully on-premises and is air-gappable — that's inherent to running the model locally, and it is the same whether the box is a 5090, a Spark, or a Mac. So privacy does **not** pick the box; it **rules out cloud** and makes the rest of the decision about *open-coder throughput per dollar* and *the CUDA media future*. On those, the 5090 wins.
+
+**The capability gap, reframed (parity is not the goal):** the best open coders — **Qwen2.5-Coder 32B** and **Devstral Small 24B** — are excellent for completion, single-file generation, refactors, mechanical multi-file edits, code review, and n8n-node scaffolding. They are not Claude-Opus on the *hardest* long-horizon agentic chains — **and that is fine, because matching Opus is explicitly not what Darrell is buying.** He is buying *more than enough for his programming, fully private, on his own hardware.* The rig is sized so the **open coder alone, offline, is the daily driver** — not a fallback waiting on a vendor. Vendor escalation ([DR-0056](../decisions/DR-0056-tiered-llm-orchestrator-perpetual-fix.md)) remains *available* but is **OFF by default for code** (privacy default = local-only); it is an opt-in convenience for a specific hard task, never a dependency and never automatic for source he wants kept private.
 
 ---
 
 ## 4. Darrell's screens applied
 
 **Cost-efficiency (growth justification · unit cost · lean alternative · break-even):**
-- *Break-even, stated honestly:* vs a $25–50/mo cap, a ~$5k box is **~100+ months** to pay back on the API bill alone. **It is NOT justified by beating the bill** (consistent with DR-0014). It is justified by: **continuity** (today's cap stalled the cutover — that recurs), **sovereignty + data-control**, the **CUDA media future** (Mac/cloud can't serve it), and the **farm role** (coding + transcription + VLM + per-industry teams on one owned asset).
-- *Unit cost:* single 5090 build ≈ **$4.8–5.4k** for ~50 tok/s sovereign coding + full CUDA stack. Lowest $/coding-throughput in the CUDA-capable set under $6k.
-- *Lean alternative (documented):* **used dual-3090 ~$2.8–4.2k** (48 GB, holds 70B, CUDA) — the prior pick. Still valid if budget must compress to ~$3k; trade-offs = used-market risk (no warranty during a cap event) and ~1.8× slower 32B decode.
+- *The right metric here is **$ per private open-coder tok/s**, not break-even-vs-API.* Privacy means the work *can't* go to the cheap cloud at all — so there is no API bill to break even against for the code Darrell wants kept private. The box is justified by **privacy/legal exposure avoided**, **continuity**, the **CUDA media future**, and the **farm role**.
+- *Unit cost:* single 5090 build ≈ **$4.8–5.4k** for ~45–55 tok/s **fully-private, offline** coding + full CUDA stack. **Lowest $ per private-coder-tok/s in the set** — the Mac is cheaper but ~2.5× slower on the coder and CUDA-dead; the Spark is similar price but ~5× slower on the coder.
+- *Lean alternative (documented):* **used dual-3090 ~$2.8–4.2k** (48 GB, holds 70B, CUDA, equally private/air-gappable) — the prior pick. Still valid if budget must compress to ~$3k; trade-offs = used-market risk (no warranty) and ~1.8× slower 32B decode.
 
-**Sovereign-mesh compatibility (tier 1–4):**
-- **Tier 1 (full sovereign + augments the CUDA mesh):** RTX 5090, dual 5090, RTX PRO 6000, DGX Spark — all CUDA-native, join Tailscale, serve the media pipeline.
-- **Tier 3 (sovereign for text, but breaks the CUDA pipeline):** **Mac Studio** — excellent local text box, but **no CUDA** strands NDI/TensorRT/Frigate/faster-whisper. Disqualifying for *this* role given the named media future.
+**Sovereign-mesh compatibility (tier 1–4) — and air-gappability:**
+- **All local boxes are equally private and air-gappable** — coding runs with the network unplugged on every one of them. That's the privacy floor; it does not differentiate them.
+- **Tier 1 (full sovereign + augments the CUDA mesh, *and* runs air-gapped):** RTX 5090, dual 5090, RTX PRO 6000, DGX Spark — CUDA-native, optionally join Tailscale for *convenience*, but coding never depends on the mesh being up.
+- **Tier 3 (private for text, but breaks the CUDA pipeline):** **Mac Studio** — equally air-gappable for text, but **no CUDA** strands NDI/TensorRT/Frigate/faster-whisper. Disqualifying for *this* role given the named media future.
 
 **MVP-pragmatism:** buy the box that unblocks coding-continuity **now** at the smallest sufficient spend — not the maximal 96 GB box. Single 5090 clears the binding constraint (fast 32B coder + CUDA) inside budget. 96 GB / multi-model-team capacity is a *later, evidence-triggered* upgrade, not a now-buy.
 
@@ -84,13 +97,19 @@ All-in build = GPU + workstation parts (CPU, 128 GB RAM, PSU, NVMe, case) where 
 
 ## 5. THE RECOMMENDATION
 
-### Buy a single **RTX 5090 (32 GB) workstation now — NOT the DGX Spark, NOT the Mac Studio, NOT (yet) the dual-5090 or RTX PRO 6000 — built dual-GPU-ready so the second card is a drop-in.**
+### The best affordable private coding rig + the open coder to run on it + OpenClaw wired to it locally.
 
-**X not Y because Z:**
-- **5090 not DGX Spark** — because the daily win is **32B-coder decode speed**, and the 5090 does ~45–55 tok/s vs the Spark's ~8–12 (the Spark's 273 GB/s bandwidth bottlenecks exactly the dense-model decode coding needs). The Spark wins only on huge-model *capacity* and low power — neither is Darrell's binding constraint. Same price tier ($4.7k vs ~$5k built).
-- **5090 not Mac Studio M3 Ultra** — because **CUDA**. The NDI/CUDA media pipeline, faster-whisper, vLLM/TensorRT, and Frigate GPU detection are CUDA-native; the Mac strands all of them. The Mac's one edge (96 GB unified → 70B at 12–18 tok/s) is neutralized: a fast 32B + vendor escalation covers the 70B need without abandoning the media future.
-- **5090 not dual-5090 / RTX PRO 6000 (yet)** — MVP-pragmatism. A single 5090 clears the binding constraint inside the $4–6k envelope; 64 GB / 96 GB is an evidence-triggered upgrade (when per-industry multi-model teams or 70B-resident actually bind), built into the spec as a drop-in second card.
-- **5090 not the prior used dual-3090** — because coding is now *primary* and continuity is *urgent*: new-with-warranty (a used card dying mid-cap is the failure we're fixing), ~1.8× faster 32B decode, and a clean upgrade lane. Dual-3090 stays the documented lean fallback at ~$3k.
+**The rig:** a single **RTX 5090 (32 GB) workstation**, built dual-GPU-ready so a second card is a drop-in — NOT the DGX Spark, NOT the Mac Studio, NOT (yet) the dual-5090 or RTX PRO 6000.
+**The coder:** **Qwen2.5-Coder 32B** (Q4) as the daily driver, **Devstral Small 24B** as the agentic/tool-use alt.
+**The agent:** **OpenClaw** (already installed) pointed at the **local Ollama** — his offline coding agent, no key to any cloud. Hermes on the NAS *now*, the 5090's coder *later* (§6).
+
+This is "what he needs and more for programming, fully private," not "closest to cloud."
+
+**X not Y because Z (privacy-and-throughput framing):**
+- **5090 not DGX Spark** — both are equally private/air-gappable, so it comes down to the open-coder speed per dollar: the 5090 does ~45–55 tok/s on the 32B coder vs the Spark's ~8–12 (the Spark's 273 GB/s bandwidth bottlenecks exactly the dense decode coding needs). Same price tier; ~5× the daily coding throughput.
+- **5090 not Mac Studio M3 Ultra** — both equally air-gappable for text, but the Mac has **no CUDA**, stranding the NDI media future + faster-whisper + vLLM/TensorRT, and runs the coder ~2.5× slower. Privacy doesn't rescue the Mac here; the CUDA media future does the deciding.
+- **5090 not dual-5090 / RTX PRO 6000 (yet)** — MVP-pragmatism. A single 5090 is more-than-enough for his programming inside the $4–6k envelope; 64 GB / 96 GB is an evidence-triggered upgrade (per-industry multi-model teams or 70B-resident), built into the spec as a drop-in second card.
+- **5090 not the prior used dual-3090** — coding is now *primary*: new-with-warranty (a dead used card is its own continuity failure), ~1.8× faster 32B decode, clean upgrade lane. Dual-3090 stays the documented lean fallback at ~$3k (equally private).
 
 ### Exact box to buy (~$4,800–5,400 all-in)
 
@@ -118,11 +137,16 @@ All-in build = GPU + workstation parts (CPU, 128 GB RAM, PSU, NVMe, case) where 
 
 ## 6. Phased buy / implement plan
 
-- **Phase 0 — Buy + stand up (week 1).** Confirm 5090 street price day-of; buy the build above. Ubuntu + Docker + Ollama + vLLM; join Tailscale mesh. NAS unchanged.
-- **Phase 1 — Coding continuity (week 1–2).** Pull `qwen2.5-coder:32b`; verify ~45–55 tok/s on the real card (DR-0076 — measure, don't assume). Wire into orchestrator **v0 advisory** ([DR-0056](../decisions/DR-0056-tiered-llm-orchestrator-perpetual-fix.md)); flip `ORCH_MODE` toward **local-first for coding** once verified ([DR-0073](../decisions/DR-0073-orchestrator-capability-aware-routing.md)). **Goal met: the build keeps moving when cloud is capped.**
-- **Phase 2 — Transcription + media groundwork (week 3–4).** faster-whisper; first NDI/CUDA pipeline probe; Qwen2.5-VL for vision tasks.
-- **Phase 3 — Per-industry LLM teams (month 2+).** Multiple models via vLLM. **If VRAM binds → drop in the 2nd RTX 5090 (→ 64 GB)** — PSU/mobo already specced, no rebuild.
-- **Phase 4 — Long-horizon consolidation (evidence-gated).** Only if 70B-resident + heavy concurrent multi-model teams prove binding → **RTX PRO 6000 Blackwell 96 GB** as the single-card consolidation. Not before the data demands it.
+- **Phase 0 — OpenClaw on the NAS *now* (this week, $0).** Don't wait for the box. Wire the already-installed **OpenClaw** to the NAS's existing **Ollama** so Darrell has an offline coding agent today (slow, CPU-speed, but real and private). Run a **Hermes** model (Llama-based, instruction/agent-tuned) on the NAS — there is a documented OpenClaw + Hermes + Ollama path. Config (verified June 2026, [Ollama docs · OpenClaw](https://docs.ollama.com/integrations/openclaw)):
+  - `openclaw configure --section llm` → provider `ollama`, Base URL `http://192.168.1.26:11434` (NAS, or `http://localhost:11434` on-box), model = the Hermes tag exactly as pulled.
+  - OpenClaw expects a key value even though Ollama ignores it: set `OLLAMA_API_KEY="ollama-local"` (any value works).
+  - Use a **64k+ context** model build (agents need long context for multi-step/file work).
+  - **Air-gap check:** skip the web-search provider → the agent still runs shell, files, and coding fully offline. **This proves the offline workflow before any money is spent.**
+- **Phase 1 — Buy + stand up the rig (week 1).** Confirm 5090 street price day-of; buy the build in §5. Ubuntu + Docker + Ollama + vLLM. Mesh is *optional* (convenience only — coding must work unplugged). NAS unchanged.
+- **Phase 2 — Repoint OpenClaw to the box's coder (week 1–2).** Pull `qwen2.5-coder:32b`; verify ~45–55 tok/s on the real card (DR-0076 — measure, don't assume). Re-run `openclaw configure --section llm` → Base URL = the box's Ollama, model `qwen2.5-coder:32b`. **OpenClaw is now Darrell's fast, fully-private, offline coding agent — Hermes-on-NAS was the warm-up, this is the workhorse.** Optionally register with orchestrator **v0 advisory** ([DR-0056](../decisions/DR-0056-tiered-llm-orchestrator-perpetual-fix.md)) with `ORCH_MODE` **local-first and vendor OFF by default for code** ([DR-0073](../decisions/DR-0073-orchestrator-capability-aware-routing.md)).
+- **Phase 3 — Transcription + media groundwork (week 3–4).** faster-whisper; first NDI/CUDA pipeline probe; Qwen2.5-VL for vision tasks.
+- **Phase 4 — Per-industry LLM teams (month 2+).** Multiple models via vLLM. **If VRAM binds → drop in the 2nd RTX 5090 (→ 64 GB)** — PSU/mobo already specced, no rebuild.
+- **Phase 5 — Long-horizon consolidation (evidence-gated).** Only if 70B-resident + heavy concurrent multi-model teams prove binding → **RTX PRO 6000 Blackwell 96 GB** single-card consolidation. Not before the data demands it.
 
 ---
 
@@ -135,8 +159,8 @@ All-in build = GPU + workstation parts (CPU, 128 GB RAM, PSU, NVMe, case) where 
 
 ## 8. Top 2 risks
 
-1. **Local 32B won't match cloud Claude on the hardest agentic coding.** Honest gap (§3). *Mitigation:* keep the DR-0056 vendor-escalation ladder for the hard ~20%; local owns the routine ~80% **and** all continuity. Buying this box ends the *stall*, not the *need for vendor on the hardest tasks* — set that expectation up front.
-2. **Price/power/availability volatility + 32 GB ceiling.** 5090 street prices run well above MSRP through the mid-2026 memory crisis [1] and a single 32 GB card **can't hold 70B resident** (CPU-spill until the 2nd card). A dual-5090 build draws ~1,150 W card power → **plan home electrical, cooling, and noise** before committing to the 2-card endpoint. *Mitigation:* confirm price day-of; the single-card build + vendor escalation covers 70B-class needs until the evidence-gated 2nd card.
+1. **Accidental privacy egress — the one failure that defeats the whole purpose.** The risk is no longer "the local model is weaker than Opus" (that's accepted by design — parity isn't the goal). The real risk is that some tool *silently* routes his code or prompts to a cloud anyway — an editor's built-in AI, a copilot extension, OpenClaw's web-search provider, or an orchestrator `ORCH_MODE` left on `vendor-first`. *Mitigation:* **vendor OFF by default for code**; OpenClaw configured ollama-only with web-search disabled (air-gap proven in Phase 0); audit that no IDE/extension has a cloud-AI feature live; treat any vendor call on private source as an explicit, deliberate opt-in — never a default or an automatic escalation. The box only delivers privacy if nothing else is leaking around it.
+2. **Price/power/availability volatility + 32 GB ceiling.** 5090 street prices run well above MSRP through the mid-2026 memory crisis [1] and a single 32 GB card **can't hold 70B resident** (CPU-spill until the 2nd card). A dual-5090 build draws ~1,150 W card power → **plan home electrical, cooling, and noise** before committing to the 2-card endpoint. *Mitigation:* confirm price day-of; the single-card build runs the 32B coder — Darrell's actual daily need — comfortably; 70B is the evidence-gated 2nd-card upgrade, not a day-one requirement.
 
 ---
 
