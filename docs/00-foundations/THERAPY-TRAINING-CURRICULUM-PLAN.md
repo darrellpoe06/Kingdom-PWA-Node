@@ -1,10 +1,11 @@
-# THERAPY TRAINING LMS & CURRICULUM PLAN — Therapy Solutions (Practice tab)
+# THERAPY TRAINING LMS & CURRICULUM PLAN — a multi-tenant product under TLC Therapy Solutions
 
-**Status:** Layer 3 foundation (reference) — **DRAFT SCAFFOLD.** Read-only proposal. Awaiting LCSW (Christina) review + accredited-source validation before any module is built or taught.
-**Author:** Claude Code (research + scaffold pass), 2026-06-23. Updated 2026-06-23 (Darrell: surface under **Practice**, not Learn; plan as a phased **LMS**).
-**For:** Christina Poe, LCSW — owner of TLC Therapy Solutions — to onboard, train, and **develop the skills of** her 1099 contract therapists through online courses inside her **Practice** tab.
-**What this is:** a practice **LMS (learning management system)** — therapists take courses online to develop/improve their skills, with progress tracking. Built in **two phases** (§"LMS phasing" below): Phase 1 reuses primitives we already have; Phase 2 is **gated on the practice-roles/membership layer** the family-sharing review flagged as a Tier-C gap.
-**Reuse, don't rebuild:** courses reuse the existing **Learn course + generalized Presenter primitive** (`Presenter.jsx` + `lib/presentable.js`, shipped #289/#290) — every course is authored as scenes (audience text + presenter notes, no-leak). We **mount/surface** that engine inside Practice; we do **not** rebuild it.
+**Status:** Layer 3 foundation (reference) — **DRAFT SCAFFOLD.** Read-only proposal. Awaiting licensed (LCSW) review + accredited-source validation before any module is built or taught.
+**Author:** Claude Code (research + scaffold pass), 2026-06-23. Updated 2026-06-23 ×3 (Darrell: surface under **Practice** not Learn; plan as a phased **LMS**; then — plan as a **multi-tenant PRODUCT for any therapy office**, not just TLC).
+**Brand / product:** **TLC Therapy Solutions** ([tlctherapysolutions.com](https://tlctherapysolutions.com)) — the LMS is a product *any* therapy office can adopt, under this brand. **Christina Poe, LCSW** (TLC's owner) is the **first tenant** and the design partner; the product generalizes from her practice's needs to any office (same pattern as the Church module generalizing from COLG, `COMMUNITY-FIRST-MISSION.md`).
+**What this is:** a **multi-tenant practice LMS** — each therapy office is its own **tenant** (its own manager + therapists, its own data), adopting a **shared industry-standard curriculum catalog**, with each office's data and people **HARD-isolated** from every other office (HIPAA-adjacent; cross-tenant no-leak is critical — §"Multi-tenant product architecture"). Therapists take courses online to develop/improve their skills, with progress tracking.
+**Reuse, don't rebuild:** courses reuse the existing **Learn course + generalized Presenter primitive** (`Presenter.jsx` + `lib/presentable.js`, shipped #289/#290) — every course is authored as scenes (audience text + presenter notes, no-leak). We **mount/surface** that engine inside each tenant's **Practice** tab; we do **not** rebuild it.
+**Two dependencies stated up front (honest):** multi-tenant onboarding of *outside* offices **and** the manager-sees-therapists view both depend on the **unified roles/membership layer being designed separately** (the same Tier-C work the family-sharing review scoped). Cross-*tenant* isolation, by contrast, rides the tenancy model that **already exists and is partly live-verified** (§ below).
 
 ---
 
@@ -14,7 +15,7 @@ This document is a **course scaffold and an industry-standard topic outline.** I
 
 1. **No CEU / accreditation claim.** Nothing here grants CE/CEU credit. CE credit in this field is awarded only by **board-approved providers** (e.g., NASW, ASWB ACE, APA-approved sponsors, state-board-approved courses) — *this app is not one of them, and this plan does not make it one.* Every course below carries the tag: **"DRAFT — pending LCSW (Christina) review + accredited-source validation."**
 2. **No fabricated clinical authority.** The clinical *substance* of any modality, protocol, or risk procedure is **owned by the licensed professional (Christina)**, not by this scaffold and not by the AI. Topics below are framed as *"industry-standard topics to cover,"* citing reputable bodies (APA, NASW, ACA, SAMHSA, state-board norms). We draft *structure and plain-language framing*; Christina supplies and signs off on the *clinical truth*. Per the repo Verification Doctrine: this is an **unverified-until-Christina-reviews** artifact, and it says so on its face.
-3. **TLC privacy boundary.** This is **practice-private** content, living **inside the Practice tab** behind the **TLC firewall.** It is **NOT** in the general Learn tab, **NOT** community-shared, **NOT** part of the COLG/church Learn courses, and **NOT** part of the public PoeTech catalog. It sits alongside the existing Practice surface, which already holds the line that **PHI stays in Acuity, never in SKOS** (`LEGAL-PRIVACY-BOUNDARY.md` + `ECOSYSTEM-PARTICIPANTS.md`, enforced in [Practice.jsx:5-8](../../app/src/components/Practice.jsx)). TLC also disclaims HIPAA/BAA on shared hosting (`project-brand-surface-hosting-map`) — so no client PHI ever appears in training content; these courses teach *practice*, never reference real clients.
+3. **Per-tenant privacy boundary + HARD cross-tenant isolation.** This is **practice-private** content, living **inside each tenant's Practice tab** behind that tenant's firewall. It is **NOT** in the general Learn tab, **NOT** community-shared, **NOT** part of the COLG/church Learn courses, and **NOT** part of the public PoeTech catalog. Each office's data and therapists are **hard-isolated from every other office** (HIPAA-adjacent — see §"Multi-tenant product architecture"). It sits alongside the existing Practice surface, which already holds the line that **PHI stays in Acuity, never in SKOS** (`LEGAL-PRIVACY-BOUNDARY.md` + `ECOSYSTEM-PARTICIPANTS.md`, enforced in [Practice.jsx:5-8](../../app/src/components/Practice.jsx)). The brand (TLC Therapy Solutions) disclaims HIPAA/BAA on shared hosting (`project-brand-surface-hosting-map`) — so no client PHI ever appears in training content; these courses teach *practice*, never reference real clients.
 4. **State-specific gaps are flagged, never guessed.** CE mandates, mandated-reporting specifics, and supervision rules **vary by state and by license** (LCSW vs LPC vs LMFT). Where a number or rule is state-specific, the scaffold says **"[STATE-SPECIFIC — Christina to confirm for IL + each contractor's license]"** rather than inventing a figure.
 
 > **The honest verdict in one line:** We can build a *genuinely useful internal onboarding + practice-standards library* that makes Christina's 1099 onboarding faster and more consistent. We **cannot** turn it into CE credit, and we won't pretend to. The clinical heart stays with the LCSW.
@@ -186,6 +187,35 @@ Six courses, sequenced from onboarding → professional core → clinical modali
 
 ---
 
+## Multi-tenant product architecture — one catalog, many isolated offices
+
+The LMS is a **product** under the **TLC Therapy Solutions** brand ([tlctherapysolutions.com](https://tlctherapysolutions.com)) that *any* therapy office can adopt. The model is **one shared curriculum catalog, many hard-isolated tenants.**
+
+### The three layers
+
+| Layer | What it is | Shared or per-tenant | Who owns it |
+|---|---|---|---|
+| **Catalog** | The industry-standard curriculum — the six courses + outlines in this doc, as reusable `presentable` templates. | **Shared** — any office adopts it. | TLC Therapy Solutions (the product); still **DRAFT** until accredited-source validation. |
+| **Tenant** | One therapy office: its manager(s), its therapists, its enrollments, its progress/completion records, any office-specific customization of an adopted course. | **Per-tenant, hard-isolated.** | The office's own licensed clinical lead. |
+| **Person** | A therapist within a tenant; sees their own courses + own progress. | Per-tenant, self-scoped. | The therapist. |
+
+**A tenant adopts a catalog course, then its own licensed professional signs off the clinical substance for that tenant.** The catalog gives every office the same vetted *scaffold*; the 🟡 clinical substance is owned and signed off **per tenant by that office's own LCSW/clinical director** — because clinical responsibility, license type, and **state-specific** rules (mandated reporting, CE mandates, supervision) differ per office. TLC/Christina signs off for the TLC tenant; another office's clinical lead signs off for theirs. (And — restating the banner — **no tenant gets CEU/accreditation through this platform**; an internal completion record is not CE credit.)
+
+### Hard cross-tenant isolation (HIPAA-adjacent — the critical requirement)
+
+**Each office is its own tenant = its own `instance`.** This rides the tenancy model the app **already has**, where cross-tenant isolation is the *strength* of the design, not a gap:
+
+- The boundary object is an **instance**; membership is `instance_members (instance_id, user_id, role)`; every data table's RLS gate is the single predicate **`user_in_instance(instance_id)`** ([schema-v2.1-infra.sql:124](../../infra/supabase/schema-v2.1-infra.sql)). A member of office A is **not** in office B's `instance_members`, so office A reads **zero** of office B's rows — structurally, at the database. Office-A-can't-see-office-B is exactly what binary membership gives you for free.
+- The **outer no-leak wall is live-verified** in the cloud right now: an anonymous/unauthenticated caller gets `42501 permission denied` across the data tables (the `anon` role has no table grant at all, before RLS even runs). (`FAMILY-SHARING-PERMISSIONS-STATUS.md` §"Fail-safe verification" — live PostgREST probe, 2026-06-23.)
+- **What must still be proven (DR-0076, proven-to-catch):** cross-*instance* isolation between two *authenticated* tenants is verified by the RLS predicate (code) + a prior service-vs-anon test, but has **not** been re-probed live with two real tenant accounts (the one PARTIAL in the family-sharing fail-safe table; family-sharing **GAP D**). For an HIPAA-adjacent product, that live two-tenant no-leak probe is a **ship gate**, not optional — a green test must *mean* tenant A cannot read tenant B.
+- **No PHI crosses anyway:** training content is synthetic and references no clients (banner #2/#3); PHI stays in Acuity. So the isolation requirement protects *who-trained-what + roster + office identity*, and the synthetic-content rule means a worst-case leak still exposes no client PHI. Both walls, defense in depth.
+
+### What multi-tenant adds on top of the existing model (the dependency)
+
+The existing model isolates *between* tenants well. What it does **not** yet have — and what onboarding *outside* offices needs — is the **within-tenant roles/membership layer** (manager vs therapist, manager-sees-team-progress) **and** a **self-serve tenant-provisioning** path (today the only instances are the hard-coded family + per-user isolated `u-<uid>` instances; there is no "create a new therapy-office tenant and invite its therapists" RPC). **Both depend on the unified roles/membership layer being designed separately** — the same Tier-C work as family-sharing **GAP A** (binary membership → membership + differentiated roles + per-member visibility). This is the honest gating fact: *between-tenant isolation is ready; within-tenant management + outside-office onboarding are gated on the roles layer.*
+
+---
+
 ## LMS phasing — this is a learning-management system, built in two phases
 
 Darrell's scope: not just static courses, but an **LMS** so therapists do online training to develop/improve their skills, with progress tracking. Phased honestly by what each part *depends on*.
@@ -215,7 +245,9 @@ This is the real LMS management layer: Christina **assigns/enrolls** therapists 
 - A manager-sees-therapists model needs BOTH: **(a) a practice tenancy** — the 1099 therapists as *members of a TLC practice instance*, distinct from the `poe-family` instance (they are contractors, not family; that membership doesn't exist today), and **(b) role-gated cross-member visibility** — a `manager`/`owner` role that can read **other** members' progress while a `therapist` role reads only their own. In the current binary model, instance-scoping progress rows would make **every** therapist see **every** peer's progress (wrong default) — which is precisely why the granular roles layer is the blocker.
 - This is **the same Tier-C build** as family-sharing **GAP A** (move from binary membership to membership + per-member/role-gated grants; new `shares`/role-gated policies; each migration **proven-to-catch** per DR-0076). **Phase 2 ships only after that roles layer lands** — it is not a separate small feature, it rides the same gate.
 
-**Net:** Phase 1 delivers real value now (self-serve training + own-progress) on existing primitives. Phase 2 (assignment + manager development-tracking + records) is **explicitly gated** on the practice-roles/membership layer — the same Tier-C work the family-sharing review already scoped. We say so rather than implying the manager view is near.
+- **Onboarding *outside* offices rides the same gate.** TLC is the first tenant and can run Phase 1 within its own (existing) tenancy. Provisioning a *new* therapy-office tenant + inviting its therapists with manager/therapist roles is the **multi-tenant onboarding** path — which needs the same self-serve-tenant + roles work (see §"Multi-tenant product architecture"). So "sell it to another office" is Phase 2+, gated on the unified roles/membership layer, not Phase 1.
+
+**Net:** Phase 1 delivers real value now (self-serve training + own-progress) within TLC's existing tenant, on existing primitives. Phase 2 (assignment + manager development-tracking + records + onboarding outside offices) is **explicitly gated** on the unified practice-roles/membership layer — the same Tier-C work the family-sharing review already scoped, being designed separately. We say so rather than implying the manager view or outside-office sales are near.
 
 ---
 
@@ -242,4 +274,4 @@ These ground the *topic selection and standard-body framing* — not the clinica
 
 ---
 
-**End of plan.** This is a SCAFFOLD for Christina to inspect, edit, and own. It claims no accreditation, grants no CE credit, and hands the clinical substance to the licensed professional — by design.
+**End of plan.** This is a SCAFFOLD — a shared catalog for Christina (first tenant) and any adopting office's licensed lead to inspect, edit, and own per tenant. It claims no accreditation, grants no CE credit, hands the clinical substance to the licensed professional, and hard-isolates every office from every other — by design.
