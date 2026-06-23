@@ -13,6 +13,7 @@ import Discussions from './Discussions.jsx';
 import {
   ETERNAL_STAGES, stageOfProject, stageMeta, statusForStage, nextStage,
   stageProgress, lifecycleTrail, archivePatch, isArchived,
+  markCompletePatch, reschedulePatch,
 } from '../lib/project-management.js';
 import { discussionsForProject, kindMeta } from '../lib/discussions.js';
 import { evaluateHandoffGate, buildHandoff } from '../lib/orchestrator-handoff.js';
@@ -96,6 +97,32 @@ export const swapById = (list, idA, idB) => {
   if (i < 0 || j < 0) return list;
   [arr[i], arr[j]] = [arr[j], arr[i]];
   return arr;
+};
+
+// Closure lifecycle (2026-06-23 closure-lifecycle check). Closing a project is
+// 100% manual + un-prompted, so a finished project lingers as active/overdue and
+// inflates the live Active metric + 12-month forecast. These pure predicates make
+// "closed" a single honest definition the counts AND the default list share:
+//   complete  = the terminal "done" status
+//   closed    = complete OR archived (parked with the archived note, isArchived)
+// `openProjects` is the live, still-in-flight set — what the headline counts and
+// the default list should reflect. Completed/archived stay findable via the
+// "Show completed" toggle and the status filter; they're hidden, never dropped.
+export const isComplete = (p) => !!p && p.status === 'complete';
+export const isClosed = (p) => isComplete(p) || isArchived(p);
+export const openProjects = (list) => (Array.isArray(list) ? list.filter(p => !isClosed(p)) : []);
+
+// listVisible — the single predicate the default list uses, so the count and the
+// rows agree. Domain + status filters apply as before; closed projects are hidden
+// by default UNLESS the user opts in (showCompleted) or is explicitly filtering to
+// a status (e.g. picks "complete"/"on-hold" in the dropdown), so closed work stays
+// reachable without clutter in the everyday view.
+export const listVisible = (p, { filterDomain = 'all', filterStatus = 'all', showCompleted = false } = {}) => {
+  if (!p) return false;
+  if (filterDomain !== 'all' && p.domain !== filterDomain) return false;
+  if (filterStatus !== 'all') return p.status === filterStatus;
+  if (!showCompleted && isClosed(p)) return false;
+  return true;
 };
 
 const PROJECT_DOMAINS = [
@@ -451,6 +478,51 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
   );
 }
 
+// ProjectCloseControls — one-tap closing FROM THE ROW (2026-06-23 closure-lifecycle
+// fix). Closing was 100% manual + buried in Manage -> Advance, so finished projects
+// lingered as active/overdue and kept inflating the Active metric + 12-month
+// forecast. This puts "✓ Mark complete" right where you see the project — controls
+// in context, in place, no scroll-to-top, no view-snap. On an OVERDUE project it
+// also offers "Reschedule" (an inline new end date) for work that slipped but isn't
+// actually done — so the honest choice is one tap either way. Already-complete rows
+// render nothing (there's nothing to close). Same updateProject write path the
+// Manage panel uses, so the lifecycle trail records the close.
+function ProjectCloseControls({ project, updateProject, isOverdue }) {
+  const [rescheduling, setRescheduling] = useState(false);
+  const [newEnd, setNewEnd] = useState(project.endDate || '');
+  if (isComplete(project)) return null;
+  const markComplete = () => updateProject(project.id, markCompletePatch());
+  const saveReschedule = () => {
+    if (!newEnd) return;
+    updateProject(project.id, reschedulePatch(newEnd));
+    setRescheduling(false);
+  };
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-1.5">
+      <button type="button" onClick={markComplete} aria-label={`Mark ${project.title} complete`}
+        className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-white hover:bg-[#5A6E3D] border border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+        ✓ Mark complete
+      </button>
+      {isOverdue && !rescheduling && (
+        <button type="button" onClick={() => { setNewEnd(project.endDate || ''); setRescheduling(true); }} aria-label={`Reschedule ${project.title}`}
+          className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-white hover:bg-[#B85838] border border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          ↻ Reschedule
+        </button>
+      )}
+      {isOverdue && rescheduling && (
+        <span className="flex flex-wrap items-center gap-1.5">
+          <input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} aria-label={`New end date for ${project.title}`}
+            className="p-1.5 border border-[#B85838] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
+          <button type="button" onClick={saveReschedule} disabled={!newEnd}
+            className="text-[10px] uppercase tracking-wider text-white bg-[#1A1815] hover:bg-[#B85838] border border-[#1A1815] px-3 py-1.5 min-h-[36px] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
+          <button type="button" onClick={() => setRescheduling(false)}
+            className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] border border-transparent hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+        </span>
+      )}
+    </div>
+  );
+}
+
 function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, discussions = [], addDiscussion = null, wakeData = null, onOpenDiscussions = null }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -458,6 +530,10 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   const [orderMode, setOrderMode] = useState(() => defaultOrderMode(projects));
   const [filterDomain, setFilterDomain] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  // Default view = active work only. Completed + archived projects are hidden
+  // until the user flips this on (or filters to a closed status) — they stay
+  // findable, just out of the everyday list. (2026-06-23 closure-lifecycle fix.)
+  const [showCompleted, setShowCompleted] = useState(false);
   const [projError, setProjError] = useState('');
   const [openConvId, setOpenConvId] = useState(null);
   const [newProject, setNewProject] = useState({
@@ -503,16 +579,24 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   // the list — reads from `scoped`, so each user sees a coherent picture of their
   // own perspective, or the family's, depending on the toggle.
   const scoped = useMemo(() => scopeProjects(projects, currentUserId, currentUserPersona, scope), [projects, currentUserId, currentUserPersona, scope]);
-  const mineCount = useMemo(() => projects.filter(p => isMine(p, currentUserId, currentUserPersona)).length, [projects, currentUserId, currentUserPersona]);
+  // Headline counts reflect OPEN (still-in-flight) work only, so the "Mine/Everyone"
+  // numbers are an honest active load — not all-time totals padded by finished +
+  // archived projects. Matches the default list (which also hides closed). (2026-06-23.)
+  const mineCount = useMemo(() => openProjects(projects.filter(p => isMine(p, currentUserId, currentUserPersona))).length, [projects, currentUserId, currentUserPersona]);
+  const everyoneCount = useMemo(() => openProjects(projects).length, [projects]);
 
   // Order (Timeline by date, or the hand-set Priority order) THEN filter, so the
   // displayed list and the reorder controls agree on positions.
   const ordered = useMemo(() => orderProjects(scoped, orderMode), [scoped, orderMode]);
-  const filtered = ordered.filter(p => {
-    if (filterDomain !== 'all' && p.domain !== filterDomain) return false;
-    if (filterStatus !== 'all' && p.status !== filterStatus) return false;
-    return true;
-  });
+  const filtered = ordered.filter(p => listVisible(p, { filterDomain, filterStatus, showCompleted }));
+  // How many closed projects the default view is hiding right now (for the toggle
+  // label) — counted within the current scope + domain so the number matches what
+  // flipping the toggle would reveal. Status filter is ignored here on purpose:
+  // it's the toggle's own dimension.
+  const hiddenClosedCount = useMemo(
+    () => ordered.filter(p => isClosed(p) && (filterDomain === 'all' || p.domain === filterDomain)).length,
+    [ordered, filterDomain]
+  );
 
   // Hand reordering by priority. filtersActive still drives the COPY (we explain
   // the slide-past-hidden behavior), but reorder now works WITH filters on: a
@@ -603,7 +687,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Whose projects</span>
             <div className="flex" role="group" aria-label="Whose projects to show">
-              {[['mine', `Mine (${mineCount})`], ['all', `Everyone (${projects.length})`]].map(([k, label]) => (
+              {[['mine', `Mine (${mineCount})`], ['all', `Everyone (${everyoneCount})`]].map(([k, label]) => (
                 <button
                   key={k}
                   type="button"
@@ -684,6 +768,19 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
               <option value="all">All statuses</option>
               {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
+            {/* Show completed/archived — default view is active work only, so a
+                finished project doesn't clutter the list (it also stops inflating
+                the headline counts). One tap to bring closed work back into view;
+                the status filter (above) still isolates a specific closed status.
+                Hidden while a specific status is being filtered (the toggle has no
+                effect then). (2026-06-23 closure-lifecycle fix.) */}
+            {filterStatus === 'all' && (
+              <button type="button" aria-pressed={showCompleted} onClick={() => setShowCompleted(v => !v)}
+                className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                style={showCompleted ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}>
+                {showCompleted ? '✓ Showing completed' : `Show completed${hiddenClosedCount > 0 ? ` (${hiddenClosedCount})` : ''}`}
+              </button>
+            )}
             <button type="button" onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
           </div>
         </div>
@@ -880,6 +977,10 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                     {end && <><span> → </span><span style={{ fontFamily: '"JetBrains Mono", monospace' }} className={isOverdue ? 'text-[#B85838] font-medium' : ''}>{end.toLocaleDateString()}{isOverdue ? ' (overdue)' : daysUntilEnd > 0 && daysUntilEnd < 30 ? ` (${daysUntilEnd}d left)` : ''}</span></>}
                     {p.hoursPerWeek > 0 && <> · {p.hoursPerWeek}h/wk</>}
                   </div>
+                  {/* One-tap close from the row (esp. for overdue rows that linger
+                      as active + inflate the live numbers). Mark complete, or
+                      reschedule a slipped-but-not-done project. (2026-06-23 fix.) */}
+                  <ProjectCloseControls project={p} updateProject={updateProject} isOverdue={isOverdue} />
                   {Array.isArray(p.contractorIds) && p.contractorIds.length > 0 && (
                     <div className="text-[10px] text-[#5A5751] mb-2 flex flex-wrap gap-1.5">
                       <span className="uppercase tracking-wider">👤 1099:</span>
