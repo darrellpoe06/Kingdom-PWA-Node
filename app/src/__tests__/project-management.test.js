@@ -9,6 +9,8 @@ import {
   groupProjectsByLife,
   archivePatch,
   isArchived,
+  markCompletePatch,
+  reschedulePatch,
   stageBoard,
   lifecycleTrail,
   STAGE_KEYS,
@@ -87,6 +89,21 @@ describe('archive (non-destructive, kept for the record)', () => {
   });
   it('an active project is never archived', () => {
     expect(isArchived({ status: 'active', lifecycle: { log: [] } })).toBe(false);
+  });
+});
+
+describe('one-tap closing from the row (2026-06-23 closure-lifecycle fix)', () => {
+  it('markCompletePatch writes the terminal complete status + a lifecycle note', () => {
+    const patch = markCompletePatch();
+    expect(patch.status).toBe('complete');
+    expect(patch._by).toBe('user');
+    expect(patch._note.toLowerCase()).toContain('complete');
+  });
+  it('reschedulePatch sets the new end date + records the slip in the note', () => {
+    const patch = reschedulePatch('2026-09-30');
+    expect(patch.endDate).toBe('2026-09-30');
+    expect(patch.status).toBeUndefined(); // reschedule does NOT close the project
+    expect(patch._note).toContain('2026-09-30');
   });
 });
 
