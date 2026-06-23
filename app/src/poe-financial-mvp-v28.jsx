@@ -77,6 +77,7 @@ import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
+import { getAssignments, dispatchState, addAssignment, removeAssignment, markDone as markAssignmentDone, reopen as reopenAssignment, setPayout as setAssignmentPayout, summarize as summarizeAssignments } from './lib/assignments.js';
 import { LifeGallery } from './components/LifeGallery.jsx';
 import { ConferenceModule } from './components/ConferenceModule.jsx';
 import { EventCenterModule } from './components/EventCenterModule.jsx';
@@ -308,7 +309,11 @@ export const SEED_DATA = {
     { id: 'pr-example-4', title: '1521 Oak Ave — resolve LATE rent', startDate: '2026-05-16', endDate: '2026-06-15', status: 'ending-soon', domain: 'business-poeprops', description: 'Tenant conversation, payment plan or escalation per scope. Recover $850 gap or transition unit.', hoursPerWeek: 3, entityId: 'e-poeprops', createdAt: '2026-05-16T00:00:00.000Z' },
     { id: 'pr-example-5', title: 'Wellness Practice — add 1-2 MSW contractors', startDate: '2026-06-01', endDate: '2026-09-15', status: 'planning', domain: 'business-tlc', description: 'Recruit through Naomi\'s clinical network. New scope agreements. Onboard via Practice Operations. Each contractor = ~$2K/mo additional revenue.', hoursPerWeek: 4, entityId: 'e-tlc', createdAt: '2026-05-16T00:00:00.000Z' },
     { id: 'pr-example-6', title: 'Worldview teaching book · finish + publish', startDate: '2026-05-16', endDate: '2026-11-30', status: 'active', domain: 'business-poetech', description: 'Complete the book. Publishing submission. Print proof. Launch alongside Spiritual Life module.', hoursPerWeek: 6, entityId: 'e-poetech', createdAt: '2026-05-16T00:00:00.000Z' },
-  ], // v17/v22: project timelines with start/end dates — workload coordination · examples to show usage
+    // Real sovereign-hardware procurement projects (recorded 2026-06-23). BOM + verified links live in
+    // docs/00-foundations/CUDA-BOX-PROCUREMENT-HOME-AND-CHURCH.md. Advisory only — Darrell places every order by hand.
+    { id: 'pr-cuda-home-box', title: 'Sovereign CUDA dev box — HOME (1× RTX PRO 6000 96GB)', startDate: '2026-06-23', endDate: '2026-07-20', status: 'active', domain: 'business-poetech', description: 'Procure + stand up Darrell’s private local-LLM coding/dev box: 1× RTX PRO 6000 Blackwell 96GB workstation (runs 70B+ w/ headroom, CUDA media, OpenClaw-local). DIY (TRX50, ECC) ~$17.4–$20.7K or BIZON X3000 prebuilt ~$12–$14K. Buy-ready BOM + verified 2026-06-23 links: docs/00-foundations/CUDA-BOX-PROCUREMENT-HOME-AND-CHURCH.md §2. Ties to LOCAL-LLM-HARDWARE-RECOMMENDATION + DR-0014/DR-0053. Orders placed by hand this weekend.', hoursPerWeek: 6, entityId: 'e-poetech', createdAt: '2026-06-23T19:52:34.568Z', lifecycle: { phase: 'active', openedAt: '2026-06-23T19:52:34.568Z', closedAt: null, log: [{ at: '2026-06-23T19:52:34.568Z', fromPhase: null, toPhase: 'planning', by: 'darrell', note: 'BOM verified + recorded — see CUDA-BOX-PROCUREMENT-HOME-AND-CHURCH.md §2' }, { at: '2026-06-23T19:52:35.568Z', fromPhase: 'planning', toPhase: 'active', by: 'darrell', note: 'procuring this weekend — orders placed by Darrell’s hand (advisory makes no purchase)' }] } },
+    { id: 'pr-cuda-colg-node', title: 'COLG media+AI node — CHURCH (2× RTX PRO 6000 = 192GB)', startDate: '2026-06-23', endDate: '2026-08-31', status: 'planning', domain: 'church', description: 'Procure the COLG sovereign media+AI node (128GB+ tier): 2× RTX PRO 6000 = 192GB. Drives Sanctuary LED video-wall media generation (Stable Diffusion/FLUX/ComfyUI), Whisper large-v3 transcription, local 70B/120B LLM, and concurrent congregant users. Recommended prebuilt BIZON X4000 ~$24–$28K (warrantied, validated); DIY reference ~$33–$41K. Buy-ready BOM + verified 2026-06-23 links: docs/00-foundations/CUDA-BOX-PROCUREMENT-HOME-AND-CHURCH.md §3. Physical front end = sanctuary-video-wall capital project (install started 2026-06-22); compute behind the NDI/CUDA pipeline. SCOPE DELTA: major step up from the ~$9k COLG NAS+camera build (DR-0050) — separate capital line; reconcile on the Video Wall capex surface before greenlight.', hoursPerWeek: 4, entityId: null, createdAt: '2026-06-23T19:52:34.568Z', lifecycle: { phase: 'planning', openedAt: '2026-06-23T19:52:34.568Z', closedAt: null, log: [{ at: '2026-06-23T19:52:34.568Z', fromPhase: null, toPhase: 'planning', by: 'darrell', note: '192GB node BOM verified + recorded; linked to sanctuary-video-wall + NDI/CUDA pipeline. Pending capex reconcile before greenlight (video-wall install gating note).' }] } },
+  ], // v17/v22: project timelines with start/end dates — workload coordination · examples + real CUDA procurement records (2026-06-23)
   subscriptions: [], // v18: recurring monthly purchases · cart · subscription audit
   feedback: [], // v24: tester feedback collection · MVP
   welcomeDismissed: false, // v24: first-run welcome panel
@@ -3010,6 +3015,43 @@ export default function PoeFinancialSystem() {
   // identical next state (lifecycle log entries included).
   const applyIncidentUpdates = (incident, updates) => {
     const withLifecycle = ensureLifecycle(incident);
+    // Multi-worker assignment ops — write the crew to incident.dispatch
+    // (jsonb { assignments: [...] }) and log the QC trail. One reader
+    // (getAssignments) means legacy single-worker rows self-heal on first edit.
+    if (updates._assign) {
+      const op = updates._assign;
+      let list = getAssignments(withLifecycle);
+      let note = '';
+      if (op.kind === 'add') {
+        const before = list.length;
+        list = addAssignment(withLifecycle, op.contractor, { type: op.type });
+        note = list.length > before ? `assigned to ${op.contractor?.name || 'worker'}` : `${op.contractor?.name || 'worker'} already on this work order`;
+      } else if (op.kind === 'remove') {
+        const a = list.find(x => x.id === op.assignmentId);
+        list = removeAssignment(list, op.assignmentId);
+        note = a ? `unassigned ${a.name}` : 'unassigned worker';
+      } else if (op.kind === 'done') {
+        const a = list.find(x => x.id === op.assignmentId);
+        list = markAssignmentDone(list, op.assignmentId);
+        note = a ? `${a.name} marked done` : 'worker marked done';
+      } else if (op.kind === 'reopen') {
+        const a = list.find(x => x.id === op.assignmentId);
+        list = reopenAssignment(list, op.assignmentId);
+        note = a ? `${a.name} reopened` : 'worker reopened';
+      } else if (op.kind === 'payout') {
+        list = setAssignmentPayout(list, op.assignmentId, op.payout);
+        // Payout edits are frequent and finance-internal — no lifecycle log noise.
+        note = '';
+      }
+      const nextLog = note
+        ? [...(withLifecycle.lifecycle?.log || []), { at: new Date().toISOString(), fromPhase: withLifecycle.lifecycle?.phase || withLifecycle.status, toPhase: withLifecycle.lifecycle?.phase || withLifecycle.status, by: 'user', note }]
+        : (withLifecycle.lifecycle?.log || []);
+      return {
+        ...withLifecycle,
+        dispatch: dispatchState(list),
+        lifecycle: { ...withLifecycle.lifecycle, log: nextLog },
+      };
+    }
     const merged = { ...withLifecycle, ...updates };
     // If status changed, route through appendLifecycleLog to write a log entry.
     if (updates.status && updates.status !== withLifecycle.status) {
@@ -3049,13 +3091,24 @@ export default function PoeFinancialSystem() {
     });
   };
   const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10), _note: 'Marked resolved' });
-  // Dispatch — assign a 1099 worker to an open incident (work order). The
-  // assignment lands on incident.dispatch and writes a lifecycle log entry,
-  // so who-was-sent-when is part of the permanent record.
-  const dispatchIncident = (id, dispatch) => updateIncident(id, {
-    dispatch,
-    _logNote: dispatch?.contractorName ? `dispatched to ${dispatch.contractorName}` : 'dispatch updated',
-  });
+  // Dispatch — assign 1099 workers to an open incident (work order). A work
+  // order carries a CREW: the assignment list lands on incident.dispatch
+  // ({ assignments: [...] }) and every op writes a lifecycle log entry, so
+  // who-was-sent / who-finished is part of the permanent QC record. Bundled
+  // as workerOps so both surfaces (Action Queue + per-property Maintenance
+  // Log) wire the same handlers.
+  const assignWorker = (id, contractor, type) => updateIncident(id, { _assign: { kind: 'add', contractor, type } });
+  const unassignWorker = (id, assignmentId) => updateIncident(id, { _assign: { kind: 'remove', assignmentId } });
+  const markWorkerDone = (id, assignmentId) => updateIncident(id, { _assign: { kind: 'done', assignmentId } });
+  const reopenWorker = (id, assignmentId) => updateIncident(id, { _assign: { kind: 'reopen', assignmentId } });
+  const setWorkerPayout = (id, assignmentId, payout) => updateIncident(id, { _assign: { kind: 'payout', assignmentId, payout } });
+  const workerOps = {
+    onAssign: assignWorker,
+    onUnassign: unassignWorker,
+    onWorkerDone: markWorkerDone,
+    onReopen: reopenWorker,
+    onSetPayout: setWorkerPayout,
+  };
   const addEvent = (item) => setData(d => ({ ...d, events: [...(d.events || []), { ...item, id: `ev-${Date.now()}`, createdAt: new Date().toISOString(), completedAt: null }] }));
   const completeEvent = (id) => setData(d => ({ ...d, events: (d.events || []).map(e => e.id === id ? { ...e, completedAt: new Date().toISOString() } : e) }));
   // Projects — same lifecycle pattern.
@@ -4699,7 +4752,7 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <BigPictureDashboard data={data} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} dispatchIncident={dispatchIncident} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
+        {view === 'overview' && <BigPictureDashboard data={data} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')}>
           <>
@@ -4753,7 +4806,7 @@ html{scroll-padding-bottom:280px}
                 addIncident={addIncident}
                 resolveIncident={resolveIncident}
                 contractors={data.contractors1099 || []}
-                dispatchIncident={dispatchIncident}
+                workerOps={workerOps}
                 voiceOps={data.voiceOps || {}}
               />
             </>
@@ -5943,7 +5996,7 @@ function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFe
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], dispatchIncident, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto }) {
+function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], workerOps = {}, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto }) {
   // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
   // item (if any) is currently expanded. Tapping the row body opens the full
   // details + lifecycle log + jump-link inline, so the user never loses
@@ -6266,7 +6319,7 @@ function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, s
                         <span className="text-[10px] text-[#5A5751] ml-auto font-semibold" aria-hidden="true">{expanded ? '▲' : '▼'} details</span>
                       </div>
                       <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{sourceItem?.dispatch ? ` · 👷 ${sourceItem.dispatch.contractorName}` : ''}{lifecycleLog.length > 1 ? ` · 📜 ${lifecycleLog.length} log entries` : ''}
+                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{(() => { const s = summarizeAssignments(getAssignments(sourceItem)); return s ? ` · 👷 ${s}` : ''; })()}{lifecycleLog.length > 1 ? ` · 📜 ${lifecycleLog.length} log entries` : ''}
                       </div>
                     </button>
                     {/* Primary action (Resolve for incidents) stays visible on the
@@ -6297,13 +6350,13 @@ function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, s
                       {/* Dispatch — the path from "needs fixed" to a 1099 worker's
                           phone. Renders for any incident; pulls the linked
                           property so the job text carries the full address. */}
-                      {q.kind === 'incident' && sourceItem && dispatchIncident && (
+                      {q.kind === 'incident' && sourceItem && workerOps.onAssign && (
                         <div className="bg-white border border-[#E8E4DC] p-2.5">
                           <DispatchPanel
                             incident={sourceItem}
                             property={sourceItem.linkedTo?.type === 'rental' ? (rentals.find(r => r.id === sourceItem.linkedTo.id) || null) : null}
                             contractors={contractors}
-                            onDispatch={dispatchIncident}
+                            {...workerOps}
                             onResolve={resolveIncident}
                           />
                         </div>
