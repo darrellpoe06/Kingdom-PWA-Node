@@ -41,6 +41,12 @@ import {
   buildInfraSchedule, infraProgressSummary, exportInfraCurriculumMarkdown,
   resolveInfraCohort, INFRA_SOP_SEQUENCES,
 } from './lib/infrastructure-class.js';
+import {
+  SOVEREIGN_AI_META, SOVEREIGN_AI_SESSION_FLOW, SOVEREIGN_AI_PROPOSED_COHORT_START,
+  SOVEREIGN_AI_INTEREST_TAG, SOVEREIGN_AI_HELPER_TAG, SOVEREIGN_AI_TUTOR_META,
+  buildSovereignAiSchedule, sovereignAiProgressSummary, exportSovereignAiCurriculumMarkdown,
+  resolveSovereignAiCohort,
+} from './lib/sovereign-ai-class.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -3705,6 +3711,9 @@ export default function PoeFinancialSystem() {
   // The Infrastructure course (Darrell 2026-06-16) — its OWN cohort, same machinery.
   const setInfraCohortStart = (date) => setData(d => ({ ...d, infraCohort: { ...(d.infraCohort || {}), startDate: date } }));
   const confirmInfraCohort = (confirmed) => setData(d => ({ ...d, infraCohort: { ...(d.infraCohort || {}), confirmed: !!confirmed } }));
+  // The Sovereign A.I. course (why we build local) — its OWN cohort, same machinery.
+  const setSovereignAiCohortStart = (date) => setData(d => ({ ...d, sovereignAiCohort: { ...(d.sovereignAiCohort || {}), startDate: date } }));
+  const confirmSovereignAiCohort = (confirmed) => setData(d => ({ ...d, sovereignAiCohort: { ...(d.sovereignAiCohort || {}), confirmed: !!confirmed } }));
   // SHARED Learn-framework state (consumed by ALL three courses): quiz results keyed
   // by module id (real assessment record), the learner's depth override, and the
   // learner's AGE BAND (the master pacing control — one curriculum, age-right delivery).
@@ -4953,11 +4962,46 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // The Sovereign A.I. course — FOURTH course, same shared framework +
+          // machinery. Teaches WHY we build local (resilience + data sovereignty),
+          // the verified model-tier landscape, the Cage-gated routing, and the five
+          // local-A.I. opportunities. No SOP library; reuses the Governor's
+          // engagement-by-age aggregate.
+          const sovereignAiCohort = resolveSovereignAiCohort(data.sovereignAiCohort);
+          const sovereignAiStart = sovereignAiCohort.startDate || SOVEREIGN_AI_PROPOSED_COHORT_START;
+          const submitSovereignAiInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${SOVEREIGN_AI_INTEREST_TAG} ${(name || 'A learner').trim()} wants to join the Sovereign A.I. course.` })
+            : null;
+          const sovereignAiRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SOVEREIGN_AI_INTEREST_TAG) : null;
+          const sovereignAiCourse = {
+            meta: { ...SOVEREIGN_AI_META, key: 'sovereign-ai' },
+            sessionFlow: SOVEREIGN_AI_SESSION_FLOW,
+            schedule: buildSovereignAiSchedule(sovereignAiStart),
+            cohortStart: sovereignAiStart,
+            cohortConfirmed: sovereignAiCohort.confirmed,
+            setCohortStart: setSovereignAiCohortStart,
+            confirmCohort: confirmSovereignAiCohort,
+            progressSummary: (p) => sovereignAiProgressSummary(p),
+            exportMarkdown: () => exportSovereignAiCurriculumMarkdown(sovereignAiStart),
+            downloadName: 'sovereign-ai-why-we-build-local-curriculum.md',
+            submitInterest: submitSovereignAiInterest,
+            roster: sovereignAiRoster,
+            interestCopy: {
+              heading: 'Want to understand why we build local?',
+              blurb: 'Tell Darrell you want to take the Sovereign A.I. course — local-first resilience, the model-tier landscape, and the strategy — and he’ll save you a spot in Cohort 1. Paced for every age.',
+              cta: 'I want to learn',
+              sent: '✓ Sent — Darrell will see you’re in. We build it sovereign.',
+            },
+            tutorCourseMeta: SOVEREIGN_AI_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
               : courseKey === 'infrastructure' ? INFRA_HELPER_TAG
-                : '[Class helper]'
+                : courseKey === 'sovereign-ai' ? SOVEREIGN_AI_HELPER_TAG
+                  : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -4989,7 +5033,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
