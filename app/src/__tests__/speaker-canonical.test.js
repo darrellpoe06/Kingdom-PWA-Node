@@ -53,6 +53,29 @@ describe('canonical resolution — all nine variants are the same man', () => {
   });
 });
 
+describe('do NOT over-collapse — a guest preacher stays their own person', () => {
+  it('a guest never resolves to BG (only the nine true-BG forms do)', () => {
+    expect(resolvesToBG('Sister Jasmine Johnson')).toBe(false);
+    expect(resolvesToBG('AP Harden')).toBe(false);
+    expect(resolvesToBG('Pastor Gwin')).toBe(false);   // a DIFFERENT Gwin would not match
+    expect(resolvesToBG('Minister Smith')).toBe(false);
+  });
+  it('roster keeps the guest distinct from BG, each with their own count', () => {
+    const rows = [
+      { status: 'active', speaker: 'Bishop Lloyd E. Gwin', speakerId: 'bg', speakerIsPrimary: true },
+      { status: 'active', speaker: 'Bishop Gwin', speakerId: 'bg', speakerIsPrimary: true }, // same entity (alias)
+      { status: 'active', speaker: 'Sister Jasmine Johnson', speakerId: 'jj' },              // a real guest
+    ];
+    const roster = speakerRoster(rows);
+    expect(roster).toHaveLength(2);
+    const bg = roster.find((r) => r.isBG);
+    const guest = roster.find((r) => !r.isBG);
+    expect(bg.count).toBe(2);                                  // both BG spellings, one person
+    expect(guest.name).toBe('Sister Jasmine Johnson');
+    expect(guest.count).toBe(1);                               // guest credit preserved, NOT absorbed
+  });
+});
+
 describe('speakerRoster — the nine collapse to ONE, count reconciles', () => {
   it('groups by the canonical entity id: one row, count = the sum (proves the fix)', () => {
     // Post-0037 every Gwin row carries the same speaker_id + canonical text.

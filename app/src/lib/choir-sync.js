@@ -63,6 +63,8 @@ export function toSermonShape(row) {
     notes: row.notes ?? null,
     status: row.status ?? 'active',
     source: row.source ?? 'manual',
+    sourceSermonId: row.source_sermon_id ?? null,   // re-preach lineage (0038)
+    sourceSpeakerId: row.source_speaker_id ?? null, // original deliverer's entity
     createdAt: row.created_at ?? null,
   };
 }
@@ -576,6 +578,8 @@ export async function saveSermon(sermon, displayName) {
     notes: sermon.notes ?? null,
     status: sermon.status ?? 'active',
     source: sermon.source ?? 'manual',
+    source_sermon_id: sermon.sourceSermonId ?? null,   // re-preach lineage (0038)
+    source_speaker_id: sermon.sourceSpeakerId ?? null,
   };
   if (sermon.id) {
     const { error } = await supabase.from('choir_sermons').update({ ...row, updated_by: ctx.userId }).eq('id', sermon.id);
@@ -612,26 +616,39 @@ export async function saveSermonDocument(sermonId, documentUrl, source) {
   return error ? { skipped: 'insert-error', error } : { saved: true };
 }
 
-// Reuse a past message as a starting point for a NEW one: a fresh DRAFT carrying
-// the title/scripture/notes (and a back-reference to the original video) on a
-// future date — BG curates the new sermon from the old. Pure so it's testable.
-export function buildReusedSermon(sermon, newDate, newType) {
+// Re-preach a past message: a fresh DRAFT that BG curates from the original,
+// crediting the RE-PREACHER (BG — the canonical primary speaker) while keeping a
+// link back to the SOURCE message + the ORIGINAL deliverer's entity, so both are
+// visible and BG can pull up the source preacher's material. This is BG's actual
+// workflow (Darrell 2026-06-17) — NOT a copy of the source's speaker. Pass the
+// re-preacher's canonical entity (the instance's primary speaker); if absent we
+// keep the source's speaker rather than guess. Pure so it's testable.
+export function buildReusedSermon(sermon, newDate, newType, repreacher) {
+  const repreachName = repreacher?.canonicalName || sermon.speaker || null;
+  const original = sermon.speaker || null;
+  const isRepreach = !!repreacher && repreachName !== original && !!original;
   return {
     serviceDate: newDate,
     serviceType: newType || sermon.serviceType || 'sunday',
     title: sermon.title,
-    speaker: sermon.speaker ?? null,
+    speaker: repreachName,                 // credited to the re-preacher (BG)
     scriptureRef: sermon.scriptureRef ?? null,
-    notes: [sermon.notes, sermon.youtubeUrl ? `Drawn from: ${sermon.youtubeUrl}` : null].filter(Boolean).join('\n'),
+    notes: [
+      sermon.notes,
+      isRepreach ? `Re-preached by ${repreachName}; original by ${original}.` : null,
+      sermon.youtubeUrl ? `Drawn from: ${sermon.youtubeUrl}` : null,
+    ].filter(Boolean).join('\n'),
     youtubeUrl: null,
     startSeconds: null,
     status: 'draft',
     source: 'manual',
+    sourceSermonId: sermon.id ?? null,            // pull up the original material
+    sourceSpeakerId: sermon.speakerId ?? null,    // durable credit to the original deliverer
   };
 }
 
-export async function reuseSermon(sermon, newDate, newType, displayName) {
-  return saveSermon(buildReusedSermon(sermon, newDate, newType), displayName);
+export async function reuseSermon(sermon, newDate, newType, repreacher, displayName) {
+  return saveSermon(buildReusedSermon(sermon, newDate, newType, repreacher), displayName);
 }
 
 // --- Resources (director-curated) --------------------------------------------
