@@ -55,7 +55,7 @@ export const projectsSync = createTableSync({
       nextStep:     row.next_step ?? null,
       blocker:      row.blocker ?? null,
       entityId:     row.entity_slug ?? null,
-      title:        row.title,
+      title:        row.title ?? '',
       startDate:    row.start_date,
       endDate:      row.end_date,
       status:       row.status,

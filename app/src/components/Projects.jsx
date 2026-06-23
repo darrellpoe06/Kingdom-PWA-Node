@@ -1164,7 +1164,7 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
                             <span key={it.id} className={`inline-flex items-baseline gap-1 px-2 py-0.5 border ${it._overdue ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
                               {it.name} <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {fmt(parseFloat(it.cost) || 0)}</span>
                               {it._overdue && <span className="text-[9px] uppercase tracking-wider">overdue</span>}
-                              {it.projectId && projectLookup[it.projectId] && <span className="text-[9px] uppercase tracking-wider">· {projectLookup[it.projectId].title.slice(0, 20)}</span>}
+                              {it.projectId && projectLookup[it.projectId] && <span className="text-[9px] uppercase tracking-wider">· {(projectLookup[it.projectId].title || 'Untitled').slice(0, 20)}</span>}
                             </span>
                           ))}
                         </div>
@@ -1252,7 +1252,7 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
             <button type="button" onClick={() => setProjFilter('all')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>Any</button>
             <button type="button" onClick={() => setProjFilter('unassigned')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === 'unassigned' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>Unassigned</button>
             {projects.map(p => (
-              <button key={p.id} type="button" onClick={() => setProjFilter(p.id)} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === p.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{p.title.slice(0, 24)}</button>
+              <button key={p.id} type="button" onClick={() => setProjFilter(p.id)} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${projFilter === p.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{(p.title || 'Untitled').slice(0, 24)}</button>
             ))}
           </div>
 
@@ -1531,5 +1531,5 @@ function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
 
 function FormField({ label, children }) { return (<div><label className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1 block">{label}</label>{children}</div>); }
 
-export { ProjectsWrapper, Projects, ProjectConversationLog, DateField, PROJECT_DOMAINS, PROJECT_STATUSES };
+export { ProjectsWrapper, Projects, ProjectInventory, ProjectConversationLog, DateField, PROJECT_DOMAINS, PROJECT_STATUSES };
 export default ProjectsWrapper;
