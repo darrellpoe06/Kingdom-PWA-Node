@@ -1,9 +1,10 @@
-# THERAPY TRAINING & CONTINUING-ED CURRICULUM PLAN — Therapy Solutions (Learn tab)
+# THERAPY TRAINING LMS & CURRICULUM PLAN — Therapy Solutions (Practice tab)
 
 **Status:** Layer 3 foundation (reference) — **DRAFT SCAFFOLD.** Read-only proposal. Awaiting LCSW (Christina) review + accredited-source validation before any module is built or taught.
-**Author:** Claude Code (research + scaffold pass), 2026-06-23.
-**For:** Christina Poe, LCSW — owner of The Living Center (TLC) practice — to onboard and continuously train her 1099 contract therapists inside the **Learn** tab.
-**Presenter:** Built against the generalized Learn presenter (`Presenter.jsx` + `lib/presentable.js`, shipped #289/#290) — every course below is authored as scenes (audience text + presenter notes, no-leak).
+**Author:** Claude Code (research + scaffold pass), 2026-06-23. Updated 2026-06-23 (Darrell: surface under **Practice**, not Learn; plan as a phased **LMS**).
+**For:** Christina Poe, LCSW — owner of TLC Therapy Solutions — to onboard, train, and **develop the skills of** her 1099 contract therapists through online courses inside her **Practice** tab.
+**What this is:** a practice **LMS (learning management system)** — therapists take courses online to develop/improve their skills, with progress tracking. Built in **two phases** (§"LMS phasing" below): Phase 1 reuses primitives we already have; Phase 2 is **gated on the practice-roles/membership layer** the family-sharing review flagged as a Tier-C gap.
+**Reuse, don't rebuild:** courses reuse the existing **Learn course + generalized Presenter primitive** (`Presenter.jsx` + `lib/presentable.js`, shipped #289/#290) — every course is authored as scenes (audience text + presenter notes, no-leak). We **mount/surface** that engine inside Practice; we do **not** rebuild it.
 
 ---
 
@@ -13,7 +14,7 @@ This document is a **course scaffold and an industry-standard topic outline.** I
 
 1. **No CEU / accreditation claim.** Nothing here grants CE/CEU credit. CE credit in this field is awarded only by **board-approved providers** (e.g., NASW, ASWB ACE, APA-approved sponsors, state-board-approved courses) — *this app is not one of them, and this plan does not make it one.* Every course below carries the tag: **"DRAFT — pending LCSW (Christina) review + accredited-source validation."**
 2. **No fabricated clinical authority.** The clinical *substance* of any modality, protocol, or risk procedure is **owned by the licensed professional (Christina)**, not by this scaffold and not by the AI. Topics below are framed as *"industry-standard topics to cover,"* citing reputable bodies (APA, NASW, ACA, SAMHSA, state-board norms). We draft *structure and plain-language framing*; Christina supplies and signs off on the *clinical truth*. Per the repo Verification Doctrine: this is an **unverified-until-Christina-reviews** artifact, and it says so on its face.
-3. **TLC privacy boundary.** This is **practice-private** content, behind the **TLC firewall.** It is **NOT** community-shared, **NOT** part of the COLG/church Learn courses, and **NOT** part of the public PoeTech catalog. TLC also disclaims HIPAA/BAA on shared hosting (see `project-brand-surface-hosting-map`) — so no client PHI ever appears in training content; these courses teach *practice*, never reference real clients.
+3. **TLC privacy boundary.** This is **practice-private** content, living **inside the Practice tab** behind the **TLC firewall.** It is **NOT** in the general Learn tab, **NOT** community-shared, **NOT** part of the COLG/church Learn courses, and **NOT** part of the public PoeTech catalog. It sits alongside the existing Practice surface, which already holds the line that **PHI stays in Acuity, never in SKOS** (`LEGAL-PRIVACY-BOUNDARY.md` + `ECOSYSTEM-PARTICIPANTS.md`, enforced in [Practice.jsx:5-8](../../app/src/components/Practice.jsx)). TLC also disclaims HIPAA/BAA on shared hosting (`project-brand-surface-hosting-map`) — so no client PHI ever appears in training content; these courses teach *practice*, never reference real clients.
 4. **State-specific gaps are flagged, never guessed.** CE mandates, mandated-reporting specifics, and supervision rules **vary by state and by license** (LCSW vs LPC vs LMFT). Where a number or rule is state-specific, the scaffold says **"[STATE-SPECIFIC — Christina to confirm for IL + each contractor's license]"** rather than inventing a figure.
 
 > **The honest verdict in one line:** We can build a *genuinely useful internal onboarding + practice-standards library* that makes Christina's 1099 onboarding faster and more consistent. We **cannot** turn it into CE credit, and we won't pretend to. The clinical heart stays with the LCSW.
@@ -173,19 +174,56 @@ Six courses, sequenced from onboarding → professional core → clinical modali
 
 ---
 
-## What "presenter-ready" means here (Learn-tab wiring)
+## Placement — where this lives in the Practice tab (corrected per Darrell 2026-06-23)
 
-Each course is authored as a `presentable` object (per `lib/presentable.js`): an ordered list of **scenes**, each with audience-facing content and presenter notes, no-leak. The generalized Learn presenter (#289/#290) already renders any such course — so once Christina signs off on a course's content, wiring it in is the same path The Word and the other Learn courses now use. **No new presenter work is required; the gate is content sign-off, not engineering.**
+**Situationally-right location:** co-located with where Christina's therapists already work — her **Practice** tab (TLC practice home, `Practice.jsx`), **not** the general Learn tab.
 
-**Sequencing note (honest):** the in-app wiring serializes behind the current monolith decomposition lanes (per `project-new-surface-new-module`). So the path is: **(1) Christina inspects THIS doc → (2) she edits/authors the 🟡 substance → (3) courses are authored as `presentable` scenes → (4) wired into the Learn tab behind the TLC firewall when the lane opens.** This doc is step 1.
+- **New sub-tab inside Practice — "Training" (working name).** The existing Practice surface holds pre-intake inquiries + pipeline ([Practice.jsx](../../app/src/components/Practice.jsx)); the LMS adds a **Training** sub-tab beside it. Same tab strip pattern the app already uses (reuse the shared `<TabScroll>` primitive, `project-tab-overflow-scroll-primitive`).
+- **Reuse the Learn course + Presenter primitive — do NOT rebuild the engine.** Each course is authored as a `presentable` object (`lib/presentable.js`): an ordered list of **scenes**, each with audience-facing content + presenter notes, no-leak. The generalized Presenter (#289/#290) already renders any such course — it's the same engine The Word and the other Learn courses use. The Practice/Training sub-tab simply **mounts that Presenter** against the TLC course set. **No new presenter work; the gate is content sign-off, not engineering.**
+- **Practice-private boundary holds at this location.** The Training sub-tab is gated to TLC staff/contractors (the same firewall the rest of Practice sits behind). It is NOT in the general Learn tab, NOT in the church/COLG catalog, NOT public.
+
+**Sequencing note (honest):** the in-app wiring serializes behind the current monolith decomposition lanes (`project-new-surface-new-module`). Path: **(1) Christina inspects THIS doc → (2) she edits/authors the 🟡 substance → (3) courses authored as `presentable` scenes → (4) mounted in the Practice ▸ Training sub-tab behind the TLC firewall when the lane opens.** This doc is step 1.
+
+---
+
+## LMS phasing — this is a learning-management system, built in two phases
+
+Darrell's scope: not just static courses, but an **LMS** so therapists do online training to develop/improve their skills, with progress tracking. Phased honestly by what each part *depends on*.
+
+### Phase 1 — Courses + a therapist's OWN progress (near; builds on primitives we already have)
+
+A therapist opens **Practice ▸ Training**, takes a course in the Presenter, and sees **their own** progress/completion. Everything Phase 1 needs already exists or is a thin addition:
+
+- **Course delivery:** the reused Learn course + Presenter engine (above). ✅ exists.
+- **Progress tracking via events-as-data:** course start / scene-advance / completion are recorded as **events** (the app's established append-only event-reel + events-as-data pattern, e.g. `_reel.jsonl` / JSONL event records and the `presentable` scene contract). A small `training_progress` record per `(user, course)` tracks "in progress / completed / when."
+- **Self-scoped, so NO roles dependency.** A user reading **their own** progress rows is the safe, easy case — RLS-scoped to `auth.uid()` (or device-local for an un-instanced contractor). It does **not** require anyone to see anyone *else's* data, so Phase 1 is **not** blocked on the roles layer.
+- **Tag:** 🟢 the LMS *plumbing* is draftable/buildable; the *course content* still carries its per-module 🟢/🟡 tags (Christina still owns the clinical substance before any course goes live).
+
+**Phase 1 deliverable:** a working "take the course, track my own completion" loop inside Practice.
+
+### Phase 2 — Enrollment/assignment + a manager view for Christina (GATED on the roles layer)
+
+This is the real LMS management layer: Christina **assigns/enrolls** therapists in courses, and a **manager view shows her who completed what** (development tracking), with completion records / certificates.
+
+- **Enrollment / assignment:** Christina assigns course X to therapist Y, with optional due dates.
+- **Manager dashboard:** Christina sees a roster — who's enrolled, who completed, who's overdue — across all her contractors. This is *development tracking*, the point of an LMS.
+- **Completion records / certificates:** a per-therapist record of completed courses (an *internal completion record* — **still NOT a CEU/accredited certificate**; see the honesty banner. A certificate here means "completed TLC's internal training," nothing more).
+
+**⚠️ HONEST DEPENDENCY — Phase 2 is NOT free. It is gated on the practice-member roles model, which does not exist yet.** The "Christina-the-manager sees her therapists' progress" piece is **the exact same permission gap** the family-sharing review flagged as **Tier C**:
+
+- Today tenancy is **binary `user_in_instance`** — a member sees **all** instance data or **none**; there is **no per-member partition and no differentiated role enforcement** in practice. Roles exist in the vocabulary (`owner/admin/member/viewer/specialist`) but the app does not use them to gate *who sees whose records*. (`FAMILY-SHARING-PERMISSIONS-STATUS.md` §"Architecture grounding" + **GAP A**, [schema-v2.1-infra.sql:124,225](../../infra/supabase/schema-v2.1-infra.sql).)
+- A manager-sees-therapists model needs BOTH: **(a) a practice tenancy** — the 1099 therapists as *members of a TLC practice instance*, distinct from the `poe-family` instance (they are contractors, not family; that membership doesn't exist today), and **(b) role-gated cross-member visibility** — a `manager`/`owner` role that can read **other** members' progress while a `therapist` role reads only their own. In the current binary model, instance-scoping progress rows would make **every** therapist see **every** peer's progress (wrong default) — which is precisely why the granular roles layer is the blocker.
+- This is **the same Tier-C build** as family-sharing **GAP A** (move from binary membership to membership + per-member/role-gated grants; new `shares`/role-gated policies; each migration **proven-to-catch** per DR-0076). **Phase 2 ships only after that roles layer lands** — it is not a separate small feature, it rides the same gate.
+
+**Net:** Phase 1 delivers real value now (self-serve training + own-progress) on existing primitives. Phase 2 (assignment + manager development-tracking + records) is **explicitly gated** on the practice-roles/membership layer — the same Tier-C work the family-sharing review already scoped. We say so rather than implying the manager view is near.
 
 ---
 
 ## Privacy & placement (binding)
 
-- **TLC firewall.** These courses live in the **practice-private** area, gated to TLC staff/contractors. They are NOT in the church/COLG Learn catalog and NOT in the public PoeTech catalog.
-- **No PHI, ever.** All examples are synthetic. Per `project-brand-surface-hosting-map`, TLC carries a no-BAA/HIPAA-disclaimer hosting constraint; training content must never reference a real client.
-- **Access tag for the build:** treat as `tlc-private` (analogous to the family-gated / no-leak pattern already used for private surfaces).
+- **TLC firewall, inside Practice.** These courses live in the **practice-private** Practice ▸ Training sub-tab, gated to TLC staff/contractors. NOT in the general Learn tab, NOT in the church/COLG catalog, NOT public.
+- **No PHI, ever.** All examples are synthetic. PHI stays in Acuity, never in SKOS ([Practice.jsx:5-8](../../app/src/components/Practice.jsx)); per `project-brand-surface-hosting-map`, TLC carries a no-BAA/HIPAA-disclaimer hosting constraint; training content must never reference a real client.
+- **Access tag for the build:** treat as `tlc-private` (analogous to the family-gated / no-leak pattern already used for private surfaces). Phase 2's manager view additionally requires the **role-gated** model above before any cross-member data is shown.
 
 ---
 
