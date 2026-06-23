@@ -43,7 +43,8 @@ import {
   AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, lessonPlanForAge,
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
-import TeachMode from './TeachMode.jsx';
+import Presenter from './Presenter.jsx';
+import { coursePresentable } from '../lib/presentable.js';
 import TextSizeControl from './TextSizeControl.jsx';
 
 const fmtDate = formatClassDate;
@@ -702,10 +703,11 @@ function CourseView({
 
   // Live two-screen teaching takes over the whole surface (presenter console here,
   // projected class screen in a popped window). Governor-only; entered below.
-  // Gated to the A.I. course: TeachMode reads the youth-class MODULES directly,
-  // so it would paint the wrong curriculum on any other course.
-  if (teaching && meta.key === 'ai') {
-    return <TeachMode cohortStart={cohortStart} onClose={() => setTeaching(false)} />;
+  // Generalized: the shared <Presenter> renders ANY course from a presentable built
+  // off this course's own meta + schedule — so every course can teach live, not just
+  // the A.I. one. (Was gated to meta.key === 'ai'; Darrell 2026-06-23.)
+  if (teaching) {
+    return <Presenter presentable={coursePresentable(course)} onClose={() => setTeaching(false)} />;
   }
 
   return (
@@ -949,15 +951,15 @@ function CourseView({
           >
             {showFacilitator ? '✓ Facilitator guide showing' : 'Show facilitator guide'}
           </button>
-          {meta.key === 'ai' && (
-            <button
-              type="button"
-              onClick={() => setTeaching(true)}
-              className="ml-2 text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-            >
-              ▶ Teach live (presenter + class screen)
-            </button>
-          )}
+          {/* Every course can teach live now (was A.I.-only) — the shared Presenter
+              builds its slides from this course's own schedule. Darrell 2026-06-23. */}
+          <button
+            type="button"
+            onClick={() => setTeaching(true)}
+            className="ml-2 text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            ▶ Teach live (presenter + class screen)
+          </button>
         </div>
       )}
 

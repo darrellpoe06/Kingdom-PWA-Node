@@ -36,6 +36,8 @@ import {
   saveSermonDocument, importSermonsFromChannel, openSermonDocument, fetchPublicSermons,
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
+import Presenter from './Presenter.jsx';
+import { wordPresentable } from '../lib/presentable.js';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) => {
@@ -278,6 +280,7 @@ export default function Pulpit() {
   const [signedIn, setSignedIn] = useState(false);
   const [canManage, setCanManage] = useState(false); // owner/admin = BG / Darrell / Christina
   const [tab, setTab] = useState('library');
+  const [presenting, setPresenting] = useState(false); // live present mode (leadership)
   const [sermons, setSermons] = useState([]);        // leadership: table (incl drafts)
   const [publicSermons, setPublicSermons] = useState([]); // everyone else: RPC (published)
   const [sermonDocs, setSermonDocs] = useState([]);  // owner/admin only (RLS)
@@ -340,6 +343,22 @@ export default function Pulpit() {
   // crediting himself while linking the original deliverer's material (0038).
   const onReuse = async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType, primarySpeaker)); setTab('library'); };
 
+  // The published messages, presentable on the screen behind the speaker (the same
+  // shared Presenter the Learn courses use). Drafts/prep stay off it by construction.
+  const presentMessages = (canManage ? withDocs : publicSermons).filter((s) => s && s.status !== 'draft');
+  const canPresent = presentMessages.length > 0;
+
+  // Live present mode takes over the surface (presenter console here, projected
+  // message screen in a popped window) — the same primitive as the Learn courses.
+  if (presenting) {
+    return (
+      <Presenter
+        presentable={wordPresentable(presentMessages, { title: 'The Word — Migdal' })}
+        onClose={() => setPresenting(false)}
+      />
+    );
+  }
+
   return (
     <div className="max-w-2xl">
       <SectionTitle eyebrow="Church · The Word — Migdal">The Word — Migdal</SectionTitle>
@@ -373,6 +392,20 @@ export default function Pulpit() {
       )}
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
+
+      {/* Present live — put a message up on the screen behind the speaker. The same
+          shared Presenter the Learn courses use; available on the public library. */}
+      {tab === 'library' && canPresent && (
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={() => setPresenting(true)}
+            className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            ▶ Present live (message + class screen)
+          </button>
+        </div>
+      )}
 
       {tab === 'library' && (
         <LibraryPanel
