@@ -78,7 +78,7 @@ export default function AudienceWindow() {
       {showHold ? (
         <div style={{ textAlign: 'center', margin: 'auto' }}>
           <div style={{ fontSize: 'clamp(13px, 1.4vw, 18px)', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 24 }}>
-            The Church of the Living God
+            {hold?.kicker || 'The Church of the Living God'}
           </div>
           <h1 style={{ fontSize: 'clamp(40px, 7vw, 104px)', fontWeight: 600, lineHeight: 1.04, letterSpacing: '-0.02em', margin: 0 }}>
             {hold?.title || 'Learning A.I. The Way'}
@@ -90,9 +90,13 @@ export default function AudienceWindow() {
       ) : (
         <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 'clamp(16px, 2vw, 28px)' }}>
-            <span style={{ fontSize: 'clamp(13px, 1.4vw, 18px)', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E' }}>
-              Week {slide.week} of {slide.total}
-            </span>
+            {/* Generic position label (indexLabel) for any surface; falls back to the
+                original "Week X of Y" if an older presenter posts the legacy shape. */}
+            {(slide.indexLabel || slide.week) && (
+              <span style={{ fontSize: 'clamp(13px, 1.4vw, 18px)', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E' }}>
+                {slide.indexLabel || `Week ${slide.week} of ${slide.total}`}
+              </span>
+            )}
             {slide.dateLabel && (
               <span style={{ fontSize: 'clamp(12px, 1.2vw, 16px)', color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace' }}>
                 {slide.dateLabel}
@@ -104,13 +108,15 @@ export default function AudienceWindow() {
             {slide.title}
           </h1>
 
-          <p style={{ fontSize: 'clamp(20px, 2.8vw, 42px)', lineHeight: 1.3, marginTop: 'clamp(20px, 3vw, 40px)', marginBottom: 0 }}>
-            {slide.bigIdea}
-          </p>
+          {(slide.lead || slide.bigIdea) && (
+            <p style={{ fontSize: 'clamp(20px, 2.8vw, 42px)', lineHeight: 1.3, marginTop: 'clamp(20px, 3vw, 40px)', marginBottom: 0 }}>
+              {slide.lead || slide.bigIdea}
+            </p>
+          )}
 
-          {slide.inApp && (
+          {(slide.detail || slide.inApp) && (
             <p style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.35, marginTop: 'clamp(18px, 2.4vw, 32px)', color: '#CFC9BD' }}>
-              <span style={{ color: '#C9D9A6', fontWeight: 600 }}>In the app: </span>{slide.inApp}
+              <span style={{ color: '#C9D9A6', fontWeight: 600 }}>{slide.detailLabel || 'In the app'}: </span>{slide.detail || slide.inApp}
             </p>
           )}
 
