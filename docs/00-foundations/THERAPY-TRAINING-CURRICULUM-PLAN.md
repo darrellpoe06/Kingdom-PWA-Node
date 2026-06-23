@@ -3,7 +3,7 @@
 **Status:** Layer 3 foundation (reference) — **DRAFT SCAFFOLD.** Read-only proposal. Awaiting licensed (LCSW) review + accredited-source validation before any module is built or taught.
 **Author:** Claude Code (research + scaffold pass), 2026-06-23. Updated 2026-06-23 ×3 (Darrell: surface under **Practice** not Learn; plan as a phased **LMS**; then — plan as a **multi-tenant PRODUCT for any therapy office**, not just TLC).
 **Brand / product:** **TLC Therapy Solutions** ([tlctherapysolutions.com](https://tlctherapysolutions.com)) — the LMS is a product *any* therapy office can adopt, under this brand. **Christina Poe, LCSW** (TLC's owner) is the **first tenant** and the design partner; the product generalizes from her practice's needs to any office (same pattern as the Church module generalizing from COLG, `COMMUNITY-FIRST-MISSION.md`).
-**What this is:** a **multi-tenant practice LMS** — each therapy office is its own **tenant** (its own manager + therapists, its own data), adopting a **shared industry-standard curriculum catalog**, with each office's data and people **HARD-isolated** from every other office (HIPAA-adjacent; cross-tenant no-leak is critical — §"Multi-tenant product architecture"). Therapists take courses online to develop/improve their skills, with progress tracking.
+**What this is:** a **multi-tenant practice LMS** whose **purpose is better patient OUTCOMES** — each therapy office is its own **tenant** (its own manager + therapists + patients, its own data), adopting a **shared industry-standard curriculum catalog**, with each office's data and people **HARD-isolated** from every other office (HIPAA-adjacent; cross-tenant no-leak is critical — §"Multi-tenant product architecture"). It serves **two audiences** (§"Two audience tracks"): **Track A — Clinicians** (professional development → better outcomes) and **Track B — Patients / Families / Kids** (psychoeducation: learning the *how and why of therapy*, anytime, self-serve, age-appropriate). Both have progress tracking.
 **Reuse, don't rebuild:** courses reuse the existing **Learn course + generalized Presenter primitive** (`Presenter.jsx` + `lib/presentable.js`, shipped #289/#290) — every course is authored as scenes (audience text + presenter notes, no-leak). We **mount/surface** that engine inside each tenant's **Practice** tab; we do **not** rebuild it.
 **Two dependencies stated up front (honest):** multi-tenant onboarding of *outside* offices **and** the manager-sees-therapists view both depend on the **unified roles/membership layer designed separately** in [`ROLES-MEMBERSHIP-MULTITENANCY-ADR.md`](ROLES-MEMBERSHIP-MULTITENANCY-ADR.md) (the same Tier-C work the family-sharing review scoped). Cross-*tenant* isolation, by contrast, rides the tenancy model that **already exists and is partly live-verified** (§ below).
 
@@ -17,8 +17,9 @@ This document is a **course scaffold and an industry-standard topic outline.** I
 2. **No fabricated clinical authority.** The clinical *substance* of any modality, protocol, or risk procedure is **owned by the licensed professional (Christina)**, not by this scaffold and not by the AI. Topics below are framed as *"industry-standard topics to cover,"* citing reputable bodies (APA, NASW, ACA, SAMHSA, state-board norms). We draft *structure and plain-language framing*; Christina supplies and signs off on the *clinical truth*. Per the repo Verification Doctrine: this is an **unverified-until-Christina-reviews** artifact, and it says so on its face.
 3. **Per-tenant privacy boundary + HARD cross-tenant isolation.** This is **practice-private** content, living **inside each tenant's Practice tab** behind that tenant's firewall. It is **NOT** in the general Learn tab, **NOT** community-shared, **NOT** part of the COLG/church Learn courses, and **NOT** part of the public PoeTech catalog. Each office's data and therapists are **hard-isolated from every other office** (HIPAA-adjacent — see §"Multi-tenant product architecture"). It sits alongside the existing Practice surface, which already holds the line that **PHI stays in Acuity, never in SKOS** (`LEGAL-PRIVACY-BOUNDARY.md` + `ECOSYSTEM-PARTICIPANTS.md`, enforced in [Practice.jsx:5-8](../../app/src/components/Practice.jsx)). The brand (TLC Therapy Solutions) disclaims HIPAA/BAA on shared hosting (`project-brand-surface-hosting-map`) — so no client PHI ever appears in training content; these courses teach *practice*, never reference real clients.
 4. **State-specific gaps are flagged, never guessed.** CE mandates, mandated-reporting specifics, and supervision rules **vary by state and by license** (LCSW vs LPC vs LMFT). Where a number or rule is state-specific, the scaffold says **"[STATE-SPECIFIC — Christina to confirm for IL + each contractor's license]"** rather than inventing a figure.
+5. **PSYCHOEDUCATION, NOT TREATMENT — the brightest line in this document.** The patient/family/kids track (Track B) teaches people *about* therapy — the how and why. **It is NOT therapy, NOT treatment, NOT clinical advice, and NOT a substitute for a session.** **The app teaches; the licensed therapist treats.** Track B content NEVER diagnoses, NEVER tells a specific person what their condition is or what to do about it, and NEVER positions itself as care. Every Track B surface carries this disclaimer, and **any crisis/safety topic routes to real human help (988 / a clinician), never to self-serve advice** (§"Crisis & safety routing"). Kids' content is **age-adaptive + COPPA-compliant + guardian-gated** (§"Track B"). This line is not negotiable and is not a tag — it governs all of Track B.
 
-> **The honest verdict in one line:** We can build a *genuinely useful internal onboarding + practice-standards library* that makes Christina's 1099 onboarding faster and more consistent. We **cannot** turn it into CE credit, and we won't pretend to. The clinical heart stays with the LCSW.
+> **The honest verdict in one line:** We can build a *genuinely useful* two-audience learning system — clinician development *and* patient/family psychoeducation — that serves better outcomes. We **cannot** turn it into CE credit, and the app **cannot** treat or advise a patient. The clinical heart — diagnosis, treatment, advice, crisis response — stays with the licensed human.
 
 ---
 
@@ -35,7 +36,20 @@ A course can be mostly 🟢 with 🟡 modules inside it. The tag is applied **pe
 
 ---
 
-## The proposed course set — "Therapy Solutions" track
+## Two audience tracks (the LMS serves both, toward outcomes)
+
+The purpose is **better patient outcomes.** The LMS reaches that through two distinct audiences, each with its own catalog, its own access gate, and its own boundaries:
+
+| Track | Audience | Purpose | What it is | Boundary |
+|---|---|---|---|---|
+| **A — Clinician** | The office's licensed/pre-licensed therapists (and new 1099 hires) | Professional development → better outcomes | Onboarding + professional-core + modality survey courses (the six below) | DRAFT / pending-LCSW; no CEU; clinical substance owned by the licensed pro |
+| **B — Patient / Family / Kids** | Patients, their families, and children — the people a tenant's clinicians serve | Psychoeducation: understand the *how and why of therapy*, anytime, self-serve | Plain-language, age-appropriate learning *about* therapy (what it is, what to expect, how to get the most from it) | **PSYCHOEDUCATION, NOT TREATMENT** (banner #5); kids = age-adaptive + COPPA + guardian-gated; crisis → real help |
+
+Both tracks live **per tenant, behind that office's firewall**, reuse the **same Presenter primitive**, and ride the **same multi-tenant isolation**. Track B is **not** clinician training and **not** therapy — it is the patient-facing learning layer. **Track A is detailed first (Courses 1–6); Track B follows in its own section below.**
+
+---
+
+## Track A — Clinician track (professional development)
 
 Six courses, sequenced from onboarding → professional core → clinical modalities → ongoing CE-relevant refreshers. Audience is tagged **NEW HIRE** (onboarding a new 1099 contractor) or **ONGOING** (recurring / CE-relevant refresher for active clinicians).
 
@@ -160,7 +174,51 @@ Six courses, sequenced from onboarding → professional core → clinical modali
 
 ---
 
+## Track B — Patient / Family / Kids (psychoeducation)
+
+**Audience:** the people a tenant's clinicians serve — patients, their families, and children. **Purpose:** psychoeducation. Psychoeducation is itself an **evidence-based intervention** — teaching patients and families about the nature of a condition, its treatment, and coping/management — with a substantial evidence base (e.g., 30+ RCTs in the family-psychoeducation literature; recommended in APA treatment guidance for serious conditions). *That evidence base is exactly why we frame this as education **delivered alongside** care, never as a replacement for it.*
+
+> **🚧 THE BRIGHT LINE (restated, governs all of Track B):** This track teaches people the **how and why of therapy.** It is **NOT therapy, NOT treatment, NOT diagnosis, NOT clinical advice.** **The app teaches; the licensed therapist treats.** No Track B surface tells a specific person what is wrong with them or what to do about it. Every lesson opens with this in plain language and a one-tap path to "talk to a real person."
+
+### B-1 · "What is therapy?" (adult / general) — 🟢 SCAFFOLD-able framing, 🟡 reviewed
+- What therapy is and isn't; what a first session looks like; confidentiality and its limits (in plain language); the difference between modalities at a *layperson* level; how to get the most out of sessions; how to talk to your therapist. **Self-serve, anytime.** Framing draftable 🟢; final wording 🟡 reviewed so nothing reads as advice.
+
+### B-2 · Family / supporting a loved one — 🟡 reviewed
+- For families: understanding what a loved one in therapy is experiencing; how to support without "fixing"; healthy boundaries; what family therapy involves. Grounded in the **family-psychoeducation** evidence base (empathic engagement, communication, education on resources, ongoing support). 🟡 because it's closest to the care relationship.
+
+### B-3 · Therapy for KIDS (age-adaptive, COPPA, guardian-gated) — 🟡 reviewed + 🟢 age-adaptive plumbing
+- Age-appropriate "what is therapy / why feelings are okay / what happens when you talk to a helper" content for children. **Hard requirements:**
+  - **Age-adaptive:** reuse the existing age-adaptive lesson primitive (`lib/learn-framework.js`, proven by [age-adaptive.test.js](../../app/src/__tests__/age-adaptive.test.js)) — the same engine the Church youth class uses; content adapts by age band.
+  - **COPPA + guardian-gated:** a child reaches this **only** through a guardian-provisioned, guardian-consented path. This **depends on the minor/guardian model that does NOT exist yet** — family-sharing **GAP B** (no COPPA / parental-consent / age-gate anywhere in provisioning today; a naively-added minor would become a full member). So **kids' content ships only after the guardian/minor layer lands** ([`ROLES-MEMBERSHIP-MULTITENANCY-ADR.md`](ROLES-MEMBERSHIP-MULTITENANCY-ADR.md) + `FAMILY-SHARING-PERMISSIONS-STATUS.md` GAP B). Stated honestly: this is gated, not near.
+  - **Never solo for a child in distress:** any distress signal routes to a guardian + real help, never self-serve coping "advice."
+
+**Presenter structure (all of Track B):** plain-language scenes, the bright-line disclaimer as scene 1, a persistent "talk to a real person / get help now" affordance, and (for B-3) age-band variants via the age-adaptive framework. **Track B is patient-facing, so its tone test is warmth + clarity + zero diagnostic language.**
+*Sources:* [Psychoeducation as an evidence-based intervention (overview)](https://www.psychiatrictimes.com/view/evidence-based-practice-psychoeducation-schizophrenia) · [Family psychoeducation (encyclopedia overview)](https://www.encyclopedia.com/medicine/encyclopedias-almanacs-transcripts-and-maps/family-psychoeducation) · [Psychoeducation (overview)](https://en.wikipedia.org/wiki/Psychoeducation)
+
+---
+
+## Crisis & safety routing (binding for the whole product, Track B especially)
+
+**No crisis or safety topic is ever handled by self-serve content or by the app giving advice.** When a learner (patient, family, or kid) signals distress, risk, or asks a crisis question, the surface does ONE thing: **route to real human help.**
+
+- **The route:** the **988 Suicide & Crisis Lifeline** — call/text **988**, or chat at [988lifeline.org](https://988lifeline.org). Free, 24/7, national; English/Spanish + 240+ languages. For a tenant, also surface that office's own clinician/emergency contact. ([988 — FCC](https://www.fcc.gov/988-suicide-and-crisis-lifeline) · [988 Lifeline](https://988lifeline.org))
+- **The rule:** the app **never** counsels through a crisis, never offers "coping steps" in place of a human, never delays the human hand-off. A crisis affordance is always one tap away on every Track B surface. This mirrors Track A Course 4 (risk) — the clinical substance of risk belongs to humans, and for patients the *only* answer is "here is real help, now."
+- **For kids (B-3):** distress additionally pulls in the guardian. Never a child alone with the app in a hard moment.
+
+---
+
+## Outcome linkage (design dimension — and a PHI caution)
+
+Darrell's purpose is **patient outcomes,** so the LMS is designed to *connect* training to outcomes — but carefully:
+
+- **The design dimension:** Track A (a clinician completes development) and Track B (a patient/family engages psychoeducation) are both inputs a practice may want to relate to outcome trends (engagement, follow-through, the office's own outcome measures). The data model should make that *possible* (events-as-data already timestamps completions per §"LMS phasing").
+- **🔴 But outcome data = PHI. Handle with extreme care.** Anything that links a *patient* to outcomes, symptoms, or engagement is **PHI** and falls under the brand's HIPAA/BAA constraint (no PHI on non-BAA shared hosting; PHI stays in Acuity — `LEGAL-PRIVACY-BOUNDARY.md`, `project-brand-surface-hosting-map`). So: **clinician-side** development metrics are fine in-product; **patient-side** outcome linkage is **NOT** built into the shared-hosted LMS without the proper HIPAA posture and is flagged here as a **gated, later, carefully-architected** dimension — never a casual analytics feature. Stated plainly so no one wires patient outcomes into a non-compliant surface by default.
+
+---
+
 ## Scaffold-vs-needs-LCSW summary (the inspection table)
+
+**Track A — Clinician:**
 
 | Course | 🟢 SCAFFOLD (we draft now) | 🟡 NEEDS-LCSW (Christina authors / accredited source + sign-off) |
 |---|---|---|
@@ -171,7 +229,16 @@ Six courses, sequenced from onboarding → professional core → clinical modali
 | 5 · Modalities | Plain-language "what is it" survey + the awareness-only disclaimer | All clinical depth + framing of every modality |
 | 6 · Telehealth/Culture/Supervision ◆ | Platform & supervision *logistics* | Telehealth clinical standards, cultural-competence substance, supervision rules |
 
-**Read-across:** Course 1 is ~90% draftable now. Courses 2–6 are *structurable* now but **clinically empty until Christina fills them** — and Course 4 (risk) and any CE-implying content do not ship without accredited-source backing.
+**Track B — Patient / Family / Kids (psychoeducation, NOT treatment):**
+
+| Course | 🟢 SCAFFOLD (we draft now) | 🟡 NEEDS-LCSW + dependency |
+|---|---|---|
+| B-1 · What is therapy? | Plain-language framing, "what to expect," disclaimer scaffolding | Final wording reviewed so nothing reads as advice |
+| B-2 · Family / loved one | Support-without-fixing framing, structure | Wording reviewed (closest to the care relationship) |
+| B-3 · Therapy for kids | Age-adaptive *plumbing* (existing framework) | Content reviewed + **gated on the COPPA/guardian-minor layer (GAP B)** |
+| Crisis routing | 988 + tenant-clinician affordance (logistics) | Bright-line: never self-serve advice — routes to humans |
+
+**Read-across:** Course 1 is ~90% draftable now. Courses 2–6 are *structurable* now but **clinically empty until Christina fills them** — and Course 4 (risk) and any CE-implying content do not ship without accredited-source backing. **Track B** is structurable now, but every word is reviewed so nothing reads as advice, and **B-3 (kids) is gated on the COPPA/guardian-minor layer** — both tracks hold the "app teaches, therapist treats" line.
 
 ---
 
@@ -271,7 +338,9 @@ These ground the *topic selection and standard-body framing* — not the clinica
 - Documentation: [SOAP vs DAP — Headway](https://headway.co/resources/soap-vs-dap-notes) · [Progress-note best practices](https://behavehealth.com/blog/mastering-mental-health-progress-notes-a-comprehensive-guide-to-best-practices-compliance-and-effective-documentation) · [SOAP Notes — NCBI StatPearls](https://www.ncbi.nlm.nih.gov/books/NBK482263/)
 - Supervision: [Competency-based clinical supervision guide](https://www.blueprint.ai/blog/clinical-supervision-a-comprehensive-guide-for-mental-health-professionals)
 - CE-requirement norms (state-specific, illustrative — confirm for IL): [WA DOH social-worker CE](https://doh.wa.gov/licenses-permits-and-certificates/professions-new-renew-or-update/social-worker-and-social-worker-associate/continuing-education) · [CA BBS continuing education](https://bbs.ca.gov/licensees/cont_ed.html) · [Mandated-reporter training (NY OP, illustrative)](https://www.op.nysed.gov/professions/mental-health-counselors/mandated-training)
+- Track B (psychoeducation): [Psychoeducation as evidence-based practice](https://www.psychiatrictimes.com/view/evidence-based-practice-psychoeducation-schizophrenia) · [Family psychoeducation overview](https://www.encyclopedia.com/medicine/encyclopedias-almanacs-transcripts-and-maps/family-psychoeducation) · [Psychoeducation (overview)](https://en.wikipedia.org/wiki/Psychoeducation)
+- Crisis routing: [988 Suicide & Crisis Lifeline (FCC)](https://www.fcc.gov/988-suicide-and-crisis-lifeline) · [988lifeline.org](https://988lifeline.org)
 
 ---
 
-**End of plan.** This is a SCAFFOLD — a shared catalog for Christina (first tenant) and any adopting office's licensed lead to inspect, edit, and own per tenant. It claims no accreditation, grants no CE credit, hands the clinical substance to the licensed professional, and hard-isolates every office from every other — by design.
+**End of plan.** This is a SCAFFOLD — a shared two-track catalog (clinician development + patient/family/kids psychoeducation) for Christina (first tenant) and any adopting office's licensed lead to inspect, edit, and own per tenant. It claims no accreditation, grants no CE credit, hands the clinical substance to the licensed professional, hard-isolates every office from every other, and holds the brightest line in the document: **the app teaches; the licensed therapist treats** — crisis and care always route to a real human. By design.
