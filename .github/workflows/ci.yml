@@ -30,7 +30,11 @@ on:
 
 jobs:
   app:
-    name: app — lint + vitest + build
+    # Name is load-bearing: the main-lane ruleset requires a status check named
+    # exactly "app — lint + vitest". Do NOT rename this job — the build step
+    # below runs INSIDE this job, so a failed build still fails this required
+    # check. Renaming would orphan the required check and block every PR.
+    name: app — lint + vitest
     runs-on: ubuntu-latest
     defaults:
       run:
