@@ -3075,6 +3075,10 @@ export default function PoeFinancialSystem() {
     const localId = `pr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const seeded = {
       ...item,
+      // Mirror toRow's `item.title ?? ''` default so a project never carries a
+      // null/undefined title into render (ProjectInventory's filter row calls
+      // `.slice` on it). Keeps an explicit title; only fills the empty case.
+      title: item.title ?? '',
       id: localId,
       createdAt: item.createdAt || nowIso,
       // Attribute the project to the signed-in user so it is "Mine" immediately
