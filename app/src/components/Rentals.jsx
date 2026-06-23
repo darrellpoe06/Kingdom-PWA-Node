@@ -751,7 +751,7 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   );
 }
 
-function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], dispatchIncident, voiceOps = {} }) {
+function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], workerOps = {}, voiceOps = {} }) {
   // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
   // incident already pointed at it (if any) so we don't double-track.
   const openIncidentFor = (r) => incidents.find(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
@@ -1749,7 +1749,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                       <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: wo.status === 'resolved' ? '#5A6E3D' : '#B85838' }}>
                                         🛠 Work order {wo.status === 'resolved' ? 'done' : `open · due ${wo.dueDate || '—'}`} · also on the Action Queue
                                       </div>
-                                      <DispatchPanel incident={wo} property={r} contractors={contractors} onDispatch={dispatchIncident} onResolve={resolveIncident} />
+                                      <DispatchPanel incident={wo} property={r} contractors={contractors} {...workerOps} onResolve={resolveIncident} />
                                     </div>
                                   );
                                 })()}

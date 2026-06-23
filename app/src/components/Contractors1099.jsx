@@ -11,9 +11,15 @@ const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Ma
 // values and the schema's lifecycle states are both real; nothing flattens.
 const CONTRACTOR_STATUSES = ['active', 'pipeline', 'possible', 'paused', 'inactive', 'ended', 'terminated'];
 
+// contractor = someone you hire to do work; vendor = someone you buy goods /
+// supplies from. The work-order dispatch defaults each assigned worker's type
+// from this, so the crew on a job reads right (who's labor, who's supply).
+const CONTRACTOR_TYPES = ['contractor', 'vendor'];
+
 const BLANK_CONTRACTOR = {
   direction: 'outbound',
   entityId: 'e-personal',
+  type: 'contractor',
   name: '',
   role: '',
   // Phone is what makes one-tap dispatch work (DispatchPanel texts the job
@@ -36,7 +42,7 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
       <div className="flex justify-between items-baseline gap-3 flex-wrap">
         <div className="flex-1 min-w-0">
           <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{c.name}</div>
-          <div className="text-xs text-[#5A5751]">{c.role}{c.status && c.status !== 'active' ? ` · ${c.status}` : ''}</div>
+          <div className="text-xs text-[#5A5751]">{c.type === 'vendor' ? 'vendor' : 'contractor'}{c.role ? ` · ${c.role}` : ''}{c.status && c.status !== 'active' ? ` · ${c.status}` : ''}</div>
           {(c.phone || c.email) && (
             <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               {c.phone && <a href={`tel:${c.phone.replace(/[^\d+]/g, '')}`} className="hover:text-[#1A1815] underline">{c.phone}</a>}
@@ -81,7 +87,8 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="e.g., 217-555-0142" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Email</label><input type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Type</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value })}>{CONTRACTOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direction</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.direction} onChange={e => setEditForm({ ...editForm, direction: e.target.value })}><option value="outbound">outbound (we pay)</option><option value="inbound">inbound (we receive)</option></select></div>
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.entityId} onChange={e => setEditForm({ ...editForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>{CONTRACTOR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
@@ -126,6 +133,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
     setEditForm({
       direction: c.direction || 'outbound',
       entityId: c.entityId || 'e-personal',
+      type: c.type || 'contractor',
       name: c.name || '',
       role: c.role || '',
       phone: c.phone || '',
@@ -168,7 +176,8 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 217-555-0142" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} /></div>
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Email</label><input type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="worker@example.com" value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} /></div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Type</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.type} onChange={e => setAddForm({ ...addForm, type: e.target.value })}>{CONTRACTOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direction</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.direction} onChange={e => setAddForm({ ...addForm, direction: e.target.value })}><option value="outbound">outbound (we pay)</option><option value="inbound">inbound (we receive)</option></select></div>
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.entityId} onChange={e => setAddForm({ ...addForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.status} onChange={e => setAddForm({ ...addForm, status: e.target.value })}>{CONTRACTOR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
