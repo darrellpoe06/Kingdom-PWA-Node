@@ -45,7 +45,29 @@ The purpose is **better patient outcomes.** The LMS reaches that through two dis
 | **A — Clinician** | The office's licensed/pre-licensed therapists (and new 1099 hires) | Professional development → better outcomes | Onboarding + professional-core + modality survey courses (the six below) | DRAFT / pending-LCSW; no CEU; clinical substance owned by the licensed pro |
 | **B — Patient / Family / Kids** | Patients, their families, and children — the people a tenant's clinicians serve | Psychoeducation: understand the *how and why of therapy*, anytime, self-serve | Plain-language, age-appropriate learning *about* therapy (what it is, what to expect, how to get the most from it) | **PSYCHOEDUCATION, NOT TREATMENT** (banner #5); kids = age-adaptive + COPPA + guardian-gated; crisis → real help |
 
-Both tracks live **per tenant, behind that office's firewall**, reuse the **same Presenter primitive**, and ride the **same multi-tenant isolation**. Track B is **not** clinician training and **not** therapy — it is the patient-facing learning layer. **Track A is detailed first (Courses 1–6); Track B follows in its own section below.**
+Both tracks live **per tenant, behind that office's firewall**, reuse the **same Presenter primitive**, and ride the **same multi-tenant isolation**. Track B is **not** clinician training and **not** therapy — it is the patient-facing learning layer. **Track A is detailed first (Courses 1–6); Track B follows in its own section below.** Both tracks deliver through the **adaptive learning model** described next.
+
+---
+
+## Adaptive learning model — the Lexia pattern (governs BOTH tracks)
+
+**Design reference from Christina + Candice:** model the LMS on the **Lexia Reading Program's adaptive pattern** ([lexialearning.com](https://www.lexialearning.com/)) — a personalized-mastery loop that meets each learner where they are, speeds through what they know, dwells on gaps, and reports to the human in charge. It is a **supplement to human-led instruction, never a replacement** — which maps cleanly onto this product's two bright lines (Track A: the human supervisor/CE owns competence; Track B: *the app teaches, the therapist treats*).
+
+**The five-stage Lexia loop, mapped to each track:**
+
+| Stage | Lexia pattern | Track A (clinician) | Track B (patient/family/kids) |
+|---|---|---|---|
+| **1 · Assess** | Initial assessment → identify level + gaps | A short, **LCSW-validated** placement check routes a clinician past what they've mastered to the gaps (a senior trauma clinician skips the TIC intro; a new hire doesn't). | A gentle, **non-diagnostic** "what do you already understand about therapy?" placement — *never* a clinical screen, never a symptom inventory (banner #5). |
+| **2 · Adapt the path** | Auto-adjust to the individual — speed through mastered skills, dwell on gaps | The course path reorders/skips by demonstrated mastery, per modality. | The learning path adjusts to what the patient/family/kid already grasps; **age band** drives the kid path (existing age-adaptive framework). |
+| **3 · Practice + immediate feedback** | Targeted practice with instant feedback | Scenario practice (ethics vignettes, doc exercises) with immediate, **content-reviewed** feedback. | Plain-language check-ins ("what would you expect in a first session?") with warm, **advice-free** feedback — comprehension, never clinical guidance. |
+| **4 · Auto progress → reports** | Automatic tracking → reports to the teacher/manager | Events-as-data tracks mastery; **the office manager (Christina) sees development reports** = the **manager-view in the roles ADR**. | A patient's own progress is self-scoped; a **kid's progress reports to the guardian** (and, only with consent + proper PHI posture, the treating clinician — see Outcome-linkage PHI caution). |
+| **5 · Engaging, supplement-not-replacement** | Game-like engagement; supplements human instruction | Motivating, low-friction micro-lessons that *support* supervision + real CE, never stand in for them. | Friendly, age-appropriate, encouraging; **explicitly a companion to real therapy, never a substitute** (the bright line, surfaced in-product). |
+
+**Three implementation notes (honest about where each piece rides):**
+
+- **Adaptive personalization is a strong fit for the LOCAL-LLM tier — and that's a sovereignty win.** The assess→adapt→feedback loop can run **on-device against a local model** (the sovereign tier — `LOCAL-LLM-HARDWARE-RECOMMENDATION.md`), so **learner data never leaves the box.** This is the same local-first tutor pattern already proven in the Church youth A.I. class (`project-church-llm-classes`: local-first qwen2.5 tutor, `wf-class-tutor`). For Track B especially — where a patient/kid's responses are sensitive — **on-device personalization means no patient learning-data crosses the network**, which directly serves the HIPAA-adjacent posture. (Cloud-model fallback only with the proper data posture; default to local for patient-facing adaptivity.)
+- **The teacher/manager reports ARE the manager-view in the roles ADR.** Stage 4's "report to the manager" is not a new system — it is exactly the manager-sees-team-progress capability scoped in [`ROLES-MEMBERSHIP-MULTITENANCY-ADR.md`](ROLES-MEMBERSHIP-MULTITENANCY-ADR.md). So the **clinician-manager report (Track A) and the kid→guardian report (Track B) are both gated on the roles/membership layer** (Phase 2; see "LMS phasing"). The *learner's own* adaptive progress (Stage 1–3 + self-view) is **not** gated — it's the Phase-1, self-scoped case.
+- **Adaptivity does not move the bright lines.** Adaptive Track B is still psychoeducation, still LCSW-reviewed wording, still COPPA/guardian-gated for kids, and **still routes any crisis signal to a human (988 / clinician), never to an adaptive "coping path."** The model personalizes *teaching*; it never personalizes *treatment*.
 
 ---
 
@@ -294,13 +316,14 @@ A therapist opens **Practice ▸ Training**, takes a course in the Presenter, an
 - **Course delivery:** the reused Learn course + Presenter engine (above). ✅ exists.
 - **Progress tracking via events-as-data:** course start / scene-advance / completion are recorded as **events** (the app's established append-only event-reel + events-as-data pattern, e.g. `_reel.jsonl` / JSONL event records and the `presentable` scene contract). A small `training_progress` record per `(user, course)` tracks "in progress / completed / when."
 - **Self-scoped, so NO roles dependency.** A user reading **their own** progress rows is the safe, easy case — RLS-scoped to `auth.uid()` (or device-local for an un-instanced contractor). It does **not** require anyone to see anyone *else's* data, so Phase 1 is **not** blocked on the roles layer.
-- **Tag:** 🟢 the LMS *plumbing* is draftable/buildable; the *course content* still carries its per-module 🟢/🟡 tags (Christina still owns the clinical substance before any course goes live).
+- **Adaptive loop, self-scoped (Lexia stages 1–3 + 5):** placement assessment, adapt-the-path, targeted practice + immediate feedback, and the learner's **own** progress view all operate on the learner's *own* data — so the **personalized adaptive experience is a Phase-1 capability** (ideally on the **local-LLM tier**, learner data on-device). Only Stage 4's *report to someone else* (manager/guardian) crosses into Phase 2.
+- **Tag:** 🟢 the LMS *plumbing* is draftable/buildable; the *course content* still carries its per-module 🟢/🟡 tags (Christina still owns the clinical substance, and the placement assessment is LCSW-validated, before any course goes live).
 
-**Phase 1 deliverable:** a working "take the course, track my own completion" loop inside Practice.
+**Phase 1 deliverable:** a working **adaptive** "assess → take the personalized path → get feedback → track my own completion" loop inside Practice.
 
 ### Phase 2 — Enrollment/assignment + a manager view for Christina (GATED on the roles layer)
 
-This is the real LMS management layer: Christina **assigns/enrolls** therapists in courses, and a **manager view shows her who completed what** (development tracking), with completion records / certificates.
+This is the real LMS management layer — and it is exactly **Lexia stage 4 (automatic reports to the teacher/manager)**: Christina **assigns/enrolls** therapists in courses, and a **manager view shows her who completed what + where the gaps are** (development tracking), with completion records / certificates. (The Track B equivalent is the **kid→guardian** report — same machinery, same gate.)
 
 - **Enrollment / assignment:** Christina assigns course X to therapist Y, with optional due dates.
 - **Manager dashboard:** Christina sees a roster — who's enrolled, who completed, who's overdue — across all her contractors. This is *development tracking*, the point of an LMS.
@@ -340,6 +363,7 @@ These ground the *topic selection and standard-body framing* — not the clinica
 - CE-requirement norms (state-specific, illustrative — confirm for IL): [WA DOH social-worker CE](https://doh.wa.gov/licenses-permits-and-certificates/professions-new-renew-or-update/social-worker-and-social-worker-associate/continuing-education) · [CA BBS continuing education](https://bbs.ca.gov/licensees/cont_ed.html) · [Mandated-reporter training (NY OP, illustrative)](https://www.op.nysed.gov/professions/mental-health-counselors/mandated-training)
 - Track B (psychoeducation): [Psychoeducation as evidence-based practice](https://www.psychiatrictimes.com/view/evidence-based-practice-psychoeducation-schizophrenia) · [Family psychoeducation overview](https://www.encyclopedia.com/medicine/encyclopedias-almanacs-transcripts-and-maps/family-psychoeducation) · [Psychoeducation (overview)](https://en.wikipedia.org/wiki/Psychoeducation)
 - Crisis routing: [988 Suicide & Crisis Lifeline (FCC)](https://www.fcc.gov/988-suicide-and-crisis-lifeline) · [988lifeline.org](https://988lifeline.org)
+- Adaptive-learning design reference (Christina + Candice): [Lexia Reading Program](https://www.lexialearning.com/) — modeled on its adaptive-mastery pattern; the LMS reuses the app's own age-adaptive framework + local-LLM tutor, not Lexia software.
 
 ---
 
