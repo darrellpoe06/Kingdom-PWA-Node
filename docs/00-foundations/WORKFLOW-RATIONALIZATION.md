@@ -246,6 +246,8 @@ app/src/lib/workflow/
     sequence.js     # ordered steps; stops on failure; records each step as an event
     guard.js        # budget + concurrency-lock + kill-switch wrappers (the three brakes)
     event-log.js    # append institutional events as DATA (one source of truth)
+    router.js       # task-class → tier routing + latency-budget placement (§6)
+    broker.js       # the single LLM queue: budget/lock/kill-switch + confidence gate + fallback ladder (§6.3/6.4)
   processes/      # Tier-2 composed processes — the in-app twins of the n8n sequences
     feedback-to-concerns.js   # SEQ: capture → triage → CONCERN/SOLUTION/TARGET/STATUS → closed
     self-review.js            # SEQ: propose → stage → Governor keep/dismiss (DR-0061 twin)
@@ -286,14 +288,96 @@ Every LLM step in an in-app process routes through **one model-broker** that rea
 
 ---
 
-## 6. SUMMARY (the report)
+## 6. ROUTING-THRESHOLD / NO-BOTTLENECK POLICY (the app's workflow-layer contract)
+
+**Purpose:** make routing a *rule the system enforces*, not a judgment call per step. Every workflow/step in the in-app layer (§5) declares **which execution tier it runs on** and **how it escalates** — so work never silently piles up behind a slow local model, a capped vendor, or a swallowed error. The worst bottleneck is a **silent one**; this policy's first law is that every outcome is observed *and* alerted.
+
+Thresholds below are **conservative-first** — deliberately tight so nothing surprises us — and each carries a `loosen-with-data` note: the value relaxes once real telemetry (from the §5.1 `event-log`) shows headroom. They tune; they don't get abandoned.
+
+### 6.1 Task-class routing (which tier runs the step)
+
+Routing is decided by **task class**, declared on the step (`step.taskClass`), not by who happens to be available:
+
+| Task class | Examples (grounded in the cataloged workflows) | Routes to | LLM? |
+|---|---|---|---|
+| **Deterministic** | fetch / transform / validate / store / schedule / notify — `15 OFX parse`, `18 Imported API`, `19 mark-noise`, `20 health-check`, `21/21b attachments`, `22 link-title`, `29 waitlist`, `30 feedback intake`, `wf-property-*`, `01/03/32` notify, `wf-workflow-status` | **in-app, no LLM** | none |
+| **Bounded LLM** | summarize / tag / classify / draft / extract — `wf-freshness-review` (local summary), `wf-llm-review`, `34 skill-analytics` (Ollama 14b), `36 quality-gatekeeper` (classify), engagement trivia gen, speaker/sermon tagging, `wf-class-tutor` (qwen2.5) | **local model** (Ollama `qwen2.5`/`hermes3` now; GPU coder node later) | local |
+| **Heavy reasoning / agentic** | deep multi-step reasoning, agentic code-gen — `16 cross-verify` deep arm, `17-gemini-deeper-reasoning`, quarantined autonomous builder | **frontier now** (Claude/Gemini) → **GPU-local later** | vendor/forge |
+
+**Rule:** a step may only *escalate up* this ladder, never silently down into a less-capable tier that would degrade output. Deterministic work **never** calls an LLM "to be safe" — that's a manufactured bottleneck and a cost leak.
+
+### 6.2 Latency budget per step (don't put a slow 8B in a hot path)
+
+Each step declares a `latencyBudgetMs`; the router refuses to place a step whose tier can't meet it in that path.
+
+| Path | Conservative budget | What's allowed | loosen-with-data |
+|---|---|---|---|
+| **Hot UX** (user is waiting, interactive) | **≤ 200 ms** | deterministic only; **precomputed/cached** LLM results | raise to 400 ms only if p95 telemetry stays under it |
+| **Warm** (user-initiated, progress shown) | **≤ 3 s** | deterministic + a *single* local bounded-LLM call | allow 2 local calls once local p95 < 1.2 s |
+| **Background / cron** (no user waiting — `13/14b/15/16/20`, freshness, analytics) | **≤ 120 s soft / 300 s hard** | any tier incl. heavy | per-workflow tuning from observed run times |
+
+**Hard rule:** a local 8B model (multi-second first-token) is **never** in a Hot path. If a UX surface needs an LLM result, it reads a **precomputed/cached** value produced by a background step (e.g. trivia generated on sermon-arrival, not on tab-open). Cache TTL conservative-first = **24 h** for tagging/summaries, **1 h** for health/status; loosen per volatility.
+
+### 6.3 Confidence gate + fallback ladder (verify cheap, escalate, never block)
+
+Every **bounded-LLM** step output passes a **cheap verifier before it ships** — schema-valid? rule/range-sane? test passes? (reuses `lib/number-trace.js` + the §5.1 `guard`). This is the Verification Doctrine applied to routing: local output is *trusted only when verified*.
+
+```
+local model produces output
+   → cheap verifier (schema / rule / unit-test)
+       PASS  → ship
+       FAIL  → escalate local → frontier (one hop)
+                  frontier capped/offline → QUEUE + DEFER (never block the path)
+                                          → surface "deferred" honestly; retry on cap-clear
+```
+
+**Conservative-first cutoffs (loosen with data):**
+- Classification/tagging (e.g. `36 gatekeeper`, speaker tagging): accept local only at **confidence ≥ 0.85**; below → escalate. *Loosen toward 0.70 once a labeled sample shows local accuracy holds.*
+- Extraction/summary (e.g. `wf-freshness-review`, `34`): must be **schema-valid AND pass a rule check** (no empty/over-length/hallucinated-field); else escalate.
+- Reconciliation math (`16 cross-verify`): **deterministic verifier is authoritative** — the LLM never overrides a numeric mismatch; it only explains it. Money never rides on model confidence.
+- A step may escalate **at most once** per run (local→frontier); a second failure **defers to queue**, it does not loop. Never block the user path waiting on an escalation.
+
+### 6.4 Brakes (every LLM call is queued, budgeted, locked, killable)
+
+All LLM steps (local *and* frontier) run through **one broker queue** — the single choke point where the three brakes live (binding per the autonomous-automation rule):
+
+- **Budget** — per-run + daily token/wall-clock ceiling; on reach, the run **terminates** (it does not continue). Conservative-first: per-run **≤ 60 s wall / ≤ 8k tokens** local, **≤ 30 s / ≤ 4k tokens** frontier; daily fleet ceiling set low, raised with data.
+- **Concurrency lock** — single-instance per workflow; a new fire that finds a prior run in progress **skips**, never stacks (the exact `27`/`31` failure mode).
+- **Kill-switch** — on overrun, repeated failure, or missed heartbeat the broker **pauses** itself; never auto-continues into runaway.
+- **Idempotent** — every step keyed so a retry can't double-write (mirrors `15→16→18` already being safe to re-run).
+- **Material-only-fire** — a step runs only when its input actually changed (no empty cron churn) — but this is *additive to*, **never a substitute for**, the kill-switch.
+- **Cache** — verified results are cached (§6.2 TTLs) so repeat asks are free and stay out of the queue.
+
+### 6.5 Observability (silent-fail = the worst bottleneck)
+
+Every execution outcome is **observed AND alerted** — the policy fails closed on silence:
+
+- Each step writes a structured outcome to the §5.1 `event-log` (start/end/tier/latency/verifier-result/escalated?/deferred?), surfaced on the C2S/Dispatch live-truth surfaces and the in-app registry (Tier-3, §5.1).
+- **Reactive net required:** a failed/deferred step **alerts** (ntfy/Pushover) — this is the in-app twin of NAS workflow `99`, and a direct fix for the §1.4 finding that `99` is currently OFF. A run that fails without alerting is treated as a Sev-1 policy breach, not a quiet retry.
+- **Bottleneck signals are first-class metrics:** queue depth, escalation rate, deferral rate, and per-tier p95 latency are tracked; a sustained rise is itself an alert (the system notices it's congesting before the user does).
+- **Honest deferral:** when frontier is capped and work queues, the surface says **"deferred, will retry"** — never a spinner that implies progress (Reality-Trace / Verification doctrines).
+
+### 6.6 Per-workflow tier assignment (applied to the live fleet)
+
+| Workflow / step | Task class | Tier | Hot-path? | Brakes |
+|---|---|---|---|---|
+| `15` OFX parse · `18` API · `19` mark-noise · `20` health · `21/21b` · `22` · `29` · `30` · `wf-property-*` · `01/03/32` notify · `wf-workflow-status` | deterministic | in-app, no LLM | `18`/status: yes (cached) | idempotent + observe |
+| `16` cross-verify (match arm) | deterministic | in-app, no LLM | no (cron) | authoritative over any LLM |
+| `wf-freshness-review`, `wf-llm-review`, `34` analytics, `36` classify, trivia gen, speaker tagging | bounded LLM | **local** | no — precompute→cache for any UX read | queue + verify + budget |
+| `wf-class-tutor` (qwen2.5) | bounded LLM (Q&A) | **local** | warm (≤3 s); stream tokens | queue + budget + lock |
+| `16` deep arm, `17-gemini`, autonomous builder | heavy/agentic | **frontier now / GPU later** | never hot | full three brakes; builder stays OFF |
+
+---
+
+## 7. SUMMARY (the report)
 
 - **Live state (CONFIRMED, NAS reachable):** 40 workflows, **26 active / 14 inactive, 0 recent errors**; finance + observability crons succeeding; Ollama healthy (5 models, 0 pinned).
 - **Need-audit counts:** **KEEP 39** (24 active + 9 dormant/gated + 6 pending/spec) · **MERGE 6** · **PRUNE 5**.
 - **Two live findings:** Dispatch PAGE is on but its API is off (dead shell); the **global error workflow (99) is off** (reactive failure net down). Both recommended for activation by the Governor — **not changed in this read-only pass**.
 - **Canonical winners:** finance ingest → **14b**; Imported API → **18 Phase 2B**; monitoring → **20**; daily report → **32**; error handling → **99**; chat → **13 + one digest**; dispatch → **keep the PAGE+API pair, re-activate the API**.
 - **Top sequences & their benefit:** SEQ-1 finance reconciliation (claim→confirm→trust — *the* crown jewel, all live); SEQ-2 freshness/Governor loop (propose→stage→disposition, never self-applies); SEQ-3 chat capture→route→act (capture-first = nothing lost); SEQ-4 observability (proactive+reactive+queryable — the half that's missing is 99); SEQ-5 stewardship analytics (stalled — 1 of 3 links live); SEQ-6 property data.
-- **Build-into-app plan:** a Tier-1 primitive core (`step`/`sequence`/`guard`/`event-log`) → Tier-2 process twins (feedback→Concerns **first**, self-review, ops-events-as-data, dev/build) → Tier-3 in-app registry mirroring `wf-workflow-status`. Risk-tiered; anything autonomous is Tier C with all three brakes, shipped OFF. LLM steps route through a health-gated model-broker (local-first).
+- **Build-into-app plan:** a Tier-1 primitive core (`step`/`sequence`/`guard`/`event-log`/`router`/`broker`) → Tier-2 process twins (feedback→Concerns **first**, self-review, ops-events-as-data, dev/build) → Tier-3 in-app registry mirroring `wf-workflow-status`. Risk-tiered; anything autonomous is Tier C with all three brakes, shipped OFF. LLM steps route through a health-gated model-broker (local-first).
+- **Routing / no-bottleneck policy (§6):** task-class routing (deterministic→in-app, bounded→local, heavy→frontier/GPU); conservative-first latency budgets (Hot ≤200 ms, Warm ≤3 s, Background ≤120 s) keeping slow 8B models out of hot paths; confidence gate + one-hop fallback ladder (verify→escalate→**queue/defer, never block**); all LLM calls through one budgeted/locked/killable broker queue; every outcome **observed AND alerted** (silent-fail is the worst bottleneck — the in-app twin of the currently-OFF `99`). Thresholds loosen with telemetry.
 
 ---
 
