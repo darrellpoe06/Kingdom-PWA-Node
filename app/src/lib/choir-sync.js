@@ -42,6 +42,12 @@ export function toSongShape(row) {
     startSeconds: row.start_seconds ?? null,
     sortOrder: row.sort_order ?? 0,
     status: row.status ?? 'active',
+    // Cross-reference + practical metadata (0041) — see lib/choir-songbook.js.
+    themes: Array.isArray(row.themes) ? row.themes : [],
+    songKey: row.song_key ?? null,
+    arrangement: row.arrangement ?? null,
+    soloist: row.soloist ?? null,
+    sermonRef: row.sermon_ref ?? null,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
   };
@@ -420,6 +426,13 @@ export async function saveSong(song, displayName) {
     start_seconds: Number.isFinite(song.startSeconds) ? song.startSeconds : null,
     sort_order: Number.isFinite(song.sortOrder) ? song.sortOrder : 0,
     status: song.status ?? 'active',
+    // Cross-reference + practical metadata (0041). themes is text[]; the rest
+    // are nullable text/uuid. Only written when provided (additive).
+    themes: Array.isArray(song.themes) ? song.themes : [],
+    song_key: song.songKey ?? null,
+    arrangement: song.arrangement ?? null,
+    soloist: song.soloist ?? null,
+    sermon_ref: song.sermonRef ?? null,
   };
   if (song.id) {
     const { error } = await supabase.from('choir_songs').update({ ...row, updated_by: ctx.userId }).eq('id', song.id);
@@ -450,6 +463,14 @@ export function buildReusedSong(song, newDate, newType) {
     startSeconds: song.startSeconds ?? null,
     sortOrder: 0,
     status: 'active',
+    // Carry the cross-reference forward so a reused song keeps its themes /
+    // scripture / key / arrangement / soloist (0041) — the new row stays
+    // cross-referenced without re-tagging.
+    themes: Array.isArray(song.themes) ? song.themes : [],
+    songKey: song.songKey ?? null,
+    arrangement: song.arrangement ?? null,
+    soloist: song.soloist ?? null,
+    sermonRef: song.sermonRef ?? null,
   };
 }
 

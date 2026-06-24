@@ -5697,6 +5697,7 @@ const FEEDBACK_AREAS = [
     ['church-choir', 'Church · Choir (director hub)'],
     ['choir-week', '└ Choir · This week'],
     ['choir-songs', '└ Choir · Songs (Song Workshop)'],
+    ['choir-songbook', '└ Choir · Songbook (cross-referenced)'],
     ['choir-schedule', '└ Choir · Schedule'],
     ['choir-teamdocs', '└ Choir · Team Docs'],
     ['choir-availability', '└ Choir · Availability'],
