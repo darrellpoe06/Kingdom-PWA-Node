@@ -319,7 +319,7 @@ Per *"let's get the best ways AND documentation for each inside the PoeTech app"
 - **Two projects (umbrella scope):**
   - **Church Local Infrastructure** (`colg-local-infra-2026-06`, domain `church`) — the sovereign-infra + recordings-pipeline entries.
   - **Content Engine** (`content-engine-2026-06`, domain `church`) — the broader workstream: the unified engine, conversations→lessons, curriculum→books, and the phased timeline. Engine entries link to **both** projects.
-- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **14 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **⭐ Sermon Stories — BUILD #1** (BG's reusable illustration library, in The Word — Migdal; the prioritized first build). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface.
+- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **15 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **⭐ Sermon Stories — BUILD #1** (BG's reusable illustration library, in The Word — Migdal; the prioritized first build). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface. · (15) **Community engagement** (reactions/ratings/most-loved/radio stations on sermons + lessons, riding the shared primitive `local_ad147f53`; §17).
 - **Live-render status (honest):** these **render live after the one-time Studio apply against the `colg` cloud instance** — a cloud/Darrell-hand step, exactly like every DB change in this repo (the db-migrate convention). Committed + pushed here; **not yet applied to cloud** (this local session cannot reach the cloud Studio). Marked pending, not claimed live.
 
 ---
@@ -584,6 +584,48 @@ No GPU required for steps 2–5 (text over a transcript); step 1 is the only slo
 - **Sovereign-mesh Tier 1** holds — stories are extracted locally from owned transcripts into BG's own owned section; nothing leaves. The optional new-story sourcing aid is the only surface that *might* reference external material, and only as attributed summary/reference (no copyrighted text), so it stays clean.
 - **Cost:** marginal (text extraction on already-produced transcripts); $0 recurring.
 - **Father's-Business:** it serves the preacher directly — hands Bishop Gwin his own illustrations back, organized and instantly findable, so he spends his preparation on the Word and the people, not on digging through archives. His stories, his section, his to verify and to share or keep private. Passes the eight-question Test.
+
+---
+
+## 17. Community-engagement layer — reactions, ratings, most-loved, "radio" stations (shared primitive)
+
+**Directive (Darrell, 2026-06-24):** apply the **same community-engagement pattern as the Worship/Music section** to **BG's sermons** and **everything else that makes sense** (the lessons/courses the engine produces). Same four moves the music section gets:
+
+- **Reactions** — love / emoji, a **clean, Word-first, child-safe reaction set** (no arbitrary emoji; a curated, dignified set).
+- **Community ratings** — the Body rates; aggregate resonance per item.
+- **Most-loved ranking** — order the library by community love/ratings.
+- **"Radio" / continuous-play station** — e.g., a **"Most-Loved Sermons" station** that plays the library continuously in ratings-driven order (the sermon analogue of the music station).
+
+### Reuse the shared primitive — DO NOT FORK
+
+This **rides the shared engagement primitive being designed in the consolidation lane (`local_ad147f53`)** — one primitive (reactions + ratings + most-loved + station), **many surfaces.** The music section, BG's sermon library, and the engine's lessons/courses all **consume the same primitive**; we do **not** build a separate sermon-reactions stack. When the primitive lands, these surfaces register with it. (Existing kin to align with, not duplicate: `feedback-sync.js`'s `rating` vocabulary `love/good/rough/broken`, the `engagement-sync` trivia/message lane.)
+
+### Where it attaches (shareable surfaces only)
+
+| Surface | Engagement | Source/primitive |
+|---|---|---|
+| **The Word — Migdal public sermon library** | reactions + ratings + **"Most-Loved Sermons" station** | `choir_sermons` / `theword_public_sermons()` (0029) + the shared primitive |
+| **ChurchLearn lessons / courses** (engine output) | reactions + ratings + most-loved courses/lessons | learn-framework + the shared primitive |
+| **Everything else that makes sense** | same | the shared primitive (register the surface) |
+
+**Boundary (important):** engagement attaches to **community-visible / shareable** outputs. **BG's private Sermon Stories (§16) are trusted-steward-private and do NOT get community reactions** — they're not community-visible. *If* BG later shares a story into a public lesson, the engagement rides that public lesson, not the private record. Private stays private.
+
+### Scope, credit, faithfulness
+
+- **Community-scoped per PIN-optional-community-default** — engagement is the community's, gated by the existing PIN-optional-community-default posture (not public-internet, not surveilled).
+- **Credit BG** — every sermon + most-loved entry attributes the preacher (`speakerKey`), consistent with The Word — Migdal's existing "each message credits who delivered it."
+- **Clean + Word-first + child-safe** — the curated reaction set keeps it dignified; **most-loved orders *discovery*, it never replaces curation or ranks truth by popularity.** Resonance is a find-it-faster signal, not a doctrine signal (Religion-AND-Relationship: warmth *and* backbone).
+- **Data-as-empowerment** — reaction/rating data is the community's own, sovereign, never sold or engagement-optimized (DATA-AS-EMPOWERMENT-NOT-EXTRACTION; no dark-pattern "maximize loves").
+
+### Standard screens (delta)
+
+- **Sovereign-mesh Tier 1** — engagement lives on the community's own instance, served from owned infra; the station plays owned library items; nothing leaves.
+- **Cost** ≈ $0 (rides the shared primitive; no new service).
+- **Father's-Business** — surfaces the Word the Body most responds to so newcomers find the messages that move people, draws them deeper, and credits the preacher — community love as a discipleship on-ramp, not a vanity metric. Passes the eight-question Test.
+
+### Timeline
+
+**Rides the shared primitive's delivery** (consolidation lane `local_ad147f53`), then registers the sermon + lessons/courses surfaces — an **additive layer once each surface ships**. It does **not** change the build order: **BG's Sermon Stories (§16) is still Build #1**; engagement attaches to the *public* sermon library + lessons as the shared primitive lands.
 
 ---
 
