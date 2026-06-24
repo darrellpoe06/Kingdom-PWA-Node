@@ -5,6 +5,7 @@
 **Pattern:** research-first — survey the live field with citations → recommendation → spec. **No feature code written.** This is the design + curation review that precedes the build.
 **Status:** DRAFT for Darrell's review. Quality gate, not a hold parked on Darrell.
 **Sibling lanes (do not collide):** `2026-06-23-research-review-body-study-to-course-materials-pipeline.md` (Body's-study → course pipeline), Choir / Pulpit / The Word / Engagement church-content surfaces. This surface **reuses** their primitives; it adds no new ones.
+**See also §11 ADDENDUM** — Darrell's added inputs (2026-06-23): **YouTube Music** as an additional source, two **no-credential ingestion paths** (shared playlist URL / Google Takeout CSV), his **5 featured artists**, and his **"Fire" playlist** transcribed as the authoritative personal seed (rap/hip-hop **+ gospel/worship crossover**). The §11 seed list supersedes the §1d sketch.
 
 ---
 
@@ -12,8 +13,9 @@
 
 Darrell wants an in-app section for the **hottest current Christian rap / hip-hop** ("like Lecrae and others"), built from **YouTube streams**. This review (a) researches who is *actually* hot right now (2026) with sources — because "hottest" decays and must not come from training-data memory — and (b) specs the surface.
 
-- **What it is:** a **curated, refreshable, content-vetted grid of embedded YouTube videos** — artist · track · embed — under the Church tab.
-- **Where it lives:** a new **`worship` sub-tab on the Church tab labeled "Worship"** (Christian rap is the launch shelf; the surface generalizes to all worship-music genres so it doesn't become a one-genre dead-end). Rationale + IA survey in §3.
+- **What it is:** a **curated, refreshable, content-vetted grid of embedded YouTube AND YouTube Music videos** — artist · track · embed — under the Church tab. (YouTube Music tracks are YouTube-backed, so the same embed/link path works; §11.1 covers normalizing a `music.youtube.com` URL vs a `youtube.com/watch` URL.)
+- **Where it lives:** a new **`worship` sub-tab on the Church tab labeled "Worship"** (Christian hip-hop is the launch *emphasis*, but Darrell's own "Fire" playlist spans rap **and** gospel/worship — Tasha Cobbs Leonard, Tye Tribbett, Kirk Franklin, Maverick City — so the surface is **rap/hip-hop-forward with gospel/worship crossover**, organized by sub-category shelves, not a one-genre dead-end). Rationale + IA survey in §3; sub-categories in §11.4.
+- **Darrell's sources (§11):** plain YouTube **+ YouTube Music** (his service). His **personal library** is large; pulling it directly needs his Google account (OAuth/connector) — **there is no YouTube Music connector in the registry, so we do NOT log in as him.** Instead two **no-credential** ingestion paths he controls: (a) a shared **playlist URL** we parse, or (b) a **Google Takeout CSV** he drops in. Default stays the curated public list so the section is populated regardless.
 - **What it reuses (builds nothing new):** the **Choir** curated-list + YouTube-embed pattern (`Choir.jsx`, `choir-sync.js` `youtubeEmbedUrl` at `choir-sync.js:174`), the **church-live** embed helpers (`church-live.js`), the **learn-framework age-band** for the kids-safe filter (`learnAgeBand`), and the **freshness** dot for "refreshed-on" honesty (`freshness.js`).
 - **Freshness:** a **curated, admin-editable list** is the default and the *correct* default — YouTube's no-API-key embed path can play videos but cannot *rank* them ("hottest" needs chart/stream data the app cannot pull at scale without hitting the same fetch limits the SME/Gmail lanes already hit). The list is refreshed on the **continuous-reel cadence** by a curator. Any *automated* refresh is **Tier C + the three brakes** (budget / concurrency lock / kill-switch) and ships inactive.
 - **Child-safety (BINDING — twins are 10):** every track is **content-checked and age-tagged before it surfaces.** Christian rap is generally clean/faith-centered, but "generally" is not a gate. A **clean/age-appropriate filter** (default = family-safe) and a **per-track vetted flag** are non-negotiable. A track that hasn't been vetted does not render. See §6.
@@ -234,9 +236,9 @@ Per `INSTITUTIONAL-MEMORY-EVENTS.md:56`, until the Events module ships the **dur
   "date": "2026-06-23",
   "type": "church-work",
   "title": "Spec: Hottest Christian Rap -> Worship/Music curated YouTube shelf (Church tab)",
-  "description": "Research-first spec for a congregation-facing, curator-edited, content-vetted grid of embedded YouTube Christian hip-hop videos under a new Church 'Worship' sub-tab. Reuses the Choir curated-list + youtubeEmbedUrl + church-live embed pattern and the learn-framework age-band; adds no new primitives. Researched the live 2026 field with sources (Rapzilla/lecrae.net ranking, Billboard) rather than training-data memory.",
+  "description": "Research-first spec for a congregation-facing, curator-edited, content-vetted grid of embedded YouTube AND YouTube Music videos under a new Church 'Worship' sub-tab (rap/hip-hop-forward + gospel/worship crossover). Reuses the Choir curated-list + youtubeEmbedUrl + church-live embed pattern and the learn-framework age-band; adds no new primitives. Researched the live 2026 field with sources (Rapzilla/lecrae.net, Billboard) and seeded from Darrell's own 5 featured artists + his 'Fire' playlist (transcribed; ~74 candidate videos, 66 resolved).",
   "root_cause": null,
-  "resolution": "Recommend new Church sub-tab 'worship' (generalizes beyond one genre); curated-default freshness (YouTube no-key embed cannot rank, only play); binding per-track child-safety vetting gate with proven-to-catch test; automated refresh deferred Tier C + three brakes, inactive on ship.",
+  "resolution": "New Church sub-tab 'worship' (genre-general); curated-default freshness (no-key embed cannot rank, only play); YouTube + YouTube Music both supported (extend youtubeEmbedUrl regex for the music.youtube.com host; store source+sourceUrl); personal-library sync needs a Google connector that does NOT exist in the registry, so two no-credential ingestion paths instead (shared playlist-URL parse / Google Takeout CSV) feeding a de-dup step; binding per-track child-safety vetting gate with proven-to-catch test; automated refresh deferred Tier C + three brakes, inactive on ship.",
   "tags": {
     "workflows": [],
     "modules": ["church", "worship", "choir", "learn-framework", "church-live"],
@@ -255,6 +257,166 @@ Per `INSTITUTIONAL-MEMORY-EVENTS.md:56`, until the Events module ships the **dur
   "status": "open"
 }
 ```
+
+---
+
+## 11. ADDENDUM (2026-06-23) — Darrell's inputs: YouTube Music + the "Fire" playlist
+
+Darrell added: *"Google music too"* — he listens on **YouTube Music**. He also gave his **5 featured artists** and his **"Fire" playlist** (transcribed from screenshots; the playlist is likely private, so the transcription — not URL rendering — is the authoritative seed). This addendum supersedes the §1d sketch for the seed list.
+
+### 11.1 YouTube Music as an additional source + URL normalization
+
+YouTube Music tracks are **YouTube-backed** — the same video ID powers both surfaces — so the existing embed path works with a small normalization step. The two URL shapes:
+
+| Shape | Example | How to handle |
+|---|---|---|
+| `youtube.com/watch?v=ID` / `youtu.be/ID` / `/embed/ID` / bare ID | `https://www.youtube.com/watch?v=oHFMZd065nM` | Already handled by **`youtubeEmbedUrl` (`choir-sync.js:174`)** — reuse verbatim. |
+| `music.youtube.com/watch?v=ID` | `https://music.youtube.com/watch?v=oHFMZd065nM` | Same `v=` param → **extend the existing regex** so `youtubeEmbedUrl` also matches the `music.youtube.com` host. One added alternative in the existing pattern; still emits the standard `https://www.youtube.com/embed/{id}`. |
+| `music.youtube.com/playlist?list=PL...` | his "Fire" list | A **playlist**, not a single video — handled by the ingestion path (§11.2), not the per-track embedder. The `list=PL...` ID is a standard YouTube playlist ID, so `youtube.com/playlist?list=PL...` is the equivalent. |
+
+**Design rule:** store **both** a canonical `videoId` (for the embed) **and** the original `sourceUrl` + a `source` enum (`'youtube'` | `'ytmusic'`) so a card can deep-link back to *his* service ("Open in YouTube Music") while still embedding the standard player inline. The embed itself is identical; only the "open in" link differs by source.
+
+### 11.2 Ingesting his personal library — no-credential, his-account-step flagged
+
+**Pulling his actual YouTube Music library/history/playlists requires account integration (OAuth/connector). There is NO YouTube Music connector in the registry, so we do NOT authenticate as Darrell.** That is a deliberate his-account/connector step, *not* something this spec auto-does. The section's **default is the curated, editable public list** (so it is always populated). His personal list seeds it via either of two **no-credential** paths — he provides the link/file; we never log in as him:
+
+| Path | Input | How it works | Trust/limits |
+|---|---|---|---|
+| **(a) Playlist-URL parse** | a **public or unlisted** YouTube/YT-Music playlist URL | YouTube/YT-Music pages are JS-rendered, so plain fetch returns a shell — render with the Chrome MCP (navigate → read_page) to extract title/artist/`videoId` per row. | Works only if public/unlisted. **A private playlist will not render without login → falls back to the transcription path / the curated list.** No credentials used either way. |
+| **(b) Google Takeout CSV import** | a CSV he exports from Google Takeout (his music library/playlist) and drops in | Parse rows → artist/title → resolve each to an official `videoId` (same resolution as the curated list). | He owns the export; no auth on our side. Best for a *large* library. |
+
+Both paths feed the **same de-dup step** (key on `videoId`, fall back to normalized `artist+title`) against the curated public hot list, so nothing double-lists. Each imported row still passes the **child-safety vetting gate (§6)** before it surfaces — import ≠ vetted.
+
+> **For THIS spec:** the "Fire" playlist is **likely private**, so per Darrell we used his **screenshot transcription** as the authoritative seed (path-(a) rendering was not attempted — it would fail on a private list). The transcription is the durable input; if he later makes it public/unlisted, path-(a) can refresh it.
+
+### 11.3 Featured artists (priority/featured seed)
+
+From his YouTube Music "Artists on repeat" — these get a **`featured` flag** (pinned/lead placement on the shelf): **Lecrae, Hulvey, Trip Lee, nobigdyl., Jackie Hill Perry.** (All five are also in the §1 public ranking — Lecrae #1, Hulvey #3, Trip Lee #20, nobigdyl. #9 — so his taste and the live field agree; Jackie Hill Perry is a prominent CHH/spoken-word voice and 116/Reach collaborator.)
+
+### 11.4 Naming / structure (broadened — his list spans genres)
+
+The "Fire" playlist is **not pure rap** — it carries gospel/worship (Tasha Cobbs Leonard, Tye Tribbett, Kirk Franklin, Maverick City, Mali Music, Jonathan McReynolds) alongside the hip-hop. This **confirms the §3 decision to name the tab "Worship," not "Christian Rap."** Within it, organize by **sub-category shelves**:
+
+- **Christian Hip-Hop / Rap** (launch emphasis — Lecrae, Hulvey, Trip Lee, Aaron Cole, Caleb Gordon, Aha Gazelle, Stevie Rizo…)
+- **Gospel & Worship crossover** (Maverick City, Tasha Cobbs Leonard, Tye Tribbett, Kirk Franklin, Koryn Hawthorne…)
+- **(later)** Praise & Worship / Español / Kids — empty until curated.
+
+The data model's `genre`/`subcategory` field (already in §4) carries this; a track lands on the right shelf by tag.
+
+### 11.5 Data-model additions (delta to §4)
+
+Add to the `worship_tracks` shape: `source` (`'youtube'|'ytmusic'`), `sourceUrl` (the original link, for "open in his service"), `featured` (bool), `importSource` (`'curated'|'playlist'|'takeout'|'manual'`), `playlistName` (e.g. `'Fire'`). `videoId` is the de-dup key.
+
+### 11.6 SEED LIST — resolved (the build's starting data)
+
+Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Confidence is tagged per row; these are *candidate* official IDs — the curator still confirms each embed plays + lyrics are clean before it surfaces (§6).** `CONTENT-CHECK` = extra lyric review warranted (mainstream/secular guest feature or theme).
+
+**A) "Fire" playlist — tracks 1–34** (his personal seed; `playlistName: 'Fire'`):
+
+| # | Artist | Track | videoId | conf | flag |
+|---|---|---|---|---|---|
+| 1 | Evan and Eris | Everything | ShEQR9SVb6I | high | |
+| 2 | CèJae & MelodicB | Promises | NzZhJWWcOFo | high | |
+| 3 | Koryn Hawthorne | Excellent | VxpBI4b8RkE | med | |
+| 4 | Hulvey | All For You | kZA2Z6T6p3Q | high | |
+| 5 | Maverick City Music | God Problems (Not By Power) (ft. Miles Minnick) | cH70j6KmHKc | high | |
+| 6 | Tribl & Maverick City Music | Rest on Us (ft. Mariah Adigun & Jekalyn Carr) | Xr_Aq2dY934 | high | |
+| 7 | CèJae | Psalm 51 | 5Tv28_JFByw | med | |
+| 8 | Terrian | Stayed On Him (Isaiah 26:3) | p2I0Al8rhmk | high | |
+| 9 | Sam Rivera & Caleb Gordon | Yahweh (Remix) | X5wvrGJdCog | high | |
+| 10 | Lathan Warlick | Holy (ft. SVRCINA) | NChOGu7DvgU | med | CONTENT-CHECK |
+| 11 | Mission | Thank the Lord (ft. V. Rose) | mRgReXR25ls | high | |
+| 12 | Forrest Frank | GOOD DAY | eO7-9WzLDZo | high | |
+| 13 | Lecrae & 1K Phew | WILDIN | oHFMZd065nM | high | |
+| 14 | Transformation Worship | Eagle (Live) (ft. Osby Berry, KB & Kierra Sheard) | M8f7edGVgos | med | |
+| 15 | Stevie Rizo & Mike Teezy | The Light | bAFJsQQk2wo | med | |
+| 16 | Aaron Cole | MIRACLE | Mdlo7wXbz-0 | high | |
+| 17 | Sam Rivera & Limoblaze | Lord & Savior | GYEyYAG3TQM | high | |
+| 18 | Forrest Frank & Hulvey | ALL I NEED | xH1L-RxuL50 | high | |
+| 19 | Franchesca | Praise On Repeat | XmmjFRoPwjY | high | |
+| 20 | Lee Vasi | Baptize Me | tbfuQxRo4JY | med | |
+| 21 | Jonathan McReynolds | All Along | x5FIs-dS-PY | high | |
+| 22 | Evan and Eris | Glory | Rxn0goLZ41U | high | |
+| 23 | Torey D'Shaun, 1K Phew & The Worship Shed STL | So Good | 696l3L4xXxM | med | |
+| 24 | Hollyn | All I Need Is You | bWLlB_QrvLQ | med | |
+| 25 | AHJAH | Can't Get Enough | Hw4pUE0SOeU | med | |
+| 26 | Eris Ford | Talk | Yi0PtHHUpKU | high | |
+| 27 | Marie Love | Guide Me | YX8tiq4MfMA | med | |
+| 28 | Ariel Fitz-Patrick | God Love | JH9RKuTk6f8 | med | |
+| 29 | Kingdom Business Cast | For Every Mountain (Remix) (ft. Tytist) | UNRESOLVED | low | resolve at curation |
+| 30 | Jor'Dan Armstrong & Erica Campbell | Call | GcyN2tXNDME | med | |
+| 31 | Stevie Rizo | LIONS | xkD9VtYfjJk | med | |
+| 32 | Jordan May | Triggers | NNehk2xS-OY | med | |
+| 33 | Aha Gazelle | Brand New (ft. D.TALL) | vDK1_iGvvJc | high | |
+| 34 | Aha Gazelle | Balloons | 4AgdjpJ-dZE | high | |
+
+**"Fire" playlist — tracks 35–67** (continuation; track 67's lead artist was cut off in the source and resolved to **Aaron Cole**):
+
+| # | Artist | Track | videoId | conf | flag |
+|---|---|---|---|---|---|
+| 35 | Trip Lee | Standby (ft. Hulvey) | Ku6PoWEN6wQ | high | |
+| 36 | Stevie Rizo | STAYING | UNRESOLVED | low | resolve at curation |
+| 37 | Eris Ford & Evan and Eris | Bad Energy (ft. V. Rose) | 3K5mY4BCGVA | high | |
+| 38 | Jonathan Traylor | High Up | pts3xlmqCPw | high | |
+| 39 | Stevie Rizo | YHWH (ft. GED) | FjDecXd88tQ | high | |
+| 40 | Jackie Legere | Did It For Me | YrHZx6Vj0yc | high | |
+| 41 | Koryn Hawthorne | Top Two | k_pxJA2SaCg | high | |
+| 42 | Jordan May | LOVE LOCKDOWN | UNRESOLVED | low | resolve at curation (wrong-artist matches) |
+| 43 | Jackie Legere | Do More (ft. Jekasole) | t8EcNcBFKOY | high | |
+| 44 | Trip Lee & Kirk Franklin | Mercy | 8jr-5Oq1r6M | high | |
+| 45 | MTM Isaiah | Real Talk (ft. Shawndy) | ERVIp9rOaA0 | high | |
+| 46 | CèJae | Fill Me Up | MZiUP3A_Sbk | high | |
+| 47 | Lecrae & Tasha Cobbs Leonard | Your Power | JJhacXgWBJ0 | high | |
+| 48 | Dee-1 | I'm Not Perfect | 73AVDoRT408 | high | |
+| 49 | Pastor Mike Jr. | Winning | C0X_0VKCM6Y | high | |
+| 50 | Zauntee | Wartime | caDnBcCF6FE | high | |
+| 51 | Aha Gazelle | Hard To Find (ft. MainMain) | j3RO4d_D3uo | high | |
+| 52 | Kirk Whalum | Now 'Til Forever | vdlfpEFS-RU | med | official audio |
+| 53 | Caleb Gordon | Keep It 100 | csYBBPJqNJU | high | |
+| 54 | Theresa Phondo, Marizu & Noël Mio | Blessings (Remix) (ft. Kingdmusic) | -07PUMKBvtk | high | |
+| 55 | Franchesca | I Am Loved | GBV_i91Bmw8 | high | |
+| 56 | V. Rose | Tells Me So | UNRESOLVED | low | resolve at curation |
+| 57 | Franchesca | Rough Day | VYBkzl4jbcA | high | |
+| 58 | Maverick City Music & Forrest Frank | No Longer Bound (I'm Free) (ft. Chandler Moore) | 9cZE-_0seRY | high | |
+| 59 | Kai Uriah | Presence of God | 4-UkImJrnFA | med | official audio |
+| 60 | Tasha Cobbs Leonard & Mary Mary | Counting My Blessings (Live) | Hdrv-JzigpQ | high | |
+| 61 | Tye Tribbett | Only One Night Tho (Live) | kWF_gsv6Esw | high | |
+| 62 | Stevie Rizo | BEST PART | UNRESOLVED | low | resolve at curation |
+| 63 | Koryn Hawthorne | Look At God | thlsU1-ivZM | high | |
+| 64 | Hulvey & Forrest Frank | Altar | 5lyb3mDBEW0 | high | |
+| 65 | YB | KEEP FIGHTING | UNRESOLVED | low | resolve at curation (wrong-artist matches) |
+| 66 | Mali Music | Let Go | MzlGcIp1qsc | high | |
+| 67 | Aaron Cole | WATER 4 ME (ft. Parris Chariz & Not Klyde) | HAKykqTlc1U | high | CONTENT-CHECK (lead artist inferred; content clean CHH) |
+
+**B) Featured-artist representative tracks** (`featured: true`):
+
+| # | Artist | Track | videoId | conf | flag |
+|---|---|---|---|---|---|
+| F1 | Lecrae | Headphones (ft. Killer Mike & T.I.) | -tdLw2EqfVc | high | CONTENT-CHECK — secular features; **prefer a cleaner lead track for kids (e.g. "Resurrected" `3LkqJ5zHR84`)** |
+| F2 | Hulvey | HE WILL RETURN | 5WT8YcHkfk4 | high | |
+| F3 | Trip Lee (116, ft. Lecrae, Jackie Hill Perry, Alexxander) | King David | 2iogKeCglCg | high | |
+| F4 | nobigdyl. | ONE WAY | UFLG_1Qx15U | med | |
+| F5 | Jackie Hill Perry | I Ain't Worried | 3GJfmcLESgM | high | |
+
+**C) Public hot list (§1d)** — Lecrae "Resurrected"/"MOVE"/"Lift Me Up", Aaron Cole "NUMBER ONE", KB "100", Forrest Frank & Caleb Gordon "God Is Good" — fold in **de-duped** (drop any whose `videoId`/artist+title already appears in A or B; e.g. Lecrae/Hulvey/Aaron Cole already represented).
+
+**FINAL seed count (this round):**
+
+| Source | Tracks | Resolved to a candidate videoId | Unresolved (resolve at curation) |
+|---|---|---|---|
+| "Fire" playlist 1–34 | 34 | 33 | 1 (#29 For Every Mountain remix) |
+| "Fire" playlist 35–67 | 33 | 28 | 5 (#36, #42, #56, #62, #65) |
+| **Fire subtotal** | **67** | **61** | **6** |
+| Featured artists F1–F5 | 5 | 5 | 0 |
+| **Darrell's inputs total** | **72** | **66** | **6** |
+
+Plus the **public hot list (§1d/§C)** folds in **de-duped** (e.g. Aaron Cole "MIRACLE" already = Fire #16 → dropped; ~8 distinct public tracks add on). **Net unique seed ≈ 74 candidate videos, 66 resolved, 6 to resolve at curation.** "Fire" is still scrolling — Darrell will append more screenshots; the table extends the same way. Every resolved row is a *candidate* until the curator confirms embed + clean lyrics (§6); 3 rows carry `CONTENT-CHECK`.
+
+### 11.7 Screens delta
+
+- **Sovereign-mesh:** unchanged posture — the **curated/imported list (his taste + vetting) is the owned asset**; YouTube **and** YouTube Music bytes are embedded, never copied. No-credential ingestion keeps it sovereign (we never hold his Google auth). A future YT-Music connector, if one ever lands in the registry, would be the only path to live personal-library sync and is explicitly out of scope until then.
+- **Cost:** still ~$0 incremental at launch (embeds stream from YouTube/YT-Music; CSV/playlist parse is one-time, human-triggered). The only cost-growth vector (LLM-assisted bulk resolution/refresh) stays gated + braked.
+- **Father's-Business:** strengthened — seeding from *his own* worship/rap rotation means the shelf reflects the family's actual devotional listening, Word-first, reaching the kids in the music already playing in the house. Passes.
 
 ---
 
@@ -278,3 +440,7 @@ Per `INSTITUTIONAL-MEMORY-EVENTS.md:56`, until the Events module ships the **dur
 - [RadioU — Aaron Cole to release first 2026 single "Peace At Last"](https://radiou.com/musicnews/aaron-cole-to-release-first-single-of-2026-peace-at-last/)
 - [Wikipedia — Hulvey, "Could Be Tonight" (2026 album)](https://en.wikipedia.org/wiki/Could_Be_Tonight)
 - [Wikipedia — NF (rapper) — on rejecting the "Christian rapper" label](https://en.wikipedia.org/wiki/NF_(rapper))
+- [YouTube Music — about / web player (music.youtube.com)](https://music.youtube.com/) — Darrell's listening service; tracks are YouTube-backed (shared video IDs)
+- [Google Takeout — export your data (YouTube/YouTube Music)](https://takeout.google.com/) — the no-credential CSV ingestion path (§11.2b)
+- §11 seed-video IDs resolved via bulk official-upload web search (Reach/Gotee/Tribl/Maverick City/artist channels), 2026-06-23 — candidate IDs, curator-verified at build (§6)
+- Darrell's inputs (2026-06-23): featured artists (Lecrae, Hulvey, Trip Lee, nobigdyl., Jackie Hill Perry); "Fire" playlist `https://music.youtube.com/playlist?list=PL-5ghB0zx80GcMXpdSBDt-JwDowJsWSNt` (likely private — seeded from screenshot transcription, not URL render)
