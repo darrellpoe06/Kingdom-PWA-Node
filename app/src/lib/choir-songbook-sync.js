@@ -178,7 +178,16 @@ async function ytApi(path, key) {
   return res.json();
 }
 
-export async function scanArchiveForSongs(displayName) {
+// Scan the church channel's FULL upload history (years of services), not just
+// the recent page — the choir's historical repertoire is large, so we paginate
+// every upload and extract the easy-signal songs (titles/descriptions/chapters)
+// from all of them. Brakes: a page cap (PAGE_LIMIT × 50 videos) so one run is
+// bounded, and the standard idempotent dedup so re-running only adds what's new.
+// The deeper "what was actually sung" pass is the transcription pipeline (heavy,
+// GPU-gated) — this is the fast first fill that makes the library large now.
+const PAGE_LIMIT = 60; // up to ~3000 videos/run (1 quota unit per page)
+
+export async function scanArchiveForSongs(displayName, { onProgress } = {}) {
   const key = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY) || '';
   if (!key) return { skipped: 'no-key' };
   const ctx = await archiveWriteContext(displayName);
@@ -187,21 +196,29 @@ export async function scanArchiveForSongs(displayName) {
     const ch = await ytApi(`channels?part=contentDetails&forHandle=${encodeURIComponent('@' + CHURCH_CHANNEL_HANDLE)}`, key);
     const uploads = ch?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
     if (!uploads) return { skipped: 'channel-not-found' };
-    const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${encodeURIComponent(uploads)}`, key);
-    const items = (pl?.items || []).map((i) => {
-      const parsed = parseServiceTitle(i?.snippet?.title || '');
-      return {
-        videoId: i?.contentDetails?.videoId,
-        title: i?.snippet?.title,
-        description: i?.snippet?.description || '',
-        serviceDate: parsed.serviceDate || null,
-        serviceType: parsed.serviceType || 'sunday',
-      };
-    });
+    const items = [];
+    let pageToken = '';
+    let pages = 0;
+    do {
+      const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${encodeURIComponent(uploads)}${pageToken ? `&pageToken=${pageToken}` : ''}`, key);
+      for (const i of pl?.items || []) {
+        const parsed = parseServiceTitle(i?.snippet?.title || '');
+        items.push({
+          videoId: i?.contentDetails?.videoId,
+          title: i?.snippet?.title,
+          description: i?.snippet?.description || '',
+          serviceDate: parsed.serviceDate || null,
+          serviceType: parsed.serviceType || 'sunday',
+        });
+      }
+      pageToken = pl?.nextPageToken || '';
+      pages += 1;
+      if (typeof onProgress === 'function') onProgress({ scanned: items.length, pages });
+    } while (pageToken && pages < PAGE_LIMIT);
     const rows = buildArchiveSongsFromChannel(items);
-    if (!rows.length) return { imported: 0, scanned: items.length, songsFound: 0 };
+    if (!rows.length) return { imported: 0, scanned: items.length, songsFound: 0, pages, more: !!pageToken };
     const res = await insertArchiveRows(ctx, rows);
-    return res.skipped ? res : { ...res, songsFound: rows.length };
+    return res.skipped ? res : { ...res, scanned: items.length, songsFound: rows.length, pages, more: !!pageToken };
   } catch (e) {
     return { skipped: 'api-error', error: e };
   }

@@ -114,30 +114,60 @@ export function parseDescriptionSongs(description) {
   return out;
 }
 
-// Turn raw channel items (with descriptions) into choir_songs-shaped archive
-// rows, ALWAYS needs_review (a description is real but not authoritative). Items:
-// [{ videoId, title (service title, for date), description, serviceDate, serviceType }].
+// Channel boilerplate stripped from a clip title to recover the song name.
+// NB: "praise"/"worship" are song words ("Total Praise"), so only the TEAM
+// phrases are boilerplate — never the standalone words.
+const TITLE_BOILERPLATE = /\b(?:colg|the church of the living god|church of the living god|mass choir|sanctuary choir|praise (?:&|and) worship|praise team|worship team|choir|live|official|video|audio|hd|4k|full service|service|sunday|wednesday|morning|evening|feat\.?|featuring|ft\.?)\b/gi;
+
+// Many church channels post INDIVIDUAL song clips ("Total Praise | COLG Choir",
+// "COLG Mass Choir - Way Maker (Live)"). When a video isn't a dated full service,
+// its title often IS the song. Recover a conservative candidate or null — always
+// needs_review (a title guess is the weakest signal). Pure + tested.
+const cleanBoiler = (s) => String(s).replace(TITLE_BOILERPLATE, ' ').replace(/\s+/g, ' ').trim();
+
+export function songFromClipTitle(title) {
+  const raw = String(title || '').trim();
+  if (!raw) return null;
+  if (NOT_A_SONG.test(raw)) return null; // a structure word anywhere (sermon/offering/…) -> not a song
+  const stripped = raw.replace(/\([^)]*\)|\[[^\]]*\]/g, ' '); // drop "(Live)", "[HD]"
+  // Strip boilerplate from EACH segment, then keep the one with the most real
+  // content (the channel name is often the longest RAW segment but boils to ~0).
+  const segs = stripped.split(/[|–—·:]+|\s-\s/).map((s) => s.trim()).filter(Boolean);
+  const candidates = (segs.length > 1 ? segs : [stripped]).map(cleanBoiler).filter(Boolean);
+  let t = candidates.sort((a, b) => b.length - a.length)[0] || '';
+  if (!t || t.length < 3 || NOT_A_SONG.test(t)) return null;
+  if (/^[\d\s.\-/]+$/.test(t) || /^\d{1,2}[-/]\d{1,2}([-/]\d{2,4})?$/.test(t)) return null; // numeric/date leftovers
+  // A lone generic worship word ("Worship", "Service") isn't an identifiable
+  // song; a real title like "Total Praise" keeps its other word.
+  if (/^(?:worship|praise|service|music|songs?|selections?|hymn|medley)$/i.test(t)) return null;
+  return cap(t, 200);
+}
+
+// Turn raw channel items into choir_songs-shaped archive rows, ALWAYS
+// needs_review (real metadata, but not authoritative). Two easy-signal sources
+// per video: song lists/chapters in the DESCRIPTION, and — for clips that are
+// NOT a dated full service — the song name in the TITLE. Items:
+// [{ videoId, title, description, serviceDate, serviceType }].
 export function buildArchiveSongsFromChannel(items) {
   const rows = [];
   for (const it of items || []) {
     const videoId = cap(it && it.videoId, 100);
     if (!videoId) continue;
     const url = youtubeWatch(videoId, null);
-    for (const cand of parseDescriptionSongs(it.description)) {
-      rows.push({
-        title: cand.title,
-        titleKey: normalizeTitle(cand.title),
-        youtubeUrl: url,
-        videoId,
-        startSeconds: cand.startSeconds,
-        serviceDate: cap(it.serviceDate, 20),
-        serviceType: okType(it.serviceType),
-        scriptureRef: null,
-        source: 'archive',
-        confidence: 'low',
-        needsReview: true,
-        sourceQuote: null,
-      });
+    const serviceDate = cap(it.serviceDate, 20);
+    const serviceType = okType(it.serviceType);
+    const push = (title, startSeconds) => rows.push({
+      title, titleKey: normalizeTitle(title), youtubeUrl: url, videoId,
+      startSeconds: startSeconds ?? null, serviceDate, serviceType,
+      scriptureRef: null, source: 'archive', confidence: 'low', needsReview: true, sourceQuote: null,
+    });
+    const before = rows.length;
+    for (const cand of parseDescriptionSongs(it.description)) push(cand.title, cand.startSeconds);
+    // A clip (no dated service) whose title is the song — only when the
+    // description yielded nothing for this video (a full setlist always wins).
+    if (!serviceDate && rows.length === before) {
+      const clip = songFromClipTitle(it.title);
+      if (clip) push(clip, null);
     }
   }
   return rows;

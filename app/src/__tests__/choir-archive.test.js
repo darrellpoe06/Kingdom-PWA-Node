@@ -6,7 +6,7 @@
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import {
-  parseRepertoireJson, parseDescriptionSongs, buildArchiveSongsFromChannel, selectNewArchiveSongs,
+  parseRepertoireJson, parseDescriptionSongs, buildArchiveSongsFromChannel, selectNewArchiveSongs, songFromClipTitle,
 } from '../lib/choir-archive.js';
 
 describe('parseRepertoireJson — the pipeline handoff -> Songbook rows', () => {
@@ -61,13 +61,41 @@ describe('parseDescriptionSongs — real YouTube metadata, conservative', () => 
   });
 });
 
+describe('songFromClipTitle — recover the song from a single-song clip title', () => {
+  it('strips a channel segment + boilerplate', () => {
+    expect(songFromClipTitle('Total Praise | COLG Mass Choir')).toBe('Total Praise');
+    expect(songFromClipTitle('COLG Mass Choir - Way Maker (Live)')).toBe('Way Maker');
+  });
+  it('PROVEN-TO-CATCH: a dated full-service / structure title is not a song', () => {
+    expect(songFromClipTitle('Sunday Morning Worship Service')).toBe(null); // all boilerplate
+    expect(songFromClipTitle('Sermon: Walking In Faith')).toBe(null);       // structure word
+    expect(songFromClipTitle('5-10-2026')).toBe(null);                      // a date
+  });
+  it('returns null for empty / too-short leftovers', () => {
+    expect(songFromClipTitle('')).toBe(null);
+    expect(songFromClipTitle('Choir')).toBe(null);
+  });
+});
+
 describe('buildArchiveSongsFromChannel — every channel-derived song needs review', () => {
-  const items = [
-    { videoId: 'v1', title: 'Sunday Service 5-10-26', description: '12:30 Total Praise', serviceDate: '2026-05-10', serviceType: 'sunday' },
-  ];
-  it('builds archive rows flagged needs_review with low confidence', () => {
-    const rows = buildArchiveSongsFromChannel(items);
+  it('builds archive rows flagged needs_review with low confidence (from a service description)', () => {
+    const rows = buildArchiveSongsFromChannel([
+      { videoId: 'v1', title: 'Sunday Service 5-10-26', description: '12:30 Total Praise', serviceDate: '2026-05-10', serviceType: 'sunday' },
+    ]);
     expect(rows[0]).toMatchObject({ title: 'Total Praise', videoId: 'v1', source: 'archive', confidence: 'low', needsReview: true, serviceDate: '2026-05-10' });
+  });
+  it('falls back to the clip TITLE when a non-service video has no description songs', () => {
+    const rows = buildArchiveSongsFromChannel([
+      { videoId: 'v2', title: 'Goodness of God | COLG Choir', description: '', serviceDate: null, serviceType: 'sunday' },
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ title: 'Goodness of God', videoId: 'v2', needsReview: true });
+  });
+  it('PROVEN-TO-CATCH: a dated service does NOT use its title as a song (setlist wins, no false seed)', () => {
+    const rows = buildArchiveSongsFromChannel([
+      { videoId: 'v3', title: 'Sunday Service 6-1-26', description: 'no songs listed here', serviceDate: '2026-06-01', serviceType: 'sunday' },
+    ]);
+    expect(rows).toHaveLength(0);
   });
 });
 

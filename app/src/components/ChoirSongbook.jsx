@@ -329,8 +329,8 @@ function SourcesPanel({ smeNotes, songbook, onScan, onImportRepertoire, onImport
           </p>
 
           <div>
-            <button type="button" disabled={busy} onClick={() => run(onScan)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Scan the church YouTube archive</button>
-            <p className="text-[0.5625rem] text-[#5A5751] mt-1">Reads song lists / chapters in the channel’s video descriptions (real metadata). For the deeper “what was actually sung” extract, paste the pipeline’s repertoire.json below.</p>
+            <button type="button" disabled={busy} onClick={() => run(onScan)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Scan the full church YouTube archive</button>
+            <p className="text-[0.5625rem] text-[#5A5751] mt-1">Walks every upload (years of services) and seeds songs from titles, song-clip names, and the song lists / chapters in descriptions — real metadata, all flagged for review. The deeper “what was actually sung” extract (transcription, GPU-accelerated when the box lands) fills in the rest; paste its repertoire.json below as it’s produced.</p>
           </div>
 
           <div>
@@ -431,7 +431,10 @@ export default function ChoirSongbook({ songs, access }) {
   const onScan = async () => { setBusy(true); const r = await scanArchiveForSongs(); setBusy(false);
     if (r.skipped === 'no-key') return 'No YouTube API key set — paste the pipeline’s repertoire.json instead.';
     if (r.skipped) return `Couldn’t scan (${r.skipped}).`;
-    return `Scanned ${r.scanned} videos · seeded ${r.imported} song${r.imported === 1 ? '' : 's'} (all need review).`; };
+    const tail = r.imported === 0
+      ? ' The titles/descriptions don’t list songs — the transcription pass (heavy, GPU later) will fill the library.'
+      : ' All need review. The transcription pass deepens this over time.';
+    return `Scanned ${r.scanned} videos across the channel · seeded ${r.imported} new song${r.imported === 1 ? '' : 's'}.${tail}`; };
   const onImportRepertoire = async (text) => { setBusy(true); const r = await importRepertoireJson(text); setBusy(false);
     if (r.skipped === 'bad-json') return 'That isn’t valid JSON — paste the pipeline’s repertoire.json.';
     if (r.skipped === 'empty') return 'No songs found in that file.';
