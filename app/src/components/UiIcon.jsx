@@ -119,6 +119,10 @@ const ICONS = {
       <line x1="12" y1="13" x2="12" y2="21" />
     </>
   ),
+  // checkmark — finalized / teaching-ready (Finalize tab; was ✓)
+  check: (
+    <path d="M5 12.5l4.5 4.5L19 6.5" />
+  ),
 };
 
 export const UI_ICON_NAMES = Object.keys(ICONS);
