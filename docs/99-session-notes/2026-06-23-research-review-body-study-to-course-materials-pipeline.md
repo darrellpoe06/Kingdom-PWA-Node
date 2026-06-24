@@ -23,6 +23,9 @@
 
 **Recommendation in one line:** build the **reconcile-both → retain-best → app-on-CUDA-processes → faithfulness-gated → human-reviewed → publish-newest-first** pipeline, operated entirely through in-app surfaces, reusing every proven piece and adding only the genuinely-new links: **church-NAS access, the reconciliation/retention engine, the faithfulness gate, and the in-app pipeline cockpit.**
 
+> ### ⭐ LEAD BUILD (Darrell's priority, 2026-06-24): BG's Sermon Stories library is BUILD #1.
+> Bishop Gwin's reusable **Sermon Stories** library (**§16**) is the **prioritized first deliverable** — the thing to start building the moment this spec lands. It is the cheapest fully-buildable slice of the whole engine: it needs **one sermon transcript** (produced by one manual run of the *existing* `sme-pipeline` — no church-NAS access, no GPU, no reconciliation engine), it lands in BG's **existing** study surface (The Word — Migdal), and it reuses proven pieces end-to-end (corpus, `speakerKey`, `corpusPrep`, the no-leak visibility filter). §16 carries the **build-ready detail** (data model, extraction approach, trusted-access scope, the first-PR checklist). **The rest of the engine — conversations→lessons (§13), curriculum→books (§14) — follows, in any order.**
+
 ---
 
 ## 0. What this builds ON (proven pieces — reference, do NOT rebuild)
@@ -316,7 +319,7 @@ Per *"let's get the best ways AND documentation for each inside the PoeTech app"
 - **Two projects (umbrella scope):**
   - **Church Local Infrastructure** (`colg-local-infra-2026-06`, domain `church`) — the sovereign-infra + recordings-pipeline entries.
   - **Content Engine** (`content-engine-2026-06`, domain `church`) — the broader workstream: the unified engine, conversations→lessons, curriculum→books, and the phased timeline. Engine entries link to **both** projects.
-- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **14 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **Sermon Stories** (BG's reusable illustration library, in The Word — Migdal). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface.
+- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **14 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **⭐ Sermon Stories — BUILD #1** (BG's reusable illustration library, in The Word — Migdal; the prioritized first build). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface.
 - **Live-render status (honest):** these **render live after the one-time Studio apply against the `colg` cloud instance** — a cloud/Darrell-hand step, exactly like every DB change in this repo (the db-migrate convention). Committed + pushed here; **not yet applied to cloud** (this local session cannot reach the cloud Studio). Marked pending, not claimed live.
 
 ---
@@ -423,6 +426,8 @@ No PDF/EPUB lib is in `package.json` today.
 
 ## 15. FIRM PHASED TIMELINE — the whole engine
 
+**Build order (Darrell's priority, 2026-06-24):** **#1 = BG's Sermon Stories (P3c / §16)** — built first, ahead of everything, because it's the most build-ready high-value slice (one transcript, no new infra). **#2+ = the rest in any order:** conversations→lessons (P1), curriculum→books (P3→P4), and the recordings/reconciliation/GPU phases as their dependencies land. The phase *numbers* below describe dependencies, not build sequence; the **sequence is set by the priority callout**, with P0 (text wedge) available in parallel whenever Gmail OAuth lands.
+
 Build-day estimates are engineering effort, not wall-clock; phases gated by their **dependencies**, not the calendar. "CPU-now" = ships on current hardware; "GPU-later" = needs/accelerated-by the CUDA box.
 
 | Phase | What ships | Build days | Compute | Hard dependencies |
@@ -431,7 +436,7 @@ Build-day estimates are engineering effort, not wall-clock; phases gated by thei
 | **P1** | **Conversations → Lessons** MVP (pick → draft → review → publish to Learn) | **~3–5** | **CPU-now** | Privacy scoping (opt-in selector, private-by-default) |
 | **P2** | **Recordings → Lessons** MVP (one recording → faithfulness gate → lesson) | ~4–6 | **CPU-now** (slow), **GPU accelerates** | The faithfulness gate (§9.3); one recording on the NAS (manual upload OR church-NAS access) |
 | **P3** | **Lessons → Curriculum** (compile related lessons into courses/series) | ~2–3 | **CPU-now** | P1/P2 producing lessons; reuses learn-framework |
-| **P3c** | **Sermon Stories** (BG's reusable illustration library; §16) | ~3–5 | **CPU-now** | Transcripts (rides P2) + the new sub-tab in The Word — Migdal; batch-extract rides P7 |
+| **P3c ⭐ BUILD #1** | **Sermon Stories** (BG's reusable illustration library; §16) — **the prioritized first build** | ~3–5 | **CPU-now** | ONE transcript (one manual `sme-pipeline` run — no church-NAS access, no GPU) + the new sub-tab in The Word — Migdal; batch back-catalog rides P7 |
 | **P4** | **Curriculum → Books** MVP (compile → paginated → download PDF) | ~3–5 | **CPU-now** | Library-surface decision (§14, NOT the financial Books tab); export approach |
 | **P5** | **Reconciliation + retention engine** (NAS ∪ YouTube, best-of-one) | ~5–8 | CPU-now | Church-NAS read access (tailnet, his-hand creds) |
 | **P6** | **In-app cockpit on CUDA** (Reconcile/Build/Monitor/Review/Publish surfaces) | ~6–10 | runs CPU; **homes on GPU box** | GPU box online; P2/P5 logic to wrap |
@@ -456,7 +461,7 @@ Build-day estimates are engineering effort, not wall-clock; phases gated by thei
 - **CPU-now (ship today on current hardware):** P0, P1, P2 (slow but works), P3, P4, P5, P8. **The entire sources→lessons→curriculum→books→marketing spine can be PROVEN on CPU** — text sources need no GPU at all, and one recording transcribes (slowly) on the DS1621xs.
 - **GPU-later (needs/accelerated-by the CUDA box):** P6 (the cockpit *homes* on the GPU box as the processing node) and **P7 (batch backfill of 836 videos + all-history)** — the only phase that genuinely *requires* GPU to be practical. GPU also turns P2's "slow" into "fast."
 
-**Sequencing recommendation:** P0/P1 first (cheapest value, CPU, no new hardware) → P3 → P4 (prove the whole compile chain to a downloadable book on owned conversation content) → then P2/P5/P6/P7 as the church-NAS access + GPU box land → P8 packaging when Darrell wants products. **The whole engine is demonstrable end-to-end on CPU with owned conversation data before a single GPU dependency is required.**
+**Sequencing recommendation (priority-ordered):** **P3c — BG's Sermon Stories — FIRST** (Darrell's call: highest value, smallest dependency set, one transcript, no new infra). Then P0/P1 (text wedge + conversations→lessons) → P3 → P4 (prove the compile chain to a downloadable book on owned conversation content) → then P2/P5/P6/P7 as the church-NAS access + GPU box land → P8 packaging when Darrell wants products. **The whole engine is demonstrable end-to-end on CPU before a single GPU dependency is required — and BG's Sermon Stories is the first thing to ship.**
 
 ### Standard screens (engine-wide)
 
@@ -466,9 +471,11 @@ Build-day estimates are engineering effort, not wall-clock; phases gated by thei
 
 ---
 
-## 16. OUTPUT MODE — Bishop Gwin's reusable "Sermon Stories" library (BG-requested)
+## 16. ⭐ BUILD #1 — Bishop Gwin's reusable "Sermon Stories" library (BG-requested, PRIORITIZED MVP)
 
-**Requested by Bishop Gwin himself:** extract every **story / illustration** he tells in a sermon and collect them into **his personal section** as a reusable, searchable library — so he doesn't dig through old sermons to find an illustration for a new one. This is a **third output of the same engine** (alongside lessons and books), running off the same sermon transcripts.
+**This is the lead deliverable (Darrell, 2026-06-24): build it first.** Requested by Bishop Gwin himself: extract every **story / illustration** he tells in a sermon and collect them into **his personal section** as a reusable, searchable library — so he doesn't dig through old sermons to find an illustration for a new one. This is the **first output of the engine** to ship (lessons §13 and books §14 follow), and it's the **most build-ready** because it depends on nothing new: one transcript from the existing `sme-pipeline`, BG's existing study surface, and proven primitives. The detail below is enough to start the first PR.
+
+**Why it's the right first build:** smallest dependency set in the whole engine (one transcript, no church-NAS access, no GPU, no reconciliation/retention engine, no new top-level surface), highest direct value to a named user (the Bishop), and it exercises the engine's hardest guarantee (faithful extraction + verify) on a small, ownable surface before scaling.
 
 ### Where it lands (extend, don't duplicate)
 
@@ -497,6 +504,64 @@ BG's clarification: the library is **his**, but **Darrell and Christina also hav
 | `visibility` | **private to BG by default** (a story may name a congregant/family member) |
 
 Searchable/filterable by **theme, scripture, topic** — pull a past illustration into a new sermon fast.
+
+### Build-ready data model (proposed `sermon_stories` table)
+
+A dedicated table (sibling to `choir_sermons`, not a reuse of `discussions` — these are structured records with a narrower steward scope and a verify lifecycle). Migration is additive; next free number at build time (≥ 0041).
+
+```sql
+CREATE TABLE IF NOT EXISTS sermon_stories (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id   uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+  sermon_id     uuid REFERENCES choir_sermons(id) ON DELETE SET NULL,  -- source sermon
+  slug          text NOT NULL,                       -- stable local id (sync pattern)
+  story         text NOT NULL,                       -- the anecdote, his words (faithful)
+  point         text,                                -- the moral / takeaway
+  scripture     jsonb DEFAULT '[]'::jsonb,           -- verified refs (faithfulness gate)
+  theme         text,                                -- primary theme
+  tags          text[] DEFAULT '{}',                 -- topic/theme tags for filter
+  start_ts      text,                                -- mm:ss into the recording (jump-back)
+  speaker_key   text,                                -- speakerKey(name) canonical
+  status        text NOT NULL DEFAULT 'candidate'    -- candidate | kept | archived
+                CHECK (status IN ('candidate','kept','archived')),
+  visibility    text NOT NULL DEFAULT 'stewards'     -- stewards | private  (never instance-wide)
+                CHECK (visibility IN ('stewards','private')),
+  verified_by   uuid,                                -- BG (or steward) who confirmed
+  verified_at   timestamptz,                         -- null until verified
+  created_by    uuid,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (instance_id, slug)
+);
+-- RLS: the TRUSTED-STEWARD predicate, NOT user_in_instance (too wide).
+--   read/use : user_in_sermon_stories_stewards(instance_id)   -- BG + Darrell + Christina
+--   write    : owner (BG) full; stewards may add candidates / use; owner curates 'kept'
+-- A 'candidate' row is never treated as canonical; only status='kept' (verified_at set) is reusable.
+```
+
+`user_in_sermon_stories_stewards(instance_id)` is the new subgroup helper — the `user_in_choir()` shape (a `role_scopes` grant or a small steward table), seeded with BG (owner) + Darrell + Christina. **Sync** rides the existing table-sync pattern (slug + instance), like `discussions-sync`/`choir-sync`.
+
+### Extraction approach (faithful, grounded, no fabrication)
+
+Runs on a sermon **transcript** (one manual `sme-pipeline` run produces it today — `transcript.txt` + timestamped `transcript.json`). Pipeline:
+
+1. **Transcript in** (existing `sme-pipeline`; scripture-aware `initial_prompt` per §3.1 C).
+2. **Story-candidate extraction** — local Ollama (`qwen2.5:14b`) over the transcript with a **grounded extraction prompt**: *"From THIS transcript only, list each distinct story/illustration the speaker actually tells. For each: the story in/near his words, its point, any scripture referenced, a 1–3 word theme + tags, and the start timestamp. Do NOT invent stories, morals, or scripture not present. If unsure, omit."* → returns a JSON array of candidates (the table shape above), each `status='candidate'`.
+3. **Faithfulness gate (§3.1 D)** — every `scripture` ref is parsed + checked against local canonical KJV/ESV; drift is flagged on the candidate.
+4. **Consent scrub (§3.3)** — Presidio passes the `story`/`point` for congregant/family names → flags (not auto-deletes — BG decides).
+5. **BG verifies** — candidates surface in the Sermon Stories sub-tab with the jump-back timestamp; BG confirms (→ `status='kept'`, `verified_at`), edits, or archives. **Only `kept` rows are reusable; nothing is auto-canonical.**
+
+No GPU required for steps 2–5 (text over a transcript); step 1 is the only slow part on CPU, and it's one sermon for the MVP.
+
+### First-PR checklist (what "build it" means)
+
+- [ ] Migration: `sermon_stories` table + RLS + `user_in_sermon_stories_stewards()` helper + steward seed (BG/Darrell/Christina).
+- [ ] `lib/sermon-stories.js` (pure): normalize/validate a story, `filterStories(by theme/scripture/topic)`, candidate-vs-kept helpers, the no-leak visibility filter (mirror `visibleDiscussions`). + unit tests (proven-to-catch: a private/candidate row never leaks).
+- [ ] `lib/sermon-stories-sync.js`: table-sync (slug+instance), mirroring `choir-sync`/`discussions-sync`.
+- [ ] Extraction prompt + a small runner that turns a transcript → candidate rows (reuses `sme-pipeline` output; can run on the home box for the MVP).
+- [ ] UI: a **"Sermon Stories" sub-tab** added to `theWordTabs(canManage)` in The Word — Migdal — search/filter (theme/scripture/topic), candidate-review (verify/edit/archive), jump-back-to-timestamp.
+- [ ] Faithfulness-gate hook on `scripture`; Presidio flag surfaced in review.
+- [ ] Gate: tests green + the visibility proven-to-catch test + steward-scope (not instance-wide) test.
 
 ### Two parts
 
