@@ -14,7 +14,7 @@
 
 **The architecture, settled across this session's directives:**
 
-1. **Source = BOTH, reconciled.** The originals already live on the **church's local NAS** (sovereign storage at COLG). The **YouTube channel — The Love Corner, [@thelovecorner](https://youtube.com/@thelovecorner)** (`UC821pJh7YR5llBNnWUJj-ZA`, **836 videos**, joined Sep 22 2014, ~133.7k views) — is the published mirror. We use **both**: their *union* is the comprehensive video history, and the *matched pair* cross-verifies completeness + fidelity.
+1. **Source = BOTH, reconciled — and continuous (§18).** The originals already live on the **church's local NAS** (sovereign storage at COLG). The **YouTube channel — The Love Corner, [@thelovecorner](https://youtube.com/@thelovecorner)** (`UC821pJh7YR5llBNnWUJj-ZA`, **836 videos**, joined Sep 22 2014, ~133.7k views) — is the published mirror. We use **both**: their *union* is the comprehensive video history, and the *matched pair* cross-verifies completeness + fidelity. **This same source — the historical archive PLUS every ongoing/future recording (continuous) — feeds EVERY engine output** (sermons/stories, choir, SME/keyboardist instruction, worship self-critique, lessons, music). **No new dedicated capture step** — it's all already captured, and the future auto-feeds.
 2. **Retention = best-of-one.** Verify with both copies, then **keep the single best version** of each item (highest res/bitrate, most complete, best audio — audio matters most for transcription), recording matched-pair provenance even though only one file is retained. The church NAS has **~100 TB** (after the 5×12 TB add) — ample.
 3. **Processing = the app *is* the cockpit, running *on* the CUDA boxes.** The PoeTech PWA opens locally on the GPU machine at the church (and at home); that app instance reads the local-LAN recordings, drives the local GPU (faster-whisper + Ollama on CUDA), and publishes course materials back into the app. Operating the pipeline = clicks in the app that become local API calls. Nothing leaves the box.
 4. **Access = the tailnet.** Home ↔ church reach each other over Tailscale (the COLG sovereign-NAS build puts both on one tailnet). Reaching/authenticating to the church NAS is a **credential / his-hand step** (Darrell/BG hold those creds — the pipeline does not).
@@ -319,7 +319,7 @@ Per *"let's get the best ways AND documentation for each inside the PoeTech app"
 - **Two projects (umbrella scope):**
   - **Church Local Infrastructure** (`colg-local-infra-2026-06`, domain `church`) — the sovereign-infra + recordings-pipeline entries.
   - **Content Engine** (`content-engine-2026-06`, domain `church`) — the broader workstream: the unified engine, conversations→lessons, curriculum→books, and the phased timeline. Engine entries link to **both** projects.
-- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **15 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **⭐ Sermon Stories — BUILD #1** (BG's reusable illustration library, in The Word — Migdal; the prioritized first build). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface. · (15) **Community engagement** (reactions/ratings/most-loved/radio stations on sermons + lessons, riding the shared primitive `local_ad147f53`; §17).
+- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **16 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **⭐ Sermon Stories — BUILD #1** (BG's reusable illustration library, in The Word — Migdal; the prioritized first build). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface. · (15) **Community engagement** (reactions/ratings/most-loved/radio stations on sermons + lessons, riding the shared primitive `local_ad147f53`; §17). · (16) **Single source** (historical archive + continuous future feeds every output; no separate capture; §18).
 - **Live-render status (honest):** these **render live after the one-time Studio apply against the `colg` cloud instance** — a cloud/Darrell-hand step, exactly like every DB change in this repo (the db-migrate convention). Committed + pushed here; **not yet applied to cloud** (this local session cannot reach the cloud Studio). Marked pending, not claimed live.
 
 ---
@@ -357,6 +357,8 @@ One engine, many sources, many outputs. The transcript→structure→faithfulnes
 ```
 
 The same in-app cockpit (§7) operates every stage; the same three brakes + Governor review gate every compile.
+
+**One source for everything (§18).** Every output below — and every *other* engine output (choir songs, SME/keyboardist instruction, worship self-critique, music) — draws from the **same single source: the historical archive (church NAS ∪ YouTube, reconciled, best-version) + ongoing/future recordings (continuous auto-feed).** There is **no separate capture step per output** — the sources box on the left is the *one* established archive, and new recordings join it continuously.
 
 **Multiple outputs per sermon — fan-out, not a single line.** One transcript yields *several* artifacts in parallel: a **lesson** (Learn), material toward **curriculum/books**, **and** — new, requested by Bishop Gwin himself — his reusable **Sermon Stories** (the discrete illustrations/anecdotes he tells, collected into his personal section; §16). The extraction pass runs once; the structuring fans out to whichever outputs are wanted. BG's stories are an **owner-scoped (BG-private) output**, distinct from the shareable lesson/book outputs.
 
@@ -626,6 +628,41 @@ This **rides the shared engagement primitive being designed in the consolidation
 ### Timeline
 
 **Rides the shared primitive's delivery** (consolidation lane `local_ad147f53`), then registers the sermon + lessons/courses surfaces — an **additive layer once each surface ships**. It does **not** change the build order: **BG's Sermon Stories (§16) is still Build #1**; engagement attaches to the *public* sermon library + lessons as the shared primitive lands.
+
+---
+
+## 18. SINGLE SOURCE — the historical archive + continuous future (engine-wide principle)
+
+**Binding clarification (Darrell, 2026-06-24), applies to the WHOLE engine:** *"It's all already captured in the historical videos on YouTube and Church NAS, and into the future."*
+
+**There is ONE source for everything the engine produces.** Every output — BG's sermons/stories (§16), choir songs, SME/keyboardist instruction, worship presentations for self-critique, lessons (§13), curriculum/books (§14), music, and the community-engagement surfaces (§17) — draws from the **same established source**:
+
+- **The historical archive** — church NAS ∪ YouTube (@thelovecorner, 836 items since 2014), **reconciled both-ways (§4), best-version retained (§6).** It's *already captured*.
+- **PLUS ongoing/future recordings** — every future service / Bible study / rehearsal **auto-feeds** the same archive, continuously.
+
+### What this changes (bake in across the engine)
+
+- **No new dedicated capture step.** The engine **processes the existing + continuous archive** — it does not ask anyone to re-record or stand up a new capture pipeline per output. Capture already happened (and keeps happening); the engine's job is *process → route*.
+- **Self-critique / worship-review draws from the archive, not fresh capture.** The worship-review / SME pipeline lane (`local_eceef6e5`) pulls a learner's **PAST altar presentations** *from the historical archive* so they can review work they already did — and **every future service auto-feeds** new material to review. Continuous, no separate "record yourself" step.
+- **All extraction outputs reference this shared source.** BG's stories, choir songs, the keyboardist's instruction, lessons, music — all sourced from the same historical + ongoing archive. One reconciliation/retention spine (§4/§6) feeds them all; we never wire a bespoke source per surface.
+- **Continuous ingestion = a BRAKED queue, not an unbraked loop.** New recordings land → get processed → flow to the right surfaces **automatically, behind the three brakes** (budget + single-instance lock + kill-switch; FEEDBACK_AUTONOMOUS_AUTOMATION_THREE_BRAKES). This ties the continuous-feedback-reel *cadence* + church-NAS-as-source + app-on-CUDA processing (§7) into one loop. **"Continuous" means newest-first + auto-routed, NOT always-on-unattended:** per the 2026-06-06 runaway lesson, the auto-feed ships **inactive (Tier C)** and is turned on only with someone watching; the human review gate (§2 step 6) still clears every shareable output before publish.
+
+### The routing (one pass, fan-out by surface)
+
+```
+  ARCHIVE (historical ∪ continuous future, reconciled, best-version)
+        │  one transcript/extraction pass per item (app-on-CUDA, behind brakes)
+        ▼
+   ┌──────────────────────────────────────────────────────────────────┐
+   │  faithfulness gate · consent scrub · structure · HUMAN REVIEW     │
+   └──────────────────────────────────────────────────────────────────┘
+        │ fan-out to whichever surfaces apply (no re-capture)
+        ├─▶ BG Sermon Stories (§16, private)        ├─▶ Lessons / Curriculum / Books (§13/§14)
+        ├─▶ Choir songs / worship                   ├─▶ SME / keyboardist instruction
+        ├─▶ Worship self-critique (local_eceef6e5)  └─▶ Community engagement (§17, shareable)
+```
+
+**The source clarification does not change the build order:** BG's Sermon Stories (§16) is still **Build #1**; it simply confirms that its source — and every output's source — is the one archive, already captured, continuously fed.
 
 ---
 
