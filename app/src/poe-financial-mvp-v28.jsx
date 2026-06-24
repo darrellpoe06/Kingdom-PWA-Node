@@ -1921,6 +1921,24 @@ export default function PoeFinancialSystem() {
     }
   }, []);
 
+  // Live local-time readout shown under the header date. Ticks on a light
+  // 20s interval (minute-resolution display, so per-second re-renders of this
+  // large component are wasted) and cleans up on unmount — no leak. Renders
+  // in the user's own timezone via native Intl; falls back silently if the
+  // platform lacks Intl. Ties Darrell's local-date/time-stamping principle.
+  const [headerClockNow, setHeaderClockNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setHeaderClockNow(new Date()), 20000);
+    return () => clearInterval(id);
+  }, []);
+  const headerTimeLabel = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(headerClockNow);
+    } catch (e) {
+      return '';
+    }
+  }, [headerClockNow]);
+
   // Layer 2 — cross-device feedback sync. Local feedback (data.feedback)
   // stays in localStorage; remote-authored feedback from other devices
   // lives in this separate state slice and gets merged into the array
@@ -4745,7 +4763,7 @@ html{scroll-padding-bottom:280px}
               </div>
               <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
                 <div className="font-medium">{data.meta.releaseLabel || `v${data.meta.appVersion}`}</div>
-                <div title="Today's date">{headerDateLabel}</div>
+                <div title="Today's date">{headerDateLabel}{headerTimeLabel ? <span className="text-[#B85838]"> · {headerTimeLabel}</span> : null}</div>
                 {/* 2026-05-28 — Build marker so the user can verify at a glance
                     whether the phone is on the latest deploy. iOS Safari has
                     bitten us with stale HTML caching; this is the smoke-test
