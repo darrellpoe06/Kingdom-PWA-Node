@@ -172,7 +172,17 @@ export function deriveAccess(role, inChoir) {
 }
 
 // Normalize a YouTube URL to its embeddable form; null if not recognizable.
-// Accepts watch?v=, youtu.be/, and /embed/ forms.
+// Accepts watch?v=, youtu.be/, /embed/, /live/, /shorts/, /v/, and bare-id forms.
+//
+// WHY /live/ and /shorts/ (added 2026-06-23): the church's service recordings on
+// YouTube carry the `youtube.com/live/<id>` URL (that is the link a director
+// copies straight off a finished livestream — "the YouTube recording of this
+// service"), and short clips carry `youtube.com/shorts/<id>`. Neither form was
+// recognized before, so a pasted live-stream link fell through to null and the
+// embed silently degraded to a plain "Open link" — the "choir YouTube link →
+// video processing broken" report (feedback d23b37f3). Recognizing them embeds
+// the video in place. Pure + additive: every URL that embedded before still
+// embeds; nothing that resolved to a real id changes.
 export function youtubeEmbedUrl(url) {
   if (!url || typeof url !== 'string') return null;
   const u = url.trim();
@@ -181,6 +191,9 @@ export function youtubeEmbedUrl(url) {
   if ((m = u.match(/[?&]v=([\w-]{11})/))) id = m[1];
   else if ((m = u.match(/youtu\.be\/([\w-]{11})/))) id = m[1];
   else if ((m = u.match(/\/embed\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/live\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/shorts\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/v\/([\w-]{11})/))) id = m[1];
   else if ((m = u.match(/^([\w-]{11})$/))) id = m[1];
   return id ? `https://www.youtube.com/embed/${id}` : null;
 }

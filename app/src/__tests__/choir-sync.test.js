@@ -36,6 +36,15 @@ describe('youtubeEmbedUrl', () => {
   it('handles extra query params on a watch URL', () => {
     expect(youtubeEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
   });
+  it('embeds /live/, /shorts/, and /v/ forms (the church-stream recording link — feedback d23b37f3)', () => {
+    // A director copies the finished-livestream link straight off YouTube; it is
+    // the /live/ form. Before this it fell through to null and the player showed
+    // only a plain link instead of the embedded service.
+    expect(youtubeEmbedUrl('https://www.youtube.com/live/dQw4w9WgXcQ')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+    expect(youtubeEmbedUrl('https://www.youtube.com/live/dQw4w9WgXcQ?si=abc123')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+    expect(youtubeEmbedUrl('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+    expect(youtubeEmbedUrl('https://www.youtube.com/v/dQw4w9WgXcQ')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+  });
   it('returns null for junk / empty', () => {
     expect(youtubeEmbedUrl('')).toBeNull();
     expect(youtubeEmbedUrl(null)).toBeNull();
