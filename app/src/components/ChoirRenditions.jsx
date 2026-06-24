@@ -45,17 +45,24 @@ function AdLibChip({ adLib, onJump }) {
   const tone = unreviewed
     ? 'bg-[#FAF8F4] text-[#5A5751] border border-[#B85838]'
     : 'bg-[#F2F4EC] text-[#5A6E3D]';
+  // Time span so the record is precise enough to reproduce exactly (fidelity):
+  // a single moment shows mm:ss; a span shows mm:ss–mm:ss.
+  const span = adLib.at != null
+    ? (adLib.endAt != null ? `${formatTimecode(adLib.at)}–${formatTimecode(adLib.endAt)}` : formatTimecode(adLib.at))
+    : null;
   return (
     <span className={`inline-flex items-center gap-1 text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 ${tone}`}>
       {unreviewed && <span aria-hidden="true">⚠</span>}
       <span className="font-semibold">{kind}</span>
       <span className="normal-case tracking-normal">{adLib.label}</span>
+      {adLib.description && <span className="normal-case tracking-normal text-[#5A5751]">— {adLib.description}</span>}
       {adLib.soloist && <span className="normal-case tracking-normal">· {adLib.soloist}</span>}
-      {adLib.at != null && onJump && (
+      {span && onJump && (
         <button type="button" onClick={() => onJump(adLib.at)} className="underline normal-case tracking-normal text-[#B85838]" aria-label={`Jump to ${formatTimecode(adLib.at)}`}>
-          {formatTimecode(adLib.at)}
+          {span}
         </button>
       )}
+      {span && !onJump && <span className="normal-case tracking-normal text-[#5A5751]">{span}</span>}
       {detected && adLib.confidence != null && (
         <span className="normal-case tracking-normal text-[#5A5751]">{Math.round(adLib.confidence * 100)}%</span>
       )}
@@ -63,38 +70,54 @@ function AdLibChip({ adLib, onJump }) {
   );
 }
 
-// Director: add a new curated ad-lib to a rendition.
+// Director: record exactly what was done in this rendition (descriptive — a
+// faithful note of what happened, captured precisely enough to reproduce it).
 function AddAdLib({ onAdd, onClose }) {
   const [type, setType] = useState('vamp');
   const [label, setLabel] = useState('');
+  const [description, setDescription] = useState('');
   const [soloist, setSoloist] = useState('');
   const [at, setAt] = useState('');
+  const [endAt, setEndAt] = useState('');
   const submit = () => {
     const text = label.trim();
     if (!text) return;
-    onAdd({ type, label: text, soloist: soloist.trim() || null, at: parseTimecode(at), source: 'curated', review: 'confirmed' });
+    onAdd({
+      type, label: text, description: description.trim() || null,
+      soloist: soloist.trim() || null, at: parseTimecode(at), endAt: parseTimecode(endAt),
+      source: 'curated', review: 'confirmed',
+    });
     onClose();
   };
   return (
     <div className="mt-2 bg-[#FAF8F4] border border-[#5A6E3D] p-2 space-y-2">
+      <p className="text-[0.5625rem] text-[#5A5751]" style={SERIF}>Note exactly what was done this time — a faithful record, so it can be matched later if you choose.</p>
       <div className="grid grid-cols-2 gap-2">
-        <div><label className={LABEL} htmlFor="al-type">Variation</label>
+        <div><label className={LABEL} htmlFor="al-type">What kind</label>
           <select id="al-type" className={FIELD} value={type} onChange={(e) => setType(e.target.value)}>
             {Object.entries(AD_LIB_TYPES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
         </div>
-        <div><label className={LABEL} htmlFor="al-at">At (mm:ss, optional)</label>
-          <input id="al-at" className={FIELD} value={at} onChange={(e) => setAt(e.target.value)} placeholder="e.g. 3:40" />
+        <div className="grid grid-cols-2 gap-1">
+          <div><label className={LABEL} htmlFor="al-at">From (mm:ss)</label>
+            <input id="al-at" className={FIELD} value={at} onChange={(e) => setAt(e.target.value)} placeholder="3:40" />
+          </div>
+          <div><label className={LABEL} htmlFor="al-end">To (mm:ss)</label>
+            <input id="al-end" className={FIELD} value={endAt} onChange={(e) => setEndAt(e.target.value)} placeholder="4:05" />
+          </div>
         </div>
       </div>
       <div><label className={LABEL} htmlFor="al-label">What happened</label>
         <input id="al-label" className={FIELD} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Extended vamp on the tag" />
       </div>
-      <div><label className={LABEL} htmlFor="al-solo">Soloist / part (optional)</label>
+      <div><label className={LABEL} htmlFor="al-desc">Exact detail (optional — for matching it)</label>
+        <input id="al-desc" className={FIELD} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. up a half step, 4 bars, choir hums under the lead" />
+      </div>
+      <div><label className={LABEL} htmlFor="al-solo">Who / part (optional)</label>
         <input id="al-solo" className={FIELD} value={soloist} onChange={(e) => setSoloist(e.target.value)} placeholder="e.g. Sis. M (lead)" />
       </div>
       <div className="flex gap-2">
-        <button type="button" onClick={submit} className={`${BTN} bg-[#5A6E3D] text-white font-semibold`}>Add variation</button>
+        <button type="button" onClick={submit} className={`${BTN} bg-[#5A6E3D] text-white font-semibold`}>Record it</button>
         <button type="button" onClick={onClose} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
       </div>
     </div>
@@ -125,7 +148,7 @@ function RenditionCard({ rendition, isMostLoved, canEdit, busy, onLove, onSaveDe
           <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 bg-[#E8E4DC] text-[#1A1815]">{SERVICE_LABEL[rendition.serviceType] || rendition.serviceType}</span>
           {isMostLoved && <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 bg-[#FAF8F4] text-[#B85838]" title="Most-loved version">♥ most-loved version</span>}
           {rendition.isFuture && <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 bg-[#F2F4EC] text-[#5A6E3D]">scheduled</span>}
-          {rendition.needsSourceReview && <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 bg-[#FAF8F4] text-[#B85838] border border-[#B85838]" title={`Archive match ${Math.round((rendition.sourceConfidence || 0) * 100)}% — confirm this is right`}>⚠ verify match</span>}
+          {rendition.needsSourceReview && <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 bg-[#FAF8F4] text-[#B85838] border border-[#B85838]" title={`Archive match${rendition.confidence ? ` (${rendition.confidence} confidence)` : ''} — confirm this is the right song/date`}>⚠ verify match</span>}
         </div>
         <button
           type="button"
@@ -157,9 +180,9 @@ function RenditionCard({ rendition, isMostLoved, canEdit, busy, onLove, onSaveDe
                     {a.review === 'unreviewed' && (
                       <button type="button" disabled={busy} onClick={() => reviewAdLib(a.id, 'confirmed')} className="text-[0.5625rem] text-[#5A6E3D] hover:underline" aria-label="Confirm this variation">✓</button>
                     )}
-                    <button type="button" disabled={busy} onClick={() => graduate(a)} className="text-[0.5625rem] text-[#B85838] hover:underline" title="Keep this in the song's arrangement">keep</button>
+                    <button type="button" disabled={busy} onClick={() => graduate(a)} className="text-[0.5625rem] text-[#B85838] hover:underline" title="Note this on the song's arrangement as a dated reference (not a rule — just available to draw on)">note as reference</button>
                     {a.review !== 'rejected' && (
-                      <button type="button" disabled={busy} onClick={() => removeAdLib(a.id)} className="text-[0.5625rem] text-[#5A5751] hover:underline" aria-label="Remove this variation">✕</button>
+                      <button type="button" disabled={busy} onClick={() => removeAdLib(a.id)} className="text-[0.5625rem] text-[#5A5751] hover:underline" aria-label="Remove this record">✕</button>
                     )}
                   </span>
                 )}
@@ -214,7 +237,8 @@ export default function ChoirRenditions({ entry, rows, renditionLoves, canEdit, 
     [rows, renditionLoves, today]);
   const loved = useMemo(() => mostLovedRendition(renditions), [renditions]);
 
-  // Graduate a loved ad-lib into the song's kept arrangement (across its rows).
+  // Note a loved ad-lib onto the song's arrangement as a dated reference (across
+  // its rows) — available to draw on, never a rule (descriptive, not prescriptive).
   const graduate = (rendition, adLib) => {
     const existing = (entry.arrangements || [])[0] || '';
     const next = graduateAdLib(existing, adLib, rendition);
@@ -230,6 +254,9 @@ export default function ChoirRenditions({ entry, rows, renditionLoves, canEdit, 
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">
         The ways we've sung this · {renditions.length} {renditions.length === 1 ? 'time' : 'times'}
       </div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>
+        Exactly how we sang it each time — a faithful record to match if you choose, or to build from. It informs; it doesn't dictate. Sing it however the Spirit leads.
+      </p>
       <div className="space-y-2">
         {renditions.map((r) => (
           <RenditionCard

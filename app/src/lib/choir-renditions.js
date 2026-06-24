@@ -24,6 +24,17 @@
 // archive) writes DETECTED candidates with a confidence + review='unreviewed'.
 // A detected ad-lib is never shown as confirmed; a low-confidence ARCHIVE match
 // flags the whole rendition for review (needsSourceReview). Nothing is invented.
+//
+// DESCRIPTIVE, NEVER PRESCRIPTIVE (binding, Darrell 2026-06-24): this is an EXACT,
+// FAITHFUL RECORD of what the choir actually did — captured precisely enough to
+// reproduce a past rendition exactly IF THEY CHOOSE. It informs; it does not
+// dictate. The copy says "here's exactly how we sang it on [date]," never "sing
+// it this way." The choir stays free to sing it however the Spirit leads next
+// time; the record only preserves + clarifies what was done, available to
+// reproduce OR depart from at their discretion. Fidelity (the precise detail:
+// what / when in the song / who) is the priority so "get it the same" is
+// possible; prescription is never the intent. (Aligns no-condemnation + choir
+// freedom + Spirit-led worship.)
 // =============================================================================
 import { normalizeTitle } from './choir-songbook.js';
 
@@ -256,19 +267,21 @@ export function renditionLabel(rendition) {
   return summary ? `${date} — ${summary}` : date;
 }
 
-// --- Music-creation graduation ----------------------------------------------
+// --- Music-creation: note a loved ad-lib as a reference ----------------------
 
-// Graduate a loved ad-lib from a rendition into the song's KEPT arrangement
-// (Darrell: "the music-creation process can graduate a loved ad-lib into a kept
-// arrangement"). Pure: returns the new arrangement text by APPENDING the kept
-// move to whatever arrangement the song already has, without clobbering it.
-// Idempotent — graduating the same ad-lib twice doesn't duplicate the line.
+// Note a loved ad-lib from a rendition into the song's arrangement as a DATED
+// REFERENCE — "this is what we did on [date]," available to reproduce or build
+// from (Darrell: "graduate a loved ad-lib," reframed descriptive 2026-06-24:
+// the arrangement field is a reference the choir CAN draw on, never a rule it
+// MUST follow). Pure: APPENDS the dated reference to whatever the song already
+// has, without clobbering it. Idempotent — noting the same ad-lib twice doesn't
+// duplicate the line. Descriptive language only (no "keep/always/must").
 export function graduateAdLib(existingArrangement, adLib, rendition) {
   if (!adLib) return existingArrangement || null;
-  const date = rendition?.serviceDate ? ` (${rendition.serviceDate})` : '';
+  const date = rendition?.serviceDate || 'undated';
   const kind = AD_LIB_TYPES[adLib.type]?.label || 'Variation';
-  const line = `Keep: ${kind} — ${adLib.label}${date}`;
+  const line = `As sung ${date}: ${kind} — ${adLib.label}`;
   const existing = (existingArrangement || '').trim();
-  if (existing.split('\n').some((l) => l.trim() === line)) return existing || null; // already kept
+  if (existing.split('\n').some((l) => l.trim() === line)) return existing || null; // already noted
   return existing ? `${existing}\n${line}` : line;
 }

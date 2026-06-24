@@ -6,6 +6,16 @@ renditions -- one per time it was sung -- and opening a song shows "the ways
 we've sung this": rendition A (this date, this vamp/these runs), rendition B
 (that date, different).
 
+**Descriptive, never prescriptive (binding, 2026-06-24).** The record is an
+EXACT, FAITHFUL record of what was actually done -- captured precisely enough
+(the detail, the time span, who) to reproduce a past rendition exactly *if the
+choir chooses*. It informs; it does not dictate. Copy reads "exactly how we sang
+it on [date]," never "sing it this way." The choir stays free to sing it however
+the Spirit leads next time; the tool preserves + clarifies what was done,
+available to reproduce OR depart from. Fidelity is the priority; prescription is
+never the intent. Noting a loved ad-lib onto the arrangement is a **dated
+reference** ("As sung [date]: ..."), available to draw on -- not a rule.
+
 Built on branch `feat/choir-renditions` (off `origin/main`, after the merged
 Songbook cross-reference #312). This note records the model + the two cross-lane
 contracts so the master-program lane and the content-engine lane can consume the
@@ -106,14 +116,16 @@ The pipeline should reuse the exported helpers (`normalizeAdLib`, `parseAdLibs`)
 rather than fork the shape, and write via the same per-row update path as
 `choir-renditions-sync.saveRenditionDetail` (the columns, not a new table).
 
-## Music-creation graduation
+## Music-creation: note a loved ad-lib as a dated reference
 
-`graduateAdLib(existingArrangement, adLib, rendition)` (pure) appends a kept
-ad-lib to the song's arrangement without clobbering it (idempotent).
-`choir-renditions-sync.graduateAdLibToArrangement(rowIds, arrangement)` writes it
-across the song's rows so the kept move becomes the song's standing arrangement
-and rides forward onto reused/future renditions (`buildReusedSong` carries
-`arrangement`). UI: the "keep" button on a loved ad-lib.
+`graduateAdLib(existingArrangement, adLib, rendition)` (pure) appends a DATED
+REFERENCE ("As sung [date]: ...") to the song's arrangement without clobbering it
+(idempotent). Descriptive only -- no "keep/always/must" (a proven-to-catch test
+guards the wording). `choir-renditions-sync.graduateAdLibToArrangement(rowIds,
+arrangement)` writes it across the song's rows so the reference is available on
+the song going forward (`buildReusedSong` carries `arrangement`) -- a reference
+the choir CAN draw on, never a rule it MUST follow. UI: the "note as reference"
+action on a loved ad-lib.
 
 ## Files
 
@@ -129,4 +141,4 @@ and rides forward onto reused/future renditions (`buildReusedSong` carries
 - Tier C (COLG-facing choir surface). Apply **0043** on merge
   (`db-migrate` -- additive, idempotent, no anon; reads degrade gracefully before
   it lands, writes fail soft).
-- Gates green: 1576 vitest + `npm run build` + render proof.
+- Gates green: 1578 vitest + `npm run build` + render proof.

@@ -8,8 +8,15 @@
 -- title with MANY renditions — one per time it was sung — and opening a song
 -- shows "the ways we've sung this": rendition A (this date, this vamp/these runs),
 -- rendition B (that date, different), so the choir references + reuses its own
--- history, and the music-creation process can graduate a loved ad-lib into a
--- kept arrangement.
+-- history, and a loved ad-lib can be noted onto the song's arrangement as a
+-- dated reference.
+--
+-- DESCRIPTIVE, NEVER PRESCRIPTIVE (binding, Darrell 2026-06-24): these rows are an
+-- EXACT, FAITHFUL RECORD of what the choir actually did — captured precisely
+-- enough (the detail, the time span, who) to reproduce a past rendition exactly
+-- IF THEY CHOOSE. The record informs; it does not dictate. The choir stays free
+-- to sing it however the Spirit leads next time. Fidelity is the priority;
+-- prescription is never the intent. (Aligns no-condemnation + choir freedom.)
 --
 -- NO NEW ENTITY — choir_songs (0011) is ALREADY one row per (title, service_date,
 -- service_type): a row IS a rendition (a specific performance). The Songbook

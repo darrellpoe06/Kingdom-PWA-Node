@@ -190,21 +190,26 @@ describe('master-program tie-in — stable rendition ref', () => {
   });
 });
 
-describe('graduateAdLib — keep a loved ad-lib in the arrangement', () => {
+describe('graduateAdLib — note a loved ad-lib as a DATED REFERENCE (descriptive, not a rule)', () => {
   const adLib = normalizeAdLib({ type: 'vamp', label: 'Extended vamp on the tag' });
   const rendition = { serviceDate: '2026-05-10' };
-  it('appends without clobbering existing arrangement', () => {
+  it('appends a dated reference without clobbering existing arrangement', () => {
     const next = graduateAdLib('Choir + solo', adLib, rendition);
     expect(next).toContain('Choir + solo');
-    expect(next).toContain('Keep: Vamp — Extended vamp on the tag (2026-05-10)');
+    expect(next).toContain('As sung 2026-05-10: Vamp — Extended vamp on the tag');
   });
-  it('is idempotent — graduating twice does not duplicate', () => {
+  it('PROVEN-TO-CATCH: the reference is descriptive, never prescriptive', () => {
+    const next = graduateAdLib('', adLib, rendition);
+    expect(next).not.toMatch(/\b(keep|always|must|should|required)\b/i);
+    expect(next).toMatch(/^As sung /);
+  });
+  it('is idempotent — noting twice does not duplicate', () => {
     const once = graduateAdLib('Choir + solo', adLib, rendition);
     const twice = graduateAdLib(once, adLib, rendition);
     expect(twice).toBe(once);
   });
   it('handles an empty starting arrangement', () => {
-    expect(graduateAdLib('', adLib, rendition)).toBe('Keep: Vamp — Extended vamp on the tag (2026-05-10)');
+    expect(graduateAdLib('', adLib, rendition)).toBe('As sung 2026-05-10: Vamp — Extended vamp on the tag');
   });
 });
 

@@ -86,17 +86,27 @@ describe('ChoirSongbook surfaces a song as Song → Renditions', () => {
     expect(text).toMatch(/half step/i);                  // keyboardist notes
   });
 
+  it('frames the record as descriptive, never prescriptive (informs, does not dictate)', async () => {
+    await mount({ songs, access: { canSee: true, canEdit: false } });
+    await openWays();
+    const text = container.textContent;
+    expect(text).toMatch(/it doesn't dictate/i);
+    expect(text).toMatch(/however the Spirit leads/i);
+    // no command-language telling the choir how they must sing it next time
+    expect(text).not.toMatch(/\byou (should|must)\b/i);
+  });
+
   it('PROVEN-TO-CATCH: a low-confidence archive rendition flags for review', async () => {
     await mount({ songs, access: { canSee: true, canEdit: true } });
     await openWays();
     expect(container.textContent).toMatch(/verify match/i);
   });
 
-  it('a director sees the curate controls (add variation / keep)', async () => {
+  it('a director sees the record controls (add variation / note as reference)', async () => {
     await mount({ songs, access: { canSee: true, canEdit: true } });
     await openWays();
     const text = container.textContent;
     expect(text).toMatch(/Add variation/i);
-    expect(text).toMatch(/keep/i);   // graduate a loved ad-lib into the arrangement
+    expect(text).toMatch(/note as reference/i);   // note a loved ad-lib onto the arrangement (descriptive)
   });
 });
