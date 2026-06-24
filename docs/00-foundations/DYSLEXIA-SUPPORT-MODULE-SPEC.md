@@ -1,6 +1,6 @@
 # Dyslexia Support Module — Spec
 
-**Status: DRAFT — pending specialist review.** This document specifies a dyslexia *learning-support and psychoeducation* module built on PoeTech's existing learning engine. It is **not** a diagnostic tool and does **not** deliver clinical intervention. Before any part of this ships to a real struggling reader as "dyslexia help," a reading specialist (Orton-Gillingham / Structured Literacy certified) and Christina (clinical validation) must review the instructional sequence and the framing. See [Validation & Honest Constraints](#validation--honest-constraints).
+**Status: DRAFT — pending specialist review.** This document specifies a dyslexia *learning-support and psychoeducation* module built on PoeTech's existing learning engine — **open, opt-in support available to anyone who wants it** (kids, adults, families, patients who self-select), not something gated behind a diagnosis. It is **not** a diagnostic tool and does **not** deliver clinical intervention. The support layer is broadly available; a clinically-validated *intervention* path — reading specialist + Christina — is layered on top for those who need formal remediation. Before any part of this ships as "dyslexia help," a reading specialist (Orton-Gillingham / Structured Literacy certified) and Christina (clinical validation) must review the instructional sequence and the framing. See [Who it's for](#3-who-its-for--opt-in-broadly-available) and [Validation & Honest Constraints](#7-validation--honest-constraints).
 
 *Frame.* All knowledge is from Yahweh; the reading scientists and clinicians cited here are conduits of an order He authored — the human reading brain, the structure of language, the way mastery is built. We build on the open, published methodology they surfaced; we do not copy the proprietary programs that package it.
 
@@ -9,6 +9,8 @@
 ## 1. Why this module
 
 Reading is the gate to almost everything else PoeTech teaches — Scripture, the financial system, the courses. A reader who silently struggles is locked out of the rest. Dyslexia is the most common specific learning difficulty (commonly estimated near 1-in-5 for some degree of difficulty), and the standard of care for it is **well-established, evidence-based, and methodologically open**. We can build genuine, dignified learning support on that open standard without reinventing it and without overclaiming.
+
+Crucially, **you do not need a diagnosis to benefit.** The Structured-Literacy practice that helps dyslexic readers helps *anyone* who finds reading hard or wants to sharpen it — the same research is explicit that this instruction benefits all learners. So this is **open, opt-in support for whoever is interested**, with a clinically-validated intervention path layered on for those who need it. That makes it a strong candidate for the **free gleaning-edge tier** (§6): core teaching/support stays free, available at the edge of the field for anyone to glean.
 
 This is the same posture as the rest of the platform: meet the underserved person where they are, with excellence and warmth, grounded in truth (COMMUNITY-FIRST-MISSION, QUALITY-OF-LIFE-AS-NORTH-STAR, ANXIETY-CLARITY-PRINCIPLE).
 
@@ -73,17 +75,29 @@ Sources: [Edutopia — Do Dyslexia Fonts Actually Work?](https://www.edutopia.or
 
 ---
 
-## 3. What this module IS and IS NOT
+## 3. Who it's for — opt-in, broadly available
+
+**Anyone who wants it.** No diagnosis, no gate, no label required to start. The module is **opt-in support whoever is interested can self-select into:**
+
+- **Kids** who find reading hard (the classic case, where early support matters most).
+- **Adults** who never got help and quietly struggle — a large, underserved group.
+- **Families** working with a child, or a parent practicing alongside them.
+- **Patients / people who self-identify** ("I think I might be dyslexic" / "reading is hard for me") and want practice and understanding *now*, without waiting on a formal evaluation.
+- **Anyone strengthening reading** — the Structured-Literacy practice that helps dyslexic readers helps all readers, so the door is wide.
+
+**The support layer is broadly available and free-tier-bound (§6). The clinical *intervention* path is layered on top** for those who, after engaging, want or need formal remediation — that path involves a reading specialist and Christina. Nobody is forced toward it; it's an offered next step, not a gate in front of the support.
+
+### What this module IS and IS NOT
 
 | IS | IS NOT |
 |---|---|
-| Learning **support** + **psychoeducation** ("what dyslexia is, what helps") | A **diagnosis** of dyslexia |
-| Structured-Literacy *practice* built on open principles | A licensed clinical **intervention** / a substitute for a specialist |
+| **Open, opt-in** learning **support** + **psychoeducation** ("what dyslexia is, what helps") | A **diagnosis** of dyslexia, or anything gated behind one |
+| Structured-Literacy *practice* built on open principles, for anyone interested | A licensed clinical **intervention** / a substitute for a specialist |
 | Adaptive practice that **advances on mastery** | A guarantee of remediation outcomes |
 | Access supports (TTS, text-size, spacing, font choice) | A claim that a font "cures" dyslexia |
-| A **referral on-ramp** ("here's what a specialist screening looks like; here's how to reach one") | An assessment that labels a person |
+| An **on-ramp** to formal help for those who want it ("here's how to reach a specialist") | An assessment that labels a person |
 
-This boundary is binding. Every screening-flavored surface routes to "this is a learning check, not a diagnosis — a reading specialist confirms dyslexia" (mirrors the TLC clinical bright line held elsewhere in the platform).
+This boundary is binding. Every screening-flavored surface routes to "this is a learning check, not a diagnosis — a reading specialist confirms dyslexia" (mirrors the TLC clinical bright line held elsewhere in the platform). Opt-in does **not** mean lowering this line — it means the *support* is open to all while *diagnosis/intervention* stays specialist-owned.
 
 ---
 
@@ -147,7 +161,7 @@ For a tutor/parent teaching a child, `app/src/lib/teach-present.js` (BroadcastCh
 
 - **Registration** follows the established "new surface = new module" pattern (own files, not the monolith): author a course descriptor file (e.g., `app/src/lib/dyslexia-course.js` exporting `DYSLEXIA_META`) consumed by the shared `learn-framework.js` + `learn-engagement.js` hooks, and a thin `DyslexiaLearnModule` component rendered in the Learn tab. If it warrants its own Church sub-tab later, add one tuple at the sub-tab list (~line 4740 of `poe-financial-mvp-v28.jsx`) and one render line (~line 4828) — no monolith logic.
 - **Access supports** (TTS, text-size/font/spacing) are already in the app header globally; the module surfaces a prominent `<TextSizeControl variant="panel" />` + font/spacing panel on its reading views so a struggling reader doesn't have to hunt.
-- **Audience reach:** because it's pure learning support (no diagnosis, no clinical data), it can serve the **family**, the **COLG community** (COMMUNITY-FIRST: elderly + youth, many underserved by mainstream ed-tech), and beyond — gated only by normal course enrollment, not clinical access controls.
+- **Audience reach:** because it's pure learning support (no diagnosis, no clinical data), it is **opt-in and broadly available** — anyone can self-select in. It serves the **family**, the **COLG community** (COMMUNITY-FIRST: elderly + youth, many underserved by mainstream ed-tech), self-identifying adults, and beyond — gated only by normal opt-in enrollment, **not** by any clinical access control or diagnosis.
 
 ### Data & migration
 
@@ -155,7 +169,19 @@ For a tutor/parent teaching a child, `app/src/lib/teach-present.js` (BroadcastCh
 
 ---
 
-## 6. Validation & honest constraints
+## 6. Tier & availability — free gleaning-edge candidate
+
+The core teaching and practice are a **strong candidate for the free gleaning-edge tier.** The gleaning principle (Lev 19:9-10 — leave the edges of the field for anyone to glean) is the right shape here: foundational reading support is exactly what should sit at the open edge, free for whoever is hungry for it, with no diagnosis or paywall in the way.
+
+- **What is free (gleaning edge):** the Structured-Literacy practice modules, the access supports (TTS, text-size, font/spacing), the psychoeducation track. This aligns with the existing "what is actually free" framing — the Spiritual Module for the Body and the Financial System for Families are free; foundational reading support belongs in that same dignity-first, no-extraction tier.
+- **What may be layered/paid later (not v1, not assumed):** the formal, **clinically-validated intervention path** — specialist-guided remediation, progress reporting to a reading specialist, Christina-supervised plans. That layer carries human clinical cost, so it can be where any future pricing lives — never the open support layer. Pricing of the clinical layer is a Darrell decision, out of scope for this draft.
+- **Why free fits the mission:** an adult who never got help, a child in an underserved school, a family without the money for private tutoring — these are exactly the people COMMUNITY-FIRST-MISSION and DATA-AS-EMPOWERMENT-NOT-EXTRACTION exist for. Charging at the door for *foundational reading help* would betray the frame. The free support layer IS the mission; the optional clinical layer funds the people who deliver it.
+
+Free-tier candidacy is a *recommendation* for Darrell's ratification, consistent with [[project_what_is_actually_free]] and [[project_community_free_funded_by_aligned_brand_sponsorship]]; it is not self-authorizing.
+
+---
+
+## 7. Validation & honest constraints
 
 **These are binding, not caveats to soften later.**
 
@@ -165,11 +191,12 @@ For a tutor/parent teaching a child, `app/src/lib/teach-present.js` (BroadcastCh
 4. **The methodology is open; the programs are not.** We build on the open Structured-Literacy / O-G *principles* and the *published adaptive loop*. We do **not** copy Wilson / Barton / LiPS / Take Flight / Lexia content, sequences, scripts, or materials. Original content authored to open principles only.
 5. **Font honesty.** No "dyslexia font cures reading" claim. Lexend + clean default offered; OpenDyslexic opt-in with the mixed-evidence note (§2.5).
 6. **Outcomes are not promised.** Support improves access and practice; it is not a guaranteed remediation outcome. Say so.
-7. **Release tier.** A child-facing learning-support surface touching self-concept and a clinical-adjacent boundary is **Tier B at minimum, likely Tier C** (COLG-facing + family review + Quality Gatekeeper) per RELEASE-TIERS.md — not a direct-to-main change.
+7. **Release tier.** A child-facing learning-support surface touching self-concept and a clinical-adjacent boundary is **Tier B at minimum, likely Tier C** (COLG-facing + family review + Quality Gatekeeper) per RELEASE-TIERS.md — not a direct-to-main change. (Note: "free + opt-in + broadly available" does **not** downgrade the tier — wide reach to vulnerable readers raises the review bar, it does not lower it.)
+8. **Opt-in, never auto-enrolled.** Availability is broad, but entry is always the person's own choice. No one is flagged, labeled, or pushed in; the support is offered and self-selected.
 
 ---
 
-## 7. Build sequence (when greenlit — not part of this read-only spec)
+## 8. Build sequence (when greenlit — not part of this read-only spec)
 
 1. Specialist + Christina review and ratify the §4.2 scope-and-sequence → it stops being DRAFT.
 2. Author `dyslexia-course.js` (`DYSLEXIA_META`) to the ratified sequence, in `learn-framework.js` shape.
