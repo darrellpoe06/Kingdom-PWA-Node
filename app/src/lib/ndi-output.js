@@ -104,6 +104,23 @@ export function slideProgram({ eyebrow = '', title = '', body = '', ref = '' } =
   };
 }
 
+// A full-bleed IMAGE — sermon graphic, worship background, announcement art. On the
+// 1.9 mm sanctuary wall (NovaStar VX1000, ~1920x1440 native, see lib/display-targets)
+// every pixel shows, so the renderer displays the image at native quality and the
+// authoring rule is: feed a HIGH-RES source (>= the wall native res); never upscale a
+// small asset. `fit` is 'contain' (whole image, letterboxed — default, no crop) or
+// 'cover' (fill, may crop). `caption` is optional overlay text.
+export function imageProgram({ src = '', fit = 'contain', caption = '', alt = '' } = {}) {
+  const f = fit === 'cover' ? 'cover' : 'contain';
+  return {
+    kind: 'image',
+    src: String(src || '').trim(),
+    fit: f,
+    caption: String(caption || '').trim(),
+    alt: String(alt || caption || '').trim(),
+  };
+}
+
 // Turn URL params INTO a payload, so the output route is useful STANDALONE the
 // moment it ships — the media team opens a Browser Source at e.g.
 //   ?output=1&kind=scripture&ref=John%203:16&text=For%20God%20so%20loved...
@@ -126,6 +143,8 @@ export function parseOutputParams(params) {
       return lowerThird({ name: get('name'), role: get('role'), key: get('key') !== '0' });
     case 'slide':
       return slideProgram({ eyebrow: get('eyebrow'), title: get('title'), body: get('body'), ref: get('ref') });
+    case 'image':
+      return imageProgram({ src: get('src'), fit: get('fit'), caption: get('caption'), alt: get('alt') });
     case 'hold':
       return holdProgram(get('title'));
     default:
