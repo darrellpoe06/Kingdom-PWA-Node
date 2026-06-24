@@ -83,6 +83,42 @@ function NoteSection({ note }) {
   );
 }
 
+// The session's RUN OF SHOW — reflowable timed segments (presenter-only; never
+// broadcast). The authored per-segment minutes ARE the proportional-reflow weights,
+// so when a budget is set every line rescales and shows "original -> adjusted" (e.g.
+// "Hands-on 25 -> 17"), with the same percentage preserved + floors + skip fallback.
+function RunOfShowPanel({ segments, budgetMin }) {
+  const fit = useMemo(() => fitToBudget(segments, budgetMin), [segments, budgetMin]);
+  const reflowed = budgetMin > 0 && Math.round(budgetMin) !== Math.round(fit.fullMin);
+  const card = { border: '1px solid #E8E4DC', padding: 16, marginBottom: 16, background: '#fff' };
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 13, margin: 0, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F' }}>Run of show</h4>
+        <span style={{ fontSize: 12, color: reflowed ? '#5A6E3D' : '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+          {reflowed ? `rescaled to ${Math.round(budgetMin)} min (full ${fit.fullMin})` : `${fit.fullMin} min total`}
+        </span>
+      </div>
+      {fit.plan.map((seg, i) => (
+        <div key={seg.id || i} style={{ display: 'flex', gap: 12, padding: '7px 0', borderBottom: i < fit.plan.length - 1 ? '1px solid #F0EDE6' : 'none', opacity: seg.skipped ? 0.5 : 1 }}>
+          <span style={{ flex: 1 }}>
+            <strong style={{ display: 'block', fontFamily: '"Fraunces", serif', fontSize: 14, textDecoration: seg.skipped ? 'line-through' : 'none' }}>{seg.name}</strong>
+            {seg.detail && <span style={{ fontSize: 12, color: '#5A5751', lineHeight: 1.4, fontFamily: '"Fraunces", serif' }}>{seg.detail}</span>}
+          </span>
+          <span title={seg.atFloor ? 'At its minimum time' : (seg.skipped ? 'Dropped to fit the budget' : (reflowed ? 'original → adjusted' : 'authored minutes'))}
+            style={{ fontSize: 13, fontFamily: '"JetBrains Mono", monospace', color: seg.skipped ? '#7A1F1F' : (seg.atFloor ? '#B85838' : '#1A1815'), minWidth: reflowed ? 96 : 56, textAlign: 'right', whiteSpace: 'nowrap' }}>
+            {seg.skipped
+              ? 'skip'
+              : reflowed
+                ? `${seg.estimatedMin} → ${seg.allocatedMin}${seg.atFloor ? ' ⤓' : ''}`
+                : `${seg.estimatedMin} min`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // A controls-in-context form to ADD a new section or EDIT an existing one. Lives
 // inline on the presenter screen (never the projector). `initial` seeds the fields
 // for an edit; absent => an add. Returns the collected fields to onSave.
@@ -542,6 +578,11 @@ export default function Presenter({
           {a.detail && <p style={{ fontSize: 14, lineHeight: 1.5, color: '#5A5751', margin: '0 0 10px' }}><strong style={{ color: '#1A1815' }}>{a.detailLabel || 'In the app'}:</strong> {a.detail}</p>}
           {a.anchorRef && <p style={{ fontSize: 14, lineHeight: 1.5, color: '#5A6E3D', margin: 0 }}><strong>{a.anchorRef}{a.anchorTheme ? ' —' : ''}</strong> {a.anchorTheme || ''}</p>}
         </div>
+
+        {/* the session's reflowable run-of-show (rescales with the time budget) */}
+        {Array.isArray(cur.runOfShow) && cur.runOfShow.length > 0 && (
+          <RunOfShowPanel segments={cur.runOfShow} budgetMin={budgetMin} />
+        )}
 
         {/* presenter-only notes */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '20px 0 12px' }}>

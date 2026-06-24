@@ -475,14 +475,43 @@ function courseNotes(m) {
   const out = [];
   if (m?.lesson) out.push({ kind: 'body', heading: 'The deeper idea', body: m.lesson });
   const f = m?.facilitator || {};
-  const steps = typeof f.howToRun === 'string'
-    ? f.howToRun.split('|').map((s) => s.trim()).filter(Boolean)
-    : [];
-  if (steps.length) out.push({ kind: 'steps', heading: 'Run of show', items: steps });
+  // NOTE: the run-of-show is NO LONGER a static 'steps' note here — it is parsed into
+  // reflowable segments (scene.runOfShow, below) so the presenter's time budget can
+  // rescale every segment's minutes. Emitting it twice would show stale numbers.
   if (f.talkingPoints?.length) out.push({ kind: 'list', heading: 'Say this', items: f.talkingPoints });
   if (f.discussionPrompts?.length) out.push({ kind: 'list', heading: 'Ask the room', items: f.discussionPrompts });
   if (f.watchFor) out.push({ kind: 'callout', heading: 'Watch for', body: f.watchFor });
   return out;
+}
+
+// Parse a facilitator run-of-show string ("Name (minutes): detail | ...") into the
+// structured, REFLOWABLE segments. The authored per-segment minutes ARE the weights
+// (Hands-on 25 is heaviest by design); estimatedMin carries them straight into
+// fitToBudget so lowering the clock rescales every line proportionally (with floors +
+// the supplementary-skip fallback). Segments are PRESENTER-side — never broadcast.
+export function parseRunOfShow(howToRun) {
+  if (typeof howToRun !== 'string' || !howToRun.trim()) return [];
+  return howToRun.split('|').map((raw, i) => {
+    const seg = raw.trim();
+    if (!seg) return null;
+    // "Prayer + the anchor (5): open in prayer..." -> name / minutes / detail
+    const m = seg.match(/^(.*?)\s*\((\d+(?:\.\d+)?)\)\s*:?\s*([\s\S]*)$/);
+    let name; let minutes; let detail;
+    if (m) { name = m[1].trim(); minutes = Number(m[2]); detail = m[3].trim(); } else {
+      const colon = seg.indexOf(':');
+      name = (colon >= 0 ? seg.slice(0, colon) : seg).trim();
+      detail = colon >= 0 ? seg.slice(colon + 1).trim() : '';
+      minutes = undefined;
+    }
+    return {
+      id: `seg${i + 1}`,
+      name,
+      detail,
+      // the authored minutes ARE the weight; undefined -> fitToBudget content-estimates it
+      estimatedMin: Number.isFinite(minutes) && minutes > 0 ? minutes : undefined,
+      priority: PRIORITY.CORE, // segments default to core (proportional + floor + compress)
+    };
+  }).filter(Boolean);
 }
 
 export function coursePresentable(course) {
@@ -490,19 +519,22 @@ export function coursePresentable(course) {
   const schedule = Array.isArray(course?.schedule) ? course.schedule : [];
   const total = schedule.length;
   const detailLabel = meta.handsOnLabel || 'In the app';
-  // Weights are NON-uniform by default: a module may set its own estimatedMin /
-  // priority / minMin; otherwise backfillTiming derives a content-weighted estimate
-  // (deeper weeks with more run-of-show / discussion weigh more), not a flat split.
+  // A week's weight is its REAL session length = the sum of its run-of-show minutes
+  // (a module may still override with its own estimatedMin). Falls back to the content
+  // estimate when a week has no timed run-of-show.
   return {
     id: `course:${meta.key || 'course'}`,
     title: meta.title || 'Class',
     kicker: DEFAULT_KICKER,
     targetMin: meta.sessionMinutes || 75,
-    scenes: backfillTiming(schedule.map((m, i) => ({
+    scenes: backfillTiming(schedule.map((m, i) => {
+      const runOfShow = parseRunOfShow(m.facilitator?.howToRun);
+      const rosMin = runOfShow.reduce((t, s) => t + (Number.isFinite(s.estimatedMin) ? s.estimatedMin : 0), 0);
+      return {
       id: m.id || `wk${i + 1}`,
       indexLabel: `Week ${m.week || i + 1} of ${total}`,
       dateLabel: formatClassDate(m.date),
-      estimatedMin: m.estimatedMin,
+      estimatedMin: Number.isFinite(m.estimatedMin) && m.estimatedMin > 0 ? m.estimatedMin : (rosMin > 0 ? rosMin : undefined),
       priority: m.priority,
       minMin: m.minMin,
       audience: {
@@ -514,18 +546,23 @@ export function coursePresentable(course) {
         anchorTheme: m.anchor?.theme || null,
       },
       notes: courseNotes(m),
-    }))),
+      // the session's reflowable run-of-show (this week's timed segments)
+      runOfShow,
+    };
+    })),
   };
 }
 
 // -----------------------------------------------------------------------------
-// Adapter: The Word — Migdal (sermon library) -> a presentable
+// The Word — Migdal: a LIBRARY of messages, each its OWN presentation
 // -----------------------------------------------------------------------------
-// BG's area. Each published message becomes a scene the leader can put on the
-// screen: the title big, the scripture as the anchor, who delivered it, the real
-// service date. Prep/notes/document bodies stay presenter-side (they are already
-// leadership-private at the data layer; present mode keeps them off the projector
-// too). `sermons` is the library list already loaded by Pulpit.
+// BG's area. A collection is NOT one presentation containing every message — you do
+// not preach all 163 at once. It is a LIBRARY: the leader PICKS one message and
+// presents THAT one. `wordLibrary` lists the pickable items (newest first; older ones
+// remain selectable); `messagePresentable` builds the single-message presentation the
+// <Presenter> renders, whose own slides are what the "X of N" pager walks. Prep/theme
+// bodies stay presenter-side (leadership-private at the data layer; present mode keeps
+// them off the projector too).
 function sermonDateLabel(iso) {
   if (!iso) return null;
   try {
@@ -535,43 +572,85 @@ function sermonDateLabel(iso) {
   } catch { return null; }
 }
 
-export function wordPresentable(sermons, opts = {}) {
-  const list = (Array.isArray(sermons) ? sermons : [])
+const sermonDay = (s) => (s.serviceType === 'wednesday' ? 'Wednesday Bible Study' : 'Sunday');
+
+// The pickable library: published messages, newest service date first. Each entry is
+// lightweight (what the picker shows) — the full presentation is built on selection.
+export function wordLibrary(sermons) {
+  return (Array.isArray(sermons) ? sermons : [])
     .filter((s) => s && s.title && s.status !== 'draft')
     .slice()
-    .sort((a, b) => String(b.serviceDate || '').localeCompare(String(a.serviceDate || '')));
-  const total = list.length;
+    .sort((a, b) => String(b.serviceDate || '').localeCompare(String(a.serviceDate || '')))
+    .map((s) => ({
+      id: s.id,
+      title: s.title,
+      speaker: s.speaker || null,
+      serviceType: s.serviceType || 'sunday',
+      serviceDate: s.serviceDate || null,
+      dateLabel: sermonDateLabel(s.serviceDate),
+      dayLabel: sermonDay(s),
+      scriptureRef: s.scriptureRef || null,
+    }));
+}
+
+// ONE message -> ONE presentation. Its slides are built from the message's own real
+// fields (opening / the text / the message), so the budget + proportional reflow apply
+// WITHIN this single message — never across the whole library.
+export function messagePresentable(sermon, opts = {}) {
+  const s = sermon || {};
+  const dateLabel = sermonDateLabel(s.serviceDate);
+  const who = s.speaker ? `Delivered by ${s.speaker}` : null;
+  const scenes = [];
+
+  // 1) Opening — title big, who/when as the anchor line.
+  scenes.push({
+    id: 'open',
+    indexLabel: 'Opening',
+    dateLabel,
+    audience: {
+      title: s.title || 'The Word',
+      lead: s.scriptureRef ? `Today’s text — ${s.scriptureRef}` : '',
+      detail: null,
+      detailLabel: 'Text',
+      anchorRef: null,
+      anchorTheme: who,
+    },
+    notes: [
+      { kind: 'body', heading: 'When', body: `${dateLabel || 'date TBD'} · ${sermonDay(s)}` },
+      ...(s.speaker ? [{ kind: 'body', heading: 'Delivered by', body: s.speaker }] : []),
+    ],
+  });
+
+  // 2) The text — the scripture as the focus slide.
+  if (s.scriptureRef) {
+    scenes.push({
+      id: 'text',
+      indexLabel: 'The text',
+      dateLabel: null,
+      audience: { title: s.scriptureRef, lead: 'Turn with us to the Word.', detail: null, detailLabel: 'Text', anchorRef: s.scriptureRef, anchorTheme: null },
+      notes: [{ kind: 'body', heading: 'Read the text', body: s.scriptureRef }],
+    });
+  }
+
+  // 3) The message — theme / key points.
+  if (s.notes) {
+    const noteList = [{ kind: 'callout', heading: 'Theme / key points', body: s.notes }];
+    if (s.documentUrl) noteList.push({ kind: 'body', heading: 'Document', body: 'A sermon document is linked (open it from the library — kept off the screen).' });
+    scenes.push({
+      id: 'message',
+      indexLabel: 'The message',
+      dateLabel: null,
+      audience: { title: 'The message', lead: s.notes, detail: null, detailLabel: 'Theme', anchorRef: s.scriptureRef || null, anchorTheme: null },
+      notes: noteList,
+    });
+  }
+
   return {
-    id: 'word:migdal',
-    title: opts.title || 'The Word — Migdal',
-    kicker: DEFAULT_KICKER,
-    targetMin: opts.targetMin || 60,
-    scenes: backfillTiming(list.map((s, i) => {
-      const day = s.serviceType === 'wednesday' ? 'Wednesday Bible Study' : 'Sunday';
-      const notes = [];
-      if (s.speaker) notes.push({ kind: 'body', heading: 'Delivered by', body: s.speaker });
-      notes.push({ kind: 'body', heading: 'When', body: `${sermonDateLabel(s.serviceDate) || 'date TBD'} · ${day}` });
-      if (s.scriptureRef) notes.push({ kind: 'body', heading: 'Text', body: s.scriptureRef });
-      if (s.notes) notes.push({ kind: 'callout', heading: 'Theme / key points', body: s.notes });
-      if (s.documentUrl) notes.push({ kind: 'body', heading: 'Document', body: 'A sermon document is linked (open it from the library — kept off the screen).' });
-      return {
-        id: s.id || `msg${i + 1}`,
-        indexLabel: `Message ${i + 1} of ${total}`,
-        dateLabel: sermonDateLabel(s.serviceDate),
-        estimatedMin: s.estimatedMin,
-        priority: s.priority,
-        minMin: s.minMin,
-        audience: {
-          title: s.title,
-          lead: s.notes || '',
-          detail: s.scriptureRef || null,
-          detailLabel: 'Text',
-          anchorRef: s.scriptureRef || null,
-          anchorTheme: s.speaker ? `Delivered by ${s.speaker}` : null,
-        },
-        notes,
-      };
-    })),
+    id: `message:${s.id || 'msg'}`,
+    title: s.title || 'The Word — Migdal',
+    kicker: opts.kicker || DEFAULT_KICKER,
+    targetMin: opts.targetMin || 30,
+    scenes: backfillTiming(scenes),
   };
 }
 
