@@ -20,7 +20,10 @@ Darrell wants an in-app section for the **hottest current Christian rap / hip-ho
 - **Freshness:** a **curated, admin-editable list** is the default and the *correct* default — YouTube's no-API-key embed path can play videos but cannot *rank* them ("hottest" needs chart/stream data the app cannot pull at scale without hitting the same fetch limits the SME/Gmail lanes already hit). The list is refreshed on the **continuous-reel cadence** by a curator. Any *automated* refresh is **Tier C + the three brakes** (budget / concurrency lock / kill-switch) and ships inactive.
 - **Child-safety (BINDING — twins are 10):** every track is **content-checked and age-tagged before it surfaces.** Christian rap is generally clean/faith-centered, but "generally" is not a gate. A **clean/age-appropriate filter** (default = family-safe) and a **per-track vetted flag** are non-negotiable. A track that hasn't been vetted does not render. See §6.
 - **Content policy (BINDING, FINAL — §12):** the **only** hard-exclusion criterion is **profanity / explicit cursing.** Clean songs stay regardless of genre or a **secular guest** artist (e.g. Lecrae ft. Ty Dolla $ign — KEEP). Editorial identity is **Christ-centered FIRST**: the section is overwhelmingly Christian (rap, R&B, gospel, worship), featured + sorted first; a **fully-secular-but-clean** track is a *rare tolerated exception* (The Marías "No One Noticed" — Darrell: KEEP) that is **never featured.** Only **1** track in the whole seed is excluded: Kendrick "Not Like Us" (cursing). Excluded tracks are logged, never silently dropped.
-- **Dual purpose (BINDING — §15):** the section exists to **(1) positively FORM impressionable children** with *"good quality, healthy-thinker music"* (curation prioritizes substance + edifying, Christ-centered messaging) **and (2) PROMOTE those promoting Yahweh** — actively uplift the Kingdom artists, not just play them. Both are first-class design goals.
+- **Scriptural foundation (Word-first — §15.0):** **Proverbs 22:6** — *"Train up a child in the way he should go; even when he is old he will not depart from it."* (ESV) This verse IS the section's mission: the music + lyrics-as-curriculum **train children in The Way so it stays.** Printed in the section's mission copy, not just implied.
+- **Dual purpose (BINDING — §15):** flowing from Prov 22:6 — **(1) positively FORM impressionable children** with *"good quality, healthy-thinker music"* (curation prioritizes substance + edifying, Christ-centered messaging) **and (2) PROMOTE those promoting Yahweh** — actively uplift the Kingdom artists, not just play them. Both first-class.
+- **Multi-type library + favorites (§17):** spans **types** — Christian Rap, R&B, Gospel, Worship (Christ-centered first) — with **personal favorites / "Your Music"** (the ❤️ love reaction doubles as the save/favorite signal).
+- **Shared reaction primitive (BINDING, cross-app — §18):** **one reusable ❤️/🙏/🔥/🙌 reaction control** (positive, age-appropriate only — no negative reactions) in `components/shared.jsx`, applied **uniformly to songs AND every video surface** (Worship, Choir, The Word, Song Workshop, Church-Live/Video Wall). Engagement only, no payments; feeds favorites/most-loved sorting + the feedback loop.
 - **Lyrics-as-curriculum, for child formation (§13):** *"words and lyrics so we educate our children with the data."* Each song carries an **educational-data layer** — scripture references, themes, vocabulary, theology, kid discussion questions — pitched at age-appropriate levels (twins are 10) to form healthy, faith-grounded thinking. **Copyright bright line (binding):** derived teaching data is rights-clean and is the core; **full copyrighted lyrics are NEVER stored/displayed without a license** (licensed provider or church/artist-owned only).
 - **Artist-promotion layer (BINDING — §16):** each artist gets a promotable presence — official channel / site / socials / where-to-support (store, merch, streaming) — driving listeners **to** the artists; a featured rotation shares visibility across Kingdom artists. **No payment processing built by us** (outbound links/visibility only; monetization stays Darrell's hand). The same "promote those promoting Yahweh" pattern is a broader app principle (extends to ministries/creators/churches).
 - **Father's-Business framing:** evangelistic/worship content that reaches youth in the language they already listen in, Word-first; it **forms the children** through Scripture in the songs they love *and* **advances the Kingdom by uplifting its artists** (§9, §13, §15, §16).
@@ -242,7 +245,7 @@ Per `INSTITUTIONAL-MEMORY-EVENTS.md:56`, until the Events module ships the **dur
   "title": "Spec: Hottest Christian Rap -> Worship/Music curated YouTube shelf (Church tab)",
   "description": "Research-first spec for a congregation-facing, curator-edited, content-vetted grid of embedded YouTube AND YouTube Music videos under a new Church 'Worship' sub-tab (rap/hip-hop-forward + gospel/worship crossover). Reuses the Choir curated-list + youtubeEmbedUrl + church-live embed pattern and the learn-framework age-band; adds no new primitives. Researched the live 2026 field with sources (Rapzilla/lecrae.net, Billboard) and seeded from Darrell's own 5 featured artists + his two playlists ('Fire' 104 + 'Inspirational', transcribed) + the public hot list, de-duped: ~161 unique seed, ~144 candidate videos resolved, 1 excluded (Kendrick 'Not Like Us', profanity).",
   "root_cause": null,
-  "resolution": "New Church sub-tab 'worship' (genre-general, Christ-centered-first); curated-default freshness (no-key embed cannot rank, only play); YouTube + YouTube Music both supported (extend youtubeEmbedUrl regex for music.youtube.com; store source+sourceUrl); personal-library sync needs a Google connector that does NOT exist, so two no-credential ingestion paths (playlist-URL parse / Google Takeout CSV) + de-dup; FINAL content rule = profanity/cursing is the ONLY exclusion (clean Christian-with-secular-guest KEPT; secular-clean = rare never-featured exception; only Kendrick 'Not Like Us' excluded); proven-to-catch gate (no-profanity render + secular-clean-never-featured); DUAL PURPOSE = form children with quality/healthy-thinker music (curation rubric §15.1) + promote those promoting Yahweh (artist-promotion layer §16: outbound channel/site/support links + featured rotation, NO payment processing by us); lyrics-as-curriculum for child formation (derived rights-clean data, full lyrics licensed-only); automated refresh deferred Tier C + three brakes, inactive on ship.",
+  "resolution": "New Church sub-tab 'worship' (genre-general, Christ-centered-first); curated-default freshness (no-key embed cannot rank, only play); YouTube + YouTube Music both supported (extend youtubeEmbedUrl regex for music.youtube.com; store source+sourceUrl); personal-library sync needs a Google connector that does NOT exist, so two no-credential ingestion paths (playlist-URL parse / Google Takeout CSV) + de-dup; FINAL content rule = profanity/cursing is the ONLY exclusion (clean Christian-with-secular-guest KEPT; secular-clean = rare never-featured exception; only Kendrick 'Not Like Us' excluded); proven-to-catch gate (no-profanity render + secular-clean-never-featured); DUAL PURPOSE = form children with quality/healthy-thinker music (curation rubric §15.1) + promote those promoting Yahweh (artist-promotion layer §16: outbound channel/site/support links + featured rotation, NO payment processing by us); lyrics-as-curriculum for child formation (derived rights-clean data, full lyrics licensed-only); scriptural foundation = Proverbs 22:6 (train up a child) printed in mission copy (Word-first); multi-type library (rap/R&B/gospel/worship) + personal favorites ('Your Music', love=favorite signal); ONE shared reaction primitive (love/amen/fire/praise, positive-only, in components/shared.jsx) applied uniformly to songs + EVERY video surface (Choir/Pulpit/Song Workshop/Church-Live/Video Wall), engagement only no payments, table media_reactions 0042; automated refresh deferred Tier C + three brakes, inactive on ship.",
   "tags": {
     "workflows": [],
     "modules": ["church", "worship", "choir", "learn-framework", "church-live", "sme-pipeline", "scripture", "engagement", "presenter"],
@@ -250,7 +253,7 @@ Per `INSTITUTIONAL-MEMORY-EVENTS.md:56`, until the Events module ships the **dur
     "senders": ["dpoe"]
   },
   "provenance": { "who": "Claude (advisory)", "when": "2026-06-23", "source_surface": "research-review + code survey + Darrell's two playlists (Fire 104, Inspirational)" },
-  "learnings": "1) 'Hottest' decays - re-run live research, never recall from memory. 2) No-API-key YouTube/YT-Music embeds play but cannot rank; curated list is the correct sovereign default, not a fallback. 3) Child-safety is a structural gate: vetted=false must not render, machine-checked. 4) Name third-party-content dependency honestly (embed != owned). 5) FINAL content rule: profanity/cursing is the ONLY exclusion criterion (refined from an earlier over-broad 'exclude secular' draft). Clean stays regardless of genre or a secular GUEST; only explicit/cursing is out (Kendrick 'Not Like Us'). Editorial identity = Christ-centered FIRST; fully-secular-but-clean (The Marias 'No One Noticed', Darrell KEEP) is a rare never-featured exception. Don't over-filter on a guest's secular status. 6) Personal-library sync needs a Google connector that does NOT exist -> two no-credential paths (playlist URL / Takeout CSV), never log in as him. 7) Lyrics-as-curriculum: teach via DERIVED data (scripture refs / themes / vocab / questions = rights-clean, reuse the SME faithfulness-gate to extract refs not lyric text); FULL lyrics only via licensed provider or church-owned - never scrape/store copyrighted lyrics. 8) DUAL PURPOSE is the spec's spine: (a) FORM impressionable children with quality/healthy-thinker music (curation rubric on top of the gate: substance, edifying, Christ-centered, age-fit, healthy patterns) and (b) PROMOTE those promoting Yahweh (outbound channel/site/support links + featured rotation; NO payment processing by us - monetization stays Darrell's hand). 9) 'Promote those promoting Yahweh' is a CROSS-APP principle -> extend the promotable-entity pattern to ministries/creators/churches (candidate DR).",
+  "learnings": "1) 'Hottest' decays - re-run live research, never recall from memory. 2) No-API-key YouTube/YT-Music embeds play but cannot rank; curated list is the correct sovereign default, not a fallback. 3) Child-safety is a structural gate: vetted=false must not render, machine-checked. 4) Name third-party-content dependency honestly (embed != owned). 5) FINAL content rule: profanity/cursing is the ONLY exclusion criterion (refined from an earlier over-broad 'exclude secular' draft). Clean stays regardless of genre or a secular GUEST; only explicit/cursing is out (Kendrick 'Not Like Us'). Editorial identity = Christ-centered FIRST; fully-secular-but-clean (The Marias 'No One Noticed', Darrell KEEP) is a rare never-featured exception. Don't over-filter on a guest's secular status. 6) Personal-library sync needs a Google connector that does NOT exist -> two no-credential paths (playlist URL / Takeout CSV), never log in as him. 7) Lyrics-as-curriculum: teach via DERIVED data (scripture refs / themes / vocab / questions = rights-clean, reuse the SME faithfulness-gate to extract refs not lyric text); FULL lyrics only via licensed provider or church-owned - never scrape/store copyrighted lyrics. 8) DUAL PURPOSE is the spec's spine: (a) FORM impressionable children with quality/healthy-thinker music (curation rubric on top of the gate: substance, edifying, Christ-centered, age-fit, healthy patterns) and (b) PROMOTE those promoting Yahweh (outbound channel/site/support links + featured rotation; NO payment processing by us - monetization stays Darrell's hand). 9) 'Promote those promoting Yahweh' is a CROSS-APP principle -> extend the promotable-entity pattern to ministries/creators/churches (candidate DR). 10) Scriptural foundation goes IN the surface (Prov 22:6 in mission copy), Word-first, verified-not-from-memory (fetched ESV+KJV). 11) Reactions/favorites are a SHARED primitive (one <Reactions> in components/shared.jsx, generic media_reactions table keyed by target_type+target_id) applied to EVERY video surface, not forked per surface; positive-only emoji set (kids); love doubles as the favorite signal; engagement only, no payments.",
   "related_artifacts": [
     "docs/99-session-notes/2026-06-23-christian-rap-hottest-worship-section-spec.md",
     "app/src/components/Choir.jsx:98-102",
@@ -628,7 +631,17 @@ Darrell shared a **second playlist, "Inspirational"** (worship/gospel-leaning �
 
 ## 15. PURPOSE — form the children + promote those promoting Yahweh (BINDING, dual goal)
 
-**Declared by Darrell 2026-06-23:** the section exists to *"impact our impressionable children with good quality, healthy-thinker music"* and to *"help PROMOTE those promoting Yahweh."* These are **two first-class design goals**, not entertainment-with-extras. Every curation and design choice serves one or both.
+### 15.0 Scriptural foundation (Word-first — the heart of the section)
+
+**The section's purpose is grounded in Scripture, declared by Darrell 2026-06-23:**
+
+**ESV — Proverbs 22:6:** *"Train up a child in the way he should go; even when he is old he will not depart from it."*
+
+**KJV — Proverbs 22:6:** *"Train up a child in the way he should go: and when he is old, he will not depart from it."*
+
+This verse **is** the section's mission. The child-formation goal — good-quality, healthy-thinker, Christ-centered music **plus** the lyrics-as-curriculum layer (§13) — **is training children in The Way so it stays with them** when they are old. The music is the medium; *training a child in The Way* is the work. Per the Word-first principle ([[project_non_denominational_word_first_body_undivided]]: Scripture senior to tradition), this verse is the **explicit, stated foundation** of the section — printed in the section's mission copy, not just implied. It is the heart, held alongside promoting those promoting Yahweh (§16).
+
+**Declared by Darrell 2026-06-23:** the section exists to *"impact our impressionable children with good quality, healthy-thinker music"* and to *"help PROMOTE those promoting Yahweh."* These are **two first-class design goals** flowing from Proverbs 22:6 — not entertainment-with-extras. Every curation and design choice serves one or both.
 
 ### 15.1 Goal 1 — positively FORM impressionable children (quality + healthy thinking)
 
@@ -689,6 +702,67 @@ The section's purpose **is** the Father's Business: **advancing the Kingdom** (f
 
 ---
 
+## 17. Multi-type library + personal favorites
+
+**Per Darrell:** the section spans **multiple TYPES/genres** and supports **personal FAVORITES** — a multi-type library + a "your music" view, not a single flat list.
+
+### 17.1 Multi-type (genre/type facet — Christ-centered first)
+
+Tracks carry a **type/genre** facet so the library spans the field, Christian-first (§12.2): **Christian Rap / Hip-Hop** (launch emphasis), **Christian R&B**, **Gospel**, **Worship/Praise** (and later Español, Kids). This extends the §11.4 sub-category shelves into a first-class filter:
+- **Browse by type** — the TabScroll sub-shelves (§4) are the type filter; "All" + per-type views.
+- **`genre`/`type` field** on `worship_tracks` (already in §4/§11.5) drives the shelf a track lands on. His two playlists already populate every type — "Fire" (rap-forward + gospel/worship), "Inspirational" (worship/gospel + Christian R&B).
+- Christian types are featured/sorted first (§12.2); secular-clean is never a featured type.
+
+### 17.2 Favorites / "Your Music"
+
+Users **mark/save favorite songs** and get a **Favorites ("Your Music") view**:
+- **The ❤️ love reaction IS the favorite signal** (§18) — one action, two jobs: loving a track adds it to the user's "Your Music." (No separate save button to learn; consistent with the reaction primitive.)
+- **"Your Music" view** = the user's loved tracks across all types, newest-loved first; device-local + synced per the user scope.
+- Favorites are **per-user** (owner-scoped, PIN-optional per [[project_private_locations_pin]]); aggregate "most-loved" is community-scoped (§18.3).
+- Favorites/most-loved **feed sorting** (§5) and the feedback loop — a real engagement signal, not a vanity counter.
+
+---
+
+## 18. Shared reaction primitive — ❤️ love + wholesome emojis, EVERY video (BINDING, cross-app)
+
+**Per Darrell: "like love and other emojis" on songs AND "same for all videos."** This is **one shared, reusable reaction control applied uniformly** — not a per-surface fork (shared-primitives/consistency principle, like [[project_tab_overflow_scroll_primitive]]: `TabScroll` lives once in `components/shared.jsx` and is reused).
+
+### 18.1 The component
+
+A new `<Reactions targetType targetId scope />` in **`app/src/components/shared.jsx`** (alongside `TabScroll`). There is **no existing reactions/favorites primitive** in the app (verified) — so this is the single canonical one; every surface imports it, none re-implements it.
+
+- **Reaction set (POSITIVE / edifying / age-appropriate only — kids use this, no negative/harmful reactions):** ❤️ **love**, 🙏 **amen/pray**, 🔥 **fire**, 🙌 **praise**. A small, wholesome, fixed set. No 👎 / angry / sad — by design, per the child-safety posture (§6) and QUALITY-OF-LIFE (system mirrors, never judges).
+- **Render:** a compact row of emoji buttons with per-emoji counts; the user's own active reactions highlighted; `aria-label` per button (WCAG); tap toggles.
+- **❤️ love doubles as favorite** (§17.2) — loving adds to "Your Music."
+
+### 18.2 Applied UNIFORMLY across every video/song surface
+
+The same control drops onto every media surface (verified video surfaces in the app):
+
+| Surface | File | Apply to |
+|---|---|---|
+| Worship music tracks | `ChurchWorship.jsx` (new, this spec) | each track card |
+| Choir songs | `app/src/components/Choir.jsx` | each `SongRow` |
+| The Word / sermons | `app/src/components/Pulpit.jsx` | each message video |
+| Song Workshop | `app/src/components/ChoirSongWorkshop.jsx` | each workshop video |
+| Church-Live stream / Video Wall | `church-live.js` render + `ChurchVideoWall.jsx` | the live/latest embed |
+| Any content/Presenter video | future surfaces | the embed |
+
+**One control everywhere** → consistent UX, one place to maintain, one data path. New video surfaces get reactions for free by importing it.
+
+### 18.3 Data + scope
+
+- **Generic table `media_reactions`** (migration `0042`, after this spec's `0041` worship_tracks): `{ id, target_type ('worship_track'|'choir_song'|'sermon'|'church_live'|'content_video'|…), target_id, user_in_instance, emoji, created_at }`, RLS-scoped, unique `(target_type, target_id, user, emoji)` so toggles are idempotent. Keyed by `(targetType, targetId)` so it spans all surfaces with one schema.
+- **Scope = owner / community per the PIN-optional-community-default** sharing model ([[project_private_locations_pin]], [[project_loved_ones_cohort_includes_chosen_family]]): a user's own reactions are theirs; **aggregate counts are community-scoped within the instance** by default; private mode keeps them owner-only.
+- **Engagement signal:** counts feed **favorites/most-loved sorting** (§5, §17) and the feedback/Loop-Health engine ([[project_loop_health_self_review]]). 
+- **No payments, engagement only** — reactions are visibility/affinity signals, never transactions.
+
+### 18.4 Tiering
+
+Shared primitive + additive table → **Tier B** soak. The cross-app reach (touches every video surface) means a careful preview pass, but it adds no autonomous automation (no brakes needed — it's user-triggered).
+
+---
+
 ## Sources
 
 - [Rapzilla — 30 Most Streamed Christian Rap Artists of 2026 (Mar 2026)](https://rapzilla.com/2026-03-most-streamed-christian-rap-artists-2026/) (direct fetch 403'd; ranking read via mirror below)
@@ -709,6 +783,7 @@ The section's purpose **is** the Father's Business: **advancing the Kingdom** (f
 - [RadioU — Aaron Cole to release first 2026 single "Peace At Last"](https://radiou.com/musicnews/aaron-cole-to-release-first-single-of-2026-peace-at-last/)
 - [Wikipedia — Hulvey, "Could Be Tonight" (2026 album)](https://en.wikipedia.org/wiki/Could_Be_Tonight)
 - [Wikipedia — NF (rapper) — on rejecting the "Christian rapper" label](https://en.wikipedia.org/wiki/NF_(rapper))
+- [BibleGateway — Proverbs 22:6 (ESV)](https://www.biblegateway.com/passage/?search=Proverbs+22%3A6&version=ESV) — verified verse text for the §15.0 scriptural foundation (ESV primary, KJV secondary per SCRIPTURE-REFERENCE-STANDARD)
 - [YouTube Music — about / web player (music.youtube.com)](https://music.youtube.com/) — Darrell's listening service; tracks are YouTube-backed (shared video IDs)
 - [Google Takeout — export your data (YouTube/YouTube Music)](https://takeout.google.com/) — the no-credential CSV ingestion path (§11.2b)
 - §11 seed-video IDs resolved via bulk official-upload web search (Reach/Gotee/Tribl/Maverick City/artist channels), 2026-06-23 — candidate IDs, curator-verified at build (§6)
