@@ -13,6 +13,7 @@ import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
 import { derivePortfolio, isPersonalProp } from '../lib/rental-portfolio.js';
+import { loadLeaflet } from '../lib/leaflet-loader.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -829,6 +830,15 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
+  // Leaflet now loads on demand (lib/leaflet-loader.js) instead of render-blocking
+  // on every cold load. Kick the load when this surface mounts; flip `leafletReady`
+  // so the map effect below re-runs once `window.L` is available.
+  const [leafletReady, setLeafletReady] = useState(typeof window !== 'undefined' && !!window.L);
+  useEffect(() => {
+    let cancelled = false;
+    loadLeaflet().then(() => { if (!cancelled) setLeafletReady(true); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   // Nominatim autocomplete - debounced 400ms, US-only, max 5 suggestions
   const fetchSuggestions = (q) => {
@@ -883,7 +893,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     if (withCoords.length > 0) {
       try { mapInstanceRef.current.fitBounds(window.L.featureGroup(markersRef.current).getBounds().pad(0.2)); } catch (e) {}
     }
-  }, [rentals]);
+  }, [rentals, leafletReady]);
 
   // Clean up map on unmount
   useEffect(() => () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } }, []);
