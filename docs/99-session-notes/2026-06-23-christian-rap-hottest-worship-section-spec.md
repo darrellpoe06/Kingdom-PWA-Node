@@ -24,6 +24,7 @@ Darrell wants an in-app section for the **hottest current Christian rap / hip-ho
 - **Dual purpose (BINDING — §15):** flowing from Prov 22:6 — **(1) positively FORM impressionable children** with *"good quality, healthy-thinker music"* (curation prioritizes substance + edifying, Christ-centered messaging) **and (2) PROMOTE those promoting Yahweh** — actively uplift the Kingdom artists, not just play them. Both first-class.
 - **Multi-type library + favorites (§17):** spans **types** — Christian Rap, R&B, Gospel, Worship (Christ-centered first) — with **personal favorites / "Your Music"** (the ❤️ love reaction doubles as the save/favorite signal).
 - **Shared reaction primitive (BINDING, cross-app — §18):** **one reusable ❤️/🙏/🔥/🙌 reaction control** (positive, age-appropriate only — no negative reactions) in `components/shared.jsx`, applied **uniformly to songs AND every video surface** (Worship, Choir, The Word, Song Workshop, Church-Live/Video Wall). Engagement only, no payments; feeds favorites/most-loved sorting + the feedback loop.
+- **Community RADIO stations (§19):** continuous auto-play stations **ranked by community ratings** — the reactions/favorites ARE the rating signal. **"Most Loved"** (flagship) + per-type radios (rap/R&B/gospel/worship) + a personal "Your Favorites" radio; queue auto-fills from the ranked pool, re-ranks live as ratings come in. **Profanity-free + Christ-centered-only** govern the pool (secular-clean never plays on a radio); now-playing credits + promotes the artist (§16). User-initiated, no autonomous automation.
 - **Lyrics-as-curriculum, for child formation (§13):** *"words and lyrics so we educate our children with the data."* Each song carries an **educational-data layer** — scripture references, themes, vocabulary, theology, kid discussion questions — pitched at age-appropriate levels (twins are 10) to form healthy, faith-grounded thinking. **Copyright bright line (binding):** derived teaching data is rights-clean and is the core; **full copyrighted lyrics are NEVER stored/displayed without a license** (licensed provider or church/artist-owned only).
 - **Artist-promotion layer (BINDING — §16):** each artist gets a promotable presence — official channel / site / socials / where-to-support (store, merch, streaming) — driving listeners **to** the artists; a featured rotation shares visibility across Kingdom artists. **No payment processing built by us** (outbound links/visibility only; monetization stays Darrell's hand). The same "promote those promoting Yahweh" pattern is a broader app principle (extends to ministries/creators/churches).
 - **Father's-Business framing:** evangelistic/worship content that reaches youth in the language they already listen in, Word-first; it **forms the children** through Scripture in the songs they love *and* **advances the Kingdom by uplifting its artists** (§9, §13, §15, §16).
@@ -245,7 +246,7 @@ Per `INSTITUTIONAL-MEMORY-EVENTS.md:56`, until the Events module ships the **dur
   "title": "Spec: Hottest Christian Rap -> Worship/Music curated YouTube shelf (Church tab)",
   "description": "Research-first spec for a congregation-facing, curator-edited, content-vetted grid of embedded YouTube AND YouTube Music videos under a new Church 'Worship' sub-tab (rap/hip-hop-forward + gospel/worship crossover). Reuses the Choir curated-list + youtubeEmbedUrl + church-live embed pattern and the learn-framework age-band; adds no new primitives. Researched the live 2026 field with sources (Rapzilla/lecrae.net, Billboard) and seeded from Darrell's own 5 featured artists + his two playlists ('Fire' 104 + 'Inspirational', transcribed) + the public hot list, de-duped: ~161 unique seed, ~144 candidate videos resolved, 1 excluded (Kendrick 'Not Like Us', profanity).",
   "root_cause": null,
-  "resolution": "New Church sub-tab 'worship' (genre-general, Christ-centered-first); curated-default freshness (no-key embed cannot rank, only play); YouTube + YouTube Music both supported (extend youtubeEmbedUrl regex for music.youtube.com; store source+sourceUrl); personal-library sync needs a Google connector that does NOT exist, so two no-credential ingestion paths (playlist-URL parse / Google Takeout CSV) + de-dup; FINAL content rule = profanity/cursing is the ONLY exclusion (clean Christian-with-secular-guest KEPT; secular-clean = rare never-featured exception; only Kendrick 'Not Like Us' excluded); proven-to-catch gate (no-profanity render + secular-clean-never-featured); DUAL PURPOSE = form children with quality/healthy-thinker music (curation rubric §15.1) + promote those promoting Yahweh (artist-promotion layer §16: outbound channel/site/support links + featured rotation, NO payment processing by us); lyrics-as-curriculum for child formation (derived rights-clean data, full lyrics licensed-only); scriptural foundation = Proverbs 22:6 (train up a child) printed in mission copy (Word-first); multi-type library (rap/R&B/gospel/worship) + personal favorites ('Your Music', love=favorite signal); ONE shared reaction primitive (love/amen/fire/praise, positive-only, in components/shared.jsx) applied uniformly to songs + EVERY video surface (Choir/Pulpit/Song Workshop/Church-Live/Video Wall), engagement only no payments, table media_reactions 0042; automated refresh deferred Tier C + three brakes, inactive on ship.",
+  "resolution": "New Church sub-tab 'worship' (genre-general, Christ-centered-first); curated-default freshness (no-key embed cannot rank, only play); YouTube + YouTube Music both supported (extend youtubeEmbedUrl regex for music.youtube.com; store source+sourceUrl); personal-library sync needs a Google connector that does NOT exist, so two no-credential ingestion paths (playlist-URL parse / Google Takeout CSV) + de-dup; FINAL content rule = profanity/cursing is the ONLY exclusion (clean Christian-with-secular-guest KEPT; secular-clean = rare never-featured exception; only Kendrick 'Not Like Us' excluded); proven-to-catch gate (no-profanity render + secular-clean-never-featured); DUAL PURPOSE = form children with quality/healthy-thinker music (curation rubric §15.1) + promote those promoting Yahweh (artist-promotion layer §16: outbound channel/site/support links + featured rotation, NO payment processing by us); lyrics-as-curriculum for child formation (derived rights-clean data, full lyrics licensed-only); scriptural foundation = Proverbs 22:6 (train up a child) printed in mission copy (Word-first); multi-type library (rap/R&B/gospel/worship) + personal favorites ('Your Music', love=favorite signal); ONE shared reaction primitive (love/amen/fire/praise, positive-only, in components/shared.jsx) applied uniformly to songs + EVERY video surface (Choir/Pulpit/Song Workshop/Church-Live/Video Wall), engagement only no payments, table media_reactions 0042; community RADIO stations ranked by those ratings (Most Loved flagship + per-type + personal favorites radio, continuous auto-play, re-ranks live; profanity-free + Christ-centered-only pool, secular-clean never plays; now-playing promotes artist; user-initiated client-side, needs YouTube IFrame Player API for auto-advance); automated refresh deferred Tier C + three brakes, inactive on ship.",
   "tags": {
     "workflows": [],
     "modules": ["church", "worship", "choir", "learn-framework", "church-live", "sme-pipeline", "scripture", "engagement", "presenter"],
@@ -760,6 +761,52 @@ The same control drops onto every media surface (verified video surfaces in the 
 ### 18.4 Tiering
 
 Shared primitive + additive table → **Tier B** soak. The cross-app reach (touches every video surface) means a careful preview pass, but it adds no autonomous automation (no brakes needed — it's user-triggered).
+
+---
+
+## 19. Community-driven RADIO stations (reactions → ratings → station ranking)
+
+**Per Darrell:** *"music RADIOS from the most-liked / from the community ratings."* A radio is a **continuous auto-play station ranked by COMMUNITY RATINGS** — the love/emoji reactions + favorites from §18 ARE the rating signal. This closes the loop: **reactions become ratings become the station ranking.**
+
+### 19.1 The stations
+
+| Station | Pool | Rank by |
+|---|---|---|
+| **Most Loved** (the top/flagship station) | all clean Christian tracks | aggregate community rating, highest first |
+| **Christian Rap radio** | `type='rap'` | community rating *within type* |
+| **Christian R&B radio** | `type='r&b'` | community rating within type |
+| **Gospel radio** | `type='gospel'` | community rating within type |
+| **Worship radio** | `type='worship'` | community rating within type |
+| **Your Favorites radio** (personal) | the user's ❤️-loved tracks (§17.2) | the user's own (recency/affinity) |
+
+Each station is **continuous**: it auto-advances and the queue **auto-fills from the ranked pool** (when the tail nears, more top-ranked tracks append). The flagship "Most Loved" is the default the section can open into.
+
+### 19.2 How ratings drive the ranking (the loop)
+
+- **Rating signal = the §18 reactions + favorites**, aggregated per track into a **`ratingScore`** — e.g. weighted sum (❤️ love weighted highest since it doubles as favorite; 🙏/🔥/🙌 add positive weight), normalized by reach so a new great track isn't buried. *(Exact weighting is a tunable curation constant, set at build and adjustable.)*
+- **Source of truth:** the generic `media_reactions` table (§18.3, migration `0042`) aggregated for `target_type='worship_track'` → a **ranking view** (`worship_track_ratings`, or computed client-side from the realtime reaction stream).
+- **Refreshed as ratings come in:** a Supabase **realtime subscription** on reactions (the Choir-sync pattern) re-ranks the pool live; the continuous queue re-fills from the updated order. Ties directly to the **most-loved sorting (§5/§17)** and the **feedback / Loop-Health engine** ([[project_loop_health_self_review]]) — one signal, many surfaces.
+- **No autonomous automation:** playback + re-ranking are **user-initiated and client-side** (a station only runs while someone is listening). No timer-driven server compute → the three-brakes rule (§5.3) does not apply here.
+
+### 19.3 The filters still govern everything a radio plays (BINDING)
+
+A radio is a **prominent, featured surface**, so the policy applies in full to every track it can play:
+- **Profanity-free only** (§12.1) — the gate; excluded tracks (Kendrick) can never enter a radio pool.
+- **Christ-centered first** (§12.2) — radios play `contentClass='christian'` **only**; `secular-clean` (e.g. The Marías) is *never* eligible for any radio, since radios are a featured surface and secular-clean is "never featured." It stays browsable in the library, but no radio plays it.
+- **Vetted + clean** (§6) — only `vetted=true` tracks play; child-safe by construction.
+- **Quality/healthy rubric (§15.1)** influences rank as a curation weight, so radios lean toward the substantive/edifying even within "most-loved."
+
+### 19.4 Promote those promoting Yahweh (§16) on the radio
+
+The **now-playing** view credits the artist and carries the **promotion affordances** (§16): channel / site / "support this artist" outbound links. A continuous station is continuous *exposure* for Kingdom artists — radio is one of the strongest promotion surfaces. No payments; visibility only.
+
+### 19.5 Playback (honest technical note — Verification Doctrine)
+
+Continuous auto-advance across YouTube/YT-Music embeds needs the **YouTube IFrame Player API** (free, no API key; load `https://www.youtube.com/iframe_api`, listen for the `ENDED` state, load the next ranked `videoId`). This is a step beyond the static `<iframe>` embed used elsewhere (§2) — flag it as the one new technical piece the radio needs; everything else reuses existing primitives. Per-video embedding still uses `youtubeEmbedUrl`; the player API just sequences them.
+
+### 19.6 Tiering
+
+Derived stations over existing data (reactions/ratings) + a client-side continuous player → **Tier B** soak. Additive; user-initiated; no autonomous automation.
 
 ---
 
