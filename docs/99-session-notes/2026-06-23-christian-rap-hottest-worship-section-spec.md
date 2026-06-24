@@ -19,9 +19,11 @@ Darrell wants an in-app section for the **hottest current Christian rap / hip-ho
 - **What it reuses (builds nothing new):** the **Choir** curated-list + YouTube-embed pattern (`Choir.jsx`, `choir-sync.js` `youtubeEmbedUrl` at `choir-sync.js:174`), the **church-live** embed helpers (`church-live.js`), the **learn-framework age-band** for the kids-safe filter (`learnAgeBand`), and the **freshness** dot for "refreshed-on" honesty (`freshness.js`).
 - **Freshness:** a **curated, admin-editable list** is the default and the *correct* default — YouTube's no-API-key embed path can play videos but cannot *rank* them ("hottest" needs chart/stream data the app cannot pull at scale without hitting the same fetch limits the SME/Gmail lanes already hit). The list is refreshed on the **continuous-reel cadence** by a curator. Any *automated* refresh is **Tier C + the three brakes** (budget / concurrency lock / kill-switch) and ships inactive.
 - **Child-safety (BINDING — twins are 10):** every track is **content-checked and age-tagged before it surfaces.** Christian rap is generally clean/faith-centered, but "generally" is not a gate. A **clean/age-appropriate filter** (default = family-safe) and a **per-track vetted flag** are non-negotiable. A track that hasn't been vetted does not render. See §6.
-- **Clean-only content policy (BINDING, approved by Darrell — §12):** *"we don't want that type of music."* The section surfaces **clean, faith-centered Christian music ONLY.** Any **explicit-marked or secular/non-Christian** track is **permanently excluded for all users, by default** (e.g. Kendrick Lamar "Not Like Us", The Marías "No One Noticed" — both appeared in his playlist and are excluded). Excluded tracks are **logged with a reason, never silently dropped**, so Darrell has the record. Christian songs with a **secular guest feature** (e.g. Ty Dolla $ign, Marc E. Bassy, Chris Brown) are **held for his keep/drop decision** — not auto-decided, not surfaced until decided.
-- **Lyrics-as-curriculum (NEW — §13):** *"words and lyrics so we educate our children with the data."* Each song carries an **educational-data layer** — scripture references, themes, vocabulary, theology, kid discussion questions — to teach the Word through the music. **Copyright bright line (binding):** the derived teaching data is rights-clean and is the core; **full copyrighted lyrics are NEVER stored/displayed without a license** (licensed provider or church/artist-owned only).
-- **Father's-Business framing:** evangelistic/worship content that reaches youth in the language they already listen in — Word-first, mission-aligned; the educational layer teaches Scripture *from the songs the kids already love* (§9, §13).
+- **Content policy (BINDING, FINAL — §12):** the **only** hard-exclusion criterion is **profanity / explicit cursing.** Clean songs stay regardless of genre or a **secular guest** artist (e.g. Lecrae ft. Ty Dolla $ign — KEEP). Editorial identity is **Christ-centered FIRST**: the section is overwhelmingly Christian (rap, R&B, gospel, worship), featured + sorted first; a **fully-secular-but-clean** track is a *rare tolerated exception* (The Marías "No One Noticed" — Darrell: KEEP) that is **never featured.** Only **1** track in the whole seed is excluded: Kendrick "Not Like Us" (cursing). Excluded tracks are logged, never silently dropped.
+- **Dual purpose (BINDING — §15):** the section exists to **(1) positively FORM impressionable children** with *"good quality, healthy-thinker music"* (curation prioritizes substance + edifying, Christ-centered messaging) **and (2) PROMOTE those promoting Yahweh** — actively uplift the Kingdom artists, not just play them. Both are first-class design goals.
+- **Lyrics-as-curriculum, for child formation (§13):** *"words and lyrics so we educate our children with the data."* Each song carries an **educational-data layer** — scripture references, themes, vocabulary, theology, kid discussion questions — pitched at age-appropriate levels (twins are 10) to form healthy, faith-grounded thinking. **Copyright bright line (binding):** derived teaching data is rights-clean and is the core; **full copyrighted lyrics are NEVER stored/displayed without a license** (licensed provider or church/artist-owned only).
+- **Artist-promotion layer (BINDING — §16):** each artist gets a promotable presence — official channel / site / socials / where-to-support (store, merch, streaming) — driving listeners **to** the artists; a featured rotation shares visibility across Kingdom artists. **No payment processing built by us** (outbound links/visibility only; monetization stays Darrell's hand). The same "promote those promoting Yahweh" pattern is a broader app principle (extends to ministries/creators/churches).
+- **Father's-Business framing:** evangelistic/worship content that reaches youth in the language they already listen in, Word-first; it **forms the children** through Scripture in the songs they love *and* **advances the Kingdom by uplifting its artists** (§9, §13, §15, §16).
 
 **The honest constraint, stated up front (Verification Doctrine):** the YouTube **video IDs in the seed list below were gathered from web-search result titles on 2026-06-23, not from loading each video.** They are provenance-tagged, not embed-verified. **The curator verifies each embed plays AND the lyrics are clean before it surfaces** — that is step one of the build, and it is a real gate, not a formality.
 
@@ -238,9 +240,9 @@ Per `INSTITUTIONAL-MEMORY-EVENTS.md:56`, until the Events module ships the **dur
   "date": "2026-06-23",
   "type": "church-work",
   "title": "Spec: Hottest Christian Rap -> Worship/Music curated YouTube shelf (Church tab)",
-  "description": "Research-first spec for a congregation-facing, curator-edited, content-vetted grid of embedded YouTube AND YouTube Music videos under a new Church 'Worship' sub-tab (rap/hip-hop-forward + gospel/worship crossover). Reuses the Choir curated-list + youtubeEmbedUrl + church-live embed pattern and the learn-framework age-band; adds no new primitives. Researched the live 2026 field with sources (Rapzilla/lecrae.net, Billboard) and seeded from Darrell's own 5 featured artists + his 'Fire' playlist (transcribed; ~74 candidate videos, 66 resolved).",
+  "description": "Research-first spec for a congregation-facing, curator-edited, content-vetted grid of embedded YouTube AND YouTube Music videos under a new Church 'Worship' sub-tab (rap/hip-hop-forward + gospel/worship crossover). Reuses the Choir curated-list + youtubeEmbedUrl + church-live embed pattern and the learn-framework age-band; adds no new primitives. Researched the live 2026 field with sources (Rapzilla/lecrae.net, Billboard) and seeded from Darrell's own 5 featured artists + his two playlists ('Fire' 104 + 'Inspirational', transcribed) + the public hot list, de-duped: ~161 unique seed, ~144 candidate videos resolved, 1 excluded (Kendrick 'Not Like Us', profanity).",
   "root_cause": null,
-  "resolution": "New Church sub-tab 'worship' (genre-general); curated-default freshness (no-key embed cannot rank, only play); YouTube + YouTube Music both supported (extend youtubeEmbedUrl regex for the music.youtube.com host; store source+sourceUrl); personal-library sync needs a Google connector that does NOT exist in the registry, so two no-credential ingestion paths instead (shared playlist-URL parse / Google Takeout CSV) feeding a de-dup step; binding per-track child-safety vetting gate with proven-to-catch test; automated refresh deferred Tier C + three brakes, inactive on ship.",
+  "resolution": "New Church sub-tab 'worship' (genre-general, Christ-centered-first); curated-default freshness (no-key embed cannot rank, only play); YouTube + YouTube Music both supported (extend youtubeEmbedUrl regex for music.youtube.com; store source+sourceUrl); personal-library sync needs a Google connector that does NOT exist, so two no-credential ingestion paths (playlist-URL parse / Google Takeout CSV) + de-dup; FINAL content rule = profanity/cursing is the ONLY exclusion (clean Christian-with-secular-guest KEPT; secular-clean = rare never-featured exception; only Kendrick 'Not Like Us' excluded); proven-to-catch gate (no-profanity render + secular-clean-never-featured); DUAL PURPOSE = form children with quality/healthy-thinker music (curation rubric §15.1) + promote those promoting Yahweh (artist-promotion layer §16: outbound channel/site/support links + featured rotation, NO payment processing by us); lyrics-as-curriculum for child formation (derived rights-clean data, full lyrics licensed-only); automated refresh deferred Tier C + three brakes, inactive on ship.",
   "tags": {
     "workflows": [],
     "modules": ["church", "worship", "choir", "learn-framework", "church-live", "sme-pipeline", "scripture", "engagement", "presenter"],
@@ -248,7 +250,7 @@ Per `INSTITUTIONAL-MEMORY-EVENTS.md:56`, until the Events module ships the **dur
     "senders": ["dpoe"]
   },
   "provenance": { "who": "Claude (advisory)", "when": "2026-06-23", "source_surface": "research-review + code survey + Darrell's two playlists (Fire 104, Inspirational)" },
-  "learnings": "1) 'Hottest' decays - re-run live research, never recall from memory. 2) No-API-key YouTube/YT-Music embeds play but cannot rank; curated list is the correct sovereign default, not a fallback. 3) Child-safety is a structural gate: vetted=false must not render, machine-checked. 4) Name third-party-content dependency honestly (embed != owned). 5) Exclude on content, not genre name (NF; and the live test: his own playlist held Kendrick 'Not Like Us' + The Marias - BINDING clean-only policy now auto-excludes explicit/secular for all users, logs not silently drops, holds secular-guest edge cases for Darrell). 6) Personal-library sync needs a Google connector that does NOT exist -> two no-credential paths (playlist URL / Takeout CSV), never log in as him. 7) Lyrics-as-curriculum: teach via DERIVED data (scripture refs / themes / vocab / questions = rights-clean, reuse the SME faithfulness-gate to extract refs not lyric text); FULL lyrics only via licensed provider or church-owned - never scrape/store copyrighted lyrics.",
+  "learnings": "1) 'Hottest' decays - re-run live research, never recall from memory. 2) No-API-key YouTube/YT-Music embeds play but cannot rank; curated list is the correct sovereign default, not a fallback. 3) Child-safety is a structural gate: vetted=false must not render, machine-checked. 4) Name third-party-content dependency honestly (embed != owned). 5) FINAL content rule: profanity/cursing is the ONLY exclusion criterion (refined from an earlier over-broad 'exclude secular' draft). Clean stays regardless of genre or a secular GUEST; only explicit/cursing is out (Kendrick 'Not Like Us'). Editorial identity = Christ-centered FIRST; fully-secular-but-clean (The Marias 'No One Noticed', Darrell KEEP) is a rare never-featured exception. Don't over-filter on a guest's secular status. 6) Personal-library sync needs a Google connector that does NOT exist -> two no-credential paths (playlist URL / Takeout CSV), never log in as him. 7) Lyrics-as-curriculum: teach via DERIVED data (scripture refs / themes / vocab / questions = rights-clean, reuse the SME faithfulness-gate to extract refs not lyric text); FULL lyrics only via licensed provider or church-owned - never scrape/store copyrighted lyrics. 8) DUAL PURPOSE is the spec's spine: (a) FORM impressionable children with quality/healthy-thinker music (curation rubric on top of the gate: substance, edifying, Christ-centered, age-fit, healthy patterns) and (b) PROMOTE those promoting Yahweh (outbound channel/site/support links + featured rotation; NO payment processing by us - monetization stays Darrell's hand). 9) 'Promote those promoting Yahweh' is a CROSS-APP principle -> extend the promotable-entity pattern to ministries/creators/churches (candidate DR).",
   "related_artifacts": [
     "docs/99-session-notes/2026-06-23-christian-rap-hottest-worship-section-spec.md",
     "app/src/components/Choir.jsx:98-102",
@@ -416,8 +418,8 @@ Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Con
 | 87 | Tye Tribbett | New | 7xyQrpdv5vo | high | |
 | 88 | Travis Greene | Just Want You (ft. Jordan Connell & Chandler Moore) | xRE0LIQAqNg | med | |
 | 89 | Koryn Hawthorne | Pray (Remix) (ft. KB) | mARoXUxxGR8 | high | |
-| ~~90~~ | ~~Kendrick Lamar~~ | ~~Not Like Us~~ | **EXCLUDED** | — | **§12 — explicit + secular** |
-| ~~91~~ | ~~The Marías~~ | ~~No One Noticed~~ | **EXCLUDED** | — | **§12 — secular** |
+| ~~90~~ | ~~Kendrick Lamar~~ | ~~Not Like Us~~ | **EXCLUDED** | — | **§12.1 — profanity/explicit (the only exclusion criterion)** |
+| 91 | The Marías | No One Noticed | *resolve at curation* | — | KEEP — `secular-clean` exception (§12.2): clean, allowed, **never featured** |
 | 92 | Forrest Frank | NO L's | 0UR7Ss_3GpQ | high | |
 | 93 | 116 | Man up Anthem (ft. Lecrae, Tedashii, Trip Lee & KB) | D_K9sjB2pKM | high | |
 | 94 | Spillhouse | Clean Heart (Psalm 51) | t1GQBbM0yDs | high | |
@@ -425,7 +427,7 @@ Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Con
 | 96 | Spillhouse | My God, My God (Psalm 22) | UNRESOLVED | low | resolve at curation |
 | 97 | Soul_Remedy | Let God Take Control | avPphgm73Ts | med | CONTENT-CHECK (AI-generated voices) |
 | 98 | YiShai | Still Here | UNRESOLVED | low | resolve at curation |
-| 99 | Bryson Gray | Ezekiel 3 (ft. Kidd Lee & NobleOfficial) | pi6rIIerSpE | high | **DECISION** — political ("MAGA") rapper; surface to Darrell per §12 |
+| 99 | Bryson Gray | Ezekiel 3 (ft. Kidd Lee & NobleOfficial) | pi6rIIerSpE | high | CONTENT-CHECK — verify clean → KEEP; political persona is an editorial note for Darrell, not a profanity exclusion (§12.1) |
 | 100 | Bizzle (God Over Money) | Way Up (ft. Sevin) | S_OJUMESC04 | high | |
 | 101 | Hulvey | Beautiful | zDsE4BPuFRQ | high | |
 | 102 | Mission | YAHWEH | UNRESOLVED | low | resolve at curation (artist ambiguous) |
@@ -452,7 +454,7 @@ Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Con
 | 2 | Travis Greene | Intentional | VH3f0ellNv8 | high | |
 | 3 | Jekalyn Carr | You're Bigger | Z-ZV61eDLXI | high | |
 | 4 | Mali Music | Loved By You (ft. Jazmine Sullivan) | h7LTt9_fYMY | med | CONTENT-CHECK (mainstream R&B feature) |
-| 5 | Lecrae | Blessings (ft. Ty Dolla $ign) | i58IH2D8sWQ | high | **DECISION** (§12) |
+| 5 | Lecrae | Blessings (ft. Ty Dolla $ign) | i58IH2D8sWQ | high | KEEP — clean Christian song; secular guest allowed (§12.1) |
 | 6 | Lecrae & Tori Kelly | I'll Find You | Jv8IqJm6q7w | high | |
 | 7 | Lecrae | Tell the World (ft. Mali Music) | Yc8x33lAnAk | high | |
 | 8 | Lecrae | All I Need Is You | 6iRTBh1gCjk | high | |
@@ -474,7 +476,7 @@ Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Con
 | 24 | Travis Greene | You Waited [Live] (Extended) | cyzbge2QEF4 | high | |
 | 25 | Isaac Carree | So Glad (ft. Kierra Sheard, Kirk Franklin & Lecrae) | bvnVKHFyOAk | med | |
 | 26 | Shana Wilson | Give Me You (Live) | RxKBVoEEcT0 | high | |
-| 27 | Lecrae & Marc E. Bassy | Wheels Up | 0S2CrXY8CTg | high | **DECISION** (§12) |
+| 27 | Lecrae & Marc E. Bassy | Wheels Up | 0S2CrXY8CTg | high | KEEP — clean Christian song; secular guest allowed (§12.1) |
 | 28 | CynthiaShantel (cover of Tye Tribbett) | Everything | UNRESOLVED | low | CONTENT-CHECK (cover, not label-official) |
 | 29 | Tye Tribbett | The Worship Medley (Live) | mQe9MV3GJHY | high | |
 | 30 | Lamar Campbell & Spirit Of Praise | More Than Anything | FA5WelLIXb8 | med | official audio |
@@ -489,7 +491,7 @@ Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Con
 | 41 | Hulvey | Holy Spirit | CAKTH7HIX-w | high | |
 | 43 | Hulvey | Can't Tell It All | UyHh9tSU7JA | high | |
 | 44 | Hulvey | Higher (ft. Zach Paradis) | jufCDyNAtoM | high | |
-| 47 | Elevation Worship | Trust In God (ft. Chris Brown) | QS04WbSnxok | high | **DECISION** (§12) |
+| 47 | Elevation Worship | Trust In God (ft. Chris Brown) | QS04WbSnxok | high | KEEP — clean worship song; secular guest allowed (§12.1) |
 | 48 | Lee Vasi | Teach Me | -lddOg1eJoc | high | |
 | 49 | Franchesca | Faith In Me | BYe1VWJKXPQ | med | |
 | 50 | Maverick City Music | Firm Foundation (He Won't) (ft. Chandler Moore & Cody Carnes) | uOP4s8fOEm0 | high | |
@@ -508,11 +510,19 @@ Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Con
 | Public hot list (§1d/§C, de-duped) | ~8 | ~8 | 0 | 0 |
 | **COMBINED UNIQUE SEED** | **~161** | **≈ 144 resolved + 1 album** | **13 to resolve + 1 to transcribe** | **2 excluded** |
 
-**Headline:** **≈144 clean candidate videos resolved** across his two playlists + featured artists + the public hot list, de-duped; **13 to resolve + 1 to transcribe at curation**; **2 hard-excluded by policy** (Kendrick "Not Like Us", The Marías "No One Noticed"). Every resolved row is a *candidate* until the curator confirms embed + clean lyrics (§6).
+**Headline (under the FINAL profanity-only rule, §12):** **≈144 clean candidate videos resolved** across his two playlists + featured artists + the public hot list, de-duped; **14 to resolve + 1 to transcribe at curation**; **exactly 1 hard-excluded** (Kendrick "Not Like Us" — profanity). Every resolved row is a *candidate* until the curator confirms embed + profanity-free (§6, §12.1).
 
-**Held for Darrell's decision — `decisionPending` (§12), do not surface until decided (4):** #99 Bryson Gray "Ezekiel 3" (political/"MAGA" rapper); Lecrae "Blessings" (ft. Ty Dolla $ign); Lecrae "Wheels Up" (ft. Marc E. Bassy); Elevation Worship "Trust In God" (ft. Chris Brown).
+**Composition (Christ-centered-first, §12.2):**
 
-**`CONTENT-CHECK` (clean-likely, verify at vetting):** #10 Holy (SVRCINA), #67 WATER 4 ME, #70 Hands in It (sermon excerpt), #76 My Peace (JoJo feature), #97 Let God Take Control (AI voices), Inspirational #4 Loved By You (Jazmine Sullivan), #28 "Everything" (cover, not label-official). Plus the Lecrae "Headphones" featured-track swap noted at F1.
+| Class | Count | Treatment |
+|---|---|---|
+| `christian` (incl. Christian songs w/ a secular guest) | **≈143** (the overwhelming majority) | featured + sorted first — the face of the section |
+| `secular-clean` (rare tolerated exception) | **1** (The Marías "No One Noticed" — Darrell: KEEP) | kept, **never featured**, deprioritized |
+| `explicit` (excluded) | **1** (Kendrick "Not Like Us") | hard-excluded, logged |
+
+**Held for Darrell's decision: 0** — the earlier "secular guest" flags (Lecrae "Blessings"/"Wheels Up", Elevation "Trust In God", Bryson Gray "Ezekiel 3") are **all KEEP** under the final rule (clean Christian songs; profanity is the only gate).
+
+**`CONTENT-CHECK` (clean-likely, profanity-verify at vetting — KEEP if clean):** #10 Holy (SVRCINA), #67 WATER 4 ME, #70 Hands in It (sermon excerpt), #76 My Peace (JoJo feature), #97 Let God Take Control (AI voices), #99 Ezekiel 3 (political persona — editorial note only), Inspirational #4 Loved By You (Jazmine Sullivan), #28 "Everything" (cover, not label-official). Plus the Lecrae "Headphones" featured-track swap noted at F1.
 
 ### 11.7 Screens delta
 
@@ -522,42 +532,44 @@ Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Con
 
 ---
 
-## 12. BINDING content policy — clean, faith-centered Christian music ONLY (approved by Darrell)
+## 12. BINDING content policy — profanity-free gate + Christ-centered identity (refined by Darrell)
 
-**Declared by Darrell 2026-06-23, after his "Fire" playlist was found to contain a few non-Christian/explicit tracks mixed in:** *"we don't want that type of music."* This is **approved policy, not a suggestion** — a binding filter rule in the spec and the data model.
+**Final rule, declared by Darrell 2026-06-23 (refined across the day — supersedes the earlier "exclude secular" draft):** *"as long as they don't curse we're fine with the music that has a featured artist that is secular"* and the section should be *"preferably ONLY or MOSTLY Christ / Christian — rap, R&B, gospel, worship, etc."* Two parts: a **hard exclusion gate** and a **Christ-centered editorial identity.**
 
-**The rule:** the Worship section surfaces **clean, faith-centered Christian music ONLY.** Two auto-exclude classes, enforced by default, for **all users** (this is child-safe by design — the twins use the app):
+### 12.1 The hard gate — PROFANITY / explicit cursing is the ONLY exclusion criterion
 
-1. **Explicit-marked** tracks (platform/metadata explicit flag) → excluded.
-2. **Secular / non-Christian** tracks (the artist + song are not Christian/worship) → excluded.
+A track is **excluded only if it contains profanity / cursing or carries an explicit marker.** That single bright line is enforced by default for **all users** (child-safe — the twins use the app).
 
-**Confirmed exclusions from the seed (his own playlist):**
+- **NOT a reason to exclude:** a song's genre, or a **secular guest artist** on an otherwise-clean Christian song. Clean Christian songs that feature a mainstream guest are **KEPT.**
+- **Verify clean per track:** platform **explicit flag** + a curator clean-check at vetting. Exclude only on cursing/explicit — never on genre or a guest's secular status.
 
-| Track | Artist | Why excluded |
+**Excluded (the only one in the entire seed):**
+
+| Track | Artist | Why |
 |---|---|---|
-| Not Like Us | Kendrick Lamar | explicit + secular |
-| No One Noticed | The Marías | secular indie |
+| Not Like Us | Kendrick Lamar | explicit / cursing |
 
-**Logged, never silently dropped.** An excluded track is **recorded in the import with `excluded: true` + `excludeReason`** (audit trail) so Darrell can see what was filtered and override if ever needed — it simply **does not render** to anyone. "Silent drop" is itself a failure mode here; the record is the safeguard.
+**Reinstated under the final rule** (previously over-flagged, now KEEP — clean Christian songs with secular guests): Lecrae "Blessings" (ft. Ty Dolla $ign), Lecrae "Wheels Up" (ft. Marc E. Bassy), Elevation Worship "Trust In God" (ft. Chris Brown). Likewise KEEP (clean-verify): Mali Music "Loved By You" (ft. Jazmine Sullivan), PJ Morton "My Peace" (ft. JoJo). Bryson Gray "Ezekiel 3" → KEEP if clean (its political persona is an editorial note for Darrell's awareness, **not** a profanity exclusion).
 
-**The edge case — Christian song, secular guest feature → HELD for Darrell's decision, not auto-decided:**
+**Logged, never silently dropped.** An excluded track is recorded with `excluded:true` + `excludeReason` (audit) so Darrell sees what was filtered; it simply does not render.
 
-| Track | Artist | Secular guest | Source |
-|---|---|---|---|
-| Blessings | Lecrae | Ty Dolla $ign | "Inspirational" |
-| Wheels Up | Lecrae | Marc E. Bassy | "Inspirational" |
-| Trust In God | Elevation Worship | Chris Brown | "Inspirational" |
+### 12.2 The editorial identity — Christ-centered FIRST
 
-These are **Christian/worship songs** with a mainstream guest — the Kendrick/Marías auto-rule doesn't cleanly apply, but Darrell's "we don't want that type" makes it his call. Data model: **`decisionPending: true`** → the track **does not surface until Darrell picks keep or drop.** The curation view shows them in a "needs your decision" queue.
+The section is **overwhelmingly Christian / Christ-centered across genres** (Christian rap, Christian R&B, gospel, worship). That is the heart, the default, and the **featured + sorted-first** material — the face of the section.
 
-**Data-model additions** (extends §4 / §11.5):
-`contentClass` (`'christian' | 'secular' | 'explicit' | 'review'`), `excluded` (bool), `excludeReason` (string), `decisionPending` (bool), `decidedBy` / `decidedAt`.
+- **Christian (incl. Christian-with-secular-guest):** `contentClass: 'christian'` → eligible to be featured/sorted first.
+- **Fully-secular-but-clean** (e.g. The Marías "No One Noticed" — **Darrell's call: KEEP**, it's clean): allowed only as a **RARE tolerated exception.** `contentClass: 'secular-clean'` → **deprioritized in sort, NEVER featured, never the face of the section.** It stays in the data; it does not represent the section.
+- **Cursing/explicit:** hard-excluded (§12.1).
 
-**How classification is sourced (no autonomous drop without a record):**
-- **Explicit flag** — from the track's platform metadata where available.
-- **Christian-vs-secular** — artist/label is the strong signal (Reach, Gotee, Tribl, Maverick City, Provident, RCA Inspiration = Christian; the curated nature of the seed means most rows are already in-class). An **automated pre-filter may *flag*** a suspected secular/explicit row; **a human confirms** the exclusion. Nothing is auto-removed from existence — it's flagged, recorded, and hidden.
+**Effectively: Christian-first ordering; secular-clean is a tolerated minority, never the identity.** A curation rule enforces a clear Christian majority in featured/surfaced positions. **On top of this gate + identity sits the quality / healthy-thinking curation rubric (§15.1)** — what shapes a young mind well ranks first.
 
-**Proven-to-catch test (extends §6, DR-0076):** a row with `excluded=true`, `contentClass ∈ {secular, explicit}`, or `decisionPending=true` **must not appear in any user's render.** Ship the gate only after it's shown to CATCH a planted Kendrick-style row. The clean-only promise is machine-checked, not claimed.
+### 12.3 Data model + gate
+
+`contentClass` (`'christian' | 'secular-clean' | 'explicit'`), `hasProfanity` (bool — the gate), `excluded` (bool, set only for explicit/profanity), `excludeReason`, `featuredEligible` (bool — true for `christian`, false for `secular-clean`). Sort + feature logic ranks `christian` first; `secular-clean` is never featured.
+
+**How classification is sourced (no autonomous drop without a record):** explicit flag from platform metadata; Christian-vs-secular from artist/label (Reach, Gotee, Tribl, Maverick City, Provident, RCA Inspiration = Christian). An automated pre-filter may *flag* a suspected profane/secular row; a human confirms. Nothing is auto-removed from existence — flagged, recorded, classified.
+
+**Proven-to-catch test (extends §6, DR-0076):** (a) a row with `hasProfanity=true` / `contentClass='explicit'` / `excluded=true` **must not render to anyone** — ship only after it CATCHES a planted Kendrick-style cursing row; (b) `secular-clean` rows **must not appear in featured / top-sorted positions.** Both promises machine-checked, not claimed.
 
 ---
 
@@ -611,6 +623,69 @@ Darrell shared a **second playlist, "Inspirational"** (worship/gospel-leaning �
 **Bonus expansion candidates** (YT Music surfaced these *alongside* the playlist, NOT in it — optional "you might add," content-vetted before surfacing): *Faith and Favor* — Stevie Rizo; *Fruits of My Labor* — Caleb Gordon; *More Like You* — Jordan May; *NO LONGER BOUND* — Forrest Frank & Hulvey; *Yeshua!* — Vic Lucas; *My Soul (feat. Noah Surratt)* — Marcus Rogers; *Forever in Faith* — Alex Jean.
 
 **Related playlists for ongoing sourcing** (the curator's recurring "what's fresh" inputs, per §5): YT Music *"Christian R&B"*, *"Christian-Pop Party"*, *"Gospel"*, *"Right now"* (Taylor Haynes). These join the Rapzilla/Billboard re-run as the human refresh inputs — none auto-pulled.
+
+---
+
+## 15. PURPOSE — form the children + promote those promoting Yahweh (BINDING, dual goal)
+
+**Declared by Darrell 2026-06-23:** the section exists to *"impact our impressionable children with good quality, healthy-thinker music"* and to *"help PROMOTE those promoting Yahweh."* These are **two first-class design goals**, not entertainment-with-extras. Every curation and design choice serves one or both.
+
+### 15.1 Goal 1 — positively FORM impressionable children (quality + healthy thinking)
+
+The section is **formative, not just a player.** On top of the profanity-free gate (§12.1) and the Christ-centered-first identity (§12.2), curation applies a **quality + healthy-thinking criterion** — what shapes a young mind *well*:
+
+**Curation rubric (prioritize for featuring/sorting; the twins are 10):**
+- **Substance** — the song says something true and worth absorbing (not empty repetition).
+- **Edifying / hope-oriented** — builds up; models healthy identity, resilience, and emotion in Christ (Phil 4:8 — the Test: true, lovely, commendable, excellent).
+- **Christ-centered formation** — points to Yahweh; theologically sound (checked against the Worldview spine).
+- **Age-fit** — singable, comprehensible, and shaping for a 10-year-old; deeper cuts ride higher age bands.
+- **Healthy patterns** — does not glorify harm, despair, or contempt *even when profanity-free*; a clean-but-cynical song is deprioritized, not featured.
+
+This rubric **ranks featured/surfaced content**; it does not hard-exclude (only profanity does). It is the "good quality, healthy-thinker" filter Darrell named, sitting above the gate.
+
+### 15.2 Goal 2 — PROMOTE those promoting Yahweh
+
+The section actively **uplifts the Kingdom artists** — see the artist-promotion layer (§16). Visibility is a gift the section gives the artists, shared across the field, not hoarded on a few.
+
+### 15.3 How the educational layer serves child formation
+
+The lyrics-as-curriculum layer (§13) is **explicitly FOR forming impressionable children's thinking** — healthy, faith-grounded:
+- **Scripture refs** turn a song into time in the Word (a 10-year-old reads Isaiah 26:3 because "Stayed On Him" sent them there).
+- **Themes + theology** name the healthy idea the song carries, so it's absorbed *consciously*.
+- **Vocabulary** grows a child's faith-language at their level (kid-definitions).
+- **Discussion questions** let a parent/teacher shape the takeaway (what/when/why/how — ANXIETY-CLARITY).
+- **Age-pitched** via `learn-framework` age bands — the same song forms a 10-year-old and a teen differently.
+
+**The formation loop:** *love the song → meet its Scripture → understand its theme → talk it through → carry it.* Music the kids already choose becomes discipleship that shapes how they think.
+
+---
+
+## 16. ARTIST-PROMOTION LAYER — uplift those promoting Yahweh (BINDING)
+
+**Per Darrell: "we want to help PROMOTE those promoting Yahweh."** The section is not just a player — it **drives listeners TO the artists** and shares visibility across the Kingdom field. First-class, not an afterthought.
+
+### 16.1 Promotable artist presence (every artist)
+
+An **artist entity** (not just free-text per track) carries the promotion links:
+`{ name, officialYouTube, officialYTMusic, site, socials[], supportLinks[] (store / merch / streaming), bio, featured (bool), promotesYahweh (bool) }`.
+
+On each track card and the artist's profile: **"Follow on their channel," "Visit site," "Support this artist"** affordances → **outbound links** to the artist's own YouTube/YT-Music channel, official site/socials, and where to support them (store/merch/streaming).
+
+### 16.2 Featured rotation (shared visibility)
+
+A **featured-artist spotlight** rotates across Kingdom artists — Darrell's 5 (**Lecrae, Hulvey, Trip Lee, nobigdyl., Jackie Hill Perry**) **plus the wider field** (§1 ranking + his playlists) — so visibility is *shared*, not concentrated. Rotation is **curator-set or simple deterministic** (e.g. by week); any *automated* rotation respects the three brakes (§5.3) and ships inactive — but a static/curated rotation needs none.
+
+### 16.3 No payment processing by us (bright line)
+
+These are **outbound links and visibility only — NOT transactions.** We do **not** build payment processing, take a cut, or hold money; monetization stays **Darrell's hand**. We send listeners to the artist's own support channels; the artist receives directly. (Aligns with DATA-AS-EMPOWERMENT / serve-not-extract.)
+
+### 16.4 Broader app principle (note for the ledger)
+
+*"Promote those promoting Yahweh"* is **a cross-app principle, not just this section.** The same promotable-entity + visibility pattern should extend to **ministries, creators, and churches** elsewhere (a Kingdom directory, content surfaces, COLG-first per COMMUNITY-FIRST-MISSION). Recommend recording it as a Decision Record so it governs future surfaces, with this section as the first instance.
+
+### 16.5 Father's-Business
+
+The section's purpose **is** the Father's Business: **advancing the Kingdom** (forming children in the Word, surfacing Christ-centered art) **and supporting those advancing it** (driving real visibility + support to the artists promoting Yahweh). Serve-not-extract; we create and uplift, we don't skim.
 
 ---
 
