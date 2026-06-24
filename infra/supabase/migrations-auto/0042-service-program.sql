@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0041 — Order of Service: master program + per-sector segments
+-- 0042 — Order of Service: master program + per-sector segments
 -- =============================================================================
 -- Darrell 2026-06-24: ONE master program per Sunday worship (the conductor's
 -- score / run-of-show), from which each staff sector reads a DERIVED VIEW scoped

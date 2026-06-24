@@ -25,8 +25,8 @@ import { subscribeSongs, subscribeSermons } from '../lib/choir-sync.js';
 import {
   SECTORS, STEWARD, sectorShort,
   deriveSectorView, reflowProgram, formatClock,
-  getServiceProgramAccess, subscribePrograms, subscribeSegments,
-  saveProgram, deleteProgram, saveSegment, deleteSegment, seedProgramSegments, seedDefaultOrder,
+  getServiceProgramAccess, subscribePrograms, subscribeSegments, subscribeChanges, subscribeFinalizerMembers,
+  saveProgram, deleteProgram, saveSegment, deleteSegment, seedProgramSegments, seedDefaultOrder, setFinalizer,
 } from '../lib/service-program.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -221,6 +221,9 @@ export default function ServiceProgram() {
   const [programForm, setProgramForm] = useState(null);
   const [segmentForm, setSegmentForm] = useState(null);
   const [reflowMin, setReflowMin] = useState('');
+  const [changes, setChanges] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [manageFinalizers, setManageFinalizers] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -245,9 +248,13 @@ export default function ServiceProgram() {
       subscribeSegments(setSegments),
       subscribeSongs(setSongs),
       subscribeSermons(setSermons),
+      subscribeChanges(setChanges),
+      ...(access.canEdit ? [subscribeFinalizerMembers(setMembers)] : []),
     ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
-  }, [signedIn, access.canSee]);
+  }, [signedIn, access.canSee, access.canEdit]);
+
+  const isSteward = access.role === 'owner' || access.role === 'admin';
 
   const program = useMemo(() => programs.find((p) => p.id === selectedId) || programs[0] || null, [programs, selectedId]);
   const programSegments = useMemo(() => segments.filter((s) => program && s.programId === program.id), [segments, program]);
@@ -273,6 +280,8 @@ export default function ServiceProgram() {
     if (reflow) reflow.segments.forEach((s) => m.set(s.id, s.adjustedMinutes));
     return m;
   }, [reflow]);
+  const programChanges = useMemo(() => (program ? changes.filter((c) => c.programId === program.id).slice(0, 20) : []), [changes, program]);
+  const finalizerMembers = useMemo(() => members.filter((m) => m.userId), [members]);
 
   const report = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Your change was not stored — try again.`); else setErr(''); return res; };
 
@@ -292,6 +301,11 @@ export default function ServiceProgram() {
     if (!program) return;
     setBusy(true);
     report(await seedProgramSegments(program.id));
+    setBusy(false);
+  };
+  const onToggleFinalizer = async (m) => {
+    setBusy(true);
+    report(await setFinalizer(m.userId, !m.isFinalizer));
     setBusy(false);
   };
   const onDeleteProgram = async () => {
@@ -414,6 +428,53 @@ export default function ServiceProgram() {
           )}
           {segmentForm && isStewardEditing && <SegmentForm initial={segmentForm.initial} programSongs={programSongs} programSermons={programSermons} busy={busy} onSave={onSaveSegment} onCancel={() => setSegmentForm(null)} />}
 
+          {/* Finalizer circle — who can finalize the whole master (collaborative) */}
+          {isStewardEditing && (
+            <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <span className="text-[#1A1815] font-semibold">Worship-team finalizers</span> edit the whole master together (BG · Christina · the keyboardist · Darrell). Everyone else gets their sector view.
+                  {access.isFinalizer && !isSteward && ' You can finalize.'}
+                </p>
+                {isSteward && <button type="button" onClick={() => setManageFinalizers((o) => !o)} className={`${BTN} text-[#B85838]`} aria-expanded={manageFinalizers}>{manageFinalizers ? '▾ Hide' : 'Manage circle'}</button>}
+              </div>
+              {isSteward && manageFinalizers && (
+                <div className="mt-2 border-t border-[#E8E4DC] pt-2">
+                  {finalizerMembers.length === 0
+                    ? <p className="text-[0.6875rem] text-[#5A5751]">No roster members linked yet. Add the keyboardist (and others) to the choir roster first, then mark them a finalizer here. BG, Christina and Darrell already finalize as stewards.</p>
+                    : (
+                      <ul className="space-y-1">
+                        {finalizerMembers.map((m) => (
+                          <li key={m.id} className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-[#1A1815]">{m.displayName}<span className="text-[#8A857C]"> · {m.choirRole}</span></span>
+                            <button type="button" onClick={() => onToggleFinalizer(m)} disabled={busy} aria-pressed={m.isFinalizer}
+                              className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50 ${m.isFinalizer ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC]'}`}>
+                              {m.isFinalizer ? '✓ Finalizer' : 'Make finalizer'}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Activity trail — who changed what (institutional memory) */}
+          {isStewardEditing && programChanges.length > 0 && (
+            <details className="bg-white border border-[#E8E4DC] p-2 mb-3">
+              <summary className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] cursor-pointer">Recent changes ({programChanges.length})</summary>
+              <ul className="mt-2 space-y-0.5">
+                {programChanges.map((c) => (
+                  <li key={c.id} className="text-[0.6875rem] text-[#5A5751]">
+                    <span className="text-[#1A1815] font-semibold">{c.actorName || 'Someone'}</span> · {c.summary}
+                    {c.createdAt && <span className="text-[#8A857C]"> · {(() => { try { return new Date(c.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return ''; } })()}</span>}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+
           {/* The flow */}
           {view && view.flow.length === 0 && (
             <p className="text-sm text-[#5A5751] text-center py-6" style={{ fontFamily: '"Fraunces", serif' }}>No segments yet.{isStewardEditing ? ' Add the first one above, or start from the standard order.' : ' A steward is still building this order.'}</p>
@@ -429,7 +490,7 @@ export default function ServiceProgram() {
                   {isStewardEditing && (
                     <div className="flex gap-2 ml-3 mb-1 opacity-70">
                       <button type="button" onClick={() => setSegmentForm({ initial: item.__seg || programSegments.find((s) => s.id === item.id) })} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
-                      <button type="button" onClick={async () => { report(await deleteSegment(item.id)); }} className="text-[0.625rem] uppercase tracking-wider text-[#991B1B] hover:underline">Delete</button>
+                      <button type="button" onClick={async () => { report(await deleteSegment(item.id, { programId: program.id, title: item.title })); }} className="text-[0.625rem] uppercase tracking-wider text-[#991B1B] hover:underline">Delete</button>
                     </div>
                   )}
                 </div>

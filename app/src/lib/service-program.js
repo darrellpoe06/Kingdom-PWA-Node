@@ -258,8 +258,13 @@ export function seedDefaultOrder() {
 }
 
 // --- Access (mirrors getChoirAccess) -----------------------------------------
-export function deriveAccess(role, inChoir) {
-  const canEdit = role === 'owner' || role === 'admin';
+// canEdit (FINALIZE the master) = owner/admin OR a designated worship-team
+// finalizer (the keyboardist circle, 0043). canSee (read the master + a per-
+// sector view) = any choir member. The finalizer flag is orthogonal to the
+// musical role: a musician can be a finalizer without being an instance admin.
+export function deriveAccess(role, inChoir, isFinalizer = false) {
+  const isAdmin = role === 'owner' || role === 'admin';
+  const canEdit = isAdmin || isFinalizer === true;
   const canSee = canEdit || inChoir === true;
   return { canSee, canEdit };
 }
@@ -269,19 +274,25 @@ async function currentSession() {
   return data.session ?? null;
 }
 
+function resolveActorName(session) {
+  const meta = (session && session.user && session.user.user_metadata) || {};
+  return meta.full_name || meta.name || session?.user?.email?.split('@')[0] || 'Member';
+}
+
 export async function getServiceProgramAccess(displayName) {
   const session = await currentSession();
-  if (!session) return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null, sector: 'worship' };
+  if (!session) return { signedIn: false, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, sector: 'worship', actorName: null };
   const tenantId = await churchInstanceId(displayName);
-  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null, sector: 'worship' };
-  const [{ data: role }, { data: inChoir }, member] = await Promise.all([
+  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, sector: 'worship', actorName: resolveActorName(session) };
+  const [{ data: role }, { data: inChoir }, { data: isFinalizer }, member] = await Promise.all([
     supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
     supabase.rpc('user_in_choir', { instance_uuid: tenantId }),
+    supabase.rpc('user_is_worship_finalizer', { instance_uuid: tenantId }),
     supabase.from('choir_members').select('choir_role').eq('instance_id', tenantId).eq('user_id', session.user.id).maybeSingle(),
   ]);
-  const { canEdit, canSee } = deriveAccess(role, inChoir);
+  const { canEdit, canSee } = deriveAccess(role, inChoir, isFinalizer);
   const choirRole = member?.data?.choir_role ?? null;
-  return { signedIn: true, canSee, canEdit, tenantId, role: role ?? null, choirRole, sector: sectorForRole(role, choirRole) };
+  return { signedIn: true, canSee, canEdit, isFinalizer: !!isFinalizer, tenantId, role: role ?? null, choirRole, sector: sectorForRole(role, choirRole), actorName: resolveActorName(session) };
 }
 
 // --- Realtime subscribe (mirrors choir-sync.makeSubscriber) ------------------
@@ -317,13 +328,70 @@ function makeSubscriber(table, mapRow, orderBy) {
 export const subscribePrograms = makeSubscriber('church_service_programs', toProgramShape, { col: 'service_date', asc: false });
 export const subscribeSegments = makeSubscriber('church_service_segments', toSegmentShape, { col: 'sort_order', asc: true });
 
-// --- Writes (owner/admin via RLS; fail soft + surface to caller) -------------
+// Collaborative-edit institutional memory: the "who changed what" trail (0043).
+export function toChangeShape(row) {
+  return {
+    id: row.id,
+    programId: row.program_id ?? null,
+    segmentId: row.segment_id ?? null,
+    actorName: row.actor_name ?? null,
+    action: row.action,
+    summary: row.summary ?? null,
+    createdAt: row.created_at ?? null,
+  };
+}
+export const subscribeChanges = makeSubscriber('church_service_program_changes', toChangeShape, { col: 'created_at', asc: false });
+
+// Roster slice used by the finalizer-management strip (owner/admin designates
+// who is in the finalizer circle). Carries the is_finalizer flag (0043).
+export function toFinalizerMemberShape(row) {
+  return {
+    id: row.id,
+    userId: row.user_id ?? null,
+    displayName: row.display_name,
+    choirRole: row.choir_role ?? 'member',
+    isFinalizer: row.is_finalizer === true,
+  };
+}
+export const subscribeFinalizerMembers = makeSubscriber('choir_members', toFinalizerMemberShape, { col: 'created_at', asc: true });
+
+// --- Writes (finalizer circle via RLS; fail soft + surface to caller) --------
 async function writeContext(displayName) {
   const session = await currentSession();
   if (!session) return { error: 'signed-out' };
   const tenantId = await churchInstanceId(displayName);
   if (!tenantId) return { error: 'no-church' };
-  return { tenantId, userId: session.user.id };
+  return { tenantId, userId: session.user.id, actorName: resolveActorName(session) };
+}
+
+// Human-readable line for the change trail. Pure (exported for tests).
+export function summarizeChange(action, title) {
+  const t = title ? ` "${title}"` : '';
+  switch (action) {
+    case 'create-program': return 'Created the order of service';
+    case 'edit-program':   return 'Edited the master order';
+    case 'add-segment':    return `Added segment${t}`;
+    case 'edit-segment':   return `Edited segment${t}`;
+    case 'delete-segment': return `Removed segment${t}`;
+    case 'seed-order':     return 'Started from the standard order';
+    default:               return action;
+  }
+}
+
+// Append to the institutional-memory trail. Best-effort: a logging failure never
+// blocks (or rolls back) the edit it records.
+async function logChange(ctx, programId, segmentId, action, title) {
+  try {
+    await supabase.from('church_service_program_changes').insert({
+      instance_id: ctx.tenantId,
+      program_id: programId ?? null,
+      segment_id: segmentId ?? null,
+      actor: ctx.userId,
+      actor_name: ctx.actorName ?? null,
+      action,
+      summary: summarizeChange(action, title),
+    });
+  } catch (e) { console.warn('[service-program] change-log failed:', e); }
 }
 
 export async function saveProgram(program, displayName) {
@@ -343,11 +411,15 @@ export async function saveProgram(program, displayName) {
   };
   if (program.id) {
     const { error } = await supabase.from('church_service_programs').update({ ...row, updated_by: ctx.userId }).eq('id', program.id);
-    return error ? { skipped: 'update-error', error } : { saved: true };
+    if (error) return { skipped: 'update-error', error };
+    await logChange(ctx, program.id, null, 'edit-program', program.title);
+    return { saved: true };
   }
   const { data, error } = await supabase.from('church_service_programs')
     .insert({ ...row, instance_id: ctx.tenantId, created_by: ctx.userId }).select('id').single();
-  return error ? { skipped: 'insert-error', error } : { saved: true, id: data?.id };
+  if (error) return { skipped: 'insert-error', error };
+  await logChange(ctx, data?.id, null, 'create-program', program.title);
+  return { saved: true, id: data?.id };
 }
 
 export async function deleteProgram(id) {
@@ -377,16 +449,25 @@ export async function saveSegment(programId, seg, displayName) {
   const row = segmentRow(seg);
   if (seg.id) {
     const { error } = await supabase.from('church_service_segments').update({ ...row, updated_by: ctx.userId }).eq('id', seg.id);
-    return error ? { skipped: 'update-error', error } : { saved: true };
+    if (error) return { skipped: 'update-error', error };
+    await logChange(ctx, programId, seg.id, 'edit-segment', seg.title);
+    return { saved: true };
   }
   const { error } = await supabase.from('church_service_segments')
     .insert({ ...row, program_id: programId, instance_id: ctx.tenantId, created_by: ctx.userId });
-  return error ? { skipped: 'insert-error', error } : { saved: true };
+  if (error) return { skipped: 'insert-error', error };
+  await logChange(ctx, programId, null, 'add-segment', seg.title);
+  return { saved: true };
 }
 
-export async function deleteSegment(id) {
+// meta = { programId, title } so the deletion is recorded in the trail with a
+// readable summary (the row is gone, but the institutional memory keeps it).
+export async function deleteSegment(id, meta = {}) {
+  const ctx = await writeContext(meta.displayName);
   const { error } = await supabase.from('church_service_segments').delete().eq('id', id);
-  return error ? { skipped: 'delete-error', error } : { deleted: true };
+  if (error) return { skipped: 'delete-error', error };
+  if (!ctx.error) await logChange(ctx, meta.programId ?? null, id, 'delete-segment', meta.title);
+  return { deleted: true };
 }
 
 // Insert a whole seed order at once (one-tap "start from template"). Best-effort;
@@ -398,5 +479,20 @@ export async function seedProgramSegments(programId, displayName) {
     ...segmentRow(seg), program_id: programId, instance_id: ctx.tenantId, created_by: ctx.userId,
   }));
   const { error } = await supabase.from('church_service_segments').insert(rows);
-  return error ? { skipped: 'insert-error', error } : { saved: true, count: rows.length };
+  if (error) return { skipped: 'insert-error', error };
+  await logChange(ctx, programId, null, 'seed-order', null);
+  return { saved: true, count: rows.length };
+}
+
+// Designate (or remove) a worship-team finalizer. Owner/admin only — the
+// choir_members UPDATE policy (0011) enforces it, so a finalizer who is just a
+// musician cannot promote others; governance stays with the stewards. This is
+// how the keyboardist (Christian) is added to the circle once he's on the roster.
+export async function setFinalizer(memberUserId, value, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const { error } = await supabase.from('choir_members')
+    .update({ is_finalizer: value === true })
+    .eq('instance_id', ctx.tenantId).eq('user_id', memberUserId);
+  return error ? { skipped: 'update-error', error } : { saved: true };
 }

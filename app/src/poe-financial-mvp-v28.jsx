@@ -4928,7 +4928,7 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
         {/* Order of Service: ONE master program per Sunday; the component derives
-            each staffer's sector view from it (RLS read = whole team, 0041). */}
+            each staffer's sector view from it (RLS read = whole team, 0042). */}
         {view === 'church' && churchView === 'program' && <ServiceProgram />}
         {/* The Word — Migdal: PUBLIC library for everyone; the component itself
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}

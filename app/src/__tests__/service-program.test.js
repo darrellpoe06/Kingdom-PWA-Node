@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import {
   toProgramShape, toSegmentShape, sectorForRole, sectorLabel, STEWARD,
   parseClock, formatClock, computeSchedule, reflowProgram, deriveSectorView,
-  seedDefaultOrder, deriveAccess,
+  seedDefaultOrder, deriveAccess, summarizeChange, toChangeShape, toFinalizerMemberShape,
 } from '../lib/service-program.js';
 
 describe('mappers', () => {
@@ -168,5 +168,40 @@ describe('seedDefaultOrder + deriveAccess', () => {
     expect(deriveAccess('owner', false)).toEqual({ canSee: true, canEdit: true });
     expect(deriveAccess(null, true)).toEqual({ canSee: true, canEdit: false });
     expect(deriveAccess(null, false)).toEqual({ canSee: false, canEdit: false });
+  });
+});
+
+describe('finalizer circle (collaborative master edit)', () => {
+  it('a designated finalizer who is NOT an admin can edit the whole master', () => {
+    // the keyboardist: choir member (sees), is_finalizer true (edits), role null.
+    expect(deriveAccess(null, true, true)).toEqual({ canSee: true, canEdit: true });
+  });
+  it('owner/admin finalize without the flag (BG / Christina / Darrell)', () => {
+    expect(deriveAccess('admin', true, false)).toEqual({ canSee: true, canEdit: true });
+    expect(deriveAccess('owner', false, false)).toEqual({ canSee: true, canEdit: true });
+  });
+  it('a non-finalizer member still only reads (sector view), cannot finalize', () => {
+    expect(deriveAccess(null, true, false)).toEqual({ canSee: true, canEdit: false });
+  });
+  it('finalizer flag without choir membership still grants edit (and thus see)', () => {
+    expect(deriveAccess(null, false, true)).toEqual({ canSee: true, canEdit: true });
+  });
+});
+
+describe('change log (institutional memory)', () => {
+  it('summarizeChange renders a readable trail line per action', () => {
+    expect(summarizeChange('create-program')).toMatch(/Created/);
+    expect(summarizeChange('add-segment', 'Offering')).toBe('Added segment "Offering"');
+    expect(summarizeChange('edit-segment', 'Sermon')).toBe('Edited segment "Sermon"');
+    expect(summarizeChange('delete-segment', 'Altar Call')).toBe('Removed segment "Altar Call"');
+    expect(summarizeChange('seed-order')).toMatch(/standard order/);
+  });
+  it('toChangeShape maps the row, keeping actor name for the trail', () => {
+    const c = toChangeShape({ id: 'c1', program_id: 'p1', segment_id: 's2', actor_name: 'Christina', action: 'edit-segment', summary: 'Edited segment "Sermon"', created_at: '2026-06-24T18:00:00Z' });
+    expect(c).toMatchObject({ id: 'c1', programId: 'p1', segmentId: 's2', actorName: 'Christina', action: 'edit-segment' });
+  });
+  it('toFinalizerMemberShape coerces the is_finalizer flag to a real boolean', () => {
+    expect(toFinalizerMemberShape({ id: 'm1', user_id: 'u1', display_name: 'Christian', choir_role: 'musician', is_finalizer: true }).isFinalizer).toBe(true);
+    expect(toFinalizerMemberShape({ id: 'm2', user_id: 'u2', display_name: 'Member', choir_role: 'member' }).isFinalizer).toBe(false);
   });
 });
