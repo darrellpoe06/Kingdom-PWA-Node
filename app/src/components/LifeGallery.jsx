@@ -13,7 +13,7 @@
 // images) reference the NAS in place rather than copy it.
 import React, { useState, useEffect } from 'react';
 import { compressImageFile } from '../lib/image.js';
-import { fetchChannelPhotos, fetchFamilyPhotos, uploadPhoto, hasBridgeToken, chatChannelFor } from '../lib/nas-photos.js';
+import { fetchChannelPhotos, fetchFamilyPhotos, fetchAlbumPhotos, uploadPhoto, hasBridgeToken, chatChannelFor, bigPictureAlbum, setBigPictureAlbum } from '../lib/nas-photos.js';
 import Lightbox from './Lightbox.jsx';
 
 const CATEGORIES = ['Family', 'Business', 'Projects', 'Properties', 'Faith', 'Other'];
@@ -133,6 +133,103 @@ function NasPlacesStrip({ rentals = [], addLifePhotos, keptIds, onOpen }) {
   );
 }
 
+// 2026-06-24 (Darrell: "can we use the Photos or Files app to populate the Big
+// Picture page?"). YES — sovereignly. The OWNER designates ONE curated album
+// (a Synology Photos album or NAS folder) to feed the Big Picture page; only
+// that album is served, live from the NAS, never the raw personal camera roll.
+// Privacy by default: no album chosen → nothing shown, and the picker only
+// appears for the owner (not readOnly) on a device that can reach the NAS.
+// Fail-quiet exactly like the other NAS reads — until wf-album-photos ships
+// on the NAS this renders nothing, which is the correct honest state.
+function CuratedAlbumGallery({ readOnly, onOpen }) {
+  const [album, setAlbumState] = useState(() => bigPictureAlbum());
+  const [draft, setDraft] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [photos, setPhotos] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!hasBridgeToken() || !album) { setPhotos([]); return; }
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      const res = await fetchAlbumPhotos(album, { limit: 60 });
+      if (cancelled) return;
+      setLoading(false);
+      // Only photos the NAS actually thumbnailed — a null thumb would paint a blank tile.
+      setPhotos(res ? (res.photos || []).filter(p => p.thumb) : []);
+    })();
+    return () => { cancelled = true; };
+  }, [album]);
+
+  const saveAlbum = () => { const v = (draft || '').trim(); setBigPictureAlbum(v); setAlbumState(bigPictureAlbum()); setEditing(false); };
+  const clearAlbum = () => { setBigPictureAlbum(''); setAlbumState(''); setEditing(false); setDraft(''); };
+
+  // The owner-only picker. Only shown on a device that can reach the NAS — no
+  // point offering an album when there's no bridge to serve it.
+  const picker = (!readOnly && hasBridgeToken()) ? (
+    <div className="mb-2">
+      {editing ? (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <input
+            autoFocus
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') saveAlbum(); if (e.key === 'Escape') setEditing(false); }}
+            placeholder="Synology Photos album or folder name"
+            className="text-[11px] p-1.5 border border-[#E8E4DC] bg-white w-56"
+          />
+          <button type="button" onClick={saveAlbum} className="text-[9px] uppercase tracking-wider px-2 py-1 border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838]">Use album</button>
+          <button type="button" onClick={() => setEditing(false)} className="text-[9px] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]">Cancel</button>
+        </div>
+      ) : album ? (
+        <div className="flex items-center gap-2 flex-wrap text-[10px]">
+          <span className="text-[#5A5751]">Feeding from album <span className="font-semibold text-[#1A1815]">{album}</span></span>
+          <button type="button" onClick={() => { setDraft(album); setEditing(true); }} className="uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">change</button>
+          <button type="button" onClick={clearAlbum} className="uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">× clear</button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => { setDraft(''); setEditing(true); }} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]">🖼️ Choose an album to feature</button>
+      )}
+    </div>
+  ) : null;
+
+  // Nothing to show and nothing to offer → render nothing (viewers, no token).
+  if (!picker && (!photos || photos.length === 0)) return null;
+
+  return (
+    <div className="mb-4">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">🖼️ Featured album · live from your NAS</div>
+      {picker}
+      {album && (
+        <p className="text-[10px] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Only the one album you chose feeds this page — your camera roll stays private. Loaded straight from the NAS you own each visit, nothing copied to this device.
+        </p>
+      )}
+      {loading && <div className="text-[10px] text-[#5A5751]">Loading from your NAS…</div>}
+      {photos && photos.length > 0 && (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+          {photos.map((p, i) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onOpen && onOpen(photos.map(x => ({ src: x.thumb, alt: x.text || 'Featured photo', caption: x.text || '', date: x.date || '' })), i)}
+              className="block w-full"
+            >
+              <img src={p.thumb} alt={p.text || 'Featured photo'} className="w-full h-24 object-cover border border-[#E8E4DC] hover:opacity-90 cursor-zoom-in" loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
+      {album && !loading && photos && photos.length === 0 && (
+        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+          No photos loaded from <span className="font-semibold">{album}</span> yet — check the album name, or the NAS album feed may still be coming online.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto, readOnly = false, rentals = [] }) {
   const [filter, setFilter] = useState('All');
   const [pendingCategory, setPendingCategory] = useState('Family');
@@ -221,6 +318,8 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
       {!readOnly && nasNote && (
         <div className="mb-3 text-[11px] text-[#5A6E3D] bg-[#F2F5EC] border border-[#D6E0C4] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>✓ {nasNote}</div>
       )}
+
+      <CuratedAlbumGallery readOnly={readOnly} onOpen={(items, index) => setLightbox({ items, index })} />
 
       {!readOnly && <FamilyNasGallery refreshKey={familyRefresh} onOpen={(src, alt) => setLightbox({ src, alt })} />}
 
