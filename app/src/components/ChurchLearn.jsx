@@ -183,6 +183,51 @@ const DIAGRAMS = {
       <text x="340" y="110" textAnchor="middle" fontSize="8.5" fill="#5A5751" fontFamily="Fraunces, serif">the church RTX 4070 wall machines are our real GPUs today</text>
     </svg>
   ),
+  // --- Sovereign A.I. course diagrams ---------------------------------------
+  'sovereign-resilience': (
+    <svg viewBox="0 0 680 130" role="img" aria-label="A rented vendor tool can be switched off by an outage, policy change, price spike, or cutoff; a tool on iron we own keeps running" className="w-full h-auto">
+      <title>The generator in the garage</title>
+      {diagramBox(20, 16, 300, 'Rented (vendor cloud)', 'can be switched off', '#FAF8F4', '#7A1F1F')}
+      <text x="170" y="80" textAnchor="middle" fontSize="8.5" fill="#7A1F1F" fontFamily="Fraunces, serif">outage · policy change · price spike · cutoff</text>
+      <text x="170" y="98" textAnchor="middle" fontSize="9" fontWeight="700" fill="#7A1F1F" fontFamily="Fraunces, serif">✕ goes dark</text>
+      {diagramBox(360, 16, 300, 'Owned (local-first)', 'iron we control', '#FAF8F4', '#5A6E3D')}
+      <text x="510" y="80" textAnchor="middle" fontSize="8.5" fill="#5A5751" fontFamily="Fraunces, serif">a generator in the garage</text>
+      <text x="510" y="98" textAnchor="middle" fontSize="9" fontWeight="700" fill="#5A6E3D" fontFamily="Fraunces, serif">✓ lights stay on · data never leaves</text>
+    </svg>
+  ),
+  'model-tier-ladder': (
+    <svg viewBox="0 0 680 160" role="img" aria-label="Three tiers: the Synology CPU tier runs small models today; the AI Forge GPU or Mac Studio tier is planned; the deep-reasoning frontier tier" className="w-full h-auto">
+      <title>The three model-tier landscape</title>
+      {diagramBox(60, 10, 560, 'Deep-reasoning tier — frontier MoE (vendor / multi-GPU)', 'DeepSeek-R1 671B-class · the hardest problems', '#FAF8F4', '#7A1F1F')}
+      {diagramBox(60, 60, 560, 'AI Forge tier — GPU / Mac Studio (PLANNED)', 'deep logic · RAG · agentic · 14–70B-class', '#FAF8F4', '#B85838')}
+      {diagramBox(60, 110, 560, 'Synology-CPU tier — the DS1621xs (ONLINE TODAY)', 'small quantized models · Gemma 3 4B · Qwen2.5 7B', '#FAF8F4', '#5A6E3D')}
+    </svg>
+  ),
+  'local-vs-vendor': (
+    <svg viewBox="0 0 680 150" role="img" aria-label="Vendors win on frontier reasoning, very long context, and multimodal; local wins on privacy, resilience, always-on cost, and sovereignty" className="w-full h-auto">
+      <title>Vendor vs local — who wins what</title>
+      <text x="170" y="16" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1A1815" fontFamily="Fraunces, serif">Vendor wins</text>
+      {['Frontier reasoning', 'Very-long context', 'Multimodal (image/video/audio)'].map((l, i) => <g key={`v${i}`}>{diagramBox(20, 26 + i * 38, 300, l, null, '#FAF8F4', '#B85838')}</g>)}
+      <text x="510" y="16" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1A1815" fontFamily="Fraunces, serif">Local wins</text>
+      {['Privacy — data never leaves', 'Resilience + always-on cost', 'Sovereignty (the bright line)'].map((l, i) => <g key={`l${i}`}>{diagramBox(360, 26 + i * 38, 300, l, null, '#FAF8F4', '#5A6E3D')}</g>)}
+    </svg>
+  ),
+  'five-opportunities': (
+    <svg viewBox="0 0 680 150" role="img" aria-label="Five local A.I. opportunities: regulated industries, data-never-leaves tools, air-gapped agents, zero-internet environments, resilience-as-a-service" className="w-full h-auto">
+      <title>The five local-A.I. opportunities</title>
+      {[
+        ['1 · Regulated industries', 'HIPAA · finance · legal'],
+        ['2 · Data-never-leaves tools', 'privacy/accessibility-law market'],
+        ['3 · Air-gapped agents', 'no egress path by design'],
+        ['4 · Zero-internet environments', 'rural · remote · disaster'],
+        ['5 · Resilience-as-a-service', 'sell continuity itself'],
+      ].map((row, i) => {
+        const col = i % 2;
+        const r = Math.floor(i / 2);
+        return <g key={i}>{diagramBox(20 + col * 330, 14 + r * 44, 310, row[0], row[1], '#FAF8F4', '#5A6E3D')}</g>;
+      })}
+    </svg>
+  ),
 };
 
 // MediaList — renders a module's multi-modal media. Diagrams render inline;
