@@ -28,8 +28,9 @@ describe('the real app — every gated nav surface is selectable in the feedback
     expect(s.topNav.length).toBeGreaterThan(5);
     // Choir holds the worship-team sub-tabs only; BG's sermon study moved to the
     // Pulpit Church sub-tab (2026-06-16), so Sermons is no longer a Choir tab.
-    // 8 since the Song Workshop "Songs" sub-tab landed (2026-06-17).
-    expect(s.choirTabs.length).toBe(8);
+    // 8 since the Song Workshop "Songs" sub-tab landed (2026-06-17); 9 since the
+    // cross-referenced "Songbook" sub-tab landed (2026-06-24).
+    expect(s.choirTabs.length).toBe(9);
     expect(s.keys.length).toBeGreaterThan(40);
     // The two tabs whose absence was the original bug must be scraped from nav.
     expect(s.topNav).toContain('inbound');
