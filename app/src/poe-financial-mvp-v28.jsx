@@ -47,6 +47,16 @@ import {
   buildSovereignAiSchedule, sovereignAiProgressSummary, exportSovereignAiCurriculumMarkdown,
   resolveSovereignAiCohort,
 } from './lib/sovereign-ai-class.js';
+import {
+  LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW,
+  LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META,
+  buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown,
+} from './lib/living-lessons-class.js';
+import {
+  SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW,
+  SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
+  buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
+} from './lib/sound-board-class.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -1928,6 +1938,24 @@ export default function PoeFinancialSystem() {
       return monthLabel(new Date(), 0);
     }
   }, []);
+
+  // Live local-time readout shown under the header date. Ticks on a light
+  // 20s interval (minute-resolution display, so per-second re-renders of this
+  // large component are wasted) and cleans up on unmount — no leak. Renders
+  // in the user's own timezone via native Intl; falls back silently if the
+  // platform lacks Intl. Ties Darrell's local-date/time-stamping principle.
+  const [headerClockNow, setHeaderClockNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setHeaderClockNow(new Date()), 20000);
+    return () => clearInterval(id);
+  }, []);
+  const headerTimeLabel = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(headerClockNow);
+    } catch (e) {
+      return '';
+    }
+  }, [headerClockNow]);
 
   // Layer 2 — cross-device feedback sync. Local feedback (data.feedback)
   // stays in localStorage; remote-authored feedback from other devices
@@ -4662,7 +4690,7 @@ html{scroll-padding-bottom:280px}
               </div>
               <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
                 <div className="font-medium">{data.meta.releaseLabel || `v${data.meta.appVersion}`}</div>
-                <div title="Today's date">{headerDateLabel}</div>
+                <div title="Today's date">{headerDateLabel}{headerTimeLabel ? <span className="text-[#B85838]"> · {headerTimeLabel}</span> : null}</div>
                 {/* 2026-05-28 — Build marker so the user can verify at a glance
                     whether the phone is on the latest deploy. iOS Safari has
                     bitten us with stale HTML caching; this is the smoke-test
@@ -4949,12 +4977,76 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // Living Lessons — a Word-first, SELF-PACED lesson series on the same
+          // shared engine (meta.unit renders it as "Lesson(s)" + drops the cohort
+          // clock). No cohort date setters (self-paced): setCohortStart/confirmCohort
+          // are null, and the schedule carries lesson numbers with no painted dates.
+          const submitLivingLessonsInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${LIVING_LESSONS_INTEREST_TAG} ${(name || 'A reader').trim()} wants more Living Lessons.` })
+            : null;
+          const livingLessonsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], LIVING_LESSONS_INTEREST_TAG) : null;
+          const livingLessonsCourse = {
+            meta: { ...LIVING_LESSONS_META, key: 'living-lessons' },
+            sessionFlow: LIVING_LESSONS_SESSION_FLOW,
+            schedule: buildLivingLessonsSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => livingLessonsProgressSummary(p),
+            exportMarkdown: () => exportLivingLessonsCurriculumMarkdown(),
+            downloadName: 'living-lessons-from-the-word.md',
+            submitInterest: submitLivingLessonsInterest,
+            roster: livingLessonsRoster,
+            interestCopy: {
+              heading: 'Want more Living Lessons?',
+              blurb: 'Tell Darrell which Word-first lessons would help you and your family most, and he’ll add them to the series. Read at your own pace, any time, at any age.',
+              cta: 'I’d like more',
+              sent: '✓ Sent — Darrell will see what you’re hungry for. The Word feeds the whole Body.',
+            },
+            tutorCourseMeta: LIVING_LESSONS_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
+          // Running the Board — a SELF-PACED live-sound training track for the COLG
+          // sound team, same shared engine (meta.unit renders it as "Lesson(s)", no
+          // cohort clock). Seeded to be enriched/verified by the church sound engineer
+          // via the sovereign SME pipeline; the A.I. tutor is sovereign + assistive-only.
+          const submitSoundBoardInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${SOUND_BOARD_INTEREST_TAG} ${(name || 'A team member').trim()} wants to learn to run the sound board.` })
+            : null;
+          const soundBoardRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SOUND_BOARD_INTEREST_TAG) : null;
+          const soundBoardCourse = {
+            meta: { ...SOUND_BOARD_META, key: 'sound-board' },
+            sessionFlow: SOUND_BOARD_SESSION_FLOW,
+            schedule: buildSoundBoardSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => soundBoardProgressSummary(p),
+            exportMarkdown: () => exportSoundBoardCurriculumMarkdown(),
+            downloadName: 'running-the-board-live-sound.md',
+            submitInterest: submitSoundBoardInterest,
+            roster: soundBoardRoster,
+            interestCopy: {
+              heading: 'Want to learn the sound board?',
+              blurb: 'Tell Darrell you want to train on live sound for worship and he’ll get you started with the sound engineer. Learn at your own pace, right at the board, at any experience level.',
+              cta: 'I want to learn',
+              sent: '✓ Sent — Darrell will get you on the sound team. We mix so the Word is heard.',
+            },
+            tutorCourseMeta: SOUND_BOARD_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
               : courseKey === 'infrastructure' ? INFRA_HELPER_TAG
                 : courseKey === 'sovereign-ai' ? SOVEREIGN_AI_HELPER_TAG
-                  : '[Class helper]'
+                  : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
+                    : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
+                      : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -4986,7 +5078,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, livingLessonsCourse, soundBoardCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}

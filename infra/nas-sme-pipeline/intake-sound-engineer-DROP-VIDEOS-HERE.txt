@@ -1,0 +1,18 @@
+DROP THE SOUND ENGINEER'S TEACHING VIDEOS IN A FOLDER NAMED:
+
+    intake/sound-engineer/
+
+Then run, from /volume1/PoeTech/sme-pipeline:
+
+    ./sound-engineer-to-lessons.sh ./intake/sound-engineer/<your-video>.mp4
+
+What works: any common video or audio file (mp4, mov, m4a, wav, mp3...).
+The engineer just talks through how they run the board -- one topic per video is
+ideal (gain staging, EQ a vocal, ring out the monitors, mike the choir, the service
+routine). Short, focused clips extract cleaner lessons than one long ramble.
+
+Sovereign + local: nothing leaves the NAS. Manual-run only -- no auto-trigger.
+Faithful: the pipeline captures ONLY what they actually say (it will not invent a
+gain value or a frequency). Review output/sound-engineer/<run>/knowledge.md first.
+
+See intake-sound-engineer-CONSENT.md for scope + consent.
