@@ -48,11 +48,19 @@ export function toSongShape(row) {
     arrangement: row.arrangement ?? null,
     soloist: row.soloist ?? null,
     sermonRef: row.sermon_ref ?? null,
-    // Archive provenance (0042) — auto-seeded from the church archive.
+    // Archive provenance (0042) — auto-seeded from the church archive. A row IS
+    // one rendition; these ALSO carry that performance's source honesty (the
+    // renditions surface, lib/choir-renditions.js, reads source/videoId/
+    // confidence/needsReview rather than adding parallel columns).
     source: row.source ?? 'manual',
     videoId: row.video_id ?? null,
     confidence: row.confidence ?? null,
     needsReview: !!row.needs_review,
+    // Per-rendition story (0043) — see lib/choir-renditions.js. The ad-libs and
+    // the keyboardist's per-PERFORMANCE notes for THIS rendition (distinct from
+    // the song-level SME notes in choir_sme_notes, 0042).
+    adLibs: Array.isArray(row.ad_libs) ? row.ad_libs : [],
+    keyboardistNotes: row.keyboardist_notes ?? null,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
   };
