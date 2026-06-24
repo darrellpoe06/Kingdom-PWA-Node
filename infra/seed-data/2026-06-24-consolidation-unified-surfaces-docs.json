@@ -92,6 +92,17 @@
       "links": { "dr_ref": "DR-0079" }
     },
     {
+      "slug": "dc-unified-engagement-primitive",
+      "kind": "decision",
+      "title": "Shared engagement primitive: reactions -> ratings -> most-loved -> stations (one primitive, many surfaces)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["unified-surfaces-2026-06"],
+      "body": "BEST WAY (Darrell 2026-06-24): the music section's engagement pattern is NOT music-only - it is ONE layered shared primitive applied to BG's sermons and everything community-visible that makes sense, never forked per surface. FOUR composable layers: (1) REACTIONS - positive child-safe control (love/amen/fire/praise; love = save/favorite; NO negative reactions), one row per item in media_reactions 0042 keyed by {surface,item_type,item_id}; (2) COMMUNITY RATINGS - per-item signal aggregated from reactions, community-scoped; (3) MOST-LOVED RANKING - a sort/view over any collection (orders DISCOVERY, never ranks truth by popularity); (4) STATION - optional continuous-play queue auto-filled from the ranked pool, re-ranks live, credits the creator, PLAYABLE MEDIA ONLY, USER-INITIATED (no autoplay, no autonomous automation). A surface composes only the layers that fit - same code, different composition. Reuse the local_ad147f53 implementation; align with feedback-sync rating vocab, don't duplicate. CONSTRAINTS baked in: positive/child-safe set only; clean/Christ-centered/profanity-free pool where policy applies (music+sermons); PIN-optional-community-default scoping (sovereign, never sold); promote-the-creator on most-loved/now-playing (speakerKey for sermons); discovery-not-doctrine.\n\nTHE CALL - which surfaces get it (documented, not bounced to Darrell): FULL (all 4 layers) = Worship/Music, The Word public sermon library (Most-Loved Sermons station), church public videos/stream/clips. REACT+RATE+MOST-LOVED (station conditional/none) = Learn lessons/courses (station only for standalone playable lessons, not a structured course path), Choir songs (choir-member-scoped), Books/Library (no station - not continuous media). SUPPORT-REACTION-ONLY (no ratings/most-loved/station) = pastoral content / prayer requests (a 🙏 'praying' reaction; ranking pastoral content by popularity is inappropriate and would wound - deliberate carve-out). EXCLUDED (not community-visible / not content) = the Study + Eternal Algorithms (private device-local), BG's private Sermon Stories (rides the public lesson if shared), private Creation documents, and all financial/ops/admin surfaces (financial Books, Markets, Rentals, Projects, Inbound, Dispatch, Admin). Video Wall: the wall DISPLAYS a most-loved station (content), the CapEx project tracker gets nothing.\n\nBOUNDARY RULE: attaches to community-visible content collections only - private -> publish-first, pastoral -> support-react-only, operational -> none. WE CHOSE one layered primitive composed per-surface, NOT a music-only feature and NOT a per-surface reaction stack, BECAUSE reactions/ratings/most-loved/stations are the SAME mechanism everywhere - one implementation keeps every content surface consistent, child-safe, and creator-promoting; the only differences are which layers fit and the scope.",
+      "links": { "dr_ref": "DR-0079" }
+    },
+    {
       "slug": "dc-unified-zero-loss-migration",
       "kind": "directive",
       "title": "Zero-loss, conference-safe migration to the unified surfaces",

@@ -62,10 +62,30 @@ the surface registry):
    `worship` Church sub-tab, designed unified from day one.
 
 **Four shared core primitives** (one each, consumed by all — never forked):
-the **Presenter** (present mode), the **Engagement/Reaction** control
-(love/amen/fire/praise — the `local_ad147f53` primitive, reuse don't fork), the
+the **Presenter** (present mode), the **Engagement primitive**, the
 **Voice dictation** hook, and the **4D Finalizer** shape (shared by Study
 distillation and the engine's lesson structuring).
+
+The **Engagement primitive** is the music section's pattern generalized into a
+**single layered primitive — reactions → community ratings → most-loved
+ranking → optional continuous-play station** (the `local_ad147f53`
+implementation, reuse don't fork). Each surface composes only the layers that
+fit. **It applies to BG's sermons and every community-visible content
+collection, not music-only:** full primitive (all four layers) on Worship, The
+Word public sermon library ("Most-Loved Sermons" station), and church public
+videos/stream/clips; reactions→ratings→most-loved (station conditional/none) on
+Learn lessons/courses, Choir songs (choir-scoped), and Books/Library; a
+**support-reaction-only** carve-out (🙏, no ranking) for pastoral content
+(prayer requests) — ranking pastoral content by popularity is inappropriate.
+**Excluded** (private/non-content): the Study + Eternal Algorithms, private
+Sermon Stories, private Creation documents, and all financial/ops/admin
+surfaces. Boundary rule: attaches to community-visible content collections only;
+private → publish-first, pastoral → support-react-only, operational → none.
+Constraints baked in: positive child-safe set only; clean/Christ-centered/
+profanity-free pool where content policy applies; PIN-optional-community-default
+scoping; promote-the-creator on most-loved/now-playing; most-loved orders
+discovery, never doctrine. Surface matrix + component design (identity contract,
+the four layered components, `media_reactions` 0042) in the design doc.
 
 **Migration is zero-loss + conference-safe** (Part 4 of the design doc):
 registry foundation (DR-0078 step 1) → extract the shared primitives to core →

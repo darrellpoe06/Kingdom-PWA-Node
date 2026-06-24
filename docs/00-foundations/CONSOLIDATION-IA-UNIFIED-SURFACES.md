@@ -184,9 +184,75 @@ The content engine (C) is the **producer**; The Study (A), The Word (B), Learn &
 | Primitive | Lives in | Consumed by | Consolidation rule |
 |---|---|---|---|
 | **Presenter** (`Presenter.jsx` + `presentable.js`) | core/shared | Learn lessons, The Word sermons + stories, Study, Conference, Books | ONE present mode; surfaces supply a pure `presentable` adapter (scenes = audience + presenter-notes), never fork the renderer. |
-| **Engagement/Reaction** (`shared.jsx` + `feedback-sync.js` + `media_reactions` 0042) | core/shared | Worship songs, The Word public sermons, Learn lessons/courses, every video surface | ONE positive control (love/amen/fire/praise); built in sibling lane `local_ad147f53` — **reuse, do not fork**. Private records (Study, private Sermon Stories) get no community reactions. |
+| **Engagement primitive** (`shared.jsx` + `lib/engagement-primitive.js` + `feedback-sync.js` + `media_reactions` 0042) | core/shared | Worship, The Word public sermons, church videos/stream, Learn lessons/courses, Choir songs, Books/Library, pastoral content (limited) | The **layered** primitive: **reactions → community ratings → most-loved ranking → optional continuous-play station.** ONE implementation built in sibling lane `local_ad147f53` — **reuse, never fork.** Each surface composes only the layers that fit. Full spec + surface matrix below. |
 | **Voice dictation** (`lib/voice-dictation.js` → `useVoiceDictation`) | core/shared | Study capture, every free-text input | ONE hook; don't re-copy. |
 | **4D Finalizer** (deep→plain→benefits) | core/shared (extracted from `study-space.js`) | Study distillation **and** the content engine's lesson-structuring shape | The deep-source→plain-teaching motion is the same 4D→3D motion the engine uses to structure a lesson and that Eternal Algorithms encodes — extract it once so Study and the engine share the finalizer's shape, not two implementations. |
+
+---
+
+### The Engagement Primitive — reactions → ratings → most-loved → stations (one primitive, many surfaces)
+
+**Darrell's directive (2026-06-24):** the music section's engagement pattern — REACTIONS + COMMUNITY RATINGS + MOST-LOVED ranking + RADIO/continuous-play STATIONS — is **not a music-only feature.** It is a **single shared primitive** applied to BG's sermons and "everything possible that makes sense," composed consistently, never forked per surface. This is core to "one surface does everything": every content surface composes the same engagement primitive.
+
+#### The four layers (composable — a surface takes only what fits)
+
+```
+  LAYER 1  REACTIONS        positive, child-safe control (❤️ love · 🙏 amen · 🔥 fire · 🙌 praise)
+           (per item)       love doubles as the save/favorite signal. No negative reactions, ever.
+              │  aggregate
+              ▼
+  LAYER 2  COMMUNITY        per-item rating signal derived from reactions (count + weight),
+           RATINGS          scoped to the community (PIN-optional-community-default).
+              │  rank a collection
+              ▼
+  LAYER 3  MOST-LOVED       a sort/view over any collection ordered by the rating signal.
+           RANKING          Orders DISCOVERY ("find it faster"), NEVER ranks truth by popularity.
+              │  feed a queue
+              ▼
+  LAYER 4  STATION          optional continuous-play queue that auto-fills from the ranked pool
+           (continuous play) and re-ranks live. PLAYABLE MEDIA ONLY. USER-INITIATED (no autoplay
+                            without a gesture; no autonomous automation — the three-brakes posture).
+```
+
+A surface composes **layers 1–N**: a text-only collection stops at most-loved (nothing to continuously play); a playable-media collection runs all four. Same code, different composition — that is what "not forked" means.
+
+#### The shared component design (core module)
+
+- **Identity contract** — every reactable item is addressed by `{ surface, itemType, itemId }`. This is what lets one primitive attach to songs, sermons, videos, lessons, and books without per-surface tables.
+- **Layer 1 — `<Reactions item={ref} set={...} scope={...} />`** (`shared.jsx`): the positive control. Writes one row to `media_reactions` (0042: `{ id, instance_id, user_id, surface, item_type, item_id, reaction, created_at }`). `love` is also the favorite/"Your Music" save. Reuses `feedback-sync.js` rating vocabulary — **align, do not duplicate.**
+- **Layer 2 — `useRatings(ref)` / `media_reaction_counts`** (`lib/engagement-primitive.js`): aggregates reactions into a per-item signal (a count view; weighting tunable). RLS: community-scoped read, self-write, owner moderation.
+- **Layer 3 — `rankByLove(items)` + `<MostLovedSort>`**: a pure selector + a sort/view toggle any collection drops in to get a "Most Loved" ordering.
+- **Layer 4 — `<Station name pool={rankedItems} />`**: the continuous-play queue. Auto-fills from the ranked pool, re-ranks live as reactions arrive, credits + links the creator on every now-playing entry. Mounts **only** for playable media; **user-initiated** (a tap starts it — never autoplay; no clock-driven automation).
+
+#### Constraints baked into the primitive (not per-surface afterthoughts)
+
+- **Positive + child-safe set only** — love/amen/fire/praise (+ a pastoral 🙏 "praying" variant, below). No negative/down reactions anywhere. Twins are 10; the set is safe by construction.
+- **Clean / Christ-centered / profanity-free pool** governs ratings + stations **where content policy applies** (music, sermons): secular-clean never plays on a station; a track/clip not vetted does not enter the pool.
+- **Scoping = PIN-optional-community-default** — engagement is community-scoped by default (per instance), private/owner records are excluded by construction (they aren't community-visible). Engagement data is the community's own, sovereign, never sold (DATA-AS-EMPOWERMENT).
+- **Promote-the-creator** — most-loved entries + now-playing credit and link the creator (artist; speaker via `speakerKey`). The ranking uplifts the people promoting Yahweh, it doesn't just sort.
+- **Discovery, not doctrine** — most-loved is a find-it-faster signal; it never asserts that the most-reacted teaching is the most true. Doctrine/pastoral content is **never popularity-ranked** (see the pastoral carve-out below).
+
+#### Which surfaces get it — the call (rationale documented; not bounced to Darrell)
+
+| Surface | L1 React | L2 Rate | L3 Most-Loved | L4 Station | Rationale |
+|---|:--:|:--:|:--:|:--:|---|
+| **Worship / Music** | ✅ | ✅ | ✅ | ✅ | The origin pattern. "Most Loved" + per-type + "Your Favorites" radios; profanity-free Christ-centered pool. |
+| **The Word — Migdal — public sermon library** | ✅ | ✅ | ✅ | ✅ | "Most-Loved Sermons" station (continuous sermon playback); credits BG via `speakerKey`. Discovery only — never ranks the Word by popularity. |
+| **Church public videos / stream / clips** (Church-Live, past-service videos) | ✅ | ✅ | ✅ | ✅ | Playable community media; "Most-Loved Services/Clips" station. |
+| **Learn — lessons / courses** | ✅ | ✅ | ✅ | ⚠️ cond. | Reactions + most-loved aid discovery of lessons. Station ONLY for standalone playable lessons — a structured course path is sequential, not a shuffle pool, so no station over a course. |
+| **Choir — songs** (worship-team) | ✅ | ✅ | ✅ | ➖ opt | **Choir-member-scoped** (not the public community) — helps the team see/pick loved songs. Station optional/low-value for a coordination surface. |
+| **Books / Library** (downloadable) | ✅ | ✅ | ✅ | ❌ | "Most-loved books" aids discovery; books are not continuous-play media, so no station. |
+| **Pastoral content** (prayer requests, Church home prayer board) | ⚠️ 🙏-only | ❌ | ❌ | ❌ | A **support reaction only** (🙏 "praying for this") — genuine care. **No ratings, no most-loved, no station:** ranking prayer/pastoral content by popularity is inappropriate and would wound. Deliberate carve-out. |
+| **Conference** (session content) | ✅ | ✅ | ➖ | ❌ | Reactions/ratings on published session recordings; when conference content is published into The Word/Learn it **rides those surfaces** rather than duplicating. Low priority. |
+| **Video Wall — *content* vs *project tracker*** | content✅ | content✅ | content✅ | content✅ | The wall *displays* a most-loved worship/scripture station (content). The CapEx **project-tracking** surface itself gets nothing — it's a facilities tracker, not a content collection. |
+
+**Excluded by design (not community-visible content, or not content at all):**
+- **The Study + Eternal Algorithms** — private (Darrell+Christina+BG), device-local. No community engagement; not community-visible.
+- **BG's *private* Sermon Stories** — private within the steward set. If BG shares a story into a public lesson, engagement rides **that public lesson**, not the private record.
+- **Creation Workspace private documents** — until/unless published to a community surface (then they ride that surface).
+- **All financial / ops / admin surfaces** — Books (financial ledger), Markets, Rentals, Projects, Inbound, Dispatch, Admin. Not content collections; the primitive does not apply.
+
+**The boundary rule (one line):** the engagement primitive attaches to **community-visible content collections**; it never attaches to **private records, pastoral content beyond a support reaction, or operational surfaces.** Private → publish-first; pastoral → support-react-only; operational → none.
 
 ---
 
