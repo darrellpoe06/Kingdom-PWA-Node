@@ -3,7 +3,7 @@ import { MODULES, CLASS_META, buildSchedule } from '../lib/church-classes.js';
 import {
   TEACH_CHANNEL, formatClock, DEFAULT_KICKER,
   buildSlideForScene, holdingSlide,
-  coursePresentable, wordPresentable,
+  coursePresentable, wordLibrary, messagePresentable, parseRunOfShow,
   studyPresentable, conferencePresentable, documentPresentable,
   stripTags, splitHtmlSections,
   ageHint, PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE,
@@ -89,10 +89,15 @@ describe('coursePresentable — any Learn course becomes presentable', () => {
     // facilitator guide flows into presenter-only notes (never the audience payload)
     const headings = sc.notes.map((n) => n.heading);
     expect(headings).toContain('Say this');
-    expect(headings).toContain('Run of show');
-    // the broadcast slide built from this scene leaks none of it
+    // the run-of-show is NO LONGER a static note — it is reflowable scene.runOfShow
+    expect(headings).not.toContain('Run of show');
+    expect(Array.isArray(sc.runOfShow)).toBe(true);
+    expect(sc.runOfShow.length).toBeGreaterThan(0);
+    expect(sc.runOfShow[0]).toMatchObject({ name: expect.any(String) });
+    // the broadcast slide built from this scene leaks neither notes NOR the run-of-show
     const slide = buildSlideForScene(p.scenes, 0, { kicker: p.kicker });
     expect(JSON.stringify(slide)).not.toContain(MODULES[0].facilitator.talkingPoints[0]);
+    expect(slide).not.toHaveProperty('runOfShow');
   });
 
   it('handles a bare course (no facilitator/lesson) without inventing notes', () => {
@@ -102,32 +107,65 @@ describe('coursePresentable — any Learn course becomes presentable', () => {
   });
 });
 
-describe('wordPresentable — the sermon library becomes presentable', () => {
+describe('parseRunOfShow — facilitator run-of-show into reflowable weighted segments', () => {
+  it('parses "Name (min): detail | ..." with the minutes as the weight', () => {
+    const segs = parseRunOfShow('Prayer + the anchor (5): open in prayer | Hands-on in the app (25): everyone tries it | Send-off (5): solo task');
+    expect(segs.length).toBe(3);
+    expect(segs[0]).toMatchObject({ name: 'Prayer + the anchor', estimatedMin: 5 });
+    expect(segs[0].detail).toContain('open in prayer');
+    expect(segs[1].estimatedMin).toBe(25);    // Hands-on is heaviest, by the authored minutes
+    // these weights drive the proportional reflow directly
+    const fit = fitToBudget(segs, 14);        // half of 35 -> each ~halves, Hands-on stays biggest
+    const handsOn = fit.plan.find((s) => s.name === 'Hands-on in the app');
+    expect(handsOn.allocatedMin).toBeGreaterThan(fit.plan.find((s) => s.name === 'Prayer + the anchor').allocatedMin);
+  });
+
+  it('is empty-safe and tolerates a segment with no (min) hint', () => {
+    expect(parseRunOfShow('')).toEqual([]);
+    expect(parseRunOfShow(null)).toEqual([]);
+    const segs = parseRunOfShow('Welcome: greet the room');
+    expect(segs[0].name).toBe('Welcome');
+    expect(segs[0].estimatedMin).toBeUndefined();  // backfilled by fitToBudget later
+  });
+});
+
+describe('The Word — a LIBRARY of messages, each its OWN presentation', () => {
   const sermons = [
     { id: 'm1', title: 'Faith Over Fear', serviceDate: '2026-06-21', serviceType: 'sunday', speaker: 'Bishop Lloyd E. Gwin', scriptureRef: '1 Peter 5', notes: 'cast your cares', status: 'active' },
     { id: 'm2', title: 'Older', serviceDate: '2026-06-14', serviceType: 'wednesday', speaker: 'Guest', scriptureRef: 'Psalm 23', status: 'active' },
     { id: 'd1', title: 'A Draft', serviceDate: '2026-07-01', status: 'draft' },
   ];
-  const p = wordPresentable(sermons);
 
-  it('drops drafts and orders newest-first', () => {
-    expect(p.scenes.length).toBe(2); // draft excluded
-    expect(p.scenes[0].audience.title).toBe('Faith Over Fear'); // newest first
-    expect(p.scenes[0].indexLabel).toBe('Message 1 of 2');
+  it('wordLibrary lists pickable published messages, newest-first, drafts dropped', () => {
+    const lib = wordLibrary(sermons);
+    expect(lib.length).toBe(2);                  // draft excluded
+    expect(lib[0].id).toBe('m1');                // newest first
+    expect(lib[0].dayLabel).toBe('Sunday');
+    expect(lib[1].dayLabel).toBe('Wednesday Bible Study');
+    expect(wordLibrary(null)).toEqual([]);
   });
 
-  it('puts the scripture on the audience anchor and the speaker/theme in notes', () => {
-    const sc = p.scenes[0];
-    expect(sc.audience.anchorRef).toBe('1 Peter 5');
-    expect(sc.audience.anchorTheme).toContain('Bishop');
-    const headings = sc.notes.map((n) => n.heading);
-    expect(headings).toContain('Delivered by');
-    expect(headings).toContain('Text');
+  it('messagePresentable builds ONE message into its OWN slides (not all messages)', () => {
+    const p = messagePresentable(sermons[0]);
+    // its scenes are THIS message's own slides (opening / text / message) — a few, not 163
+    expect(p.scenes.length).toBe(3);
+    expect(p.id).toBe('message:m1');
+    expect(p.title).toBe('Faith Over Fear');
+    expect(p.scenes[0].indexLabel).toBe('Opening');
+    expect(p.scenes[1].audience.title).toBe('1 Peter 5');   // the text slide
+    // the pager walks THIS message's 3 slides (not 163 messages)
+    const slide = buildSlideForScene(p.scenes, 0, { kicker: p.kicker });
+    expect(slide.total).toBe(3);
+    expect(slide.index).toBe(1);
+    expect(slide.indexLabel).toBe('Opening');
+    // speaker/theme stay presenter-side (no leak to the projected slide)
+    expect(JSON.stringify(slide)).not.toContain('cast your cares');
   });
 
-  it('is empty-safe', () => {
-    expect(wordPresentable(null).scenes).toEqual([]);
-    expect(wordPresentable([]).scenes).toEqual([]);
+  it('messagePresentable is minimal-safe for a bare message (title only)', () => {
+    const p = messagePresentable({ id: 'x', title: 'Just a title' });
+    expect(p.scenes.length).toBe(1);             // only the opening slide
+    expect(p.scenes[0].audience.title).toBe('Just a title');
   });
 });
 
@@ -179,15 +217,17 @@ describe('scene weight contract (estimatedMin + priority + floor) with backfill'
   });
 
   it('adapters carry weight + floor, and course weights are NON-uniform by content', () => {
-    const p = wordPresentable([{ id: 'm1', title: 'T', serviceDate: '2026-06-21', status: 'active' }]);
+    const p = messagePresentable({ id: 'm1', title: 'T', serviceDate: '2026-06-21', status: 'active' });
     expect(p.scenes[0].estimatedMin).toBeGreaterThan(0);
     expect(p.scenes[0].minMin).toBeGreaterThan(0);
     expect(p.scenes[0].priority).toBe(PRIORITY.CORE);
-    // a richer module (more run-of-show + talking points) weighs more than a thin one
+    // a week's weight = its real session length (sum of its run-of-show minutes), so a
+    // longer-run week weighs more than a thin one with no timed run-of-show
     const cp = coursePresentable({ meta: { key: 'x', title: 'X' }, schedule: [
-      { id: 'a', title: 'A', bigIdea: 'idea', week: 1, facilitator: { howToRun: 's1|s2|s3|s4', talkingPoints: ['t1', 't2', 't3'] } },
+      { id: 'a', title: 'A', bigIdea: 'idea', week: 1, facilitator: { howToRun: 'Teach (10): x | Hands-on (20): y' } },
       { id: 'b', title: 'B', bigIdea: 'x', week: 2 },
     ] });
+    expect(cp.scenes[0].estimatedMin).toBe(30);                       // 10 + 20
     expect(cp.scenes[0].estimatedMin).toBeGreaterThan(cp.scenes[1].estimatedMin);
   });
 });

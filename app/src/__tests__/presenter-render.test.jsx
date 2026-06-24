@@ -74,6 +74,32 @@ describe('Presenter — time-adaptive render', () => {
     expect(container.textContent).toMatch(/core still lands/i);
   });
 
+  it('RESCALES the run-of-show segments live and shows original → adjusted', () => {
+    // A scene carrying a real run-of-show (segments sum to 30): Prayer 5 / Teach 10 / Hands-on 15.
+    const withRos = {
+      id: 'ros:deck', title: 'ROS', targetMin: 30,
+      scenes: [{
+        id: 's1', indexLabel: 'Week 1', estimatedMin: 30, audience: { title: 'Session' }, notes: [],
+        runOfShow: [
+          { id: 'a', name: 'Prayer', estimatedMin: 5, priority: 'core' },
+          { id: 'b', name: 'Teach', estimatedMin: 10, priority: 'core' },
+          { id: 'c', name: 'Hands-on', estimatedMin: 15, priority: 'core' },
+        ],
+      }],
+    };
+    act(() => root.render(createElement(Presenter, { presentable: withRos, storage: store })));
+    // at full budget (none set), the run-of-show shows its authored total, not "rescaled"
+    expect(container.textContent).toMatch(/Run of show/i);
+    expect(container.textContent).toMatch(/30 min total/);
+    expect(container.textContent).not.toMatch(/rescaled to/i);
+    // lower the clock to 15 -> proportional halving, shown as original → adjusted
+    const input = container.querySelector('input[aria-label="Minutes available"]');
+    act(() => fireInput(input, '15'));
+    expect(container.textContent).toMatch(/rescaled to 15 min/i);
+    expect(container.textContent).toMatch(/15 → 7\.5/);  // Hands-on 15 -> 7.5, the heaviest stays heaviest
+    expect(container.textContent).toMatch(/5 → 2\.5/);   // Prayer 5 -> 2.5
+  });
+
   it('adds a section and persists the overlay to the injected storage', () => {
     act(() => root.render(createElement(Presenter, { presentable: PRESENTABLE, storage: store })));
     // open the add form
