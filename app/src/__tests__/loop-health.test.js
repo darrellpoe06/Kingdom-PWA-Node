@@ -51,6 +51,23 @@ describe('assessLoops — fresh / stale / never', () => {
     const stale = assessLoops({}, NOW, { triviaDate: '2026-05-01' }).find((l) => l.key === 'engagement');
     expect(stale.status).toBe('stale'); // > 10 days old
   });
+  it('marks the trivia loop AWAITING (not a dead NEVER) when its real source is not connected yet', () => {
+    // No triviaDate flowing AND the loop declares a real-but-unconnected source.
+    const eng = assessLoops({}, NOW).find((l) => l.key === 'engagement');
+    expect(eng.status).toBe('awaiting');          // honest "waiting", not a red NEVER
+    expect(eng.lastUpdate).toBe(null);
+    expect(typeof eng.awaitingSource).toBe('string');
+    expect(eng.awaitingSource.length).toBeGreaterThan(0);
+  });
+  it('self-heals: the trivia loop goes fresh the moment a real active-question date flows', () => {
+    const eng = assessLoops({}, NOW, { triviaDate: iso(NOW - 1 * 86400000) }).find((l) => l.key === 'engagement');
+    expect(eng.status).toBe('fresh'); // real data present -> no longer awaiting
+  });
+  it('a loop with NO declared source stays NEVER, not awaiting (the awaiting flag is opt-in)', () => {
+    const ledger = assessLoops({}, NOW).find((l) => l.key === 'ledger');
+    expect(ledger.status).toBe('never');
+    expect(ledger.awaitingSource).toBe(null);
+  });
   it('uses the latest transaction date for the ledger loop', () => {
     const data = { transactions: [{ date: '2026-01-01' }, { date: iso(NOW - 2 * 86400000) }] };
     const ledger = assessLoops(data, NOW).find((l) => l.key === 'ledger');

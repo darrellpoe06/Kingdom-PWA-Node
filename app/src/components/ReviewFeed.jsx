@@ -49,10 +49,38 @@ export function applyAction(freshness, id, action) {
 
 // A vendor_synthesis that begins with "(vendor" is the graceful-degradation
 // note the loop writes when the vendor was over-quota/offline — not a real
-// cross-check. Treat it as "pending" rather than rendering it as synthesis.
+// cross-check. Treat it as "no real synthesis" rather than rendering it.
 export function isPendingSynthesis(v) {
   const s = (v || '').toString().trim();
   return !s || s.charAt(0) === '(';
+}
+
+// How long a freshly-staged proposal may read as "checking" before its LOCAL
+// summary auto-advances to a terminal LOCAL-VERIFIED state. Local-first is
+// Darrell's binding success metric: the local model is the conductor and its
+// summary stands on its own; the vendor cross-check is an OPTIONAL deepening
+// summoned on demand, never a blocking dependency. So an item without a vendor
+// synthesis is NOT "pending forever" — past this window it is RESOLVED as
+// local-verified with the cross-check marked deferred/optional. Nothing sits
+// silently pending (execution-outcome-observability: every loop outcome is
+// observable and advancing; DR-0061 / DR-0076).
+export const VENDOR_CHECK_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// Pure resolver (exported for tests) for one proposal's vendor cross-check
+// state. Returns exactly one of:
+//   { kind: 'synthesized', text } — a real vendor cross-check ran; show it.
+//   { kind: 'checking' }          — just staged; a cross-check may still land.
+//   { kind: 'local-verified' }    — terminal: the window elapsed (or there is
+//                                   no captured_at) with no vendor synthesis,
+//                                   so the local summary stands as the result.
+export function vendorCrossCheckState(p, nowMs) {
+  const v = p && p.vendor_synthesis;
+  if (!isPendingSynthesis(v)) return { kind: 'synthesized', text: (v || '').toString().trim() };
+  const staged = p && p.captured_at ? Date.parse(p.captured_at) : NaN;
+  // Within the window AND we can measure age -> still "checking". Otherwise
+  // (aged past the window, or no parseable timestamp) -> settle to terminal.
+  if (!Number.isNaN(staged) && (nowMs - staged) < VENDOR_CHECK_WINDOW_MS) return { kind: 'checking' };
+  return { kind: 'local-verified' };
 }
 
 function fmtWhen(iso) {
@@ -172,7 +200,7 @@ export default function ReviewFeed() {
       {status === 'ready' && data && data.count > 0 && (
         <div className="space-y-2">
           {data.freshness.map((p) => {
-            const pending = isPendingSynthesis(p.vendor_synthesis);
+            const vendorState = vendorCrossCheckState(p, Date.now());
             const busy = !!acting[p.id];
             const kept = p.status === 'kept';
             return (
@@ -191,13 +219,19 @@ export default function ReviewFeed() {
                 {p.summary && (
                   <p className="text-sm text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{p.summary}</p>
                 )}
-                {pending ? (
+                {vendorState.kind === 'synthesized' ? (
+                  <p className="text-xs text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span className="uppercase tracking-wider text-[10px] mr-1">Vendor cross-check ·</span>{vendorState.text}
+                  </p>
+                ) : vendorState.kind === 'checking' ? (
                   <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span className="uppercase tracking-wider text-[10px] mr-1">Vendor cross-check ·</span>pending (local summary stands)
+                    <span className="uppercase tracking-wider text-[10px] mr-1">Vendor cross-check ·</span>checking…
                   </p>
                 ) : (
-                  <p className="text-xs text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span className="uppercase tracking-wider text-[10px] mr-1">Vendor cross-check ·</span>{p.vendor_synthesis}
+                  // Terminal local-first state — the local summary IS the result;
+                  // the optional vendor cross-check was deferred, not left hanging.
+                  <p className="text-[11px] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span className="uppercase tracking-wider text-[10px] mr-1">✓ Local-verified ·</span>vendor cross-check deferred (optional)
                   </p>
                 )}
                 {p.note && (
