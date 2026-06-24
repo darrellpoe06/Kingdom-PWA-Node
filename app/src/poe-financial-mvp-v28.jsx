@@ -26,6 +26,7 @@ import PasswordAuth from './components/PasswordAuth.jsx';
 import { accessState } from './lib/access-gate.js';
 const Engagement = lazy(() => import('./components/Engagement.jsx'));
 const Choir = lazy(() => import('./components/Choir.jsx'));
+const ServiceProgram = lazy(() => import('./components/ServiceProgram.jsx'));
 const ChurchLearn = lazy(() => import('./components/ChurchLearn.jsx'));
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from './lib/church-live.js';
@@ -4847,7 +4848,7 @@ html{scroll-padding-bottom:280px}
                 (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
                 caps the row via zoom while body text scales. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -4926,6 +4927,9 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
+        {/* Order of Service: ONE master program per Sunday; the component derives
+            each staffer's sector view from it (RLS read = whole team, 0041). */}
+        {view === 'church' && churchView === 'program' && <ServiceProgram />}
         {/* The Word — Migdal: PUBLIC library for everyone; the component itself
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
         {view === 'church' && churchView === 'pulpit' && <Pulpit />}
@@ -5688,6 +5692,7 @@ const FEEDBACK_AREAS = [
     ['church-event-center', '└ Event Center · room / event requests'],
     ['church-events', '└ Venues · community use of the two campuses (requests · calendar · responsibilities · revenue)'],
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
+    ['church-program', 'Church · 📖 Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-videowall', 'Church · 📺 Video Wall (🔒 sanctuary LED capital project — budget · donations · spec)'],
     ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
