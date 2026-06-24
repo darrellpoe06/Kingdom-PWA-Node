@@ -19,7 +19,9 @@ Darrell wants an in-app section for the **hottest current Christian rap / hip-ho
 - **What it reuses (builds nothing new):** the **Choir** curated-list + YouTube-embed pattern (`Choir.jsx`, `choir-sync.js` `youtubeEmbedUrl` at `choir-sync.js:174`), the **church-live** embed helpers (`church-live.js`), the **learn-framework age-band** for the kids-safe filter (`learnAgeBand`), and the **freshness** dot for "refreshed-on" honesty (`freshness.js`).
 - **Freshness:** a **curated, admin-editable list** is the default and the *correct* default — YouTube's no-API-key embed path can play videos but cannot *rank* them ("hottest" needs chart/stream data the app cannot pull at scale without hitting the same fetch limits the SME/Gmail lanes already hit). The list is refreshed on the **continuous-reel cadence** by a curator. Any *automated* refresh is **Tier C + the three brakes** (budget / concurrency lock / kill-switch) and ships inactive.
 - **Child-safety (BINDING — twins are 10):** every track is **content-checked and age-tagged before it surfaces.** Christian rap is generally clean/faith-centered, but "generally" is not a gate. A **clean/age-appropriate filter** (default = family-safe) and a **per-track vetted flag** are non-negotiable. A track that hasn't been vetted does not render. See §6.
-- **Father's-Business framing:** evangelistic/worship content that reaches youth in the language they already listen in — Word-first, mission-aligned (§9).
+- **Clean-only content policy (BINDING, approved by Darrell — §12):** *"we don't want that type of music."* The section surfaces **clean, faith-centered Christian music ONLY.** Any **explicit-marked or secular/non-Christian** track is **permanently excluded for all users, by default** (e.g. Kendrick Lamar "Not Like Us", The Marías "No One Noticed" — both appeared in his playlist and are excluded). Excluded tracks are **logged with a reason, never silently dropped**, so Darrell has the record. Christian songs with a **secular guest feature** (e.g. Ty Dolla $ign, Marc E. Bassy, Chris Brown) are **held for his keep/drop decision** — not auto-decided, not surfaced until decided.
+- **Lyrics-as-curriculum (NEW — §13):** *"words and lyrics so we educate our children with the data."* Each song carries an **educational-data layer** — scripture references, themes, vocabulary, theology, kid discussion questions — to teach the Word through the music. **Copyright bright line (binding):** the derived teaching data is rights-clean and is the core; **full copyrighted lyrics are NEVER stored/displayed without a license** (licensed provider or church/artist-owned only).
+- **Father's-Business framing:** evangelistic/worship content that reaches youth in the language they already listen in — Word-first, mission-aligned; the educational layer teaches Scripture *from the songs the kids already love* (§9, §13).
 
 **The honest constraint, stated up front (Verification Doctrine):** the YouTube **video IDs in the seed list below were gathered from web-search result titles on 2026-06-23, not from loading each video.** They are provenance-tagged, not embed-verified. **The curator verifies each embed plays AND the lyrics are clean before it surfaces** — that is step one of the build, and it is a real gate, not a formality.
 
@@ -241,12 +243,12 @@ Per `INSTITUTIONAL-MEMORY-EVENTS.md:56`, until the Events module ships the **dur
   "resolution": "New Church sub-tab 'worship' (genre-general); curated-default freshness (no-key embed cannot rank, only play); YouTube + YouTube Music both supported (extend youtubeEmbedUrl regex for the music.youtube.com host; store source+sourceUrl); personal-library sync needs a Google connector that does NOT exist in the registry, so two no-credential ingestion paths instead (shared playlist-URL parse / Google Takeout CSV) feeding a de-dup step; binding per-track child-safety vetting gate with proven-to-catch test; automated refresh deferred Tier C + three brakes, inactive on ship.",
   "tags": {
     "workflows": [],
-    "modules": ["church", "worship", "choir", "learn-framework", "church-live"],
-    "sector": ["church", "spiritual", "community"],
+    "modules": ["church", "worship", "choir", "learn-framework", "church-live", "sme-pipeline", "scripture", "engagement", "presenter"],
+    "sector": ["church", "spiritual", "community", "education"],
     "senders": ["dpoe"]
   },
-  "provenance": { "who": "Claude (advisory)", "when": "2026-06-23", "source_surface": "research-review + code survey" },
-  "learnings": "1) 'Hottest' decays - re-run live research, never recall from memory. 2) No-API-key YouTube embeds play but cannot rank; curated list is the correct sovereign default, not a fallback. 3) Child-safety is a structural gate: vetted=false must not render, machine-checked. 4) Name third-party-content dependency honestly (embed != owned). 5) NF excluded on label-rejection + theme grounds; exclude on content, not genre name.",
+  "provenance": { "who": "Claude (advisory)", "when": "2026-06-23", "source_surface": "research-review + code survey + Darrell's two playlists (Fire 104, Inspirational)" },
+  "learnings": "1) 'Hottest' decays - re-run live research, never recall from memory. 2) No-API-key YouTube/YT-Music embeds play but cannot rank; curated list is the correct sovereign default, not a fallback. 3) Child-safety is a structural gate: vetted=false must not render, machine-checked. 4) Name third-party-content dependency honestly (embed != owned). 5) Exclude on content, not genre name (NF; and the live test: his own playlist held Kendrick 'Not Like Us' + The Marias - BINDING clean-only policy now auto-excludes explicit/secular for all users, logs not silently drops, holds secular-guest edge cases for Darrell). 6) Personal-library sync needs a Google connector that does NOT exist -> two no-credential paths (playlist URL / Takeout CSV), never log in as him. 7) Lyrics-as-curriculum: teach via DERIVED data (scripture refs / themes / vocab / questions = rights-clean, reuse the SME faithfulness-gate to extract refs not lyric text); FULL lyrics only via licensed provider or church-owned - never scrape/store copyrighted lyrics.",
   "related_artifacts": [
     "docs/99-session-notes/2026-06-23-christian-rap-hottest-worship-section-spec.md",
     "app/src/components/Choir.jsx:98-102",
@@ -388,6 +390,48 @@ Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Con
 | 66 | Mali Music | Let Go | MzlGcIp1qsc | high | |
 | 67 | Aaron Cole | WATER 4 ME (ft. Parris Chariz & Not Klyde) | HAKykqTlc1U | high | CONTENT-CHECK (lead artist inferred; content clean CHH) |
 
+**"Fire" playlist — tracks 68–104** (completes "Fire"; YT Music authoritative total = **104 tracks, 6h16m**. #90 & #91 are **excluded by policy** — see §12; #104 was not in the captured screenshots — 1 track to transcribe):
+
+| # | Artist | Track | videoId | conf | flag |
+|---|---|---|---|---|---|
+| 68 | Hulvey, Torey D'Shaun & Alex Jean | Love Like That | uKUdN23FUZA | high | |
+| 69 | Jonathan Traylor | Purpose Over Pleasure | 08EfwtUgLww | high | |
+| 70 | Evan and Eris | Hands in It | I-nH_y-942s | high | CONTENT-CHECK (Pastor Mike Todd sermon excerpt) |
+| 71 | Marcus Rogers | Light It Up | UNRESOLVED | low | resolve at curation |
+| 72 | Lecrae & Gwen Bunn | Nothing Left to Hide | gjMh2BrcRTk | high | |
+| 73 | Hulvey, KB & Lecrae | Can't Tell It All (Remix) | Imlt9qozNNk | high | |
+| 74 | Tauren Wells | Famous For (I Believe) [Dove Awards Version] | wQwfs4YtrTM | high | |
+| 75 | DOE | When I Pray | yJ9wQNCmJRo | high | |
+| 76 | PJ Morton & JoJo | My Peace (ft. Mr. Talkbox) | SurdkFO8X3k | high | CONTENT-CHECK (JoJo = mainstream feature) |
+| 77 | V. Rose | I Got You (ft. Eris Ford) | 2IokulC8Ex0 | high | |
+| 78 | Jor'Dan Armstrong | CAN'T | vThZ6oP7css | med | |
+| 79 | blssd music | TAYLORMADE - All For Me | uzahVAQJ_QM | high | |
+| 80 | DOE | Brighter | ykEUTNoFhaA | high | |
+| 81 | DOE | Good Now | U3uzpJh_YaA | high | |
+| 82 | Naomi Raine | Won One | UNRESOLVED | low | resolve at curation |
+| 83 | V. Rose | I Surrender | JlJgt2J2xMg | med | |
+| 84 | Blanca & Jekalyn Carr | New Day | dropiKvqXOw | high | |
+| 85 | Evan and Eris | You Know. | cMg8nT8DyLo | high | |
+| 86 | Jekalyn Carr | Major (Official Live Video) | 99O0ixqM5HY | high | |
+| 87 | Tye Tribbett | New | 7xyQrpdv5vo | high | |
+| 88 | Travis Greene | Just Want You (ft. Jordan Connell & Chandler Moore) | xRE0LIQAqNg | med | |
+| 89 | Koryn Hawthorne | Pray (Remix) (ft. KB) | mARoXUxxGR8 | high | |
+| ~~90~~ | ~~Kendrick Lamar~~ | ~~Not Like Us~~ | **EXCLUDED** | — | **§12 — explicit + secular** |
+| ~~91~~ | ~~The Marías~~ | ~~No One Noticed~~ | **EXCLUDED** | — | **§12 — secular** |
+| 92 | Forrest Frank | NO L's | 0UR7Ss_3GpQ | high | |
+| 93 | 116 | Man up Anthem (ft. Lecrae, Tedashii, Trip Lee & KB) | D_K9sjB2pKM | high | |
+| 94 | Spillhouse | Clean Heart (Psalm 51) | t1GQBbM0yDs | high | |
+| 95 | Spillhouse | Shield Around Me (Psalm 3) | OzVMgpV3Ljs | high | |
+| 96 | Spillhouse | My God, My God (Psalm 22) | UNRESOLVED | low | resolve at curation |
+| 97 | Soul_Remedy | Let God Take Control | avPphgm73Ts | med | CONTENT-CHECK (AI-generated voices) |
+| 98 | YiShai | Still Here | UNRESOLVED | low | resolve at curation |
+| 99 | Bryson Gray | Ezekiel 3 (ft. Kidd Lee & NobleOfficial) | pi6rIIerSpE | high | **DECISION** — political ("MAGA") rapper; surface to Darrell per §12 |
+| 100 | Bizzle (God Over Money) | Way Up (ft. Sevin) | S_OJUMESC04 | high | |
+| 101 | Hulvey | Beautiful | zDsE4BPuFRQ | high | |
+| 102 | Mission | YAHWEH | UNRESOLVED | low | resolve at curation (artist ambiguous) |
+| 103 | 1K Phew | Havin' | qbR4F4n7krY | high | |
+| 104 | *(not captured)* | *(not captured)* | — | — | transcribe at curation (104 per YT Music) |
+
 **B) Featured-artist representative tracks** (`featured: true`):
 
 | # | Artist | Track | videoId | conf | flag |
@@ -400,23 +444,173 @@ Resolution method: bulk official-upload lookup via web search, 2026-06-23. **Con
 
 **C) Public hot list (§1d)** — Lecrae "Resurrected"/"MOVE"/"Lift Me Up", Aaron Cole "NUMBER ONE", KB "100", Forrest Frank & Caleb Gordon "God Is Good" — fold in **de-duped** (drop any whose `videoId`/artist+title already appears in A or B; e.g. Lecrae/Hulvey/Aaron Cole already represented).
 
-**FINAL seed count (this round):**
+**D) "Inspirational" playlist** (§14; worship/gospel-leaning; **already de-duped vs "Fire"** — exact overlaps *Just Want You*, *I Am Loved*, *Can't Tell It All (Remix)*, *Look At God*, *Beautiful*, *YAHWEH* dropped; *Old Church Basement* handled as a full-album link, not a single embed):
 
-| Source | Tracks | Resolved to a candidate videoId | Unresolved (resolve at curation) |
-|---|---|---|---|
-| "Fire" playlist 1–34 | 34 | 33 | 1 (#29 For Every Mountain remix) |
-| "Fire" playlist 35–67 | 33 | 28 | 5 (#36, #42, #56, #62, #65) |
-| **Fire subtotal** | **67** | **61** | **6** |
-| Featured artists F1–F5 | 5 | 5 | 0 |
-| **Darrell's inputs total** | **72** | **66** | **6** |
+| # | Artist | Track | videoId | conf | flag |
+|---|---|---|---|---|---|
+| 1 | Tasha Cobbs | For Your Glory (Live) | aKetXJjMUZ0 | high | |
+| 2 | Travis Greene | Intentional | VH3f0ellNv8 | high | |
+| 3 | Jekalyn Carr | You're Bigger | Z-ZV61eDLXI | high | |
+| 4 | Mali Music | Loved By You (ft. Jazmine Sullivan) | h7LTt9_fYMY | med | CONTENT-CHECK (mainstream R&B feature) |
+| 5 | Lecrae | Blessings (ft. Ty Dolla $ign) | i58IH2D8sWQ | high | **DECISION** (§12) |
+| 6 | Lecrae & Tori Kelly | I'll Find You | Jv8IqJm6q7w | high | |
+| 7 | Lecrae | Tell the World (ft. Mali Music) | Yc8x33lAnAk | high | |
+| 8 | Lecrae | All I Need Is You | 6iRTBh1gCjk | high | |
+| 9 | Lecrae | Background (ft. Andy Mineo) | LHnZRZiCYHE | high | |
+| 10 | Lecrae | If I Die Tonight (ft. Novel) | mQHXJjTpBlc | med | |
+| 11 | Lecrae | Lost My Way (ft. King Mez & Daniel Day) | NSoVgyyJFkM | med | |
+| 12 | Tasha Page-Lockhart | Why Not Me | mivDKdKHgHg | low | lyric video; verify MV |
+| 13 | Tasha Cobbs Leonard | Your Spirit (ft. Kierra Sheard) | BZT8jqsc8lQ | high | |
+| 14 | Jekalyn Carr | It Has Been Established | 8HKCYGA-Mv8 | high | |
+| 15 | Kierra Sheard | Something Has To Break (Live) (ft. Tasha Cobbs Leonard) | ZuZJUXmKBeM | high | |
+| 16 | William McDowell | Spirit Break Out (ft. Trinity Anderson) | wOSLtqxD-bM | high | |
+| 17 | Jekalyn Carr | You Will Win | umkZnzmSTP0 | high | |
+| 18 | Jubilee Worship | No Bondage | 3H_NwhsAqwM | high | |
+| 19 | Tasha Cobbs Leonard | You Know My Name (ft. Jimi Cravity) | t7owFiihXgg | high | |
+| 20 | Lecrae | Worth It (ft. Kierra Sheard & Jawan Harris) | ml22-t1-mxU | med | official audio |
+| 21 | Lecrae | 8:28 | KPXV-VWcEAY | med | official audio (Romans 8:28) |
+| 22 | Marvin Sapp | My Testimony | PZG8B8xYc7g | high | |
+| 23 | Greg O'Quin 'N Joyful Noyze | I Told The Storm | gJM8GZ375pw | med | |
+| 24 | Travis Greene | You Waited [Live] (Extended) | cyzbge2QEF4 | high | |
+| 25 | Isaac Carree | So Glad (ft. Kierra Sheard, Kirk Franklin & Lecrae) | bvnVKHFyOAk | med | |
+| 26 | Shana Wilson | Give Me You (Live) | RxKBVoEEcT0 | high | |
+| 27 | Lecrae & Marc E. Bassy | Wheels Up | 0S2CrXY8CTg | high | **DECISION** (§12) |
+| 28 | CynthiaShantel (cover of Tye Tribbett) | Everything | UNRESOLVED | low | CONTENT-CHECK (cover, not label-official) |
+| 29 | Tye Tribbett | The Worship Medley (Live) | mQe9MV3GJHY | high | |
+| 30 | Lamar Campbell & Spirit Of Praise | More Than Anything | FA5WelLIXb8 | med | official audio |
+| 32 | Maverick City Music & Kirk Franklin | Kingdom (ft. Chandler Moore & Naomi Raine) | 13PYVofBFRc | high | |
+| 33 | Aaron Cole, Tauren Wells & TobyMac | LIKE YOU | v0RmisSm7aY | high | |
+| 34 | Koryn Hawthorne | Know You (ft. Steffany Gretzinger) | lqJZgxhWxrM | med | |
+| 35 | Elevation Worship & Maverick City | Old Church Basement | *(full album — album link)* | — | handle as album, not single embed |
+| 36 | Limoblaze, Lecrae & Happi | Jireh (My Provider) | oIS_8Qotb08 | high | |
+| 37 | Tye Tribbett | New (Live, Vevo) | 3uRt7CLapic | high | |
+| 38 | Kierra Sheard | Miracles (ft. Pastor Mike Jr.) | sFyVhUCudus | high | |
+| 40 | Franchesca | Saved Wave | UNRESOLVED | low | resolve at curation |
+| 41 | Hulvey | Holy Spirit | CAKTH7HIX-w | high | |
+| 43 | Hulvey | Can't Tell It All | UyHh9tSU7JA | high | |
+| 44 | Hulvey | Higher (ft. Zach Paradis) | jufCDyNAtoM | high | |
+| 47 | Elevation Worship | Trust In God (ft. Chris Brown) | QS04WbSnxok | high | **DECISION** (§12) |
+| 48 | Lee Vasi | Teach Me | -lddOg1eJoc | high | |
+| 49 | Franchesca | Faith In Me | BYe1VWJKXPQ | med | |
+| 50 | Maverick City Music | Firm Foundation (He Won't) (ft. Chandler Moore & Cody Carnes) | uOP4s8fOEm0 | high | |
+| 51 | Elevation Worship | More Than Able (ft. Chandler Moore & Tiffany Hudson) | dQ1xxoP7NJk | high | |
 
-Plus the **public hot list (§1d/§C)** folds in **de-duped** (e.g. Aaron Cole "MIRACLE" already = Fire #16 → dropped; ~8 distinct public tracks add on). **Net unique seed ≈ 74 candidate videos, 66 resolved, 6 to resolve at curation.** "Fire" is still scrolling — Darrell will append more screenshots; the table extends the same way. Every resolved row is a *candidate* until the curator confirms embed + clean lyrics (§6); 3 rows carry `CONTENT-CHECK`.
+**FINAL SEED COUNT (combined, de-duped):**
+
+| Source | Tracks in | Resolved (candidate videoId) | Unresolved / to-transcribe | Excluded by policy (§12) |
+|---|---|---|---|---|
+| "Fire" 1–34 | 34 | 33 | 1 (#29) | 0 |
+| "Fire" 35–67 | 33 | 28 | 5 (#36, #42, #56, #62, #65) | 0 |
+| "Fire" 68–104 | 37 | 29 | 5 (#71, #82, #96, #98, #102) + 1 to transcribe (#104) | 2 (#90 Kendrick, #91 Marías) |
+| **"Fire" (COMPLETE, 104/YT Music)** | **104** | **90** | **11 + 1** | **2** |
+| Featured artists F1–F5 | 5 | 5 | 0 | 0 |
+| "Inspirational" (de-duped vs Fire) | 44 | 41 + 1 album link | 2 (#28, #40) | 0 |
+| Public hot list (§1d/§C, de-duped) | ~8 | ~8 | 0 | 0 |
+| **COMBINED UNIQUE SEED** | **~161** | **≈ 144 resolved + 1 album** | **13 to resolve + 1 to transcribe** | **2 excluded** |
+
+**Headline:** **≈144 clean candidate videos resolved** across his two playlists + featured artists + the public hot list, de-duped; **13 to resolve + 1 to transcribe at curation**; **2 hard-excluded by policy** (Kendrick "Not Like Us", The Marías "No One Noticed"). Every resolved row is a *candidate* until the curator confirms embed + clean lyrics (§6).
+
+**Held for Darrell's decision — `decisionPending` (§12), do not surface until decided (4):** #99 Bryson Gray "Ezekiel 3" (political/"MAGA" rapper); Lecrae "Blessings" (ft. Ty Dolla $ign); Lecrae "Wheels Up" (ft. Marc E. Bassy); Elevation Worship "Trust In God" (ft. Chris Brown).
+
+**`CONTENT-CHECK` (clean-likely, verify at vetting):** #10 Holy (SVRCINA), #67 WATER 4 ME, #70 Hands in It (sermon excerpt), #76 My Peace (JoJo feature), #97 Let God Take Control (AI voices), Inspirational #4 Loved By You (Jazmine Sullivan), #28 "Everything" (cover, not label-official). Plus the Lecrae "Headphones" featured-track swap noted at F1.
 
 ### 11.7 Screens delta
 
 - **Sovereign-mesh:** unchanged posture — the **curated/imported list (his taste + vetting) is the owned asset**; YouTube **and** YouTube Music bytes are embedded, never copied. No-credential ingestion keeps it sovereign (we never hold his Google auth). A future YT-Music connector, if one ever lands in the registry, would be the only path to live personal-library sync and is explicitly out of scope until then.
 - **Cost:** still ~$0 incremental at launch (embeds stream from YouTube/YT-Music; CSV/playlist parse is one-time, human-triggered). The only cost-growth vector (LLM-assisted bulk resolution/refresh) stays gated + braked.
 - **Father's-Business:** strengthened — seeding from *his own* worship/rap rotation means the shelf reflects the family's actual devotional listening, Word-first, reaching the kids in the music already playing in the house. Passes.
+
+---
+
+## 12. BINDING content policy — clean, faith-centered Christian music ONLY (approved by Darrell)
+
+**Declared by Darrell 2026-06-23, after his "Fire" playlist was found to contain a few non-Christian/explicit tracks mixed in:** *"we don't want that type of music."* This is **approved policy, not a suggestion** — a binding filter rule in the spec and the data model.
+
+**The rule:** the Worship section surfaces **clean, faith-centered Christian music ONLY.** Two auto-exclude classes, enforced by default, for **all users** (this is child-safe by design — the twins use the app):
+
+1. **Explicit-marked** tracks (platform/metadata explicit flag) → excluded.
+2. **Secular / non-Christian** tracks (the artist + song are not Christian/worship) → excluded.
+
+**Confirmed exclusions from the seed (his own playlist):**
+
+| Track | Artist | Why excluded |
+|---|---|---|
+| Not Like Us | Kendrick Lamar | explicit + secular |
+| No One Noticed | The Marías | secular indie |
+
+**Logged, never silently dropped.** An excluded track is **recorded in the import with `excluded: true` + `excludeReason`** (audit trail) so Darrell can see what was filtered and override if ever needed — it simply **does not render** to anyone. "Silent drop" is itself a failure mode here; the record is the safeguard.
+
+**The edge case — Christian song, secular guest feature → HELD for Darrell's decision, not auto-decided:**
+
+| Track | Artist | Secular guest | Source |
+|---|---|---|---|
+| Blessings | Lecrae | Ty Dolla $ign | "Inspirational" |
+| Wheels Up | Lecrae | Marc E. Bassy | "Inspirational" |
+| Trust In God | Elevation Worship | Chris Brown | "Inspirational" |
+
+These are **Christian/worship songs** with a mainstream guest — the Kendrick/Marías auto-rule doesn't cleanly apply, but Darrell's "we don't want that type" makes it his call. Data model: **`decisionPending: true`** → the track **does not surface until Darrell picks keep or drop.** The curation view shows them in a "needs your decision" queue.
+
+**Data-model additions** (extends §4 / §11.5):
+`contentClass` (`'christian' | 'secular' | 'explicit' | 'review'`), `excluded` (bool), `excludeReason` (string), `decisionPending` (bool), `decidedBy` / `decidedAt`.
+
+**How classification is sourced (no autonomous drop without a record):**
+- **Explicit flag** — from the track's platform metadata where available.
+- **Christian-vs-secular** — artist/label is the strong signal (Reach, Gotee, Tribl, Maverick City, Provident, RCA Inspiration = Christian; the curated nature of the seed means most rows are already in-class). An **automated pre-filter may *flag*** a suspected secular/explicit row; **a human confirms** the exclusion. Nothing is auto-removed from existence — it's flagged, recorded, and hidden.
+
+**Proven-to-catch test (extends §6, DR-0076):** a row with `excluded=true`, `contentClass ∈ {secular, explicit}`, or `decisionPending=true` **must not appear in any user's render.** Ship the gate only after it's shown to CATCH a planted Kendrick-style row. The clean-only promise is machine-checked, not claimed.
+
+---
+
+## 13. Lyrics-as-curriculum — educational-data layer (copyright-safe)
+
+**Declared by Darrell 2026-06-23:** *"words and lyrics so we educate our children with the data."* He wants each song's words/lyrics to become **educational data** — teaching the children themes, scripture, vocabulary, and theology *through the music they already love*. This is the bridge from "a shelf to listen to" into the **kids' learning layer**.
+
+### 13.0 The copyright bright line (BINDING)
+
+**Do NOT store, reproduce, or display FULL copyrighted song lyrics without a license.** Full-lyric reproduction is a legal line we do not cross. The design is rights-clean by construction: the **teaching value lives in DERIVED data** (which is not copyrightable), and full lyrics are an **opt-in, licensed-only** add-on.
+
+### 13.1 Layer A — DERIVED educational data (rights-clean; this is the core "educate with the data" payload)
+
+For each (clean, in-policy) song, capture **facts about the song**, not its lyric text:
+
+- **Scripture references** the song cites — **Bible verse text is public-domain/freely usable** (and the app already has the Scripture component + `SCRIPTURE-REFERENCE-STANDARD.md`: ESV primary, KJV secondary). This is the spine of the teaching layer.
+- **Themes / topics** (e.g. perseverance, grace, identity in Christ, repentance).
+- **Key vocabulary** (theological terms a 10-year-old can learn — "atonement," "covenant," "redemption") with kid-level definitions.
+- **Theology notes** — the doctrinal idea the song carries, checked against the Worldview spine.
+- **Discussion / teaching questions** for kids — what / when / why / how (ANXIETY-CLARITY-PRINCIPLE), so a parent or teacher can turn a song into a 5-minute lesson.
+
+**How we source the derived data WITHOUT reproducing lyrics (three clean methods, in order of cost):**
+
+1. **Title-embedded scripture refs — free and immediate.** Many tracks name the verse in the title/parenthetical. From his own seed: *"Stayed On Him (Isaiah 26:3)"*, *"Clean Heart (Psalm 51)"*, *"Shield Around Me (Psalm 3)"*, *"My God, My God (Psalm 22)"*, *"Ezekiel 3"*, *"8:28"* (Romans 8:28), *"Yahweh / YHWH"*, *"Famous For (I Believe)"*. These parse straight into `scriptureRefs` with zero rights issue.
+2. **The sovereign SME / course-materials pipeline (reuse the sibling lane).** The 2026-06-23 body-study research-review already specs a **local Whisper transcribe → scripture-aware extraction → faithfulness gate** that *detects every scripture reference* in spoken/sung audio. Re-point it at a song's audio to extract **refs + themes as derived facts** — we keep the **refs and the analysis, NOT the transcript/lyric text.** Sovereign, local (NAS Ollama `qwen2.5:14b`), already built. This is the same engine, a new input.
+3. **Curator / BG annotation + local LLM** generates themes, vocab, and kid discussion questions **from the derived data + a public summary** (not from stored lyrics). Human-reviewed (faithfulness gate) before it teaches.
+
+### 13.2 Layer B — FULL LYRICS display (optional, LICENSED-ONLY, gated)
+
+If full on-screen lyrics are ever wanted in-app, **only** via:
+- A **licensed lyrics provider** — **Musixmatch / LyricFind / Genius API** under their terms, **with required attribution** (`lyricsLicense` + `lyricsAttribution` fields; `lyricsText` populated only from the licensed feed at render time per terms, ideally not persisted if the license forbids caching), **or**
+- **Church/artist-OWNED content** — songs COLG or a partnering artist owns/licenses to us (`lyricsLicense: 'owned'`). For COLG-owned worship recordings this is fully clean.
+
+**Never** scrape/store full lyrics from unlicensed sources. `lyricsText` defaults `null`; the absence of a license simply means Layer A teaches and Layer B is hidden.
+
+### 13.3 Data-model additions (educational layer)
+`scriptureRefs: string[]`, `themes: string[]`, `vocabulary: [{term, kidDefinition}]`, `theologyNotes: string`, `discussionQuestions: string[]`, `lyricsLicense: null|'musixmatch'|'genius'|'lyricfind'|'owned'`, `lyricsAttribution: string|null`, `lyricsText: string|null` (only when licensed/owned).
+
+### 13.4 Where it plugs in (ties named by Darrell)
+- **Kids' LMS / learning** — a song becomes an **age-banded mini-lesson** via `learn-framework.js` (`AGE_BANDS`, `chunkLessonForAge`): listen → read the scripture it cites → discuss. Psychoeducation/learning layer.
+- **Course-materials pipeline** — the educational data is the *same MODULES-shaped output* the body-study lane produces; songs feed the catalog beside sermons/studies.
+- **Presenter / Study / Engagement** — a song's scripture + questions present live (Presenter), seed reflection (Study), and become trivia (Engagement) — all existing surfaces.
+- **Father's-Business** — the Word taught through music the children already choose to hear. Word-first, mission-true, and it turns passive listening into discipleship.
+
+---
+
+## 14. Second source — "Inspirational" playlist + ongoing sourcing
+
+Darrell shared a **second playlist, "Inspirational"** (worship/gospel-leaning — Tasha Cobbs Leonard, Travis Greene, Jekalyn Carr, Maverick City, Elevation Worship, plus a deep Lecrae catalog). It is **de-duped across "Fire"** (key on `videoId`, fallback `artist+title`): exact overlaps dropped (e.g. *Just Want You* — Travis Greene, *I Am Loved* — Franchesca, *Can't Tell It All (Remix)*, *Look At God*, *Beautiful* — Hulvey, *YAHWEH* — Mission). One entry — *Old Church Basement* (Elevation Worship & Maverick City) — is a **full album (1:43:58)**, handled as an **album/playlist link**, not a single embed. Resolved table in §11.6-D. *(Darrell noted "Inspirational" may still be scrolling; the table extends the same way.)*
+
+**Bonus expansion candidates** (YT Music surfaced these *alongside* the playlist, NOT in it — optional "you might add," content-vetted before surfacing): *Faith and Favor* — Stevie Rizo; *Fruits of My Labor* — Caleb Gordon; *More Like You* — Jordan May; *NO LONGER BOUND* — Forrest Frank & Hulvey; *Yeshua!* — Vic Lucas; *My Soul (feat. Noah Surratt)* — Marcus Rogers; *Forever in Faith* — Alex Jean.
+
+**Related playlists for ongoing sourcing** (the curator's recurring "what's fresh" inputs, per §5): YT Music *"Christian R&B"*, *"Christian-Pop Party"*, *"Gospel"*, *"Right now"* (Taylor Haynes). These join the Rapzilla/Billboard re-run as the human refresh inputs — none auto-pulled.
 
 ---
 
