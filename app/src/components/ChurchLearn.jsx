@@ -34,15 +34,17 @@
 // picker exposed as an ARIA tablist.
 import React, { useState, useRef } from 'react';
 import {
-  CLASS_META, PROPOSED_COHORT_START,
+  CLASS_META, PROPOSED_COHORT_START, SESSION_FLOW,
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
 } from '../lib/church-classes.js';
 import { askTutor } from '../lib/class-tutor.js';
 import {
   LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
-  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, lessonPlanForAge,
+  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile,
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
+import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
+import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import Presenter from './Presenter.jsx';
 import { coursePresentable } from '../lib/presentable.js';
 import TextSizeControl from './TextSizeControl.jsx';
@@ -485,15 +487,19 @@ function GenerativeVisualNote() {
 // reachable, and degrades honestly when it is not. `tutorCourseMeta` lets the
 // SAME engine introduce itself per course (youth class vs broadcast training).
 // -----------------------------------------------------------------------------
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week' }) {
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [offline, setOffline] = useState(false);
   const liveRef = useRef(null);
   const startedRef = useRef(false);
-  // The authored lesson, PACED to the learner's age band (chunked, not summarized).
-  const plan = lessonPlanForAge(module, ageBand, levelOverride);
+  // The lesson-flow STANDARD: one consistent five-stage arc (Open → Teach → Engage
+  // → Apply → Send-off), derived from this module's authored fields, paced to the
+  // learner's age/depth. The audience walks it ONE stage at a time (clear where you
+  // are / what's next); each stage's body is rendered by renderStage below, reusing
+  // the existing real-wired pieces (paced lesson, media, launch, quiz).
+  const arc = buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel });
 
   // Real engagement: this learner started this week (once per open).
   React.useEffect(() => {
@@ -522,54 +528,94 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
     }
   };
 
+  // renderStage — the learner-safe body for one arc stage. Each stage reuses the
+  // existing real-wired pieces; the LessonFlowAudience shell owns the arc chrome
+  // (rail, timing, one-at-a-time progression). NO facilitator notes here (no-leak).
+  const renderStage = (seg) => {
+    switch (seg.kind) {
+      case 'open':
+        return (
+          <>
+            {seg.audience.bigIdea && (
+              <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{seg.audience.bigIdea}</p>
+            )}
+            {seg.audience.anchorRef && (
+              <p className="text-[11px] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <strong>Anchor — {seg.audience.anchorRef}:</strong> {seg.audience.anchorTheme}
+              </p>
+            )}
+          </>
+        );
+      case 'teach':
+        return (
+          <>
+            {/* Research → Plan → Execute — the shared doing-primitive */}
+            <RpeBlock rpe={module.rpe} />
+            {/* Authored walkthrough, PACED to age/depth (chunked, not summarized) */}
+            <AgePacedLesson plan={seg.audience.lessonPlan} onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)} />
+            {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
+            <MediaList module={module} />
+            {/* Christian's home path — go find + safely touch the real device */}
+            <HardwarePairing hardware={module.hardware} />
+            {/* Honest venue / generative-visual disclosure (build target) */}
+            {venueAware && <GenerativeVisualNote />}
+          </>
+        );
+      case 'engage':
+        return seg.audience.prompts.length > 0 ? (
+          <ul className="list-disc pl-5 space-y-1">
+            {seg.audience.prompts.map((q, i) => (
+              <li key={i} className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{q}</li>
+            ))}
+          </ul>
+        ) : null;
+      case 'apply':
+        return (
+          <>
+            <p className="text-xs text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              <strong>{handsOnLabel}:</strong> {module.inApp}
+            </p>
+            {module.launch && onLaunch && (
+              <button
+                type="button"
+                onClick={() => onLaunch(module.launch)}
+                className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                {launchLabel(module.launch)} →
+              </button>
+            )}
+            {/* Check-for-understanding quiz (real assessment) */}
+            <QuizBlock module={module} saved={quizSaved} onRecord={recordQuizAndEngage} />
+          </>
+        );
+      case 'send':
+        return Array.isArray(seg.audience.benefits) && seg.audience.benefits.length > 0 ? (
+          <div className="border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
+            <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
+            <ul className="list-disc pl-4 space-y-1">
+              {seg.audience.benefits.map((b, i) => (
+                <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Carry one thing from this {unitNoun} into a real moment this week.
+          </p>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
       <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">
         🧭 Your guide for this {unitNoun}
       </div>
 
-      {/* Research → Plan → Execute — the shared doing-primitive, every lesson */}
-      <RpeBlock rpe={module.rpe} />
-
-      {/* Authored walkthrough — always available, never a dead end. PACED to the
-          learner's age band (chunked, not summarized); depth follows age + any
-          explicit override. */}
-      <AgePacedLesson plan={plan} onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)} />
-
-      {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
-      <MediaList module={module} />
-
-      {/* Christian's home path — go find, look at, and safely touch the real device */}
-      <HardwarePairing hardware={module.hardware} />
-
-      <p className="text-xs text-[#1A1815] mb-2 mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-        <strong>{handsOnLabel}:</strong> {module.inApp}
-      </p>
-
-      {/* Honest venue / generative-visual disclosure (build target) */}
-      {venueAware && <GenerativeVisualNote />}
-      {module.launch && onLaunch && (
-        <button
-          type="button"
-          onClick={() => onLaunch(module.launch)}
-          className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-        >
-          {launchLabel(module.launch)} →
-        </button>
-      )}
-      {Array.isArray(module.facilitator?.discussionPrompts) && module.facilitator.discussionPrompts.length > 0 && (
-        <div className="mt-3">
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Think about</div>
-          <ul className="list-disc pl-5 space-y-1">
-            {module.facilitator.discussionPrompts.map((q, i) => (
-              <li key={i} className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{q}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Check-for-understanding quiz (real assessment) */}
-      <QuizBlock module={module} saved={quizSaved} onRecord={recordQuizAndEngage} />
+      {/* The lesson-flow STANDARD — one clean, paced stage at a time */}
+      <LessonFlowAudience arc={arc} renderStage={renderStage} unitNoun={unitNoun} />
 
       {/* The chat with the local tutor */}
       <div className="mt-3 border-t border-[#E8E4DC] pt-3">
@@ -675,8 +721,11 @@ function CourseView({
     meta, schedule, cohortConfirmed, cohortStart, setCohortStart, confirmCohort,
     progressSummary: courseProgressSummary, exportMarkdown, downloadName,
     roster, interestCopy, tutorCourseMeta, sopSequences, capturePipeline,
-    venueAware = false, engagementByAge = null,
+    venueAware = false, engagementByAge = null, sessionFlow = null,
   } = course;
+  // The session length this course's run-of-show starts from (the lesson-flow
+  // standard reflows the arc to any total the facilitator picks).
+  const sessionMinutes = sessionMinutesFromFlow(sessionFlow);
   // The explicit depth override the learner picked, if any. 'auto' (default) means
   // "follow my age band" — the age picker is the master control; this fine-tunes it.
   const levelOverride = learnLevel && learnLevel !== 'auto' && learnLevel !== DEFAULT_AGE_BAND ? learnLevel : null;
@@ -1063,47 +1112,32 @@ function CourseView({
                     quizSaved={quizState[m.id] || null}
                     onRecordQuiz={recordQuiz}
                     unitNoun={U.noun}
+                    sessionFlow={sessionFlow}
                   />
                 </div>
               )}
 
-              {/* Facilitator guide (Governor-revealed) */}
+              {/* Facilitator run-of-show (Governor-revealed) — the lesson-flow
+                  standard: the same five-stage arc the learner walks, but TIMED
+                  with what-to-say / what-to-do / cues per stage, and a time-adaptive
+                  reflow so it fits any length. The deep `lesson` source stays above
+                  the arc for the leader to read in full. */}
               {isGovernor && showFacilitator && m.facilitator && (
-                <div className="mt-3 border-l-4 border-[#7A1F1F] bg-[#FAF8F4] p-3">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold mb-2">Facilitator guide</div>
+                <div className="mt-3">
                   {m.lesson && (
-                    <p className="text-xs text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.lesson}</p>
+                    <div className="border-l-4 border-[#7A1F1F] bg-[#FAF8F4] p-3 mb-0">
+                      <div className="text-[10px] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold mb-2">Deep source (read this first)</div>
+                      <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{m.lesson}</p>
+                    </div>
                   )}
-                  {m.facilitator.talkingPoints?.length > 0 && (
-                    <>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Talking points</div>
-                      <ul className="list-disc pl-5 space-y-1 mb-2">
-                        {m.facilitator.talkingPoints.map((t, i) => (
-                          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t}</li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  {m.facilitator.howToRun && (
-                    <>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">{U.sessionLabel}</div>
-                      <ul className="list-disc pl-5 space-y-1 mb-2">
-                        {m.facilitator.howToRun.split('|').map((s) => s.trim()).filter(Boolean).map((seg, i) => (
-                          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{seg}</li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  {m.facilitator.discussionPrompts?.length > 0 && (
-                    <>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Discussion prompts</div>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {m.facilitator.discussionPrompts.map((d, i) => (
-                          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{d}</li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
+                  <LessonRunOfShow
+                    module={m}
+                    baseMinutes={sessionMinutes}
+                    ageBand={ageBand}
+                    levelOverride={levelOverride}
+                    sessionLabel={U.sessionLabel}
+                    handsOnLabel={handsOnLabel}
+                  />
                 </div>
               )}
             </li>
@@ -1208,6 +1242,7 @@ export default function ChurchLearn({
   const aiCourse = {
     key: 'ai',
     meta: { ...CLASS_META, key: 'ai' },
+    sessionFlow: SESSION_FLOW,
     schedule: buildSchedule(cohortStart),
     cohortStart, cohortConfirmed, setCohortStart, confirmCohort,
     progressSummary: (p) => progressSummary(p),
