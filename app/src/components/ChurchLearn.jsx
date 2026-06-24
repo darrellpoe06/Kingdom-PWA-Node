@@ -485,7 +485,7 @@ function GenerativeVisualNote() {
 // reachable, and degrades honestly when it is not. `tutorCourseMeta` lets the
 // SAME engine introduce itself per course (youth class vs broadcast training).
 // -----------------------------------------------------------------------------
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false }) {
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week' }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -525,7 +525,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   return (
     <div className="mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
       <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">
-        🧭 Your guide for this week
+        🧭 Your guide for this {unitNoun}
       </div>
 
       {/* Research → Plan → Execute — the shared doing-primitive, every lesson */}
@@ -597,11 +597,11 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
 
         {offline && (
           <p className="text-[11px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">
-            The live tutor isn’t connected right now — but you can still finish this week on your own: follow <strong>“{handsOnLabel}”</strong> above and the questions to think about. Try the tutor again later.
+            The live tutor isn’t connected right now — but you can still finish this {unitNoun} on your own: follow <strong>“{handsOnLabel}”</strong> above and the questions to think about. Try the tutor again later.
           </p>
         )}
 
-        <label htmlFor={`tutor-${module.id}`} className="sr-only">Ask the tutor about this week</label>
+        <label htmlFor={`tutor-${module.id}`} className="sr-only">Ask the tutor about this {unitNoun}</label>
         <div className="flex gap-2 items-end">
           <textarea
             id={`tutor-${module.id}`}
@@ -609,7 +609,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }}
-            placeholder="Ask the tutor anything about this week…"
+            placeholder={`Ask the tutor anything about this ${unitNoun}…`}
             className="flex-1 text-sm p-2 border border-[#E8E4DC] bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
           />
           <button
@@ -633,6 +633,21 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
 // CourseView — renders ONE course (the active one). Generic over a `course`
 // descriptor so both the youth class and the broadcast training share this code.
 // -----------------------------------------------------------------------------
+// Label layer for the unit of curriculum. The four weekly cohort courses set no
+// `meta.unit`, so this returns the original "week"/"Week"/"weeks" wording and the
+// cohort framing — byte-for-byte unchanged. A self-paced lesson series (Living
+// Lessons) sets meta.unit to relabel rows as "Lesson(s)" and drop the cohort clock.
+function unitLabels(meta) {
+  const u = (meta && meta.unit) || {};
+  return {
+    noun: u.noun || 'week',          // "this {noun}"
+    plural: u.nounPlural || 'weeks',  // "The N {plural}"
+    cap: u.cap || 'Week',             // "{cap} N · title"
+    selfPaced: !!u.selfPaced,
+    sessionLabel: u.sessionLabel || 'How to run the 75 minutes',
+  };
+}
+
 function CourseView({
   course,
   progress = {},
@@ -666,6 +681,7 @@ function CourseView({
   // "follow my age band" — the age picker is the master control; this fine-tunes it.
   const levelOverride = learnLevel && learnLevel !== 'auto' && learnLevel !== DEFAULT_AGE_BAND ? learnLevel : null;
   const handsOnLabel = meta.handsOnLabel || 'In the app';
+  const U = unitLabels(meta); // "week"/"Week" by default; "lesson"/"Lesson" + self-paced for the lesson series
   const prog = courseProgressSummary(progress);
   const canSendInterest = !!onSendInterest;
   // Real assessment from the learner's record (progress + quiz passes).
@@ -779,7 +795,7 @@ function CourseView({
             <div className="h-full bg-[#5A6E3D]" style={{ width: `${prog.pct}%` }} />
           </div>
           <p className="text-[11px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-            Check off each week as you finish it — this is counted from your own record, just for you.
+            Check off each {U.noun} as you finish it — this is counted from your own record, just for you.
           </p>
         </div>
       )}
@@ -873,7 +889,7 @@ function CourseView({
         <div className="bg-[#5A6E3D]/10 border-2 border-[#5A6E3D] p-4 mb-5">
           <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>You finished {meta.title}. 🎓</h3>
           <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-            All {assessment.total} weeks done{assessment.quizTotal ? ` and ${assessment.quizzesPassed}/${assessment.quizTotal} checks passed` : ''}. The best students help teach the next group — put your name forward to help the next cohort.
+            All {assessment.total} {U.plural} done{assessment.quizTotal ? ` and ${assessment.quizzesPassed}/${assessment.quizTotal} checks passed` : ''}. {U.selfPaced ? 'The best way to keep it is to hand it on — put your name forward to help others through it.' : 'The best students help teach the next group — put your name forward to help the next cohort.'}
           </p>
           {helped ? (
             <div className="text-sm text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">✓ Sent — thank you for raising the next group.</div>
@@ -892,15 +908,17 @@ function CourseView({
 
       {/* The timeline + curriculum */}
       <div className="flex items-baseline justify-between gap-2 mb-1">
-        <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>The {meta.weeks} weeks</h3>
-        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 border ${cohortConfirmed ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B85838] border-[#B85838]'}`}>
-          {cohortConfirmed ? 'Cohort 1 · confirmed' : 'Cohort 1 · proposed'}
+        <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{U.selfPaced ? (meta.weeks === 1 ? `The ${U.noun}` : `The ${meta.weeks} ${U.plural}`) : `The ${meta.weeks} ${U.plural}`}</h3>
+        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 border ${U.selfPaced ? 'text-[#5A6E3D] border-[#5A6E3D]' : cohortConfirmed ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B85838] border-[#B85838]'}`}>
+          {U.selfPaced ? 'Self-paced' : (cohortConfirmed ? 'Cohort 1 · confirmed' : 'Cohort 1 · proposed')}
         </span>
       </div>
       <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-        {schedule[0]?.date
-          ? <>Starts <strong>{fmtDate(schedule[0].date)}</strong>, then weekly. {cohortConfirmed ? '' : 'Dates are proposed until Darrell confirms.'}</>
-          : 'A start date will be set soon.'}
+        {U.selfPaced
+          ? <>Go at your own pace — start any time, alone or with others. Nothing is timed.</>
+          : schedule[0]?.date
+            ? <>Starts <strong>{fmtDate(schedule[0].date)}</strong>, then weekly. {cohortConfirmed ? '' : 'Dates are proposed until Darrell confirms.'}</>
+            : 'A start date will be set soon.'}
       </p>
 
       {/* Export — Darrell trusts paper; same source as the screen */}
@@ -971,13 +989,25 @@ function CourseView({
             <li key={m.id} className="border border-[#E8E4DC] p-4">
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                  Week {m.week} · {m.title}
+                  {U.cap} {m.week} · {m.title}
                 </span>
-                <span className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  {m.date ? fmtDate(m.date) : 'date TBD'}
-                </span>
+                {!U.selfPaced && (
+                  <span className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    {m.date ? fmtDate(m.date) : 'date TBD'}
+                  </span>
+                )}
               </div>
               <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
+              {Array.isArray(m.benefits) && m.benefits.length > 0 && (
+                <div className="mt-2 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {m.benefits.map((b, i) => (
+                      <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <p className="text-xs text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                 <strong className="text-[#1A1815]">{handsOnLabel}:</strong> {m.inApp}
               </p>
@@ -994,7 +1024,7 @@ function CourseView({
                   aria-controls={`tutor-panel-${m.id}`}
                   className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
                 >
-                  {tutorOpen ? 'Close the guide' : 'Start this week →'}
+                  {tutorOpen ? 'Close the guide' : `Start this ${U.noun} →`}
                 </button>
                 {m.launch && onLaunch && !tutorOpen && (
                   <button
@@ -1012,7 +1042,7 @@ function CourseView({
                     aria-pressed={done}
                     className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${done ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
                   >
-                    {done ? '✓ Done' : 'Mark this week done'}
+                    {done ? '✓ Done' : `Mark this ${U.noun} done`}
                   </button>
                 )}
               </div>
@@ -1032,6 +1062,7 @@ function CourseView({
                     venueAware={venueAware}
                     quizSaved={quizState[m.id] || null}
                     onRecordQuiz={recordQuiz}
+                    unitNoun={U.noun}
                   />
                 </div>
               )}
@@ -1055,7 +1086,7 @@ function CourseView({
                   )}
                   {m.facilitator.howToRun && (
                     <>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">How to run the 75 minutes</div>
+                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">{U.sessionLabel}</div>
                       <ul className="list-disc pl-5 space-y-1 mb-2">
                         {m.facilitator.howToRun.split('|').map((s) => s.trim()).filter(Boolean).map((seg, i) => (
                           <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{seg}</li>
@@ -1096,8 +1127,12 @@ function CourseView({
         <hr />
         {schedule.map((m) => (
           <div key={m.id} style={{ pageBreakInside: 'avoid', marginBottom: '14px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: 700 }}>Week {m.week} — {m.title}{m.date ? ` · ${fmtDate(m.date)}` : ''}</h2>
+            <h2 style={{ fontSize: '15px', fontWeight: 700 }}>{U.cap} {m.week} — {m.title}{!U.selfPaced && m.date ? ` · ${fmtDate(m.date)}` : ''}</h2>
             <p><strong>Big idea.</strong> {m.bigIdea}</p>
+            {Array.isArray(m.benefits) && m.benefits.length > 0 && (
+              <><p><strong>What this frees in you</strong></p>
+              <ul>{m.benefits.map((b, i) => <li key={i}>{b}</li>)}</ul></>
+            )}
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
             <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>
@@ -1108,7 +1143,7 @@ function CourseView({
                   <ul>{m.facilitator.talkingPoints.map((t, i) => <li key={i}>{t}</li>)}</ul></>
                 )}
                 {m.facilitator.howToRun && (
-                  <><p><strong>How to run the 75 minutes</strong></p>
+                  <><p><strong>{U.sessionLabel}</strong></p>
                   <ul>{m.facilitator.howToRun.split('|').map((s) => s.trim()).filter(Boolean).map((seg, i) => <li key={i}>{seg}</li>)}</ul></>
                 )}
                 {m.facilitator.discussionPrompts?.length > 0 && (

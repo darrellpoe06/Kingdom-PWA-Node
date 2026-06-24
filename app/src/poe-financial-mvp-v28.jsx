@@ -47,6 +47,11 @@ import {
   buildAiLegalBlueprintSchedule, aiLegalBlueprintProgressSummary, exportAiLegalBlueprintCurriculumMarkdown,
   resolveAiLegalBlueprintCohort,
 } from './lib/ai-legal-blueprint-class.js';
+import {
+  LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW,
+  LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META,
+  buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown,
+} from './lib/living-lessons-class.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -5065,12 +5070,44 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // Living Lessons — a Word-first, SELF-PACED lesson series on the same
+          // shared engine (meta.unit renders it as "Lesson(s)" + drops the cohort
+          // clock). No cohort date setters (self-paced): setCohortStart/confirmCohort
+          // are null, and the schedule carries lesson numbers with no painted dates.
+          const submitLivingLessonsInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${LIVING_LESSONS_INTEREST_TAG} ${(name || 'A reader').trim()} wants more Living Lessons.` })
+            : null;
+          const livingLessonsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], LIVING_LESSONS_INTEREST_TAG) : null;
+          const livingLessonsCourse = {
+            meta: { ...LIVING_LESSONS_META, key: 'living-lessons' },
+            sessionFlow: LIVING_LESSONS_SESSION_FLOW,
+            schedule: buildLivingLessonsSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => livingLessonsProgressSummary(p),
+            exportMarkdown: () => exportLivingLessonsCurriculumMarkdown(),
+            downloadName: 'living-lessons-from-the-word.md',
+            submitInterest: submitLivingLessonsInterest,
+            roster: livingLessonsRoster,
+            interestCopy: {
+              heading: 'Want more Living Lessons?',
+              blurb: 'Tell Darrell which Word-first lessons would help you and your family most, and he’ll add them to the series. Read at your own pace, any time, at any age.',
+              cta: 'I’d like more',
+              sent: '✓ Sent — Darrell will see what you’re hungry for. The Word feeds the whole Body.',
+            },
+            tutorCourseMeta: LIVING_LESSONS_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
               : courseKey === 'infrastructure' ? INFRA_HELPER_TAG
                 : courseKey === 'ai-legal-blueprint' ? AI_LEGAL_BLUEPRINT_HELPER_TAG
-                  : '[Class helper]'
+                  : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
+                    : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5102,7 +5139,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, aiLegalBlueprintCourse]}
+            extraCourses={[infrastructureCourse, aiLegalBlueprintCourse, livingLessonsCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}

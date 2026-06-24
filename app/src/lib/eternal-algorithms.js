@@ -365,4 +365,20 @@ export const SEED_ALGORITHMS = [
       { label: 'EXCELLENCE-STANDARD.md', where: 'docs/00-foundations' },
     ],
   },
+  {
+    name: 'The Perfect You Were Made For (whole, not flawless)',
+    fourD: {
+      summary: 'God\'s "perfect" never meant flawless. "You therefore must be perfect, as your heavenly Father is perfect" (Matt 5:48, ESV) uses teleios (Strong\'s G5046, from telos, "end / goal") — complete, brought to its purpose, full-grown, mature, lacking nothing necessary. "Walk before me, and be thou perfect" (Gen 17:1, KJV) is tamim (H8549) — whole, sound, having integrity (ESV: "blameless"). The KJV renders BOTH as "perfect," and the old English "perfect" simply meant whole. It is grace-work, not self-manufacture: "perfect and complete, lacking in nothing" (Jas 1:4), "go on to maturity" (Heb 6:1), "perfected in love" so that "perfect love casts out fear" (1 Jn 4:17-18). Even Paul: "Not that I am already perfect, but I press on" (Phil 3:12).',
+      scripture: 'Matthew 5:48; Genesis 17:1; James 1:4; Hebrews 6:1; Colossians 1:28; 1 John 4:17-18; Philippians 3:12-15',
+    },
+    threeD: {
+      summary: 'Chasing flawless 3rd-dimensional performance is a trap — it breeds anxiety, endless self-measuring, and the fear of never being enough, and it is a standard the Bible never set. Trade it for the Perfect actually expected: whole, wholehearted, maturing, all-in love — a target God Himself grows in you by grace. Aim at whole, not flawless, and let Him do the perfecting.',
+    },
+    outcome: 'Freedom from crushing perfectionism: the fear and self-condemnation lift, acceptance is received as grace instead of earned by a spotless record, and you grow whole — wholehearted and perfected in love — at rest with God rather than performing for Him.',
+    tags: ['perfect', 'teleios', 'tamim', 'grace', 'maturity', 'love', 'perfectionism', 'wholeness', 'well-being', '4d-3d'],
+    links: [
+      { label: 'The Perfect You Were Made For (Learn lesson)', where: 'Church › Learn › Living Lessons' },
+      { label: 'Verified: teleios G5046 (from telos) / tamim H8549', where: 'Strong\'s lexicon' },
+    ],
+  },
 ];
