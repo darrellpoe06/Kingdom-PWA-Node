@@ -574,3 +574,204 @@ export function wordPresentable(sermons, opts = {}) {
     })),
   };
 }
+
+// -----------------------------------------------------------------------------
+// Adapter: Darrell's Study (reflections) -> a presentable
+// -----------------------------------------------------------------------------
+// The Study (lib/study-space.js) holds each reflection in TWO layers, and that
+// split IS the present-mode contract already: `plain` is the wider-audience
+// distillation (what a room hears) and `deep` is the 4th-dimensional source (the
+// presenter's depth). So the audience screen carries `plain`; `deep` rides only in
+// presenter notes and can never reach the projector (DR-0076 no-leak — the same
+// invariant the original course/word adapters hold). Only entries that actually
+// have a plain layer are presentable (an un-distilled entry has nothing to put up
+// on the screen yet), so this naturally skips deep-only drafts.
+const STUDY_KIND_LABEL = { reflection: 'Reflection', processing: 'Processing', research: 'Cultural research' };
+
+export function studyPresentable(entries, opts = {}) {
+  const list = (Array.isArray(entries) ? entries : [])
+    .filter((e) => e && e.plain && String(e.plain).trim());
+  // Pinned first, then newest first — the same order the Study surface shows.
+  const sorted = list.slice().sort(
+    (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
+      || String(b.createdAt || '').localeCompare(String(a.createdAt || '')),
+  );
+  const total = sorted.length;
+  return {
+    id: opts.id || 'study',
+    title: opts.title || "Darrell's Study",
+    kicker: opts.kicker || DEFAULT_KICKER,
+    targetMin: opts.targetMin || 45,
+    scenes: backfillTiming(sorted.map((e, i) => {
+      // Presenter-only depth: the deep source, the research culture, the tags.
+      // NONE of this is in `audience`, so buildSlideForScene never projects it.
+      const notes = [];
+      if (e.deep && String(e.deep).trim()) notes.push({ kind: 'body', heading: 'The deep source · 4th-dimensional', body: e.deep });
+      if (e.culture && String(e.culture).trim()) notes.push({ kind: 'body', heading: 'Audience in view', body: e.culture });
+      if (Array.isArray(e.tags) && e.tags.length) notes.push({ kind: 'list', heading: 'Tags', items: e.tags });
+      return {
+        id: e.id || `study-${i + 1}`,
+        indexLabel: `Reflection ${i + 1} of ${total}`,
+        dateLabel: null,                       // reflections are timeless; never paint a date
+        audience: {
+          title: e.title || 'Untitled',
+          lead: e.plain,                       // the wider-audience layer, by design
+          detail: null,
+          detailLabel: '',
+          anchorRef: e.scripture || null,
+          anchorTheme: STUDY_KIND_LABEL[e.kind] || null,
+        },
+        notes,
+      };
+    }), { defaultMin: opts.defaultSceneMin || DEFAULT_SCENE_MIN }),
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Adapter: a Conference agenda (sessions) -> a presentable
+// -----------------------------------------------------------------------------
+// The Event Center holds the real session list (event_sessions; see
+// EventCenterModule / conference-sync.toSessionShape). A host can put the agenda
+// up one session at a time: the room sees the session TITLE, who is bringing it,
+// when + where, and (for a main service) the linked message + music set. Host
+// logistics — capacity vs. registration, the session type, the room assignment —
+// stay in presenter notes, off the screen. Room/sermon/song NAMES are resolved by
+// the caller (the component already has the lookups) via opts resolvers, so this
+// stays a pure module with no conference-sync import.
+const CONF_SESSION_KIND = { main_service: 'Main service', breakout: 'Breakout', other: 'Session' };
+
+export function conferencePresentable(sessions, opts = {}) {
+  const list = (Array.isArray(sessions) ? sessions : [])
+    .filter((s) => s && s.title && s.status !== 'archived')
+    .slice()
+    .sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
+  const total = list.length;
+  const roomOf = typeof opts.resolveRoom === 'function' ? opts.resolveRoom : () => null;
+  const sermonOf = typeof opts.resolveSermon === 'function' ? opts.resolveSermon : () => null;
+  const songsOf = typeof opts.resolveSongs === 'function' ? opts.resolveSongs : () => [];
+  return {
+    id: opts.id || 'conference',
+    title: opts.title || 'Conference',
+    kicker: opts.kicker || DEFAULT_KICKER,
+    targetMin: opts.targetMin || 90,
+    scenes: backfillTiming(list.map((s, i) => {
+      const when = [s.day, s.time].filter(Boolean).join(' · ');
+      const where = roomOf(s) || null;
+      const sermonTitle = sermonOf(s) || null;
+      const songs = (songsOf(s) || []).filter(Boolean);
+      // Presenter-only logistics: type, room assignment, capacity. Not projected.
+      const notes = [{ kind: 'body', heading: 'Session type', body: CONF_SESSION_KIND[s.sessionType] || 'Session' }];
+      if (where) notes.push({ kind: 'body', heading: 'Room', body: where });
+      if (Number.isFinite(s.capacity)) notes.push({ kind: 'body', heading: 'Capacity', body: String(s.capacity) });
+      return {
+        id: s.id || `sess-${i + 1}`,
+        indexLabel: `Session ${i + 1} of ${total}`,
+        dateLabel: s.day || null,
+        audience: {
+          title: s.title,
+          lead: s.speaker || '',
+          detail: [when, where].filter(Boolean).join(' · ') || null,
+          detailLabel: 'When & where',
+          anchorRef: sermonTitle,
+          anchorTheme: songs.length ? songs.join(' · ') : null,
+        },
+        notes,
+      };
+    }), { defaultMin: opts.defaultSceneMin || DEFAULT_SCENE_MIN }),
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Adapter: a created Document (Creation Workspace) -> a presentable
+// -----------------------------------------------------------------------------
+// A workspace document (lib/creation-workspace.js) is ONE contenteditable HTML
+// blob, not a structured deck. To present it, split it on its own heading marks
+// (H1 / H2 the editor inserts) into one scene per section; a document with no
+// headings collapses to a single title scene carrying the whole body. Everything
+// in a document is audience-facing — there is no separate presenter layer — so
+// `notes` is always empty and nothing can leak (the contract holds trivially).
+// Only the 'document' type is presentable; an 'image' tile is a single visual unit
+// with no sections to advance through (the caller gates on type).
+
+// stripTags — pure (no DOM, so it runs in node tests): turn an HTML fragment into
+// readable plain text, inserting spaces at block boundaries and decoding the few
+// entities the editor emits. Used to derive the audience text from each section.
+export function stripTags(html) {
+  return String(html || '')
+    .replace(/<\/(p|div|h[1-6]|li|ul|ol|tr|blockquote)>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"').replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// splitHtmlSections — pure. Split an HTML document on its H1/H2 headings into
+// [{ heading, level, html, text }]. Content before the first heading is a
+// heading-less section (the preamble); a document with no headings yields one
+// heading-less section carrying the whole body.
+export function splitHtmlSections(html) {
+  const src = String(html || '');
+  if (!src.trim()) return [];
+  const re = /<(h[12])\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  const sections = [];
+  let lastIndex = 0;
+  let pending = null; // the heading whose body we are now collecting
+  const push = (heading, bodyHtml) => {
+    const text = stripTags(bodyHtml);
+    const headingText = heading ? stripTags(heading.raw) : null;
+    if (!headingText && !text) return; // drop fully-empty gaps
+    sections.push({ heading: headingText, level: heading ? Number(heading.tag.slice(1)) : 0, html: bodyHtml, text });
+  };
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    push(pending, src.slice(lastIndex, m.index));
+    pending = { tag: m[1].toLowerCase(), raw: m[2] };
+    lastIndex = re.lastIndex;
+  }
+  push(pending, src.slice(lastIndex));
+  return sections;
+}
+
+export function documentPresentable(workspace, opts = {}) {
+  const ws = workspace || {};
+  const docTitle = String(ws.title || '').trim() || 'Untitled document';
+  const sections = splitHtmlSections(ws.content || '');
+  const headed = sections.filter((s) => s.heading);
+  const preamble = sections.find((s) => !s.heading && s.text);
+  const scenes = [];
+  if (headed.length === 0) {
+    // No headings — the whole document is one slide.
+    const body = sections.map((s) => s.text).filter(Boolean).join(' ');
+    scenes.push({
+      id: 'doc-1', indexLabel: 'Document', dateLabel: null,
+      audience: { title: docTitle, lead: body || '', detail: null, detailLabel: '', anchorRef: null, anchorTheme: null },
+      notes: [],
+    });
+  } else {
+    // A title slide, then one slide per heading section.
+    scenes.push({
+      id: 'doc-title', indexLabel: 'Title', dateLabel: null,
+      audience: { title: docTitle, lead: preamble ? preamble.text : '', detail: null, detailLabel: '', anchorRef: null, anchorTheme: null },
+      notes: [],
+    });
+    headed.forEach((s, i) => {
+      scenes.push({
+        id: `doc-${i + 1}`,
+        indexLabel: `Section ${i + 1} of ${headed.length}`,
+        dateLabel: null,
+        audience: { title: s.heading, lead: s.text || '', detail: null, detailLabel: '', anchorRef: null, anchorTheme: null },
+        notes: [],
+      });
+    });
+  }
+  return {
+    id: opts.id || `doc:${ws.id || 'workspace'}`,
+    title: docTitle,
+    kicker: opts.kicker || DEFAULT_KICKER,
+    targetMin: opts.targetMin || 15,
+    scenes: backfillTiming(scenes, { defaultMin: opts.defaultSceneMin || DEFAULT_SCENE_MIN }),
+  };
+}

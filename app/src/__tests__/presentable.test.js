@@ -4,6 +4,8 @@ import {
   TEACH_CHANNEL, formatClock, DEFAULT_KICKER,
   buildSlideForScene, holdingSlide,
   coursePresentable, wordPresentable,
+  studyPresentable, conferencePresentable, documentPresentable,
+  stripTags, splitHtmlSections,
   ageHint, PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE,
   DEFAULT_SCENE_MIN, PRIORITY,
   withSceneTiming, estimateSceneMinutes, fullContentMin, fitToBudget, deterministicSkipRanker,
@@ -387,5 +389,162 @@ describe('living curriculum — persisted overlay (storage-injected)', () => {
     // and the reflow consumes the grown curriculum end-to-end
     const fit = fitToBudget(result, 40);
     expect(fit.counts.total).toBe(5);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// studyPresentable — Darrell's Study reflections become presentable
+// -----------------------------------------------------------------------------
+describe('studyPresentable — a reflection becomes presentable, deep source stays back', () => {
+  const entries = [
+    { id: 'r1', kind: 'reflection', title: 'Metanoia', scripture: 'Rom 12:2',
+      plain: 'Real change starts in how you think.', deep: 'SECRET-DEEP-SOURCE about the nous', tags: ['mind'], createdAt: '2026-06-16T00:00:00Z', pinned: false },
+    { id: 'r2', kind: 'research', title: 'For a wide room', scripture: '1 Cor 9:22',
+      plain: 'One truth, reworked to reach a culture.', deep: 'CONFIDENTIAL research notes', culture: 'campus students', createdAt: '2026-06-15T00:00:00Z', pinned: true },
+    { id: 'r3', kind: 'reflection', title: 'Undistilled', plain: '', deep: 'only a deep source, no plain yet', createdAt: '2026-06-14T00:00:00Z' },
+  ];
+  const p = studyPresentable(entries, { title: "Darrell's Study" });
+
+  it('only presents entries that have a plain (audience) layer', () => {
+    expect(p.scenes.length).toBe(2); // r3 (no plain) is skipped
+    expect(p.title).toBe("Darrell's Study");
+  });
+
+  it('pinned-first then newest-first order', () => {
+    expect(p.scenes[0].audience.title).toBe('For a wide room'); // pinned wins
+    expect(p.scenes[1].audience.title).toBe('Metanoia');
+    expect(p.scenes[0].indexLabel).toBe('Reflection 1 of 2');
+  });
+
+  it('puts the plain layer on the audience and the scripture on the anchor', () => {
+    const sc = p.scenes[1];
+    expect(sc.audience.lead).toBe('Real change starts in how you think.');
+    expect(sc.audience.anchorRef).toBe('Rom 12:2');
+    expect(sc.audience.anchorTheme).toBe('Reflection');
+  });
+
+  it('NEVER leaks the deep source to the projected slide (no-leak)', () => {
+    p.scenes.forEach((_, i) => {
+      const slide = buildSlideForScene(p.scenes, i, { kicker: p.kicker });
+      expect(JSON.stringify(slide)).not.toContain('SECRET-DEEP-SOURCE');
+      expect(JSON.stringify(slide)).not.toContain('CONFIDENTIAL');
+    });
+    // the deep source is present, but only in presenter notes
+    const metanoia = p.scenes.find((s) => s.audience.title === 'Metanoia');
+    expect(JSON.stringify(metanoia.notes)).toContain('SECRET-DEEP-SOURCE');
+  });
+
+  it('is empty-safe', () => {
+    expect(studyPresentable(null).scenes).toEqual([]);
+    expect(studyPresentable([]).scenes).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// conferencePresentable — a session agenda becomes presentable
+// -----------------------------------------------------------------------------
+describe('conferencePresentable — the agenda becomes presentable, logistics stay back', () => {
+  const sessions = [
+    { id: 's2', title: 'Evening Worship', day: 'Tue Jul 15', time: '7:00 PM', speaker: 'Bishop Gwin',
+      sessionType: 'main_service', capacity: 800, sortOrder: 1, status: 'active' },
+    { id: 's1', title: 'Welcome Breakout', day: 'Tue Jul 15', time: '5:00 PM', speaker: 'Host',
+      sessionType: 'breakout', capacity: 60, sortOrder: 0, status: 'active' },
+    { id: 's3', title: 'Archived', sessionType: 'other', sortOrder: 2, status: 'archived' },
+  ];
+  const p = conferencePresentable(sessions, {
+    title: 'The Assembly',
+    resolveRoom: (s) => (s.id === 's2' ? 'South Campus · Main Sanctuary' : null),
+    resolveSermon: (s) => (s.id === 's2' ? 'Faith Over Fear' : null),
+    resolveSongs: (s) => (s.id === 's2' ? ['Total Praise', 'Way Maker'] : []),
+  });
+
+  it('drops archived sessions and orders by sortOrder', () => {
+    expect(p.scenes.length).toBe(2);
+    expect(p.scenes[0].audience.title).toBe('Welcome Breakout'); // sortOrder 0
+    expect(p.scenes[1].audience.title).toBe('Evening Worship');
+    expect(p.title).toBe('The Assembly');
+  });
+
+  it('audience sees title/speaker/when-where + the linked message & music', () => {
+    const sc = p.scenes[1];
+    expect(sc.audience.lead).toBe('Bishop Gwin');
+    expect(sc.audience.detail).toContain('Tue Jul 15');
+    expect(sc.audience.detail).toContain('Main Sanctuary');
+    expect(sc.audience.anchorRef).toBe('Faith Over Fear');
+    expect(sc.audience.anchorTheme).toContain('Total Praise');
+  });
+
+  it('keeps capacity/type off the projected slide (presenter-only)', () => {
+    const slide = buildSlideForScene(p.scenes, 1, { kicker: p.kicker });
+    expect(JSON.stringify(slide)).not.toContain('800'); // capacity not projected
+    // capacity rides in presenter notes instead
+    expect(JSON.stringify(p.scenes[1].notes)).toContain('800');
+  });
+
+  it('is empty-safe and resolver-optional', () => {
+    expect(conferencePresentable(null).scenes).toEqual([]);
+    const bare = conferencePresentable([{ id: 'x', title: 'Bare', status: 'active' }]);
+    expect(bare.scenes[0].audience.title).toBe('Bare');
+    expect(bare.scenes[0].audience.anchorRef).toBeNull();
+  });
+});
+
+// -----------------------------------------------------------------------------
+// documentPresentable — a created document becomes presentable (HTML -> slides)
+// -----------------------------------------------------------------------------
+describe('stripTags + splitHtmlSections — pure HTML helpers (no DOM)', () => {
+  it('stripTags decodes entities and inserts block spacing', () => {
+    expect(stripTags('<p>Hello<br>there</p><p>friend &amp; co</p>')).toBe('Hello there friend & co');
+    expect(stripTags('')).toBe('');
+    expect(stripTags('<h1>Title</h1>')).toBe('Title');
+  });
+
+  it('splitHtmlSections splits on H1/H2 with a preamble section', () => {
+    const html = '<p>Intro line.</p><h1>First</h1><p>Body one.</p><h2>Second</h2><p>Body two.</p>';
+    const secs = splitHtmlSections(html);
+    expect(secs.map((s) => s.heading)).toEqual([null, 'First', 'Second']);
+    expect(secs[0].text).toBe('Intro line.');
+    expect(secs[1].text).toBe('Body one.');
+    expect(secs[2].level).toBe(2);
+  });
+
+  it('a document with no headings is one heading-less section', () => {
+    const secs = splitHtmlSections('<p>Just one paragraph.</p>');
+    expect(secs.length).toBe(1);
+    expect(secs[0].heading).toBeNull();
+    expect(secs[0].text).toBe('Just one paragraph.');
+    expect(splitHtmlSections('')).toEqual([]);
+  });
+});
+
+describe('documentPresentable — a document becomes a deck', () => {
+  it('splits a headed document into a title slide + one slide per heading', () => {
+    const ws = { id: 'w1', title: 'My Plan', content: '<p>Opening.</p><h1>Vision</h1><p>The why.</p><h2>Steps</h2><ul><li>One</li><li>Two</li></ul>' };
+    const p = documentPresentable(ws);
+    expect(p.title).toBe('My Plan');
+    expect(p.id).toBe('doc:w1');
+    expect(p.scenes.map((s) => s.audience.title)).toEqual(['My Plan', 'Vision', 'Steps']);
+    expect(p.scenes[0].audience.lead).toBe('Opening.'); // preamble on the title slide
+    expect(p.scenes[1].indexLabel).toBe('Section 1 of 2');
+    expect(p.scenes[2].audience.lead).toContain('One');
+  });
+
+  it('a heading-less document collapses to a single slide', () => {
+    const p = documentPresentable({ id: 'w2', title: 'Note', content: '<p>One thought, no headings.</p>' });
+    expect(p.scenes.length).toBe(1);
+    expect(p.scenes[0].audience.title).toBe('Note');
+    expect(p.scenes[0].audience.lead).toBe('One thought, no headings.');
+  });
+
+  it('every document scene carries no presenter notes (nothing to leak)', () => {
+    const p = documentPresentable({ id: 'w3', title: 'T', content: '<h1>A</h1><p>x</p><h2>B</h2><p>y</p>' });
+    p.scenes.forEach((s) => expect(s.notes).toEqual([]));
+  });
+
+  it('handles an empty / untitled document safely', () => {
+    const p = documentPresentable({});
+    expect(p.title).toBe('Untitled document');
+    expect(p.scenes.length).toBe(1);
+    expect(p.scenes[0].audience.title).toBe('Untitled document');
   });
 });
