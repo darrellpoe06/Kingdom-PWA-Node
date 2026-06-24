@@ -41,6 +41,12 @@ import {
   buildInfraSchedule, infraProgressSummary, exportInfraCurriculumMarkdown,
   resolveInfraCohort, INFRA_SOP_SEQUENCES,
 } from './lib/infrastructure-class.js';
+import {
+  AI_LEGAL_BLUEPRINT_META, AI_LEGAL_BLUEPRINT_SESSION_FLOW, AI_LEGAL_BLUEPRINT_PROPOSED_COHORT_START,
+  AI_LEGAL_BLUEPRINT_INTEREST_TAG, AI_LEGAL_BLUEPRINT_HELPER_TAG, AI_LEGAL_BLUEPRINT_TUTOR_META,
+  buildAiLegalBlueprintSchedule, aiLegalBlueprintProgressSummary, exportAiLegalBlueprintCurriculumMarkdown,
+  resolveAiLegalBlueprintCohort,
+} from './lib/ai-legal-blueprint-class.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -3775,6 +3781,9 @@ export default function PoeFinancialSystem() {
   // The Infrastructure course (Darrell 2026-06-16) — its OWN cohort, same machinery.
   const setInfraCohortStart = (date) => setData(d => ({ ...d, infraCohort: { ...(d.infraCohort || {}), startDate: date } }));
   const confirmInfraCohort = (confirmed) => setData(d => ({ ...d, infraCohort: { ...(d.infraCohort || {}), confirmed: !!confirmed } }));
+  // The AI Legal Blueprint course — its OWN cohort, same machinery.
+  const setAiLegalBlueprintCohortStart = (date) => setData(d => ({ ...d, aiLegalBlueprintCohort: { ...(d.aiLegalBlueprintCohort || {}), startDate: date } }));
+  const confirmAiLegalBlueprintCohort = (confirmed) => setData(d => ({ ...d, aiLegalBlueprintCohort: { ...(d.aiLegalBlueprintCohort || {}), confirmed: !!confirmed } }));
   // SHARED Learn-framework state (consumed by ALL three courses): quiz results keyed
   // by module id (real assessment record), the learner's depth override, and the
   // learner's AGE BAND (the master pacing control — one curriculum, age-right delivery).
@@ -5023,11 +5032,45 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // The AI Legal Blueprint course — the privacy/legal companion to the
+          // Sovereign A.I. course. Plain-language, age-adaptive (child/teen/senior),
+          // teaches what NOT to paste into a vendor chatbot and why. Same shared
+          // framework + machinery; reuses the Governor's engagement-by-age aggregate.
+          const aiLegalBlueprintCohort = resolveAiLegalBlueprintCohort(data.aiLegalBlueprintCohort);
+          const aiLegalBlueprintStart = aiLegalBlueprintCohort.startDate || AI_LEGAL_BLUEPRINT_PROPOSED_COHORT_START;
+          const submitAiLegalBlueprintInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${AI_LEGAL_BLUEPRINT_INTEREST_TAG} ${(name || 'A learner').trim()} wants to join the AI Legal Blueprint course.` })
+            : null;
+          const aiLegalBlueprintRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], AI_LEGAL_BLUEPRINT_INTEREST_TAG) : null;
+          const aiLegalBlueprintCourse = {
+            meta: { ...AI_LEGAL_BLUEPRINT_META, key: 'ai-legal-blueprint' },
+            sessionFlow: AI_LEGAL_BLUEPRINT_SESSION_FLOW,
+            schedule: buildAiLegalBlueprintSchedule(aiLegalBlueprintStart),
+            cohortStart: aiLegalBlueprintStart,
+            cohortConfirmed: aiLegalBlueprintCohort.confirmed,
+            setCohortStart: setAiLegalBlueprintCohortStart,
+            confirmCohort: confirmAiLegalBlueprintCohort,
+            progressSummary: (p) => aiLegalBlueprintProgressSummary(p),
+            exportMarkdown: () => exportAiLegalBlueprintCurriculumMarkdown(aiLegalBlueprintStart),
+            downloadName: 'ai-legal-blueprint-what-never-to-tell-a-chatbot-curriculum.md',
+            submitInterest: submitAiLegalBlueprintInterest,
+            roster: aiLegalBlueprintRoster,
+            interestCopy: {
+              heading: 'Want to keep your data safe with A.I.?',
+              blurb: 'Tell Darrell you want to take the AI Legal Blueprint — what never to tell a chatbot, and why — and he’ll save you a spot in Cohort 1. Plain language, paced for every age.',
+              cta: 'Keep me safe',
+              sent: '✓ Sent — Darrell will see you’re in. We protect what’s yours.',
+            },
+            tutorCourseMeta: AI_LEGAL_BLUEPRINT_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
               : courseKey === 'infrastructure' ? INFRA_HELPER_TAG
-                : '[Class helper]'
+                : courseKey === 'ai-legal-blueprint' ? AI_LEGAL_BLUEPRINT_HELPER_TAG
+                  : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5059,7 +5102,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse]}
+            extraCourses={[infrastructureCourse, aiLegalBlueprintCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
