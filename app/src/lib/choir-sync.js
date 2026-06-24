@@ -48,6 +48,11 @@ export function toSongShape(row) {
     arrangement: row.arrangement ?? null,
     soloist: row.soloist ?? null,
     sermonRef: row.sermon_ref ?? null,
+    // Archive provenance (0042) — auto-seeded from the church archive.
+    source: row.source ?? 'manual',
+    videoId: row.video_id ?? null,
+    confidence: row.confidence ?? null,
+    needsReview: !!row.needs_review,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
   };
@@ -434,6 +439,12 @@ export async function saveSong(song, displayName) {
     soloist: song.soloist ?? null,
     sermon_ref: song.sermonRef ?? null,
   };
+  // Archive provenance (0042) — written ONLY when provided, so a manual save
+  // (SongForm) never resets an archive-seeded row's source back to 'manual'.
+  if (song.source !== undefined) row.source = song.source || 'manual';
+  if (song.videoId !== undefined) row.video_id = song.videoId || null;
+  if (song.confidence !== undefined) row.confidence = song.confidence || null;
+  if (song.needsReview !== undefined) row.needs_review = !!song.needsReview;
   if (song.id) {
     const { error } = await supabase.from('choir_songs').update({ ...row, updated_by: ctx.userId }).eq('id', song.id);
     return error ? { skipped: 'update-error', error } : { saved: true };
