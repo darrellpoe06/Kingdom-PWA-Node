@@ -10,7 +10,7 @@
 
 ## TL;DR
 
-**The goal:** turn the church Body's living study — Bishop Gwin's Word *and the congregation's contributions* (Q&A, discussion, collaborative study) as they "discuss Yahweh's perspectives explicitly" — into structured **course materials** inside the PoeTech app: objectives, segments, scripture refs, the Body's contributions, trivia → Learn + Presenter + Study + clips. Faithful to the Word, served-not-surveilled, sovereign on our own hardware.
+**The goal (now the full content engine):** ONE shared transcript→structure engine, **multiple sources → multiple outputs.** **Sources:** the church Body's living study (Bishop Gwin's Word *and the congregation's contributions* — Q&A, discussion, collaborative study — as they "discuss Yahweh's perspectives explicitly") **+ Darrell's in-app conversations** (discussions, Study reflections, chat-in, family voice, his private thinking space — all owner/family-scoped). **Outputs, compiled in sequence:** structured **lessons** (Learn) → **curriculum** (courses/series) → **books** (downloadable PDF/EPUB) → **digital-marketing assets** (lead magnets / products). Faithful to the Word, served-not-surveilled, sovereign on our own hardware, operated through the app on the CUDA boxes. The recordings→lessons pipeline (§0–§10) and the conversations→lessons pipeline (§13) are the **same engine pointed at different sources**; §12 frames the whole engine and §15 gives the firm phased timeline.
 
 **The architecture, settled across this session's directives:**
 
@@ -313,8 +313,153 @@ Everything else is reuse + wiring.
 Per *"let's get the best ways AND documentation for each inside the PoeTech app"*: the decided best-way for each topic is materialized as **in-app documentation** — a **Church Local Infrastructure** project (domain `church`, instance `colg`) with **9 discussion entries** (the app's institutional-memory / Events-as-data model, rendered inline on the project + in the Discussions tab). Each entry = recommended best way + decisions-with-rationale ("we chose X not Y because Z").
 
 - **Committed source (this repo):** `infra/seed-data/2026-06-23-colg-local-infrastructure-docs.json` (structured seed) + `infra/seed-data/2026-06-23-colg-local-infrastructure-docs.sql` (idempotent applier, resolves the `colg` instance by slug — the proven `(SELECT id FROM instances WHERE slug='colg')` pattern from migration 0013).
-- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** — the 9 best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to the project. The nine: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) End-to-end pipeline.
+- **Two projects (umbrella scope):**
+  - **Church Local Infrastructure** (`colg-local-infra-2026-06`, domain `church`) — the sovereign-infra + recordings-pipeline entries.
+  - **Content Engine** (`content-engine-2026-06`, domain `church`) — the broader workstream: the unified engine, conversations→lessons, curriculum→books, and the phased timeline. Engine entries link to **both** projects.
+- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **13 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)**.
 - **Live-render status (honest):** these **render live after the one-time Studio apply against the `colg` cloud instance** — a cloud/Darrell-hand step, exactly like every DB change in this repo (the db-migrate convention). Committed + pushed here; **not yet applied to cloud** (this local session cannot reach the cloud Studio). Marked pending, not claimed live.
+
+---
+
+## 12. THE UNIFIED CONTENT ENGINE (sources → lessons → curriculum → books → marketing)
+
+One engine, many sources, many outputs. The transcript→structure→faithfulness-gate→consent→MODULES→review→publish spine (§2) is **source-agnostic**: feed it a recording or a conversation, it produces a lesson. Lessons compile up into curriculum; curriculum compiles into books; books become marketing assets. Each arrow is a compile step, each behind the same brakes + the same human gate.
+
+```
+  SOURCES                          ENGINE (shared)            OUTPUTS (compiled in sequence)
+  ┌────────────────────────┐                                 ┌───────────────────────────────┐
+  │ church recordings      │                                 │ LESSON   (Learn / Presenter)  │
+  │  (NAS ∪ YouTube)  §0-10 │──┐                          ┌─▶│   MODULES: objectives, segs,  │
+  ├────────────────────────┤  │   ┌──────────────────┐    │  │   anchor refs, body-contrib,  │
+  │ in-app CONVERSATIONS    │  ├──▶│ transcribe/ingest│────┤  │   trivia                      │
+  │  discussions / Study /  │  │   │ faithfulness gate│    │  └───────────────┬───────────────┘
+  │  chat-in / family-voice/│  │   │ consent scrub    │    │                  │ compile related
+  │  thinking space   §13   │──┘   │ structure (LLM)  │    │                  ▼
+  │  (owner/family-scoped)  │      │ human review     │    │  ┌───────────────────────────────┐
+  └────────────────────────┘      └──────────────────┘    │  │ CURRICULUM (course / series)  │
+                                      app-on-CUDA          │  │   learn-framework course shape│
+                                      = the cockpit        │  └───────────────┬───────────────┘
+                                                           │                  │ compile course
+                                                           │                  ▼
+                                                           │  ┌───────────────────────────────┐
+                                                           └──│ BOOK  (PDF / EPUB, downloadable)│
+                                                              │   OWNED content only          │
+                                                              └───────────────┬───────────────┘
+                                                                              │ package
+                                                                              ▼
+                                                              ┌───────────────────────────────┐
+                                                              │ MARKETING ASSET (lead magnet/  │
+                                                              │  product)  — payment = his hand│
+                                                              └───────────────────────────────┘
+```
+
+The same in-app cockpit (§7) operates every stage; the same three brakes + Governor review gate every compile.
+
+---
+
+## 13. PHASE — Conversations → Lessons (same engine, in-app conversation sources)
+
+Point the engine at **in-app conversation data** instead of (or alongside) recordings. No transcription needed for the text sources — they're already text — so this phase is **CPU-OK today**.
+
+### Sources (all owner/family-scoped)
+
+| Source | Where | Scope / sensitivity |
+|---|---|---|
+| **Discussions** | `discussions` table (Supabase), `app/src/lib/discussions.js` | instance-scoped + RLS; `visibility: private` filtered to author+owners (`visibleDiscussions`). |
+| **Study reflections / thinking space** | `app/src/lib/study-space.js` (`KINDS`: reflection/processing/research) | **Device-local only (localStorage), never synced to cloud** — his most private processing. *Process-don't-store* is binding here. |
+| **chat-in** | `app/src/lib/chat-import.js` (`parseChatHistory`, `toConversationEntries`) → project `conversationLog` | owner-scoped imported chats. |
+| **Family voice** | family-voice inputs (`SelfServeWelcome.jsx`) | family-scoped. |
+| **Yahweh discussions** | `docs/00-foundations/darrells-study/yahweh-discussions.md` | private to Darrell/Christina/BG (the append rule). |
+
+### Constraint resolutions (deltas from the recordings pipeline)
+
+- **Privacy/consent is the senior gate here, inverted.** Recordings default *teaching=shareable*; **conversations default PRIVATE**, especially the Study thinking space. The engine is **opt-in per item** — Darrell *picks* a conversation to turn into a lesson; nothing auto-publishes his private processing. The Presidio scrub + the no-leak visibility filter still run, but the first gate is *his explicit selection*.
+- **Faithful structuring** is unchanged: the model organizes what he said, never improvises theology; the faithfulness gate still verifies any scripture he quoted (§3.1 C+D; the matched-pair cross-check E doesn't apply — there's one copy).
+- **No transcription** for text sources → no Whisper, no GPU dependency → **runs on CPU now.** (A *voiced* family-voice clip would re-enter the transcription path.)
+
+### Build sizing
+
+- **Phase 1 (MVP, CPU-OK) — ~3–5 build days:** pick-a-conversation → draft lesson → human review → publish to Learn. Reuses the `MODULES` schema, the review queue, the Presenter. The new code is the *conversation-selector* surface + the conversation→MODULES extraction prompt. **Depends on: privacy scoping** (the opt-in selector + the private-by-default posture).
+- **Phase 2 (batch, GPU-accelerated) — after the engine is proven:** batch-process conversation history behind the three brakes, newest-first. GPU helps only where voiced clips need transcription; pure-text batch is CPU-fine but volume-gated by the human review queue.
+
+---
+
+## 14. PHASE — Curriculum → Books (downloadable PDF/EPUB, marketing-ready)
+
+Compile a course/curriculum into a **downloadable book**, positioned as a digital-marketing asset.
+
+### ⚠ Premise conflict surfaced (verify before building)
+
+The directive says *"surface in the existing BOOKS tab."* **The app's "Books" tab is the financial ledger** (accounting — `BooksEntities.jsx`; "Books → Tx", "Books → Imported"; nav id `books` in the monolith's `VALID` list), **not** a publishing/library shelf. There is **no existing downloadable-book surface.** Bolting a curriculum-book library onto the accounting tab would collide two unrelated meanings of "books."
+
+**Recommendation:** home the book/library surface in the **Learn / Church area** where the curriculum already lives (a "Library" / "Shelf" sub-surface), reusing the **`CreationWorkspace` export primitive** (`app/src/lib/creation-workspace.js`, `CreationWorkspace.jsx`) that already does dependency-free document export. This also matches the existing tracked goal *"Worldview teaching book · finish + publish"* (a real project row in the monolith). **Do not duplicate, and do not overload the financial Books tab.** (If Darrell *means* a new top-level "Library" tab, that's a small nav addition — his call.)
+
+### Export approach — options
+
+No PDF/EPUB lib is in `package.json` today.
+
+| Option | What | Trade-off |
+|---|---|---|
+| **A. Print-CSS → PDF (zero-dep)** | A print stylesheet + `window.print()` → user "saves as PDF." | Zero new dependency, fully sovereign, works offline, reuses the browser. No EPUB. Least control over pagination. **Leanest; recommended for MVP.** |
+| **B. jsPDF / pdf-lib (client-side PDF)** | Generate the PDF in-app, real download button. | One dependency; precise control; still sovereign (client-side). EPUB still separate. |
+| **C. + JSZip EPUB** | EPUB = a zip of XHTML; build client-side with JSZip. | Adds reflowable-ebook output (better for phones/readers); +1–2 deps. Do only if EPUB is actually wanted. |
+
+**Recommendation: A for the MVP** (zero-dep, proves the compile + download), **B/C as the next increment** when a polished product/lead-magnet is wanted.
+
+### Hard rules (binding)
+
+- **No payment / monetization build.** We produce the **book + download + marketing-ready packaging only.** Payment processing, checkout, pricing rails = **Darrell's hand**, explicitly out of scope (he owns the money flow).
+- **Copyright (binding):** books are built from **OWNED curriculum** — church content + Darrell's own conversations — which is fine. **Do NOT embed copyrighted song lyrics or third-party copyrighted text.** Scripture refs + themes + the Body's own words are fine; **derived data only** (a reference, a theme, a paraphrase-marked summary), never a pasted copyrighted lyric or passage. This pairs with the Worship/Music section's per-track vetting and the SCRIPTURE-REFERENCE-STANDARD (fetch the actual translation; mark paraphrase).
+- **Faithfulness carries through:** a book inherits its lessons' verified status — nothing with an open faithfulness/consent flag compiles into a shippable book.
+
+### Build sizing
+
+- **Curriculum → Book (MVP, CPU-OK) — ~3–5 build days** with Option A (print-CSS): compile a course's lessons → a paginated book view → download. **Depends on: the Library-surface decision** (where it lives) + the export approach.
+- EPUB / polished product: **+~2 days** (Option B/C).
+
+---
+
+## 15. FIRM PHASED TIMELINE — the whole engine
+
+Build-day estimates are engineering effort, not wall-clock; phases gated by their **dependencies**, not the calendar. "CPU-now" = ships on current hardware; "GPU-later" = needs/accelerated-by the CUDA box.
+
+| Phase | What ships | Build days | Compute | Hard dependencies |
+|---|---|---|---|---|
+| **P0** | Text wedge: BG Wednesday message → lesson + trivia | ~2–3 | **CPU-now** | Gmail OAuth (the only blocker) |
+| **P1** | **Conversations → Lessons** MVP (pick → draft → review → publish to Learn) | **~3–5** | **CPU-now** | Privacy scoping (opt-in selector, private-by-default) |
+| **P2** | **Recordings → Lessons** MVP (one recording → faithfulness gate → lesson) | ~4–6 | **CPU-now** (slow), **GPU accelerates** | The faithfulness gate (§9.3); one recording on the NAS (manual upload OR church-NAS access) |
+| **P3** | **Lessons → Curriculum** (compile related lessons into courses/series) | ~2–3 | **CPU-now** | P1/P2 producing lessons; reuses learn-framework |
+| **P4** | **Curriculum → Books** MVP (compile → paginated → download PDF) | ~3–5 | **CPU-now** | Library-surface decision (§14, NOT the financial Books tab); export approach |
+| **P5** | **Reconciliation + retention engine** (NAS ∪ YouTube, best-of-one) | ~5–8 | CPU-now | Church-NAS read access (tailnet, his-hand creds) |
+| **P6** | **In-app cockpit on CUDA** (Reconcile/Build/Monitor/Review/Publish surfaces) | ~6–10 | runs CPU; **homes on GPU box** | GPU box online; P2/P5 logic to wrap |
+| **P7** | **Batch backfill** (all conversation history + the 836-video archive, behind brakes, newest-first) | ~2–4 + run-time | **GPU-later** | GPU box + P5 reconciler + P6 cockpit + three brakes |
+| **P8** | **Books → Marketing assets** (lead-magnet/product packaging; EPUB) | ~2–4 | CPU-now | P4; **payment = Darrell's hand, NOT built** |
+
+### Dependency graph (what unblocks what)
+
+```
+  Gmail OAuth ──▶ P0
+  Privacy scoping ──▶ P1 ──┐
+                           ├─▶ P3 (curriculum) ──▶ P4 (books) ──▶ P8 (marketing; payment = his hand)
+  Faithfulness gate ──▶ P2 ┘
+        │
+        └─(church-NAS access via tailnet)─▶ P5 (reconcile) ──┐
+                                                             ├─▶ P6 (cockpit on CUDA) ──▶ P7 (batch backfill)
+                              GPU box online ────────────────┘
+```
+
+### CPU-now vs GPU-later (the honest split)
+
+- **CPU-now (ship today on current hardware):** P0, P1, P2 (slow but works), P3, P4, P5, P8. **The entire sources→lessons→curriculum→books→marketing spine can be PROVEN on CPU** — text sources need no GPU at all, and one recording transcribes (slowly) on the DS1621xs.
+- **GPU-later (needs/accelerated-by the CUDA box):** P6 (the cockpit *homes* on the GPU box as the processing node) and **P7 (batch backfill of 836 videos + all-history)** — the only phase that genuinely *requires* GPU to be practical. GPU also turns P2's "slow" into "fast."
+
+**Sequencing recommendation:** P0/P1 first (cheapest value, CPU, no new hardware) → P3 → P4 (prove the whole compile chain to a downloadable book on owned conversation content) → then P2/P5/P6/P7 as the church-NAS access + GPU box land → P8 packaging when Darrell wants products. **The whole engine is demonstrable end-to-end on CPU with owned conversation data before a single GPU dependency is required.**
+
+### Standard screens (engine-wide)
+
+- **Sovereign-mesh Tier 1** holds for the whole engine — every source, compile, and output stays on owned hardware; books generate client-side; marketing packaging is local; the only external touch is the owner's own Takeout (his data) and, later, his own payment rail (his hand, not built).
+- **Cost:** marginal cost ≈ electricity + operator attention + (P7) GPU time on hardware already bought for the COLG build. Book generation = $0 (client-side). vs a SaaS course-builder + ebook-compiler + transcription stack (easily $50–300/mo combined), the sovereign engine's recurring cash cost is **≈ $0**, and the family/church **owns the curriculum, the books, and the audience relationship** — the anti-extraction moat.
+- **Father's-Business:** the engine turns the Body's worship + Darrell's private wrestling-with-Yahweh into re-studiable lessons, owned curriculum, and books that disciple and can fund the mission — soul-serving content the community owns, never sold-from-under-them. Books built from owned content, no copyrighted lyrics, payment governed by Darrell. Passes the eight-question Test.
 
 ---
 

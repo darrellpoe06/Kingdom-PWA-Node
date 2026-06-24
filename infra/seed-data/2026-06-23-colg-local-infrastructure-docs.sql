@@ -36,7 +36,19 @@ BEGIN
   )
   ON CONFLICT (instance_id, slug) DO NOTHING;
 
-  -- 2) Nine best-way discussion entries -------------------------------------
+  -- 1b) Content Engine workstream project -----------------------------------
+  INSERT INTO projects (id, instance_id, created_by, slug, title, status, domain, description, created_at, updated_at)
+  VALUES (
+    gen_random_uuid(), v_instance, NULL,
+    'content-engine-2026-06',
+    'Content Engine',
+    'active', 'church',
+    'The unified content engine: ONE shared transcript->structure engine, multiple sources (church recordings + Darrell''s in-app conversations) -> multiple outputs compiled in sequence (lessons -> curriculum -> books -> digital-marketing assets). Holds the engine framing, conversations->lessons, curriculum->books, and the firm phased timeline (CPU-now vs GPU-later). Survey: docs/99-session-notes/2026-06-23-research-review-body-study-to-course-materials-pipeline.md sections 12-15.',
+    now(), now()
+  )
+  ON CONFLICT (instance_id, slug) DO NOTHING;
+
+  -- 2) Thirteen best-way discussion entries ---------------------------------
   INSERT INTO discussions
     (id, instance_id, created_by, slug, kind, title, body, project_slugs, visibility, status, links, meta, author_persona, created_at, updated_at)
   VALUES
@@ -83,6 +95,26 @@ BEGIN
     (gen_random_uuid(), v_instance, NULL, 'dc-colg-infra-end-to-end-pipeline', 'directive',
      'End-to-end: recordings -> course materials (the whole pipeline)',
      'BEST WAY (the umbrella): reconcile-both -> retain-best -> app-on-CUDA transcribes (scripture-aware) -> faithfulness gate -> consent scrub -> structure into a MODULES lesson (objectives/segments/anchor refs/the Body''s contributions/trivia) -> human review (Governor-gated) -> publish newest-first into Learn + Presenter + Study + Engagement + Church clips. Operated entirely through in-app surfaces. Reuses sme-pipeline, learn-framework, the Presenter contract, the trivia lane, Study, choir_sermons, and the discussions model. New links only: church-NAS access, the reconciliation/retention engine, the faithfulness gate, and the in-app cockpit. WE CHOSE app-operated, gate-first, human-in-the-loop, NOT scrape-and-auto-publish, BECAUSE the Word must be verifiably faithful (two copies, canonical check), people must be consented (served-not-surveilled), and the human governs the bright line. Tier B/C: soaks before it ships.',
-     '["colg-local-infra-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now())
+     '["colg-local-infra-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-content-engine-unified', 'directive',
+     'Unified content engine: sources -> lessons -> curriculum -> books -> marketing',
+     'BEST WAY: ONE shared transcript->structure engine, source-agnostic. SOURCES: church recordings (NAS union YouTube) + Darrell''s in-app conversations (discussions / Study / chat-in / family-voice / private thinking space, owner-family-scoped). OUTPUTS compiled in sequence: LESSON (Learn/Presenter) -> CURRICULUM (course/series, learn-framework shape) -> BOOK (downloadable PDF/EPUB, owned content only) -> MARKETING ASSET (lead magnet/product). Each arrow is a compile step behind the same three brakes + the same Governor review gate; the same app-on-CUDA cockpit operates every stage. WE CHOSE one engine many sources/outputs, NOT separate one-off tools, BECAUSE the transcript->faithfulness-gate->consent->MODULES->review->publish spine is identical whether the input is a recording or a conversation - reuse, not rebuild.',
+     '["content-engine-2026-06","colg-local-infra-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-content-engine-conversations-to-lessons', 'decision',
+     'Conversations -> Lessons (in-app conversation sources, CPU-now)',
+     'BEST WAY: point the same engine at in-app conversation data (Supabase discussions, Study reflections/thinking-space, chat-in conversationLog, family-voice, the yahweh-discussions append). No transcription for text sources -> CPU-OK today, no GPU dependency. PRIVACY IS THE SENIOR GATE, INVERTED: recordings default teaching=shareable, but conversations default PRIVATE (especially the Study thinking space - process-don''t-store is binding). The engine is OPT-IN PER ITEM - Darrell picks a conversation to turn into a lesson; nothing auto-publishes his private processing. Presidio scrub + no-leak visibility filter still run. Faithful structuring unchanged. Phase 1 MVP (pick -> draft -> review -> publish to Learn) ~3-5 build days, depends on privacy scoping. Phase 2 batch-all-history behind brakes, GPU-accelerated only where voiced clips need transcription. WE CHOSE opt-in private-by-default, NOT auto-ingest-all-conversations, BECAUSE the Study space is his most private thinking - he selects what becomes public, the system never decides that for him.',
+     '["content-engine-2026-06","colg-local-infra-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-content-engine-curriculum-to-books', 'decision',
+     'Curriculum -> Books (PDF/EPUB; NOT the financial Books tab; owned content only)',
+     'BEST WAY: compile a course/curriculum into a downloadable book (PDF/EPUB), positioned as a digital-marketing asset. PREMISE CONFLICT SURFACED: the app''s existing Books tab is the FINANCIAL LEDGER (accounting - BooksEntities.jsx, Books->Tx/Imported), NOT a publishing/library shelf - there is no existing downloadable-book surface. Do NOT bolt a book library onto the accounting tab. RECOMMEND: home the library in the Learn/Church area where curriculum lives, reusing the CreationWorkspace export primitive (creation-workspace.js); matches the tracked Worldview-teaching-book goal. EXPORT: Option A print-CSS->PDF (zero-dep, recommended MVP); B jsPDF/pdf-lib; C +JSZip EPUB. HARD RULES: (1) NO payment/monetization build - book + download + marketing packaging ONLY; payment is Darrell''s hand. (2) COPYRIGHT - owned curriculum is fine; do NOT embed copyrighted song lyrics or third-party text; derived data only (scripture refs, themes, paraphrase-marked). (3) a book inherits its lessons verified status - nothing with an open faithfulness/consent flag compiles. MVP ~3-5 build days (print-CSS); EPUB +~2. WE CHOSE Learn/Library-home + zero-dep export + owned-content-only + no-payment-build, NOT the financial Books tab and NOT scraping copyrighted text, BECAUSE Books means two different things in the app and we ship only what we own and can verify.',
+     '["content-engine-2026-06","colg-local-infra-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-content-engine-phased-timeline', 'directive',
+     'Firm phased timeline (CPU-now vs GPU-later)',
+     'BEST WAY (phases gated by dependencies, not calendar): P0 text wedge BG-message->lesson+trivia (~2-3d, CPU, dep Gmail OAuth). P1 Conversations->Lessons MVP (~3-5d, CPU, dep privacy scoping). P2 Recordings->Lessons MVP (~4-6d, CPU-slow/GPU-accelerates, dep faithfulness gate + one recording). P3 Lessons->Curriculum (~2-3d, CPU). P4 Curriculum->Books MVP (~3-5d, CPU, dep Library-surface decision + export). P5 Reconciliation+retention engine (~5-8d, CPU, dep church-NAS access via tailnet). P6 In-app cockpit on CUDA (~6-10d, homes on GPU box, dep GPU online). P7 Batch backfill 836 videos + all-history (GPU-LATER, dep GPU + P5 + P6 + brakes). P8 Books->Marketing packaging (~2-4d, CPU; payment = his hand, NOT built). The ENTIRE sources->lessons->curriculum->books->marketing spine is demonstrable end-to-end ON CPU with owned conversation data before any GPU dependency; only P7 batch genuinely requires GPU. SEQUENCING: P0/P1 -> P3 -> P4 -> then P2/P5/P6/P7 as church-NAS access + GPU box land -> P8 when products are wanted. WE CHOSE prove-on-CPU-first, NOT wait-for-GPU, BECAUSE the cheapest highest-value path (owned conversations -> lessons -> curriculum -> book) needs no new hardware; GPU is only the batch-backfill accelerant.',
+     '["content-engine-2026-06","colg-local-infra-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now())
   ON CONFLICT (instance_id, slug) DO NOTHING;
 END $$;
