@@ -319,7 +319,7 @@ Per *"let's get the best ways AND documentation for each inside the PoeTech app"
 - **Two projects (umbrella scope):**
   - **Church Local Infrastructure** (`colg-local-infra-2026-06`, domain `church`) — the sovereign-infra + recordings-pipeline entries.
   - **Content Engine** (`content-engine-2026-06`, domain `church`) — the broader workstream: the unified engine, conversations→lessons, curriculum→books, and the phased timeline. Engine entries link to **both** projects.
-- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **17 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **⭐ Sermon Stories — BUILD #1** (BG's reusable illustration library, in The Word — Migdal; the prioritized first build). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface. · (15) **Community engagement** (reactions/ratings/most-loved/radio stations on sermons + lessons, riding the shared primitive `local_ad147f53`; §17). · (16) **Single source** (historical archive + continuous future feeds every output; no separate capture; §18). · (17) **Depth-adaptive + interest-personalized** (book-capable quick/standard/deep tiers + opt-in sovereign personalization; §19).
+- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **19 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **⭐ Sermon Stories — BUILD #1** (BG's reusable illustration library, in The Word — Migdal; the prioritized first build). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface. · (15) **Community engagement** (reactions/ratings/most-loved/radio stations on sermons + lessons, riding the shared primitive `local_ad147f53`; §17). · (16) **Single source** (historical archive + continuous future feeds every output; no separate capture; §18). · (17) **Depth-adaptive + interest-personalized** (book-capable quick/standard/deep tiers + opt-in sovereign personalization; §19). · (18) **Experience + cognitive-level adaptation / UDL** (same truth at every level, accessibility/dyslexia; §20) · (19) **Retention testing** (encouraging + faithful comprehension/recall/SRS/mastery; §21).
 - **Live-render status (honest):** these **render live after the one-time Studio apply against the `colg` cloud instance** — a cloud/Darrell-hand step, exactly like every DB change in this repo (the db-migrate convention). Committed + pushed here; **not yet applied to cloud** (this local session cannot reach the cloud Studio). Marked pending, not claimed live.
 
 ---
@@ -707,6 +707,63 @@ A lesson, a course, and a **book** each ship with the three depth tiers and hono
 - **Sovereign-mesh Tier 1** — depth reflow + interest matching run locally on owned data; the interest profile lives on the consumer's own instance, never leaves, never sold.
 - **Cost** ≈ $0 (reuses the learn-framework reflow + the §17 engagement signals; YouTube-history enrichment is the consumer's own one-time import).
 - **Father's-Business** — meets each soul where they are: the seeker gets the quick essence, the student gets the book; each is handed what matches their hunger, in their own depth, by their own interest — discipleship that adapts to the person rather than forcing one size. Religion-AND-Relationship (backbone preserved at every tier; warmth in meeting them where they are). Passes the eight-question Test.
+
+---
+
+## 20. ENGINE PROPERTY — experience + cognitive-level adaptation (understanding for ALL / UDL)
+
+**Binding (Darrell, 2026-06-24):** the **same** book/content can be **taught at every experience level AND every cognitive level** — *understanding for all.* This sits **on top of** the depth tiers (§19): depth = *how much elaboration*; this = *which representation + register + reading level, for whom.* Two orthogonal axes that combine.
+
+### Two learner axes (the same truth, met where they are)
+
+| Axis | Range | Reuse |
+|---|---|---|
+| **Experience** | seeker → new believer → mature → scholar | learn-framework `LEARN_LEVELS` skill-branching (`resolveLevel`), generalized to faith-experience |
+| **Cognitive / age** | young child → youth → teen → adult | learn-framework `AGE_BANDS` (`resolveForAge`, `chunkLessonForAge`) |
+
+A **10-year-old, a new believer, and a scholar each receive the SAME truth** — the scholar gets the original-language note and the historical context; the new believer gets it in plain language; the child gets it in a story at a child's reading level. **Core meaning preserved across all levels — faithful, never dumbed-down-wrong** (a simpler version is *true and complete for its level*, never a distortion).
+
+### Universal Design for Learning (UDL) — the mechanics
+
+- **Multiple representations** — text / **audio** / visual of the same content. Reuse the **see/hear accessibility pair** (`lib/tts.js` read-aloud, `lib/text-size.js` large-print) + diagram/visual media (`normalizeMedia`). A learner can *read it, hear it, or see it.*
+- **Reading-level scaling** — plain-language ↔ scholarly versions of the same truth (ties §19 depth + the Study `distillState` deep↔plain). The register adapts; the verse stays verbatim.
+- **Accessibility (binding)** — **dyslexia support** (the planned Literacy Justice module: **OpenDyslexic / Lexend** fonts, color overlays, line tracking, **structured literacy**), text-size scaling, TTS, voice-to-text throughout. No learner is shut out by ability.
+- **Faithfulness at every level** — a verified scripture quote (§3.1) is **carried verbatim** into every experience/cognitive rendering; representation and reading level change, **the Word does not** (SCRIPTURE-REFERENCE-STANDARD; paraphrase always marked).
+
+### Standard screens (delta)
+
+- **Sovereign Tier 1** — all rendering local (reuses learn-framework + the a11y primitives); nothing leaves.
+- **Cost** ≈ $0 (reuse, not new infra).
+- **Father's-Business** — *understanding for all*: the same Word reaches the child, the new convert, the elder, the scholar, and the learner with dyslexia — none excluded by age, experience, or ability. Religion-AND-Relationship (backbone held at every level; warmth in meeting each person). This is the accessibility-justice mission (COMMUNITY-FIRST, the elderly tech-novice COLG staff) made structural. Passes the eight-question Test.
+
+---
+
+## 21. ENGINE PROPERTY — testing for retention (hold the Word)
+
+**Binding (Darrell, 2026-06-24):** content is **tested so learners HOLD the information — the Word of Yahweh.** Comprehension checks + retention assessment on every lesson / course / book.
+
+### The mechanics (reuse + extend)
+
+- **Comprehension checks** — per-lesson quizzes. Reuse `gradeQuiz` / `QUIZ_PASS_RATIO` / `courseAssessment` (learn-framework) — already shipped, app-side grading.
+- **Recall questions** — active-recall prompts (not just recognition) drawn from the lesson's points + anchor verses; **the BG Wednesday trivia lane (§ trivia) is one live source** (the questions BG poses become retention checks).
+- **Spaced repetition (new)** — resurface key truths + verses over time so they *stick* (a light SRS scheduler over a learner's missed/weak items).
+- **Mastery checks per lesson/book** — "do you hold this?" gates that feed `courseAssessment` → the graduate→helper path (2 Tim 2:2).
+
+### Tone / wellbeing (BINDING)
+
+**Encouraging + mastery-oriented, NEVER punitive or shaming** — for kids and all ages. **Celebrate growth, allow retries, no harsh scoring.** A miss is a "let's revisit," not a grade that shames. This is the QUALITY-OF-LIFE *system-as-mirror-never-judge* rule applied to learning, and it matches the repo's existing **non-punitive vocabulary** (dispositions are "pending/approved/deferred," never "rejected"). Progress is shown as growth, not deficiency.
+
+### Accuracy (BINDING)
+
+**What's tested is Yahweh's WORD — references + answers must be faithful / verified, never a misquote.** A question's correct answer that quotes or cites scripture is **checked through the faithfulness gate (§3.1)** — the canonical text is fetched, never reconstructed from the model. **A test that misquotes the Word is worse than no test;** the gate fails the question before it can be asked. (Verification Doctrine: measure, don't claim; proven-to-catch.)
+
+### Standard screens (delta)
+
+- **Sovereign Tier 1** — quizzes + SRS run locally (reuse learn-framework + the trivia lane); a learner's retention profile is their own, sovereign, never sold.
+- **Cost** ≈ $0.
+- **Father's-Business** — testing here is *for the learner's sake* (that they hold the Word), not for ranking or judgment: encouraging, retry-friendly, accurate to the Word, celebrating growth. It disciples toward mastery and the helper role. Passes the eight-question Test.
+
+**Both properties apply across the whole engine** (lessons, scripture material, courses, books), combine with depth tiers (§19) + personalization (§19B), and ride the single source (§18). Build order unchanged: **BG's Sermon Stories (§16) is still Build #1.**
 
 ---
 
