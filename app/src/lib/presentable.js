@@ -107,31 +107,77 @@ export function ageHint(bandId) {
 }
 
 // -----------------------------------------------------------------------------
-// Time-adaptive presenting: per-scene timing + fit-to-budget + skip-suggest
+// Time-adaptive presenting: per-scene WEIGHT + proportional fit-to-budget
 // -----------------------------------------------------------------------------
-// "I have 30 minutes today." A scene now carries two more contract fields so the
-// presenter can reflow a full curriculum into the time actually available without
-// losing the core/competent understanding:
-//   • estimatedMin — minutes to teach this scene well (default DEFAULT_SCENE_MIN)
-//   • priority     — 'core' (protected) | 'supplementary' (droppable first)
-// Both are PRESENTER-side planning fields; like notes they are NEVER part of the
+// "I have 30 minutes today." A scene carries planning fields so the presenter can
+// reflow a full curriculum into the time actually available WITHOUT flattening it:
+//   • estimatedMin — the section's relative WEIGHT: real minutes it needs at full
+//     depth. Heavier/deeper sections weigh more; this is NOT a uniform split. Authors
+//     set it; when unset we estimate a sensible (non-uniform) weight from content.
+//   • minMin       — the floor: the smallest usable time the section can shrink to.
+//   • priority     — 'core' (protected) | 'supplementary' (droppable first).
+// All three are PRESENTER-side planning fields; like notes they are NEVER part of the
 // audience broadcast (buildSlideForScene reads only scene.audience). Existing
-// presentables (course / word adapters, and any older scene array) keep working —
-// the backfill helpers supply sensible defaults so nothing is required upstream.
-export const DEFAULT_SCENE_MIN = 5;
+// presentables keep working — the backfill helpers supply sensible defaults.
+//
+// THE REFLOW (fitToBudget) is PROPORTIONAL / weight-preserving:
+//   1. Each surviving section gets (its weight / sum of surviving weights) × budget,
+//      so every section keeps the SAME PERCENTAGE of the clock as the clock shrinks
+//      — time-heavy areas stay proportionally heavy; light ones shrink more.
+//   2. A MINIMUM FLOOR per section: a section pinned at its floor holds that floor
+//      and the remaining budget is re-split proportionally among the others
+//      (classic water-filling).
+//   3. SKIP-FALLBACK: only when the floors themselves overflow the budget do we drop
+//      sections — lowest-priority (supplementary) first, NEVER core — until the
+//      floors fit. "As close as possible under the circumstances."
+export const DEFAULT_SCENE_MIN = 5;     // floor for an estimated weight
+export const DEFAULT_FLOOR_MIN = 2;     // default minimum a section can shrink to
 export const PRIORITY = { CORE: 'core', SUPPLEMENTARY: 'supplementary' };
 
-// Non-mutating: return a copy of `scene` guaranteed to carry a positive
-// estimatedMin and a valid priority. Unknown/blank priority defaults to CORE so an
-// un-annotated curriculum is treated as all-core (skip-suggest then protects it).
+const round1 = (x) => Math.round((Number(x) || 0) * 10) / 10;
+
+// A sensible NON-uniform default weight when an author hasn't set estimatedMin:
+// deeper sections (more learner copy, more run-of-show steps, more discussion) need
+// more time. Bounded so one rich scene can't dominate. Deterministic + pure.
+export function estimateSceneMinutes(scene) {
+  if (!scene || typeof scene !== 'object') return DEFAULT_SCENE_MIN;
+  const a = scene.audience || {};
+  const notes = Array.isArray(scene.notes) ? scene.notes : [];
+  let m = 3; // any slide needs a few minutes
+  const copyLen = String(a.lead || '').length + String(a.detail || '').length;
+  m += Math.min(4, Math.round(copyLen / 140));           // richer learner copy
+  notes.forEach((n) => {
+    if (n && n.kind === 'steps') m += Math.min(6, (n.items || []).length);            // run-of-show steps take real time
+    else if (n && n.kind === 'list') m += Math.min(4, Math.ceil((n.items || []).length / 2));
+    else m += 1;                                           // a body / callout note
+  });
+  return Math.max(DEFAULT_SCENE_MIN, Math.min(25, m));
+}
+
+// The floor never exceeds the section's own weight and never drops below 1 min.
+function sceneFloor(scene, weight, opts) {
+  const raw = Number(scene && scene.minMin);
+  const base = Number.isFinite(raw) && raw > 0
+    ? raw
+    : (Number.isFinite(opts.floorMin) && opts.floorMin > 0 ? opts.floorMin : DEFAULT_FLOOR_MIN);
+  return Math.max(1, Math.min(base, weight));
+}
+
+// Non-mutating: return a copy of `scene` guaranteed to carry a positive weight
+// (estimatedMin), a valid priority, and a floor (minMin). A provided estimatedMin is
+// the author's weight; otherwise opts.defaultMin, else the content estimate. Unknown
+// priority defaults to CORE so an un-annotated curriculum is treated as all-core.
 export function withSceneTiming(scene, opts = {}) {
   if (!scene || typeof scene !== 'object') return scene;
-  const def = Number.isFinite(opts.defaultMin) && opts.defaultMin > 0 ? opts.defaultMin : DEFAULT_SCENE_MIN;
-  const est = Number(scene.estimatedMin);
+  const estIn = Number(scene.estimatedMin);
+  const weight = Number.isFinite(estIn) && estIn > 0
+    ? estIn
+    : (Number.isFinite(opts.defaultMin) && opts.defaultMin > 0 ? opts.defaultMin : estimateSceneMinutes(scene));
   return {
     ...scene,
-    estimatedMin: Number.isFinite(est) && est > 0 ? est : def,
+    estimatedMin: weight,
     priority: scene.priority === PRIORITY.SUPPLEMENTARY ? PRIORITY.SUPPLEMENTARY : PRIORITY.CORE,
+    minMin: sceneFloor(scene, weight, opts),
   };
 }
 
@@ -165,36 +211,66 @@ function sceneKey(scene, i) {
   return scene && scene.id != null ? String(scene.id) : `#${i}`;
 }
 
-function fitSummary({ budget, coreKept, suppKept, suppSkipped, fits, overBudget }) {
+function fitSummary({ budget, counts, fits, overBudget, compressed }) {
   const m = Math.round(budget);
-  if (fits) {
-    const n = coreKept + suppKept;
-    return `All ${n} section${n === 1 ? '' : 's'} fit in ${m} min — teaching the full curriculum.`;
-  }
+  const { coreKept, suppKept, suppSkipped, atFloor } = counts;
   if (overBudget) {
-    return `Even the core won’t fully fit ${m} min — ${coreKept} core section${coreKept === 1 ? '' : 's'} are paced tighter to keep up. Consider a little more time.`;
+    return `Even the minimum times don’t fit ${m} min — ${coreKept} core section${coreKept === 1 ? '' : 's'} run below their floor to keep pace. Consider a little more time.`;
   }
-  const skip = suppSkipped > 0
-    ? ` skipping ${suppSkipped} supplementary one${suppSkipped === 1 ? '' : 's'}.`
-    : '.';
-  return `To fit ${m} min: covering ${coreKept} core section${coreKept === 1 ? '' : 's'}${suppKept ? ` + ${suppKept} supplementary` : ''},${skip} The core understanding still lands.`;
+  if (suppSkipped > 0) {
+    const floored = atFloor > 0 ? ` (${atFloor} at their floor)` : '';
+    return `To fit ${m} min: ${coreKept} core + ${suppKept} supplementary timed proportionally${floored}, skipping ${suppSkipped} supplementary so the core still lands.`;
+  }
+  if (compressed) {
+    const floored = atFloor > 0 ? `, ${atFloor} held at their floor` : '';
+    return `Reflowed into ${m} min — every section keeps its share of the time${floored}; heavier sections stay heavier.`;
+  }
+  const n = coreKept + suppKept;
+  return `All ${n} section${n === 1 ? '' : 's'} fit ${m} min — each runs to its own weight (heavier sections get more time).`;
 }
 
-// Reflow a curriculum into a time budget. Pure + fully testable.
-//   scenes    — the Scene array (timing backfilled here)
-//   budgetMin — minutes available; <=0 / non-finite means "no budget" (keep all)
+// Water-filling: split `amount` minutes across `active` rows PROPORTIONALLY by
+// weight (estimatedMin), but pin any row that would fall below its floor (minMin) to
+// the floor and re-split the remainder among the rest. Mutates allocatedMin/atFloor.
+// Pre-req: sum(floors) <= amount (the caller guarantees this via skip-fallback), so
+// it always converges in <= active.length passes. Pure aside from the row mutation.
+function waterFillProportional(active, amount) {
+  const pinned = new Set();
+  for (let guard = 0; guard <= active.length; guard += 1) {
+    const pool = active.filter((r) => !pinned.has(r));
+    if (!pool.length) return;
+    const pinnedFloor = active.filter((r) => pinned.has(r)).reduce((sum, r) => sum + r.minMin, 0);
+    const remaining = amount - pinnedFloor;
+    const sumW = pool.reduce((sum, r) => sum + r.estimatedMin, 0) || 1;
+    const below = pool.filter((r) => (r.estimatedMin / sumW) * remaining < r.minMin - 1e-9);
+    if (!below.length) {
+      pool.forEach((r) => { r.allocatedMin = round1((r.estimatedMin / sumW) * remaining); r.atFloor = false; });
+      return;
+    }
+    below.forEach((r) => { r.allocatedMin = round1(r.minMin); r.atFloor = true; pinned.add(r); });
+  }
+}
+
+// Reflow a curriculum into a time budget — PROPORTIONAL + floors + skip-fallback.
+//   scenes    — the Scene array (weight/floor/priority backfilled here)
+//   budgetMin — minutes available; <=0 / non-finite means "no budget" (full weights)
 //   opts.overrides — { [sceneKey]: 'keep' | 'skip' } user force-keep / force-skip.
 //                    A force-kept supplementary survives auto-skip; a force-skip
 //                    drops a scene up front (core included — the user decides).
-//   opts.defaultMin — default per-scene estimate for un-timed scenes.
+//   opts.defaultMin / opts.floorMin — defaults for un-timed scenes.
 //   opts.rankSkips  — optional adaptive ranker (the LLM seam above).
 //
-// RULES: drop LOWEST priority first (supplementary before core); NEVER auto-skip a
-// core scene. If, after dropping every droppable supplementary, the kept content
-// still exceeds the budget, core is protected — kept scenes are instead COMPRESSED
-// proportionally so the run still finishes in time (flagged overBudget+compressed).
-// When the full curriculum fits, every scene keeps its own estimate (finishing early
-// is fine — we don't pad to fill).
+// ALGORITHM:
+//   1. Each surviving section's time = (weight / sum surviving weights) × budget, so
+//      its PERCENTAGE of the clock is preserved as the budget changes.
+//   2. With MORE time than the content needs, sections run to their natural weight
+//      (finish early, no padding); only when budget < content do they shrink.
+//   3. A section can't shrink past its floor (minMin) — water-filling pins it there
+//      and re-splits the rest proportionally.
+//   4. If even the floors overflow the budget, SKIP the lowest-priority
+//      (supplementary) sections first, NEVER core, until the floors fit. If only core
+//      remains and its floors still overflow, core is protected and compressed below
+//      floor (overBudget) — "as close as possible under the circumstances."
 export function fitToBudget(scenes, budgetMin, opts = {}) {
   const overrides = opts.overrides || {};
   const timed = backfillTiming(scenes, opts);
@@ -212,13 +288,16 @@ export function fitToBudget(scenes, budgetMin, opts = {}) {
       forced,
       skipped: forced === 'skip',
       skipReason: forced === 'skip' ? 'forced' : null,
-      allocatedMin: s.estimatedMin,
+      atFloor: false,
+      allocatedMin: 0,
     };
   });
 
-  const keptSum = () => rows.filter((r) => !r.skipped).reduce((sum, r) => sum + r.estimatedMin, 0);
+  const activeRows = () => rows.filter((r) => !r.skipped);
+  const floorSum = () => activeRows().reduce((sum, r) => sum + r.minMin, 0);
 
-  // Auto-skip candidates: supplementary, not already skipped, not force-kept.
+  // --- skip-fallback: ONLY when the floors themselves can't fit the budget. Drop
+  // lowest-priority (supplementary) sections first, NEVER core, until floors fit. ---
   const candidates = rows.filter((r) => !r.skipped && r.priority === PRIORITY.SUPPLEMENTARY && r.forced !== 'keep');
   const ranker = typeof opts.rankSkips === 'function' ? opts.rankSkips : deterministicSkipRanker;
   let order = [];
@@ -233,19 +312,27 @@ export function fitToBudget(scenes, budgetMin, opts = {}) {
   });
 
   let di = 0;
-  while (keptSum() > budget && di < order.length) {
+  while (floorSum() > budget && di < order.length) {
     order[di].skipped = true;
     order[di].skipReason = 'auto';
     di += 1;
   }
 
-  // Core (+ any force-kept) alone still over budget? Protect core; compress to fit.
-  const overBudget = keptSum() > budget;
-  const keptTotal = keptSum();
-  const scale = overBudget && keptTotal > 0 ? budget / keptTotal : 1;
-  rows.forEach((r) => {
-    r.allocatedMin = r.skipped ? 0 : Math.round(r.estimatedMin * scale * 10) / 10;
-  });
+  // --- proportional allocation with floors over the surviving sections ---
+  const active = activeRows();
+  const activeW = active.reduce((sum, r) => sum + r.estimatedMin, 0);
+  // Fill up to the content weight: more time than needed -> natural weights (slack);
+  // less -> proportional shrink. Floors handled inside waterFillProportional.
+  const fill = Math.min(budget, activeW);
+  const overBudget = floorSum() > budget; // even the floors don't fit (core too big)
+  if (active.length) {
+    if (overBudget) {
+      const w = activeW || 1;
+      active.forEach((r) => { r.allocatedMin = round1((r.estimatedMin / w) * budget); r.atFloor = false; });
+    } else {
+      waterFillProportional(active, fill);
+    }
+  }
 
   const kept = rows.filter((r) => !r.skipped);
   const skipped = rows.filter((r) => r.skipped);
@@ -255,8 +342,10 @@ export function fitToBudget(scenes, budgetMin, opts = {}) {
     suppKept: kept.filter((r) => r.priority === PRIORITY.SUPPLEMENTARY).length,
     suppSkipped: skipped.filter((r) => r.priority === PRIORITY.SUPPLEMENTARY).length,
     coreSkipped: skipped.filter((r) => r.priority === PRIORITY.CORE).length,
+    atFloor: kept.filter((r) => r.atFloor).length,
   };
   const fits = fullMin <= budget;
+  const compressed = budget < activeW;
   const strip = (r) => { const { _key, _i, ...rest } = r; return rest; };
 
   return {
@@ -265,12 +354,12 @@ export function fitToBudget(scenes, budgetMin, opts = {}) {
     keptMin: kept.reduce((sum, r) => sum + r.allocatedMin, 0),
     fits,
     overBudget,
-    compressed: scale < 1,
-    plan: rows.map(strip),       // original order; every row annotated (skipped/allocatedMin)
+    compressed,
+    plan: rows.map(strip),       // original order; every row annotated (allocatedMin/atFloor/skipped)
     kept: kept.map(strip),
     skipped: skipped.map(strip),
     counts,
-    summary: fitSummary({ budget, coreKept: counts.coreKept, suppKept: counts.suppKept, suppSkipped: counts.suppSkipped, fits, overBudget }),
+    summary: fitSummary({ budget, counts, fits, overBudget, compressed }),
   };
 }
 
@@ -401,9 +490,9 @@ export function coursePresentable(course) {
   const schedule = Array.isArray(course?.schedule) ? course.schedule : [];
   const total = schedule.length;
   const detailLabel = meta.handsOnLabel || 'In the app';
-  // Sensible per-scene default: split the session target across the weeks (a module
-  // may override with its own estimatedMin / priority). backfillTiming fills any gap.
-  const perScene = total > 0 ? Math.max(2, Math.round((meta.sessionMinutes || 75) / total)) : DEFAULT_SCENE_MIN;
+  // Weights are NON-uniform by default: a module may set its own estimatedMin /
+  // priority / minMin; otherwise backfillTiming derives a content-weighted estimate
+  // (deeper weeks with more run-of-show / discussion weigh more), not a flat split.
   return {
     id: `course:${meta.key || 'course'}`,
     title: meta.title || 'Class',
@@ -415,6 +504,7 @@ export function coursePresentable(course) {
       dateLabel: formatClassDate(m.date),
       estimatedMin: m.estimatedMin,
       priority: m.priority,
+      minMin: m.minMin,
       audience: {
         title: m.title || '',
         lead: m.bigIdea || '',
@@ -424,7 +514,7 @@ export function coursePresentable(course) {
         anchorTheme: m.anchor?.theme || null,
       },
       notes: courseNotes(m),
-    })), { defaultMin: perScene }),
+    }))),
   };
 }
 
@@ -470,6 +560,7 @@ export function wordPresentable(sermons, opts = {}) {
         dateLabel: sermonDateLabel(s.serviceDate),
         estimatedMin: s.estimatedMin,
         priority: s.priority,
+        minMin: s.minMin,
         audience: {
           title: s.title,
           lead: s.notes || '',
@@ -480,6 +571,6 @@ export function wordPresentable(sermons, opts = {}) {
         },
         notes,
       };
-    }), { defaultMin: opts.defaultSceneMin || DEFAULT_SCENE_MIN }),
+    })),
   };
 }

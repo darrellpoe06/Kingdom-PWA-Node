@@ -6,7 +6,7 @@ import {
   coursePresentable, wordPresentable,
   ageHint, PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE,
   DEFAULT_SCENE_MIN, PRIORITY,
-  withSceneTiming, fullContentMin, fitToBudget, deterministicSkipRanker,
+  withSceneTiming, estimateSceneMinutes, fullContentMin, fitToBudget, deterministicSkipRanker,
   makeScene, addScene, editScene,
   loadOverlay, saveOverlay, applyOverlay, overlayKey, EMPTY_OVERLAY,
 } from '../lib/presentable.js';
@@ -138,10 +138,11 @@ describe('age-adaptive presenter hook', () => {
 });
 
 // -----------------------------------------------------------------------------
-// time-adaptive: contract additions + fit-to-budget + skip-suggest
+// time-adaptive: weight contract + PROPORTIONAL fit-to-budget + floors + skip
 // -----------------------------------------------------------------------------
-const scene = (id, estimatedMin, priority) => ({ id, estimatedMin, priority, audience: { title: id }, notes: [] });
-// Two core (10+10) + two supplementary (10+5) = 35 min full curriculum.
+// scene(id, weight, priority, floor) — floor optional (defaults via withSceneTiming).
+const scene = (id, estimatedMin, priority, minMin) => ({ id, estimatedMin, priority, minMin, audience: { title: id }, notes: [] });
+// Two core (10+10) + two supplementary (10+5) = 35 min full curriculum; floors default to 2.
 const CURRICULUM = [
   scene('A', 10, PRIORITY.CORE),
   scene('B', 10, PRIORITY.CORE),
@@ -150,15 +151,24 @@ const CURRICULUM = [
 ];
 const byId = (rows, id) => rows.find((r) => r.id === id);
 
-describe('scene timing contract (estimatedMin + priority) with backfill', () => {
-  it('withSceneTiming supplies defaults without mutating + normalizes priority', () => {
+describe('scene weight contract (estimatedMin + priority + floor) with backfill', () => {
+  it('withSceneTiming supplies a weight, priority, and floor without mutating', () => {
     const bare = { id: 'x', audience: { title: 'X' } };
     const t = withSceneTiming(bare);
-    expect(t.estimatedMin).toBe(DEFAULT_SCENE_MIN);
-    expect(t.priority).toBe(PRIORITY.CORE);    // un-annotated -> core (protected)
-    expect(bare.estimatedMin).toBeUndefined(); // non-mutating
+    expect(t.estimatedMin).toBe(DEFAULT_SCENE_MIN);  // content estimate clamps up to 5
+    expect(t.priority).toBe(PRIORITY.CORE);          // un-annotated -> core (protected)
+    expect(t.minMin).toBe(2);                        // default floor, clamped <= weight
+    expect(bare.estimatedMin).toBeUndefined();       // non-mutating
     expect(withSceneTiming({ id: 'y', estimatedMin: 0 }, { defaultMin: 7 }).estimatedMin).toBe(7);
     expect(withSceneTiming({ id: 'z', priority: 'supplementary' }).priority).toBe(PRIORITY.SUPPLEMENTARY);
+    // a floor never exceeds the section's own weight
+    expect(withSceneTiming({ id: 'w', estimatedMin: 3, minMin: 9 }).minMin).toBe(3);
+  });
+
+  it('estimateSceneMinutes weights deeper content heavier (non-uniform default)', () => {
+    const rich = estimateSceneMinutes({ audience: { lead: 'x'.repeat(300) }, notes: [{ kind: 'steps', items: [1, 2, 3, 4] }, { kind: 'list', items: ['a', 'b'] }] });
+    const thin = estimateSceneMinutes({ audience: { title: 'a' }, notes: [] });
+    expect(rich).toBeGreaterThan(thin);
   });
 
   it('fullContentMin sums the whole curriculum', () => {
@@ -166,70 +176,109 @@ describe('scene timing contract (estimatedMin + priority) with backfill', () => 
     expect(fullContentMin([{ id: 'a' }, { id: 'b' }], { defaultMin: 4 })).toBe(8);
   });
 
-  it('the course + word adapters now carry timing fields (back-compat)', () => {
+  it('adapters carry weight + floor, and course weights are NON-uniform by content', () => {
     const p = wordPresentable([{ id: 'm1', title: 'T', serviceDate: '2026-06-21', status: 'active' }]);
     expect(p.scenes[0].estimatedMin).toBeGreaterThan(0);
+    expect(p.scenes[0].minMin).toBeGreaterThan(0);
     expect(p.scenes[0].priority).toBe(PRIORITY.CORE);
+    // a richer module (more run-of-show + talking points) weighs more than a thin one
+    const cp = coursePresentable({ meta: { key: 'x', title: 'X' }, schedule: [
+      { id: 'a', title: 'A', bigIdea: 'idea', week: 1, facilitator: { howToRun: 's1|s2|s3|s4', talkingPoints: ['t1', 't2', 't3'] } },
+      { id: 'b', title: 'B', bigIdea: 'x', week: 2 },
+    ] });
+    expect(cp.scenes[0].estimatedMin).toBeGreaterThan(cp.scenes[1].estimatedMin);
   });
 });
 
-describe('fitToBudget — reflow into the time available', () => {
-  it('keeps everything when the full curriculum fits (no skips, own estimates)', () => {
+describe('fitToBudget — PROPORTIONAL reflow (weight-preserving + floors + skip)', () => {
+  it('with MORE time than needed, each section runs to its own weight (no padding)', () => {
     const r = fitToBudget(CURRICULUM, 60);
     expect(r.fits).toBe(true);
-    expect(r.overBudget).toBe(false);
     expect(r.compressed).toBe(false);
     expect(r.skipped).toHaveLength(0);
     expect(r.keptMin).toBe(35);
-    expect(r.summary).toMatch(/full curriculum/i);
+    expect(byId(r.plan, 'A').allocatedMin).toBe(10); // its weight, not stretched
+    expect(byId(r.plan, 'D').allocatedMin).toBe(5);
+    expect(r.summary).toMatch(/own weight/i);
   });
 
-  it('drops supplementary first to fit, never core', () => {
-    const r = fitToBudget(CURRICULUM, 30);          // 35 -> needs to shed 5+
-    expect(r.fits).toBe(false);
+  it('shrinks PROPORTIONALLY — every section keeps the same percentage of the clock', () => {
+    const r = fitToBudget(CURRICULUM, 20);           // 20 of 35; floors (2 each) fit, no skip
+    expect(r.skipped).toHaveLength(0);
+    expect(r.compressed).toBe(true);
+    expect(r.counts.atFloor).toBe(0);
+    // weight share preserved: A is 10/35 = 28.6% of content -> 28.6% of 20 ≈ 5.7 min
+    expect(byId(r.plan, 'A').allocatedMin).toBeCloseTo(5.7, 1);
+    expect(byId(r.plan, 'D').allocatedMin).toBeCloseTo(2.9, 1);
+    const shareWeight = 10 / 35;
+    const shareTime = byId(r.plan, 'A').allocatedMin / r.keptMin;
+    expect(shareTime).toBeCloseTo(shareWeight, 2);   // SAME percentage
+    expect(r.keptMin).toBeCloseTo(20, 1);
+    expect(r.summary).toMatch(/keeps its share/i);
+  });
+
+  it('honors a per-section FLOOR: a light section pins to its floor, rest re-split', () => {
+    const FLOORY = [scene('A', 90, PRIORITY.CORE, 5), scene('B', 10, PRIORITY.CORE, 5)]; // full 100, floors 5
+    const r = fitToBudget(FLOORY, 20);               // B's proportional 2 < floor 5 -> pin to 5
+    expect(r.skipped).toHaveLength(0);
+    expect(byId(r.plan, 'B').allocatedMin).toBe(5);
+    expect(byId(r.plan, 'B').atFloor).toBe(true);
+    expect(byId(r.plan, 'A').allocatedMin).toBe(15); // gets the remainder
+    expect(byId(r.plan, 'A').atFloor).toBe(false);
+    expect(r.counts.atFloor).toBe(1);
     expect(r.overBudget).toBe(false);
-    // largest supplementary (C=10) dropped first; D (5) retained; both core kept
+  });
+
+  it('falls back to SKIP only when floors overflow the budget — supplementary first, core protected', () => {
+    const TIGHT = [
+      scene('A', 10, PRIORITY.CORE, 8), scene('B', 10, PRIORITY.CORE, 8),
+      scene('C', 10, PRIORITY.SUPPLEMENTARY, 8), scene('D', 10, PRIORITY.SUPPLEMENTARY, 8),
+    ]; // floors 8 each = 32 > budget
+    const r = fitToBudget(TIGHT, 20);                // 32 floor-min > 20 -> must skip supplementary
     expect(byId(r.plan, 'C').skipped).toBe(true);
     expect(byId(r.plan, 'C').skipReason).toBe('auto');
-    expect(byId(r.plan, 'D').skipped).toBe(false);
-    expect(byId(r.plan, 'A').skipped).toBe(false);
+    expect(byId(r.plan, 'D').skipped).toBe(true);
+    expect(byId(r.plan, 'A').skipped).toBe(false);   // core protected
     expect(byId(r.plan, 'B').skipped).toBe(false);
-    expect(r.counts).toMatchObject({ coreKept: 2, suppKept: 1, suppSkipped: 1, coreSkipped: 0 });
-    expect(r.keptMin).toBeLessThanOrEqual(30);
-    expect(r.summary).toMatch(/core understanding still lands/i);
+    expect(r.counts).toMatchObject({ coreKept: 2, suppSkipped: 2, coreSkipped: 0 });
+    expect(r.overBudget).toBe(false);                // after skipping, A+B floors (16) fit 20
+    expect(r.keptMin).toBeCloseTo(20, 1);
+    expect(r.summary).toMatch(/skipping 2 supplementary/i);
   });
 
-  it('protects core: when core alone exceeds budget it compresses, never skips core', () => {
-    const r = fitToBudget(CURRICULUM, 15);          // core is 20 > 15
+  it('protects core even when its floors overflow: compresses below floor, never skips core', () => {
+    const CORETIGHT = [scene('A', 10, PRIORITY.CORE, 8), scene('B', 10, PRIORITY.CORE, 8)]; // floors 16
+    const r = fitToBudget(CORETIGHT, 10);            // 16 floor-min > 10, nothing droppable
     expect(r.overBudget).toBe(true);
-    expect(r.compressed).toBe(true);
-    expect(r.counts.coreSkipped).toBe(0);            // core NEVER auto-skipped
+    expect(r.counts.coreSkipped).toBe(0);
     expect(byId(r.plan, 'A').skipped).toBe(false);
-    expect(byId(r.plan, 'B').skipped).toBe(false);
-    // both supplementary dropped, core compressed proportionally to fit 15
-    expect(byId(r.plan, 'A').allocatedMin).toBeCloseTo(7.5, 5);
-    expect(r.keptMin).toBeCloseTo(15, 5);
-    expect(r.summary).toMatch(/core/i);
+    expect(byId(r.plan, 'A').allocatedMin).toBeCloseTo(5, 1); // proportional, below floor
+    expect(r.summary).toMatch(/below their floor/i);
   });
 
   it('honors a forced KEEP of a supplementary scene (survives auto-skip)', () => {
-    const r = fitToBudget(CURRICULUM, 20, { overrides: { C: 'keep' } });
+    const TIGHT = [
+      scene('A', 10, PRIORITY.CORE, 8), scene('B', 10, PRIORITY.CORE, 8),
+      scene('C', 10, PRIORITY.SUPPLEMENTARY, 8), scene('D', 10, PRIORITY.SUPPLEMENTARY, 8),
+    ];
+    const r = fitToBudget(TIGHT, 20, { overrides: { C: 'keep' } });
     expect(byId(r.plan, 'C').skipped).toBe(false);   // user override wins
     expect(byId(r.plan, 'D').skipped).toBe(true);    // the other supplementary goes
   });
 
   it('honors a forced SKIP (even of a core scene — the user decides)', () => {
     const r = fitToBudget(CURRICULUM, 100, { overrides: { A: 'skip' } });
-    expect(r.fits).toBe(true);                        // full content fits the 100
+    expect(r.fits).toBe(true);
     expect(byId(r.plan, 'A').skipped).toBe(true);
     expect(byId(r.plan, 'A').skipReason).toBe('forced');
     expect(r.counts.coreSkipped).toBe(1);
   });
 
-  it('treats no/!finite budget as "keep all"', () => {
+  it('treats no/!finite budget as "full weights"', () => {
     const r = fitToBudget(CURRICULUM, 0);
     expect(r.budgetMin).toBe(35);
     expect(r.skipped).toHaveLength(0);
+    expect(byId(r.plan, 'A').allocatedMin).toBe(10); // natural weight
   });
 
   it('NEVER leaks notes through the slide built from a kept scene', () => {
@@ -249,12 +298,16 @@ describe('fitToBudget — reflow into the time available', () => {
   });
 
   it('accepts an adaptive ranker seam (opts.rankSkips) and falls back safely', () => {
-    // a custom ranker that drops D before C (opposite of the default largest-first)
-    const r = fitToBudget(CURRICULUM, 30, { rankSkips: () => ['D'] });
+    const RANKABLE = [
+      scene('A', 10, PRIORITY.CORE, 5), scene('B', 10, PRIORITY.CORE, 5),
+      scene('C', 10, PRIORITY.SUPPLEMENTARY, 5), scene('D', 10, PRIORITY.SUPPLEMENTARY, 5),
+    ]; // floors 5 each = 20
+    // budget 16 needs ONE supplementary dropped; custom ranker drops D (not the default C)
+    const r = fitToBudget(RANKABLE, 16, { rankSkips: () => ['D'] });
     expect(byId(r.plan, 'D').skipped).toBe(true);
     expect(byId(r.plan, 'C').skipped).toBe(false);
     // a throwing ranker must not break the reflow (deterministic fallback engages)
-    const safe = fitToBudget(CURRICULUM, 30, { rankSkips: () => { throw new Error('llm down'); } });
+    const safe = fitToBudget(RANKABLE, 16, { rankSkips: () => { throw new Error('llm down'); } });
     expect(safe.skipped.length).toBeGreaterThan(0);
   });
 });
