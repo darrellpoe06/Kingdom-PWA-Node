@@ -1,0 +1,106 @@
+{
+  "$schema": "https://kingdom-pwa.dev/schemas/seed-projects/v1.json",
+  "seed_id": "2026-06-24-consolidation-unified-surfaces-docs",
+  "generated_at": "2026-06-24T00:00:00Z",
+  "generated_by": "consolidation/IA design session",
+  "instance_slug": "colg",
+  "intent": "Materialize the consolidation + IA design (DR-0079) as in-app documentation under a 'Unified Surfaces (IA Consolidation)' project, using the discussions (institutional-memory / Events-as-data) model so each decision RENDERS in the app (Projects -> the project -> Discussions; and the Discussions tab). Repo design doc = docs/00-foundations/CONSOLIDATION-IA-UNIFIED-SURFACES.md; these entries = the decided unified-surface design per area.",
+  "poe_binding": "Decisions-with-rationale (we chose X not Y because Z). One per page that does everything in one; reuse not forks; app-is-primary; built on the hybrid-modular surface-mount registry (DR-0078). Zero feature loss, conference-safe.",
+  "apply": "Idempotent. Apply once in Supabase Studio against the COLG cloud instance: run infra/seed-data/2026-06-24-consolidation-unified-surfaces-docs.sql (resolves the instance by slug='colg'; ON CONFLICT DO NOTHING). Renders live after apply. NOT yet applied to cloud as of this commit.",
+  "projects": [
+    {
+      "slug": "unified-surfaces-2026-06",
+      "title": "Unified Surfaces (IA Consolidation)",
+      "status": "active",
+      "domain": "church",
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": null,
+      "description_md": "Darrell's directive 'all these inputs need to be consolidated into one per page that does everything in one.' Folds this session's lanes (Study+4D finalizer+Eternal Algorithms, BG Sermon Stories, the unified content engine, Worship/music, the generalized Presenter, app-as-cockpit on CUDA) into FIVE unified surfaces + FOUR shared core primitives, each a clean module on the surface-mount registry (DR-0078). Design doc: docs/00-foundations/CONSOLIDATION-IA-UNIFIED-SURFACES.md. Decision: DR-0079.",
+      "linked_docs": [
+        "docs/00-foundations/CONSOLIDATION-IA-UNIFIED-SURFACES.md",
+        "docs/decisions/DR-0079-consolidate-into-unified-surfaces-on-the-module-registry.md",
+        "docs/00-foundations/MODULE-ARCHITECTURE-ADR.md"
+      ]
+    }
+  ],
+  "discussions": [
+    {
+      "slug": "dc-unified-the-study",
+      "kind": "decision",
+      "title": "Unified surface: The Study (capture -> 4D finalize -> Eternal Algorithms, one flow)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["unified-surfaces-2026-06"],
+      "body": "BEST WAY: ONE private (Darrell+Christina+BG) Study page that does the whole motion - Capture (Reflection/Processing/Research rooms + voice) -> Finalize (the 4D finalizer: deep source -> plain distillation -> benefits/outcome) -> Eternal Algorithms AUTO-POPULATED from finalized entries (fourD=deep+scripture, threeD=plain, outcome=benefits) -> opt-in hand-off to the content engine. De-toggles today's Workspace <-> Eternal Algorithms split into one flow. Stays device-local/sovereign (never cloud); private-by-default is the senior gate - nothing auto-publishes.\n\nWE CHOSE de-toggle + auto-populate, NOT a separate hand-authored algorithm tab, BECAUSE finishing an entry into deep->plain->benefits IS a 4D->3D->OUTCOME algorithm - the library is the natural crystallization of the finalizer, not a second surface.",
+      "links": { "dr_ref": "DR-0079" }
+    },
+    {
+      "slug": "dc-unified-the-word-migdal",
+      "kind": "decision",
+      "title": "Unified surface: The Word - Migdal (library + prep + Sermon Stories + present)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["unified-surfaces-2026-06"],
+      "body": "BEST WAY: ONE church-staff page for everything sermon - the public sermon Library (choir_sermons / theword_public_sermons) + corpus Prep (real retrieval over BG's history) + BG's Sermon Stories (BUILD #1: his reusable illustration library, extracted from the corpus, faithfulness-gate verified, BG verifies before keep) + Present (the shared Presenter). Extend Pulpit.jsx's theWordTabs with a 'stories' sub-tab - NOT a new top-level surface. Sermon Stories access = trusted-steward set (owner BG curates + grants; shared read/use Darrell+Christina) via user_in_sermon_stories_stewards, private-by-default within the set.\n\nWE CHOSE extend-The-Word, NOT a separate stories surface, BECAUSE library, prep, and stories all read the same corpus and serve the same person (BG) for the same job - find a message, study it, pull a reusable story, present.",
+      "links": { "dr_ref": "DR-0079" }
+    },
+    {
+      "slug": "dc-unified-content-engine-cockpit",
+      "kind": "decision",
+      "title": "Unified surface: The Content Engine cockpit (composed into C2S; app-as-cockpit on CUDA)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["unified-surfaces-2026-06"],
+      "body": "BEST WAY: ONE Governor-gated operator page that runs the whole pipeline - Sources (recordings NAS-union-YouTube OR in-app conversations, opt-in) -> Reconcile/Retain -> Build (transcribe+structure on the local GPU) -> Review (faithfulness gate + consent scrub, ONE queue) -> Publish (fan-out: lessons->Learn, books->Library, stories->The Word, trivia->Engagement) -> Monitor (three brakes, ships INERT, Tier C). The app opens locally ON the CUDA box and drives the local GPU + local recordings - operating = clicks that become local API calls. COMPOSED INTO Command, Control & Serve (C2S), the steward seat that already composes the other operator surfaces.\n\nWE CHOSE compose-into-C2S, NOT a peer top-level surface, BECAUSE app-as-cockpit and C2S are the same idea (the steward operating the system from inside the app); the sibling PROJECTS-TAB-COHERENCE-REVIEW already relocates the other operator surfaces there - one steward seat operates everything.",
+      "links": { "dr_ref": "DR-0079" }
+    },
+    {
+      "slug": "dc-unified-learn-and-library",
+      "kind": "decision",
+      "title": "Unified surface: Learn & Library (courses + lessons + Books shelf; NOT the financial Books tab)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["unified-surfaces-2026-06"],
+      "body": "BEST WAY: ONE church/all page for consuming taught content - Courses (authored + engine-produced, skill-levels/age-bands/assessment/graduate->helper) + individual Lessons + a downloadable Library/Books shelf (PDF/EPUB compiled from curriculum, zero-dep print-CSS export via CreationWorkspace, owned content only, no copyrighted lyrics, NO payment build), all played through the shared Presenter and carrying the shared reaction control. PREMISE CONFLICT RESOLVED: the publishing shelf homes HERE in the Learn area, NOT on the app's existing top-level 'Books' tab (which is the FINANCIAL ledger) - bolting a book library onto accounting would collide two meanings of 'books'.\n\nWE CHOSE Learn-home + owned-content-only + no-payment-build, NOT the financial Books tab and NOT scraping copyrighted text, BECAUSE courses/lessons/books are the same content at three compile altitudes for the same learner, and 'books' already means the ledger.",
+      "links": { "dr_ref": "DR-0079" }
+    },
+    {
+      "slug": "dc-unified-worship",
+      "kind": "decision",
+      "title": "Unified surface: Worship (library + radio + reactions + lyrics-as-curriculum + artist promotion)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["unified-surfaces-2026-06"],
+      "body": "BEST WAY: ONE new 'worship' Church sub-tab designed unified from day one - multi-type Christ-centered library (rap/R&B/gospel/worship + 'Your Music' favorites, content-vetted + age-tagged before surfacing; profanity is the hard exclusion; twins are 10) + Radio stations (Most-Loved flagship + per-type + Your Favorites, ratings-driven, user-initiated) + the shared Reaction control (love/amen/fire/praise) + Lyrics-as-curriculum (scripture/themes/vocab/theology/kid-questions, derived data only - never copyrighted lyrics without a license; Prov 22:6 child-formation mission) + Promote-the-artist (outbound channel/site/support links + featured rotation; NO payment processing by us).\n\nWE CHOSE design-it-unified-greenfield, NOT ship fragments, BECAUSE play/react/learn-from/promote are one continuous experience around a track - the moment that forms a child and uplifts a Kingdom artist is the same moment.",
+      "links": { "dr_ref": "DR-0079" }
+    },
+    {
+      "slug": "dc-unified-shared-core-primitives",
+      "kind": "directive",
+      "title": "Four shared core primitives: Presenter, Reaction, Voice, 4D Finalizer (reuse, never fork)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["unified-surfaces-2026-06"],
+      "body": "BEST WAY: consolidation = shared primitives in core, consumed by all - NOT forked per surface. (1) PRESENTER - one present mode (Presenter.jsx + presentable.js); every teachable surface supplies a pure presentable adapter (scenes = audience + presenter-notes, no-leak), never forks the renderer. (2) ENGAGEMENT/REACTION - one positive control (love/amen/fire/praise, media_reactions 0042) being built in sibling lane local_ad147f53; REUSE it across music + public sermons + lessons + every video surface; private records get no community reactions. (3) VOICE DICTATION - one hook (voice-dictation.js useVoiceDictation), don't re-copy. (4) 4D FINALIZER - the deep->plain->benefits shape extracted once from study-space.js, shared by Study distillation AND the engine's lesson structuring.\n\nWE CHOSE one-primitive-many-surfaces, NOT a per-surface stack, BECAUSE the directive is consolidation and DR-0078 puts shared primitives in core - one implementation keeps every surface consistent and child-safe.",
+      "links": { "dr_ref": "DR-0079" }
+    },
+    {
+      "slug": "dc-unified-zero-loss-migration",
+      "kind": "directive",
+      "title": "Zero-loss, conference-safe migration to the unified surfaces",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["unified-surfaces-2026-06"],
+      "body": "BEST WAY: migrate on the surface-mount registry with ZERO feature loss, incrementally, behind the safety gates, nothing risky before July. Phase 0 registry foundation (DR-0078 step 1) -> Phase 1 extract the four shared primitives to core (each ships when its parity check is green) -> Phase 2 build the unified surfaces one at a time, priority-ordered: BUILD #1 Sermon Stories first, then The Study (de-toggle+auto-populate), The Content Engine cockpit (ships inert), Learn & Library (Books shelf), Worship -> Phase 3 registry-migrate + decompose using the conflict-loop's hot-file queue. ADDITIVE-FIRST: new unified behavior lands alongside the old until a feature-parity checklist (verified against the LIVE surface, not memory) is green, THEN the old fragment is removed in the same PR. Gates not claims (1298+ vitest + build + wf36 + a11y/contrast green). Tier C for COLG-facing / engine cockpit / Worship.\n\nWE CHOSE additive parity-checklisted migration, NOT a big-bang refactor, BECAUSE Verification Doctrine (DR-0076) requires characterizing what each surface does before changing it, and conference-safety (DR-0078) forbids risky pre-July moves.",
+      "links": { "dr_ref": "DR-0079" }
+    }
+  ]
+}
