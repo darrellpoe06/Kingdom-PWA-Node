@@ -316,7 +316,7 @@ Per *"let's get the best ways AND documentation for each inside the PoeTech app"
 - **Two projects (umbrella scope):**
   - **Church Local Infrastructure** (`colg-local-infra-2026-06`, domain `church`) — the sovereign-infra + recordings-pipeline entries.
   - **Content Engine** (`content-engine-2026-06`, domain `church`) — the broader workstream: the unified engine, conversations→lessons, curriculum→books, and the phased timeline. Engine entries link to **both** projects.
-- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **13 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)**.
+- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **14 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **Sermon Stories** (BG's reusable illustration library, in The Word — Migdal). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface.
 - **Live-render status (honest):** these **render live after the one-time Studio apply against the `colg` cloud instance** — a cloud/Darrell-hand step, exactly like every DB change in this repo (the db-migrate convention). Committed + pushed here; **not yet applied to cloud** (this local session cannot reach the cloud Studio). Marked pending, not claimed live.
 
 ---
@@ -354,6 +354,8 @@ One engine, many sources, many outputs. The transcript→structure→faithfulnes
 ```
 
 The same in-app cockpit (§7) operates every stage; the same three brakes + Governor review gate every compile.
+
+**Multiple outputs per sermon — fan-out, not a single line.** One transcript yields *several* artifacts in parallel: a **lesson** (Learn), material toward **curriculum/books**, **and** — new, requested by Bishop Gwin himself — his reusable **Sermon Stories** (the discrete illustrations/anecdotes he tells, collected into his personal section; §16). The extraction pass runs once; the structuring fans out to whichever outputs are wanted. BG's stories are an **owner-scoped (BG-private) output**, distinct from the shareable lesson/book outputs.
 
 ---
 
@@ -429,6 +431,7 @@ Build-day estimates are engineering effort, not wall-clock; phases gated by thei
 | **P1** | **Conversations → Lessons** MVP (pick → draft → review → publish to Learn) | **~3–5** | **CPU-now** | Privacy scoping (opt-in selector, private-by-default) |
 | **P2** | **Recordings → Lessons** MVP (one recording → faithfulness gate → lesson) | ~4–6 | **CPU-now** (slow), **GPU accelerates** | The faithfulness gate (§9.3); one recording on the NAS (manual upload OR church-NAS access) |
 | **P3** | **Lessons → Curriculum** (compile related lessons into courses/series) | ~2–3 | **CPU-now** | P1/P2 producing lessons; reuses learn-framework |
+| **P3c** | **Sermon Stories** (BG's reusable illustration library; §16) | ~3–5 | **CPU-now** | Transcripts (rides P2) + the new sub-tab in The Word — Migdal; batch-extract rides P7 |
 | **P4** | **Curriculum → Books** MVP (compile → paginated → download PDF) | ~3–5 | **CPU-now** | Library-surface decision (§14, NOT the financial Books tab); export approach |
 | **P5** | **Reconciliation + retention engine** (NAS ∪ YouTube, best-of-one) | ~5–8 | CPU-now | Church-NAS read access (tailnet, his-hand creds) |
 | **P6** | **In-app cockpit on CUDA** (Reconcile/Build/Monitor/Review/Publish surfaces) | ~6–10 | runs CPU; **homes on GPU box** | GPU box online; P2/P5 logic to wrap |
@@ -460,6 +463,52 @@ Build-day estimates are engineering effort, not wall-clock; phases gated by thei
 - **Sovereign-mesh Tier 1** holds for the whole engine — every source, compile, and output stays on owned hardware; books generate client-side; marketing packaging is local; the only external touch is the owner's own Takeout (his data) and, later, his own payment rail (his hand, not built).
 - **Cost:** marginal cost ≈ electricity + operator attention + (P7) GPU time on hardware already bought for the COLG build. Book generation = $0 (client-side). vs a SaaS course-builder + ebook-compiler + transcription stack (easily $50–300/mo combined), the sovereign engine's recurring cash cost is **≈ $0**, and the family/church **owns the curriculum, the books, and the audience relationship** — the anti-extraction moat.
 - **Father's-Business:** the engine turns the Body's worship + Darrell's private wrestling-with-Yahweh into re-studiable lessons, owned curriculum, and books that disciple and can fund the mission — soul-serving content the community owns, never sold-from-under-them. Books built from owned content, no copyrighted lyrics, payment governed by Darrell. Passes the eight-question Test.
+
+---
+
+## 16. OUTPUT MODE — Bishop Gwin's reusable "Sermon Stories" library (BG-requested)
+
+**Requested by Bishop Gwin himself:** extract every **story / illustration** he tells in a sermon and collect them into **his personal section** as a reusable, searchable library — so he doesn't dig through old sermons to find an illustration for a new one. This is a **third output of the same engine** (alongside lessons and books), running off the same sermon transcripts.
+
+### Where it lands (extend, don't duplicate)
+
+BG's section already exists: **The Word — Migdal** — the staff-gated (owner/admin) Bishop's-study surface (`app/src/components/Pulpit.jsx`, nav id `pulpit`; engine `app/src/lib/pulpit-prep.js` — `theWordTabs`, `corpusPrep`, `speakerRoster`), reading the `choir_sermons` corpus. **Add a new "Sermon Stories" sub-tab there** via `theWordTabs(canManage)`, reusing the corpus + the `corpusPrep` search pattern. **Do not build a new top-level surface** — it lives inside his existing study (ties to the prior BG-study work, lane `local_cb09eb75`). Owner-scoped to BG by default.
+
+### Extraction shape (one record per story)
+
+| Field | Meaning |
+|---|---|
+| `story` | the anecdote/illustration as he told it (faithful — his words, lightly cleaned; **not fabricated**) |
+| `point` | the moral / takeaway it served |
+| `scripture` | the verse(s)/theme it illustrated (verified via the §3.1 faithfulness gate) |
+| `theme` / `topic` / `tags` | for search + filter (e.g., perseverance, grace, fatherhood) |
+| `source` | source sermon + `service_date` + **timestamp** into the recording (jump-back link) |
+| `speaker` | normalized via `speakerKey` (BG's canonical entity) |
+| `visibility` | **private to BG by default** (a story may name a congregant/family member) |
+
+Searchable/filterable by **theme, scripture, topic** — pull a past illustration into a new sermon fast.
+
+### Two parts
+
+1. **Reuse from old sermons (primary).** From his sermon corpus (church NAS ∪ YouTube → transcripts, the *same* source as lessons/books), auto-extract the discrete stories he *actually told* — anecdote + point + scripture/theme + source/date/timestamp — into the Sermon Stories library. **Faithful extraction only: pull what he said, never invent; he verifies before a story is "kept."** The faithfulness gate (§3.1) still verifies any scripture attached.
+2. **New-story sourcing aid (optional, secondary).** A curated source of stories/illustrations for *new* sermons "for perspective" — clean, attributed, theologically aligned (Word-first / non-denominational). **BG curates; this is a sourcing aid, not auto-insert.** **Copyright (binding):** external stories are **attributed**, **summary/reference only — never reproduce copyrighted text**; derived data (the gist, the source citation) only — same rule as §14 books and the Worship/Music vetting.
+
+### Constraint resolutions (deltas)
+
+- **Privacy/consent is the senior gate (BG-private).** Stories often name congregants, family, the departed, personal testimonies. **Default private to BG**; the Presidio scrub (§3.3) + the no-leak visibility filter run; **consent/scrub before BG ever chooses to share** a story outward (e.g., into a public lesson/book). His selection is the first gate.
+- **Faithful, never fabricated.** The model extracts candidate stories from the transcript and presents them for **BG's verification**; an unverified story stays in a "candidate" state, never auto-canonical (Verification Doctrine — characterize before you trust; he is the human gate).
+- **Reuse the proven pieces:** the same transcript pass, the same faithfulness gate, the `speakerKey` canonical entity, the `corpusPrep` search, the discussions/no-leak visibility model, the Presidio scrub. **New code only:** the story-extraction prompt + the Sermon Stories sub-tab in The Word — Migdal.
+
+### Timeline slice
+
+- **P3c — Sermon Stories MVP (BG's reusable library) — ~3–5 build days, CPU-now.** Depends on: transcripts existing (rides P2's transcript output) + the new sub-tab in The Word — Migdal. Pure text-processing once a transcript exists → no GPU. Extracts candidate stories → BG verifies → kept stories become searchable. Batch-extract across his back-catalog rides **P7** (GPU-accelerated, behind brakes, newest-first) once the corpus is transcribed.
+- **New-story sourcing aid** is a small, separate curated surface — ships when BG wants it; copyright-vetted, attribution-only.
+
+### Standard screens (delta)
+
+- **Sovereign-mesh Tier 1** holds — stories are extracted locally from owned transcripts into BG's own owned section; nothing leaves. The optional new-story sourcing aid is the only surface that *might* reference external material, and only as attributed summary/reference (no copyrighted text), so it stays clean.
+- **Cost:** marginal (text extraction on already-produced transcripts); $0 recurring.
+- **Father's-Business:** it serves the preacher directly — hands Bishop Gwin his own illustrations back, organized and instantly findable, so he spends his preparation on the Word and the people, not on digging through archives. His stories, his section, his to verify and to share or keep private. Passes the eight-question Test.
 
 ---
 
