@@ -183,8 +183,8 @@ export function setListToPresentable(setList, { id = 'worship-set', title = 'Wor
   const cues = buildCues(setList);
   const scenes = cues.map((c) => {
     const program = cueToProgram(c);
-    let sceneTitle = '';
-    let lead = '';
+    let sceneTitle;
+    let lead;
     if (c.itemKind === 'song') { sceneTitle = c.songTitle || c.sectionLabel; lead = (c.lines || []).join('\n'); }
     else if (c.itemKind === 'scripture') { sceneTitle = c.ref || 'Scripture'; lead = c.text || ''; }
     else if (c.itemKind === 'slide') { sceneTitle = c.title || c.eyebrow || ''; lead = c.body || ''; }
