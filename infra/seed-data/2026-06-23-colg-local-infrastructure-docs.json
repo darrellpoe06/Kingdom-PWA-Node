@@ -1,0 +1,127 @@
+{
+  "$schema": "https://kingdom-pwa.dev/schemas/seed-projects/v1.json",
+  "seed_id": "2026-06-23-colg-local-infrastructure-docs",
+  "generated_at": "2026-06-23T00:00:00Z",
+  "generated_by": "research-review session (local NAS lane)",
+  "instance_slug": "colg",
+  "intent": "Materialize the DECIDED best-way + rationale for each topic of the church study -> course-materials pipeline as in-app documentation, under a 'Church Local Infrastructure' project, using the discussions (institutional-memory / Events-as-data) model so each entry RENDERS in the app (Projects -> the project -> Discussions driving this; and the Discussions tab). Repo research-review doc = the survey (docs/99-session-notes/2026-06-23-research-review-body-study-to-course-materials-pipeline.md); these entries = the decided best-way.",
+  "poe_binding": "Decisions-with-rationale (we chose X not Y because Z). Word-first, served-not-surveilled, three-brakes, app-is-primary. Church-NAS holdings are 'pending inventory' until read-only access exists - no fabricated facts about NAS contents.",
+  "apply": "Idempotent. Apply once in Supabase Studio against the COLG cloud instance: run infra/seed-data/2026-06-23-colg-local-infrastructure-docs.sql (resolves the instance by slug='colg'; ON CONFLICT DO NOTHING). Renders live after apply. NOT yet applied to cloud as of this commit.",
+  "projects": [
+    {
+      "slug": "colg-local-infra-2026-06",
+      "title": "Church Local Infrastructure",
+      "status": "active",
+      "domain": "church",
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": null,
+      "description_md": "COLG sovereign local-infrastructure build: church NAS (~100 TB) + CUDA box + local AI, and the study/recordings -> structured course-materials pipeline that runs on it. Umbrella for the decided best-way + rationale on source, retention, processing topology, access, faithful extraction, consent, curation, trivia, and the end-to-end pipeline. Survey: docs/99-session-notes/2026-06-23-research-review-body-study-to-course-materials-pipeline.md.",
+      "linked_docs": [
+        "docs/99-session-notes/2026-06-23-research-review-body-study-to-course-materials-pipeline.md",
+        "infra/nas-sme-pipeline/README.md"
+      ]
+    }
+  ],
+  "discussions": [
+    {
+      "slug": "dc-colg-infra-source-both-reconciled",
+      "kind": "decision",
+      "title": "Source = BOTH church-NAS originals + YouTube archive, reconciled",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["colg-local-infra-2026-06"],
+      "body": "BEST WAY: treat the church NAS originals AND the YouTube @thelovecorner archive (UC821pJh7YR5llBNnWUJj-ZA, 836 videos since Sep 2014) as ONE reconciled set. Their union = the comprehensive video history; the matched pair (date/title/duration/hash) cross-verifies completeness AND fidelity. Built on the existing in-app choir_sermons catalog (migration 0013) for the on-YouTube side.\n\nWE CHOSE both-reconciled, NOT church-NAS-only and NOT YouTube-only, BECAUSE two independent copies of the Word let us prove nothing is missing or truncated and let us sanity-check each transcript against the published version - a misquote is far less likely to pass unnoticed. Church-NAS holdings are PENDING INVENTORY until read-only access exists; the 836 figure is verified.",
+      "links": { "dr_ref": "" }
+    },
+    {
+      "slug": "dc-colg-infra-retain-best-of-one",
+      "kind": "decision",
+      "title": "Retention = keep the single BEST version (~100 TB church NAS)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["colg-local-infra-2026-06"],
+      "body": "BEST WAY: verify with both copies, then RETAIN only the single best version per item - criteria in order: (1) audio quality (dominates transcription accuracy), (2) completeness/uncut, (3) resolution/bitrate. Record matched-pair provenance (date/title/duration/hash/which-source-won) even though only one file is kept, so verification history survives without duplicate storage. Capacity: ~100 TB total after 5x12 TB add (RAID caveat: 60 TB raw -> ~48 TB usable at SHR/RAID-5, ~36 TB at RAID-6; total pool still ample). Whole archive best-versions ~1-2.5 TB - vast headroom.\n\nWE CHOSE best-of-one, NOT redundant duplicates, BECAUSE storage is not the constraint - cleanliness is; two copies are for VERIFICATION, one copy is for RETENTION.",
+      "links": { "dr_ref": "" }
+    },
+    {
+      "slug": "dc-colg-infra-app-on-cuda-cockpit",
+      "kind": "decision",
+      "title": "Processing = the app is the cockpit, running ON the CUDA boxes",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["colg-local-infra-2026-06"],
+      "body": "BEST WAY: the PoeTech PWA opens locally ON the GPU machine (church + home). That app instance IS the processing + orchestration node - it reaches the LOCAL GPU (faster-whisper + Ollama on CUDA) and the LOCAL recordings (church NAS on the same LAN) directly. Operating the pipeline = clicks in the app that become local API calls (Reconcile / Build / Monitor / Review / Publish). The sovereign sync layer keeps both sites coherent. Local-conductor / GPU-does-the-work.\n\nWE CHOSE app-on-CUDA-as-node, NOT external scripts and NOT cloud processing, BECAUSE the app is the primary artifact (AI-FOUNDATION-INTERNAL-OPERATIONS: a click today is an API call tomorrow), low-latency local LAN + local GPU is fully sovereign, and nothing leaves the box. The app is the control plane; raw GPU work stays native (don't force-fit the app where it adds no value).",
+      "links": { "dr_ref": "" }
+    },
+    {
+      "slug": "dc-colg-infra-access-tailnet-takeout-fallback",
+      "kind": "decision",
+      "title": "Access path = tailnet (primary) + owner-export Takeout (fallback)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["colg-local-infra-2026-06"],
+      "body": "BEST WAY: the acquisition gap is an ACCESS problem, not a download problem - originals already sit on the church NAS. PRIMARY: reach them over the LAN (app-on-CUDA at the church) and cross-site over Tailscale (home + church on one tailnet from the COLG NAS build). Reaching/authenticating to the church NAS is a credential / his-hand step (Darrell/BG hold the creds; the pipeline does not) - needs tailnet membership for the processing node + a read-only service account/share. FALLBACK, only for items on YouTube but missing from the NAS: the OWNER exports via YouTube Studio download / Google Takeout (it's COLG's own channel) and lands them on the NAS.\n\nWE CHOSE tailnet-access + owner-export, NOT yt-dlp/scraping and NOT pulling through our tools, BECAUSE it is rights-clean and sovereign - a channel-owner credential action, never a scrape, never our tools holding their creds.",
+      "links": { "dr_ref": "" }
+    },
+    {
+      "slug": "dc-colg-infra-faithful-extraction-guarantee",
+      "kind": "decision",
+      "title": "Faithful-extraction guarantee = bias input + verify output + matched-pair cross-check",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["colg-local-infra-2026-06"],
+      "body": "BEST WAY: a misquoted verse attributed to a speaker NEVER ships unverified. Three layers: (C) contextual biasing - feed Whisper a scripture-aware initial_prompt (66 book names, Bishop Gwin, Church of the Living God, KJV register) to cut errors at the source (arXiv:2410.18363); (D) post-hoc verification - detect every reference with a Bible-verse parser (pythonbible / python-scriptures) and check each quote against LOCAL canonical KJV/ESV, flag drift; (E) matched-pair cross-check - sanity-check the transcript against the other copy (NAS original vs YouTube mirror) + the choir_sermons title/speaker. Flagged verses go to human review; ESV primary / KJV secondary; fetch the actual translation, never reconstruct from the model.\n\nWE CHOSE bias+verify+cross-check, NOT fine-tuning Whisper, BECAUSE there is no labeled COLG corpus yet and fine-tuning overfits on scarce data; verification is proven-to-catch and runs today (Verification Doctrine / DR-0076). Fine-tuning parked for the GPU era.",
+      "links": { "dr_ref": "DR-0076" }
+    },
+    {
+      "slug": "dc-colg-infra-privacy-consent-scrub",
+      "kind": "decision",
+      "title": "Privacy/consent = consent-at-source + Presidio scrub + human backstop",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["colg-local-infra-2026-06"],
+      "body": "BEST WAY: congregant names, prayer requests, and testimonies are scrubbed or consented before anything becomes shareable (served-not-surveilled). Layered: (C) consent-at-source - default posture PRIVATE unless it is the teaching of the Word, which is shareable; media team can tag teaching vs personal segments; (B) Microsoft Presidio auto-scrub - local NER+regex strips names/PII before storing transcripts, custom recognizers for prayer/testimony, image-redaction for on-screen lower-thirds; (A) human backstop - the review queue shows consent flags beside faithfulness flags; nothing publishes until cleared. Teaching recordings ONLY - building Surveillance-Station camera feeds are out of scope.\n\nWE CHOSE consent-as-governance + automated first-pass + human backstop, NOT automation-only, BECAUSE NER catches names but not intent - the human is the final gate (DATA-AS-EMPOWERMENT, COMMUNITY-FIRST, QUALITY-OF-LIFE).",
+      "links": { "dr_ref": "" }
+    },
+    {
+      "slug": "dc-colg-infra-curation-newest-first-brakes",
+      "kind": "decision",
+      "title": "Curation = newest-first, by series, behind the three brakes",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["colg-local-infra-2026-06"],
+      "body": "BEST WAY: process newest-first, one series at a time, manual-run, with all three brakes (budget ceiling + single-instance concurrency lock + kill-switch). Backfill of the 836-item history is OPT-IN and batched, never auto-fired. Honest 'N of M', never a silent cap. Matches the sme-pipeline's existing manual-run posture.\n\nWE CHOSE newest-first manual-run, NOT batch-everything, BECAUSE auto-backfilling 836 items is the exact runaway the three-brakes rule forbids (2026-06-06 incident) and the human REVIEW queue is the real bottleneck regardless of GPU speed. CUDA buys speed, NOT permission to remove brakes (FEEDBACK_AUTONOMOUS_AUTOMATION_THREE_BRAKES).",
+      "links": { "dr_ref": "" }
+    },
+    {
+      "slug": "dc-colg-infra-bg-wednesday-trivia",
+      "kind": "decision",
+      "title": "BG Wednesday-1PM trivia Q&A = questions BG poses -> in-app answers",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["colg-local-infra-2026-06"],
+      "body": "BEST WAY: the questions Bishop Gwin poses at the end of a message become the lesson's check-for-understanding - answered in-app, graded app-side, RLS-scoped to the church instance. Reuses the shipped Engagement surface + trivia_answers table + engagement-sync (uploadTriviaAnswer/sendMessage/subscribeMessages). The Body's own questions feed the trivia, not just generated quiz items. Currently a static John 18 anchor set; the weekly auto-generation is blocked on Gmail OAuth (BG's emailed Wednesday message via Christina's inbox).\n\nWE CHOSE reuse-the-Engagement-lane + the Body's real questions, NOT a new trivia surface and NOT only machine-generated questions, BECAUSE the lane is built and waiting on the same OAuth, and the Body's contributions are first-class source (the directive's heart). The text wedge (BG message -> lesson + trivia) is the cheapest first increment.",
+      "links": { "dr_ref": "" }
+    },
+    {
+      "slug": "dc-colg-infra-end-to-end-pipeline",
+      "kind": "directive",
+      "title": "End-to-end: recordings -> course materials (the whole pipeline)",
+      "visibility": "shared",
+      "status": "open",
+      "author_persona": "darrell",
+      "project_slugs": ["colg-local-infra-2026-06"],
+      "body": "BEST WAY (the umbrella): reconcile-both -> retain-best -> app-on-CUDA transcribes (scripture-aware) -> faithfulness gate -> consent scrub -> structure into a MODULES lesson (objectives/segments/anchor refs/the Body's contributions/trivia) -> human review (Governor-gated) -> publish newest-first into Learn + Presenter + Study + Engagement + Church clips. Operated entirely through in-app surfaces. Reuses sme-pipeline, learn-framework, the Presenter contract, the trivia lane, Study, choir_sermons, and the discussions model. New links only: church-NAS access, the reconciliation/retention engine, the faithfulness gate, and the in-app cockpit.\n\nWE CHOSE app-operated, gate-first, human-in-the-loop, NOT scrape-and-auto-publish, BECAUSE the Word must be verifiably faithful (two copies, canonical check), people must be consented (served-not-surveilled), and the human governs the bright line - the system advises with receipts, Darrell/BG decide. Tier B/C: soaks before it ships. Survey: docs/99-session-notes/2026-06-23-research-review-body-study-to-course-materials-pipeline.md.",
+      "links": { "dr_ref": "" }
+    }
+  ]
+}
