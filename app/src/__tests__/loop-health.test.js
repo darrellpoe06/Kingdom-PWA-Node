@@ -51,13 +51,16 @@ describe('assessLoops — fresh / stale / never', () => {
     const stale = assessLoops({}, NOW, { triviaDate: '2026-05-01' }).find((l) => l.key === 'engagement');
     expect(stale.status).toBe('stale'); // > 10 days old
   });
-  it('marks the trivia loop AWAITING (not a dead NEVER) when its real source is not connected yet', () => {
-    // No triviaDate flowing AND the loop declares a real-but-unconnected source.
+  it('marks the trivia loop AWAITING (not a dead NEVER) and names its REAL source', () => {
+    // No triviaDate flowing AND the loop declares a real-but-unconnected source:
+    // Bishop Gwin's Wednesday 1PM YouTube message (Darrell 2026-06-23). Pin the
+    // naming so the status can never regress to "no source / never".
     const eng = assessLoops({}, NOW).find((l) => l.key === 'engagement');
-    expect(eng.status).toBe('awaiting');          // honest "waiting", not a red NEVER
+    expect(eng.status).toBe('awaiting');          // honest "in-progress", not a red NEVER
     expect(eng.lastUpdate).toBe(null);
     expect(typeof eng.awaitingSource).toBe('string');
-    expect(eng.awaitingSource.length).toBeGreaterThan(0);
+    expect(eng.awaitingSource).toMatch(/wednesday/i);
+    expect(eng.awaitingSource).toMatch(/youtube/i);
   });
   it('self-heals: the trivia loop goes fresh the moment a real active-question date flows', () => {
     const eng = assessLoops({}, NOW, { triviaDate: iso(NOW - 1 * 86400000) }).find((l) => l.key === 'engagement');

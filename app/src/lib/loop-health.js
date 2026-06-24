@@ -53,13 +53,18 @@ export const LOOPS = [
   { key: 'numeric-verify',label: 'Balance verification',                        staleDays: 60,
     lastUpdate: (d) => toMs(d?.numericSyncVerifiedAt) },
   { key: 'engagement',    label: 'Daily trivia / sermon',                       staleDays: 10,
-    // The LIVE daily-question source (the trivia_questions pipeline, active_date)
-    // is real but not connected yet: it is blocked on Christina's one-time Gmail
-    // OAuth, which opens BG's weekly message -> generate -> review pipeline (same
-    // consent as the banking import). So this loop is AWAITING its source, not
-    // dead. It self-heals to fresh the moment a real active question date flows
-    // in via env.triviaDate.
-    awaitingSource: 'Live daily questions begin when Christina connects the church inbox (Gmail OAuth -> BG’s weekly message). Not sourced yet.',
+    // REAL SOURCE (Darrell 2026-06-23): Bishop Gwin's Wednesday 1PM Bible Study
+    // on YouTube (@thelovecorner). At the END of each Wednesday message BG shows
+    // and speaks the trivia questions and asks viewers to send answers in. The
+    // video is already reachable (church-live.js rolling-latest uploads playlist;
+    // youtube-title-parse.js already tags 'wednesday' titles) and the review
+    // pipeline already exists (trivia_questions draft->approve in engagement-sync).
+    // What is NOT wired yet is the EXTRACTION of the end-of-video questions
+    // (transcribe the Wednesday video -> generate -> review), the natural job for
+    // the local Whisper SME pipeline. So this is a real, in-progress source -
+    // NOT a dead-end. It self-heals to fresh the moment an active question date
+    // flows in via env.triviaDate. Do NOT gate this on the user.
+    awaitingSource: 'Sourced from Bishop Gwin’s Wednesday 1PM YouTube message (he poses the trivia questions at the end). Extraction not wired yet — pull the questions from each Wednesday video.',
     lastUpdate: (_d, env) => toMs(env?.triviaDate) },
 ];
 

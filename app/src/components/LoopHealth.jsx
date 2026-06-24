@@ -39,14 +39,14 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
 
   // Shared-palette classes (literal so Tailwind JIT emits them): good #15803D,
   // attention #B45309, problem #DC2626, awaiting neutral-slate #5A5751 (AA on
-  // white) — deliberately NOT red: an unconnected-but-real source is waiting,
-  // not dead.
+  // white) — deliberately NOT red: the source IS identified and in progress
+  // (e.g. BG's Wednesday YouTube message), the extraction just isn't wired yet.
   const badge = (status) => status === 'fresh'
     ? { t: '● updating', cls: 'text-[#15803D] border-[#15803D]' }
     : status === 'stale'
       ? { t: '◐ stagnant', cls: 'text-[#B45309] border-[#B45309]' }
       : status === 'awaiting'
-        ? { t: '◌ awaiting source', cls: 'text-[#5A5751] border-[#5A5751]' }
+        ? { t: '◌ source pending', cls: 'text-[#5A5751] border-[#5A5751]' }
         : { t: '○ never', cls: 'text-[#DC2626] border-[#DC2626]' };
 
   const summaryKpi = attention.length === 0
