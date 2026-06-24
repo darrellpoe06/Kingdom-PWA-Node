@@ -108,6 +108,75 @@ export async function fetchFamilyPhotos({ limit = 12 } = {}) {
   }
 }
 
+// =============================================================================
+// Curated album source for the Big Picture page (2026-06-24, Darrell:
+// "can we use the Photos or Files app to populate the Big Picture page?").
+// YES — sovereignly, from the family's own NAS, NOT an external cloud. His
+// phone photos already back up to the NAS (DS file: /home/Photos/MobileBackup),
+// but the raw camera-roll dump is private. So the OWNER designates ONE curated
+// Synology Photos album (or NAS folder) to feed the Big Picture page; only that
+// album is served. Default: nothing — the personal camera roll is never exposed.
+// Served-not-surveilled: thumbnails fetched live per visit, never copied to the
+// device. Same bearer-token + fail-quiet contract as the family/property reads.
+//
+// Bridge contract (wf-album-photos, NAS-side — pending, owned by the Synology
+// Photos source lane):
+//   GET /n8n/webhook/album-photos?album=<name>&limit=N
+//   Authorization: Bearer <poetech-chat-bridge-token>
+//   -> { photos: [{ id, thumb, date, text }] }
+// =============================================================================
+
+// The owner's chosen album/folder name that feeds the Big Picture page. Stored
+// per-device alongside the bridge token (same sovereign config pattern); empty
+// by default so NOTHING from the camera roll is ever exposed without a
+// deliberate choice. (Promoting this to a family-shared NAS setting is a
+// follow-up; per-device matches the token's proven pattern for v1.)
+export const BIG_PICTURE_ALBUM_KEY = 'poetech-bigpicture-album';
+
+export function bigPictureAlbum() {
+  try { return (localStorage.getItem(BIG_PICTURE_ALBUM_KEY) || '').trim(); } catch (_) { return ''; }
+}
+
+// Album names are HUMAN-named in Synology Photos and routinely contain spaces
+// ("Big Picture", "Family Favorites") and apostrophes — so isValidDest (a slug
+// validator for upload dests) is too strict here. Allow letters, digits,
+// spaces, and . _ - ' & while still blocking path traversal and slashes so the
+// value can never escape the album lookup. The workflow re-validates server-side.
+const ALBUM_RE = /^[A-Za-z0-9 ._\-'&]{1,80}$/;
+export function isValidAlbum(name) {
+  return typeof name === 'string' && ALBUM_RE.test(name) && !name.includes('..') && !name.includes('/') && !name.includes('\\');
+}
+
+// Set (or clear, with '') the curated album. Validated to safe chars so a bad
+// value never leaves the device; the workflow re-validates (defense in depth).
+export function setBigPictureAlbum(name) {
+  const clean = (name || '').trim();
+  try {
+    if (!clean) localStorage.removeItem(BIG_PICTURE_ALBUM_KEY);
+    else if (isValidAlbum(clean)) localStorage.setItem(BIG_PICTURE_ALBUM_KEY, clean);
+  } catch (_) { /* storage unavailable — no-op */ }
+}
+
+// Fetch the owner's curated Big Picture album from the NAS. Same fail-quiet
+// contract: null on any problem (no token, no album chosen, offline, 401),
+// never an error wall — until wf-album-photos ships, this simply renders
+// nothing, which is the correct honest default.
+export async function fetchAlbumPhotos(album, { limit = 60 } = {}) {
+  const token = bridgeToken();
+  if (!token || !album || !isValidAlbum(album)) return null;
+  try {
+    const resp = await fetch(`/n8n/webhook/album-photos?album=${encodeURIComponent(album)}&limit=${limit}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    const payload = Array.isArray(json) ? (json[0] || {}) : json;
+    return { photos: payload.photos || [], total: typeof payload.total === 'number' ? payload.total : (payload.photos || []).length };
+  } catch (_) {
+    return null;
+  }
+}
+
 // Upload one photo (a compressed data URL) to the NAS. Returns { ok } | null.
 // dest defaults to the shared family gallery. The caller falls back to
 // device-local storage when this returns null (no token, offline, rejected) —
