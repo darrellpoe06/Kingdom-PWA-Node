@@ -25,6 +25,8 @@ import { SectionTitle, TabScroll } from './shared.jsx';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import EternalAlgorithms from './EternalAlgorithms.jsx';
 import UiIcon from './UiIcon.jsx';
+import Presenter from './Presenter.jsx';
+import { studyPresentable } from '../lib/presentable.js';
 import {
   KINDS, KIND_ORDER, DEFAULT_LABEL,
   loadStudy, saveStudy, seedIfEmpty,
@@ -223,6 +225,7 @@ export default function Study({ email }) {
   const [editing, setEditing] = useState(null); // entry being edited, {} = new, null = none
   const [renaming, setRenaming] = useState(false);
   const [labelDraft, setLabelDraft] = useState('');
+  const [presenting, setPresenting] = useState(false); // live present mode (the circle)
   const loadedFor = useRef(null);
 
   // Load (and first-time seed) the device-local store for this identity. Reloads
@@ -243,6 +246,11 @@ export default function Study({ email }) {
 
   const counts = useMemo(() => countsByKind(study.entries), [study.entries]);
   const shown = useMemo(() => sortEntries(filterEntries(study.entries, kind, query)), [study.entries, kind, query]);
+  // Reflections ready to put on a screen: the present adapter keeps the deep
+  // 4th-dimensional source in presenter notes (off the projector) and shows only
+  // the plain wider-audience layer, so an entry needs a plain version to qualify.
+  const presentable = useMemo(() => studyPresentable(study.entries, { id: 'study', title: study.label || DEFAULT_LABEL, kicker: study.label || DEFAULT_LABEL }), [study.entries, study.label]);
+  const canPresent = presentable.scenes.length > 0;
 
   const saveEntry = (raw) => {
     setStudy((s) => {
@@ -267,6 +275,14 @@ export default function Study({ email }) {
   };
 
   const serif = { fontFamily: '"Fraunces", serif' };
+
+  // Live present mode takes over the surface (presenter console here, a clean
+  // reflection screen in a popped window) — the same shared Presenter the Learn
+  // courses + The Word use. The deep source stays presenter-side by construction.
+  if (presenting) {
+    return <Presenter presentable={presentable} onClose={() => setPresenting(false)} />;
+  }
+
   return (
     <div className="max-w-3xl">
       <SectionTitle eyebrow="Private · for the circle only">
@@ -318,6 +334,9 @@ export default function Study({ email }) {
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         {editing === null && (
           <button type="button" onClick={() => setEditing({})} className={`${BTN} text-[#B85838] hover:text-[#1A1815] border border-[#B85838]`}>+ New {KINDS[kind].label.toLowerCase()}</button>
+        )}
+        {canPresent && (
+          <button type="button" onClick={() => setPresenting(true)} className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white`} title="Put the plain layer on a screen; the deep source stays with you">▶ Present</button>
         )}
         <label className="sr-only" htmlFor="study-q">Search this space</label>
         <input id="study-q" className={`${FIELD} flex-1 min-w-[12rem]`} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search titles, both layers, scripture, tags…" />
