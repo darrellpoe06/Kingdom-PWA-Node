@@ -474,6 +474,16 @@ Build-day estimates are engineering effort, not wall-clock; phases gated by thei
 
 BG's section already exists: **The Word — Migdal** — the staff-gated (owner/admin) Bishop's-study surface (`app/src/components/Pulpit.jsx`, nav id `pulpit`; engine `app/src/lib/pulpit-prep.js` — `theWordTabs`, `corpusPrep`, `speakerRoster`), reading the `choir_sermons` corpus. **Add a new "Sermon Stories" sub-tab there** via `theWordTabs(canManage)`, reusing the corpus + the `corpusPrep` search pattern. **Do not build a new top-level surface** — it lives inside his existing study (ties to the prior BG-study work, lane `local_cb09eb75`). Owner-scoped to BG by default.
 
+### Access scope — trusted-steward set (owner = BG; shared = Darrell + Christina)
+
+BG's clarification: the library is **his**, but **Darrell and Christina also have access.** A small trusted-steward set — **not BG-only, and not public.** Modeled on the **unified roles/membership layer** (`instance_members(instance_id, user_id, role)` with roles `owner|admin|member|viewer|specialist`; the RLS helpers `user_in_instance()` / `user_role_in_instance()`; `role_scopes`; the `colg` instance):
+
+- **OWNER = Bishop Gwin** — full read / write / curate; **he makes the grants** (governance stays with the owner).
+- **Shared read/use = Darrell (system steward) + Christina** — they view + use stories; they do **not** re-scope ownership.
+- **NOT instance-wide, NOT public.** This is a **named subgroup narrower than `user_in_instance`** — the exact shape the **Choir module already uses** (`user_in_choir()`: a defined subset gets read/use, owner/admin edit). Enforce with a `role_scopes` grant or a `user_in_sermon_stories_stewards(instance_id)` subgroup predicate, **not** the broad instance-member check (which would expose it to every COLG member). The default instance-member RLS on `discussions`/`choir_sermons` is therefore *too wide* for this surface — Sermon Stories needs the narrower steward predicate.
+- **Congregant/family-name privacy still applies *within* the set:** per-story `visibility` private-by-default, the Presidio scrub (§3.3), and the no-leak `visibleDiscussions` filter; **consent/scrub before any sharing beyond the trusted three.** "Trusted set" widens *who can steward*, not *what may be broadcast*.
+- **Design-level scope only.** This documents the intended scope; the **actual permission grants are made by the owner (BG) through the app's own roles UI** — not a live permission flipped from here.
+
 ### Extraction shape (one record per story)
 
 | Field | Meaning |
