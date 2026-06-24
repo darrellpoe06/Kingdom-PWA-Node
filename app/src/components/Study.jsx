@@ -24,9 +24,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle, TabScroll } from './shared.jsx';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import EternalAlgorithms from './EternalAlgorithms.jsx';
+import ThoughtFinalizer from './ThoughtFinalizer.jsx';
 import UiIcon from './UiIcon.jsx';
 import Presenter from './Presenter.jsx';
 import { studyPresentable } from '../lib/presentable.js';
+import { unfinalizedThoughts } from '../lib/thought-finalizer.js';
 import {
   KINDS, KIND_ORDER, DEFAULT_LABEL,
   loadStudy, saveStudy, seedIfEmpty,
@@ -219,7 +221,7 @@ function CaptureBox({ onCapture }) {
 // -----------------------------------------------------------------------------
 export default function Study({ email }) {
   const [study, setStudy] = useState(() => emptyStateFor(email));
-  const [space, setSpace] = useState('workspace'); // 'workspace' | 'algorithms'
+  const [space, setSpace] = useState('workspace'); // 'workspace' | 'algorithms' | 'finalize'
   const [kind, setKind] = useState('reflection');
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState(null); // entry being edited, {} = new, null = none
@@ -268,6 +270,10 @@ export default function Study({ email }) {
   };
   const onDelete = (id) => setStudy((s) => ({ ...s, entries: removeEntry(s.entries, id) }));
   const onPin = (id) => setStudy((s) => ({ ...s, entries: togglePin(s.entries, id) }));
+  // The finalizer writes back a whole (already-normalized) entry whose ONLY
+  // change is the added `finalization` layer — the owner's words are untouched.
+  const onFinalizeSave = (entry) => setStudy((s) => ({ ...s, entries: upsertEntry(s.entries, entry) }));
+  const pendingFinalize = useMemo(() => unfinalizedThoughts(study.entries).length, [study.entries]);
   const commitRename = () => {
     const next = labelDraft.trim() || DEFAULT_LABEL;
     setStudy((s) => ({ ...s, label: next }));
@@ -312,9 +318,11 @@ export default function Study({ email }) {
       <div className="flex gap-1 text-xs mb-4 flex-wrap" role="tablist" aria-label="Study spaces">
         <button type="button" role="tab" aria-selected={space === 'workspace'} onClick={() => setSpace('workspace')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'workspace' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}><UiIcon name="book" /> Workspace</button>
         <button type="button" role="tab" aria-selected={space === 'algorithms'} onClick={() => setSpace('algorithms')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'algorithms' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}><UiIcon name="sparkle" /> Eternal Algorithms</button>
+        <button type="button" role="tab" aria-selected={space === 'finalize'} onClick={() => setSpace('finalize')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'finalize' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}><UiIcon name="check" /> Finalize{pendingFinalize ? ` · ${pendingFinalize}` : ''}</button>
       </div>
 
-      {space === 'algorithms' ? <EternalAlgorithms email={email} /> : (
+      {space === 'finalize' ? <ThoughtFinalizer entries={study.entries} onSaveEntry={onFinalizeSave} />
+      : space === 'algorithms' ? <EternalAlgorithms email={email} /> : (
       <>
       {/* Room tabs — shared <TabScroll> primitive (same fluid scroll as the
           main nav); children keep role="tab", so the row is a real tablist. */}
