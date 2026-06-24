@@ -36,7 +36,19 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   formatClock, TEACH_CHANNEL, buildSlideForScene, holdingSlide,
   PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE, ageHint,
+  PRIORITY, fitToBudget, makeScene,
+  loadOverlay, saveOverlay, applyOverlay, EMPTY_OVERLAY,
 } from '../lib/presentable.js';
+
+// The presenter's own device localStorage, guarded (SSR / private-mode safe). The
+// living-curriculum overlay is personal to the presenter and never touches the
+// shared/broadcast contract — see lib/presentable.js applyOverlay.
+function defaultStorage() {
+  try { return typeof window !== 'undefined' ? window.localStorage : null; } catch { return null; }
+}
+
+// Budget presets (minutes) offered as one-tap chips next to the free input.
+const BUDGET_PRESETS = [15, 30, 45, 60, 90];
 
 function NoteSection({ note }) {
   const card = { border: '1px solid #E8E4DC', padding: 16, marginBottom: 16 };
@@ -71,16 +83,113 @@ function NoteSection({ note }) {
   );
 }
 
-export default function Presenter({ presentable, onClose = null }) {
-  // Memoized so the useCallback broadcast paths below don't see a new array each
-  // render (a fresh `scenes` would rebind the channel handler every tick).
-  const scenes = useMemo(
+// A controls-in-context form to ADD a new section or EDIT an existing one. Lives
+// inline on the presenter screen (never the projector). `initial` seeds the fields
+// for an edit; absent => an add. Returns the collected fields to onSave.
+function SceneEditor({ initial = null, onSave, onCancel }) {
+  const [title, setTitle] = useState(initial?.audience?.title || '');
+  const [lead, setLead] = useState(initial?.audience?.lead || '');
+  const [note, setNote] = useState(initial?.notes?.[0]?.body || '');
+  const [minutes, setMinutes] = useState(initial?.estimatedMin != null ? String(initial.estimatedMin) : '5');
+  const [priority, setPriority] = useState(initial?.priority === PRIORITY.SUPPLEMENTARY ? PRIORITY.SUPPLEMENTARY : PRIORITY.CORE);
+
+  const field = { display: 'block', width: '100%', boxSizing: 'border-box', padding: '8px 10px', marginTop: 4, border: '1px solid #CFC9BD', fontFamily: '"Fraunces", serif', fontSize: 15, background: '#fff', color: '#1A1815' };
+  const lbl = { fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' };
+  const btn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', fontSize: 12 };
+
+  const submit = () => {
+    if (!title.trim()) return;
+    const patch = {
+      audience: { title: title.trim(), lead: lead.trim() },
+      estimatedMin: Math.max(1, Math.round(Number(minutes) || 5)),
+      priority,
+    };
+    // For a brand-new section we attach the note as the first presenter-only note.
+    if (!initial) patch.note = note.trim();
+    else patch.notes = note.trim() ? [{ kind: 'body', heading: 'Your note', body: note.trim() }] : [];
+    onSave(patch);
+  };
+
+  return (
+    <div style={{ border: '1px solid #1A1815', padding: 16, marginBottom: 16, background: '#fff' }}>
+      <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 15, margin: '0 0 12px' }}>
+        {initial ? 'Edit this section' : 'Add a section'}
+      </h4>
+      <label style={lbl}>Title (the room sees this)
+        <input style={field} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Closing prayer" />
+      </label>
+      <label style={{ ...lbl, display: 'block', marginTop: 12 }}>Big idea (the room sees this)
+        <input style={field} value={lead} onChange={(e) => setLead(e.target.value)} placeholder="One line learners see" />
+      </label>
+      <label style={{ ...lbl, display: 'block', marginTop: 12 }}>Your note (only you see this)
+        <textarea style={{ ...field, minHeight: 56, resize: 'vertical' }} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Talking points, kept off the screen" />
+      </label>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 12 }}>
+        <label style={lbl}>Minutes
+          <input type="number" min="1" style={{ ...field, width: 90 }} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+        </label>
+        <div role="radiogroup" aria-label="Priority" style={{ display: 'flex', gap: 8 }}>
+          {[{ id: PRIORITY.CORE, label: 'Core' }, { id: PRIORITY.SUPPLEMENTARY, label: 'Supplementary' }].map((p) => {
+            const on = priority === p.id;
+            return (
+              <button key={p.id} type="button" role="radio" aria-checked={on} onClick={() => setPriority(p.id)}
+                style={{ ...btn, border: `1px solid ${on ? '#5A6E3D' : '#5A5751'}`, background: on ? '#5A6E3D' : '#fff', color: on ? '#fff' : '#1A1815' }}>
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <p style={{ fontSize: 12, color: '#5A5751', margin: '12px 0', fontFamily: '"Fraunces", serif' }}>
+        Core sections are never auto-skipped to fit a budget; supplementary ones drop first.
+      </p>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button type="button" onClick={submit} disabled={!title.trim()} style={{ ...btn, border: '2px solid #1A1815', background: '#1A1815', color: '#fff', opacity: title.trim() ? 1 : 0.4 }}>
+          {initial ? 'Save changes' : 'Add section'}
+        </button>
+        <button type="button" onClick={onCancel} style={{ ...btn, border: '1px solid #5A5751', background: '#fff', color: '#1A1815' }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+export default function Presenter({
+  presentable,
+  onClose = null,
+  // Respect the surface's visibility/permissions: a surface that should not let the
+  // presenter grow its curriculum passes canEdit={false} (the add/edit controls then
+  // never render). Default true — present mode is already behind each surface's gate.
+  canEdit = true,
+  // Persistence seam. By default the living-curriculum overlay is saved to the
+  // presenter's own localStorage; a surface that wants server-shared curriculum
+  // passes onCurriculumChange to persist the overlay itself.
+  storage = undefined,
+  onCurriculumChange = null,
+}) {
+  const store = useMemo(() => (storage !== undefined ? storage : defaultStorage()), [storage]);
+  const baseScenes = useMemo(
     () => (presentable && Array.isArray(presentable.scenes) ? presentable.scenes : []),
     [presentable],
   );
   const title = presentable?.title || 'Present';
   const kicker = presentable?.kicker;
   const targetMin = presentable?.targetMin || 75;
+  const presentableId = presentable?.id || 'default';
+
+  // The living-curriculum overlay (added + edited scenes), loaded per-presentable.
+  const [overlay, setOverlay] = useState(EMPTY_OVERLAY);
+  useEffect(() => { setOverlay(loadOverlay(presentableId, store)); }, [presentableId, store]);
+
+  // The effective curriculum the presenter walks = base adapter output + overlay.
+  // Memoized so the once-bound channel handler below isn't rebound every render.
+  const scenes = useMemo(() => applyOverlay(baseScenes, overlay), [baseScenes, overlay]);
+
+  // Persist + notify on any curriculum change (add / edit / retime).
+  const commitOverlay = useCallback((next) => {
+    setOverlay(next);
+    saveOverlay(presentableId, next, store);
+    if (typeof onCurriculumChange === 'function') { try { onCurriculumChange(next); } catch (e) { /* noop */ } }
+  }, [presentableId, store, onCurriculumChange]);
 
   const [idx, setIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);      // seconds
@@ -88,12 +197,39 @@ export default function Presenter({ presentable, onClose = null }) {
   const [showNotes, setShowNotes] = useState(true);
   const [age, setAge] = useState(DEFAULT_PRESENT_AGE);
   const [audienceState, setAudienceState] = useState('closed'); // closed | open | blocked | live | blank
+
+  // --- time-adaptive: budget + per-scene skip overrides -----------------------
+  const [budgetMin, setBudgetMin] = useState(0);  // 0 = no budget (full curriculum)
+  const [budgetInput, setBudgetInput] = useState('');
+  const [overrides, setOverrides] = useState({}); // sceneKey -> 'keep' | 'skip'
+  const [showPlan, setShowPlan] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(null); // null | 'add' | sceneKey(edit)
+
   const chRef = useRef(null);
   const winRef = useRef(null);
+
+  // The reflow plan for the current budget + overrides. When no budget is set this
+  // is the full curriculum (fits=true, nothing skipped).
+  const fit = useMemo(
+    () => fitToBudget(scenes, budgetMin, { overrides }),
+    [scenes, budgetMin, overrides],
+  );
+  const planByKey = useMemo(() => {
+    const m = {};
+    fit.plan.forEach((row, i) => { m[row.id != null ? String(row.id) : `#${i}`] = row; });
+    return m;
+  }, [fit]);
+  const sceneKeyAt = useCallback((i) => {
+    const s = scenes[i];
+    return s && s.id != null ? String(s.id) : `#${i}`;
+  }, [scenes]);
 
   const last = Math.max(0, scenes.length - 1);
   const cur = scenes[idx] || null;
   const nxt = scenes[idx + 1] || null;
+  const curPlan = cur ? planByKey[sceneKeyAt(idx)] : null;
+  // Timer pacing: count toward the budget when one is set, else the curriculum target.
+  const effectiveTarget = budgetMin > 0 ? budgetMin : targetMin;
 
   // Refs so the once-bound channel handler + resend timeouts read the LIVE index /
   // blank state without stale closures.
@@ -149,6 +285,9 @@ export default function Presenter({ presentable, onClose = null }) {
     return () => clearInterval(id);
   }, [running]);
 
+  // Keep the cursor in range as the curriculum changes (e.g. switching surfaces).
+  useEffect(() => { setIdx((w) => Math.min(w, Math.max(0, scenes.length - 1))); }, [scenes.length]);
+
   const go = useCallback((dir) => {
     setIdx((w) => Math.min(last, Math.max(0, w + dir)));
   }, [last]);
@@ -187,10 +326,36 @@ export default function Presenter({ presentable, onClose = null }) {
     setAudienceState('live');
   }, [scenes, kicker]);
 
-  const overMin = Math.floor(elapsed / 60) >= targetMin;
+  const overMin = Math.floor(elapsed / 60) >= effectiveTarget;
   const a = cur?.audience || {};
   const notes = Array.isArray(cur?.notes) ? cur.notes : [];
   const hasNotes = notes.length > 0;
+
+  // --- budget + override + curriculum-edit handlers ---
+  const applyBudget = useCallback((raw) => {
+    const n = Math.max(0, Math.round(Number(raw) || 0));
+    setBudgetMin(n);
+    setBudgetInput(n > 0 ? String(n) : '');
+    if (n > 0) setShowPlan(true);
+  }, []);
+  const setOverride = useCallback((key, value) => {
+    setOverrides((o) => {
+      const next = { ...o };
+      if (!value || next[key] === value) delete next[key]; // toggle off -> back to auto
+      else next[key] = value;
+      return next;
+    });
+  }, []);
+  const addUserScene = useCallback((input) => {
+    const uid = `${presentableId}-${scenes.length}-${Math.round(elapsed)}`;
+    const scn = makeScene({ ...input, uid });
+    commitOverlay({ ...overlay, added: [...(overlay.added || []), scn] });
+    setEditorOpen(null);
+  }, [overlay, commitOverlay, presentableId, scenes.length, elapsed]);
+  const saveSceneEdit = useCallback((key, patch) => {
+    commitOverlay({ ...overlay, edits: { ...(overlay.edits || {}), [key]: { ...(overlay.edits?.[key] || {}), ...patch } } });
+    setEditorOpen(null);
+  }, [overlay, commitOverlay]);
 
   const btn = {
     base: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '2px solid #1A1815', background: '#1A1815', color: '#fff', fontSize: 12 },
@@ -220,7 +385,7 @@ export default function Presenter({ presentable, onClose = null }) {
         <button type="button" onClick={() => go(1)} disabled={idx === last} aria-label="Next" title="Next (→)" style={{ ...btn.nav, opacity: idx === last ? 0.4 : 1 }}>→</button>
         <span style={{ color: '#CFC9BD', fontSize: 13, maxWidth: '30vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
         <span aria-live="polite" title="Session timer" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: 18, color: overMin ? '#FF9B7A' : '#C9D9A6' }}>
-          {formatClock(elapsed)} <span style={{ fontSize: 11, color: '#CFC9BD' }}>/ {targetMin}:00</span>
+          {formatClock(elapsed)} <span style={{ fontSize: 11, color: '#CFC9BD' }}>/ {effectiveTarget}:00{budgetMin > 0 ? ' budget' : ''}</span>
         </span>
         <button type="button" onClick={() => setRunning((r) => !r)} style={btn.ghost}>{running ? 'Pause' : 'Start'}</button>
         <button type="button" onClick={() => { setElapsed(0); setRunning(false); }} style={btn.ghost}>Reset</button>
@@ -272,10 +437,97 @@ export default function Presenter({ presentable, onClose = null }) {
           <span style={{ flexBasis: '100%', margin: 0, fontSize: 13, color: '#5A5751', fontFamily: '"Fraunces", serif' }}>{ageHint(age)}</span>
         </div>
 
+        {/* time-adaptive: "I have ___ minutes" -> fit-to-budget reflow + skip-suggest */}
+        <div style={{ ...card, background: '#fff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>I have</span>
+            <input
+              type="number" min="0" inputMode="numeric" aria-label="Minutes available"
+              value={budgetInput}
+              onChange={(e) => { setBudgetInput(e.target.value); applyBudget(e.target.value); }}
+              placeholder="—"
+              style={{ width: 80, padding: '8px 10px', border: '1px solid #CFC9BD', fontFamily: '"JetBrains Mono", monospace', fontSize: 16, textAlign: 'center', background: '#fff', color: '#1A1815' }}
+            />
+            <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>minutes</span>
+            {BUDGET_PRESETS.map((m) => (
+              <button key={m} type="button" onClick={() => applyBudget(m)}
+                style={{ ...btn.ghost, minHeight: 34, padding: '5px 12px', borderColor: budgetMin === m ? '#5A6E3D' : '#5A5751', background: budgetMin === m ? '#5A6E3D' : '#fff', color: budgetMin === m ? '#fff' : '#1A1815' }}>
+                {m}
+              </button>
+            ))}
+            {budgetMin > 0 && (
+              <button type="button" onClick={() => { applyBudget(0); setOverrides({}); }} style={{ ...btn.ghost, minHeight: 34, padding: '5px 12px' }}>Full curriculum</button>
+            )}
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+              full = {fit.fullMin} min
+            </span>
+          </div>
+          <p style={{ margin: '12px 0 0', fontSize: 14, lineHeight: 1.5, color: fit.overBudget ? '#7A1F1F' : '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
+            {fit.summary}
+          </p>
+          {(budgetMin > 0 || Object.keys(overrides).length > 0) && (
+            <button type="button" onClick={() => setShowPlan((s) => !s)} style={{ ...btn.ghost, marginTop: 12 }}>
+              {showPlan ? 'Hide plan' : `Show plan (${fit.counts.total} sections)`}
+            </button>
+          )}
+
+          {showPlan && (
+            <div style={{ marginTop: 14, borderTop: '1px solid #E8E4DC', paddingTop: 12 }}>
+              {fit.plan.map((row, i) => {
+                const key = row.id != null ? String(row.id) : `#${i}`;
+                const isCore = row.priority === PRIORITY.CORE;
+                const forced = overrides[key];
+                return (
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < fit.plan.length - 1 ? '1px solid #F0EDE6' : 'none', opacity: row.skipped ? 0.55 : 1 }}>
+                    <span aria-hidden style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${isCore ? '#5A6E3D' : '#B85838'}`, color: isCore ? '#5A6E3D' : '#B85838', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>
+                      {isCore ? 'Core' : 'Supp'}
+                    </span>
+                    <span style={{ flex: 1, fontSize: 14, textDecoration: row.skipped ? 'line-through' : 'none', fontFamily: '"Fraunces", serif' }}>
+                      {row.audience?.title || row.indexLabel || key}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace', minWidth: 64, textAlign: 'right' }}>
+                      {row.skipped ? `skip${row.skipReason === 'forced' ? ' (you)' : ''}` : `${row.allocatedMin} min`}
+                    </span>
+                    {canEdit && (
+                      <button type="button" onClick={() => setEditorOpen(editorOpen === key ? null : key)} aria-label={`Edit ${row.audience?.title || key}`} style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: 11 }}>Edit</button>
+                    )}
+                    <button type="button" onClick={() => setOverride(key, row.skipped ? 'keep' : 'skip')}
+                      aria-label={row.skipped ? `Force keep ${key}` : `Force skip ${key}`}
+                      style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: 11, borderColor: forced ? '#1A1815' : '#5A5751' }}>
+                      {row.skipped ? 'Keep' : 'Skip'}
+                    </button>
+                  </div>
+                );
+              })}
+              {fit.counts.suppSkipped > 0 && (
+                <p style={{ margin: '12px 0 0', fontSize: 12, color: '#5A5751', fontFamily: '"Fraunces", serif' }}>
+                  Skips are suggestions — tap “Keep” to force any section back in, or “Skip” to drop one yourself. Core stays unless you skip it.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* inline editor for a plan row (edit) or the add form */}
+          {canEdit && editorOpen && editorOpen !== 'add' && planByKey[editorOpen] && (
+            <SceneEditor initial={planByKey[editorOpen]} onSave={(patch) => saveSceneEdit(editorOpen, patch)} onCancel={() => setEditorOpen(null)} />
+          )}
+          {canEdit && editorOpen === 'add' && (
+            <SceneEditor onSave={addUserScene} onCancel={() => setEditorOpen(null)} />
+          )}
+          {canEdit && editorOpen !== 'add' && (
+            <button type="button" onClick={() => setEditorOpen('add')} style={{ ...btn.ghost, marginTop: 12 }}>+ Add a section</button>
+          )}
+        </div>
+
         {/* what the room sees right now (mirror) */}
         <div style={{ ...card, background: '#fff', borderLeft: '4px solid #1A1815' }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>
-            On the class screen now{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}
+          <div style={{ fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <span>On the class screen now{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}</span>
+            {curPlan && budgetMin > 0 && (
+              <span style={{ color: curPlan.skipped ? '#7A1F1F' : '#5A6E3D' }}>
+                {curPlan.skipped ? '· planned skip' : `· planned ${curPlan.allocatedMin} min`}
+              </span>
+            )}
           </div>
           <h2 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 'clamp(22px, 3vw, 32px)', margin: '0 0 10px', letterSpacing: '-0.01em' }}>{a.title}</h2>
           {a.lead && <p style={{ fontSize: 17, lineHeight: 1.5, margin: '0 0 10px' }}>{a.lead}</p>}
