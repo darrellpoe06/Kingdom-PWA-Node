@@ -22,6 +22,29 @@
 
 ---
 
+## 0.5 These are recommended DEFAULTS — users choose their own (binding framing)
+
+**Declared by Darrell: "let users decide too."** Per the **user-choosable-workflows** principle, the per-tier picks in this doc are **recommended defaults, not a top-down mandate.** The pattern is the same one the platform already holds: **sensible defaults for the user who doesn't care; full selectable choice for the user who does** — surfaced **in-context** (controls-in-context, per the offload routing tiers), all **within the sovereign / local framework.**
+
+- **Every pick below is the pre-selected default, not the only option.** Any user can choose their own model — trade **speed for quality** (or the reverse), pick **which on-device model** runs on their phone, or **opt into a heavier one** (e.g. run the dense 14B if they prefer it, or reach the GPU box's 70B-class) — and the system honors it.
+- **The trade-off is the user's to make, in their words:** "faster, lighter" vs "slower, smarter." The doc names *why* each default was chosen (e.g. MoE for speed+quality on CPU) so a user can decide to deviate with eyes open — it does not remove the choice.
+- **Defaults exist so the 95% never has to think about it.** A user who never opens the picker gets the recommended model. The choice is there for the 5% who want it; it's never a wall in front of the 95%.
+- **Still sovereign either way.** "User-choosable" stays *inside* the local/private framework — every selectable option is a local/on-device/sovereign model. Choosing a heavier model is a speed/quality/where-it-runs choice, **never** a "send my data to a vendor" choice (a deliberate vendor call remains a separate, explicit, human opt-in per the offload-review posture).
+
+### Design hook — per-user model preference layered on the routing policy
+
+The concrete surface this implies (design note, not built here):
+
+- **A per-user model preference** for each tier — **driver / router / phone** (and optionally coder) — stored per user, **layered on top of the existing routing policy** (deterministic / bounded-local / heavy tiers).
+- **The recommended default is pre-selected** for every tier; the routing policy reads the user's override when set, else falls back to the default. No override = today's behavior, unchanged.
+- **Surfaced in-context** at the point of use (a model picker on the relevant surface / settings), showing the **speed-vs-quality** trade and the **"recommended" badge** on the default — controls-in-context, not a buried config file.
+- **On the phone**, the same preference governs which on-device model the app loads (MLC Chat / PocketPal already expose model choice — the platform just remembers the user's pick and pre-selects the recommended one).
+- **Honors the brakes + governance:** selectable options are bounded to vetted local models; *pulling/installing* a new model stays a human action (GOVERNANCE-EXECUTION-ADVISORY); the heavy-tier opt-in keeps its existing guardrails.
+
+Read the rest of this doc as **"here is the recommended default for each tier, and the menu a user can choose from instead."**
+
+---
+
 ## 1. The Hermes verdict (the headline question)
 
 **Question:** is **Hermes 3 (8B)** better than the current **qwen2.5:14b** for our uses?
@@ -103,7 +126,9 @@ Rough tok/s: **CPU** = this NAS class (Xeon D-1527, no GPU); **GPU** = the procu
 
 ---
 
-## 4. NOW — concrete picks for the CPU NAS (Xeon D-1527, ~62GB, no GPU)
+## 4. NOW — recommended defaults for the CPU NAS (Xeon D-1527, ~62GB, no GPU)
+
+*The "pull this" column is the **pre-selected default**; the listed fallbacks/alternates + anything in the §3 survey are the **user-choosable menu** (§0.5). A user who wants more speed can drop to a smaller model; one who wants more quality can opt into the dense 14B/32B and accept the slower tok/s.*
 
 | Tier | Pull this | Speed (CPU) | Why |
 |---|---|---|---|
@@ -119,9 +144,9 @@ Rough tok/s: **CPU** = this NAS class (Xeon D-1527, no GPU); **GPU** = the procu
 
 ---
 
-## 5. LATER — concrete picks for the GPU box (RTX PRO 6000 96GB / dual options)
+## 5. LATER — recommended defaults for the GPU box (RTX PRO 6000 96GB / dual options)
 
-On 96GB the box runs a coder **and** a heavy-reasoning model concurrently; everything below is real-time.
+On 96GB the box runs a coder **and** a heavy-reasoning model concurrently; everything below is real-time. *Same framing as §4 — these are pre-selected defaults; a user can choose any vetted local model the box can hold (§0.5).*
 
 | Tier | Pull this | Why |
 |---|---|---|
@@ -162,7 +187,7 @@ Darrell wants a **private, offline LLM on the phone itself.** This is real and u
 | **Phi-3.5-mini** | 3.8B dense | ~12–20 tok/s | **Reasoning/math** in a tiny footprint (Phi line punches above weight). | §r |
 | **Llama 3.2 1B / Gemma 3 1B** | 1–1.3B | 1B can hit **2,500+ tok/s on mobile GPU** (MLC) | Instant autocomplete / classify / on-device routing; lowest quality. | §q,§r |
 
-**Phone recommendation:** **best single pick = Gemma 3n/4-E4B in MLC Chat** (mobile-tuned, fastest sanctioned path). **Quality alternative = Qwen3-4B via PocketPal** (best reasoning for the size). Keep a **1–3B** (Llama 3.2 1B/3B) around for instant lightweight tasks. Use phone models for: quick private Q&A offline, draft text, on-device classify/summarize of something you don't want leaving the phone. **Do not** expect them to match the NAS MoE or the GPU box — that's the whole tiering.
+**Phone recommendation (a default + a menu, per §0.5):** **best single pick = Gemma 3n/4-E4B in MLC Chat** (mobile-tuned, fastest sanctioned path) — but **the user picks their own**: Qwen3-4B via PocketPal for best reasoning, a 1–3B for max speed, or an ~8B if they want more quality and accept the slower tok/s + RAM. The recommended model is pre-selected; the choice is theirs. Keep a **1–3B** (Llama 3.2 1B/3B) around for instant lightweight tasks. Use phone models for: quick private Q&A offline, draft text, on-device classify/summarize of something you don't want leaving the phone. **Do not** expect them to match the NAS MoE or the GPU box — that's the whole tiering.
 
 ---
 
