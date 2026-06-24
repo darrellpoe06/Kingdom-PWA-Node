@@ -319,7 +319,7 @@ Per *"let's get the best ways AND documentation for each inside the PoeTech app"
 - **Two projects (umbrella scope):**
   - **Church Local Infrastructure** (`colg-local-infra-2026-06`, domain `church`) — the sovereign-infra + recordings-pipeline entries.
   - **Content Engine** (`content-engine-2026-06`, domain `church`) — the broader workstream: the unified engine, conversations→lessons, curriculum→books, and the phased timeline. Engine entries link to **both** projects.
-- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **16 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **⭐ Sermon Stories — BUILD #1** (BG's reusable illustration library, in The Word — Migdal; the prioritized first build). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface. · (15) **Community engagement** (reactions/ratings/most-loved/radio stations on sermons + lessons, riding the shared primitive `local_ad147f53`; §17). · (16) **Single source** (historical archive + continuous future feeds every output; no separate capture; §18).
+- **In-app nav (after apply):** **Projects → (domain: Church) → "Church Local Infrastructure"** *and* **"Content Engine"** — best-way entries render inline under *Discussions driving this*, and in **Projects → Discussions** filtered to each project. The **17 entries**: (1) Source = both, reconciled · (2) Retention = best-of-one + ~100 TB · (3) Processing = app-on-CUDA · (4) Access = tailnet + Takeout fallback · (5) Faithful-extraction guarantee · (6) Privacy/consent scrub · (7) Curation + brakes · (8) BG Wednesday trivia Q&A · (9) Recordings→courses pipeline · (10) **Unified content engine** · (11) **Conversations→Lessons** · (12) **Curriculum→Books** (premise conflict + copyright + no-payment) · (13) **Phased timeline (CPU-now vs GPU-later)** · (14) **⭐ Sermon Stories — BUILD #1** (BG's reusable illustration library, in The Word — Migdal; the prioritized first build). The BG-stories entry lands in The Word — Migdal (BG's existing study), not a new surface. · (15) **Community engagement** (reactions/ratings/most-loved/radio stations on sermons + lessons, riding the shared primitive `local_ad147f53`; §17). · (16) **Single source** (historical archive + continuous future feeds every output; no separate capture; §18). · (17) **Depth-adaptive + interest-personalized** (book-capable quick/standard/deep tiers + opt-in sovereign personalization; §19).
 - **Live-render status (honest):** these **render live after the one-time Studio apply against the `colg` cloud instance** — a cloud/Darrell-hand step, exactly like every DB change in this repo (the db-migrate convention). Committed + pushed here; **not yet applied to cloud** (this local session cannot reach the cloud Studio). Marked pending, not claimed live.
 
 ---
@@ -663,6 +663,50 @@ This **rides the shared engagement primitive being designed in the consolidation
 ```
 
 **The source clarification does not change the build order:** BG's Sermon Stories (§16) is still **Build #1**; it simply confirms that its source — and every output's source — is the one archive, already captured, continuously fed.
+
+---
+
+## 19. ENGINE PROPERTIES — depth-adaptive + interest-personalized (all outputs)
+
+**Binding (Darrell, 2026-06-24):** everything the engine produces — **lessons, scripture material, courses, books** — must be **depth-adaptive** and **interest-personalized.** These are *properties of every output*, applied across the whole chain (sources → lessons → curriculum → books), not a one-off feature.
+
+### Property A — Book-capable + depth tiers (core meaning preserved at every tier)
+
+Author each piece **deep enough to be a BOOK**, then scale it **down** to lighter tiers so each consumer takes it at the depth they currently need:
+
+| Tier | What it is |
+|---|---|
+| **Quick** | the essence — the point, the anchor verse, the one takeaway |
+| **Standard** | the working lesson — balanced depth (the default) |
+| **Deep** | the full treatment — the book-grade version, edge cases, the "why" |
+
+- **It's the reading-depth analog of the time-adaptive Presenter's proportional reflow** — the same guarantee: **core meaning is preserved at every tier**, only the elaboration scales. Authored once at book-depth; lighter tiers are *reflows*, never different content.
+- **Reuse the proven primitives — don't reinvent:** the learn-framework already does this for skill/age (`resolveLevel` over `LEARN_LEVELS`, `chunkLessonForAge`, `lessonPlanForAge`), and the Study space already does **deep↔plain distillation** (`study-space.js` `distillState`: a 4th-dimensional *deep* version ↔ a wider-audience *plain* version, both preserved). Depth tiers generalize that to quick/standard/deep across lessons → curriculum → **books** (a book renders at the reader's chosen tier; the "quick" book is a faithful digest, the "deep" book is the full text).
+- **Faithfulness holds at every tier:** a scripture quote is verified (§3.1) at deep tier and **carried verbatim** into quick/standard — reflow never paraphrases the Word silently (SCRIPTURE-REFERENCE-STANDARD; mark any paraphrase).
+
+### Property B — Interest-personalization (consented, owner-scoped, served-not-surveilled)
+
+Surface **topics + depth matching what the consumer actually engages with** — meet each person where their interest already is.
+
+**Interest signals, in priority order:**
+1. **In-app engagement (primary, sovereign)** — the consumer's own reactions / ratings / most-loved / what-they-open within the app (§17). This is the *cleanest* signal: it's already ours, already consented, never leaves.
+2. **The consumer's own YouTube viewing history (optional enrichment)** — viewing history as an interest signal, **only via the consumer's own consented import** (their data, e.g. their Google Takeout / an explicit opt-in), **never by surveilling their account.** Used to surface topics + depth; **owner-scoped to that consumer**, **opt-in**, **never sold**, **never shared** with advertisers/employers/insurers (DATA-AS-EMPOWERMENT-NOT-EXTRACTION).
+
+**Hard rules (binding):**
+- **Opt-in, off by default.** No personalization without the consumer's explicit yes; the engine works fully un-personalized.
+- **Served-not-surveilled.** No tracking, no engagement-maximization, no dark patterns. Personalization *serves discovery* (find the next thing that feeds you), it **never** optimizes for time-on-app.
+- **Owner-scoped + sovereign + deletable.** Each consumer's interest profile is theirs — exportable, deletable, never sold, never trained-on for anyone else.
+- **Personalization orders discovery; it never gates the Word.** Like most-loved (§17), it changes *what surfaces first*, never *what's true* or *what's available* — anyone can reach any depth tier and any topic regardless of profile.
+
+### Applies across the whole chain
+
+A lesson, a course, and a **book** each ship with the three depth tiers and honor the consumer's (opt-in) interest profile to pick a starting topic + depth. The single source (§18) feeds it; the faithfulness + consent gates clear it; depth-tiering + personalization shape *how each consumer receives it.*
+
+### Standard screens (delta)
+
+- **Sovereign-mesh Tier 1** — depth reflow + interest matching run locally on owned data; the interest profile lives on the consumer's own instance, never leaves, never sold.
+- **Cost** ≈ $0 (reuses the learn-framework reflow + the §17 engagement signals; YouTube-history enrichment is the consumer's own one-time import).
+- **Father's-Business** — meets each soul where they are: the seeker gets the quick essence, the student gets the book; each is handed what matches their hunger, in their own depth, by their own interest — discipleship that adapts to the person rather than forcing one size. Religion-AND-Relationship (backbone preserved at every tier; warmth in meeting them where they are). Passes the eight-question Test.
 
 ---
 
