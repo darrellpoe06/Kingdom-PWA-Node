@@ -1,0 +1,46 @@
+{
+  "v": 1,
+  "items": [
+    {
+      "id": "resume-darrells-study-001",
+      "approved": true,
+      "status": "pending",
+      "handoff": {
+        "v": 1,
+        "id": "handoff-darrells-study-resume-001",
+        "issued_at": "2026-06-24T02:00:00Z",
+        "issued_by": "claude",
+        "wake_at": { "condition": "cap-reset" },
+        "lane": "darrells-study",
+        "task": "Resume the approved study-space wiring: finish connecting the eternal-algorithms render path to real study-space state, run `npm run verify`, and if green open the PR. Do ONLY this approved task.",
+        "work_type": "code",
+        "private": false,
+        "state_pointer": {
+          "kind": "git-branch",
+          "ref": "feat/darrells-study",
+          "note": "WIP under app/src/components/Study.jsx + app/src/lib/study-space.js."
+        },
+        "suggested_vendor": "claude",
+        "offline_message": "Hit the desktop cap mid-task. Resume after the cap resets (4:30am Chicago).",
+        "budget_hint_usd": 1.5
+      }
+    },
+    {
+      "id": "resume-conference-copy-002",
+      "approved": false,
+      "status": "pending",
+      "handoff": {
+        "v": 1,
+        "id": "handoff-conference-copy-002",
+        "issued_at": "2026-06-24T02:05:00Z",
+        "issued_by": "claude",
+        "wake_at": { "condition": "cap-reset" },
+        "lane": "conference-registration",
+        "task": "Polish the conference confirmation-email copy. NOT yet greenlit (approved:false) -- the runner SKIPS this item; it demonstrates the gate. Darrell flips approved to true to admit it.",
+        "work_type": "writing",
+        "private": false,
+        "state_pointer": { "kind": "repo-path", "ref": "app/src/components/ConferenceRegister.jsx" }
+      }
+    }
+  ]
+}
