@@ -19,9 +19,9 @@ import { tutorSystemPrompt } from '../lib/class-tutor.js';
 import { resolveLevel, lessonPlanForAge } from '../lib/learn-framework.js';
 
 describe('curriculum shape (self-paced lesson series)', () => {
-  it('has the full seven-lesson set, each with the required fields', () => {
-    expect(SOUND_BOARD_MODULES).toHaveLength(7);
-    expect(SOUND_BOARD_META.weeks).toBe(7);
+  it('has the full eight-lesson set, each with the required fields', () => {
+    expect(SOUND_BOARD_MODULES).toHaveLength(8);
+    expect(SOUND_BOARD_META.weeks).toBe(8);
     expect(SOUND_BOARD_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOUND_BOARD_MODULES.map((m) => m.id);
     expect(ids).toContain('snd1-the-board-and-the-signal-chain');
@@ -31,6 +31,7 @@ describe('curriculum shape (self-paced lesson series)', () => {
     expect(ids).toContain('snd5-monitors-vs-the-house');
     expect(ids).toContain('snd6-mixing-the-worship-team-and-choir');
     expect(ids).toContain('snd7-before-during-after');
+    expect(ids).toContain('snd8-our-digital-console-yamaha-ql');
   });
   it('every lesson id is unique and prefixed snd*', () => {
     const ids = SOUND_BOARD_MODULES.map((m) => m.id);
@@ -146,35 +147,56 @@ describe('verified live-sound substance (DR-0076 — accurate, no fabrication)',
     expect(blob).toMatch(/listen back|review/);
     expect(blob).toMatch(/loudness|hearing/);
   });
+  it('the digital-console lesson teaches the Yamaha QL workflow: scenes, Selected Channel, the remote editor, and virtual soundcheck', () => {
+    const m = SOUND_BOARD_MODULES.find((x) => x.id === 'snd8-our-digital-console-yamaha-ql');
+    const blob = (m.lesson + m.levels.senior).toLowerCase();
+    expect(blob).toMatch(/yamaha ql|ql-series|ql series/);
+    expect(blob).toMatch(/scene|snapshot/);
+    expect(blob).toMatch(/selected channel/);
+    expect(blob).toMatch(/stagemix|ql editor/);
+    expect(blob).toMatch(/virtual soundcheck/);
+    expect(blob).toMatch(/dante/);
+    expect(blob).toMatch(/ql1|ql5/); // confirm-by-channel-count honesty
+  });
 });
 
-describe('BINDING safety — A.I. assist is assistive-only (the human runs the board)', () => {
-  it('the before/during/after lesson states the A.I. only SUGGESTS and never auto-changes the live mix', () => {
+describe('BINDING safety — assistive today, staged + bounded autonomy, human-on-the-loop always', () => {
+  it('the before/during/after lesson: assistive today, human applies; earned bounded stages; instant takeover; never removed from the board', () => {
     const m = SOUND_BOARD_MODULES.find((x) => x.id === 'snd7-before-during-after');
     const blob = (m.lesson + m.levels.senior + m.bigIdea + JSON.stringify(m.facilitator)).toLowerCase();
-    expect(blob).toMatch(/assistive/);
+    expect(blob).toMatch(/assistive/);                       // today: assistive
     expect(blob).toMatch(/suggest/);
-    expect(blob).toMatch(/operator (always )?decides|human (operator )?(always )?decides|never (touch|auto|change)/);
+    expect(blob).toMatch(/human operator decides|you decide|operator decides/); // human applies
+    expect(blob).toMatch(/earned|stage/);                    // autonomy is staged/earned
+    expect(blob).toMatch(/take ?over|on the loop|human-on-the-loop/); // instant takeover / on the loop
+    expect(blob).toMatch(/ceiling|hard (limit|stop)|rate-limit|scene/); // hard bounds
+    expect(blob).toMatch(/never removed|always with you/);   // never removed from the board
   });
-  it('the tutor posture forbids letting A.I. auto-change a live mix', () => {
-    expect(SOUND_BOARD_TUTOR_META.posture.toLowerCase()).toMatch(/assistive/);
-    expect(SOUND_BOARD_TUTOR_META.posture.toLowerCase()).toMatch(/decides and acts|human .* decides/);
-    expect(SOUND_BOARD_TUTOR_META.posture.toLowerCase()).toMatch(/never .* auto-change|auto-change a live/);
+  it('the tutor posture: assistive today + staged earned autonomy, hard bounds, instant human takeover, human-on-the-loop', () => {
+    const p = SOUND_BOARD_TUTOR_META.posture.toLowerCase();
+    expect(p).toMatch(/assistive/);
+    expect(p).toMatch(/human operator decides|operator decides|human .* decides/);
+    expect(p).toMatch(/earned|staged/);
+    expect(p).toMatch(/human-on-the-loop|on the loop/);
+    expect(p).toMatch(/takeover|take over/);
+    expect(p).toMatch(/ceiling|hard limit|feedback hard-stop|rate-limit/);
+    // must NOT promise the human is replaced — skill stays essential
+    expect(p).toMatch(/never stops mattering|permanently essential|never tell a learner the a\.i\. will simply replace/);
   });
 });
 
 describe('shared machinery (self-paced schedule, progress, export, cohort, tutor)', () => {
   it('the schedule is self-paced — lesson numbers, NO painted dates', () => {
     const sched = buildSoundBoardSchedule();
-    expect(sched).toHaveLength(7);
+    expect(sched).toHaveLength(8);
     expect(sched[0].week).toBe(1);
     expect(sched.every((r) => r.date === null)).toBe(true);
   });
   it('progress is counted from the real record', () => {
     const r = soundBoardProgressSummary({ 'snd1-the-board-and-the-signal-chain': true, 'snd2-gain-staging': true });
-    expect(r.total).toBe(7);
+    expect(r.total).toBe(8);
     expect(r.done).toBe(2);
-    expect(r.pct).toBe(Math.round((2 / 7) * 100));
+    expect(r.pct).toBe(Math.round((2 / 8) * 100));
   });
   it('the cohort resolves self-paced (never a painted confirmed date)', () => {
     expect(SOUND_BOARD_CONFIRMED_COHORT.confirmed).toBe(false);

@@ -34,7 +34,10 @@ Output GitHub-flavored Markdown in EXACTLY this structure:
 
 ## The board / setup
 - **Console / gear:** <the board, speakers, mics they name, or "(not stated)">
-- **Routing / scenes:** <how inputs map, scenes/snapshots they use, or "(not stated)">
+- **Console make/model (IMPORTANT):** <name the exact console if stated. Ours is a Yamaha QL-series digital board -- if they say QL1 vs QL5 (or a channel count: QL1 = 32 mono inputs, QL5 = 64), record it; or "(not stated -- confirm QL1 vs QL5)">
+- **Remote / control software:** <QL Editor / QL StageMix (iPad) / ProVisionaire / Dante, or whatever they name, or "(not stated)">
+- **Video switcher / stream software:** <the switcher + streaming software/PC they name for the booth, or "(not stated)">
+- **Routing / scenes:** <how inputs map, scenes/snapshots they use, virtual soundcheck via Dante/USB multitrack, or "(not stated)">
 
 ## Topics covered
 For each topic the engineer discusses (gain staging, EQ, feedback, monitors, choir,

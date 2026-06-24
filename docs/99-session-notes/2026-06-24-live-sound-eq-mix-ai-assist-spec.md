@@ -1,211 +1,244 @@
-# Spec + Research-Review — Local-AI EQ/Mix ASSISTANT for the live sound board (before / during / after a service, ASSISTIVE-ONLY, sovereign, GPU-gated)
+# Spec + Research-Review — Local-AI Live-Mix Engine for the COLG Yamaha QL booth: per-voice adaptive EQ + STAGED AUTONOMY (assistive → supervised → autonomous), hard safety bounds, human-on-the-loop, sovereign on the church 2× RTX 4070
 
-**Date:** 2026-06-24
+**Date:** 2026-06-24 (revised same day with Darrell's grounding: real booth → Yamaha digital → already software-controlled → QL-series → autonomy direction-change → per-voice EQ core → sample-rate monitor → 2× RTX 4070 hardware)
 **Author:** Claude (advisory; Darrell governs, Foundation executes — GOVERNANCE-EXECUTION-ADVISORY)
-**Pattern:** research-first — reuse proven machinery, cite live sources for new tool choices, no live-audio control code written here. This is the design + research review that precedes any build.
-**Status:** DRAFT for Darrell's review. **GPU-gated** (the heavy audio-ML pieces ship when the sovereign CUDA box lands; rough/offline analysis can run on the CPU NAS today).
-**Builds on / sibling of:** the **TRAINING** half shipped alongside this spec — the self-paced **"Running the Board: Live Sound for the House of God"** Learn track (`app/src/lib/sound-board-class.js`) + its **sound-engineer SME pipeline lane** (`infra/nas-sme-pipeline/sound-engineer-to-lessons.sh`). The training teaches a human to mix; this assistant HELPS that human — it never replaces them.
-**Sibling lanes (reuse, do not collide):** the SME video→knowledge pipeline (`infra/nas-sme-pipeline/`, lane local_eceef6e5 — music-listen / audio analysis), the choir-keyboardist music-listen lane, the keyboardist auto-fingering spec (`2026-06-24-keyboardist-music-lessons-and-auto-fingering-spec.md` — the GPU-gated audio-ML posture is shared), the Learn framework, the worship self-critique spec (the AFTER-review feedback tone-gate is reused).
+**Pattern:** research-first — reuse proven machinery, cite live sources for new tool choices, no live-board control code written here. Design + research review that precedes any build.
+**Status:** DRAFT for Darrell's review. **Autonomy stages are armed one at a time, each behind the three brakes + Darrell's explicit go** (autonomous control of a live service board is the highest-stakes automation we have proposed — `feedback_autonomous_automation_three_brakes`).
+**Builds on / sibling of:** the **TRAINING** half — the self-paced **"Running the Board: Live Sound for the House of God"** Learn track (`app/src/lib/sound-board-class.js`, now digital-/Yamaha-QL-aware) + its **sound-engineer SME pipeline lane** (`infra/nas-sme-pipeline/sound-engineer-to-lessons.sh`). A skilled human is required at EVERY autonomy stage (supervise / co-mix / take over) — so the training is permanently valuable, not a throwaway.
+**Sibling lanes (reuse, do not collide):** the SME video→knowledge pipeline / music-listen + audio-analysis lane local_eceef6e5; the choir-keyboardist lane; the keyboardist auto-fingering spec (`2026-06-24-keyboardist-music-lessons-and-auto-fingering-spec.md`, shared audio-ML posture); the worship self-critique after-review tone-gate; the choir voices / renditions + ad-libs work (the per-voice learning data).
 
 ---
 
-## TL;DR
+## TL;DR (read this first)
 
-Darrell wants, for the church's live sound board, **two things**: (1) **TRAINING** the sound team to mix and EQ — **shipped now** as the "Running the Board" Learn track; and (2) a **LOCAL A.I. that ASSISTS** the operator with EQ/mixing **before, during, and after** a service. This spec is **part 2** — the assistant.
+The church's booth is a **Yamaha QL-series digital console** (QL1 or QL5 — confirm by channel count) at back-of-house, **already controlled over the network today** via the Yamaha software (QL Editor / QL StageMix on iPad / ProVisionaire), alongside a multi-monitor switcher/stream rig + a laptop; the sanctuary has a stage with a drum kit and two side projection screens. Because the board is digital and **already software-controllable**, an A.I. can both **read console state** (EQ curves, levels, meters, scenes) and — in later, earned stages — **write** changes through that same control channel.
 
-**The single binding rule, stated first because everything else bends to it:**
+**Darrell's destination (direction-change, 2026-06-24):** the live-mix A.I. is **not assistive-only forever**. The GOAL is **autonomous live mixing** — once the parameters are set, a person isn't *needed* to mix; the local A.I. runs it and gets **better than a human over time** through training — **with a human able to take over or co-mix at any instant.** Human-on-the-loop is permanent; "unattended-capable" is the bar, not "unattended-and-unwatchable."
 
-> **ASSISTIVE-ONLY. The A.I. SUGGESTS; a human operator DECIDES and ACTS. The A.I. NEVER autonomously changes the live audio.** A runaway on a live service mix — a feedback notch dropped wrong, a fader yanked, a EQ swept mid-sermon — is unacceptable. There is **no autonomous control path to the live board**, by design, not by config. (This is the live-audio application of `feedback_autonomous_automation_three_brakes` and the assistive-not-authority posture: the human governs the bright line.)
+**The central mixing capability:** **per-mic, per-voice adaptive EQ** — for each mic channel, analyze the voice currently on it and dial EQ (+ basic dynamics) so THAT voice sounds its best (clarity, intelligibility, less boom/harshness/sibilance/feedback-prone bands), re-optimizing when the voice on a mic changes, optionally recognizing known voices (choir members, BG, soloists) and recalling their best profile. Goal = the best blend: each voice good individually *and* sitting in the whole mix.
 
-The assistant lives in the **three windows the training track already names** (lesson `snd7-before-during-after`):
+**Because the board is controllable, restraint matters MORE, not less.** Autonomy is **earned in three stages**, each gated by **hard safety bounds** (level ceilings, feedback hard-stop, rate-limited moves, scene bounds, full logging), an **instant human takeover / co-mix**, the **three brakes** (budget, concurrency lock, kill-switch), and **Darrell's explicit go**.
 
-- **BEFORE (soundcheck/setup):** listen to each input + the room, **suggest** gain-staging fixes, starting EQ moves (mud/harshness/thin), and — most valuably — **ring-out assistance**: identify the room's feedback-prone frequencies and **suggest** notch frequencies/depths for the operator to dial.
-- **DURING (live monitoring + suggestions):** a real-time **advisory readout** — feedback-risk early warning (a frequency starting to ring), level/clip flags, "the lead vocal is getting buried," "low-mid mud building." **Suggestions surface on the operator's screen; the operator acts on the board.** Nothing is applied automatically.
-- **AFTER (review of the recording):** analyze the recorded service mix and **suggest** specific, prioritized improvements for next time (a muddy 300 Hz buildup, a harsh cymbal, a buried vocal in the big songs, a hot monitor). This is the **improvement engine** and it ties directly into the **choir ad-lib/rendition + worship self-critique** work (same after-review loop, same gentle tone-gate).
+**Hardware (recalibrated):** the church **already has 2× CUDA machines with RTX 4070 GPUs** (~12 GB VRAM each — confirm exact variant; two separate boxes). The audio-mix A.I. **does NOT wait on the weekend big-box purchase** — real-time-ish voice analysis, per-voice EQ inference, feedback detection, and faster-whisper all fit comfortably on a 4070. So **assistive (Stage 1) and supervised-auto (Stage 2) are buildable on existing church hardware NOW**; full autonomy (Stage 3) earns its stage via **proven performance + Darrell's go**, not a hardware gate. Only 70B+ frontier LLM work still wants the bigger box.
 
-**Compute reality (honest):** real-time spectral analysis + feedback detection + any ML mix-assist is **GPU work** for the responsive, full version. The **CPU-only NAS** (DS1621xs) can run **offline/rough** analysis today (the AFTER window, and a slow BEFORE pass) but is **too slow for dependable real-time** DURING-service assist. So: **AFTER + a basic BEFORE pass are buildable on CPU now; the real-time DURING assistant is GPU-gated** and ships with the CUDA box (same posture as the keyboardist auto-fingering spec and the rest of the GPU-era plan).
-
-**Sovereign + local:** all analysis runs on PoeTech hardware (NAS now, CUDA box later); service audio never leaves the box; no third-party API; nothing trains an external model (DATA-AS-EMPOWERMENT).
+**Sovereign + local:** all analysis + control runs on PoeTech/church hardware; service audio + console state never leave the box; no third-party API; nothing trains an external model (DATA-AS-EMPOWERMENT).
 
 ---
 
 ## 0. Scriptural foundation (Word-first — cited by reference + theme, not a quoted translation)
 
-- **1 Corinthians 14:40 — "decently and in order."** The whole point of mixing for worship: clarity and order so the gathering is not pulled out of worship. The assistant serves that order; it is not a novelty.
-- **1 Corinthians 14:33 — God is not a God of confusion but of peace.** A runaway on a live mix is literal confusion in the room — which is exactly why the assistant is forbidden from acting on the live board.
-- **1 Chronicles 15:22; Psalm 33:3 — the music leader was appointed because he was *skillful*; "play skillfully."** The assistant grows the operator's skill (training + suggestions), honoring the calling — it does not remove the human from the craft.
-- **Colossians 3:23 — "work heartily, as for the Lord."** The hidden craft of the operator is worship; the tool serves the worshipper-operator, it doesn't replace them.
+- **1 Corinthians 14:40 — "decently and in order."** Clarity so the gathering is not pulled out of worship. The engine serves that order.
+- **1 Corinthians 14:33 — God is not a God of confusion but of peace.** A runaway on a live mix is literal confusion in the room — which is precisely why the hard bounds + instant takeover exist before any autonomy.
+- **1 Chronicles 15:22; Psalm 33:3 — appointed because *skillful*; "play skillfully."** The engine pursues skill (better mixing over time) and *raises* the human's skill; it never removes the human from the craft.
+- **Colossians 3:23 — "work heartily, as for the Lord."** The hidden craft is worship; the tool serves the worship and the worshipper-operator.
 
-These are printed in the surface's copy, not merely implied. (Reference + theme gloss only; per SCRIPTURE-REFERENCE-STANDARD, fetch the actual translation if a quote is ever wanted — do not paraphrase as a translation.)
+(Reference + theme gloss only; per SCRIPTURE-REFERENCE-STANDARD, fetch the actual translation if a quote is ever wanted — never paraphrase as a translation.)
 
 ---
 
-## 1. What this builds ON (proven pieces — reuse, do NOT rebuild)
+## 1. The REAL environment (reality-trace, DR-0076 — grounded in Darrell's photos + close-up)
 
-| Proven piece | Where | Role here |
+| Element | What it is | Design implication |
 |---|---|---|
-| **"Running the Board" training track** | `app/src/lib/sound-board-class.js` (shipped with this spec) | The human-skill foundation. The assistant's suggestions speak the SAME vocabulary the operator just learned (gain staging, the frequency ranges, ring-out, monitors-vs-house, choir blend, before/during/after). |
-| **Sound-engineer SME pipeline lane** | `infra/nas-sme-pipeline/sound-engineer-to-lessons.sh` (+ prompts, CONSENT) | The engineer's real technique → lessons. The same captured expertise can later **tune the assistant's suggestion rubric** (what the engineer actually does for mud/feedback/choir). |
-| **SME video→knowledge pipeline** | `infra/nas-sme-pipeline/` (NAS `/volume1/PoeTech/sme-pipeline/`), lane local_eceef6e5 | The local audio substrate (isolated whisper container, local Ollama, braked, manual-run, verified). The audio-analysis lane extends this — same sovereignty + brakes posture. |
-| **Local Ollama (qwen2.5:14b)** | NAS `127.0.0.1:11434` | Turns the numeric analysis into plain, gentle, operator-readable SUGGESTIONS + the AFTER-review narrative. Minutes on CPU; fine for AFTER. |
-| **Three-brakes rule** | `feedback_autonomous_automation_three_brakes`; LESSONS-LEARNED P10/P11/P12 | The governing safety frame. Any timer-driven/auto piece (e.g. a batch AFTER-review) ships **inactive**, Tier C, with budget + concurrency lock + kill-switch. The DURING assistant is advisory-only by design. |
-| **Worship self-critique tone-gate** | `2026-06-24-keyboardist-music-lessons-and-auto-fingering-spec.md` §7 (spec) | The AFTER-review feedback reuses the **gentle, constructive, never-harsh** tone-gate (proven-to-catch). Suggestions encourage, never shame the operator or the worship team. |
-| **GPU-era plan / CUDA box** | DR-0014; sovereign-ai-class diagrams (`vram-ladder`); keyboardist spec §10 | The real-time pieces ship when the GPU box lands. The church RTX 4070 machines are the only real GPUs today. |
+| **Console** | **Yamaha QL-series digital console** (QL1 or QL5). Close-up shows the central **touchscreen** (on the **Parametric EQ** view), the **TOUCH AND TURN** encoder, the **Selected Channel** section, and channel strips with **SEL/ON** — the QL/CL-family signature. **Confirm QL1 vs QL5 by channel count** (QL1 = 32 mono + 2 st in; QL5 = 64 + 8 st) via SME capture. | Train + design around the **digital** workflow: recallable **scenes/snapshots**, **channel libraries**, per-channel **EQ/dynamics**, **Selected Channel** editing — not analog knob-only. |
+| **Control today** | They **already adjust the board through software online** (remote). QL = **QL Editor** (Win/Mac), **QL StageMix** (iPad), **ProVisionaire**; Dante standard; separate IPs for network remote / remote head-amp / Dante. | A **live network control channel to the console exists today.** The A.I. can READ state through it now and (earned stages) WRITE through it later. |
+| **Booth** | Multi-monitor back-of-house: an **audio software** screen (waveform/meters), a **video switcher / stream** screen, **camera/production feeds**, plus a **laptop**. | The A.I.'s suggestions surface **in/alongside the software they already watch**; multitrack capture (Dante/USB) is available for review + virtual soundcheck. |
+| **Sanctuary** | Stage with a **drum kit** + **two side projection screens**. | Real sources to mix (drums = a multi-mic, feedback-and-bleed-heavy source); the two screens are a future surface for any operator-facing readout if desired. |
 
-**NOT built / honest reality-trace:**
-- **No real-time audio capture path into the app exists yet** — the DURING assistant needs an audio tap (console USB/Dante/an interface feeding the analysis box). That's hardware integration, future.
-- **No GPU box yet** — real-time analysis is gated on it. CPU NAS = offline/rough only.
-- **No live-board control API is in scope, ever** — even if a console exposes one (many do via OSC/MIDI/manufacturer APIs), this design **does not connect to it for output**. Read-only audio in; suggestions to a screen out. (A future "apply this notch?" one-tap that sends an operator-confirmed command to the console is a **separate, explicitly-gated decision** — NOT this spec, and still human-confirmed per action.)
+**Exact-integration gap (honest):** the precise QL model (QL1 vs QL5) and the exact remote-control protocol path (Yamaha QL Editor uses Yamaha's own console-link; third-party IP control on CL/QL is typically via Yamaha's remote protocol / SCP-style TCP, MIDI, or an OSC bridge) **must be confirmed** — by the SME capture naming the gear, or a board/menu close-up. **Design generically to the QL family now; tighten to the model + protocol once known.** Do NOT hard-code a protocol we haven't verified.
 
 ---
 
-## 2. The binding safety model (assistive-only) — stated as architecture, not hope
+## 2. The destination, and WHY it is staged
 
-Per the Verification Doctrine (make the safe path structural, not promised):
+**Destination (Darrell):** parameters set → the local A.I. mixes the service, unattended-*capable*, improving past human consistency over time, **with a human able to take over or co-mix at any moment.**
 
-1. **No output path to the live audio.** The system's only outputs are **on-screen suggestions** and the **AFTER-review document**. There is no code path that writes to a console, a DSP, an amp, or a fader. This is enforced by **omission** (the capability is never built) and asserted by a **proven-to-catch test**: the analysis module exports only data/suggestions, never a control command.
-2. **Human-in-the-loop is the only loop.** Every BEFORE/DURING suggestion is phrased as a suggestion the operator chooses to act on (or ignore). The operator is named, in copy, as the decider.
-3. **Read-only audio in.** The assistant taps a **copy** of the audio (a monitor/record bus, an interface input) — it is downstream of the mix, never in the signal path of the mix. If the assistant box dies, **the service mix is completely unaffected** (it was never in the chain).
-4. **Three brakes on anything that runs on a clock.** The AFTER batch-review (if scheduled) ships **inactive**, Tier C, with a token/wall-clock **budget**, a single-instance **concurrency lock**, and a **kill-switch** (`feedback_autonomous_automation_three_brakes`). The DURING assistant is **not** a self-triggering automation — it's a live advisory display a human is watching.
-5. **No autonomous feedback "fix."** Auto-feedback-suppression hardware exists and acts on its own — but that is a **dedicated, bounded DSP appliance**, not our A.I. Our assistant **suggests** a notch; it never applies one. (If the church wants automatic suppression, that's a hardware FBX/DSP decision, evaluated separately — not an A.I. acting on the board.)
-6. **Honest uncertainty.** Suggestions carry confidence and are framed as "consider," not "do." The operator's ears + the sound engineer are the authority; the A.I. can be wrong and says so.
-
-**Proven-to-catch tests (DR-0076):** (a) the analysis API surface exposes no control/output method; (b) every suggestion object is advisory-typed (no "applied" state); (c) the AFTER-review feedback passes the gentle-tone gate (no harsh/shaming language about the operator or team).
+**Why staged, not switch-flipped:** autonomous control of a **live service board** is the single highest-stakes automation in this whole platform — live audio can **damage hearing and gear**, and a bad move lands on the whole congregation in real time, mid-worship. The 2026-06-06 runaway lesson (LESSONS-LEARNED P10/P11/P12) is the standing warning. So autonomy is **earned**, stage by stage, each one proving out before the next is armed — and each armed only behind the hard bounds, the three brakes, and Darrell's explicit go. This is not caution for its own sake; it is the only responsible path to the destination Darrell named.
 
 ---
 
-## 3. BEFORE — soundcheck / setup assist
+## 3. The three autonomy stages (earn each with proven performance + Darrell's go)
 
-**Goal:** help the operator start the service prepared (the training track's BEFORE window), faster and more thoroughly.
+| Stage | What the A.I. does | Human role | Hardware | Status |
+|---|---|---|---|---|
+| **1 · ASSISTIVE** | Reads QL state (EQ/levels/meters/scenes) + the audio; **SUGGESTS** per-voice EQ, level, and feedback fixes, in/alongside the booth software. | **Applies every change.** | **Church 2× RTX 4070 — NOW** (real-time-ish read + suggest); CPU NAS for offline AFTER review. | **Buildable now.** |
+| **2 · SUPERVISED-AUTO** | **Makes the moves on the live mix WITHIN tight bounds** (per-voice EQ, gentle level rides, feedback notch), each move **rate-limited + logged**; proposes bigger moves for confirmation. | **Watches with one-touch override**; can veto or grab instantly; co-mixes. | **Church 2× RTX 4070 — pulled FORWARD** off existing hardware. | **Buildable on current church hardware; armed only after Stage 1 proves out + Darrell's go.** |
+| **3 · AUTONOMOUS (human-on-the-loop)** | Parameters set; **runs the mix unattended-capable**; handles the service end to end within bounds. | **Can take over or co-mix anytime**; supervises; reviews logs. | 2× 4070 likely sufficient for the audio engine; a bigger box only if a larger model is needed. | **Earns its stage via proven Stage-2 performance + Darrell's explicit go — NOT a hardware gate.** |
 
-- **Per-input analysis (offline-OK, CPU-now):** from a short capture of each source at performance level, **suggest**: a gain target (is it too low/noisy or near clipping?), a high-pass point, and obvious tonal fixes (a mud resonance to sweep-and-cut, a harsh presence peak to ease). Spectral features via **librosa**/**Essentia** (spectral centroid for brightness, band energy for mud/harsh). Output: a checklist of *suggested* moves, in the operator's learned vocabulary.
-- **Ring-out assistance (the high-value BEFORE feature):** during a controlled ring-out, the assistant listens for the **sustained resonant peaks** as the operator raises level, and **suggests** the frequency + a notch depth for each — the operator dials the EQ. This is **detect-and-suggest**, never auto-notch. Aubio's pitch/peak tracking + an FFT peak-hold identifies the ringing modes; the suggestion is "consider a narrow cut around N Hz."
-- **Scene sanity check:** compare today's suggested starting points against the last saved scene and flag drift ("input 4 gain is 12 dB hotter than your usual").
-
-**Compute:** runs on the **CPU NAS today** (offline, a minute or two per pass). No GPU strictly required for the BEFORE window — it's not hard-real-time.
-
----
-
-## 4. DURING — live monitoring + suggestions (GPU-gated)
-
-**Goal:** a calm, advisory readout on the operator's screen while they mix — the assistant watches the spectrum and levels and **flags risks + opportunities**; the operator acts on the board.
-
-**What it surfaces (suggestions only, on screen):**
-- **Feedback early-warning:** a frequency beginning to ring (a narrow band rising and sustaining) → "⚠ possible feedback building ~2.5 kHz — consider easing that monitor / a narrow cut." This is the marquee real-time feature and the one that most needs **low latency** (catch it before the congregation hears it).
-- **Level/clip flags:** an input clipping or a channel gone too hot/quiet.
-- **Mix-balance hints:** "lead vocal masked under the band — consider +1–2 dB or a presence nudge," "low-mid mud building across the choir mics (~300 Hz)." (Masking/balance heuristics from band-energy + a simple loudness model.)
-- **Loudness stewardship:** a running room-loudness estimate vs a target the operator sets (hearing-safety care, the training track's bright line) — a gentle "we're running hot for a while" flag, never an auto-trim.
-
-**Why GPU-gated:** dependable **real-time** spectral analysis + feedback-onset detection + any ML balance model is continuous DSP under a tight latency budget. The **CPU NAS cannot reliably do hard-real-time** alongside its other jobs; this ships on the **sovereign CUDA box**. Until then, the DURING window is **training + the operator's ears**, and the assistant is BEFORE/AFTER only. (Stated honestly — not promised on hardware that isn't live.)
-
-**Latency note (honest):** feedback runs away in well under a second; a useful early-warning must analyze in tens of milliseconds. That latency budget — not raw model size — is the real reason this is GPU/dedicated-DSP work, and why a CPU NAS juggling n8n/Ollama/files is the wrong host for it.
+**Gating rule (binding):** a stage is armed ONLY when (a) the prior stage has **proven performance** on real services (logged, measured — Verification Doctrine), (b) the **hard bounds + brakes are in force and proven-to-catch**, and (c) **Darrell explicitly says go**. Each higher-autonomy build ships **inactive** and is turned on **with someone watching** (never unattended-first, never while Darrell is traveling — `feedback_autonomous_automation_three_brakes`).
 
 ---
 
-## 5. AFTER — review of the recorded mix (CPU-buildable now; the improvement engine)
+## 4. HARD SAFETY BOUNDS — the "parameters set" (non-negotiable, enforced structurally)
 
-**Goal:** the training track's AFTER window, made concrete — analyze the recorded service and **suggest** specific, prioritized fixes for next time. This is the **lowest-risk, highest-value, soonest-buildable** piece (offline, no real-time constraint, runs on the CPU NAS).
+These are the bounds the A.I. **can never exceed**, at every stage that writes to the board. They are enforced as **structural limits + proven-to-catch gates** (DR-0076), not as model politeness:
 
-- **Offline spectral + loudness analysis** of the board-feed/room recording: long-term average spectrum (mud/harsh/thin tendencies), per-section loudness arc, vocal-intelligibility proxy (presence-band energy vs the mix), feedback events that occurred.
-- **Local Ollama narrates it gently:** qwen2.5 turns the numbers into a short, **encouraging, prioritized** note — "Strong service. Two things for next time: the low-mids built up around 300 Hz in the full-choir songs (a touch more HPF on the choir mics), and the lead vocal dipped under the band in the last song (ride it up a dB). Everything else sat well." Affirm first, 1–3 concrete next steps, no scores, no shaming — the **worship self-critique tone-gate** (proven-to-catch) governs the wording.
-- **Ties the choir ad-lib/rendition + worship self-critique work:** the same after-review loop the worship team uses for their *offering* now has a **sound-engineering** layer for the *mix* — both grace-centered, both formation-not-judgment, both feeding the next service. The operator can also share a suggestion with the worship team ("the choir blend would sit better if…") via the same gentle surface.
-- **Feeds the saved scene + the operator's habits** — closes the perpetual-improvement loop (DR-0075): every service leaves the next one better, with evidence.
+1. **Output-level / SPL ceiling.** A hard maximum the A.I. can never exceed — **per-channel limits AND a master ceiling** — to protect the congregation's hearing and the gear. Tied to a room-SPL target. The A.I. cannot command a level above the ceiling; the attempt is clamped and logged.
+2. **Feedback hard-stop.** Continuous feedback detection with **automatic suppression AND a hard stop** — a feedback runaway is **never** allowed to develop. (This is the one piece of genuine auto-action even at low stages, because a runaway is pure harm; it is bounded, dedicated, and logged.)
+3. **Rate-limited moves.** No sudden jumps or cuts during worship — every parameter change is **smooth, bounded in size and speed**. A fader/EQ move is a ramp within a max delta-per-second, never a snap.
+4. **Instant human takeover + co-mix (the mix kill-switch).** A physical/one-tap **override that freezes A.I. control immediately** and hands the board fully to the human — the dead-man's switch for the mix. **Co-mix mode** lets human + A.I. work the same board together (A.I. holds some channels, human holds others). Human-on-the-loop is always available, at every stage.
+5. **Scene-bounded.** The A.I. operates **within recallable scene/snapshot bounds** — it can move within the safe envelope of a known-good scene, and a one-touch **scene recall** instantly restores a known state.
+6. **Full observability.** **Every move is logged** (what, when, why, the analysis that drove it) — to the in-app surface (ties the OpsBoard / loop-health observability), so a human can review, trust, and correct. An unlogged move is a bug.
+7. **The three brakes.** **Budget** (compute/time ceiling per run), **concurrency lock** (single instance — never two controllers on one board), **kill-switch** (auto-pause on overrun, repeated anomaly, lost heartbeat, or a failed bound check → freeze to the last safe scene + hand to human).
 
----
-
-## 6. Research-review — local audio-analysis tooling (live sources, 2026-06-24)
-
-All open-source, all runnable on PoeTech hardware (sovereign). **Honest finding:** there is **no single turnkey "real-time feedback-detection + auto-notch" open-source library** — feedback detection is a **technique** (FFT peak-hold / sustained-tone detection → notch coefficients) built **inside** a DSP framework, and commercial auto-suppressors (Sabine/dbx AFS, Behringer FBQ) are dedicated hardware. So our path is: **analysis libraries we already trust + a thin feedback-onset detector we write** — and **suggest**, never auto-apply.
-
-| Tool | What it is | Sovereign fit | Role |
-|---|---|---|---|
-| **aubio** | Lightweight real-time audio analysis (onset, pitch, peak tracking); C + Python; BSD | Tiny; runs anywhere incl. CPU NAS | **Feedback-onset + pitch/peak detection** (the ring-out + DURING early-warning detector). Recommended core. |
-| **librosa** | Python audio/music analysis; spectral_centroid, band energy, MFCC, STFT | CPU-fine for OFFLINE (AFTER + BEFORE pass) | **Offline spectral analysis** for the AFTER review + BEFORE per-input pass. Recommended for offline. |
-| **Essentia** (MTG/UPF) | C++ (Python-wrapped) spectral/temporal/tonal descriptors; real-time-capable extractors | C++ core → fast enough for near-real-time on a GPU/strong CPU box | **DURING-window** spectral features when the GPU box lands; heavier-duty than librosa. |
-| **JUCE** | C++ real-time audio app/plugin framework | The serious real-time host | If the DURING assistant becomes a true low-latency app, JUCE is the framework. GPU-era. |
-| **SoX / ffmpeg** | Audio I/O, resample, capture, format | Everywhere | Plumbing — capture the record bus, segment for offline analysis. |
-| **Auto-feedback-suppression appliances** (Sabine/dbx AFS, Behringer FBQ) | Dedicated hardware that detects + notches automatically | N/A (hardware) | **Noted, NOT adopted as "A.I."** If the church wants automatic suppression, it's a bounded DSP appliance decision — separate from this assistant, which only suggests. |
-
-**Recommended sovereign stack:** **aubio** (real-time peak/onset → feedback-onset detector) + **librosa** (offline spectral for BEFORE/AFTER) + **Essentia** (DURING spectral on the GPU box) + **local Ollama qwen2.5** (numbers → gentle suggestions/AFTER narrative) + **SoX/ffmpeg** (capture/segment). All local; nothing leaves the box.
+**Proven-to-catch (DR-0076), before ANY stage that writes:** tests that demonstrate the level ceiling clamps an over-ceiling command; the feedback hard-stop fires on a synthetic runaway; a too-fast/too-large move is rejected; the takeover freezes A.I. control within one control cycle; the kill-switch trips on a forced anomaly. **A bound that hasn't been shown to catch the break is not a bound.**
 
 ---
 
-## 7. Compute, sovereignty, GPU-gating (summary)
+## 5. Human takeover + co-mix design
 
-| Window | Compute | Buildable when |
+- **Takeover** = one physical/one-tap action that **immediately freezes** all A.I. writes and gives the human the board. Latency budget: within one control cycle (tens of ms). Independent of the A.I.'s health — if the A.I. hangs, takeover still works (it's a control-channel/relay-level cut, not an A.I. request).
+- **Co-mix** = human and A.I. on the same board: the operator assigns which channels/buses the A.I. holds (e.g., "you ride the choir mics' per-voice EQ; I'll ride the band"), the A.I. stays in its lane, and either can hand a lane back. The A.I. never writes outside its assigned lane.
+- **On-the-loop readout** = the booth software / a side surface shows what the A.I. is doing and why, so the human supervises with full context (no black box).
+
+---
+
+## 6. CENTRAL capability — per-mic, per-voice adaptive EQ
+
+This is the heart of what Darrell wants: **make each voice on each mic sound its best, for the voice that's on it right now.**
+
+**The loop, per mic channel:**
+1. **Analyze the voice currently on the mic** — tonal profile (spectral balance), problem resonances (boom/mud ~200–400 Hz, honk ~800 Hz–1 kHz, harsh ~3–4 kHz), sibilance (~6–8 kHz), presence/intelligibility (~2–6 kHz), and feedback-prone bands for this mic/position.
+2. **Derive the per-voice EQ (+ basic dynamics)** — a subtractive-first EQ curve + a sensible HPF + gentle compression/de-ess that make THAT voice clear and intelligible and sit in the mix — expressed in the QL's channel-EQ/dynamics terms so it maps straight onto the board.
+3. **Adapt on voice change** — voices rotate per service (different singers/speakers on a mic). The engine **detects the voice changed** and **re-optimizes**, so each person sounds their best in the moment (not a stale curve from the last person).
+4. **Optional voice profiles (ties the choir voices / renditions work)** — recognize **known voices** (choir members, BG, soloists) via a local speaker-embedding model and **recall their best profile** as the starting point; an **unknown voice → optimize from scratch**. Profiles improve over time from the rendition/multitrack history.
+5. **Best blend** — optimize each voice **individually AND** for how it sits in the overall mix (masking-aware: keep the lead intelligible over band + choir).
+
+**Within the staged autonomy + hard bounds:** Stage 1 **suggests** the per-voice curve (operator applies on the QL); Stage 2 **applies it within bounds** (rate-limited, level-capped, logged); Stage 3 runs it autonomously. **Never** exceeds level/feedback/rate limits; **human takeover always.** Christ-centered: the point is the **clarity of the worship and the Word** — every voice heard, the message understood.
+
+**Honesty:** voice-adaptive EQ + voice-ID is ML — **real-time on the 4070s, offline analysis on CPU now.** It is presented as **suggestions first**, proven out, then promoted to higher autonomy.
+
+---
+
+## 7. The learning loop — "better than a human over time"
+
+- **Trains on:** the **multitrack / rendition history** (Dante/USB virtual-soundcheck captures), **per-service feedback** (what the operator corrected, the AFTER-review findings), and the **choir renditions / ad-libs** (the per-voice data + how each voice should sit).
+- **Per-voice profiles** sharpen each service; **mix decisions** (what worked, what the human overrode) become training signal — the override is gold: it's a labeled "the human preferred X."
+- **The bar:** more **consistent** than a tired human at the end of a long service (the honest version of "better than a human" — consistency + tirelessness + instant feedback response, not artistry replacing the human).
+- **Promotion discipline (binding):** a learned improvement ships into **higher autonomy ONLY after it proves out in supervised mode** on real services (Verification Doctrine — measured, logged, not claimed). Learning never silently widens the bounds.
+
+---
+
+## 8. Integration with the Yamaha QL (verified family capabilities; confirm model + protocol)
+
+- **Read/write path:** the QL is controlled today via **QL Editor** (Win/Mac), **QL StageMix** (iPad), **ProVisionaire**, over the network. The engine reads console state + (earned stages) writes via the **Yamaha remote-control protocol** — the exact path (Yamaha's console protocol / a documented IP control / MIDI / an OSC bridge) is **to be confirmed** for QL specifically; design behind a thin **console-adapter** so the protocol can be pinned without touching the engine.
+- **Scenes / snapshots / channel libraries:** the engine operates **within recallable scenes** (bound #5) and can recall a known-good scene instantly. Channel libraries hold per-voice/per-input starting points.
+- **Dante / USB multitrack → virtual soundcheck:** QL has **Dante** standard + USB recording; multitrack captures drive the **AFTER review** and **virtual soundcheck** (mix the recorded service with the band absent) — the safe sandbox where the A.I.'s per-voice EQ + mix moves are **rehearsed and proven before they ever touch a live service** (this is the natural Stage-1→Stage-2 proving ground).
+- **Selected Channel EQ/dynamics:** the QL's per-channel parametric EQ + dynamics are exactly the per-voice-EQ target surface (the close-up was on the PEQ view) — suggestions are expressed in those terms.
+
+---
+
+## 9. Proactive monitors / safeguards (future value — NOT a present incident)
+
+An earlier screenshot showed a **"Sample Rate Mismatch on USB, Console: 48000 Hz"** warning. **Per Darrell, that (and the other issues in the stale screenshots) is ALREADY FIXED — the current rig is clean.** Do **not** treat it as a present incident or chase it.
+
+**Keep it as a PROACTIVE MONITOR feature**, because the AFTER-review + virtual-soundcheck depend on clean multitrack: the system should **detect + surface** a USB/Dante **sample-rate mismatch** (device/DAW ≠ console 48 kHz) if it ever recurs, and state the **fix direction** (set the USB interface/DAW to match the console's 48 kHz, or the console to the device). It's a human/sound-tech fix; the system's job is to **flag it early** so a garbled capture never silently breaks a virtual soundcheck. Bundle with other proactive health checks (clock/sync, clip, dropped Dante device, hot channel).
+
+---
+
+## 10. Hardware + compute — recalibrated to the church's existing GPUs
+
+| Workload | Fits on a **church RTX 4070** (~12 GB)? | Note |
 |---|---|---|
-| **BEFORE** (per-input + ring-out suggestions) | CPU NAS (offline/near-offline; librosa + aubio) | **Now** (CPU), no real video/audio needed to stand up the analysis + suggestion engine on samples. |
-| **DURING** (real-time feedback early-warning + balance hints) | **GPU box** (low-latency DSP; aubio/Essentia/JUCE) | **GPU-gated** — ships with the CUDA box. Needs an audio-tap into the analysis host (future hardware integration). |
-| **AFTER** (recorded-mix review + gentle suggestions) | CPU NAS (offline; librosa + Ollama) | **Now** (CPU). Lowest-risk, highest-value first build. Any *scheduled* batch run = Tier C + three brakes, inactive on ship. |
+| Real-time-ish **voice characterization + per-voice EQ inference** | **Yes** | The core audio engine fits comfortably. |
+| **Feedback detection / hard-stop** (aubio + DSP) | **Yes** (light) | Latency-bound; a 4070 has ample headroom. |
+| **Speaker-ID / voice embeddings** (pyannote / SpeechBrain / Resemblyzer) | **Yes** | pyannote 3.1 ≈ 2.5% real-time-factor on GPU — easily real-time on a 4070. |
+| **faster-whisper** transcription | **Yes** | Already planned for the SME pipeline; fast on a 4070. |
+| Mid-size **LLM (~7–14B)** for suggestion narration / AFTER review | **Yes** (quantized) | qwen2.5 7–14B fits; the AFTER narrative + gentle suggestions. |
+| **70B+ frontier LLM** | **No** — needs the bigger box | Not required for the mix engine; only for unrelated frontier-reasoning tasks. |
 
-**All windows, binding:** sovereign/local (PoeTech hardware), read-only audio in, **suggestions out — never live-board control**, gentle tone-gate on operator-facing narrative.
+**Timeline impact (the recalibration):** the audio-mix A.I. is **hardware-ready NOW** on the church's 2× RTX 4070 (two separate boxes; confirm exact 4070 variant + VRAM). **Assistive (Stage 1) and Supervised-Auto (Stage 2) are buildable on current church hardware** — the supervised stage is **pulled forward**, no longer waiting on the weekend purchase. **Full autonomy (Stage 3) is gated on proven performance + Darrell's go, NOT on hardware.** Two 4070s also allow splitting the load (e.g., one box: voice analysis + EQ; the other: speaker-ID + transcription) or a hot spare for resilience.
 
----
-
-## 8. Tiering & rollout (RELEASE-TIERS)
-
-- **AFTER review (CPU):** **Tier B** to build the offline analysis + the gentle suggestion surface; the worship-team-facing wording is **Tier C judgment** (the tone-gate proven-to-catch + family/engineer eyes). If a *scheduled* batch is added, **Tier C + three brakes, inactive on ship**.
-- **BEFORE assist (CPU):** **Tier B** — advisory checklist; verify suggestions against the sound engineer's real practice (faithful, like the SME extraction).
-- **DURING assist (GPU):** **GPU-gated**; when built, **Tier C** — it's a live-service surface; soak + sound-engineer sign-off; **assistive-only proven-to-catch** (no control path) is a merge gate.
-- **Any console-control bridge ("apply this notch?")** — **explicitly out of scope here**; if ever pursued, its own DR + Tier C + per-action human confirm. Default posture: **no output to the board.**
+**Sovereign + local, every stage:** audio + console state stay on church hardware; no external API; nothing trains an outside model.
 
 ---
 
-## 9. Build order (when Darrell greenlights — NOT done here)
+## 11. Research-review — local tooling (live sources, 2026-06-24)
 
-1. **AFTER offline analyzer** (CPU): librosa spectral/loudness over a recording → numeric report → Ollama gentle narrative (tone-gated). Verify on a sample recording (the way the SME profiles were verified on sample transcripts). *Cheap, ready now.*
-2. **BEFORE per-input + ring-out suggester** (CPU): aubio peak/onset + librosa band energy → suggested gain/HPF/notch checklist. Proven-to-catch: suggestions are advisory-typed, no control output.
-3. **In-app surface** (sound-team-scoped): a "Board Assist" panel that shows BEFORE checklist + AFTER review, in the operator's learned vocabulary, linked from the training track. Suggestions only; the operator is the decider (copy says so).
-4. **DURING real-time assistant** (GPU box): aubio/Essentia feedback early-warning + balance hints → live advisory readout. Latency-budgeted. Assistive-only proven-to-catch is the merge gate. Audio-tap hardware integration.
-5. **SME tie-in:** use the sound-engineer lesson extraction to tune the suggestion rubric (what the engineer actually does for mud/feedback/choir) — faithful, verified.
+All open-source / sovereign, all runnable on the church 4070s (real-time) or the CPU NAS (offline).
 
----
+| Layer | Tool | Role |
+|---|---|---|
+| **Real-time analysis / feedback** | **aubio** (onset/pitch/peak; BSD) | Feedback-onset + ring-out detection + the hard-stop trigger. |
+| **Spectral analysis** | **librosa** (offline) / **Essentia** (C++, near-real-time on GPU/strong CPU) | Per-voice tonal characterization, masking analysis, AFTER review. |
+| **Voice-ID / embeddings** | **pyannote 3.1** (recommended; ~2.5% RTF on GPU), **SpeechBrain** (ECAPA embeddings), **Resemblyzer** (easiest, open-set), **NVIDIA NeMo** | Recognize known voices → recall best profile; unknown → from scratch. |
+| **Per-voice EQ logic** | bespoke (subtractive-first rules informed by the SME's real practice) + ML over the rendition history | Derive the curve; the sound engineer's captured technique tunes the rubric (faithful, like the SME lessons). |
+| **Real-time host** | **JUCE** (C++) if a true low-latency app is needed | The serious real-time DSP host for Stage 2/3. |
+| **LLM narration** | local **Ollama** (qwen2.5 7–14B) | Turns analysis into gentle, plain suggestions + the AFTER narrative (tone-gated). |
+| **Console control** | thin **console-adapter** over the Yamaha QL remote protocol (confirm) | Read state now; write within bounds in earned stages. |
+| **Capture/plumbing** | **Dante** (standard on QL) / **SoX / ffmpeg** | Multitrack for virtual soundcheck + AFTER review. |
 
-## 10. Honest constraints / what does NOT exist yet (reality-trace, Verification Doctrine)
-
-- **No GPU box yet** → the real-time DURING assistant is genuinely gated on hardware that isn't live. CPU NAS = offline/rough only. Stated, not hidden.
-- **No audio-tap into an analysis host yet** → DURING needs a record-bus/interface feed; that's future hardware integration.
-- **No turnkey feedback-notch library exists** → we build a thin feedback-onset detector on aubio and **suggest**; we do not adopt auto-notch hardware as "our A.I."
-- **Real-time feedback detection is latency-hard** → tens of ms; the reason it's GPU/dedicated-DSP work, not a CPU-NAS side job.
-- **Full-band live audio is messy** → balance/masking hints are heuristic suggestions, not truth; the operator's ears govern.
-- **No live-board control, ever (in this spec)** → suggestions to a screen; a human acts. By design, not config.
-- Cited tools reflect live web sources (2026-06-24), provenance below; not training-data recall.
+**Honest finding (unchanged):** there is **no turnkey open-source "real-time feedback-detection + auto-notch" library** — feedback handling is a technique (FFT peak-hold / sustained-tone → notch coefficients) built inside a framework. We build a thin detector on aubio; the **hard-stop** is a bounded, dedicated safeguard (bound #2). Commercial auto-suppressors are noted, not adopted as "the A.I."
 
 ---
 
-## 11. Institutional-Memory Event (church-work / sound)
+## 12. Tiering & rollout (RELEASE-TIERS + three-brakes)
+
+- **Stage 1 ASSISTIVE (read + suggest), AFTER review, per-voice-EQ SUGGESTIONS, proactive monitors:** **Tier B** to build (advisory; no writes); worship-team-facing wording is **Tier C judgment** (tone-gate proven-to-catch). Read-only console access. **Buildable now on the 4070s.**
+- **The hard-bounds framework + console-adapter (read-only first) + the takeover/kill-switch + logging:** **build NOW alongside Stage 1**, even before any write — the bounds must exist and be proven-to-catch before a single write is enabled.
+- **Stage 2 SUPERVISED-AUTO (bounded writes):** **Tier C, ships inactive**, armed only after Stage 1 proves out + the bounds are proven-to-catch + **Darrell's explicit go**; turned on with someone watching. Three brakes mandatory.
+- **Stage 3 AUTONOMOUS:** **Tier C, ships inactive**, armed only after Stage 2 proven performance on real services + **Darrell's explicit go**; never unattended-first, never while Darrell travels.
+
+---
+
+## 13. Build order (when Darrell greenlights — NOT done here)
+
+1. **Console-adapter (READ-ONLY) for the QL** — confirm model + protocol (SME capture / close-up), read EQ/levels/meters/scenes. Proven-to-catch: the adapter exposes read methods only; no write path compiled in yet.
+2. **The hard-bounds + safety framework** — level ceiling, feedback hard-stop, rate-limiter, scene bounds, **instant takeover/kill-switch**, full logging, three brakes — **with proven-to-catch tests on each bound**, BEFORE any write capability exists.
+3. **Stage 1 engine (4070):** real-time voice characterization (Essentia/aubio) + **per-voice EQ suggestion** + feedback detection → suggestions in the booth software; AFTER review (librosa + Ollama, tone-gated); proactive monitors (sample-rate/sync). Virtual-soundcheck sandbox for proving.
+4. **Voice-ID + profiles** (pyannote/SpeechBrain/Resemblyzer) — recall best profile for known voices; ties the choir renditions/ad-libs data.
+5. **Stage 2 SUPERVISED-AUTO** — enable **bounded** writes through the adapter (per-voice EQ + gentle rides + feedback notch), rate-limited + logged, one-touch override + co-mix; prove on virtual soundcheck, then live **with someone watching**; **Darrell's go** to arm.
+6. **Learning loop** — train per-voice profiles + mix preferences on multitrack/rendition history + operator overrides; promote improvements to higher autonomy ONLY after supervised proof.
+7. **Stage 3 AUTONOMOUS** — only after Stage 2 proven performance + **Darrell's go**; human-on-the-loop always.
+
+---
+
+## 14. Honest constraints / what does NOT exist yet (reality-trace, Verification Doctrine)
+
+- **Exact QL model (QL1 vs QL5) + the write-control protocol path are unconfirmed** — design generically to the QL family; pin via SME capture / a board close-up before building the write adapter. Do not hard-code an unverified protocol.
+- **No console-control code exists** — read-only adapter is step 1; writes are gated behind proven bounds + stages + Darrell's go.
+- **Autonomous live mixing is genuinely hard + high-stakes** — staged, bounded, human-on-the-loop, earned. "Better than a human" = more consistent/tireless, proven on real services, not claimed.
+- **Voice-adaptive EQ + voice-ID accuracy is real but imperfect** — suggestions first; the human's ears + the sound engineer govern; rotating/overlapping voices on one mic are a known hard case.
+- **The sample-rate mismatch is FIXED / stale** — kept only as a future proactive monitor, not chased.
+- **The church 4070 variant + VRAM should be confirmed** — design targets ~12 GB; verify (4070 vs 4070 Ti / Super changes VRAM).
+- Cited tools + QL capabilities reflect live web sources (2026-06-24), provenance below; not training-data recall.
+
+---
+
+## 15. Institutional-Memory Event (church-work / sound)
 
 ```json
 {
-  "id": "evt-20260624-live-sound-eq-mix-ai-assist",
+  "id": "evt-20260624-live-mix-ai-staged-autonomy-ql",
   "date": "2026-06-24",
   "type": "church-work",
-  "title": "Spec: Local-AI EQ/Mix ASSISTANT for the live sound board (before/during/after, assistive-only, sovereign, GPU-gated) + shipped training track",
-  "description": "Two-part request for the COLG live sound board: (1) TRAINING the sound team to run the board + EQ/mix -- SHIPPED as the self-paced 'Running the Board: Live Sound for the House of God' Learn track (app/src/lib/sound-board-class.js: 7 lessons -- signal chain, gain staging, EQ frequency ranges, taming feedback, monitors-vs-house, mixing the worship team + choir, before/during/after) on the shared Learn engine, sourced/verified by a NEW sound-engineer SME pipeline lane (infra/nas-sme-pipeline/sound-engineer-to-lessons.sh). (2) A local-A.I. ASSISTANT (this spec, GPU-gated) that HELPS the operator BEFORE (gain/EQ/ring-out suggestions), DURING (real-time feedback early-warning + level/balance hints), and AFTER (recorded-mix review + gentle prioritized suggestions, tied to the choir ad-lib/worship self-critique after-review loop). BINDING: assistive-only -- the A.I. suggests; a human operator decides and acts; NO autonomous control of the live board, by design (no output path); read-only audio in; sovereign/local; three brakes on any scheduled piece.",
-  "resolution": "Training shipped (lib + host wiring + 22 passing tests + SME lane). Assistant is research-reviewed + specced, GPU-gated: AFTER + a basic BEFORE pass are CPU-NAS-buildable now (librosa offline spectral + aubio peak/onset + local Ollama gentle narrative, tone-gated); real-time DURING is GPU-box work (latency-hard) + needs an audio tap. Recommended sovereign stack: aubio (feedback-onset/ring-out) + librosa (offline BEFORE/AFTER) + Essentia (DURING on GPU) + Ollama qwen2.5 (numbers->suggestions) + SoX/ffmpeg. No turnkey feedback-notch lib exists -- we detect-and-suggest, never auto-notch; auto-suppression hardware noted but NOT adopted as 'A.I.' Assistive-only enforced structurally (no control output path) + proven-to-catch tests.",
+  "title": "Spec (revised): Local-AI live-mix engine for the COLG Yamaha QL booth - per-voice adaptive EQ + staged autonomy (assistive->supervised->autonomous), hard safety bounds, human-on-the-loop, on the church 2x RTX 4070",
+  "description": "Grounded in Darrell's photos/close-up: the booth is a Yamaha QL-series digital console (QL1/QL5, confirm by channel count) at back-of-house, ALREADY software-controlled over the network (QL Editor / StageMix / ProVisionaire), with a multi-monitor switcher/stream rig + laptop; sanctuary stage has a drum kit + two side screens. DIRECTION CHANGE: the live-mix A.I. is not assistive-only forever - the GOAL is AUTONOMOUS live mixing that gets better-than-human over time, WITH instant human takeover/co-mix (human-on-the-loop permanent). Specced the destination + a safe staged path: (1) ASSISTIVE read+suggest [now], (2) SUPERVISED-AUTO bounded writes while a human watches with one-touch override [now on 4070s, after Stage1 proves + Darrell's go], (3) AUTONOMOUS human-on-the-loop [earns its stage via proven perf + Darrell's go, NOT a hardware gate]. HARD BOUNDS (structural + proven-to-catch): SPL/output ceiling per-channel+master, feedback detect+auto-suppress+hard-stop, rate-limited moves, instant human takeover/co-mix (mix kill-switch), scene-bounded, full logging, three brakes (budget/concurrency-lock/kill-switch). CENTRAL capability: per-mic per-voice adaptive EQ - analyze the voice on each mic, dial EQ+dynamics for THAT voice, re-optimize on voice change, optional voice-ID (pyannote/SpeechBrain/Resemblyzer) recalls a known voice's best profile (ties choir renditions/ad-libs), unknown->from scratch, best individual + best blend. Learning loop trains on multitrack/rendition history + per-service feedback + operator overrides; improvements promote to higher autonomy ONLY after supervised proof. Sample-rate/USB-mismatch kept as a future PROACTIVE MONITOR (already fixed, not a present incident). HARDWARE recalibrated: church already has 2x RTX 4070 (~12GB, confirm variant) -> assistive + supervised buildable NOW on existing church hardware; only 70B+ LLM needs the bigger box.",
+  "resolution": "Training half shipped (digital-/QL-aware 'Running the Board' track + sound-engineer SME lane). Live-mix engine = research-reviewed + specced, staged + bounded. Buildable now on the 4070s: read-only QL console-adapter, the hard-bounds+takeover+logging framework (proven-to-catch BEFORE any write), Stage-1 per-voice-EQ suggestions + feedback detection + AFTER review (librosa/Essentia/aubio + Ollama) + proactive sample-rate/sync monitor + virtual-soundcheck proving sandbox + voice-ID profiles. Stage 2 (bounded writes) + Stage 3 (autonomous) ship inactive, armed one at a time behind proven-to-catch bounds + three brakes + Darrell's explicit go. Recommended sovereign stack: aubio + librosa + Essentia + pyannote/SpeechBrain/Resemblyzer + JUCE (RT host) + Ollama qwen2.5 + Dante/SoX/ffmpeg + a thin Yamaha-QL console-adapter (protocol TBC).",
   "tags": {
     "workflows": [],
-    "modules": ["learn", "sound-board", "church", "choir", "worship", "sme-pipeline", "audio-analysis", "scripture"],
+    "modules": ["learn", "sound-board", "live-mix-ai", "church", "choir", "worship", "sme-pipeline", "audio-analysis", "voice-id", "scripture"],
     "sector": ["church", "education", "community", "spiritual"],
     "senders": ["dpoe"]
   },
   "provenance": {
     "who": "Claude (advisory)",
     "when": "2026-06-24",
-    "source_surface": "research-review + code survey (church-classes.js, living-lessons-class.js, ChurchLearn.jsx, learn-framework.js, infra/nas-sme-pipeline/*) + live web research (aubio, librosa, Essentia, JUCE, feedback-detection technique)"
+    "source_surface": "Darrell's booth photos + console close-up (Yamaha QL, PEQ view, TOUCH AND TURN/Selected Channel/SEL-ON) + live web research (Yamaha QL Editor/StageMix/Dante/virtual-soundcheck; pyannote/SpeechBrain/Resemblyzer; aubio/librosa/Essentia) + code survey"
   },
-  "learnings": "1) Two halves: TRAINING ships now (Learn engine already does self-paced/levels/quiz/tutor); the live ASSISTANT is GPU-gated. 2) Assistive-only must be ARCHITECTURAL -- no output path to the live board, read-only audio in, proven-to-catch that the analysis module exposes no control command. A live-mix runaway is unacceptable. 3) The three windows (before/during/after) map to the training track's snd7 lesson -- same vocabulary, so suggestions speak what the operator just learned. 4) AFTER review is the soonest/safest/highest-value build (offline, CPU NAS, librosa + Ollama, tone-gated) + ties the worship self-critique after-review loop. 5) Real-time DURING is latency-hard (feedback runs away in <1s; need tens-of-ms analysis) -> GPU/dedicated-DSP, not a CPU NAS juggling other jobs. 6) No turnkey OSS feedback-notch lib; detection is a technique (FFT peak-hold/sustained-tone -> notch coeffs) inside a framework -> we suggest a notch, never auto-apply; auto-suppressor HARDWARE is a separate bounded-DSP decision, not our A.I. 7) Sovereign stack: aubio + librosa + Essentia + Ollama + SoX/ffmpeg, all local. 8) GPU box + an audio tap are the real prerequisites for DURING.",
+  "learnings": "1) Real env is a Yamaha QL digital console ALREADY software-controlled over the network -> read state now, earned writes later; design behind a console-adapter; confirm QL1 vs QL5 + the exact write protocol. 2) Direction change: destination is AUTONOMOUS live mixing better-than-human over time, human-on-the-loop permanent - but it's the highest-stakes automation, so it's EARNED in stages, each behind hard bounds + three brakes + Darrell's go. 3) Controllability makes RESTRAINT matter MORE: hard bounds (SPL ceiling, feedback hard-stop, rate-limit, scene bounds, instant takeover/co-mix, full logging, three brakes) must exist + be proven-to-catch BEFORE any write. 4) Central capability is per-mic per-voice adaptive EQ that re-optimizes when the voice on a mic changes + optional voice-ID profiles (ties choir renditions). 5) Learning trains on multitrack/rendition history + operator overrides (overrides are gold); improvements promote only after supervised proof. 6) HARDWARE: church 2x RTX 4070 make assistive+supervised buildable NOW (audio ML + voice-ID + whisper + 7-14B LLM all fit); autonomy is go-gated not hardware-gated; only 70B+ needs the bigger box. 7) Sample-rate mismatch already fixed -> keep as a proactive monitor, don't chase. 8) Virtual soundcheck (QL Dante multitrack) is the safe sandbox to PROVE A.I. moves before they touch a live service.",
   "related_artifacts": [
     "docs/99-session-notes/2026-06-24-live-sound-eq-mix-ai-assist-spec.md",
     "app/src/lib/sound-board-class.js",
     "app/src/__tests__/sound-board-class.test.js",
     "infra/nas-sme-pipeline/sound-engineer-to-lessons.sh",
     "infra/nas-sme-pipeline/SOUND-SOURCE.md",
-    "docs/99-session-notes/2026-06-24-keyboardist-music-lessons-and-auto-fingering-spec.md",
+    "https://usa.yamaha.com/products/proaudio/mixers/ql_series/features.html",
+    "https://usa.yamaha.com/products/proaudio/software/ql_stagemix/index.html",
+    "https://github.com/pyannote/pyannote-audio",
     "https://github.com/aubio/aubio",
     "https://librosa.org/",
-    "https://essentia.upf.edu/",
-    "https://juce.com/"
+    "https://essentia.upf.edu/"
   ],
   "status": "open"
 }
@@ -213,15 +246,14 @@ All open-source, all runnable on PoeTech hardware (sovereign). **Honest finding:
 
 ---
 
-## Sources (live research, 2026-06-24)
+## 16. Sources (live research, 2026-06-24)
 
-**Audio analysis libraries:**
-- [aubio — real-time audio analysis (onset, pitch, peak)](https://github.com/aubio/aubio) · [aubio.org](https://aubio.org/)
-- [librosa — audio & music signal analysis in Python](https://librosa.org/) · [librosa: Audio and Music Signal Analysis in Python (SciPy 2015 paper)](https://brianmcfee.net/papers/scipy2015_librosa.pdf)
-- [Essentia (MTG/UPF) — C++/Python audio analysis](https://essentia.upf.edu/)
-- [JUCE — C++ real-time audio framework](https://juce.com/)
+**Yamaha QL console + control + virtual soundcheck:**
+- [Yamaha QL Series — Features (USA)](https://usa.yamaha.com/products/proaudio/mixers/ql_series/features.html) · [Overview](https://usa.yamaha.com/products/proaudio/mixers/ql_series/index.html) · [FAQ](https://usa.yamaha.com/products/proaudio/mixers/ql_series/faq.html)
+- [QL StageMix (iPad remote)](https://usa.yamaha.com/products/proaudio/software/ql_stagemix/index.html) · [CL/QL V4.1 Supplementary Manual (PDF)](https://data.yamaha.com/files/download/other_assets/5/834225/cl5_3_1_ql_5_1_en_sm_v41_a0.pdf) · [QL1 datasheet (PDF)](https://enlx.co.uk/wptemp/wp-content/uploads/2024/05/QL1_datasheet.pdf)
 
-**Feedback detection / live-sound DSP (technique, not a single library):**
-- [Top open-source audio processing libraries (overview, 2026)](https://blog.fileformat.com/en/audio/top-7-open-source-audio-processing-libraries-in-2026/)
-- [webprofusion/OpenAudio — open-source audio software list](https://github.com/webprofusion/OpenAudio)
-- Acoustic feedback cancellation — the standard approach: detect the feedback frequency, convert to notch-filter coefficients (e.g., US Patent 7,664,275; US Patent 7,203,324). *We use the DETECT half and SUGGEST a notch; we do not auto-apply.*
+**Speaker-ID / voice embeddings (for per-voice profiles):**
+- [pyannote-audio (diarization + embeddings)](https://github.com/pyannote/pyannote-audio) · [Top speaker-diarization libraries (2026 overview)](https://www.assemblyai.com/blog/top-speaker-diarization-libraries-and-apis) · [SpeechBrain](https://speechbrain.github.io/) · [Resemblyzer](https://github.com/resemble-ai/Resemblyzer)
+
+**Audio analysis / real-time DSP:**
+- [aubio](https://github.com/aubio/aubio) · [librosa](https://librosa.org/) · [Essentia (MTG/UPF)](https://essentia.upf.edu/) · [JUCE](https://juce.com/)
