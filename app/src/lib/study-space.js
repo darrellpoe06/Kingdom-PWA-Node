@@ -92,24 +92,34 @@ export function normalizeEntry(raw = {}, nowMs = 0, salt = 0) {
 // shape and there is no import cycle (the finalizer imports this; study-space
 // imports nothing from it). Pure + total: any malformed stored value normalizes
 // to a clean 'unfinalized' layer, so an old entry loads forward-compatibly.
-export const FINAL_STATUS = Object.freeze(['unfinalized', 'suggested', 'accepted']);
+export const FINAL_STATUS = Object.freeze(['unfinalized', 'distilled']);
 export const FINAL_SOURCE = Object.freeze(['local', 'vendor', 'manual']);
 
+// Finalization PROVENANCE — the distillation metadata, kept SEPARATE from the
+// reflection content it describes. The 3rd-dimensional `plain` distillation, the
+// scripture refs, and the tags are written into the reflection's OWN fields (so
+// the existing "DISTILLED · DEEP + PLAIN" badge, the Presenter, and briefingReady
+// all light up automatically); this layer only records WHAT the finalizer
+// auto-filled, the pre-fill snapshot for a clean revert, and which Eternal
+// Algorithms the reflection was extracted into. The 4th-dimensional `deep` source
+// is never touched. Pure + forward-compatible (any malformed value -> clean).
 export function normalizeFinalization(raw = {}) {
   const f = raw && typeof raw === 'object' ? raw : {};
-  const fourD = f.fourD && typeof f.fourD === 'object' ? f.fourD : {};
-  const threeD = f.threeD && typeof f.threeD === 'object' ? f.threeD : {};
+  const af = f.autofilled && typeof f.autofilled === 'object' ? f.autofilled : {};
+  const orig = f.original && typeof f.original === 'object' ? f.original : null;
   return {
     status: FINAL_STATUS.includes(f.status) ? f.status : 'unfinalized',
-    fourD: {
-      summary: String(fourD.summary || '').trim(),
-      scripture: String(fourD.scripture || '').trim(),
-    },
-    threeD: { summary: String(threeD.summary || '').trim() },
-    outcome: String(f.outcome || '').trim(),
+    autofilled: { plain: !!af.plain, scripture: !!af.scripture, tags: !!af.tags },
+    original: orig
+      ? {
+          plain: String(orig.plain || ''),
+          scripture: String(orig.scripture || ''),
+          tags: Array.isArray(orig.tags) ? orig.tags.slice() : [],
+        }
+      : null,
+    algorithmIds: Array.isArray(f.algorithmIds) ? f.algorithmIds.filter(Boolean).map(String) : [],
     source: FINAL_SOURCE.includes(f.source) ? f.source : null,
     generatedAt: f.generatedAt || null,
-    acceptedAt: f.acceptedAt || null,
   };
 }
 

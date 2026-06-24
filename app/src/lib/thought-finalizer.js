@@ -1,54 +1,56 @@
 // =============================================================================
-// thought-finalizer — apply the 4th-dimensional framework to a private thought
+// thought-finalizer — distill a deep-only reflection + extract its algorithm(s)
 // =============================================================================
 // "When I add a thought, REVIEW it and apply my 4th-dimensional framework so it
-//  looks finished and is ready for teaching later — and if I added 10 new
-//  thoughts, review all 10." (Darrell, 2026-06-24.)
+//  looks finished and is ready for teaching later — review all of them — and the
+//  Eternal Algorithms just automatically add." (Darrell, 2026-06-24.)
 //
-// THE GROUNDED FRAMEWORK (not invented here — it is Darrell's own, already in
-// lib/eternal-algorithms.js and the Study): the biblical patterns are "eternal
-// algorithms" read on TWO sides plus their result —
-//   • 4D — the 4th-dimensional expression: eternal / scriptural / spiritual,
-//          carrying ACCURATE Scripture references (no fabrication).
-//   • 3D — the 3rd-dimensional expression: practical / temporal / how it plays
-//          out in this-world life and work.
-//   • OUTCOME — first-class: the result of living it, the "you win with it."
-// A thought is "finalized / teaching-ready" once it carries all three, accepted.
+// THE FRAMEWORK (his own, live in the Study — NOT invented here):
+//   • 4th-dimensional = the DEEP SOURCE: the captured deep exchange (entry.deep).
+//   • 3rd-dimensional = the PLAIN distillation of that source for a wider
+//                       audience (entry.plain), ENDING with the practical
+//                       "benefits" / so-what (matches the finished Metanoia / Joy
+//                       templates, whose plain layer closes with "Practically: …").
+//   • FINISHED = "DISTILLED · DEEP + PLAIN" — i.e. distillState(entry) === 'both'
+//                — plus scripture refs + tags. UNFINISHED = "Needs a plain
+//                version" (distillState === 'deep-only').
 //
-// FAITHFUL + ADDITIVE + REVERSIBLE (binding): the finalizer NEVER overwrites the
-// person's own words (the entry's title / deep / plain). It writes only the
-// SEPARATE `finalization` layer (study-space.js owns that shape). A suggestion
-// is exactly that — a suggestion the owner reviews, edits, and accepts (or
-// dismisses, restoring 'unfinalized'). His meaning is senior to the model's.
+// THE JOB: for every reflection that NEEDS A PLAIN VERSION, generate the 3D plain
+// distillation (with benefits) + scripture refs + tags from its deep source so it
+// flips to finished, teaching-ready. Batch ALL unfinished in one pass (the
+// "10 new thoughts -> review all 10" behavior). In the SAME pass, EXTRACT the
+// eternal algorithm(s) the reflection distills to and auto-add them to the
+// Eternal Algorithms library (idempotent; faithful extraction, never fabricated).
+//
+// FAITHFUL + ADDITIVE + REVERSIBLE (binding): the DEEP SOURCE is kept VERBATIM,
+// always. The plain/scripture/tags are written into the reflection's own (empty)
+// fields and a pre-fill snapshot is stored so a one-click revert restores the
+// deep-only state. His meaning stays senior to the model's — he edits any field.
 //
 // SOVEREIGN, LOCAL-FIRST (the Charter; same posture as lib/class-tutor.js): the
-// review runs on the family's LOCAL model (qwen2.5 on the NAS) through the
-// same-origin '/n8n' rewrite. No vendor LLM is called from the client; any
-// vendor escalation happens server-side, within budget, only on an unmet need.
+// review runs on the family's LOCAL model (qwen2.5 on the NAS) via the same-origin
+// '/n8n' rewrite. No vendor LLM is called from the client. HONEST OFFLINE
+// (DR-0076): unreachable -> { ok:false }; nothing is applied and nothing is
+// fabricated (the UI lets him write the plain by hand instead).
 //
-// ON-DEMAND, NOT AUTO-FIRE (binding — no autonomous automation without the three
-// brakes): finalizing is a button the owner presses ("Finalize my thoughts"),
-// never a timer that fires on every add. Batch = the owner asks once and every
-// unfinalized thought is reviewed in that one pass.
+// BOUNDED automation (no autonomous automation without brakes): everything fires
+// only inside the owner-pressed finalize run — there is NO always-on timer. The
+// eternal-algorithm auto-add rides that same run and is idempotent (dedupe by
+// name), so re-finalizing never duplicates a library entry.
 //
-// HONEST OFFLINE (DR-0076 / Verification Doctrine): when the NAS model is not
-// reachable, askFinalizer returns { ok:false } — it never fabricates a treatment
-// and never paints a finished thought. The UI then offers the framework scaffold
-// for the owner to fill by hand (source:'manual'), so the surface is useful even
-// before the NAS workflow is wired.
-//
-// WORD-FIRST: the system prompt requires ESV-accurate Scripture, forbids invented
-// or paraphrased-as-quoted verses, capitalizes references to God, and never
-// capitalizes the adversary (the repo typographic + scripture standards).
+// CIRCLE-SCOPED: the Study surface is gated to Darrell + Christina + Bishop Gwin
+// in the monolith (isStudyCircleEmail); data is device-local per identity. This
+// module owns logic only — the gate lives at the surface.
 //
 // Pure helpers are exported + unit-tested (proven-to-catch); the only I/O is the
 // single fetch in askFinalizer, which fails soft.
 // =============================================================================
 import { n8nAuthHeaders } from './n8n-base.js';
 import { normalizeFinalization } from './study-space.js';
+import { normalizeAlgorithm } from './eternal-algorithms.js';
 
-// The sovereign, local-first model the finalizer asks for (matches class-tutor /
-// llm-review). A constant so a test can prove the client routes LOCAL, not vendor.
+// The sovereign, local-first model (matches class-tutor / llm-review). A constant
+// so a test can prove the client routes LOCAL, not to a vendor.
 export const FINALIZE_MODEL = 'qwen2.5';
 
 // Same-origin '/n8n' rewrite to the family NAS — a RELATIVE path, never an
@@ -59,82 +61,59 @@ export function finalizeEndpoint() {
   return `${FINALIZE_BASE.replace(/\/+$/, '')}/webhook/thought-finalize`;
 }
 
-// --- The teaching-ready gate -------------------------------------------------
+// --- Finished / unfinished (the live badge state) ----------------------------
 
-// All three framework parts present? (4D summary, 3D summary, OUTCOME). Scripture
-// is allowed to be empty — not every thought has a single anchor, and inventing
-// one would violate the Word-first / no-fabrication rule.
-export function hasAllParts(fin) {
-  const f = normalizeFinalization(fin);
-  return !!(f.fourD.summary && f.threeD.summary && f.outcome);
+const has = (s) => !!(s && String(s).trim());
+
+// "Needs a plain version": a captured deep source with no plain distillation yet.
+export function needsDistillation(entry) {
+  return !!entry && has(entry.deep) && !has(entry.plain);
 }
 
-// A thought is FINALIZED (teaching-ready) only when the owner has ACCEPTED a
-// treatment that carries all three parts. A mere suggestion is not finalized.
-export function isFinalized(entry) {
-  const f = normalizeFinalization(entry && entry.finalization);
-  return f.status === 'accepted' && hasAllParts(f);
+// Finished = both layers present (the "DISTILLED · DEEP + PLAIN" badge).
+export function isDistilled(entry) {
+  return !!entry && has(entry.deep) && has(entry.plain);
 }
 
-// Teaching-ready is the same gate, named for the content-engine handoff: only an
-// accepted, complete treatment becomes lesson/course material downstream.
-export const isTeachingReady = isFinalized;
-
-// A real thought worth finalizing = has any of the owner's own words. Empty seed
-// scaffolds and blank rows are skipped so the batch count is honest.
-export function isReviewableThought(entry) {
-  if (!entry) return false;
-  return !!((entry.title && entry.title.trim())
-    || (entry.deep && entry.deep.trim())
-    || (entry.plain && entry.plain.trim()));
+// The batch set: every reflection that needs a plain version — what one press of
+// "Finalize my thoughts" covers (the "review all 10" set).
+export function pendingDistillation(entries) {
+  return (Array.isArray(entries) ? entries : []).filter(needsDistillation);
 }
 
-// The batch set: every reviewable thought NOT yet finalized (accepted). This is
-// the "review all 10" set — what one press of "Finalize my thoughts" covers.
-export function unfinalizedThoughts(entries) {
-  return (Array.isArray(entries) ? entries : [])
-    .filter(isReviewableThought)
-    .filter((e) => !isFinalized(e));
-}
-
-// A small progress roll-up for the surface header.
-export function finalizationProgress(entries) {
-  const real = (Array.isArray(entries) ? entries : []).filter(isReviewableThought);
-  const finalized = real.filter(isFinalized).length;
-  const suggested = real.filter((e) => normalizeFinalization(e.finalization).status === 'suggested' && !isFinalized(e)).length;
-  return { total: real.length, finalized, suggested, pending: real.length - finalized };
+// Honest progress roll-up over thoughts that have a deep source to distill.
+export function distillationProgress(entries) {
+  const withDeep = (Array.isArray(entries) ? entries : []).filter((e) => e && has(e.deep));
+  const finished = withDeep.filter(isDistilled).length;
+  return { total: withDeep.length, finished, pending: withDeep.length - finished };
 }
 
 // --- The model prompt (pure, exported so the NAS uses the IDENTICAL text) -----
 
 export function finalizerSystemPrompt() {
   return [
-    'You help finalize a private thought into teaching-ready form using the "Eternal Algorithms" 4th-dimensional framework. You express the SAME thought in a finished shape; you NEVER replace or overrule the person\'s meaning.',
-    'Produce three parts:',
-    '- "fourD": the 4th-dimensional expression — the eternal / scriptural / spiritual reading of the thought.',
-    '- "fourD.scripture": the Scripture reference(s) that genuinely anchor it (e.g. "James 1:2-4"). Leave it EMPTY if the thought has no clear anchor — never attach a verse that does not fit.',
-    '- "threeD": the 3rd-dimensional expression — how it plays out practically in this-world life and work.',
-    '- "outcome": the result of living it — the "you win with it."',
-    'SCRIPTURE RULES (strict): quote Scripture only from the ESV and only when you are sure of the wording. NEVER invent a verse, and never paraphrase a verse as if you were quoting it. If you are unsure of the exact words, cite the reference only. Capitalize references to God (He, His, Him, the Father, the Son, the Holy Spirit). Never capitalize the adversary (satan, the devil, the accuser).',
-    'Be faithful to the thought\'s own intent. Do not add doctrine it does not contain. Be concise; one tight paragraph per part.',
-    'Output STRICT JSON ONLY, no prose, exactly: {"fourD":{"summary":"...","scripture":"..."},"threeD":{"summary":"..."},"outcome":"..."}',
+    'You help finalize a private Study reflection. You are given its 4th-dimensional DEEP SOURCE (a captured deep exchange). You produce the finished, teaching-ready form WITHOUT changing the deep source and WITHOUT changing the author\'s meaning.',
+    'Produce:',
+    '- "plain": the 3rd-dimensional distillation — the same truth in plain language for a wider audience, what a wide room hears first. END it with the practical application (the "benefits" / so-what), e.g. a sentence beginning "Practically, …". One short paragraph.',
+    '- "scripture": the Scripture reference(s) that genuinely anchor the reflection (e.g. "Romans 12:2; 2 Corinthians 10:4-5"). Leave EMPTY if there is no clear anchor — never attach a verse that does not fit.',
+    '- "tags": 2-4 short lowercase tag words for pattern recognition.',
+    '- "algorithms": the timeless principle(s) this reflection distills to — the "eternal algorithms." Usually 1, sometimes 2, sometimes 0 (return [] if none is genuinely present — do NOT invent one). Each: {"name": short framework name, "fourD":{"summary": the eternal/scriptural expression, "scripture": refs or ""}, "threeD":{"summary": how it plays out practically}, "outcome": the result you win with it, "tags":[...]}.',
+    'SCRIPTURE RULES (strict): quote Scripture only from the ESV and only when sure of the wording. NEVER invent a verse, and never paraphrase a verse as if quoting it; if unsure, cite the reference only. Capitalize references to God (He, His, Him, the Father, the Son, the Holy Spirit). Never capitalize the adversary.',
+    'Be faithful to the reflection\'s own intent; add no doctrine it does not contain. Be concise.',
+    'Output STRICT JSON ONLY, no prose, exactly: {"plain":"...","scripture":"...","tags":["..."],"algorithms":[{"name":"...","fourD":{"summary":"...","scripture":"..."},"threeD":{"summary":"..."},"outcome":"...","tags":["..."]}]}',
   ].join('\n');
 }
 
-// Build the per-thought user prompt from the owner's own words. Any of the entry
-// fields may be empty; the model works from whatever is present.
 export function finalizerUserPrompt(entry) {
   const e = entry || {};
-  const lines = ['THOUGHT TO FINALIZE:'];
-  if (e.title && e.title.trim()) lines.push(`Title: ${e.title.trim()}`);
-  if (e.scripture && e.scripture.trim()) lines.push(`Scripture the author noted: ${e.scripture.trim()}`);
-  if (e.deep && e.deep.trim()) lines.push(`\nThe full / deep version:\n${e.deep.trim()}`);
-  if (e.plain && e.plain.trim()) lines.push(`\nThe plain version:\n${e.plain.trim()}`);
-  if ((e.tags || []).length) lines.push(`\nTags: ${(e.tags || []).join(', ')}`);
+  const lines = ['REFLECTION TO FINALIZE:'];
+  if (has(e.title)) lines.push(`Title: ${e.title.trim()}`);
+  if (has(e.scripture)) lines.push(`Scripture the author noted: ${e.scripture.trim()}`);
+  if ((e.tags || []).length) lines.push(`Tags the author noted: ${(e.tags || []).join(', ')}`);
+  lines.push(`\n4th-dimensional DEEP SOURCE:\n${String(e.deep || '').trim()}`);
   return lines.join('\n');
 }
 
-// The request body the NAS workflow expects (mirrors buildTutorPayload).
 export function buildFinalizePayload(entry) {
   return {
     model: FINALIZE_MODEL,
@@ -144,11 +123,10 @@ export function buildFinalizePayload(entry) {
   };
 }
 
-// --- Parse the model output into a clean suggestion (never throws) -----------
-// The load-bearing "trust nothing unverified" boundary: bad / partial / fenced
-// output yields a normalized treatment with whatever parts parsed, or null when
-// nothing usable came back. (Same robustness as llm-review.parseFindings.)
-export function parseSuggestion(raw) {
+// --- Parse the model output (never throws) -----------------------------------
+// Bad / partial / fenced output yields whatever parsed, or null when nothing
+// usable came back (honest empty, never a painted result).
+export function parseDistillation(raw) {
   if (raw == null) return null;
   let text = typeof raw === 'string'
     ? raw
@@ -165,107 +143,120 @@ export function parseSuggestion(raw) {
   let obj;
   try { obj = JSON.parse(text); } catch { return null; }
   if (!obj || typeof obj !== 'object') return null;
-  const fourD = obj.fourD && typeof obj.fourD === 'object' ? obj.fourD : {};
-  const threeD = obj.threeD && typeof obj.threeD === 'object' ? obj.threeD : {};
   const out = {
-    fourD: {
-      summary: String(fourD.summary || '').trim(),
-      scripture: String(fourD.scripture || obj.scripture || '').trim(),
-    },
-    threeD: { summary: String(threeD.summary || '').trim() },
-    outcome: String(obj.outcome || '').trim(),
+    plain: String(obj.plain || '').trim(),
+    scripture: String(obj.scripture || '').trim(),
+    tags: Array.isArray(obj.tags) ? obj.tags.filter(Boolean).map((t) => String(t).trim()).filter(Boolean) : [],
+    algorithms: algorithmsFromResult(obj),
   };
-  // Nothing usable at all -> null (honest empty, not a painted treatment).
-  if (!out.fourD.summary && !out.threeD.summary && !out.outcome) return null;
+  if (!out.plain && out.algorithms.length === 0) return null;
   return out;
 }
 
-// --- Apply / accept / dismiss (pure; ORIGINAL WORDS NEVER TOUCHED) -----------
+// --- Eternal-algorithm extraction (the auto-add) -----------------------------
 
-// Attach a model suggestion as the entry's finalization layer, status
-// 'suggested'. Returns a NEW entry; title/deep/plain/scripture are passed through
-// UNCHANGED. `source` defaults to 'local' (qwen2.5 on the NAS).
-export function applySuggestion(entry, suggestion, { source = 'local', generatedAt = null } = {}) {
+// Normalize the model's algorithm drafts into the EA library shape. Faithful:
+// drops a draft with no name or no substance (never an empty/fabricated entry).
+export function algorithmsFromResult(result) {
+  const arr = result && Array.isArray(result.algorithms) ? result.algorithms : [];
+  return arr
+    .map((a) => ({
+      name: String((a && a.name) || '').trim(),
+      fourD: {
+        summary: String((a && a.fourD && a.fourD.summary) || '').trim(),
+        scripture: String((a && a.fourD && a.fourD.scripture) || (a && a.scripture) || '').trim(),
+      },
+      threeD: { summary: String((a && a.threeD && a.threeD.summary) || '').trim() },
+      outcome: String((a && a.outcome) || '').trim(),
+      tags: Array.isArray(a && a.tags) ? a.tags.filter(Boolean).map((t) => String(t).trim()).filter(Boolean) : [],
+    }))
+    .filter((a) => a.name && (a.fourD.summary || a.threeD.summary || a.outcome));
+}
+
+const nameKey = (n) => String(n || '').trim().toLowerCase();
+
+// Idempotent merge of extracted algorithms into the EA library entries. Adds only
+// algorithms whose NAME is not already present (dedupe across reflections + on
+// re-finalize). Returns { entries, linkedIds, addedIds } — linkedIds = every EA
+// id this reflection maps to (existing OR newly added), stored on the reflection
+// for revert + no-duplicate; addedIds = the genuinely new ones (for the "N added"
+// readout). Pure: the caller injects nowMs.
+export function mergeAlgorithmsIntoLibrary(entries, drafts, { nowMs = 0 } = {}) {
+  let list = Array.isArray(entries) ? entries.slice() : [];
+  const linkedIds = [];
+  const addedIds = [];
+  (Array.isArray(drafts) ? drafts : []).forEach((d, i) => {
+    const existing = list.find((e) => nameKey(e.name) === nameKey(d.name));
+    if (existing) { linkedIds.push(existing.id); return; }
+    const entry = normalizeAlgorithm(
+      { ...d, links: [{ label: 'Auto-extracted from a Study reflection', where: 'Study › Workspace' }] },
+      nowMs, i + 1,
+    );
+    list = [entry, ...list];
+    linkedIds.push(entry.id);
+    addedIds.push(entry.id);
+  });
+  return { entries: list, linkedIds, addedIds };
+}
+
+// --- Apply / revert (DEEP SOURCE NEVER TOUCHED) ------------------------------
+
+// Write the distillation into the reflection's OWN fields so the live badge flips
+// to "DISTILLED · DEEP + PLAIN". Returns a NEW entry; `deep` and `title` pass
+// through unchanged. scripture/tags are filled ONLY when empty (never clobber the
+// author's own). A pre-fill snapshot + the autofilled flags are recorded for a
+// clean revert. `algorithmIds` link the reflection to its extracted EA entries.
+export function applyDistillation(entry, result, { source = 'local', generatedAt = null, algorithmIds = [] } = {}) {
   const e = entry || {};
-  const s = suggestion || {};
+  const r = result || {};
+  const hadPlain = has(e.plain);
+  const hadScripture = has(e.scripture);
+  const hadTags = Array.isArray(e.tags) && e.tags.length > 0;
+  const plain = String(r.plain || '').trim();
+  const newTags = Array.isArray(r.tags) ? r.tags.filter(Boolean).map((t) => String(t).trim()).filter(Boolean) : [];
+  const nextScripture = hadScripture ? e.scripture : String(r.scripture || '').trim();
+  const nextTags = hadTags ? e.tags : newTags;
   return {
     ...e,
+    plain: hadPlain ? e.plain : (plain || e.plain || ''), // fill the empty 3D layer; never blank an existing one
+    scripture: nextScripture,
+    tags: nextTags,
     finalization: normalizeFinalization({
-      ...(e.finalization || {}),
-      status: 'suggested',
-      fourD: { summary: (s.fourD && s.fourD.summary) || '', scripture: (s.fourD && s.fourD.scripture) || '' },
-      threeD: { summary: (s.threeD && s.threeD.summary) || '' },
-      outcome: s.outcome || '',
+      status: 'distilled',
+      autofilled: {
+        plain: !hadPlain && !!plain,
+        scripture: !hadScripture && has(nextScripture),
+        tags: !hadTags && nextTags.length > 0,
+      },
+      original: { plain: e.plain || '', scripture: e.scripture || '', tags: Array.isArray(e.tags) ? e.tags : [] },
+      algorithmIds: Array.isArray(algorithmIds) ? algorithmIds : [],
       source,
-      generatedAt: generatedAt || null,
-      acceptedAt: null,
+      generatedAt,
     }),
   };
 }
 
-// Owner-edited fields (the review pass). Merges edits over the current layer
-// WITHOUT changing status — used while he tweaks a suggestion before accepting.
-export function editFinalization(entry, edits = {}) {
+// Reversible: restore ONLY the fields the finalizer auto-filled to their pre-fill
+// snapshot, and clear the finalization layer. The author's deep source and any
+// field he wrote himself are untouched. (Extracted EA library entries are left in
+// place — they are independent library records, deletable in the EA tab.)
+export function revertDistillation(entry) {
   const e = entry || {};
-  const cur = normalizeFinalization(e.finalization);
-  const merged = {
-    ...cur,
-    ...('outcome' in edits ? { outcome: edits.outcome } : {}),
-    fourD: {
-      summary: 'fourSummary' in edits ? edits.fourSummary : cur.fourD.summary,
-      scripture: 'scripture' in edits ? edits.scripture : cur.fourD.scripture,
-    },
-    threeD: { summary: 'threeSummary' in edits ? edits.threeSummary : cur.threeD.summary },
-    // An owner edit makes the treatment his — provenance becomes 'manual' unless
-    // it was already accepted by him.
-    source: cur.source === 'manual' ? 'manual' : (cur.status === 'accepted' ? cur.source : 'manual'),
-  };
-  return { ...e, finalization: normalizeFinalization(merged) };
-}
-
-// Accept the treatment -> teaching-ready. `acceptedAt` is injected by the caller
-// (app runtime owns Date.now; the lib stays testable). Original words untouched.
-export function acceptFinalization(entry, acceptedAt = null) {
-  const e = entry || {};
+  const f = normalizeFinalization(e.finalization);
+  const orig = f.original || { plain: '', scripture: '', tags: [] };
   return {
     ...e,
-    finalization: normalizeFinalization({
-      ...normalizeFinalization(e.finalization),
-      status: 'accepted',
-      acceptedAt: acceptedAt || null,
-    }),
-  };
-}
-
-// Reversible: clear the treatment back to 'unfinalized'. The owner's own words
-// are, as always, never affected — only the added layer is reset.
-export function clearFinalization(entry) {
-  const e = entry || {};
-  return { ...e, finalization: normalizeFinalization({}) };
-}
-
-// --- The content-engine handoff ----------------------------------------------
-// An accepted, teaching-ready thought maps cleanly onto an Eternal Algorithm
-// (name + 4D + 3D + outcome). This is the bridge to the content engine: a
-// finalized thought becomes a framework entry, then lesson/course material. Pure;
-// returns null for a thought that is not yet teaching-ready.
-export function toEternalAlgorithmDraft(entry) {
-  if (!isTeachingReady(entry)) return null;
-  const f = normalizeFinalization(entry.finalization);
-  return {
-    name: (entry.title && entry.title.trim()) || (entry.plain || entry.deep || '').trim().slice(0, 80),
-    fourD: { summary: f.fourD.summary, scripture: f.fourD.scripture },
-    threeD: { summary: f.threeD.summary },
-    outcome: f.outcome,
-    tags: Array.isArray(entry.tags) ? entry.tags : [],
-    links: [{ label: 'Finalized in Study', where: 'Study › Finalize' }],
+    plain: f.autofilled.plain ? orig.plain : e.plain,
+    scripture: f.autofilled.scripture ? orig.scripture : e.scripture,
+    tags: f.autofilled.tags ? orig.tags : e.tags,
+    finalization: normalizeFinalization({}),
   };
 }
 
 // --- The only I/O: ask the local model (honest-offline) ----------------------
-// Returns { ok, suggestion, source } | { ok:false, error }. Never throws; any
+// Returns { ok, result, source } | { ok:false, error }. Never throws; any
 // transport error or unreachable NAS yields ok:false so the UI offers the manual
-// scaffold instead of a fabricated treatment.
+// path instead of a fabricated distillation.
 export async function askFinalizer(entry, { signal } = {}) {
   try {
     const r = await fetch(finalizeEndpoint(), {
@@ -274,13 +265,13 @@ export async function askFinalizer(entry, { signal } = {}) {
       body: JSON.stringify(buildFinalizePayload(entry)),
       signal,
     });
-    if (!r.ok) return { ok: false, suggestion: null, source: null, error: `http_${r.status}` };
+    if (!r.ok) return { ok: false, result: null, source: null, error: `http_${r.status}` };
     const json = await r.json().catch(() => null);
-    if (json && json.ok === false) return { ok: false, suggestion: null, source: null, error: json.error || 'unavailable' };
-    const suggestion = parseSuggestion(json);
-    if (!suggestion) return { ok: false, suggestion: null, source: null, error: 'empty' };
-    return { ok: true, suggestion, source: json && json.source === 'vendor' ? 'vendor' : 'local', error: null };
+    if (json && json.ok === false) return { ok: false, result: null, source: null, error: json.error || 'unavailable' };
+    const result = parseDistillation(json);
+    if (!result) return { ok: false, result: null, source: null, error: 'empty' };
+    return { ok: true, result, source: json && json.source === 'vendor' ? 'vendor' : 'local', error: null };
   } catch (e) {
-    return { ok: false, suggestion: null, source: null, error: 'unreachable' };
+    return { ok: false, result: null, source: null, error: 'unreachable' };
   }
 }
