@@ -261,6 +261,29 @@ const swVersionStamp = () => ({
   },
 });
 
+// Modulepreload the monolith chunk (PERFORMANCE-REVIEW §5 #4). The entry chunk
+// dynamically imports poe-financial-mvp-v28, so without a hint the browser only
+// discovers that ~300KB-gz chunk AFTER it downloads + parses + executes the entry
+// chunk — a serial waterfall. index.html carries a guarded inline script that
+// injects `<link rel="modulepreload">` for the FULL-APP boot only (never the
+// lightweight ?register/?join/... standalone boots, which don't import it). This
+// plugin fills in the real content-hashed href at build time. Best-effort: if the
+// chunk can't be located the placeholder stays and the inline script no-ops.
+const modulepreloadMonolith = () => ({
+  name: 'modulepreload-monolith',
+  apply: 'build',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html, ctx) {
+      const bundle = ctx && ctx.bundle;
+      if (!bundle) return html;
+      const fileName = Object.keys(bundle).find((f) => /poe-financial-mvp-v28-.*\.js$/.test(f));
+      if (!fileName) return html;
+      return html.replace('__MONOLITH_PRELOAD_HREF__', '/poetech-app/' + fileName);
+    },
+  },
+});
+
 // Dev-only proxy so the NAS-backed bridges (/n8n/webhook/*) work in `vite dev`
 // exactly as the production Vercel rewrite makes them work. LAN-reachable
 // NAS; never used in the production build (Vercel handles /n8n there).
@@ -268,7 +291,24 @@ const N8N_DEV_TARGET = process.env.N8N_DEV_TARGET || 'http://192.168.1.26:5678';
 
 export default defineConfig({
   base: '/poetech-app/',
-  plugins: [react(), swVersionStamp()],
+  plugins: [react(), swVersionStamp(), modulepreloadMonolith()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Vendor chunk split (PERFORMANCE-REVIEW §5 #2). Pin React + ReactDOM
+        // (and their runtime deps) into a stable `react-vendor` chunk so the
+        // ~50KB gz of framework code stays cache-warm across deploys instead of
+        // cache-busting inside the entry chunk on every release.
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (/[\\/]node_modules[\\/](react|react-dom|scheduler|use-sync-external-store)[\\/]/.test(id)) {
+              return 'react-vendor';
+            }
+          }
+        },
+      },
+    },
+  },
   define: {
     __BUILD_TIME__: JSON.stringify(buildTime),
     __BUILD_SHA__: JSON.stringify(buildSha),

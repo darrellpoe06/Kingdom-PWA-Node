@@ -18,8 +18,29 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PoeTech" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+    <!-- Leaflet is no longer loaded here. It powers ONE surface (the Rentals
+         property map) and used to load render-blocking from unpkg on every cold
+         load. It now loads on demand when that map mounts (src/lib/leaflet-loader.js). -->
+    <!-- Modulepreload the main app chunk so it downloads in PARALLEL with the entry
+         chunk instead of waiting behind it (kills one waterfall RTT on cold load).
+         Only for the full-app boot — the lightweight standalone boots (?register,
+         ?join, ?audience, etc.) never import the monolith, so they must NOT preload
+         it. The hashed href is injected at build time (vite.config.js plugin). -->
+    <script>
+      (function () {
+        var p = new URLSearchParams(location.search);
+        var standalone = ['join', 'invites', 'register', 'audience', 'teach', 'login', 'request-space', 'oauth_popup']
+          .some(function (k) { return p.get(k) === '1'; });
+        var href = '__MONOLITH_PRELOAD_HREF__';
+        if (!standalone && href.charAt(0) === '/') {
+          var l = document.createElement('link');
+          l.rel = 'modulepreload';
+          l.href = href;
+          l.crossOrigin = '';
+          document.head.appendChild(l);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
