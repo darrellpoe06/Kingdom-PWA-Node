@@ -8,7 +8,7 @@
 // scenario as a real event.
 import { describe, it, expect } from 'vitest';
 import {
-  SOVEREIGN_AI_META, SOVEREIGN_AI_MODULES, SOVEREIGN_AI_SESSION_FLOW, SOVEREIGN_AI_SESSION_MINUTES,
+  SOVEREIGN_AI_META, SOVEREIGN_AI_MODULES, SOVEREIGN_AI_SESSION_MINUTES,
   SOVEREIGN_AI_CONFIRMED_COHORT, SOVEREIGN_AI_PROPOSED_COHORT_START,
   buildSovereignAiSchedule, sovereignAiProgressSummary, exportSovereignAiCurriculumMarkdown,
   resolveSovereignAiCohort, SOVEREIGN_AI_TUTOR_META,
