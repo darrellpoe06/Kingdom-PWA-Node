@@ -88,4 +88,14 @@ describe('ChoirSongbook renders populated from sourced rows', () => {
     expect(container.textContent).toMatch(/No songs yet/i);
     expect(container.textContent).not.toMatch(/Total Praise/);
   });
+
+  it('the director Sources panel opens and frames the HISTORICAL, reuse-the-services harvest', async () => {
+    await mount({ songs: sourcedSongs, access: { canSee: true, canEdit: true } });
+    const btn = [...container.querySelectorAll('button')].find((b) => /Source the repertoire/i.test(b.textContent));
+    expect(btn).toBeTruthy();
+    await act(async () => { btn.click(); });
+    const text = container.textContent;
+    expect(text).toMatch(/historical/i);
+    expect(text).toMatch(/services we already have|same recordings/i);
+  });
 });

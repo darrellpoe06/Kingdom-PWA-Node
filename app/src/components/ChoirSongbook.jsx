@@ -37,6 +37,7 @@ import {
 } from '../lib/choir-songbook.js';
 import { subscribeSmeNotes, importKnowledgeJson, reviewSmeNote, deleteSmeNote } from '../lib/choir-sme-sync.js';
 import { attachSmeNotes, generalGuidance, pendingSmeNotes, orphanSmeNotes } from '../lib/choir-sme-notes.js';
+import { repertoireCoverage } from '../lib/choir-archive.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -319,7 +320,7 @@ function AddSuggestion({ entry, onAdd }) {
 
 // --- Director "Sources" panel: auto-seed the repertoire + import keyboardist --
 // knowledge from the same archive the content engine uses (reviewed, faithful).
-function SourcesPanel({ smeNotes, songbook, onScan, onImportRepertoire, onImportKnowledge, onReviewSme, onDeleteSme, busy }) {
+function SourcesPanel({ smeNotes, songbook, coverage, onScan, onImportRepertoire, onImportKnowledge, onReviewSme, onDeleteSme, busy }) {
   const [open, setOpen] = useState(false);
   const [rep, setRep] = useState('');
   const [know, setKnow] = useState('');
@@ -339,8 +340,26 @@ function SourcesPanel({ smeNotes, songbook, onScan, onImportRepertoire, onImport
       {open && (
         <div className="p-3 space-y-3 bg-[#FAF8F4]">
           <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-            The choir’s past songs live in the church archive (the YouTube channel + NAS recordings). Seed them here — every seeded song is flagged <em>needs review</em> until you confirm it; nothing is guessed.
+            Build the choir’s <strong>historical</strong> library from the services we already have — the same recordings the sermons came from carry the songs the choir sang. Each harvested song becomes a rendition of that real service (one source, two harvests). Every seeded song is flagged <em>needs review</em> until you confirm it; nothing is guessed.
           </p>
+
+          {coverage && coverage.totalServices > 0 && (
+            <div className="bg-white border border-[#E8E4DC] p-2" aria-live="polite">
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-0.5">Historical sweep — from the services we already hold</div>
+              <p className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                {coverage.totalServices} service video{coverage.totalServices === 1 ? '' : 's'} in the archive · songs harvested from{' '}
+                <strong>{coverage.coveredServices}</strong>
+                {coverage.pendingServices > 0
+                  ? ` · ${coverage.pendingServices} still to sweep`
+                  : ' · all swept'}.
+              </p>
+              {coverage.pendingServices > 0 && (
+                <p className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Run service-to-repertoire on the remaining services (or the corpus driver) and import the results to grow the history. Scope is honest — it counts only services we actually hold, so a partial sweep reads as partial.
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <button type="button" disabled={busy} onClick={() => run(onScan)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Scan the church YouTube archive</button>
@@ -441,6 +460,9 @@ export default function ChoirSongbook({ songs, access }) {
   }, [songs]);
   const themes = useMemo(() => allThemes(songbook), [songbook]);
   const visible = useMemo(() => searchSongbook(filterByTheme(songbook, theme), query), [songbook, theme, query]);
+  // Honest historical-sweep readout: of the service videos we already hold
+  // (sermons corpus), how many have at least one harvested choir song.
+  const coverage = useMemo(() => repertoireCoverage(sermons, songs), [sermons, songs]);
 
   const reportSkip = (res) => { setErr(res && res.skipped ? `Could not save (${res.skipped}). Try again.` : ''); };
   const onLove = async (entry) => { reportSkip(await toggleSongLove(entry.titleKey, entry.lovedByMe)); };
@@ -465,7 +487,7 @@ export default function ChoirSongbook({ songs, access }) {
     if (r.skipped === 'bad-json') return 'That isn’t valid JSON — paste the pipeline’s repertoire.json.';
     if (r.skipped === 'empty') return 'No songs found in that file.';
     if (r.skipped) return `Couldn’t import (${r.skipped}).`;
-    return `Seeded ${r.imported} song${r.imported === 1 ? '' : 's'}${r.unclear?.length ? ` · ${r.unclear.length} to confirm with the team` : ''}.`; };
+    return `Seeded ${r.imported} song${r.imported === 1 ? '' : 's'}${r.linked ? ` · ${r.linked} linked to a service we already have` : ''}${r.unclear?.length ? ` · ${r.unclear.length} to confirm with the team` : ''}.`; };
   const onImportKnowledge = async (text, video) => { setBusy(true); const r = await importKnowledgeJson(text, { sourceVideo: video }); setBusy(false);
     if (r.skipped === 'bad-json') return 'That isn’t valid JSON — paste Christian’s knowledge.json.';
     if (r.skipped === 'empty') return 'No song notes found in that file.';
@@ -486,7 +508,7 @@ export default function ChoirSongbook({ songs, access }) {
 
       {canEdit && (
         <SourcesPanel
-          smeNotes={smeNotes} songbook={songbook} busy={busy}
+          smeNotes={smeNotes} songbook={songbook} coverage={coverage} busy={busy}
           onScan={onScan} onImportRepertoire={onImportRepertoire} onImportKnowledge={onImportKnowledge}
           onReviewSme={async (id, status) => { reportSkip(await reviewSmeNote(id, status)); }}
           onDeleteSme={async (id) => { reportSkip(await deleteSmeNote(id)); }}
