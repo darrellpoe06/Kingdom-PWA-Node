@@ -28,7 +28,10 @@ export function leadToRow(item, { tenantId, userId }) {
     instance_id:        tenantId,
     created_by:         userId,
     slug:               item.id,
-    audience_preset_key: item.audiencePresetKey ?? 'b2b-practices',
+    // The CRM `audience_preset_key` column stores the marketplace SIDE key
+    // ('client' | 'therapist' | 'training'). sideKey is canonical; the alias is
+    // accepted for back-compat. (No migration: column name unchanged.)
+    audience_preset_key: item.sideKey ?? item.audiencePresetKey ?? 'client',
     name:               item.name ?? '',
     org:                item.org ?? null,
     role:               item.role ?? null,
@@ -52,7 +55,8 @@ export function leadFromRow(row) {
     remoteUuid:        row.id,
     tenantId:          row.instance_id,
     createdBy:         row.created_by ?? null,
-    audiencePresetKey: row.audience_preset_key ?? 'b2b-practices',
+    sideKey:           row.audience_preset_key ?? 'client',
+    audiencePresetKey: row.audience_preset_key ?? 'client',
     name:              row.name ?? '',
     org:               row.org ?? '',
     role:              row.role ?? '',
@@ -83,6 +87,7 @@ export const practiceLeadsSync = createTableSync({
 // Local field -> column map for the monolith's updateLead patch builder (mirrors
 // DISCUSSION_COLUMN_OF). Only editable columns; instance_id / created_by never patch.
 export const LEAD_COLUMN_OF = {
+  sideKey:           'audience_preset_key',
   audiencePresetKey: 'audience_preset_key',
   name:          'name',
   org:           'org',

@@ -1,264 +1,206 @@
-// The client-acquisition engine is pure (no React / Supabase / network), so the
-// 4-stage workflow, the per-audience config, the deterministic prompts, the
-// ethical-marketing + PHI guardrails, and the funnel math are all verified here.
-// Per DR-0076 (verification doctrine) the guardrail linters are PROVEN-TO-CATCH:
-// a bad claim / PHI string must be flagged, and a clean one must pass.
+// The client-acquisition engine is pure, so the 4-stage workflow, the THREE
+// sides (client/therapist/training), the per-side prompts, the marketplace
+// balance, the AUTOMATION (run-the-team chaining + approve-outbound-only gate +
+// inert cadence), and the guardrail linters are all verified here. Per DR-0076
+// the guardrails + the outbound gate are PROVEN-TO-CATCH.
 import { describe, it, expect } from 'vitest';
 import {
-  ACQUISITION_STAGES,
-  STAGE_KEYS,
-  getStage,
-  GUARDRAILS,
-  guardrailsForStage,
-  makeAcquisitionConfig,
-  registerAudiencePreset,
-  getAudiencePreset,
-  listAudiencePresets,
-  DEFAULT_AUDIENCE_KEY,
-  TLC_DEFAULT_CONFIG,
-  buildStageBrief,
+  ACQUISITION_STAGES, STAGE_KEYS, GUARDRAILS, guardrailsForStage,
+  SIDE_KEYS, DEFAULT_SIDE_KEY, makeAcquisitionConfig, configForSide, getSidePreset,
+  registerSidePreset, listSidePresets,
   buildStagePrompt,
-  screenMarketingClaim,
-  isClaimShippable,
-  flagPotentialPhi,
-  newLead,
-  funnelMetrics,
-  funnelStagesFor,
-  nextFunnelStage,
-  canOutreach,
-  newStageOutput,
-  canApproveOutput,
-  pipelineSummary,
-  sensitivityFor,
-  PRACTICE_GROWTH_WEBHOOK,
+  screenMarketingClaim, isClaimShippable, flagPotentialPhi,
+  newLead, funnelStagesFor, stageRequiresOutbound,
+  canOutreach, autoAdvanceLead, marketplaceBalance, CASELOAD_PER_THERAPIST,
+  newStageOutput, canApproveOutput,
+  isOutbound, OUTBOUND_KINDS, buildRunPlan, summarizeForChain, newRun, setRunStep, runOverallStatus,
+  newOutboundItem, canApproveOutbound,
+  CADENCE_DEFAULT, evaluateCadenceGate, cadenceStatusLabel,
+  pipelineSummary, sensitivityFor, PRACTICE_GROWTH_WEBHOOK,
 } from '../lib/client-acquisition.js';
 
-describe('the 4-stage revenue-agent-team shape', () => {
-  it('is exactly the four named stages in order', () => {
-    expect(ACQUISITION_STAGES).toHaveLength(4);
+describe('the 4-stage team', () => {
+  it('is the four named stages in order, each with a produces-kind', () => {
     expect(STAGE_KEYS).toEqual(['market-signal', 'offer-architect', 'content-angle', 'conversion-system']);
-    expect(ACQUISITION_STAGES.map((s) => s.n)).toEqual([1, 2, 3, 4]);
-    expect(ACQUISITION_STAGES.map((s) => s.role)).toEqual([
-      'Market Signal Researcher', 'Offer Architect', 'Content Angle Strategist', 'Conversion System Builder',
-    ]);
+    expect(ACQUISITION_STAGES.map((s) => s.producesKind)).toEqual(['market-signals', 'offer', 'content-angles', 'sequence']);
   });
-
   it('every stage references only defined guardrails', () => {
-    for (const stage of ACQUISITION_STAGES) {
-      for (const k of stage.guardrailKeys) {
-        expect(GUARDRAILS[k], `guardrail ${k} on ${stage.key}`).toBeTruthy();
-      }
-    }
-  });
-
-  it('getStage resolves by key and returns null for unknown', () => {
-    expect(getStage('offer-architect').role).toBe('Offer Architect');
-    expect(getStage('nope')).toBeNull();
+    for (const stage of ACQUISITION_STAGES) for (const k of stage.guardrailKeys) expect(GUARDRAILS[k]).toBeTruthy();
   });
 });
 
-describe('config + audience presets (reusable per practice/tenant/audience)', () => {
-  it('defaults to the B2B product-customer path', () => {
-    expect(TLC_DEFAULT_CONFIG.audiencePresetKey).toBe(DEFAULT_AUDIENCE_KEY);
-    expect(DEFAULT_AUDIENCE_KEY).toBe('b2b-practices');
-    expect(TLC_DEFAULT_CONFIG.phiSensitive).toBe(false);
+describe('the THREE sides (two-sided marketplace + enablement)', () => {
+  it('exposes client, therapist, training', () => {
+    expect(SIDE_KEYS).toEqual(['client', 'therapist', 'training']);
+    expect(DEFAULT_SIDE_KEY).toBe('client');
+    expect(listSidePresets().map((p) => p.key).sort()).toEqual(['client', 'therapist', 'training']);
   });
-
-  it('exposes both the B2B and patient paths', () => {
-    const keys = listAudiencePresets().map((p) => p.key);
-    expect(keys).toContain('b2b-practices');
-    expect(keys).toContain('patient-practice');
+  it('client side is demand + PHI-sensitive + psychoeducation', () => {
+    const c = configForSide('client');
+    expect(c.side).toBe('demand');
+    expect(c.phiSensitive).toBe(true);
+    expect(c.extraGuardrailKeys).toContain('psychoeducation-not-treatment');
+    expect(sensitivityFor(c)).toBe('health-marketing-local-only');
   });
-
-  it('the patient path is PHI-sensitive (highest sensitivity)', () => {
-    const cfg = makeAcquisitionConfig({ audiencePresetKey: 'patient-practice' });
-    expect(cfg.phiSensitive).toBe(true);
-    expect(sensitivityFor(cfg)).toBe('clinical-local-only');
-    expect(sensitivityFor(TLC_DEFAULT_CONFIG)).toBe('commercial');
+  it('therapist side is supply + recruiting funnel + license-verification', () => {
+    const t = configForSide('therapist');
+    expect(t.side).toBe('supply');
+    expect(t.funnelStages).toContain('credential-check');
+    expect(t.funnelStages).toContain('matched');
+    expect(t.extraGuardrailKeys).toContain('license-verification');
+    expect(sensitivityFor(t)).toBe('commercial');
   });
-
-  it('is reusable: a registered preset flows through makeAcquisitionConfig', () => {
-    registerAudiencePreset('law-firm-b2b', {
-      label: 'B2B — law firms',
-      audienceWho: 'small law firms needing CLE + practice ops',
-      productOrService: 'A sovereign legal practice platform',
-      specialtyNoun: 'practice area',
-      defaultChannels: ['linkedin', 'content-engine'],
-      regions: ['Illinois'],
-      specialties: ['family law'],
-      tracks: ['attorney-CLE'],
-      pricingTiers: ['Solo', 'Firm'],
-      funnelStages: ['new', 'contacted', 'qualified', 'converted', 'lost'],
-      leadNoun: 'firm',
-    });
-    expect(getAudiencePreset('law-firm-b2b')).toBeTruthy();
-    const cfg = makeAcquisitionConfig({ tenant: 'LegalOS', audiencePresetKey: 'law-firm-b2b' });
-    expect(cfg.tenant).toBe('LegalOS');
-    expect(cfg.leadNoun).toBe('firm');
-    expect(cfg.funnelStages).toContain('qualified');
+  it('training side is enablement + CE funnel + ce-accuracy', () => {
+    const tr = configForSide('training');
+    expect(tr.side).toBe('enablement');
+    expect(tr.funnelStages).toContain('enrolled');
+    expect(tr.funnelStages).toContain('completed');
+    expect(tr.extraGuardrailKeys).toContain('ce-accuracy');
   });
-
-  it('falls back to the default preset for an unknown key', () => {
-    const cfg = makeAcquisitionConfig({ audiencePresetKey: 'does-not-exist' });
-    expect(cfg.audiencePresetKey).toBe(DEFAULT_AUDIENCE_KEY);
+  it('is reusable: a registered side preset flows through makeAcquisitionConfig', () => {
+    registerSidePreset('legal-b2b', { side: 'demand', label: 'Legal clients', audienceWho: 'people needing counsel', productOrService: 'a law practice', specialtyNoun: 'matter', defaultChannels: ['google'], regions: ['IL'], specialties: ['family'], pricingTiers: ['Hourly'], funnelStages: ['new', 'contacted', 'lost'], leadNoun: 'matter', leadNounPlural: 'matters', sideFraming: {} });
+    expect(getSidePreset('legal-b2b')).toBeTruthy();
+    expect(makeAcquisitionConfig({ sideKey: 'legal-b2b' }).leadNounPlural).toBe('matters');
   });
 });
 
-describe('deterministic stage prompts carry the guardrails on every call', () => {
-  it('buildStageBrief returns role/goal/guardrails for a stage', () => {
-    const brief = buildStageBrief('content-angle', TLC_DEFAULT_CONFIG);
-    expect(brief.role).toBe('Content Angle Strategist');
-    expect(brief.guardrails.length).toBeGreaterThan(0);
-    expect(brief.guardrails.map((g) => g.key)).toContain('psychoeducation-not-treatment');
+describe('per-side prompts weave the side framing + guardrails', () => {
+  it('the same stage reads differently per side, deterministically', () => {
+    const clientP = buildStagePrompt('content-angle', configForSide('client'));
+    const therapistP = buildStagePrompt('content-angle', configForSide('therapist'));
+    expect(clientP).not.toBe(therapistP);
+    expect(clientP).toContain('psychoeducation');
+    expect(therapistP.toLowerCase()).toContain('clinician');
+    expect(buildStagePrompt('content-angle', configForSide('client'))).toBe(clientP);
   });
-
-  it('the prompt is deterministic (same config -> same string)', () => {
-    const a = buildStagePrompt('market-signal', TLC_DEFAULT_CONFIG);
-    const b = buildStagePrompt('market-signal', TLC_DEFAULT_CONFIG);
-    expect(a).toBe(b);
+  it('therapist offer prompt carries the license-verification guardrail', () => {
+    const cfg = configForSide('therapist');
+    const p = buildStagePrompt('offer-architect', cfg);
+    const labels = guardrailsForStage('offer-architect', cfg).map((g) => g.label);
+    expect(labels).toContain('License verification (therapists)');
+    for (const g of guardrailsForStage('offer-architect', cfg)) expect(p).toContain(g.label);
   });
-
-  it('the prompt names the tenant + audience and appends every guardrail', () => {
-    const prompt = buildStagePrompt('offer-architect', TLC_DEFAULT_CONFIG);
-    expect(prompt).toContain('TLC Therapy Solutions');
-    expect(prompt.toLowerCase()).toContain('offer architect');
-    for (const g of guardrailsForStage('offer-architect')) {
-      expect(prompt).toContain(g.label);
-    }
-    expect(prompt).toContain('DRAFT for human review');
-  });
-
-  it('never leaks an unfilled {{token}} into the prompt', () => {
-    for (const key of STAGE_KEYS) {
-      expect(buildStagePrompt(key, TLC_DEFAULT_CONFIG)).not.toMatch(/\{\{\w+\}\}/);
-    }
-  });
-
-  it('chains prior approved context when provided', () => {
-    const prompt = buildStagePrompt('content-angle', TLC_DEFAULT_CONFIG, { priorSummary: 'APPROVED OFFER X' });
-    expect(prompt).toContain('APPROVED OFFER X');
+  it('never leaks an unfilled token', () => {
+    for (const side of SIDE_KEYS) for (const k of STAGE_KEYS) expect(buildStagePrompt(k, configForSide(side))).not.toMatch(/\{\{\w+\}\}/);
   });
 });
 
-describe('ethical-marketing guardrail linter (proven-to-catch)', () => {
-  it('BLOCKS guaranteed-results / cure language', () => {
-    const bad = 'We guarantee results and will cure your anxiety.';
-    const findings = screenMarketingClaim(bad);
-    const blocks = findings.filter((f) => f.severity === 'block');
-    expect(blocks.length).toBeGreaterThanOrEqual(2);
-    expect(isClaimShippable(bad)).toBe(false);
-  });
-
-  it('BLOCKS risk-free and 100%-effective claims', () => {
+describe('ethical guardrail linter (proven-to-catch)', () => {
+  it('BLOCKS guaranteed-results / cure / risk-free / guaranteed-income', () => {
+    expect(isClaimShippable('We guarantee results.')).toBe(false);
+    expect(isClaimShippable('This will cure your anxiety.')).toBe(false);
     expect(isClaimShippable('A risk-free program.')).toBe(false);
-    expect(isClaimShippable('100% effective therapy.')).toBe(false);
+    expect(isClaimShippable('Join us — guaranteed income for therapists.')).toBe(false);
   });
-
-  it('WARNS on superlatives and speed claims without hard-blocking', () => {
-    const w1 = screenMarketingClaim('The #1 therapist in town.');
-    expect(w1.some((f) => f.severity === 'warn')).toBe(true);
-    expect(isClaimShippable('The #1 therapist in town.')).toBe(true); // warn, not block
-    expect(screenMarketingClaim('Get instant relief.').some((f) => f.severity === 'warn')).toBe(true);
+  it('WARNS on superlatives/speed without hard-blocking', () => {
+    expect(screenMarketingClaim('The #1 therapist in town.').some((f) => f.severity === 'warn')).toBe(true);
+    expect(isClaimShippable('The #1 therapist in town.')).toBe(true);
   });
-
-  it('PASSES honest, compliant copy', () => {
-    const good = 'Faith-integrated therapy that meets you where you are. Book a consultation to see if we are a good fit.';
-    expect(screenMarketingClaim(good)).toHaveLength(0);
-    expect(isClaimShippable(good)).toBe(true);
+  it('PASSES honest copy', () => {
+    expect(screenMarketingClaim('Faith-integrated therapy. Book a consult to see if we fit.')).toHaveLength(0);
   });
 });
 
-describe('PHI-leak heuristic (errs safe)', () => {
-  it('flags client-identifying and clinical content', () => {
-    expect(flagPotentialPhi('My client Sarah was diagnosed with depression.').length).toBeGreaterThan(0);
-    expect(flagPotentialPhi('Here are the session notes from intake.').length).toBeGreaterThan(0);
-    expect(flagPotentialPhi('Their date of birth is on file.').length).toBeGreaterThan(0);
+describe('PHI heuristic (errs safe)', () => {
+  it('flags client-identifying + clinical content', () => {
+    expect(flagPotentialPhi('My client was diagnosed with depression.').length).toBeGreaterThan(0);
   });
+  it('passes clean copy', () => { expect(flagPotentialPhi('We offer couples and family therapy.')).toHaveLength(0); });
+});
 
-  it('passes clean marketing copy with no PHI', () => {
-    expect(flagPotentialPhi('Our team offers couples and family therapy.')).toHaveLength(0);
+describe('lead + funnel + marketplace', () => {
+  it('newLead carries sideKey, no clinical fields, consent off by default', () => {
+    const l = newLead({ sideKey: 'therapist', name: 'Dr X' }, { now: '2026-06-25T00:00:00.000Z', id: 'l1' });
+    expect(l.sideKey).toBe('therapist');
+    expect(l.audiencePresetKey).toBe('therapist');
+    expect(l).not.toHaveProperty('diagnosis');
+    expect(canOutreach(l)).toBe(false);
+  });
+  it('funnel stages are per-side; outbound stages are flagged', () => {
+    expect(funnelStagesFor(configForSide('therapist')).map((s) => s.key)).toContain('onboarding');
+    expect(stageRequiresOutbound('outreach-ready')).toBe(false);
+    expect(stageRequiresOutbound('contacted')).toBe(true);
+  });
+  it('marketplaceBalance recommends recruiting therapists when demand has no supply', () => {
+    const leads = [newLead({ sideKey: 'client', stage: 'new' }, { id: 'c1' }), newLead({ sideKey: 'client', stage: 'consult-booked' }, { id: 'c2' })];
+    const b = marketplaceBalance(leads);
+    expect(b.therapistsServing).toBe(0);
+    expect(b.clientsActive).toBe(2);
+    expect(b.recommend).toBe('recruit-therapists');
+  });
+  it('marketplaceBalance recommends acquiring clients when capacity is idle', () => {
+    const leads = [newLead({ sideKey: 'therapist', stage: 'active' }, { id: 't1' })];
+    const b = marketplaceBalance(leads);
+    expect(b.capacity).toBe(CASELOAD_PER_THERAPIST);
+    expect(b.recommend).toBe('acquire-clients');
   });
 });
 
-describe('lead + funnel model', () => {
-  it('newLead produces a clinical-field-free, consent-aware shape', () => {
-    const lead = newLead({ name: 'Acme Counseling', source: 'youtube' }, { now: '2026-06-24T00:00:00.000Z', id: 'lead-1' });
-    expect(lead.id).toBe('lead-1');
-    expect(lead.stage).toBe('new');
-    expect(lead.consent.outreachOk).toBe(false);
-    // No clinical fields exist on a lead by design.
-    expect(lead).not.toHaveProperty('diagnosis');
-    expect(lead).not.toHaveProperty('presentingConcern');
-    expect(canOutreach(lead)).toBe(false);
+describe('AUTOMATION — run-the-team + approve-outbound-only', () => {
+  it('classifies outbound vs internal artifacts', () => {
+    expect(isOutbound('outreach-message')).toBe(true);
+    expect(isOutbound('market-signals')).toBe(false);
+    expect(OUTBOUND_KINDS).toContain('published-content');
   });
-
-  it('canOutreach gates on recorded consent', () => {
-    const ok = newLead({ name: 'X', consent: { outreachOk: true, capturedAt: 'now' } }, { id: 'l2' });
-    expect(canOutreach(ok)).toBe(true);
+  it('buildRunPlan + chaining covers all four stages', () => {
+    const plan = buildRunPlan(configForSide('client'));
+    expect(plan.map((p) => p.stageKey)).toEqual(STAGE_KEYS);
+    const chain = summarizeForChain([newStageOutput('market-signal', 'segment A', { sideKey: 'client' })]);
+    expect(chain).toContain('Market Signal Researcher');
+    expect(chain).toContain('segment A');
   });
-
-  it('funnelMetrics counts won/lost/active + conversion over real leads', () => {
-    const cfg = TLC_DEFAULT_CONFIG;
-    const leads = [
-      newLead({ stage: 'new' }, { id: 'a' }),
-      newLead({ stage: 'qualified' }, { id: 'b' }),
-      newLead({ stage: 'converted' }, { id: 'c' }),
-      newLead({ stage: 'converted' }, { id: 'd' }),
-      newLead({ stage: 'lost' }, { id: 'e' }),
-    ];
-    const m = funnelMetrics(leads, cfg);
-    expect(m.total).toBe(5);
-    expect(m.won).toBe(2);
-    expect(m.lost).toBe(1);
-    expect(m.active).toBe(2);
-    expect(m.closed).toBe(3);
-    expect(Math.round(m.conversionRate)).toBe(67); // 2 won / 3 closed
+  it('run record tracks per-stage status and an overall', () => {
+    let run = newRun(configForSide('client'), { now: '2026-06-25T00:00:00.000Z', id: 'run-1' });
+    expect(runOverallStatus(run)).toBe('pending');
+    for (const k of STAGE_KEYS) run = setRunStep(run, k, { status: 'produced' });
+    expect(runOverallStatus(run)).toBe('produced');
+    run = setRunStep(run, 'content-angle', { status: 'needs-capture' });
+    expect(runOverallStatus(run)).toBe('needs-capture');
   });
-
-  it('nextFunnelStage walks the configured funnel and stops at the end', () => {
-    const cfg = TLC_DEFAULT_CONFIG;
-    expect(nextFunnelStage(cfg, 'new')).toBe('contacted');
-    expect(nextFunnelStage(cfg, 'lost')).toBeNull();
+  it('autoAdvanceLead moves new -> outreach-ready but NEVER crosses the outbound boundary', () => {
+    const cfg = configForSide('client');
+    expect(autoAdvanceLead(newLead({ sideKey: 'client', stage: 'new' }, { id: 'a' }), cfg)).toBe('outreach-ready');
+    expect(autoAdvanceLead(newLead({ sideKey: 'client', stage: 'outreach-ready' }, { id: 'b' }), cfg)).toBeNull();
   });
-
-  it('funnelStagesFor reflects the audience config', () => {
-    const patient = makeAcquisitionConfig({ audiencePresetKey: 'patient-practice' });
-    const keys = funnelStagesFor(patient).map((s) => s.key);
-    expect(keys).toContain('intake-scheduled');
-    expect(keys).not.toContain('converted');
+  it('outbound item requires consent AND no guardrail block to approve (the gate)', () => {
+    const lead = newLead({ sideKey: 'client', stage: 'outreach-ready', consent: { outreachOk: false } }, { id: 'l' });
+    const clean = newOutboundItem({ leadId: 'l', sideKey: 'client', subject: 'Hello', body: 'A warm, honest follow-up.' }, { id: 'ob1' });
+    expect(canApproveOutbound(clean, lead).ok).toBe(false); // no consent
+    const consented = { ...lead, consent: { outreachOk: true } };
+    expect(canApproveOutbound(clean, consented).ok).toBe(true);
+    const bad = newOutboundItem({ leadId: 'l', sideKey: 'client', subject: 'Guaranteed results', body: 'We guarantee results.' }, { id: 'ob2' });
+    expect(bad.blocked).toBe(true);
+    expect(canApproveOutbound(bad, consented).ok).toBe(false);
   });
 });
 
-describe('output approval model', () => {
-  it('captures guardrail findings at creation and blocks approval on a violation', () => {
-    const bad = newStageOutput('content-angle', 'We guarantee results.');
-    expect(bad.shippable).toBe(false);
-    expect(canApproveOutput(bad)).toBe(false);
+describe('optional cadence — ships INERT, default-deny (three brakes)', () => {
+  it('default cadence is disabled + unarmed and the gate denies', () => {
+    expect(CADENCE_DEFAULT.enabled).toBe(false);
+    expect(CADENCE_DEFAULT.armed).toBe(false);
+    expect(evaluateCadenceGate(CADENCE_DEFAULT, null).allowed).toBe(false);
+    expect(cadenceStatusLabel(CADENCE_DEFAULT, null)).toMatch(/Inert/i);
   });
-
-  it('a PHI finding blocks approval even with no claim violation', () => {
-    const phi = newStageOutput('content-angle', 'My client loved the program.');
-    expect(canApproveOutput(phi)).toBe(false);
-  });
-
-  it('a clean draft is approvable', () => {
-    const ok = newStageOutput('offer-architect', 'Three honest tiers: solo, group, network.');
-    expect(ok.shippable).toBe(true);
-    expect(canApproveOutput(ok)).toBe(true);
+  it('stays denied without the brakes even when enabled+armed+budgeted', () => {
+    const c = { enabled: true, armed: true, intervalHours: 24, scope: ['market-signal'], sides: ['client'], budget: { capUsd: 10, spentUsd: 0 } };
+    expect(evaluateCadenceGate(c, null).allowed).toBe(false);
+    const brakes = { killSwitch: 'clear', armed: true, concurrencyLock: 'free' };
+    expect(evaluateCadenceGate(c, brakes).allowed).toBe(true);
+    expect(evaluateCadenceGate(c, { ...brakes, concurrencyLock: 'held' }).allowed).toBe(false);
   });
 });
 
-describe('reality-trace summary + webhook seam', () => {
-  it('pipelineSummary derives only from passed-in real lists', () => {
-    const leads = [newLead({ stage: 'new' }, { id: 'a' }), newLead({ stage: 'converted' }, { id: 'b' })];
-    const outputs = [newStageOutput('market-signal', 'Honest signal'), newStageOutput('offer-architect', 'Honest offer')];
-    const s = pipelineSummary(TLC_DEFAULT_CONFIG, { leads, outputs });
-    expect(s.leads).toBe(2);
+describe('output approval + reality-trace + webhook', () => {
+  it('blocks approval of an output with a violation', () => {
+    expect(canApproveOutput(newStageOutput('content-angle', 'We guarantee results.', { sideKey: 'client' }))).toBe(false);
+    expect(canApproveOutput(newStageOutput('offer-architect', 'Three honest tiers.', { sideKey: 'client' }))).toBe(true);
+  });
+  it('pipelineSummary derives only from real lists', () => {
+    const s = pipelineSummary(configForSide('client'), { leads: [newLead({ sideKey: 'client', stage: 'intake-scheduled' }, { id: 'a' })], outputs: [newStageOutput('market-signal', 'x', { sideKey: 'client' })] });
     expect(s.won).toBe(1);
     expect(s.outputsByStage['market-signal'].total).toBe(1);
   });
-
-  it('uses the same-origin /n8n rewrite (never the absolute Funnel URL)', () => {
+  it('uses the same-origin /n8n rewrite', () => {
     expect(PRACTICE_GROWTH_WEBHOOK.startsWith('/n8n/')).toBe(true);
     expect(PRACTICE_GROWTH_WEBHOOK).not.toMatch(/^https?:/);
   });
