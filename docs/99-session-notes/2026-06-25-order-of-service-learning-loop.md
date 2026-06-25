@@ -37,10 +37,20 @@ Two capture paths, both descriptive: (1) **quick reconcile from plan** — pre-f
 - finalizer controls: **Reconcile from plan**, per-row Adjust (minutes / note / real songs / sermon), Add unplanned, mark-skipped, and the recap form,
 - on a fresh service: **"Start from last Sunday's actual (blueprint)"** beside "Start from standard order" → seeds the next plan from what worked.
 
+## Follow-up shipped same day: ACTUAL wired to the YouTube corpus (one source, three harvests)
+
+Source confirmed by Darrell 2026-06-25: "what actually occurred" comes from the **YouTube service recordings — the same already-ingested corpus the full-harvest pipeline mines** (lane `local_1c5ad610`). The same service video drives sermon, choir, and now the order-of-service actual. **Reuse the existing ingest, no re-fetch.**
+
+- `harvestActualsForService(program, plannedSegments, { songs, sermons })` (pure, in `service-actuals.js`) derives the actual run from the **already-ingested `choir_songs` + `choir_sermons` for the service date** (the rows `ServiceProgram` already subscribes via choir-sync — zero re-fetch). It orders events by the real video timestamp (`start_seconds`), estimates each duration from the gap to the next timestamped event, best-effort auto-attributes each song/sermon to the planned segment that already references it (else an open worship/pulpit slot, else honestly **added**), and lands every item `source: 'harvest'`, `needs_review: true` (a recording has no machine-readable run-of-show — a finalizer confirms before it's trusted). Builds on the **same `choir-archive.js` "one source, two harvests"** engine (#352); this is the third harvest.
+- `captureActualFromYouTube(program, plannedSegments, songs, sermons)` (sync) runs the derivation → `captureActualFromHarvest` and stamps `harvest_source` = the service video URL.
+- `ServiceActuals.jsx` now leads with **"▶ Pull from service video (N songs + sermon)"** as the primary reconcile path (reconcile-from-plan is the no-video fallback), with an honest readout of auto-matched vs unplanned and a confirm-before-trusted note.
+
+The loop is now: **plan → execute → the YouTube recording is the harvest → pull the actual from it → reconcile → blueprint → next plan.** One source — YouTube — drives sermon, choir, and the order-of-service actual.
+
 ## Verification (gates green)
 
 - ESLint `--max-warnings 0`: clean.
-- vitest: **1970 passed** (160 files), incl. new `service-actuals.test.js` (21 tests locking reconcile math + blueprint derivation + lane separation) and module-boundary-guard.
+- vitest: loop PR **1970 passed**; YouTube-source follow-up **1998 passed** (164 files), `service-actuals.test.js` now 29 tests (8 new lock the YouTube harvest: date-scoping, timestamp ordering + gap-estimated minutes, auto-attribution, added-when-unmatched, empty-when-unharvested, end-to-end reconcile+blueprint).
 - `npm run build`: passes (the named-export CI gate).
 - contrast-guard: PASS (AA all themes incl. midnight). charter:check: fresh.
 
