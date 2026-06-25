@@ -26,5 +26,6 @@ When a recalled memory or doc named here moves, update the **source** column her
 | **DECISION-RECORDS** | One decision = one append-only DR with a stable ID; never rewrite, supersede; the INDEX is the source of truth; narrative references DRs by ID. | `docs/decisions/README.md`; [DR-0011] |
 | **SESSION-ISOLATION** | No two sessions write the same working tree or branch at once; each writing session works on its own branch in its own worktree/clone; integrate via PR. | `CLAUDE.md` Two-Session Git Race rule; [DR-0011] |
 | **DR-NUMBER-ALLOCATION** | Allocate a DR's number against the LIVE `origin/main` INDEX Next-ID (never the stale branch-point copy); the number is provisional until merge; re-check before merging and renumber on collision. | [DR-0052] |
+| **ONE-CRM** | ONE shared sovereign CRM backbone; EVERY acquisition funnel + EVERY business/tenant (current + future) rides it via per-business CONFIG (a pipeline in `crm-engine.js` + the `crm_capture_lead` seam), never a per-business fork / second CRM / new leads table. Pre-existing lead tables federate read-side via adapters. | [DR-0080]; `app/src/lib/crm-engine.js`; `scripts/crm-single-engine-guard.mjs` (CI-enforced, proven-to-catch) |
 
 *Add an ID here before citing it in a DR. Keep one line per principle; the depth lives in the source.*

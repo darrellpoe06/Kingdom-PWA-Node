@@ -1,5 +1,21 @@
 # Shared CRM Backbone — one sovereign engine every funnel rides
 
+## BINDING PRINCIPLE — ONE-CRM (DR-0080, "always")
+
+> ONE shared sovereign CRM backbone. EVERY acquisition funnel and EVERY
+> business/tenant — current and future — rides it via per-business CONFIG, never
+> a per-business fork.
+
+A new funnel/business is a **config** (a `PIPELINE` in `crm-engine.js` + the
+`crm_capture_lead` seam + an adapter for any pre-existing table), **not** a new
+CRM / leads table / parallel engine. Guardrails live once in the engine.
+**Enforced in CI** by `scripts/crm-single-engine-guard.mjs` (proven-to-catch):
+a forked CRM/lead table fails the build. This is the CRM-specific application of
+reuse-not-forks (DR-0078/0079) + the connections principle (the capture seam is
+the wired other end every funnel connects to). Registered: PRINCIPLES.md
+`ONE-CRM`; in code: `crm-engine.js` `SINGLE_CRM_PRINCIPLE`.
+
+
 **Date:** 2026-06-24
 **Branch:** `feat/crm-backbone`
 **Status:** built + green (1792 tests, build, lint, guards). Held for orchestrator-sequenced convergence with the TLC lane (see "Don't fork" below).
