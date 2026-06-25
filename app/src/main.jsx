@@ -2,13 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { storage } from './shims/storage.js';
 import './index.css';
-import AppInterestCapture from './components/AppInterestCapture.jsx';
-import AppInterestAdmin from './components/AppInterestAdmin.jsx';
-import ConferenceRegister from './components/ConferenceRegister.jsx';
-import AudienceWindow from './components/AudienceWindow.jsx';
-import TeachMode from './components/TeachMode.jsx';
-import PasswordAuth from './components/PasswordAuth.jsx';
-import VenueRequest from './components/VenueRequest.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
 import { initTextSize } from './lib/text-size.js';
@@ -28,6 +21,10 @@ initTextSize();
 //   ?register=1 — the public, no-login CONFERENCE registration. A leader texts this
 //                 to the congregation; anyone registers in seconds, no account.
 //   ?audience=1 — the projected class screen the presenter pops onto the projector.
+//   ?output=1   — the NDI-ready PROGRAM OUTPUT screen OBS ingests as a Browser Source
+//                 (DistroAV republishes it as an NDI source on the church LAN). Useful
+//                 standalone via params, e.g. ?output=1&kind=scripture&ref=John%203:16.
+//                 ?key=1 / a lower-third payload renders transparent for switcher keying.
 //   ?teach=1    — the presenter view standalone (a quick entry / fallback to the
 //                 in-app Governor button). The full PWA never loads in these modes —
 //                 the heavy app (and its supabase/auth init) is dynamically imported
@@ -41,6 +38,7 @@ initTextSize();
 const __params = new URLSearchParams(window.location.search);
 const __standalone = __params.get('join') === '1' || __params.get('invites') === '1'
   || __params.get('register') === '1' || __params.get('audience') === '1'
+  || __params.get('output') === '1'
   || __params.get('teach') === '1' || __params.get('login') === '1'
   || __params.get('request-space') === '1'
   || __params.get('oauth_popup') === '1';
@@ -59,32 +57,58 @@ if (__params.get('oauth_popup') === '1') {
   );
   import('./lib/oauth-popup.js').then(({ completeOAuthPopup }) => { completeOAuthPopup(); }).catch(() => {});
 } else if (__params.get('join') === '1') {
-  __root.render(<React.StrictMode><ErrorBoundary><div className="min-h-screen p-4 sm:p-8"><AppInterestCapture source="join-link" /></div></ErrorBoundary></React.StrictMode>);
+  // Each standalone boot dynamically imports ONLY its own component so the
+  // always-loaded entry chunk (index.js) no longer carries every boot surface
+  // (and the supabase/auth client several of them pull). This realizes the
+  // design stated below: supabase/auth init loads for the normal branch (the
+  // monolith) — not on every visit via an eagerly-imported boot. See header.
+  import('./components/AppInterestCapture.jsx').then(({ default: AppInterestCapture }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><div className="min-h-screen p-4 sm:p-8"><AppInterestCapture source="join-link" /></div></ErrorBoundary></React.StrictMode>);
+  });
 } else if (__params.get('invites') === '1') {
-  __root.render(<React.StrictMode><ErrorBoundary><AppInterestAdmin /></ErrorBoundary></React.StrictMode>);
+  import('./components/AppInterestAdmin.jsx').then(({ default: AppInterestAdmin }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><AppInterestAdmin /></ErrorBoundary></React.StrictMode>);
+  });
 } else if (__params.get('register') === '1') {
-  __root.render(<React.StrictMode><ErrorBoundary><ConferenceRegister /></ErrorBoundary></React.StrictMode>);
+  import('./components/ConferenceRegister.jsx').then(({ default: ConferenceRegister }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><ConferenceRegister /></ErrorBoundary></React.StrictMode>);
+  });
 } else if (__params.get('audience') === '1') {
-  __root.render(<React.StrictMode><ErrorBoundary><AudienceWindow /></ErrorBoundary></React.StrictMode>);
+  import('./components/AudienceWindow.jsx').then(({ default: AudienceWindow }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><AudienceWindow /></ErrorBoundary></React.StrictMode>);
+  });
+} else if (__params.get('output') === '1') {
+  // NDI-ready program output: OBS ingests this as a Browser Source; DistroAV
+  // republishes it as an NDI source on the church LAN. Lazy-imported like every
+  // boot so the entry chunk stays lean. See lib/ndi-output.js for the contract.
+  import('./components/NdiProgramOutput.jsx').then(({ default: NdiProgramOutput }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><NdiProgramOutput /></ErrorBoundary></React.StrictMode>);
+  });
 } else if (__params.get('teach') === '1') {
   // Standalone presenter (fallback to the in-app Governor button, which passes the
   // confirmed date). It can't read app state, so an optional ?start=YYYY-MM-DD lets
   // the real cohort date ride the URL; absent that it falls back to the published
   // proposal. The in-app button remains the authoritative entry.
   const __start = __params.get('start') || undefined;
-  __root.render(<React.StrictMode><ErrorBoundary><TeachMode cohortStart={__start} onClose={() => window.close()} /></ErrorBoundary></React.StrictMode>);
+  import('./components/TeachMode.jsx').then(({ default: TeachMode }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><TeachMode cohortStart={__start} onClose={() => window.close()} /></ErrorBoundary></React.StrictMode>);
+  });
 } else if (__params.get('login') === '1') {
-  __root.render(
-    <React.StrictMode>
-      <ErrorBoundary>
-        <div className="min-h-screen flex items-start justify-center p-6 sm:p-12">
-          <PasswordAuth onSignedIn={() => { window.location.search = ''; }} />
-        </div>
-      </ErrorBoundary>
-    </React.StrictMode>
-  );
+  import('./components/PasswordAuth.jsx').then(({ default: PasswordAuth }) => {
+    __root.render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <div className="min-h-screen flex items-start justify-center p-6 sm:p-12">
+            <PasswordAuth onSignedIn={() => { window.location.search = ''; }} />
+          </div>
+        </ErrorBoundary>
+      </React.StrictMode>
+    );
+  });
 } else if (__params.get('request-space') === '1') {
-  __root.render(<React.StrictMode><ErrorBoundary><VenueRequest /></ErrorBoundary></React.StrictMode>);
+  import('./components/VenueRequest.jsx').then(({ default: VenueRequest }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><VenueRequest /></ErrorBoundary></React.StrictMode>);
+  });
 } else {
   // Conference funnel: a registrant who chose "create an account" via Google was
   // redirected away and lands back HERE (the OAuth redirect strips ?register=1).

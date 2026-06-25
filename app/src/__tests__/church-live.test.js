@@ -7,7 +7,18 @@
 // outside the service window. The "off-window -> live === false" cases below
 // fail if the gate ever regresses to always-true.
 import { describe, it, expect } from 'vitest';
-import { parseServiceTime, liveStatus } from '../lib/church-live.js';
+import {
+  parseServiceTime,
+  liveStatus,
+  uploadsPlaylistId,
+  liveStreamEmbedUrl,
+  latestUploadEmbedUrl,
+} from '../lib/church-live.js';
+
+// COLG / The Love Corner — the real channel id wired in the seed church config
+// (poe-financial-mvp-v28.jsx), verified 2026-06-14. Used to pin the no-key
+// rolling-latest embed derivation below.
+const COLG_CHANNEL_ID = 'UC821pJh7YR5llBNnWUJj-ZA';
 
 // COLG's real published online schedule.
 const COLG_SERVICES = [
@@ -89,5 +100,53 @@ describe('liveStatus — next-service hint for the offline card', () => {
     const { next } = liveStatus(COLG_SERVICES, now);
     expect(next.day).toBe('Sunday');
     expect(next.time).toBe('11:00 AM');
+  });
+});
+
+// ── ROLLING-LATEST embed sources ─────────────────────────────────────────────
+// PROVEN-TO-CATCH (DR-0076 anti-theater): the rolling-latest behavior depends on
+// the no-key uploads-playlist trick — swap the channel id's `UC` prefix for `UU`
+// to get the newest-first uploads playlist. If that derivation ever regresses
+// (wrong prefix, accepting a junk id, dropping the &rel=0), the "latest message"
+// slot stops resolving and the Live Worship player goes dead — the exact
+// dead-frame failure this feature exists to prevent. These pin both.
+describe('uploadsPlaylistId', () => {
+  it('swaps a real UC channel id to its UU uploads playlist', () => {
+    expect(uploadsPlaylistId(COLG_CHANNEL_ID)).toBe('UU821pJh7YR5llBNnWUJj-ZA');
+  });
+  it('trims surrounding whitespace before deriving', () => {
+    expect(uploadsPlaylistId(`  ${COLG_CHANNEL_ID}  `)).toBe('UU821pJh7YR5llBNnWUJj-ZA');
+  });
+  it('returns null for non-standard / missing ids (never guesses a playlist)', () => {
+    expect(uploadsPlaylistId('')).toBeNull();
+    expect(uploadsPlaylistId(null)).toBeNull();
+    expect(uploadsPlaylistId(undefined)).toBeNull();
+    expect(uploadsPlaylistId('not-a-channel')).toBeNull();
+    expect(uploadsPlaylistId('UU821pJh7YR5llBNnWUJj-ZA')).toBeNull(); // already a playlist id, not a channel
+    expect(uploadsPlaylistId('UC123')).toBeNull(); // too short
+  });
+});
+
+describe('liveStreamEmbedUrl', () => {
+  it('builds the no-key live broadcast embed for a channel', () => {
+    expect(liveStreamEmbedUrl(COLG_CHANNEL_ID)).toBe(
+      `https://www.youtube.com/embed/live_stream?channel=${COLG_CHANNEL_ID}`,
+    );
+  });
+  it('returns null without a channel id', () => {
+    expect(liveStreamEmbedUrl('')).toBeNull();
+    expect(liveStreamEmbedUrl(null)).toBeNull();
+  });
+});
+
+describe('latestUploadEmbedUrl', () => {
+  it('builds the newest-first uploads-playlist embed (rolling latest)', () => {
+    expect(latestUploadEmbedUrl(COLG_CHANNEL_ID)).toBe(
+      'https://www.youtube.com/embed/videoseries?list=UU821pJh7YR5llBNnWUJj-ZA&rel=0',
+    );
+  });
+  it('returns null when no uploads playlist can be derived (caller links out)', () => {
+    expect(latestUploadEmbedUrl('')).toBeNull();
+    expect(latestUploadEmbedUrl('not-a-channel')).toBeNull();
   });
 });

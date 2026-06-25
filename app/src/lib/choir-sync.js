@@ -42,6 +42,17 @@ export function toSongShape(row) {
     startSeconds: row.start_seconds ?? null,
     sortOrder: row.sort_order ?? 0,
     status: row.status ?? 'active',
+    // Cross-reference + practical metadata (0041) — see lib/choir-songbook.js.
+    themes: Array.isArray(row.themes) ? row.themes : [],
+    songKey: row.song_key ?? null,
+    arrangement: row.arrangement ?? null,
+    soloist: row.soloist ?? null,
+    sermonRef: row.sermon_ref ?? null,
+    // Archive provenance (0042) — auto-seeded from the church archive.
+    source: row.source ?? 'manual',
+    videoId: row.video_id ?? null,
+    confidence: row.confidence ?? null,
+    needsReview: !!row.needs_review,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
   };
@@ -63,6 +74,8 @@ export function toSermonShape(row) {
     notes: row.notes ?? null,
     status: row.status ?? 'active',
     source: row.source ?? 'manual',
+    sourceSermonId: row.source_sermon_id ?? null,   // re-preach lineage (0038)
+    sourceSpeakerId: row.source_speaker_id ?? null, // original deliverer's entity
     createdAt: row.created_at ?? null,
   };
 }
@@ -170,7 +183,17 @@ export function deriveAccess(role, inChoir) {
 }
 
 // Normalize a YouTube URL to its embeddable form; null if not recognizable.
-// Accepts watch?v=, youtu.be/, and /embed/ forms.
+// Accepts watch?v=, youtu.be/, /embed/, /live/, /shorts/, /v/, and bare-id forms.
+//
+// WHY /live/ and /shorts/ (added 2026-06-23): the church's service recordings on
+// YouTube carry the `youtube.com/live/<id>` URL (that is the link a director
+// copies straight off a finished livestream — "the YouTube recording of this
+// service"), and short clips carry `youtube.com/shorts/<id>`. Neither form was
+// recognized before, so a pasted live-stream link fell through to null and the
+// embed silently degraded to a plain "Open link" — the "choir YouTube link →
+// video processing broken" report (feedback d23b37f3). Recognizing them embeds
+// the video in place. Pure + additive: every URL that embedded before still
+// embeds; nothing that resolved to a real id changes.
 export function youtubeEmbedUrl(url) {
   if (!url || typeof url !== 'string') return null;
   const u = url.trim();
@@ -179,6 +202,9 @@ export function youtubeEmbedUrl(url) {
   if ((m = u.match(/[?&]v=([\w-]{11})/))) id = m[1];
   else if ((m = u.match(/youtu\.be\/([\w-]{11})/))) id = m[1];
   else if ((m = u.match(/\/embed\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/live\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/shorts\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/v\/([\w-]{11})/))) id = m[1];
   else if ((m = u.match(/^([\w-]{11})$/))) id = m[1];
   return id ? `https://www.youtube.com/embed/${id}` : null;
 }
@@ -405,7 +431,20 @@ export async function saveSong(song, displayName) {
     start_seconds: Number.isFinite(song.startSeconds) ? song.startSeconds : null,
     sort_order: Number.isFinite(song.sortOrder) ? song.sortOrder : 0,
     status: song.status ?? 'active',
+    // Cross-reference + practical metadata (0041). themes is text[]; the rest
+    // are nullable text/uuid. Only written when provided (additive).
+    themes: Array.isArray(song.themes) ? song.themes : [],
+    song_key: song.songKey ?? null,
+    arrangement: song.arrangement ?? null,
+    soloist: song.soloist ?? null,
+    sermon_ref: song.sermonRef ?? null,
   };
+  // Archive provenance (0042) — written ONLY when provided, so a manual save
+  // (SongForm) never resets an archive-seeded row's source back to 'manual'.
+  if (song.source !== undefined) row.source = song.source || 'manual';
+  if (song.videoId !== undefined) row.video_id = song.videoId || null;
+  if (song.confidence !== undefined) row.confidence = song.confidence || null;
+  if (song.needsReview !== undefined) row.needs_review = !!song.needsReview;
   if (song.id) {
     const { error } = await supabase.from('choir_songs').update({ ...row, updated_by: ctx.userId }).eq('id', song.id);
     return error ? { skipped: 'update-error', error } : { saved: true };
@@ -435,6 +474,14 @@ export function buildReusedSong(song, newDate, newType) {
     startSeconds: song.startSeconds ?? null,
     sortOrder: 0,
     status: 'active',
+    // Carry the cross-reference forward so a reused song keeps its themes /
+    // scripture / key / arrangement / soloist (0041) — the new row stays
+    // cross-referenced without re-tagging.
+    themes: Array.isArray(song.themes) ? song.themes : [],
+    songKey: song.songKey ?? null,
+    arrangement: song.arrangement ?? null,
+    soloist: song.soloist ?? null,
+    sermonRef: song.sermonRef ?? null,
   };
 }
 
@@ -576,6 +623,8 @@ export async function saveSermon(sermon, displayName) {
     notes: sermon.notes ?? null,
     status: sermon.status ?? 'active',
     source: sermon.source ?? 'manual',
+    source_sermon_id: sermon.sourceSermonId ?? null,   // re-preach lineage (0038)
+    source_speaker_id: sermon.sourceSpeakerId ?? null,
   };
   if (sermon.id) {
     const { error } = await supabase.from('choir_sermons').update({ ...row, updated_by: ctx.userId }).eq('id', sermon.id);
@@ -612,26 +661,39 @@ export async function saveSermonDocument(sermonId, documentUrl, source) {
   return error ? { skipped: 'insert-error', error } : { saved: true };
 }
 
-// Reuse a past message as a starting point for a NEW one: a fresh DRAFT carrying
-// the title/scripture/notes (and a back-reference to the original video) on a
-// future date — BG curates the new sermon from the old. Pure so it's testable.
-export function buildReusedSermon(sermon, newDate, newType) {
+// Re-preach a past message: a fresh DRAFT that BG curates from the original,
+// crediting the RE-PREACHER (BG — the canonical primary speaker) while keeping a
+// link back to the SOURCE message + the ORIGINAL deliverer's entity, so both are
+// visible and BG can pull up the source preacher's material. This is BG's actual
+// workflow (Darrell 2026-06-17) — NOT a copy of the source's speaker. Pass the
+// re-preacher's canonical entity (the instance's primary speaker); if absent we
+// keep the source's speaker rather than guess. Pure so it's testable.
+export function buildReusedSermon(sermon, newDate, newType, repreacher) {
+  const repreachName = repreacher?.canonicalName || sermon.speaker || null;
+  const original = sermon.speaker || null;
+  const isRepreach = !!repreacher && repreachName !== original && !!original;
   return {
     serviceDate: newDate,
     serviceType: newType || sermon.serviceType || 'sunday',
     title: sermon.title,
-    speaker: sermon.speaker ?? null,
+    speaker: repreachName,                 // credited to the re-preacher (BG)
     scriptureRef: sermon.scriptureRef ?? null,
-    notes: [sermon.notes, sermon.youtubeUrl ? `Drawn from: ${sermon.youtubeUrl}` : null].filter(Boolean).join('\n'),
+    notes: [
+      sermon.notes,
+      isRepreach ? `Re-preached by ${repreachName}; original by ${original}.` : null,
+      sermon.youtubeUrl ? `Drawn from: ${sermon.youtubeUrl}` : null,
+    ].filter(Boolean).join('\n'),
     youtubeUrl: null,
     startSeconds: null,
     status: 'draft',
     source: 'manual',
+    sourceSermonId: sermon.id ?? null,            // pull up the original material
+    sourceSpeakerId: sermon.speakerId ?? null,    // durable credit to the original deliverer
   };
 }
 
-export async function reuseSermon(sermon, newDate, newType, displayName) {
-  return saveSermon(buildReusedSermon(sermon, newDate, newType), displayName);
+export async function reuseSermon(sermon, newDate, newType, repreacher, displayName) {
+  return saveSermon(buildReusedSermon(sermon, newDate, newType, repreacher), displayName);
 }
 
 // --- Resources (director-curated) --------------------------------------------

@@ -1,180 +1,143 @@
-# LOCAL-LLM-HARDWARE-RECOMMENDATION.md
+# LOCAL-LLM HARDWARE RECOMMENDATION
 
-**Status:** RECOMMENDATION (2026-06-23). Advisory only — makes NO purchase. The buy is Darrell's hand (GOVERNANCE-EXECUTION-ADVISORY).
+**Date:** 2026-06-23
+**Author:** Claude (advisory) — for Darrell's decision (he holds the purchase)
+**Status:** RESEARCH-REVIEW → SINGLE RECOMMENDATION. **Authorizes no purchase.** Money moves only on Darrell's greenlight.
+**Layer:** 3 reference (decision support), built on Layer-4 research and the hardware Decision Records.
 
-**Purpose:** Pick the best PRIVATE, SOVEREIGN local-LLM box to run PoeTech's primary AI work OUTSIDE vendor cloud LLMs. Privacy / legal exposure is a PRIMARY driver — cloud AI chats are subpoena-able and discoverable; nothing should leave Darrell's control; air-gappable matters. The bar is NOT cloud parity — it is "what I need and more for my programming projects," private and capable enough.
-
-> **Verification doctrine (DR-0076):** every price / tok-s number below is cited to a June-2026 source (§9) or explicitly flagged as an estimate. "Looks right" is not a status. Where a single-stream decode rate was not directly published for a config, it is marked *(est., bandwidth-bound)* with the math shown.
+> **Verification note (DR-0076 / Verification Doctrine).** Every price and tok/s figure below carries a citation fetched June 2026. Prices are volatile (active DRAM/GPU memory crisis through mid-2026) — confirm the exact street price the day of purchase; do not trust this doc's number as still-current at buy time. Figures I could not measure directly are marked **(est.)** with the basis stated.
 
 ---
 
-## 0. TL;DR — the ONE recommendation
+## 0. Why this doc exists now (the trigger)
 
-**Build a single-GPU RTX 5090 CUDA workstation now** (Linux + Ollama), run **Qwen2.5-Coder-32B** as the daily coding driver wired to **OpenClaw**, and **size the chassis/PSU for a second RTX 5090** — adding it (→ 64GB, native dense-70B) only when measured load proves the need.
+Darrell has lost trust in cloud Claude over the last four weeks; **today the weekly usage cap stalled the local-LLM cutover work** — the exact failure this purchase is meant to end. The binding need is **continuity**: a sovereign box that keeps the build moving when the vendor is capped, down, or refusing. This is a research-first decision for a **$4–6k+** purchase (Darrell's research-first rule).
+
+**This is a re-open at a higher budget, not a re-derivation.** The repo already concluded a **deferred dual-RTX-3090 (~$2k, 48 GB)** farm-augment ([DR-0014](../decisions/DR-0014-hardware-budget-directive-procurement-plan.md), [DR-0053](../decisions/DR-0053-cuda-box-decoupled-from-r4-no-purchase-yet.md), [AI-INFRASTRUCTURE-HARDWARE-OPTIONS](_future/AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md)). The **delta**: coding is now the **primary** workload (build the modular PoeTech app + n8n pipeline), continuity is **urgent**, and the budget is raised. That changes the math — see §6.
+
+---
+
+## 1. What's already concluded (build on, don't re-derive)
+
+| Prior decision | What it set | Status |
+|---|---|---|
+| [DR-0014](../decisions/DR-0014-hardware-budget-directive-procurement-plan.md) | PoeTech farm budget **$5k**; honest break-even ~70 months vs the $25–50/mo cap → justified by **sovereignty + capability + data-control + farm role, not by beating an API bill** | PLAN |
+| [DR-0053](../decisions/DR-0053-cuda-box-decoupled-from-r4-no-purchase-yet.md) | GPU purchase **deferred** until live load proves VRAM binding; default pick = used dual-3090; CUDA-native preferred | ACCEPTED |
+| [DR-0012](../decisions/DR-0012-gpu-topology-conservative-single-4070-creative-preemption.md) | Daily reasoner locked to 14B-class on a 12 GB 4070; **Darrell's creative apps (Premiere/AE/C4D/Photoshop/OBS) get absolute GPU preemption** | ACCEPTED |
+| [DR-0056](../decisions/DR-0056-tiered-llm-orchestrator-perpetual-fix.md) / [DR-0073](../decisions/DR-0073-orchestrator-capability-aware-routing.md) | Tiered local→vendor→local ladder; `ORCH_MODE=vendor-first` **now** (local 3B-on-CPU too weak), flips to **local-first the moment a real GPU box lands** | ACCEPTED |
+| [DR-0062](../decisions/DR-0062-local-llm-source-of-truth-vendor-evaluated-against-it.md) | App is **vendor-independent**; local LLM is source of truth; vendor output is evaluated against local before use | ACCEPTED |
+
+**Current sovereign infra (probed 2026-06-10, [research review](../99-session-notes/2026-06-10-research-review-network-infra-for-local-llms.md)):** Synology **DS1621xs**, Xeon D-1527, 32 GB ECC, **no GPU**, dual 10 GbE, on Tailscale. Runs Ollama 0.24, n8n, Postgres+pgvector, `nomic-embed-text`, and small Qwen models at CPU speed (14B ≈ 1–3 tok/s — batch-only). **This box is the registry/automation tier and stays exactly that.** The question is what GPU box augments it.
+
+---
+
+## 2. Verified comparison table (June 2026)
+
+All-in build = GPU + workstation parts (CPU, 128 GB RAM, PSU, NVMe, case) where the GPU is a bare card. tok/s = single-stream decode (generation) at Q4 unless noted.
+
+| Path | VRAM / mem | GPU price (verified) | Realistic all-in | 70B Q4 tok/s | **32B coder Q4 tok/s** | CUDA? | Power | Noise |
+|---|---|---|---|---|---|---|---|---|
+| **Single RTX 5090** (★ rec.) | 32 GB GDDR7 | ~$2,900–3,500 AIB; FE MSRP $1,999 unobtanium [1] | **~$4,800–5,400** | n/a single-card (needs ~40 GB → CPU spill, slow) | **~45–55 (est.)** [4][7] | ✅ native | ~575 W card | high under load |
+| **Dual RTX 5090** | 64 GB | 2×~$3,000 = ~$6,000 [1] | **~$8,000+** | **~27** [3] | ~45–55 (est.) | ✅ native | ~1,150 W card → 1500 W PSU | very high |
+| **RTX PRO 6000 Blackwell** | 96 GB GDDR7 ECC | **~$8,250–9,200** (NVIDIA list $13,250) [2] | **~$10,000–11,000** | ~30–40 (est., 1.8 TB/s, single-card no PCIe split) | ~50–60 (est.) | ✅ native | 600 W, blower | moderate (workstation blower) |
+| **NVIDIA DGX Spark** | 128 GB unified LPDDR5x | **$4,699** (was $3,999, raised Feb 2026) [5] | **$4,699** (appliance) | **2.7 (Q4) → 7.8 (NVFP4)** [5] | ~8–12 (est., 273 GB/s bound) | ✅ native | ~240 W | quiet |
+| **Mac Studio M3 Ultra 96 GB** | 96 GB unified (819 GB/s) | **$3,999** (96/1TB base; ~$3,749 on sale) [6] | **$3,999** (appliance) | **12–18** [8] | **12–22** [8] | ❌ **no CUDA** | ~160–270 W | near-silent |
+| *Dual RTX 3090 (prior pick, anchor)* | 48 GB | ~$1,800–2,200 used [DR-0053] | ~$2,800–4,200 | ~15–20 (est.) | ~32 (single 3090) [7] | ✅ native | ~700 W | high |
+
+**Citations:** [1] gpudeals/trackalacker/pcprice — RTX 5090 street ~$2.9–3.5k AIB, FE MSRP $1,999 but unavailable. [2] thundercompute/videocardz — RTX PRO 6000 Blackwell ~$8.25–9.2k street, NVIDIA list $13,250. [3] databasemart 2×RTX 5090 Ollama bench: Llama 3.3 70B Q4 **26.85**, DeepSeek-R1 70B **27.03**, Qwen2.5 72B **24.15** tok/s (beats single H100 single-stream). [4] markaicode RTX 5090: Llama 8B Q4 ~48 tok/s vLLM, ~290 W. [5] explainx/toolhalla/intuitionlabs DGX Spark: $4,699, 128 GB, 273 GB/s, 70B **2.7→7.8** tok/s, 120B-MoE 35–80 tok/s. [6] Apple/tomshardware/macrumors: M3 Ultra 96 GB/1 TB = $3,999; 512 GB option **pulled** Mar 2026, 256 GB upgrade raised to +$2,000 (DRAM crisis). [7] localaimaster/medium: Qwen2.5-Coder 32B Q4 on single 3090 ~32 tok/s (5090 ~1.8× bandwidth → ~45–55 est.). [8] insiderllm Mac 2026 guide: Qwen 32B/Coder 32B **12–22**, Llama 70B **8–15** tok/s.
+
+> **Why the est. for 5090 32B coder is sound:** decode is memory-bandwidth-bound. RTX 5090 ≈ 1.79 TB/s vs 3090 ≈ 0.94 TB/s (~1.9×). A 3090 measures ~32 tok/s on Qwen2.5-Coder 32B Q4 [7]; scaling by bandwidth lands ~50 tok/s, derated to ~45–55 for overhead. **This is the single most decision-relevant number and it should be confirmed on the actual card before final sign-off** (DR-0076).
+
+---
+
+## 3. Map to Darrell's actual needs (weighted)
+
+| Need (weight) | What it requires | Best fit |
+|---|---|---|
+| **Agentic coding — build the modular app + n8n (HIGHEST)** | A 24–32B coder (Qwen2.5-Coder 32B / Devstral) running **fast** (40+ tok/s) for real daily offload | **5090** (45–55) ≫ Mac (12–22) ≫ Spark (8–12) |
+| **Continuity when cloud is capped (HIGH — the trigger)** | Box is up and snappy without any vendor | Any CUDA box; 5090 best for coding-shaped continuity |
+| **Transcription (Whisper-class)** | faster-whisper / WhisperX — **CUDA-native, far faster on NVIDIA** | CUDA boxes; Mac runs MLX-Whisper but slower |
+| **NDI / CUDA media future** | NDI + CUDA encode/decode, TensorRT, Frigate GPU detection — **all CUDA-only** | CUDA boxes only — **Mac is a dead-end here** |
+| **Per-industry sovereign LLM teams** | Run several models concurrently → wants VRAM headroom (vLLM) | 96 GB (PRO 6000) > 64 GB (dual 5090) > 32 GB (single 5090, swaps) |
+| **Sovereign / low ongoing cost** | Self-hosted, no per-token bill | All qualify |
+
+**Honest gap (DR-0076, no overselling):** the best open coders today — **Qwen2.5-Coder 32B** and **Devstral Small 24B** — are excellent for completion, single-file generation, refactors, mechanical multi-file edits, code review, and n8n-node scaffolding. They are **not** at Claude-Opus level on the *hardest* multi-file agentic build tasks (deep cross-module reasoning, long-horizon tool-use chains). **Realistic split: local carries ~70–80% of daily build work and 100% of continuity; vendor escalation (the existing DR-0056 ladder) covers the hard ~20%.** No local box on this list closes that last 20% in June 2026. Buy the box to *own the 80% and never stall* — not to fully replace cloud coding on day one.
+
+---
+
+## 4. Darrell's screens applied
+
+**Cost-efficiency (growth justification · unit cost · lean alternative · break-even):**
+- *Break-even, stated honestly:* vs a $25–50/mo cap, a ~$5k box is **~100+ months** to pay back on the API bill alone. **It is NOT justified by beating the bill** (consistent with DR-0014). It is justified by: **continuity** (today's cap stalled the cutover — that recurs), **sovereignty + data-control**, the **CUDA media future** (Mac/cloud can't serve it), and the **farm role** (coding + transcription + VLM + per-industry teams on one owned asset).
+- *Unit cost:* single 5090 build ≈ **$4.8–5.4k** for ~50 tok/s sovereign coding + full CUDA stack. Lowest $/coding-throughput in the CUDA-capable set under $6k.
+- *Lean alternative (documented):* **used dual-3090 ~$2.8–4.2k** (48 GB, holds 70B, CUDA) — the prior pick. Still valid if budget must compress to ~$3k; trade-offs = used-market risk (no warranty during a cap event) and ~1.8× slower 32B decode.
+
+**Sovereign-mesh compatibility (tier 1–4):**
+- **Tier 1 (full sovereign + augments the CUDA mesh):** RTX 5090, dual 5090, RTX PRO 6000, DGX Spark — all CUDA-native, join Tailscale, serve the media pipeline.
+- **Tier 3 (sovereign for text, but breaks the CUDA pipeline):** **Mac Studio** — excellent local text box, but **no CUDA** strands NDI/TensorRT/Frigate/faster-whisper. Disqualifying for *this* role given the named media future.
+
+**MVP-pragmatism:** buy the box that unblocks coding-continuity **now** at the smallest sufficient spend — not the maximal 96 GB box. Single 5090 clears the binding constraint (fast 32B coder + CUDA) inside budget. 96 GB / multi-model-team capacity is a *later, evidence-triggered* upgrade, not a now-buy.
+
+**Fit with the NAS (DS1621xs, no GPU) — augment or replace?** **Augments, never replaces.** NAS stays the always-on registry/automation tier (Postgres+pgvector, n8n, embeddings, `nomic-embed-text`, the orchestrator brake-host). The GPU box is the **inference + coding + media** tier that the NAS routes to. Clean split, already the architecture in the [2026-06-09 orchestrator design](../99-session-notes/2026-06-09-sovereign-ai-orchestrator-architecture.md).
+
+---
+
+## 5. THE RECOMMENDATION
+
+### Buy a single **RTX 5090 (32 GB) workstation now — NOT the DGX Spark, NOT the Mac Studio, NOT (yet) the dual-5090 or RTX PRO 6000 — built dual-GPU-ready so the second card is a drop-in.**
 
 **X not Y because Z:**
-- **CUDA RTX 5090 workstation, NOT NVIDIA DGX Spark** — the Spark's 273 GB/s memory bandwidth caps dense single-stream decode at **~2.7 tok/s on 70B** and roughly single-digit-to-low-teens on a 32B coder; that is too slow for the *primary interactive coding* job. (The Spark is a strong *batch/concurrency* and *128GB-capacity* box, not an interactive-coder box.)
-- **CUDA RTX 5090 workstation, NOT Mac Studio M3 Ultra** — the Mac has fine throughput (32B coder ~23–30 tok/s) and is quiet/low-power, but it **has no CUDA**, which forfeits the entire planned media pipeline (Stable Diffusion / FLUX / ComfyUI / Coqui XTTS are all CUDA-first) and breaks from the repo's already-ratified **Linux + Ollama** sovereign plan (DR-0014 / DR-0053).
-- **Start single, phase to dual, NOT buy dual/RTX-6000 up front** — a single RTX 5090 already delivers **48 tok/s on the 32B coder** (the actual daily driver), fully offline, for a ~$5–5.5K build. Buying 64–96GB of VRAM *before* the workload proves it needs dense-70B violates the cost-efficiency screen and DR-0053's "don't buy VRAM before measured load binds it" discipline.
+- **5090 not DGX Spark** — because the daily win is **32B-coder decode speed**, and the 5090 does ~45–55 tok/s vs the Spark's ~8–12 (the Spark's 273 GB/s bandwidth bottlenecks exactly the dense-model decode coding needs). The Spark wins only on huge-model *capacity* and low power — neither is Darrell's binding constraint. Same price tier ($4.7k vs ~$5k built).
+- **5090 not Mac Studio M3 Ultra** — because **CUDA**. The NDI/CUDA media pipeline, faster-whisper, vLLM/TensorRT, and Frigate GPU detection are CUDA-native; the Mac strands all of them. The Mac's one edge (96 GB unified → 70B at 12–18 tok/s) is neutralized: a fast 32B + vendor escalation covers the 70B need without abandoning the media future.
+- **5090 not dual-5090 / RTX PRO 6000 (yet)** — MVP-pragmatism. A single 5090 clears the binding constraint inside the $4–6k envelope; 64 GB / 96 GB is an evidence-triggered upgrade (when per-industry multi-model teams or 70B-resident actually bind), built into the spec as a drop-in second card.
+- **5090 not the prior used dual-3090** — because coding is now *primary* and continuity is *urgent*: new-with-warranty (a used card dying mid-cap is the failure we're fixing), ~1.8× faster 32B decode, and a clean upgrade lane. Dual-3090 stays the documented lean fallback at ~$3k.
 
-**This box AUGMENTS the NAS, it does not replace it.** DS1621xs stays the data home + n8n orchestration + always-on small-classifier/embeddings host; the 5090 box is the GPU "brain" for interactive coding, dense-70B-when-needed, and media generation.
+### Exact box to buy (~$4,800–5,400 all-in)
 
----
+| Part | Spec | Why |
+|---|---|---|
+| GPU | **1× NVIDIA RTX 5090 32 GB** (AIB: ASUS TUF / MSI / Gigabyte) | fast 32B coder + 14B + Whisper concurrently; CUDA-native |
+| CPU | AMD Ryzen 9 9950X (16c) | strong CPU-spill + general; no bottleneck |
+| RAM | **128 GB DDR5** | CPU-offload of 70B when needed + big-model loading headroom |
+| Mobo | X870E with **2× PCIe 5.0 x16 (x8/x8)** | **second 5090 is a drop-in — no rebuild** |
+| PSU | **1500 W 80+ Platinum** | runs one 5090 now, both later — buy once |
+| Storage | 2 TB Gen5 NVMe (models) + 4 TB NVMe (data) | fast model load + workspace |
+| Case/cooling | high-airflow, 2-GPU clearance | dual-card thermals |
+| OS/stack | Ubuntu 24.04 LTS + Docker + **Ollama + vLLM** | matches the sovereign portable stack |
 
-## 1. Where this fits the existing plan (repo grounding)
+### Models to run on it (per tier)
 
-This is not a fresh decision — it is the **trigger event** the repo already designed for.
-
-- **`DR-0014` (Hardware Budget Directive, 2026-06-09):** ratified a ~$5K PoeTech GPU farm; rationale is **sovereignty + capability + data-control**, stated honestly, *not* beating a small API bill (~70-month "break-even" vs a $25–50/mo vendor cap).
-- **`DR-0053` (CUDA box decoupled, no purchase yet, 2026-06-11):** GPU purchase **deferred until measured workload proves VRAM binding**. Default pick when triggered was used dual-3090 (~$2K, 48GB) — this doc *updates* that pick to current-gen 5090 economics (3090 supply has dried up; 5090 is the live 32GB card in June 2026).
-- **`AI-INFRASTRUCTURE-HARDWARE-OPTIONS.md` / `AI-INFRASTRUCTURE-SYNOLOGY.md`:** DS1621xs (Xeon D-1527, 32GB ECC, **no GPU**) does 3–8 tok/s on 7B CPU-only — sub-conversational. Confirmed: the NAS cannot be the interactive-coder host; it is storage + orchestration.
-- **`UNIFIED-INPUT-AND-OFFLOAD-REVIEW.md`:** the sovereign offload layer is *fully designed and scaffolded but NOT deployed*; the single gating dependency is **GPU hardware**. This doc removes that gate.
-- **`AI-MEDIA-PRODUCTION-PLATFORM-VISION.md`:** the media vision (Stable Diffusion/FLUX image, Stable Video Diffusion, Coqui XTTS voice, ComfyUI orchestration) is **CUDA-first** — this is the decisive reason the recommendation stays on NVIDIA/CUDA rather than Apple Silicon.
-- **`FEATURE-WORKFLOW-REGISTER.md` (#284):** `wf-class-tutor` (qwen2.5 on NAS Ollama), `36-quality-gatekeeper`, `wf-llm-review`, `16-cross-verify-engine`, `17-gemini-deeper-reasoning` are the workflow rows waiting on local inference — they become "local-able at conversational latency" the moment this box stands up.
-- **Three-brakes rule (`feedback_autonomous_automation_three_brakes`):** any timer-driven use of this box ships with budget + concurrency-lock + kill-switch. Interactive OpenClaw use is human-driven and not in that class.
-
----
-
-## 2. Requirements & screens (Darrell's filters)
-
-| Screen | What it demands here |
-|---|---|
-| **Privacy / sovereignty (PRIMARY)** | Offline-capable, air-gappable, nothing leaves the home. All four candidates satisfy this once weights are local — so it is a *gate*, not a differentiator. The differentiator is *which* sovereign box does the actual job well. |
-| **Open coding throughput per $ (weighted)** | The daily driver is a 32B coder. Single RTX 5090 = 48 tok/s/$3.7K-card wins this axis outright. |
-| **Cost-efficiency** (growth justification / unit cost / lean alternative / break-even) | Lean alternative = **single 5090 now**, dual later only on proven load. Break-even is *sovereignty*, not arbitrage (DR-0014). |
-| **Sovereign-mesh-compat** | Linux + Ollama + Tailscale; reachable from the PWA via the same `/n8n`-style same-origin pattern; no vendor lock. CUDA box fits; Mac breaks the Linux/Ollama mesh assumption. |
-| **MVP-pragmatism** | Don't buy 64–96GB before the 32B coder proves insufficient. Ship the one card that does the job. |
-| **Fit with NAS (DS1621xs, no GPU)** | **Augment.** NAS = data + orchestration + small models; GPU box = the brain. Not a replacement. |
+- **Coder (primary, the daily offload):** `qwen2.5-coder:32b` Q4_K_M (~22 GB) · alt `devstral-small` (24B) for agentic tool-use chains.
+- **General reasoning (fast, fits alongside):** `qwen2.5:14b` / `qwen3:14b` Q4.
+- **70B (when needed):** `llama3.3:70b` Q4 — CPU+GPU split on the single card (slow); becomes resident after the 2nd card (64 GB).
+- **Transcription:** `faster-whisper` / WhisperX `large-v3` (CUDA) — fast on the 5090.
+- **Vision / media future:** `qwen2.5-vl:7b` (→ 32B after 2nd card).
+- **Embeddings/RAG:** `nomic-embed-text` — **stays on the NAS** (already live).
 
 ---
 
-## 3. The three candidate paths (VERIFIED, June 2026)
+## 6. Phased buy / implement plan
 
-### 3.1 Path A — CUDA GPU workstation (RTX 5090 / dual 5090 / RTX PRO 6000 Blackwell)
-
-**RTX 5090 (32GB GDDR7), single card**
-- **Price:** MSRP $1,999; **street ~$3,658–$4,199** (June 2026) — inflated 75%+ over MSRP by the GDDR7/DRAM shortage. [§9-a,b]
-- **Power/noise:** ~575W TGP per card; ~850W full system; audible under load but fine on a standard 15A office circuit.
-- **Measured:** **Qwen2.5 32B @ 48 tok/s** (Ollama); Qwen2.5-Coder-7B @ 5,841 tok/s batch-8. [§9-c,d] A dense 70B Q4 (~40GB) **does not fit** in 32GB — needs dual.
-- **Full single-card build:** card + Ryzen 9 / Threadripper-lite + 128GB RAM + 1000W PSU + NVMe + case ≈ **$5,000–$5,500**.
-
-**Dual RTX 5090 (64GB combined)**
-- **Measured (Ollama, dual 5090):** **Llama 3.3 70B Q4 = 26.85 tok/s**; DeepSeek-R1 70B = 27.03; Qwen 2.5 72B = 24.15 tok/s — *faster than H100 / dual-A100-40GB for 70B inference at ~25% the cost.* [§9-e]
-- **Power/noise:** ~1,150W GPU → 1,600W PSU, 20A circuit advisable, loud under sustained load; real heat in a closed room.
-- **Full build:** ≈ **$9,000–$11,000**.
-
-**RTX PRO 6000 Blackwell (96GB GDDR7 ECC), single card**
-- **Price:** retail **$8,000–$9,200** (NVIDIA list $13,250); 600W single-slot. [§9-f]
-- **Capability:** runs dense-70B Q4 *and* a 32B coder concurrently on one quiet card, with headroom for Qwen3-Coder-Next (80B/3B-active). Best capability-density; quietest/simplest CUDA path; **but ~$10–12K full build** — premature for the current workload.
-
-### 3.2 Path B — NVIDIA DGX Spark
-
-- **Price:** **$4,699** (raised from $3,999 launch, Feb 2026, memory-supply). [§9-g,h]
-- **Specs:** GB10 Grace Blackwell, **128GB unified LPDDR5X**, **273 GB/s** bandwidth, ~1 petaFLOP (FP4 sparse), ~240W, near-silent, 1.2kg, CUDA-native, air-gappable. Runs up to ~200B params resident.
-- **Measured:** **Llama 3.1 70B FP8 = 803 tok/s prefill / 2.7 tok/s decode** — the decode rate is the *bandwidth wall*. [§9-i] On GPT-OSS 120B (MXFP4 MoE): 1,723 prefill / 38.55 decode. DeepSeek-R1 14B FP8 **batch-8 = 2,074 tok/s aggregate** (83.5/req). [§9-g,j]
-- **32B coder, single-stream:** *(est. ~8–11 tok/s, bandwidth-bound: 273 GB/s ÷ ~20GB Q4 ≈ 13 tok/s ceiling, ~0.7 real-world efficiency)* — usable but not snappy for interactive agentic coding.
-- **Verdict:** brilliant **batch / concurrency / capacity** box and a genuinely sovereign one — but **single-stream dense decode is its weakness**, which is exactly the interactive-coder workload.
-
-### 3.3 Path C — Mac Studio M3 Ultra
-
-- **Price/configs (post-pullback):** base **$3,999** (M3 Ultra, 96GB, 1TB). **512GB option REMOVED (March 2026)**; 256GB now **+$2,000** ($5,999); only **96GB and 256GB** remain. [§9-k,l,m] Driven by the DRAM shortage.
-- **Specs:** 800 GB/s unified bandwidth — ~3× the Spark — quiet, ~vs-200W, fully offline.
-- **Measured/est.:** **70B Q4 ≈ 12–18 tok/s**; **Qwen2.5-Coder-32B Q4 (MLX) ≈ 22.7 tok/s** on M2/M3 Max, higher on M3 Ultra (~25–30). [§9-n,o]
-- **Decisive limit:** **NO CUDA.** MLX/llama.cpp only. This forfeits the planned media pipeline (Stable Diffusion / FLUX / ComfyUI / Coqui XTTS are CUDA-first) and diverges from the ratified Linux+Ollama sovereign stack. Good throughput per dollar; wrong ecosystem for *this* roadmap.
+- **Phase 0 — Buy + stand up (week 1).** Confirm 5090 street price day-of; buy the build above. Ubuntu + Docker + Ollama + vLLM; join Tailscale mesh. NAS unchanged.
+- **Phase 1 — Coding continuity (week 1–2).** Pull `qwen2.5-coder:32b`; verify ~45–55 tok/s on the real card (DR-0076 — measure, don't assume). Wire into orchestrator **v0 advisory** ([DR-0056](../decisions/DR-0056-tiered-llm-orchestrator-perpetual-fix.md)); flip `ORCH_MODE` toward **local-first for coding** once verified ([DR-0073](../decisions/DR-0073-orchestrator-capability-aware-routing.md)). **Goal met: the build keeps moving when cloud is capped.**
+- **Phase 2 — Transcription + media groundwork (week 3–4).** faster-whisper; first NDI/CUDA pipeline probe; Qwen2.5-VL for vision tasks.
+- **Phase 3 — Per-industry LLM teams (month 2+).** Multiple models via vLLM. **If VRAM binds → drop in the 2nd RTX 5090 (→ 64 GB)** — PSU/mobo already specced, no rebuild.
+- **Phase 4 — Long-horizon consolidation (evidence-gated).** Only if 70B-resident + heavy concurrent multi-model teams prove binding → **RTX PRO 6000 Blackwell 96 GB** as the single-card consolidation. Not before the data demands it.
 
 ---
 
-## 4. The 3-path price / tok-s comparison table
+## 7. Upgrade / rollback path
 
-| Path | Box | Buy price (Jun 2026) | Full build | VRAM/unified | 32B coder (interactive, single-stream) | Dense 70B Q4 (single-stream) | Power / noise | CUDA / media pipeline | Sovereign / air-gap |
-|---|---|---|---|---|---|---|---|---|---|
-| **A (rec.)** | **Single RTX 5090** | ~$3,658–4,199 card | **~$5–5.5K** | 32GB | **48 tok/s** ✅ | ✗ (no fit) | ~850W, audible | ✅ full | ✅ |
-| A+ | Dual RTX 5090 | ~$7.3–8.4K cards | ~$9–11K | 64GB | ~48 tok/s ✅ | **24–27 tok/s** ✅ | ~1,150W GPU, loud | ✅ full | ✅ |
-| A++ | RTX PRO 6000 Blackwell | ~$8–9.2K card | ~$10–12K | 96GB | fast ✅ | ✅ + headroom | 600W, quiet | ✅ full | ✅ |
-| **B** | DGX Spark | **$4,699** | $4,699 (turnkey) | 128GB unified | ~8–11 tok/s *(est.)* | **2.7 tok/s** ✗ | ~240W, silent | ✅ (CUDA), weak decode | ✅ |
-| **C** | Mac Studio M3 Ultra | **$3,999** (96GB) | $3,999 / $5,999 (256GB) | 96 / 256GB unified | ~23–30 tok/s ✅ | **12–18 tok/s** ✅ | low, quiet | ✗ **no CUDA** | ✅ |
-
-Reading the table for Darrell's weighting (open coding throughput per $, fully private): **single RTX 5090 wins the daily-driver axis**, the Mac wins on quiet-throughput-per-dollar *but loses CUDA*, the Spark wins capacity/concurrency *but loses interactive decode*, and dual-5090 / RTX-6000 are the proven, in-house *upgrade path* for dense-70B — bought later, on evidence.
+- **Upgrade:** +2nd RTX 5090 → **64 GB** (declared lane, drop-in) → if still binding, **RTX PRO 6000 96 GB**. Each step is evidence-triggered, not pre-committed.
+- **Rollback / no-stranded-asset:** if the box underdelivers for *coding*, it does **not** become dead weight — it's a top-tier CUDA workstation that directly serves Darrell's **creative apps** (Premiere/AE/C4D/OBS per [DR-0012](../decisions/DR-0012-gpu-topology-conservative-single-4070-creative-preemption.md)) and the media pipeline, and `ORCH_MODE=vendor-first` still covers coding. The 5090 holds resale value far better than a used 3090. Downside is bounded.
 
 ---
 
-## 5. Open models to run (per tier)
+## 8. Top 2 risks
 
-All Apache-2.0 / MIT, all Ollama-pullable, all fully offline once downloaded.
-
-- **Coder (daily driver):** **Qwen2.5-Coder-32B** — 91.0% HumanEval (matches GPT-4o), fits one 5090 at Q4 (~20GB), 48 tok/s. [§9-c,p]
-- **Coder (agentic, leaner):** **Devstral Small 2 (24B)** — 68% SWE-bench Verified, agent-first (Cline/Aider/OpenHands), runs single 5090 / 32GB Mac. [§9-p] Use this as the OpenClaw agentic default; Qwen2.5-Coder-32B for raw generation quality.
-- **Coder (reach, dual-5090/RTX-6000 only):** **Qwen3-Coder-Next (80B/3B-active MoE)** — 70.6% SWE-bench at 3B active; tool-calling + long-horizon. Add when 64GB+ lands.
-- **General reasoning (dense-70B, dual-5090):** **Llama 3.3 70B** or **Qwen 2.5 72B** (Q4) — for the heavy cross-verify / deep-reasoning workflow rows (`16-cross-verify-engine`, `17-*`).
-- **General small (always-on, NAS-able):** **Qwen 2.5 3B / 7B** — classification, audit, tagging, scripture-version lookup (the offload "always local" tier).
-- **Transcription:** **Whisper large-v3** (already in stack) on the GPU box — real-time on 5090; the media/sermon pipeline lives here.
+1. **Local 32B won't match cloud Claude on the hardest agentic coding.** Honest gap (§3). *Mitigation:* keep the DR-0056 vendor-escalation ladder for the hard ~20%; local owns the routine ~80% **and** all continuity. Buying this box ends the *stall*, not the *need for vendor on the hardest tasks* — set that expectation up front.
+2. **Price/power/availability volatility + 32 GB ceiling.** 5090 street prices run well above MSRP through the mid-2026 memory crisis [1] and a single 32 GB card **can't hold 70B resident** (CPU-spill until the 2nd card). A dual-5090 build draws ~1,150 W card power → **plan home electrical, cooling, and noise** before committing to the 2-card endpoint. *Mitigation:* confirm price day-of; the single-card build + vendor escalation covers 70B-class needs until the evidence-gated 2nd card.
 
 ---
 
-## 6. Phased build / implementation plan
-
-**Phase 0 — procure (Darrell's hand).** Single RTX 5090 + host (Ryzen 9 / 128GB / 1000W PSU sized to add a 2nd card / NVMe / case). ~$5–5.5K. *No purchase made by this session.*
-
-**Phase 1 — stand up the sovereign brain.** Ubuntu LTS + NVIDIA driver/CUDA + Docker + **Ollama**. `ollama pull qwen2.5-coder:32b`, `devstral`, `qwen2.5:7b`, `whisper` path. Tailscale-join the mesh (LAN + Funnel), same-origin reachable like `/n8n`. Verify with a tok/s smoke test (expect ~48 tok/s on the 32B coder) — *measure, don't claim* (DR-0076).
-
-**Phase 2 — wire the workflows.** Point the local-able Register rows at the box: `wf-class-tutor`, `36-quality-gatekeeper`, `wf-llm-review`, the always-local small-model tier. NAS keeps orchestration + data; box does inference.
-
-**Phase 3 — wire OpenClaw to local** (§7) and make it Darrell's offline coding agent.
-
-**Phase 4 — media pipeline.** ComfyUI + Stable Diffusion/FLUX + Coqui XTTS on the same CUDA box (the `AI-MEDIA-PRODUCTION-PLATFORM-VISION` payload).
-
-**Phase 5 — upgrade trigger (evidence-gated).** *Only when* measured load shows the 32B coder is insufficient or dense-70B is needed in the daily loop: add the 2nd RTX 5090 (→64GB, native 70B at 24–27 tok/s). This is the DR-0053 discipline honored, not bypassed. Record it as a DR with the measured trigger.
-
----
-
-## 7. Wiring OpenClaw to the LOCAL model (offline coding agent)
-
-OpenClaw speaks to Ollama's OpenAI-compatible endpoint — **no API keys, fully offline once models are pulled.** [§9-q,r]
-
-1. **On the GPU box:** install Ollama, `ollama pull qwen2.5-coder:32b` (and `devstral`). Confirm the server: `http://<box-ip>:11434/v1`.
-2. **Simplest path:** `ollama launch openclaw --model qwen2.5-coder:32b` — runs OpenClaw entirely local against that model.
-3. **Config path (OpenClaw config file):** add the provider + default model —
-   ```json
-   {
-     "models": { "providers": { "ollama": { "apiBase": "http://<box-ip>:11434/v1" } } },
-     "agents": { "defaults": { "model": { "primary": "ollama/qwen2.5-coder:32b" } } }
-   }
-   ```
-   Use `localhost` if OpenClaw runs on the box; use the box's Tailscale IP from Darrell's laptop.
-4. **Set context ≥ 64k** for local coding (OpenClaw's own recommendation for local models). Set `OLLAMA_NUM_CTX`/model `num_ctx` accordingly; the 5090's 32GB holds 32B-Q4 + a 64k window.
-5. **Restart OpenClaw**, confirm a request shows up in `ollama ps` / box GPU load — that's the proof it's routing local, not to a vendor. Air-gap test: pull the box's WAN and confirm OpenClaw still answers.
-6. **Agentic default:** point agent tool-calling at `devstral` (agent-first training); keep `qwen2.5-coder:32b` for generation-heavy turns.
-
----
-
-## 8. Top risks
-
-1. **GPU price/supply volatility (DRAM shortage).** The 5090 is 75%+ over MSRP and prices move weekly; the same shortage already killed the Mac's 512GB option and raised the Spark to $4,699. *Mitigation:* track [bestvaluegpu.com](https://bestvaluegpu.com) for the dip; the recommendation's single-card start caps exposure (~$3.7K, not ~$8K) and the phased upgrade buys the 2nd card later when supply/price may ease.
-2. **"32B is enough" could prove wrong for the hardest reasoning.** If the daily loop genuinely needs dense-70B/closed-frontier quality, the single 5090 won't deliver it single-stream and you'll hit the Phase-5 upgrade sooner. *Mitigation:* this is *designed in* — the build is sized for the 2nd card, and the honest fallback is hybrid (local 32B for the 95% case, an explicit opt-in vendor call for the rare heavy case), exactly the offload-review's Phase-2 posture. Privacy is preserved because the *default* and all routine coding stay local; only a deliberately-chosen hard case would ever leave, and that's Darrell's call, not automatic.
-
----
-
-## 9. Sources
-
-- **a.** RTX 5090 price history — bestvaluegpu.com, "RTX 5090 Price Tracker US – Jun 2026"
-- **b.** RTX 5090 street vs MSRP / DRAM increase — ofzenandcomputing.com; tweaktown.com (FE sellouts)
-- **c.** RTX 5090 Ollama 32B @ 48 tok/s — databasemart.com, "RTX 5090 Ollama Benchmark"
-- **d.** RTX 5090 Qwen2.5-Coder-7B batch-8 5,841 tok/s — markaicode.com
-- **e.** Dual RTX 5090 70B Q4 26.85 / DeepSeek-R1 70B 27.03 / Qwen2.5-72B 24.15 tok/s — databasemart.com, "2×RTX 5090 Ollama Benchmark"
-- **f.** RTX PRO 6000 Blackwell 96GB $8–9.2K retail / $13,250 list / 600W — thundercompute.com; videocardz.com; newegg.com
-- **g.** DGX Spark $4,699 / 128GB / 273 GB/s / decode numbers — a-bots.com; intuitionlabs.ai
-- **h.** DGX Spark price raise $3,999→$4,699 — intuitionlabs.ai
-- **i.** DGX Spark Llama 3.1 70B FP8 803 prefill / 2.7 decode — github.com/ggml-org/llama.cpp Discussion #16578; lmsys.org review
-- **j.** DGX Spark concurrency 695–2,074 tok/s aggregate — dendro-logic.com; ollama.com/blog/nvidia-spark-performance
-- **k.** Mac Studio M3 Ultra base $3,999 / configs — apple.com/shop
-- **l.** 512GB option removed, 256GB +$ — tomshardware.com; macrumors.com; notebookcheck.net
-- **m.** DRAM-shortage cause — macrumors.com; pcguide.com
-- **n.** M3 Ultra 70B ~12–18 tok/s / 800 GB/s — llmcheck.net; github.com/ml-explore/mlx Discussion #3209
-- **o.** Qwen2.5-Coder-32B MLX 22.7 tok/s on M2/M3 — insiderllm.com; medium.com (Vashchuk)
-- **p.** Open coding models (Qwen2.5-Coder-32B 91% HumanEval; Devstral Small 2 24B 68% SWE-bench; Qwen3-Coder-Next 80B/3B 70.6%) — kilo.ai/open-source-models; pinggy.io; siliconflow.com; localaimaster.com
-- **q.** OpenClaw + Ollama integration / config — docs.ollama.com/integrations/openclaw; docs.openclaw.ai/providers/ollama
-- **r.** OpenClaw local offline / 64k context guidance — ollama.com/blog/openclaw; codersera.com (2026 setup guide)
-
----
-
-*Recorded as an advisory under the hardware-decision lineage DR-0014 → DR-0053. A purchase, if made, becomes a new dated DR carrying the measured trigger.*
+*Decision record to follow once Darrell greenlights: a new DR citing this review (do not rewrite DR-0014/0053 — new directive = new DR, per DR-0011).*

@@ -26,6 +26,48 @@ const DAY_INDEX = {
   Thursday: 4, Friday: 5, Saturday: 6,
 };
 
+// ── ROLLING-LATEST embed sources (added 2026-06-17, Darrell) ─────────────────
+// Desired behavior: "the live stream should show the latest live stream until
+// the next one is streaming, and repeat." So the Live Worship slot must never be
+// a dead/waiting frame — it shows the LIVE broadcast when one is running, and
+// otherwise the channel's MOST RECENT upload (which, after a stream ends, IS
+// that finished stream), rolling forward on its own as new streams land.
+//
+// We do this with ZERO API key and no vendor lock, via two no-key YouTube
+// embeds:
+//   • live  : /embed/live_stream?channel=UC...  — auto-follows the channel's
+//             current live broadcast.
+//   • latest: /embed/videoseries?list=UU...     — every channel's
+//             auto-generated "uploads" playlist has the id formed by swapping
+//             the channel id's `UC` prefix for `UU`, and that playlist is
+//             ordered newest-first, so the embed opens on the most recent
+//             upload. No weekly video-id edits; when the next stream ends it
+//             becomes item #1 and the slot rolls to it automatically.
+// The caller picks live vs latest from the honest service-window gate below.
+
+// Standard YouTube channel id: `UC` + 22 url-safe base64 chars.
+const CHANNEL_ID_RE = /^UC[A-Za-z0-9_-]{22}$/;
+
+// uploadsPlaylistId('UCxxx…') -> 'UUxxx…' (the channel's uploads playlist), or
+// null when the id is not a standard channel id (we never guess a playlist).
+export function uploadsPlaylistId(channelId) {
+  const id = String(channelId || '').trim();
+  return CHANNEL_ID_RE.test(id) ? `UU${id.slice(2)}` : null;
+}
+
+// The no-key live broadcast embed for a channel, or null without a channel id.
+export function liveStreamEmbedUrl(channelId) {
+  const id = String(channelId || '').trim();
+  return id ? `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(id)}` : null;
+}
+
+// The no-key "latest upload" embed (channel uploads playlist, newest-first), or
+// null when no uploads playlist can be derived (caller falls back to a link).
+export function latestUploadEmbedUrl(channelId) {
+  const list = uploadsPlaylistId(channelId);
+  return list ? `https://www.youtube.com/embed/videoseries?list=${list}&rel=0` : null;
+}
+
 // A stream may begin a little before the posted start time (pre-roll / praise
 // & worship) and run well past it (a long service + the stream lingering on
 // "stream ended" before YouTube tears it down). Generous on both sides so we

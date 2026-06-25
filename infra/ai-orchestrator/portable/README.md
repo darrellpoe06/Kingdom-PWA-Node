@@ -148,6 +148,38 @@ node ../../../scripts/wake-router.mjs --latest --summon
 Turn summon back off (scheduling continues): `./wake-disarm.sh`.
 Full panic stop (force inert): `./disarm.sh --on`.
 
+## Bounded auto-resume after a vendor cap/outage (cap-resume)
+
+The pragmatic MVP bridge for: *"the cap reset — continue the work I already
+approved,"* without waiting on the full local-LLM conductor or the GPU box. It is
+the **lower-risk sibling** of the wake bridge: it resumes **only an explicitly
+approved queue** and makes **no new decisions**.
+
+- **Trigger** = the always-on NAS (not subject to the desktop cap) fires
+  `resume-cron.sh` **after** the cap-reset window (default `04:30 America/Chicago`
+  + buffer; all configurable in `.env`).
+- **Queue** = `state/approved-queue.json` — a materialized, explicit list; only
+  `approved: true && status: pending` items are eligible (template:
+  [`resume/example.approved-queue.json`](resume/example.approved-queue.json),
+  schema: [`resume/approved-queue.schema.json`](resume/approved-queue.schema.json)).
+- **Runner** = `../../../scripts/cap-resume.mjs` (host-side Node, reuses the wake
+  bridge's vendor layer + budget accounting). **Default = plan-only.**
+- **Brakes** = the same kill-switch + ARM + `$` budget, **plus** a dedicated
+  `RESUME_ARMED` consent flag and hard **per-run / per-day call caps**
+  (`RESUME_MAX_TASKS_PER_RUN`, `RESUME_MAX_CALLS_PER_DAY`). Single-flight lock +
+  idempotent `status` write-back. ntfy alert per run.
+
+**Ships INERT** (RESUME_ARMED absent, caps unset). Arm + schedule steps, the
+DR-0071 reconciliation, and the honest constraints are in
+[`resume/RESUME-CONTRACT.md`](resume/RESUME-CONTRACT.md).
+
+```bash
+# Dry-run (plan-only; calls nothing):
+node ../../../scripts/cap-resume.mjs
+# Arm (after ./disarm.sh --off && ./arm.sh, with budgets + caps set in .env):
+./resume-arm.sh        # turn off: ./resume-disarm.sh   panic: ./disarm.sh --on
+```
+
 ## Resource caps (host-safety brake)
 
 `docker-compose.yml` caps the container at **`cpus: '1'` / `mem_limit: 1g`** (plus
@@ -165,6 +197,12 @@ portable/
   .env.example         # copy to .env (bootstrap does this); budgets default 0
   arm.sh / disarm.sh   # deliberate, audited arm/disarm + panic stop
   wake-arm.sh / wake-disarm.sh  # consent to / withdraw vendor-summon on wake
+  resume-arm.sh / resume-disarm.sh  # consent to / withdraw bounded auto-resume
+  resume-cron.sh       # NAS scheduler entrypoint: one bounded resume pass after cap reset
+  resume/
+    RESUME-CONTRACT.md           # bounded auto-resume contract + research-review + runbook
+    approved-queue.schema.json   # JSON Schema (draft-07) for the approved-work queue
+    example.approved-queue.json  # worked example (one approved + one unapproved item)
   charter/
     CHARTER.md         # canonical policy (source of truth) -- the wake bridge is in §3
     charter.yml        # POLICY AS CONFIG -- GENERATED from CHARTER.md, read at runtime
@@ -180,7 +218,7 @@ portable/
       brakes.sh        # budget + concurrency + kill-switch + ARM gate
       wake.sh          # the wake-scheduler: scans state/handoffs/, logs due/pending
   state/
-    KILL_SWITCH        # ships ENGAGED (tracked); ARM/WAKE_SUMMON + lock + spend + handoffs are runtime
+    KILL_SWITCH        # ships ENGAGED (tracked); ARM/WAKE_SUMMON/RESUME_ARMED + locks + spend/calls + handoffs + approved-queue.json are runtime
   events/
     events.jsonl       # append-only event log (runtime; gitignored)
   MANIFEST.json        # freshness manifest (sha256 of every shipped file) -- see below

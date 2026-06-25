@@ -17,8 +17,9 @@
 // labelled inputs, visible #B85838 focus outline, aria-live on the thread.
 // =============================================================================
 import React, { useEffect, useRef, useState } from 'react';
-import { SectionTitle } from './shared.jsx';
+import { SectionTitle, TabScroll } from './shared.jsx';
 import ChoirSongWorkshop from './ChoirSongWorkshop.jsx';
+import ChoirSongbook from './ChoirSongbook.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
@@ -569,7 +570,7 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
 // -----------------------------------------------------------------------------
 // Surface
 // -----------------------------------------------------------------------------
-const TABS = [['week', 'This week'], ['songs', 'Songs'], ['schedule', 'Schedule'], ['teamdocs', 'Team Docs'], ['availability', 'Availability'], ['messages', 'Messages'], ['resources', 'Resources'], ['roster', 'Roster']];
+const TABS = [['week', 'This week'], ['songs', 'Songs'], ['songbook', 'Songbook'], ['schedule', 'Schedule'], ['teamdocs', 'Team Docs'], ['availability', 'Availability'], ['messages', 'Messages'], ['resources', 'Resources'], ['roster', 'Roster']];
 
 export default function Choir() {
   const [signedIn, setSignedIn] = useState(false);
@@ -640,11 +641,11 @@ export default function Choir() {
   return (
     <div className="max-w-2xl">
       <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
-      <div className="flex gap-1 text-xs mb-3 overflow-x-auto">
+      <TabScroll className="mb-3">
         {TABS.map(([id, label]) => (
           <button key={id} type="button" onClick={() => setTab(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${tab === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
         ))}
-      </div>
+      </TabScroll>
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
 
@@ -662,6 +663,8 @@ export default function Choir() {
       )}
 
       {tab === 'songs' && <ChoirSongWorkshop access={access} />}
+
+      {tab === 'songbook' && <ChoirSongbook songs={songs} access={access} />}
 
       {tab === 'schedule' && (
         <>

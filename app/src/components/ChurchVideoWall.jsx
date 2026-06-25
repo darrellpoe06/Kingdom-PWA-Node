@@ -47,8 +47,31 @@ const TIMELINE = [
   { when: '2024', title: 'First estimate', body: 'A smaller 9.8 x 6.6 ft / 24-panel build was quoted. Later superseded by the current purchase.', tone: 'idle' },
   { when: 'Jun 2026', title: 'Purchased', body: 'The full P2.97mm wall ordered from LED Nation USA; invoice forwarded 2026-06-08. Figures in the gated budget below.', tone: 'good' },
   { when: 'Jun 2026', title: 'Delivered + staged', body: 'Hardware delivered and staged BEHIND THE STAGE CURTAIN.', tone: 'good' },
-  { when: 'Pending', title: 'Installation', body: 'Rigging + signal chain + commissioning. Not yet scheduled.', tone: 'attention' },
+  { when: 'Jun 22, 2026', title: 'Installation started', body: 'On-site assembly began: ground-support / box-truss towers erected to mount and stack the wall; modular LED cabinet panels laid out for assembly; crew on site sizing the stage. In progress.', tone: 'good' },
+  { when: 'Pending', title: 'Signal chain + commissioning', body: 'Source machines &rarr; processor/scaler &rarr; sending/receiving cards over Cat6, then calibration and sign-off. Follows the physical build.', tone: 'attention' },
 ];
+
+// On-site install record (NON-financial physical facts) — the install-milestone
+// EVENT, observed on site 2026-06-22 from Darrell's photos as assembly began.
+// Public-safe like SPEC/TIMELINE/CONSTRAINTS: it carries no money. This is the
+// physical front end of the sovereign media / broadcast buildout; every line is
+// what was actually on the floor, not invented (Reality-Trace + Verification).
+const INSTALL = {
+  observedOn: 'June 22, 2026',
+  source: 'On-site observation + photos — Darrell, 2026-06-22',
+  components: [
+    'Modular LED video-wall cabinet panels — laid out on the floor, staged for assembly.',
+    'Black ground-support / box-truss towers — being erected to mount and stack the wall.',
+    'Install crew of ~3 on site; stage sized with a tape measure.',
+    'Road cases — panels and rigging transported and staged for the build.',
+  ],
+  environment: [
+    'FOH production desk — digital mixing console, multiple monitors, and a laptop.',
+    'Dual projector screens flanking the stage — the projection this fine-pitch wall augments and will replace.',
+    'Stage lighting on truss; acoustic wall-treatment panels.',
+    'Full band setup — drums, keys, percussion.',
+  ],
+};
 
 const OPPORTUNITIES = [
   'Full-brightness Scripture, lyrics, and sermon points in a lit room — projection can’t match fine-pitch LED for the congregation in the back rows.',
@@ -137,7 +160,7 @@ export default function ChurchVideoWall() {
   const totals = useMemo(() => budgetTotals(projectLines), [projectLines]);
   const donation = useMemo(() => donationProgress(project || {}), [project]);
 
-  const status = project?.status || 'staged';
+  const status = project?.status || 'installing';
 
   return (
     <div className="space-y-4">
@@ -156,7 +179,7 @@ export default function ChurchVideoWall() {
           {project?.summary || 'Fine-pitch indoor LED video wall for the main sanctuary — replaces projection so the congregation reads Scripture, lyrics, and the broadcast feed at full brightness in a lit room.'}
         </p>
         <p className="mt-2 text-[12px] text-[#1A1815]">
-          {project?.installNote || 'Hardware delivered and staged BEHIND THE STAGE CURTAIN; awaiting installation.'}
+          {project?.installNote || 'Installation in progress — on-site assembly began 2026-06-22 (ground-support towers up, panels staged for assembly). Signal chain + commissioning to follow.'}
         </p>
       </div>
 
@@ -272,6 +295,26 @@ export default function ChurchVideoWall() {
         </ol>
       </div>
 
+      {/* ON-SITE INSTALL — the install-milestone EVENT record (public-safe facts) */}
+      <div className={card}>
+        <div className={labelCls}>On site &middot; install in progress &middot; {INSTALL.observedOn}</div>
+        <p className="mt-2 text-[12px] text-[#5A5751]">
+          The physical front end of the sovereign media / broadcast buildout. Components observed on site as assembly began:
+        </p>
+        <ul className="mt-2 space-y-1.5">
+          {INSTALL.components.map((c, i) => (
+            <li key={i} className="text-[13px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{c}</span></li>
+          ))}
+        </ul>
+        <div className="mt-3 text-[11px] uppercase tracking-wider text-[#5A5751]">Existing AV environment it joins</div>
+        <ul className="mt-1.5 space-y-1.5">
+          {INSTALL.environment.map((c, i) => (
+            <li key={i} className="text-[13px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{c}</span></li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[11px] text-[#5A5751] italic">Source: {INSTALL.source}.</p>
+      </div>
+
       {/* OPPORTUNITIES */}
       <div className={card}>
         <div className={labelCls}>Opportunities</div>
@@ -301,6 +344,8 @@ export default function ChurchVideoWall() {
         <ul className="mt-2 space-y-1.5 text-[13px] text-[#1A1815]">
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>Media-team broadcast course</b> &mdash; trainees learn the real signal chain that drives this wall.</span></li>
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>The Word &mdash; Migdal</b> &mdash; BG&rsquo;s study notes and the passage present from the app to the wall during service.</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>Sovereign media pipeline (NDI / CUDA)</b> &mdash; this wall is the physical front end the NDI + CUDA encode/playback chain drives.</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>COLG NAS build</b> &mdash; church-owned storage + playback the wall reads from; this CapEx record seeds the church-infrastructure accounting that gates the media-pipeline build.</span></li>
         </ul>
       </div>
     </div>

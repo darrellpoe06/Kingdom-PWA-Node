@@ -3,7 +3,7 @@
 // place." These lock the real-attribution filter (created_by, surfaced as
 // createdBy) and the safe default that never lands a user on an empty screen.
 import { describe, it, expect } from 'vitest';
-import { isMine, scopeProjects, defaultProjectScope, rankOf, orderProjects, defaultOrderMode, hasNextStep, isBlocked, swapById } from '../components/Projects.jsx';
+import { isMine, scopeProjects, defaultProjectScope, rankOf, orderProjects, defaultOrderMode, hasNextStep, isBlocked, swapById, isComplete, isClosed, openProjects, listVisible } from '../components/Projects.jsx';
 
 const me = 'user-darrell';
 const her = 'user-christina';
@@ -148,5 +148,64 @@ describe('swapById', () => {
   it('tolerates an empty or undefined list', () => {
     expect(swapById(undefined, 'A', 'B')).toEqual(undefined);
     expect(swapById([], 'A', 'B')).toEqual([]);
+  });
+});
+
+// --- closure lifecycle: don't let finished projects inflate the live numbers ---
+// (2026-06-23 closure-lifecycle fix). "closed" = complete OR archived; the
+// headline counts + the default list both read this single definition so the
+// honest active number and the visible rows agree.
+const archivedProject = { id: 'arch', status: 'on-hold', lifecycle: { log: [
+  { toPhase: 'active' }, { toPhase: 'on-hold', note: 'archived — set down, kept for the record' },
+] } };
+
+describe('isComplete / isClosed', () => {
+  it('isComplete is true only for the terminal complete status', () => {
+    expect(isComplete({ status: 'complete' })).toBe(true);
+    expect(isComplete({ status: 'active' })).toBe(false);
+    expect(isComplete(null)).toBe(false);
+  });
+  it('isClosed covers BOTH complete and archived (so neither inflates active load)', () => {
+    expect(isClosed({ status: 'complete' })).toBe(true);
+    expect(isClosed(archivedProject)).toBe(true);
+    expect(isClosed({ status: 'active' })).toBe(false);
+    expect(isClosed({ status: 'on-hold', lifecycle: { log: [{ toPhase: 'on-hold', note: 'waiting on funds' }] } })).toBe(false); // parked, not archived
+  });
+});
+
+describe('openProjects — the still-in-flight set behind the honest counts', () => {
+  it('drops completed AND archived, keeps everything else', () => {
+    const list = [
+      { id: 'a', status: 'active' },
+      { id: 'b', status: 'complete' },
+      { id: 'c', status: 'planning' },
+      archivedProject,
+    ];
+    expect(openProjects(list).map(p => p.id)).toEqual(['a', 'c']);
+  });
+  it('tolerates a non-array', () => {
+    expect(openProjects(null)).toEqual([]);
+  });
+});
+
+describe('listVisible — the default list hides closed work, findable on demand', () => {
+  const complete = { id: 'done', status: 'complete', domain: 'family' };
+  const active = { id: 'live', status: 'active', domain: 'family' };
+  it('hides completed + archived by default (active work only)', () => {
+    expect(listVisible(active, {})).toBe(true);
+    expect(listVisible(complete, {})).toBe(false);
+    expect(listVisible(archivedProject, {})).toBe(false);
+  });
+  it('reveals closed work when "Show completed" is on', () => {
+    expect(listVisible(complete, { showCompleted: true })).toBe(true);
+    expect(listVisible(archivedProject, { showCompleted: true })).toBe(true);
+  });
+  it('still finds closed work via the status filter (regardless of the toggle)', () => {
+    expect(listVisible(complete, { filterStatus: 'complete' })).toBe(true);
+    expect(listVisible(active, { filterStatus: 'complete' })).toBe(false);
+  });
+  it('respects the domain filter', () => {
+    expect(listVisible(active, { filterDomain: 'church' })).toBe(false);
+    expect(listVisible(active, { filterDomain: 'family' })).toBe(true);
   });
 });

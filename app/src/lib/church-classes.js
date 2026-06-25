@@ -429,6 +429,12 @@ export function exportCurriculumMarkdownFor(course, startISO = null) {
   const modules = course?.modules || [];
   const sessionFlow = course?.sessionFlow || [];
   const handsOnLabel = meta.handsOnLabel || 'In the app';
+  // Unit label layer — the four weekly courses set no meta.unit, so this keeps the
+  // original "Week" / "weekly sessions" / "How to run the 75 minutes" wording. A
+  // self-paced lesson series sets meta.unit and prints honestly as "Lesson(s)".
+  const unit = meta.unit || {};
+  const unitCap = unit.cap || 'Week';
+  const unitSessionLabel = unit.sessionLabel || 'How to run the 75 minutes';
   const minutes = sessionFlow.reduce((t, s) => t + (s.minutes || 0), 0);
   const rows = startISO
     ? buildScheduleFor(modules, startISO)
@@ -443,7 +449,9 @@ export function exportCurriculumMarkdownFor(course, startISO = null) {
   if (meta.tagline) { lines.push(`_${meta.tagline}_`); lines.push(''); }
   if (meta.audience) lines.push(`**For:** ${meta.audience}`);
   if (meta.format) lines.push(`**Format:** ${meta.format}`);
-  lines.push(`**Length:** ${meta.weeks || rows.length} weekly sessions · ~${minutes} min each`);
+  lines.push(unit.selfPaced
+    ? `**Length:** ${meta.weeks || rows.length} ${(meta.weeks || rows.length) === 1 ? (unit.noun || 'lesson') : (unit.nounPlural || 'lessons')} · self-paced · ~${minutes} min each`
+    : `**Length:** ${meta.weeks || rows.length} weekly sessions · ~${minutes} min each`);
   lines.push('');
   lines.push('## Every session follows the same rhythm');
   lines.push('');
@@ -454,11 +462,16 @@ export function exportCurriculumMarkdownFor(course, startISO = null) {
 
   rows.forEach((m) => {
     const dateStr = fmt(m.date);
-    lines.push(`## Week ${m.week} — ${m.title}`);
+    lines.push(`## ${unitCap} ${m.week} — ${m.title}`);
     if (dateStr) lines.push(`*${dateStr}*`);
     lines.push('');
     lines.push(`**Big idea.** ${m.bigIdea}`);
     lines.push('');
+    if (Array.isArray(m.benefits) && m.benefits.length) {
+      lines.push('**What this frees in you**');
+      m.benefits.forEach((b) => lines.push(`- ${b}`));
+      lines.push('');
+    }
     if (m.lesson) { lines.push(`**Lesson.** ${m.lesson}`); lines.push(''); }
     lines.push(`**${handsOnLabel}.** ${m.inApp}`);
     lines.push('');
@@ -473,7 +486,7 @@ export function exportCurriculumMarkdownFor(course, startISO = null) {
         lines.push('');
       }
       if (m.facilitator.howToRun) {
-        lines.push('**How to run the 75 minutes**');
+        lines.push(`**${unitSessionLabel}**`);
         m.facilitator.howToRun.split('|').map((s) => s.trim()).filter(Boolean).forEach((seg) => lines.push(`- ${seg}`));
         lines.push('');
       }

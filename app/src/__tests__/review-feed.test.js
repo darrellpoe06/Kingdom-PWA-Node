@@ -3,7 +3,7 @@
 // tolerate a missing/garbled response (so the panel never crashes) and that
 // distinguish a real vendor cross-check from the graceful-degradation note.
 import { describe, it, expect } from 'vitest';
-import { normalizeReviewFeed, isPendingSynthesis, applyAction } from '../components/ReviewFeed.jsx';
+import { normalizeReviewFeed, isPendingSynthesis, applyAction, vendorCrossCheckState, VENDOR_CHECK_WINDOW_MS } from '../components/ReviewFeed.jsx';
 
 describe('normalizeReviewFeed', () => {
   it('keeps well-formed proposals and reports the count', () => {
@@ -72,5 +72,35 @@ describe('isPendingSynthesis', () => {
 
   it('treats real synthesis text as a cross-check', () => {
     expect(isPendingSynthesis('The current best practice is HMAC-signed webhooks.')).toBe(false);
+  });
+});
+
+describe('vendorCrossCheckState — no permanent limbo (local-first auto-advance)', () => {
+  const NOW = Date.parse('2026-06-23T00:00:00Z');
+  const iso = (ms) => new Date(ms).toISOString();
+
+  it('shows a REAL vendor synthesis when one exists', () => {
+    const s = vendorCrossCheckState({ vendor_synthesis: 'Confirmed: rotate keys quarterly.', captured_at: iso(NOW) }, NOW);
+    expect(s.kind).toBe('synthesized');
+    expect(s.text).toBe('Confirmed: rotate keys quarterly.');
+  });
+
+  it('reads as CHECKING only briefly — inside the window with no vendor synthesis', () => {
+    const fresh = { vendor_synthesis: null, captured_at: iso(NOW - 1000) }; // just staged
+    expect(vendorCrossCheckState(fresh, NOW).kind).toBe('checking');
+  });
+
+  it('AUTO-ADVANCES to LOCAL-VERIFIED past the window — the old permanent "pending" is gone', () => {
+    // The exact bug Darrell hit: a Jun-13 item still "pending" on Jun-23.
+    const aged = { vendor_synthesis: null, captured_at: '2026-06-13T00:00:00Z' };
+    expect(vendorCrossCheckState(aged, NOW).kind).toBe('local-verified');
+    // the graceful-degradation note also settles, not dangles
+    const degraded = { vendor_synthesis: '(vendor unavailable: HTTP 429)', captured_at: iso(NOW - VENDOR_CHECK_WINDOW_MS - 1) };
+    expect(vendorCrossCheckState(degraded, NOW).kind).toBe('local-verified');
+  });
+
+  it('settles to LOCAL-VERIFIED when there is no usable captured_at (never dangles)', () => {
+    expect(vendorCrossCheckState({ vendor_synthesis: null, captured_at: null }, NOW).kind).toBe('local-verified');
+    expect(vendorCrossCheckState({ vendor_synthesis: '' }, NOW).kind).toBe('local-verified');
   });
 });

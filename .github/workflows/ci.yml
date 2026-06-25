@@ -1,9 +1,19 @@
 # CI — the mechanical floor under RELEASE-TIERS.md.
-# Every PR and every push to main runs lint + the Vitest suite + the wf36
-# Quality Gatekeeper harness. Nothing merges with a red suite, regardless
-# of tier. Added per docs/99-session-notes/2026-06-11-test-coverage-analysis.md
-# (P2); the suite runs without app/.env.local because vitest.config.js stubs
-# the Supabase env (P1).
+# Every PR and every push to main runs lint + the Vitest suite + a real
+# production build + the wf36 Quality Gatekeeper harness. Nothing merges with a
+# red suite, regardless of tier. Added per
+# docs/99-session-notes/2026-06-11-test-coverage-analysis.md (P2); the suite runs
+# without app/.env.local because vitest.config.js stubs the Supabase env (P1).
+#
+# The `npm run build` step (added 2026-06-23) closes a hole that twice half-broke
+# the live app: lint+vitest pass even when a cross-module *named export* is
+# missing (e.g. the monolith importing liveStreamEmbedUrl/latestUploadEmbedUrl
+# from church-live.js before church-live.js exported them). Rollup hard-fails the
+# production bundle on a missing named export, but CI never ran a build, so the
+# break shipped green and only surfaced as a white screen on Vercel/in vite dev.
+# Running the real build in CI makes that class of failure RED here, not in prod.
+# Verification Doctrine (DR-0076): a deterministic gate, proven to catch the
+# break (the church-live missing-export build failure reproduces without it).
 
 name: CI
 
@@ -20,6 +30,10 @@ on:
 
 jobs:
   app:
+    # Name is load-bearing: the main-lane ruleset requires a status check named
+    # exactly "app — lint + vitest". Do NOT rename this job — the build step
+    # below runs INSIDE this job, so a failed build still fails this required
+    # check. Renaming would orphan the required check and block every PR.
     name: app — lint + vitest
     runs-on: ubuntu-latest
     defaults:
@@ -35,6 +49,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx vitest run
+      # Real production bundle. Rollup hard-fails on a missing named export, so
+      # this catches the cross-module-export break that lint+vitest let through.
+      - run: npm run build
 
   workflows:
     name: n8n workflows — wf36 gatekeeper harness

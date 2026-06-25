@@ -123,6 +123,23 @@ export function archivePatch() {
   return { status: 'on-hold', _by: 'user', _note: 'archived — set down, kept for the record' };
 }
 
+// markCompletePatch — close a finished project in one tap from the row. Writes the
+// terminal `complete` status plus a lifecycle note, so a finished project stops
+// inflating the Active metric + 12-month forecast the moment it's done (the
+// numbers already exclude `complete`; this makes closing cheap so they're right).
+// Same _by/_note path moveToStage uses, so the lifecycle trail records the close.
+export function markCompletePatch() {
+  return { status: 'complete', _by: 'user', _note: 'marked complete from the project row' };
+}
+
+// reschedulePatch — push a project's end date out (the overdue affordance beside
+// "Mark complete"). For a project that's still in flight but slipped past its
+// target — reschedule instead of falsely closing it. Records the new date in the
+// lifecycle note so the slip is visible in the trail.
+export function reschedulePatch(endDate) {
+  return { endDate, _by: 'user', _note: `rescheduled end date to ${endDate}` };
+}
+
 // isArchived — a project parked with the archive note. Read from the real
 // lifecycle log so the active list can hide archived items without a new column.
 export function isArchived(project) {

@@ -283,6 +283,59 @@ Pastor Lee and Bishop Gwin are named here as shepherds after Yahweh's own heart 
 
 ---
 
+## 2026-06-18 — This Week's Reflection: "You Were Built to Win" (COLG / The Love Corner Wednesday Bible Study)
+
+*Captured this week (Wednesday, 2026-06-18) for Darrell to sit with through the week, as proof and a reflection. **Private — Darrell, Christina, and Bishop Gwin (BG) only.***
+
+**Source — the public COLG stream, with consent.** This entry was drawn from the public Wednesday Bible Study that the Church of the Living God streams on its **The Love Corner** YouTube channel — the same channel that feeds the Word/sermon-to-content pipeline. It is **public data the church streams live**, and its use here was **explicitly authorized by Darrell**. This is a real, first instance of the *channel-as-source* pattern: a public stream, captured with consent, transformed into a faithful study record. What follows is **not** a transcript or reproduction — it is a substantially shorter, transformed reflection on the study's themes, Scriptures, and teaching, so the content is honored and the source is credited without copying it.
+
+> **Note on the source date.** The video Darrell provided (`youtu.be/Du-BLBHO8tE`) is titled **"5-20-2026 ... Wednesday Bible Study 'YOU WERE BUILT TO WIN!'"** — the **May 20, 2026** study (uploaded 2026-05-21), not a June 18 study. It is captured here as requested and dated by its **capture week (2026-06-18)**; the **source study's own date (2026-05-20)** is recorded for honesty. If a different (more recent) week was intended, swap the link and this entry can be re-captured.
+
+### Entry: You Were Built to Win — David, Goliath, and the Anointing That Waits for Its Hour (1 Samuel 17)
+
+**The teacher:** Bishop Lloyd E. Gwin (BG), teaching the Wednesday study from **1 Samuel 17:32–37**, with the congregation responding throughout in testimony and dialogue. Assistant Pastor James Hardnett opened the service in prayer and read **Psalm 121**. The teaching below is BG's; the testimonies are the body's, attributed as such — not all folded under one voice.
+
+**Psalm 121 — the service opened where help comes from:**
+
+**ESV — Psalm 121:1–2:** *"I lift up my eyes to the hills. From where does my help come? My help comes from the Lord, who made heaven and earth."*
+
+**The frame.** David is a young man — anointed king already (by Samuel), yet still a shepherd, still on an errand for his father, still uncounted by his own family. BG's recurring thread: **an anointing on your life is not the same as the hour of its use.** Calling comes first; development, timing, and the assignment come later — and the real test is whether you are *faithful in what you are called to do right now* while you wait. The danger is burning out before you mellow, or, later in life, only looking back at *what you were* instead of asking *what you might still become*. Abraham wasn't done; Moses at the bush wasn't done. BG pressed both ends of the room at once: **the young and the seasoned are in the same boat — both told they "don't count," both still carrying a gift to give.**
+
+**The spine — the Spirit had been on David long before the battle:**
+
+**ESV — 1 Samuel 16:13:** *"Then Samuel took the horn of oil and anointed him in the midst of his brothers. And the Spirit of the Lord rushed upon David from that day forward. And Samuel rose up and went to Ramah."*
+
+While an entire trained army stood paralyzed for forty days, the one who was *not even old enough to enlist* was the one still walking in the Spirit — because he had been with that Spirit, and with the lion and the bear, in private, for years. **A contribution from the floor (captioned "DP" in the stream — consistent with Darrell's own voice) named this directly:** humans under pressure respond in ways they wouldn't otherwise; the only one still steady was the one who had been *studying the Spirit since he was a boy*, so that when the moment came, he was already activated. The wider point Darrell can sit with: **the Spirit can be quenched — and it can also be asked for, and increased.** Preparation in the hidden place is what's available in the public one.
+
+**BG's six movements through the story** — the shape to carry through the week:
+
+1. **Opportunity.** David hears the same threat everyone else hears, but where they hear a giant, he hears an *opening* — and asks (three times) what the reward is, already certain of the outcome. He's not bitter at his father or his brothers; he sees a chance to win *and* to bless the family that overlooked him (free from taxes in Israel).
+2. **Fear versus faith.** Saul is fearful; David is faith-filled. The army is geographically positioned for battle but not *spiritually* prepared — "just because you're in a position doesn't mean you're ready for it." Faith, not size, is the qualifier.
+3. **He had to market himself.** "If you don't know what you can and cannot do, no one else will trust you." David recounts the lion and the bear not to boast but to give Saul a reason to send him: *God prepared me in private for this public domain.*
+4. **He had to be real.** David tries on Saul's armor and takes it off — *"I cannot go in these; I am not used to them."* You cannot win in someone else's armor. Be true to yourself first; God anointed David with a calling, not as a copy of someone else. BG's aside on himself — that he preaches from big-font notes and won't pretend otherwise — was the same point lived: be real about your own lane.
+5. **Don't let someone's image of you defile you or define you.** Goliath sees "little more than a boy" and curses him. David refuses the label: *"I know who I am in God."* A negative word doesn't have to be agreed with, answered, or carried.
+6. **Courage that turns cowards into champions.** When the giant falls, the same army that hid for forty days surges forward. One person's faith, exercised, frees a whole company that was frozen. (Brother Moore's testimony mirrored it: a word spoken into a discouraged nephew, who then *"scored about six touchdowns."*) That, BG said, **is our job** — to speak into the unsure and watch them rise.
+
+**The heart of the matter — the battle and the glory belong to Yahweh, not to the weapon:**
+
+**ESV — 1 Samuel 17:45–47:** *"Then David said to the Philistine, 'You come to me with a sword and with a spear and with a javelin, but I come to you in the name of the Lord of hosts, the God of the armies of Israel, whom you have defied. This day the Lord will deliver you into my hand, and I will strike you down and cut off your head. And I will give the dead bodies of the host of the Philistines this day to the birds of the air and to the wild beasts of the earth, that all the earth may know that there is a God in Israel, and that all this assembly may know that the Lord saves not with sword and spear. For the battle is the Lord's, and he will give you into our hand.'"*
+
+BG's one-line summary worth holding onto:
+
+> **BG:** *"God prepared me in private for this public domain."* *(quoted; the rest is reflection, not reproduction.)*
+
+**The takeaway BG left on the table — "built to win" is for the whole life, not a season:**
+
+**ESV — Romans 8:31:** *"What then shall we say to these things? If God is for us, who can be against us?"*
+
+"It's not over until it's over." Being built to win, BG said, isn't for ten or twenty or fifty years — it runs until the Lord says *"Well done, faithful servant; come home."* The closing warning was plain and practical: keep asking God what He wants you to do, *because if you don't take an assignment from Him, the adversary will hand you one.* The study closed in prayer over Isaiah 54:17 ("no weapon formed against us will prosper") and a trivia question tying Goliath's forty days of taunting to the forty days of Jesus in the New Testament.
+
+**For Darrell, this week:** the through-line lands close to the work already named in this Study — the anointing that waits for its hour, faithfulness in the present assignment, preparation in the hidden place becoming strength in the public one, and the refusal to let anyone else's image define the calling. *The battle is the Lord's; the building is the Lord's* (cf. the "Yahweh willing" entry, 2026-06-16, and Psalm 127:1). Built to win is not a boast — it's a confession that the One who is *for* us is the One who fights.
+
+**Supporting references (for in-app expansion later):** 1 Samuel 17:1–11 (Goliath's challenge); 1 Samuel 17:28 (Eliab's anger — the naysayer to turn from); 1 Samuel 17:38–40 (the armor refused; the five smooth stones); Numbers 1 (twenty as the age fit for battle — David's youth); Hebrews 11:32–34 (David named among those who "out of weakness were made strong"); Isaiah 54:17 (no weapon formed); 2 Timothy 1:7 (not a spirit of fear, but of power, love, and a sound mind).
+
+---
+
 ## Appendix: How to Append a New Entry
 
 When Yahweh and His Word are discussed again, add a new dated section at the bottom of this file:

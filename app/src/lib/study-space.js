@@ -77,8 +77,39 @@ export function normalizeEntry(raw = {}, nowMs = 0, salt = 0) {
     tags: Array.isArray(raw.tags) ? raw.tags.filter(Boolean).map((t) => String(t).trim()).filter(Boolean) : [],
     pinned: !!raw.pinned,
     seed: !!raw.seed, // seeded today's-themes entry (so the UI can mark provenance)
+    // The thought-finalizer LAYER (additive, reversible): the 4th-dimensional
+    // framework treatment of this thought (4D scriptural + 3D practical +
+    // OUTCOME), kept SEPARATE from the person's own words above so finalizing a
+    // thought never overwrites deep/plain/title. See lib/thought-finalizer.js.
+    finalization: normalizeFinalization(raw.finalization),
     createdAt: iso,
     updatedAt: raw.updatedAt || iso,
+  };
+}
+
+// The finalization sub-shape (the framework treatment). Kept HERE (not in the
+// finalizer lib) so study-space stays the single owner of the persisted entry
+// shape and there is no import cycle (the finalizer imports this; study-space
+// imports nothing from it). Pure + total: any malformed stored value normalizes
+// to a clean 'unfinalized' layer, so an old entry loads forward-compatibly.
+export const FINAL_STATUS = Object.freeze(['unfinalized', 'suggested', 'accepted']);
+export const FINAL_SOURCE = Object.freeze(['local', 'vendor', 'manual']);
+
+export function normalizeFinalization(raw = {}) {
+  const f = raw && typeof raw === 'object' ? raw : {};
+  const fourD = f.fourD && typeof f.fourD === 'object' ? f.fourD : {};
+  const threeD = f.threeD && typeof f.threeD === 'object' ? f.threeD : {};
+  return {
+    status: FINAL_STATUS.includes(f.status) ? f.status : 'unfinalized',
+    fourD: {
+      summary: String(fourD.summary || '').trim(),
+      scripture: String(fourD.scripture || '').trim(),
+    },
+    threeD: { summary: String(threeD.summary || '').trim() },
+    outcome: String(f.outcome || '').trim(),
+    source: FINAL_SOURCE.includes(f.source) ? f.source : null,
+    generatedAt: f.generatedAt || null,
+    acceptedAt: f.acceptedAt || null,
   };
 }
 

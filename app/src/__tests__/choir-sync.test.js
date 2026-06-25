@@ -36,6 +36,15 @@ describe('youtubeEmbedUrl', () => {
   it('handles extra query params on a watch URL', () => {
     expect(youtubeEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
   });
+  it('embeds /live/, /shorts/, and /v/ forms (the church-stream recording link — feedback d23b37f3)', () => {
+    // A director copies the finished-livestream link straight off YouTube; it is
+    // the /live/ form. Before this it fell through to null and the player showed
+    // only a plain link instead of the embedded service.
+    expect(youtubeEmbedUrl('https://www.youtube.com/live/dQw4w9WgXcQ')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+    expect(youtubeEmbedUrl('https://www.youtube.com/live/dQw4w9WgXcQ?si=abc123')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+    expect(youtubeEmbedUrl('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+    expect(youtubeEmbedUrl('https://www.youtube.com/v/dQw4w9WgXcQ')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+  });
   it('returns null for junk / empty', () => {
     expect(youtubeEmbedUrl('')).toBeNull();
     expect(youtubeEmbedUrl(null)).toBeNull();
@@ -298,6 +307,24 @@ describe('sermon + resource mappers and reuse', () => {
     expect(out.title).toBe('Let Go');
     expect(out.youtubeUrl).toBeNull();          // a fresh message, not the old video
     expect(out.notes).toContain('Drawn from: https://youtu.be/x');
+  });
+  it('re-preach credits the re-preacher (BG) AND links the original deliverer (0038)', () => {
+    const guestMsg = { id: 'src-1', title: 'Setting Up The Moment', serviceType: 'sunday', speaker: 'Sister Jasmine Johnson', speakerId: 'jj-entity', notes: 'a word on readiness' };
+    const bg = { canonicalName: 'Bishop Lloyd E. Gwin', isPrimary: true };
+    const out = buildReusedSermon(guestMsg, '2026-08-09', 'sunday', bg);
+    expect(out.speaker).toBe('Bishop Lloyd E. Gwin');   // credited to the re-preacher, NOT the guest
+    expect(out.sourceSermonId).toBe('src-1');           // pull up the original material
+    expect(out.sourceSpeakerId).toBe('jj-entity');      // durable credit to the original deliverer
+    expect(out.notes).toContain('Re-preached by Bishop Lloyd E. Gwin; original by Sister Jasmine Johnson.');
+    expect(out.status).toBe('draft');
+  });
+  it('re-preach of BG’s OWN message stays BG with no false "original by" lineage', () => {
+    const own = { id: 'src-2', title: 'Faith', serviceType: 'wednesday', speaker: 'Bishop Lloyd E. Gwin', speakerId: 'bg-entity' };
+    const bg = { canonicalName: 'Bishop Lloyd E. Gwin', isPrimary: true };
+    const out = buildReusedSermon(own, '2026-08-12', 'wednesday', bg);
+    expect(out.speaker).toBe('Bishop Lloyd E. Gwin');
+    expect(out.sourceSermonId).toBe('src-2');
+    expect(out.notes).not.toContain('Re-preached by'); // same person — not a cross-preacher re-preach
   });
 });
 

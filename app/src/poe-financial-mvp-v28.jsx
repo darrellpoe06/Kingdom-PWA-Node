@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { SectionTitle, MetricCell } from './components/shared.jsx';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
+import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
 import TraceableNumber from './components/TraceableNumber.jsx';
 import {
   traceNetCashFlow,
@@ -9,24 +9,24 @@ import {
   traceDebtFree,
   traceRentalsFree,
 } from './lib/number-trace.js';
-import About from './components/About.jsx';
+const About = lazy(() => import('./components/About.jsx'));
 import { LegalPlaceholder } from './components/Legal.jsx';
-import { Contractors1099 } from './components/Contractors1099.jsx';
-import { Cart } from './components/Cart.jsx';
+const Contractors1099 = lazy(() => import('./components/Contractors1099.jsx').then(m => ({ default: m.Contractors1099 })));
+const Cart = lazy(() => import('./components/Cart.jsx').then(m => ({ default: m.Cart })));
 import { BooksEntities } from './components/BooksEntities.jsx';
-import { Practice } from './components/Practice.jsx';
-import { Markets } from './components/Markets.jsx';
+const Practice = lazy(() => import('./components/Practice.jsx').then(m => ({ default: m.Practice })));
+const Markets = lazy(() => import('./components/Markets.jsx').then(m => ({ default: m.Markets })));
 import { Debts } from './components/Debts.jsx';
 import { Inbound } from './components/Inbound.jsx';
-import { Rentals } from './components/Rentals.jsx';
+const Rentals = lazy(() => import('./components/Rentals.jsx').then(m => ({ default: m.Rentals })));
 import { ProjectsWrapper, DateField } from './components/Projects.jsx';
-import { Opportunities } from './components/DevOps.jsx';
+const Opportunities = lazy(() => import('./components/DevOps.jsx').then(m => ({ default: m.Opportunities })));
 import AuthBanner from './components/AuthBanner.jsx';
 import PasswordAuth from './components/PasswordAuth.jsx';
 import { accessState } from './lib/access-gate.js';
-import Engagement from './components/Engagement.jsx';
-import Choir from './components/Choir.jsx';
-import ChurchLearn from './components/ChurchLearn.jsx';
+const Engagement = lazy(() => import('./components/Engagement.jsx'));
+const Choir = lazy(() => import('./components/Choir.jsx'));
+const ChurchLearn = lazy(() => import('./components/ChurchLearn.jsx'));
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from './lib/church-live.js';
 import {
@@ -47,6 +47,12 @@ import {
   buildSovereignAiSchedule, sovereignAiProgressSummary, exportSovereignAiCurriculumMarkdown,
   resolveSovereignAiCohort,
 } from './lib/sovereign-ai-class.js';
+import {
+  AI_LEGAL_BLUEPRINT_META, AI_LEGAL_BLUEPRINT_SESSION_FLOW, AI_LEGAL_BLUEPRINT_PROPOSED_COHORT_START,
+  AI_LEGAL_BLUEPRINT_INTEREST_TAG, AI_LEGAL_BLUEPRINT_HELPER_TAG, AI_LEGAL_BLUEPRINT_TUTOR_META,
+  buildAiLegalBlueprintSchedule, aiLegalBlueprintProgressSummary, exportAiLegalBlueprintCurriculumMarkdown,
+  resolveAiLegalBlueprintCohort,
+} from './lib/ai-legal-blueprint-class.js';
 import {
   LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW,
   LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META,
@@ -85,25 +91,28 @@ import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGat
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
 import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/device-trust.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
+import { concernsSync, mergeRemoteConcerns, CONCERN_COLUMN_OF } from './lib/concerns-sync.js';
+import { SEED_CONCERNS } from './lib/concerns.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { getAssignments, dispatchState, addAssignment, removeAssignment, markDone as markAssignmentDone, reopen as reopenAssignment, setPayout as setAssignmentPayout, summarize as summarizeAssignments } from './lib/assignments.js';
 import { LifeGallery } from './components/LifeGallery.jsx';
-import { ConferenceModule } from './components/ConferenceModule.jsx';
-import { EventCenterModule } from './components/EventCenterModule.jsx';
-import { ConferenceVariance } from './components/ConferenceVariance.jsx';
-import { ChurchObservation } from './components/ChurchObservation.jsx';
-import EventManagement from './components/EventManagement.jsx';
-import Pulpit from './components/Pulpit.jsx';
-import ScriptureLibrary from './components/ScriptureLibrary.jsx';
-import CommandServeCenter from './components/CommandServeCenter.jsx';
-import ChurchVideoWall from './components/ChurchVideoWall.jsx';
+const ConferenceModule = lazy(() => import('./components/ConferenceModule.jsx').then(m => ({ default: m.ConferenceModule })));
+const EventCenterModule = lazy(() => import('./components/EventCenterModule.jsx').then(m => ({ default: m.EventCenterModule })));
+const ConferenceVariance = lazy(() => import('./components/ConferenceVariance.jsx').then(m => ({ default: m.ConferenceVariance })));
+const ChurchObservation = lazy(() => import('./components/ChurchObservation.jsx').then(m => ({ default: m.ChurchObservation })));
+const EventManagement = lazy(() => import('./components/EventManagement.jsx'));
+const Pulpit = lazy(() => import('./components/Pulpit.jsx'));
+const ScriptureLibrary = lazy(() => import('./components/ScriptureLibrary.jsx'));
+const CommandServeCenter = lazy(() => import('./components/CommandServeCenter.jsx'));
+const ChurchVideoWall = lazy(() => import('./components/ChurchVideoWall.jsx'));
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
-import { ThinkingSpace } from './components/ThinkingSpace.jsx';
-import CreationWorkspace from './components/CreationWorkspace.jsx';
+import { ChurchGiveFloater } from './components/ChurchGiving.jsx';
+const ThinkingSpace = lazy(() => import('./components/ThinkingSpace.jsx').then(m => ({ default: m.ThinkingSpace })));
+const CreationWorkspace = lazy(() => import('./components/CreationWorkspace.jsx'));
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
-import Study from './components/Study.jsx';
+const Study = lazy(() => import('./components/Study.jsx'));
 import { Queue } from './components/Queue.jsx';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -2506,6 +2515,10 @@ export default function PoeFinancialSystem() {
               : (d.incidents || []),
             recurringObligations: Array.isArray(parsed.data.recurringObligations) ? parsed.data.recurringObligations : (d.recurringObligations || []),
             scopes: Array.isArray(parsed.data.scopes) ? parsed.data.scopes : (d.scopes || []),
+            // Concerns (0039) — the curated Concerns & Solutions rows. Hydrated
+            // defensively so a concern added while signed-out survives a reload
+            // (cloud sync covers the signed-in path on top of this).
+            concerns: Array.isArray(parsed.data.concerns) ? parsed.data.concerns : (d.concerns || []),
             practiceInquiries: Array.isArray(parsed.data.practiceInquiries) ? parsed.data.practiceInquiries : (d.practiceInquiries || []),
             inquiries: Array.isArray(parsed.data.inquiries) ? parsed.data.inquiries : (d.inquiries || []),
             checkoutIntents: Array.isArray(parsed.data.checkoutIntents) ? parsed.data.checkoutIntents : (d.checkoutIntents || []),
@@ -2862,6 +2875,10 @@ export default function PoeFinancialSystem() {
         // Discussions (0035) — the discuss-then-document records that drive
         // projects, pooled to the family instance the same proven way.
         { sync: discussionsSync,  key: 'discussions',  localList: (latest.discussions || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteDiscussions },
+        // Concerns (0039) — the Concerns & Solutions board's curated rows, pooled
+        // to the family instance the same proven way. (Seed-baseline + feedback
+        // read-through are composed in the component, never persisted here.)
+        { sync: concernsSync,     key: 'concerns',     localList: (latest.concerns || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteConcerns },
         // Creation Workspaces (0037) — composed documents/images, pooled to the
         // family instance the same proven way so a document opens on any device.
         { sync: workspacesSync,   key: 'workspaces',   localList: (latest.workspaces || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteWorkspaces },
@@ -3152,6 +3169,10 @@ export default function PoeFinancialSystem() {
     const localId = `pr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const seeded = {
       ...item,
+      // Mirror toRow's `item.title ?? ''` default so a project never carries a
+      // null/undefined title into render (ProjectInventory's filter row calls
+      // `.slice` on it). Keeps an explicit title; only fills the empty case.
+      title: item.title ?? '',
       id: localId,
       createdAt: item.createdAt || nowIso,
       // Attribute the project to the signed-in user so it is "Mine" immediately
@@ -3286,6 +3307,75 @@ export default function PoeFinancialSystem() {
       }
     }
     setData(d => ({ ...d, discussions: (d.discussions || []).filter(x => x.id !== id) }));
+  };
+
+  // ---- Concerns (0039) — the Concerns & Solutions board's curated rows. Same
+  // optimistic-local-then-cloud pattern as addDiscussion; fails soft on a sync
+  // error so the device copy always survives. The dated seed baseline and the
+  // feedback read-through are composed in the component (lib/concerns.js), never
+  // persisted into this table — only what the family adds here syncs.
+  const addConcern = (item) => {
+    const nowIso = new Date().toISOString();
+    const localId = `cn-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId, createdAt: nowIso, createdBy: authSession?.user?.id || null };
+    setData(d => ({ ...d, concerns: [...(d.concerns || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      concernsSync.upload(seeded)
+        .then(res => {
+          if (res && res.uploaded && res.remoteId) {
+            setData(d => ({ ...d, concerns: (d.concerns || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
+          }
+        })
+        .catch(e => console.warn('[concerns-sync] add upload failed', e));
+    }
+  };
+  const updateConcern = (id, updates) => setData(d => {
+    // A seed-baseline concern (id 'seed-...') has no DB row yet. The first edit
+    // promotes it into the concerns table so the change persists + syncs; from
+    // then on it updates by remoteUuid like any other row.
+    const isSeed = typeof id === 'string' && id.startsWith('seed-');
+    const existing = (d.concerns || []).find(x => x.id === id);
+    if (isSeed && !existing) {
+      // Promote: materialize the baseline seed (looked up from SEED_CONCERNS so
+      // the NOT-NULL `concern` text is always present) as a real DB concern
+      // carrying its edits. Keep the stable seed id so the component's de-dupe
+      // (a DB row supersedes the same-id seed) hides the baseline copy.
+      const base = SEED_CONCERNS.find(s => s.id === id) || {};
+      const promoted = { ...base, id, createdAt: new Date().toISOString(), createdBy: authSession?.user?.id || null, source: 'manual', ...updates };
+      if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+        concernsSync.upload(promoted)
+          .then(res => {
+            if (res && res.uploaded && res.remoteId) {
+              setData(dd => ({ ...dd, concerns: (dd.concerns || []).map(x => (x.id === id ? { ...x, remoteUuid: res.remoteId } : x)) }));
+            }
+          })
+          .catch(e => console.warn('[concerns-sync] seed-promote upload failed', e));
+      }
+      return { ...d, concerns: [...(d.concerns || []), promoted] };
+    }
+    const next = (d.concerns || []).map(x => (x.id === id ? { ...x, ...updates } : x));
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(x => x.id === id);
+      if (updated && updated.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(CONCERN_COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (Object.keys(patch).length > 0) {
+          concernsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[concerns-sync] update failed', e));
+        }
+      }
+    }
+    return { ...d, concerns: next };
+  });
+  const deleteConcern = (id) => {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.concerns || []).find(x => x.id === id);
+      if (local && local.remoteUuid) {
+        concernsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[concerns-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, concerns: (d.concerns || []).filter(x => x.id !== id) }));
   };
 
   // ---- Creation Workspaces (0037) — the in-app document / image creation space.
@@ -3716,6 +3806,9 @@ export default function PoeFinancialSystem() {
   // The Sovereign A.I. course (why we build local) — its OWN cohort, same machinery.
   const setSovereignAiCohortStart = (date) => setData(d => ({ ...d, sovereignAiCohort: { ...(d.sovereignAiCohort || {}), startDate: date } }));
   const confirmSovereignAiCohort = (confirmed) => setData(d => ({ ...d, sovereignAiCohort: { ...(d.sovereignAiCohort || {}), confirmed: !!confirmed } }));
+  // The AI Legal Blueprint course — its OWN cohort, same machinery.
+  const setAiLegalBlueprintCohortStart = (date) => setData(d => ({ ...d, aiLegalBlueprintCohort: { ...(d.aiLegalBlueprintCohort || {}), startDate: date } }));
+  const confirmAiLegalBlueprintCohort = (confirmed) => setData(d => ({ ...d, aiLegalBlueprintCohort: { ...(d.aiLegalBlueprintCohort || {}), confirmed: !!confirmed } }));
   // SHARED Learn-framework state (consumed by ALL three courses): quiz results keyed
   // by module id (real assessment record), the learner's depth override, and the
   // learner's AGE BAND (the master pacing control — one curriculum, age-right delivery).
@@ -3915,14 +4008,22 @@ export default function PoeFinancialSystem() {
   const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
   if (__gate !== 'app') {
     return (
-      <div data-theme={theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+      <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
         {__gate === 'gate' ? <PasswordAuth /> : null}
       </div>
     );
   }
 
   return (
-    <div data-theme={theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+    // overflow-x-clip — the page must NEVER scroll horizontally. Any element wider
+    // than the viewport (e.g. an overflowing sub-tab row) is clipped at the themed
+    // shell instead of pushing the page wide and exposing the white <body> to the
+    // right of this box (the 2026-06-18 Projects "white void" regression in dark
+    // mode). `clip` (not `hidden`) leaves overflow-y visible, so the sticky header
+    // and normal vertical page scroll are unaffected. This is the structural guard;
+    // the root cause — tab strips that don't scroll internally — is fixed via the
+    // <TabScroll> primitive so content stays REACHABLE, not just clipped away.
+    <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       <style>{`
 /* Mobile keyboard fix */
@@ -4635,7 +4736,10 @@ html{scroll-padding-bottom:280px}
       )}
 
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
-        <div className="w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+        {/* Header vertical padding is CHROME: pinned to fixed px so it does not
+            scale with the root multiplier (text-size scope split) — keeps the bar
+            from growing taller and pushing content down at larger sizes. */}
+        <div className="w-full px-3 sm:px-6 lg:px-8 py-[12px] sm:py-[16px]">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
               screens so the tier-preview dropdown and Subscribe/Feedback buttons
               can't crowd "Financial Control System." Side-by-side only on large
@@ -4643,7 +4747,10 @@ html{scroll-padding-bottom:280px}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
               <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Family OS <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
-              <h1 className="text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Financial Control System</h1>
+              {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
+                  zoom so it stays roughly fixed while body content scales fully
+                  (text-size scope split, 2026-06-17). */}
+              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Financial Control System</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
               {/* Round 5 — Tier indicator + dev-only switcher. Round 7 fix:
@@ -4702,12 +4809,18 @@ html{scroll-padding-bottom:280px}
           </div>
         </div>
         <nav className="border-t border-[#E8E4DC]">
-          <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
-            {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
-                first, About anchors the right side of the primary group, then a
-                visible vertical divider separates the secondary "life" tabs
-                (Church + Markets) which live to the far right. */}
-            <div className="flex gap-1 text-xs sm:text-sm items-stretch">
+          {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
+              first, About anchors the right side of the primary group, then a
+              visible vertical divider separates the secondary "life" tabs
+              (Church + Markets) which live to the far right. */}
+          {/* THE reference tab row Darrell loves ("easy and fluid," "classy").
+              Routed through the shared <TabScroll> primitive so every other tab
+              strip in the app inherits this exact right-to-left scroll feel.
+              `chrome` = .ts-chrome-region caps the whole row (tab font + padding)
+              via zoom so the menu stays roughly fixed while body content scales
+              (text-size scope split). Holds only rem tabs — no fixed-px control
+              lives here, so nothing already-fixed is shrunk. */}
+          <TabScroll chrome className="px-1 sm:px-6 lg:px-8" rowClassName="sm:text-sm items-stretch">
               {[
                 ['overview','Big Picture'],
                 ['books','Books'],
@@ -4748,34 +4861,36 @@ html{scroll-padding-bottom:280px}
                   <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 );
               })}
-            </div>
-          </div>
+          </TabScroll>
         </nav>
         {view === 'books' && (
           <div className="border-t border-[#E8E4DC] bg-white">
-            <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
-              <div className="flex gap-1 text-xs">
+            {/* Books sub-nav routes through the shared <TabScroll> primitive
+                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
+                caps the row via zoom while body text scales. */}
+            <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
                 {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
-              </div>
-            </div>
+            </TabScroll>
           </div>
         )}
         {view === 'church' && (
           <div className="border-t border-[#E8E4DC] bg-white">
-            <div className="w-full px-1 sm:px-6 lg:px-8 overflow-x-auto">
-              <div className="flex gap-1 text-xs">
+            {/* Church sub-nav routes through the shared <TabScroll> primitive
+                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
+                caps the row via zoom while body text scales. */}
+            <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
                 {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
-              </div>
-            </div>
+            </TabScroll>
           </div>
         )}
       </header>
 
       <main className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
+        <Suspense fallback={<div role="status" aria-live="polite" className="py-16 text-center text-sm opacity-60">Loading...</div>}>
         {view === 'overview' && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mb-6">
             <AdvisementBanner />
@@ -4943,7 +5058,7 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
-          // The Sovereign A.I. course — FOURTH course, same shared framework +
+          // The Sovereign A.I. course — same shared framework +
           // machinery. Teaches WHY we build local (resilience + data sovereignty),
           // the verified model-tier landscape, the Cage-gated routing, and the five
           // local-A.I. opportunities. No SOP library; reuses the Governor's
@@ -4974,6 +5089,39 @@ html{scroll-padding-bottom:280px}
               sent: '✓ Sent — Darrell will see you’re in. We build it sovereign.',
             },
             tutorCourseMeta: SOVEREIGN_AI_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
+          // The AI Legal Blueprint course — the privacy/legal companion to the
+          // Sovereign A.I. course. Plain-language, age-adaptive (child/teen/senior),
+          // teaches what NOT to paste into a vendor chatbot and why. Same shared
+          // framework + machinery; reuses the Governor's engagement-by-age aggregate.
+          const aiLegalBlueprintCohort = resolveAiLegalBlueprintCohort(data.aiLegalBlueprintCohort);
+          const aiLegalBlueprintStart = aiLegalBlueprintCohort.startDate || AI_LEGAL_BLUEPRINT_PROPOSED_COHORT_START;
+          const submitAiLegalBlueprintInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${AI_LEGAL_BLUEPRINT_INTEREST_TAG} ${(name || 'A learner').trim()} wants to join the AI Legal Blueprint course.` })
+            : null;
+          const aiLegalBlueprintRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], AI_LEGAL_BLUEPRINT_INTEREST_TAG) : null;
+          const aiLegalBlueprintCourse = {
+            meta: { ...AI_LEGAL_BLUEPRINT_META, key: 'ai-legal-blueprint' },
+            sessionFlow: AI_LEGAL_BLUEPRINT_SESSION_FLOW,
+            schedule: buildAiLegalBlueprintSchedule(aiLegalBlueprintStart),
+            cohortStart: aiLegalBlueprintStart,
+            cohortConfirmed: aiLegalBlueprintCohort.confirmed,
+            setCohortStart: setAiLegalBlueprintCohortStart,
+            confirmCohort: confirmAiLegalBlueprintCohort,
+            progressSummary: (p) => aiLegalBlueprintProgressSummary(p),
+            exportMarkdown: () => exportAiLegalBlueprintCurriculumMarkdown(aiLegalBlueprintStart),
+            downloadName: 'ai-legal-blueprint-what-never-to-tell-a-chatbot-curriculum.md',
+            submitInterest: submitAiLegalBlueprintInterest,
+            roster: aiLegalBlueprintRoster,
+            interestCopy: {
+              heading: 'Want to keep your data safe with A.I.?',
+              blurb: 'Tell Darrell you want to take the AI Legal Blueprint — what never to tell a chatbot, and why — and he’ll save you a spot in Cohort 1. Plain language, paced for every age.',
+              cta: 'Keep me safe',
+              sent: '✓ Sent — Darrell will see you’re in. We protect what’s yours.',
+            },
+            tutorCourseMeta: AI_LEGAL_BLUEPRINT_TUTOR_META,
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
@@ -5044,9 +5192,10 @@ html{scroll-padding-bottom:280px}
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
               : courseKey === 'infrastructure' ? INFRA_HELPER_TAG
                 : courseKey === 'sovereign-ai' ? SOVEREIGN_AI_HELPER_TAG
-                  : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
-                    : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
-                      : '[Class helper]'
+                  : courseKey === 'ai-legal-blueprint' ? AI_LEGAL_BLUEPRINT_HELPER_TAG
+                    : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
+                      : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
+                        : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5078,7 +5227,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, livingLessonsCourse, soundBoardCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
@@ -5141,7 +5290,9 @@ html{scroll-padding-bottom:280px}
           ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
               loopData={data} loopDecisions={data.loopDecisions || {}} onLoopDecision={onLoopDecision}
               discussions={data.discussions || []} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion}
+              concerns={data.concerns || []} feedback={[...(data.feedback || []), ...remoteFeedback]} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern}
               financialDocAt={(() => { const ms = latestFinancialDocMs(ingestData); return ms ? new Date(ms).toISOString() : null; })()}
+              onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
             />
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
@@ -5179,6 +5330,9 @@ html{scroll-padding-bottom:280px}
             persona={personaOf(authSession?.user?.email)}
             email={authSession?.user?.email || null}
             onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
+            projects={data.projects || []}
+            discussions={data.discussions || []}
+            currentUserId={authSession?.user?.id || null}
           />
         )}
 
@@ -5204,6 +5358,7 @@ html{scroll-padding-bottom:280px}
           </div>
         )}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
+        </Suspense>
       </main>
       <TTSControl />
       <InstallPrompt />
@@ -5225,6 +5380,10 @@ html{scroll-padding-bottom:280px}
         </button>
       )}
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} />}
+      {/* Give floater — Church surfaces only (bottom-right; Feedback owns
+          bottom-left). Links out to the congregation's own giving page + the
+          blessing of giving according to the Word. See components/ChurchGiving. */}
+      {view === 'church' && <ChurchGiveFloater church={data.church} />}
     </div>
   );
 }
@@ -5662,6 +5821,7 @@ const FEEDBACK_AREAS = [
     ['build-kpi', '└ KPI status dots + Key (legend)'],
     ['build-workflows', '└ Workflow status feed'],
     ['build-llm-health', '└ Local-LLM health card'],
+    ['concerns-board', 'Projects · ⚠ Concerns & Solutions board (open · in-progress · done + feedback read-through)'],
     ['governance-decisions', 'Projects · ⚖ Decisions (Governor governance queue)'],
     ['review-feed', 'Projects · 🔄 Review (freshness-loop staged proposals)'],
     ['loop-health', 'Projects · 🩺 Loops (loop-health keep / retire)'],
@@ -5706,6 +5866,7 @@ const FEEDBACK_AREAS = [
     ['church-choir', 'Church · Choir (director hub)'],
     ['choir-week', '└ Choir · This week'],
     ['choir-songs', '└ Choir · Songs (Song Workshop)'],
+    ['choir-songbook', '└ Choir · Songbook (cross-referenced)'],
     ['choir-schedule', '└ Choir · Schedule'],
     ['choir-teamdocs', '└ Choir · Team Docs'],
     ['choir-availability', '└ Choir · Availability'],
@@ -9299,13 +9460,13 @@ function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, a
 
 
       <section>
-        <div className="border-b border-[#E8E4DC] mb-3">
-          <div className="flex gap-1 text-xs">
+        {/* Tx sub-tabs route through the shared <TabScroll> primitive so they
+            scroll/swipe exactly like the main nav. */}
+        <TabScroll className="border-b border-[#E8E4DC] mb-3">
             {[['upcoming', `Upcoming · ${upcoming.length}`], ['history', `History · ${history.length}`]].map(([id, label]) => (
               <button key={id} onClick={() => setTxView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${txView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
             ))}
-          </div>
-        </div>
+        </TabScroll>
 
         <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
           <div className="flex gap-1 flex-wrap text-xs">
