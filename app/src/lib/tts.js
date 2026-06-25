@@ -210,7 +210,18 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
         if (err === 'interrupted' || err === 'canceled') return;
         this._finish();
       };
+      // Retain the live utterance on the engine. Chrome/Android garbage-collect an
+      // utterance that has no JS reference WHILE it is speaking, which silently cuts
+      // playback off (or never starts it) — a real "the button does nothing" cause.
+      this._u = u;
       try { this.synth.speak(u); } catch (_) { this._finish(); return; }
+      // Chrome can start the synth in a PAUSED state (and pauses it when the tab is
+      // backgrounded); a resume() kick shortly after speak un-sticks it without any
+      // audible stutter. No-op when already actively playing. Guarded for the fake
+      // synth used in unit tests.
+      if (typeof this.synth.resume === 'function' && typeof setTimeout === 'function') {
+        setTimeout(() => { try { if (this.status === 'playing') this.synth.resume(); } catch (_) { /* ignore */ } }, 120);
+      }
       this._emit();
     },
 
@@ -238,7 +249,13 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
     /** Speak the loaded text from the start. */
     play() {
       if (!this.segments.length) return;
-      try { this.synth.cancel(); } catch (_) { /* ignore */ }
+      // Only cancel when the synth is actually busy. A bare cancel() immediately
+      // before the FIRST speak() is swallowed by Chrome (cancel is async and races
+      // the speak) — the classic "tap Read, nothing happens." Guarding the cancel
+      // lets a fresh start speak immediately.
+      try {
+        if (this.synth.speaking || this.synth.pending || this.synth.paused) this.synth.cancel();
+      } catch (_) { /* ignore */ }
       this.idx = 0;
       this.status = 'playing';
       this._dirty = false;
@@ -386,6 +403,11 @@ export function useTextToSpeech() {
     rate: prefs.rate,
     voices,
     voiceURI: state.voiceURI != null ? state.voiceURI : prefs.voiceURI,
+    // Which sentence is being spoken right now — lets a caller highlight-as-it-reads
+    // (the segments are deterministic via segmentText, so the caller can map index
+    // -> sentence without the engine handing back the text).
+    segmentIndex: state.segmentIndex || 0,
+    segmentCount: state.segmentCount || 0,
     speak, pause, resume, stop, setRate, setVoiceURI,
   };
 }
