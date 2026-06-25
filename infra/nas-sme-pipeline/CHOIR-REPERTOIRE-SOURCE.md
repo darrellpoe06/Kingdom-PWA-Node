@@ -54,6 +54,42 @@ This shares the **same** isolated Whisper container + local Ollama as
 `sound-engineer-to-lessons.sh` (reconcile, don't fork). It is **behind the
 brakes**: manual-run only, no cron, no watcher, reviewed before import.
 
+## The HISTORICAL sweep — one source, two harvests (reuse, don't re-fetch)
+
+The target is the choir's **full historical library** — every song sung over time,
+modeled as **Song → Renditions** (the ways we've sung it, by service/date). The
+efficient way to build it (Darrell 2026-06-25): the **same service recordings
+already ingested for sermons** (`choir_sermons`) contain the choir songs. So we do
+**not** pull a new video list — we drive off the corpus we already have and
+harvest the songs from each service, **reusing** that service's video link + date.
+
+```
+choir_sermons (services we already hold)  ──▶  corpus-to-repertoire.sh
+   │  export a manifest:  <video_id>\t<date>\t<type>\t<audio_path>
+   ▼
+for each service:  service-to-repertoire.sh  ──▶  per-service songs (tagged video_id)
+   ▼
+repertoire-historical.json   (import once)        scope.json (swept N of M — honest partial)
+```
+
+```bash
+./corpus-to-repertoire.sh ./services.tsv     # services.tsv exported from choir_sermons + NAS audio paths
+```
+
+On import, `importRepertoireJson` → `attributeToCorpus` matches each song to its
+service (by `video_id`, else by date) and **inherits the existing service's video
+URL + date/type** — so the song lands as a **rendition of that real, historical
+service**, not a re-fetched copy. The Songbook's "Source the repertoire" panel
+shows an **honest sweep readout** computed from real data: *N service videos in the
+archive · songs harvested from X · P still to sweep.* A partial sweep reads as
+partial — never painted as complete.
+
+**Corpus depth.** The harvest denominator is how many services are ingested.
+`importSermonsFromChannel` now **pages** the upload history (bounded by
+`maxPages`, default 12 ≈ 600 services) and returns `more:true` when the channel
+has further history — so the corpus (and thus the song history) can be
+comprehensive, not capped at the most-recent 50.
+
 ## Deploy / operational steps that are NOT code (a human's hands)
 
 1. **Apply the schema.** The archive columns the import writes

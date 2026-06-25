@@ -783,26 +783,45 @@ async function ytApi(path, key) {
   return res.json();
 }
 
-export async function importSermonsFromChannel(displayName) {
+// Page through the uploads playlist so the service corpus can be COMPREHENSIVE
+// (the historical choir-song sweep harvests from these same services, so the
+// deeper this corpus, the larger the song history). Bounded by maxPages (a brake
+// against a runaway loop); returns the items plus whether more remain. ~50/page.
+async function fetchUploadsItems(uploads, key, maxPages) {
+  const items = [];
+  let pageToken = '';
+  let pages = 0;
+  let more = false;
+  do {
+    const tok = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
+    const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50${tok}&playlistId=${encodeURIComponent(uploads)}`, key);
+    for (const i of pl?.items || []) {
+      items.push({ videoId: i?.contentDetails?.videoId, title: i?.snippet?.title });
+    }
+    pageToken = pl?.nextPageToken || '';
+    pages += 1;
+    if (pageToken && pages >= maxPages) { more = true; break; }
+  } while (pageToken);
+  return { items, pages, more };
+}
+
+export async function importSermonsFromChannel(displayName, opts = {}) {
   const key = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY) || '';
   if (!key) return { skipped: 'no-key' };
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
+  const maxPages = Number.isFinite(opts.maxPages) && opts.maxPages > 0 ? Math.floor(opts.maxPages) : 12;
   try {
     // Resolve the channel's uploads playlist from its handle.
     const ch = await ytApi(`channels?part=contentDetails&forHandle=${encodeURIComponent('@' + CHURCH_CHANNEL_HANDLE)}`, key);
     const uploads = ch?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
     if (!uploads) return { skipped: 'channel-not-found' };
-    // Most recent 50 uploads (newest first).
-    const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${encodeURIComponent(uploads)}`, key);
-    const items = (pl?.items || []).map((i) => ({
-      videoId: i?.contentDetails?.videoId,
-      title: i?.snippet?.title,
-    }));
+    // Walk the full upload history (bounded), newest first, so the corpus is deep.
+    const { items, more } = await fetchUploadsItems(uploads, key, maxPages);
     const { data: existing } = await supabase.from('choir_sermons').select('video_id').eq('instance_id', ctx.tenantId);
     const existingIds = (existing || []).map((r) => r.video_id).filter(Boolean);
     const fresh = selectNewSermonImports(items, existingIds);
-    if (!fresh.length) return { imported: 0, scanned: items.length };
+    if (!fresh.length) return { imported: 0, scanned: items.length, more };
     const rows = fresh.map((r) => ({
       instance_id: ctx.tenantId,
       created_by: ctx.userId,
@@ -816,7 +835,7 @@ export async function importSermonsFromChannel(displayName) {
     }));
     const { error } = await supabase.from('choir_sermons').insert(rows);
     if (error) return { skipped: 'insert-error', error };
-    return { imported: rows.length, scanned: items.length };
+    return { imported: rows.length, scanned: items.length, more };
   } catch (e) {
     return { skipped: 'api-error', error: e };
   }
