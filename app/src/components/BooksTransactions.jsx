@@ -18,6 +18,20 @@ import { isReconciled } from '../lib/reconciliation.js';
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
 export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction, ingestData = null, visibleEntities = null, visibleEntityIds = null }) {
+  // UNBREAKABLE (2026-06-25 white-screen fix) — every account/entity access in
+  // this view assumed `data.accounts` and `data.entities` were always present
+  // arrays. They are not guaranteed: a signed-in user's merged cloud data can
+  // arrive with either key absent, and a cloud-synced entity row can carry a
+  // null `display_name` (-> `{ name: null }`, see entities-sync.fromRow). The old
+  // code reached straight for `data.accounts[0]` and `e.name.split('(')`, throwing
+  // a TypeError that took the whole tab to a white screen. Normalize ONCE here
+  // (memoized so the deps below stay stable) and route every reference through
+  // these; the SectionBoundary around this surface is the backstop, but the
+  // surface must not throw at all.
+  const accounts = useMemo(() => (Array.isArray(data?.accounts) ? data.accounts : []), [data?.accounts]);
+  const entities = useMemo(() => (Array.isArray(data?.entities) ? data.entities : []), [data?.entities]);
+  // Safe entity label — never assume a string `name` exists.
+  const entityLabel = (e) => ((e && e.name) || (e && e.id) || '—').split('(')[0].trim();
   const [txView, setTxView] = useState('history');
   const [page, setPage] = useState(0);
   const pageSize = 25;
@@ -46,8 +60,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       const last4Match = instStr.match(/(\d{4})/);
       const last4 = last4Match ? last4Match[1] : null;
       let matchedAccountId = null;
-      if (last4 && Array.isArray(data.accounts)) {
-        const cand = data.accounts.find(a => (a.fragment || '').includes(last4));
+      if (last4 && Array.isArray(accounts)) {
+        const cand = accounts.find(a => (a.fragment || '').includes(last4));
         if (cand) matchedAccountId = cand.id;
       }
       const id = `ingest-${rec.id || (rec.fitid || rec.posted + '-' + rec.amount + '-' + rec.name)}`;
@@ -66,7 +80,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         _accountMatched: !!matchedAccountId,
       };
     });
-  }, [ingestData, data.accounts]);
+  }, [ingestData, accounts]);
 
   // Dedupe key for matching a manual entry to an ingested one.
   // Account match optional (a manual entry might predate the bank link).
@@ -74,7 +88,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const dt = (t.date || '').slice(0, 10);
     const amt = Math.round((t.amount || 0) * 100); // cents, integer
     const descPrefix = (t.description || '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 12);
-    const last4 = t._last4 || (t.accountId && (data.accounts.find(a => a.id === t.accountId)?.fragment || '').match(/\d{4}/)?.[0]) || '';
+    const last4 = t._last4 || (t.accountId && (accounts.find(a => a.id === t.accountId)?.fragment || '').match(/\d{4}/)?.[0]) || '';
     return `${last4}|${dt}|${amt}|${descPrefix}`;
   };
 
@@ -87,18 +101,18 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   // v28+ CSV import state
   const [csvOpen, setCsvOpen] = useState(false);
   const [csvRaw, setCsvRaw] = useState('');
-  const [csvAccountId, setCsvAccountId] = useState(data.accounts[0]?.id || '');
+  const [csvAccountId, setCsvAccountId] = useState(accounts[0]?.id || '');
   const [csvFlipSign, setCsvFlipSign] = useState(false);
   const [csvError, setCsvError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const todayISO = currentDate.toISOString().slice(0, 10);
-  const blank = { date: todayISO, accountId: data.accounts[0]?.id || '', amount: 0, description: '', category: 'other', entityOverride: '' };
+  const blank = { date: todayISO, accountId: accounts[0]?.id || '', amount: 0, description: '', category: 'other', entityOverride: '' };
   const [form, setForm] = useState(blank);
 
   // Round 9: no scroll-to-top. Form opens at the top of the transaction list;
   // the user keeps their place in whatever row they were reading.
-  const startAdd = () => { setForm({ ...blank, accountId: data.accounts[0]?.id || '' }); setEditingId(null); setShowForm(true); };
+  const startAdd = () => { setForm({ ...blank, accountId: accounts[0]?.id || '' }); setEditingId(null); setShowForm(true); };
   // r32 — Inline edit per IN-PLACE-FIRST: edit form drops down under the row,
   // top form reserved for Add only.
   const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setShowForm(false); };
@@ -181,10 +195,10 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const acceptIngest = (t, mode = 'review') => {
     // Find an account: matched by last4 if available; otherwise prompt user
     // to pick during review. Quick-add requires a matched account.
-    const matchedAccountId = t.accountId || (t._last4 ? data.accounts.find(a => (a.fragment || '').includes(t._last4))?.id : null);
+    const matchedAccountId = t.accountId || (t._last4 ? accounts.find(a => (a.fragment || '').includes(t._last4))?.id : null);
     const prefill = {
       date: t.date,
-      accountId: matchedAccountId || data.accounts[0]?.id || '',
+      accountId: matchedAccountId || accounts[0]?.id || '',
       amount: t.amount,
       description: t.description,
       category: suggestCategory(t.description),
@@ -212,13 +226,13 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     // 'all' view would leak every entity's transactions across profiles.
     if (entityFilter === 'all') {
       if (visibleEntityIds && t.accountId) {
-        const acc = data.accounts.find(a => a.id === t.accountId);
+        const acc = accounts.find(a => a.id === t.accountId);
         return acc ? visibleEntityIds.has(acc.entityId) : true;
       }
       return true;
     }
     if (t.entityOverride) return t.entityOverride === entityFilter;
-    const acc = data.accounts.find(a => a.id === t.accountId);
+    const acc = accounts.find(a => a.id === t.accountId);
     if (acc) return acc.entityId === entityFilter;
     // Ingest entries with no mapped accountId: surface them under the
     // "all" view only — they don't have an entity until you link the
@@ -324,7 +338,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     return acc;
   }, {});
   const liveBalance = (a) => (a.openingBalance != null ? a.openingBalance : (a.balance || 0)) + (clearedByAccount[a.id] || 0);
-  const balanceByAccount = (data.accounts || []).reduce((acc, a) => { acc[a.id] = liveBalance(a); return acc; }, {});
+  const balanceByAccount = (accounts || []).reduce((acc, a) => { acc[a.id] = liveBalance(a); return acc; }, {});
 
   // For Upcoming: walk transactions chronologically per account, tracking
   // projected running balance so each row can show what the account will
@@ -363,7 +377,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const bw = { '30': lookback(30), '60': lookback(60), '90': lookback(90) };
     const todayISO = today.toISOString().slice(0, 10);
 
-    const cashAccounts = (data.accounts || []).filter(a => CASH_ACCOUNT_TYPES.includes(a.type));
+    const cashAccounts = (accounts || []).filter(a => CASH_ACCOUNT_TYPES.includes(a.type));
     const perAccount = {};
     cashAccounts.forEach(a => {
       // "Now" and the forward windows seed from the DERIVED balance (opening +
@@ -418,7 +432,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const openTransfer = (t) => {
     const short = shortfallFor(t);
     if (short <= 0) return;
-    const otherAccounts = (data.accounts || []).filter(a => a.id !== t.accountId && a.balance > 0);
+    const otherAccounts = (accounts || []).filter(a => a.id !== t.accountId && a.balance > 0);
     const best = otherAccounts.sort((a, b) => b.balance - a.balance)[0];
     setTransferContext({ targetAccountId: t.accountId, shortfall: short, txDescription: t.description, txAmount: t.amount });
     setTransferAmount(Math.ceil(short));
@@ -429,8 +443,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     if (!transferContext || !transferSourceId) return;
     const amt = parseFloat(transferAmount) || 0;
     if (amt <= 0) { alert('Transfer amount must be positive.'); return; }
-    const src = (data.accounts || []).find(a => a.id === transferSourceId);
-    const tgt = (data.accounts || []).find(a => a.id === transferContext.targetAccountId);
+    const src = (accounts || []).find(a => a.id === transferSourceId);
+    const tgt = (accounts || []).find(a => a.id === transferContext.targetAccountId);
     if (!src || !tgt) { alert('Source or target account missing.'); return; }
     const today = currentDate.toISOString().slice(0, 10);
     // Two paired transactions, both marked as transfers so they don't muddy expense math
@@ -524,7 +538,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     if (!csvAccountId) { setCsvError('Pick a target account first.'); return; }
     const valid = csvParsed.rows.filter(r => r.ok);
     if (valid.length === 0) { setCsvError('No valid rows to import.'); return; }
-    if (!confirm(`Import ${valid.length} transaction(s) into ${(data.accounts.find(a => a.id === csvAccountId) || {}).name || 'this account'}?`)) return;
+    if (!confirm(`Import ${valid.length} transaction(s) into ${(accounts.find(a => a.id === csvAccountId) || {}).name || 'this account'}?`)) return;
     valid.forEach(r => {
       addTransaction({
         date: r.date,
@@ -548,7 +562,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   };
 
   const renderRow = (t) => {
-    const acc = data.accounts.find(a => a.id === t.accountId);
+    const acc = accounts.find(a => a.id === t.accountId);
     // Phase 2A — label for ingest entries that haven't been linked to an
     // account yet: show the institution + last4 from the QFX so the user
     // recognizes which account it came from.
@@ -563,7 +577,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     return (
       <React.Fragment key={t.id}>
       <tr className="border-b border-[#E8E4DC] align-top">
-        <td className="p-2 text-xs whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.date.slice(5)}</td>
+        <td className="p-2 text-xs whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(t.date || '').slice(5)}</td>
         <td className="p-2">
           <div style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</div>
           <div className="text-[10px] text-[#5A5751] mt-0.5">
@@ -697,11 +711,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
                 <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
-                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>{data.accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}</select></div>
+                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}</select></div>
                 <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
               </div>
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Description</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity override (optional)</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}><option value="">— No override —</option>{data.entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity override (optional)</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}><option value="">— No override —</option>{entities.map(en => <option key={en.id} value={en.id}>{entityLabel(en)}</option>)}</select></div>
               <div className="flex gap-2">
                 <button type="button" onClick={submit} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                 <button type="button" onClick={cancel} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
@@ -727,7 +741,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       </section>
 
       {(() => {
-        const primary = (data.accounts || []).find(a => a.isPrimary) || (data.accounts || []).find(a => a.type === 'checking') || (data.accounts || [])[0];
+        const primary = (accounts || []).find(a => a.isPrimary) || (accounts || []).find(a => a.type === 'checking') || (accounts || [])[0];
         if (!primary) return null;
         // "Right now" is DERIVED from this account's cleared ledger, not the
         // stored literal. Then project after all upcoming charges that hit it.
@@ -773,7 +787,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
           <div className="flex gap-1 flex-wrap text-xs">
             <button type="button" onClick={() => setEntityFilter('all')} className={`px-3 py-1.5 border ${entityFilter === 'all' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
-            {(visibleEntities || data.entities).map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{e.name.split('(')[0].trim()}</button>)}
+            {((Array.isArray(visibleEntities) ? visibleEntities : null) || entities).map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{entityLabel(e)}</button>)}
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setCsvOpen(true)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">📤 Import CSV</button>
@@ -817,8 +831,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>
-                  {data.accounts.length === 0 && <option value="">— Add an account first —</option>}
-                  {data.accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
+                  {accounts.length === 0 && <option value="">— Add an account first —</option>}
+                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
                 </select>
               </div>
               <div>
@@ -836,7 +850,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity override (optional — defaults to account entity)</label>
               <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}>
                 <option value="">— No override —</option>
-                {data.entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}
+                {entities.map(en => <option key={en.id} value={en.id}>{entityLabel(en)}</option>)}
               </select>
             </div>
             <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">{editingId ? 'Save Changes' : 'Save Transaction'}</button>
@@ -907,8 +921,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">1. Target account (all rows will be assigned to this account)</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={csvAccountId} onChange={e => setCsvAccountId(e.target.value)}>
-                  {data.accounts.length === 0 && <option value="">— Add an account first —</option>}
-                  {data.accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
+                  {accounts.length === 0 && <option value="">— Add an account first —</option>}
+                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
                 </select>
               </div>
 
@@ -973,8 +987,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       )}
 
       {transferContext && (() => {
-        const tgt = (data.accounts || []).find(a => a.id === transferContext.targetAccountId);
-        const candidates = (data.accounts || []).filter(a => a.id !== transferContext.targetAccountId);
+        const tgt = (accounts || []).find(a => a.id === transferContext.targetAccountId);
+        const candidates = (accounts || []).filter(a => a.id !== transferContext.targetAccountId);
         const src = candidates.find(a => a.id === transferSourceId);
         // Preparatory scaffolding — slot reserved for the pending "balance after
         // this transfer" projection chip (currently mirrors src.balance).
@@ -1113,11 +1127,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         </p>
       </section>
 
-      {(data.accounts || []).length > 0 && (
+      {(accounts || []).length > 0 && (
         <section>
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">All Account Balances</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            {(data.accounts || []).map(a => (
+            {(accounts || []).map(a => (
               <div key={a.id} className="bg-white p-3">
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="text-[10px] text-[#5A5751] truncate flex-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</div>
