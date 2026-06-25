@@ -5397,7 +5397,7 @@ html{scroll-padding-bottom:280px}
         )}
 
         {view === 'crm' && (isFamilyMember
-          ? <CRM inquiries={data.inquiries || []} currentUserId={authSession?.user?.id || null} />
+          ? <CRM inquiries={data.inquiries || []} practiceLeads={data.practiceLeads || []} currentUserId={authSession?.user?.id || null} />
           : (
             <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
               <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
