@@ -21,7 +21,6 @@
 // =============================================================================
 import React, { useMemo, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
-import TextSizeControl from './TextSizeControl.jsx';
 import {
   THEMES, SURFACES, OTHER_VERSIONS, VERSE_ROLES, COPYRIGHT_NOTE,
   kjvText, readOnline, searchVerses,
@@ -298,8 +297,6 @@ export default function ScriptureLibrary() {
       </details>
 
       <p className="text-[11px] text-[#5A5751] mb-3" style={serif}>{COPYRIGHT_NOTE}</p>
-
-      <div className="mb-3"><TextSizeControl variant="panel" /></div>
 
       {/* Read-at-your-depth + level controls */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
