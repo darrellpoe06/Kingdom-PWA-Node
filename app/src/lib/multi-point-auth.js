@@ -15,11 +15,23 @@
 // WHY PIN IS MANDATORY ONCE SET (the "anyone taps Darrell / picks up the phone"
 // fix): a persisted Supabase session on a trusted device would otherwise be
 // identity + device = 2 points with NO human-presence proof — exactly the
-// pick-up-the-phone threat. So while the headline rule is ">= 2 of 3", the PIN
-// is required as one of those points whenever a PIN exists. The only ways in are
-// therefore {device + PIN} (fast, returning) or {identity + PIN} (new device),
-// which is precisely the locked matrix. A brand-new user with no PIN yet is sent
-// to set one (it becomes their second point), never stranded.
+// pick-up-the-phone threat. So while the headline rule is ">= 2 of 3", a
+// HUMAN-PRESENCE proof is required as one of those points whenever the user has
+// set one up. The only ways in are therefore {device + presence} (fast,
+// returning) or {identity + presence} (new device), which is precisely the
+// locked matrix. A brand-new user with no PIN yet is sent to set one (it becomes
+// their second point), never stranded.
+//
+// BIOMETRIC (2026-06-25) — fingerprint / Face via the platform authenticator
+// (WebAuthn; see lib/webauthn.js) is an ALTERNATE, faster way to satisfy that
+// same human-presence point on a known device. It does NOT replace the PIN: the
+// PIN stays the mandatory, recoverable baseline (set first, on every device),
+// and biometric is an opt-in accelerator enrolled AFTER a PIN exists. So a
+// verified fingerprint/Face counts exactly like a verified PIN here, and when a
+// biometric is enrolled on this device the gate offers the one-tap unlock first
+// with the PIN always available underneath it. This keeps the no-lockout
+// guarantee intact (the PIN is always a path in) while cutting the friction the
+// "login issues" came from. The biometric itself never leaves the device.
 //
 // NO-LOCKOUT (hard guardrail): identity is always a path back. If the PIN/device
 // backend is unavailable (e.g. a Vercel preview running before migration 0022 is
@@ -28,11 +40,12 @@
 // identity (a fresh OTP/OAuth sign-in) and overwrites it — see lib/pin.js.
 // =============================================================================
 
-/** The three access points, by stable key. */
+/** The access points, by stable key. */
 export const POINTS = Object.freeze({
   IDENTITY: 'identity',
   DEVICE: 'device',
   PIN: 'pin',
+  BIOMETRIC: 'biometric', // platform fingerprint/Face (WebAuthn) — see lib/webauthn.js
 });
 
 /** UI next-step tokens returned by decideAccess(). */
@@ -40,6 +53,9 @@ export const NEXT_STEP = Object.freeze({
   VERIFY_IDENTITY: 'verify-identity', // not signed in — show the sign-in surface
   SET_PIN: 'set-pin',                 // signed in, no PIN yet — must create one
   ENTER_PIN: 'enter-pin',             // signed in, PIN exists — must enter it
+  ENTER_BIOMETRIC: 'enter-biometric', // PIN exists + a biometric is enrolled on
+                                      // THIS device — offer the one-tap unlock
+                                      // (the PIN is always the fallback under it).
   NONE: null,                         // access granted; nothing more to do
 });
 
@@ -54,6 +70,12 @@ export const REQUIRED_POINTS = 2;
  * @param {boolean} [s.deviceTrusted]   - a valid device-trust token verified.
  * @param {boolean} [s.pinVerified]     - the user's PIN was verified this session.
  * @param {boolean} [s.hasPin]          - the user has a PIN set in the backend.
+ * @param {boolean} [s.biometricVerified] - a platform fingerprint/Face unlock was
+ *                                         verified this session (WebAuthn). Counts
+ *                                         as the human-presence point, exactly like
+ *                                         a verified PIN.
+ * @param {boolean} [s.hasBiometric]    - a biometric is enrolled on THIS device,
+ *                                         so the gate can offer the one-tap unlock.
  * @param {boolean} [s.backendAvailable] - the PIN/device RPCs are reachable.
  *                                         When false, we cannot enforce P3/P2 and
  *                                         degrade to identity-only (no-lockout).
@@ -65,7 +87,14 @@ export function decideAccess(s = {}) {
   const deviceTrusted = !!s.deviceTrusted;
   const pinVerified = !!s.pinVerified;
   const hasPin = !!s.hasPin;
+  const biometricVerified = !!s.biometricVerified;
+  const hasBiometric = !!s.hasBiometric;
   const backendAvailable = s.backendAvailable !== false; // default true
+
+  // Human-presence proof: a verified PIN OR a verified fingerprint/Face. Either
+  // one defeats the "someone picks up the phone" bypass; biometric is just the
+  // faster path to the same point.
+  const presenceVerified = pinVerified || biometricVerified;
 
   // Identity is the floor: with no session at all there is nothing to count.
   if (!identityPresent) {
@@ -83,6 +112,11 @@ export function decideAccess(s = {}) {
   const points = [POINTS.IDENTITY];
   if (deviceTrusted) points.push(POINTS.DEVICE);
   if (pinVerified) points.push(POINTS.PIN);
+  if (biometricVerified) points.push(POINTS.BIOMETRIC);
+
+  // When presence is still owed, prefer the one-tap biometric (if enrolled on
+  // this device) and fall back to the PIN. The PIN is never removed as an option.
+  const presenceStep = hasBiometric ? NEXT_STEP.ENTER_BIOMETRIC : NEXT_STEP.ENTER_PIN;
 
   // Graceful degradation: the second-factor backend is unreachable. We cannot
   // verify or even know about a PIN/device, so locking the user out would
@@ -113,26 +147,28 @@ export function decideAccess(s = {}) {
     };
   }
 
-  // A PIN exists. It is MANDATORY: identity + device alone (no PIN) is the
-  // pick-up-the-phone bypass and is not enough.
-  if (!pinVerified) {
+  // A PIN exists, so a human-presence proof is MANDATORY: identity + device
+  // alone (no PIN / no biometric verified) is the pick-up-the-phone bypass and
+  // is not enough. The proof may be the PIN or a fingerprint/Face unlock.
+  if (!presenceVerified) {
     return {
       granted: false,
       points,
       pointCount: points.length,
-      nextStep: NEXT_STEP.ENTER_PIN,
+      nextStep: presenceStep,
       degraded: false,
-      reason: 'PIN required (mandatory once set) in addition to identity/device.',
+      reason: 'Presence proof required (PIN or biometric, mandatory once set) in addition to identity/device.',
     };
   }
 
-  // PIN verified, plus identity (and maybe device) => at least 2 points.
+  // Presence proven (PIN or biometric), plus identity (and maybe device)
+  // => at least 2 points.
   const granted = points.length >= REQUIRED_POINTS;
   return {
     granted,
     points,
     pointCount: points.length,
-    nextStep: granted ? NEXT_STEP.NONE : NEXT_STEP.ENTER_PIN,
+    nextStep: granted ? NEXT_STEP.NONE : presenceStep,
     degraded: false,
     reason: granted
       ? `Access granted with ${points.length} points: ${points.join(' + ')}.`

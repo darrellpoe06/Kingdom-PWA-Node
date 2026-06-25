@@ -83,6 +83,7 @@ import PinGate from './components/PinGate.jsx';
 import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
 import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/device-trust.js';
+import { isBiometricEnrolled, isPlatformAuthenticatorAvailable, enrollBiometric, unlockWithBiometric } from './lib/webauthn.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import { concernsSync, mergeRemoteConcerns, CONCERN_COLUMN_OF } from './lib/concerns-sync.js';
 import { SEED_CONCERNS } from './lib/concerns.js';
@@ -2024,6 +2025,19 @@ export default function PoeFinancialSystem() {
   // boolean that this tab session has cleared the PIN. Cleared on sign-out.
   const [mpPinVerified, setMpPinVerified] = useState(false);
   const mpPinOkKey = (uid) => 'poe-pin-ok:' + String(uid || 'anon');
+  // Biometric (fingerprint / Face via WebAuthn — lib/webauthn.js). A faster way
+  // to satisfy the SAME human-presence point as the PIN, on a known device.
+  // mpHasBiometric = a credential is enrolled on THIS device; mpBioSupported =
+  // the device has a platform authenticator we could offer enrollment on;
+  // mpBiometricVerified = this tab session unlocked via biometric (a verified
+  // presence proof, session-scoped exactly like the PIN flag). The biometric
+  // never leaves the device; we store only its public key + credential id.
+  const [mpHasBiometric, setMpHasBiometric] = useState(false);
+  const [mpBioSupported, setMpBioSupported] = useState(false);
+  const [mpBiometricVerified, setMpBiometricVerified] = useState(false);
+  const [bioOfferOpen, setBioOfferOpen] = useState(false); // post-grant enroll offer
+  const mpBioOkKey = (uid) => 'poe-bio-ok:' + String(uid || 'anon');
+  const mpBioOfferKey = (uid) => 'poe-bio-offered:' + String(uid || 'anon');
   // Persona-PIN (family shared-device picker gate) state.
   const [mpPersonasWithPin, setMpPersonasWithPin] = useState([]);
   const [mpInstanceId, setMpInstanceId] = useState(null);
@@ -2095,16 +2109,31 @@ export default function PoeFinancialSystem() {
     deviceTrusted: mpDeviceTrusted,
     pinVerified: mpPinVerified,
     hasPin: mpHasPin,
+    biometricVerified: mpBiometricVerified,
+    hasBiometric: mpHasBiometric,
     backendAvailable: mpBackendAvailable,
   });
+  // The presence gate renders for SET_PIN / ENTER_PIN / ENTER_BIOMETRIC. The PIN
+  // gate IS the surface for all three (it carries the biometric button on top in
+  // the ENTER cases), so the new step joins the same render condition.
   const showPinGate = mpEnforce
-    && (accessDecision.nextStep === NEXT_STEP.SET_PIN || accessDecision.nextStep === NEXT_STEP.ENTER_PIN);
+    && (accessDecision.nextStep === NEXT_STEP.SET_PIN
+      || accessDecision.nextStep === NEXT_STEP.ENTER_PIN
+      || accessDecision.nextStep === NEXT_STEP.ENTER_BIOMETRIC);
 
   const markPinVerified = () => {
     setMpPinVerified(true);
     try {
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.setItem(mpPinOkKey(authSession?.user?.id), String(new Date().toISOString()));
+      }
+    } catch (_) { /* sessionStorage unavailable */ }
+  };
+  const markBiometricVerified = () => {
+    setMpBiometricVerified(true);
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(mpBioOkKey(authSession?.user?.id), String(new Date().toISOString()));
       }
     } catch (_) { /* sessionStorage unavailable */ }
   };
@@ -2119,12 +2148,48 @@ export default function PoeFinancialSystem() {
   };
   const handleSetPin = async (pin) => {
     const r = await setUserPin(pin);
-    if (r.ok) { setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); }
+    if (r.ok) { setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric(); }
     return r;
   };
   const handleEnterPin = async (pin) => {
     const r = await verifyUserPin(pin);
-    if (r.ok) { markPinVerified(); await maybeTrustDevice(); }
+    if (r.ok) { markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric(); }
+    return r;
+  };
+  // Biometric fast-unlock: prompt the platform authenticator and, on a verified
+  // assertion, mark presence + take the device-trust fast path. Any failure
+  // (cancel / no match / unsupported) returns !ok and the gate keeps the PIN as
+  // the fallback — biometric can never strand the user (no-lockout).
+  const handleBiometricUnlock = async () => {
+    const r = await unlockWithBiometric(authSession?.user?.id);
+    if (r.ok) { markBiometricVerified(); await maybeTrustDevice(); }
+    return r;
+  };
+  // After a successful PIN entry/set on a biometric-capable device that hasn't
+  // enrolled yet, offer the one-tap unlock — once (we remember the offer so we
+  // never nag). Opt-in: enrollment only runs on the user's explicit tap.
+  const maybeOfferBiometric = () => {
+    try {
+      const uid = authSession?.user?.id;
+      if (!mpBioSupported || mpHasBiometric) return;
+      if (typeof localStorage !== 'undefined' && localStorage.getItem(mpBioOfferKey(uid))) return;
+      setBioOfferOpen(true);
+    } catch (_) { /* ignore */ }
+  };
+  const dismissBiometricOffer = () => {
+    setBioOfferOpen(false);
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(mpBioOfferKey(authSession?.user?.id), '1');
+    } catch (_) { /* ignore */ }
+  };
+  const handleEnrollBiometric = async () => {
+    const r = await enrollBiometric({
+      userId: authSession?.user?.id,
+      userName: authSession?.user?.email || 'PoeTech user',
+      displayName: authSession?.user?.email || 'PoeTech user',
+    });
+    if (r.ok) { setMpHasBiometric(true); markBiometricVerified(); }
+    dismissBiometricOffer();
     return r;
   };
   // No-lockout recovery: forget this device's local trust and sign out so the
@@ -2641,6 +2706,8 @@ export default function PoeFinancialSystem() {
     if (!authSession) {
       setMpSignalsLoaded(false); setMpDeviceTrusted(false); setMpHasPin(false);
       setMpBackendAvailable(true); setMpPinVerified(false);
+      setMpHasBiometric(false); setMpBioSupported(false); setMpBiometricVerified(false);
+      setBioOfferOpen(false);
       setMpPersonasWithPin([]); setMpInstanceId(null); setPendingPersona(null);
       return;
     }
@@ -2651,13 +2718,23 @@ export default function PoeFinancialSystem() {
       if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(mpPinOkKey(uid))) {
         setMpPinVerified(true);
       }
+      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(mpBioOkKey(uid))) {
+        setMpBiometricVerified(true);
+      }
     } catch (_) { /* sessionStorage unavailable */ }
+    // Biometric is device-local: enrollment is a localStorage credential record,
+    // and "supported" asks the platform if a fingerprint/Face authenticator
+    // exists. Both are best-effort and never block the gate.
+    setMpHasBiometric(isBiometricEnrolled(uid));
     (async () => {
-      const [h, d] = await Promise.all([hasUserPin(), isDeviceTrusted(uid)]);
+      const [h, d, bioOk] = await Promise.all([
+        hasUserPin(), isDeviceTrusted(uid), isPlatformAuthenticatorAvailable(),
+      ]);
       if (cancelled) return;
       setMpHasPin(h.hasPin);
       setMpDeviceTrusted(d.trusted);
       setMpBackendAvailable(h.backendAvailable && d.backendAvailable);
+      setMpBioSupported(!!bioOk);
       setMpSignalsLoaded(true);
     })();
     return () => { cancelled = true; };
@@ -4734,11 +4811,38 @@ html{scroll-padding-bottom:280px}
           title={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Secure your space' : 'Welcome back'}
           subtitle={accessDecision.nextStep === NEXT_STEP.SET_PIN
             ? 'One more step: choose a 4–8 digit PIN. It’s your second key — used with your email sign-in or this trusted device.'
-            : 'Enter your PIN to unlock your space.'}
+            : (mpHasBiometric
+              ? 'Use your fingerprint / Face to unlock — or enter your PIN.'
+              : 'Enter your PIN to unlock your space.')}
           submitLabel={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Set PIN & continue' : 'Unlock'}
           onSubmit={accessDecision.nextStep === NEXT_STEP.SET_PIN ? handleSetPin : handleEnterPin}
-          onForgot={accessDecision.nextStep === NEXT_STEP.ENTER_PIN ? handleForgotPin : undefined}
+          onForgot={accessDecision.nextStep !== NEXT_STEP.SET_PIN ? handleForgotPin : undefined}
+          onBiometric={mpHasBiometric ? handleBiometricUnlock : undefined}
         />
+      )}
+
+      {/* Post-grant offer: enable fingerprint / Face on this device (opt-in,
+          shown once). Enrollment only runs on the explicit tap; the biometric
+          never leaves the device. */}
+      {bioOfferOpen && authSession && (
+        <div role="dialog" aria-modal="true" aria-labelledby="bio-offer-h"
+          className="fixed inset-0 z-[60] bg-[#1A1815]/95 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-sm w-full p-5 sm:p-6">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Faster sign-in</div>
+            <h2 id="bio-offer-h" className="text-xl sm:text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Unlock with your fingerprint or face?</h2>
+            <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+              On this device you can skip the PIN next time and just use your fingerprint or face. It stays on this device — we never see or store it. Your PIN still works any time.
+            </p>
+            <button type="button" onClick={handleEnrollBiometric}
+              className="w-full bg-[#1A1815] text-white py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] mb-2">
+              Enable fingerprint / Face
+            </button>
+            <button type="button" onClick={dismissBiometricOffer}
+              className="w-full py-2 text-[11px] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Not now — keep using my PIN
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Family shared-device persona gate — verify the selected person's PIN. */}
