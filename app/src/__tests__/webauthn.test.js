@@ -12,7 +12,7 @@
 //   * a wrong/replayed challenge FAILS,
 //   * a different key FAILS.
 // Plus the pure encoding helpers, capability gating, and no-lockout fallbacks.
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   bytesToB64, b64ToBytes, bytesToB64url, b64urlToBytes, concatBytes,
   derEcdsaToRaw, validateClientData, verifyAssertionSignature,
