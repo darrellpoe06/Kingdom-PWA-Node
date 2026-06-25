@@ -25,7 +25,7 @@
 // faked. Pure: no I/O, no Date.now — deterministic for tests.
 // =============================================================================
 import {
-  normalizeRef, kjvText, webText, hasVerse, findByRef, crossRefsFor, getTheme,
+  normalizeRef, kjvText, webText, hasVerse, findByRef, crossRefsFor,
 } from './scriptures.js';
 import { tskRefsFor, TSK_LICENSE } from './scripture-tsk.js';
 import { strongsForRef, STRONGS_LICENSE } from './scripture-strongs.js';
