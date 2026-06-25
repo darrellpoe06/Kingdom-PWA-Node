@@ -3,30 +3,30 @@
 // =============================================================================
 // A dedicated Learn space scoped to the Practice, serving THREE audiences on the
 // SHARED Learn engine (no fork):
-//   * Clients   — psychoeducation (coping, what-to-expect, between-session). NOT
-//                 treatment / diagnosis; no PHI; Christina (LCSW) is the validating SME.
+//   * Clients   — psychoeducation: understand your situation + build coping skills.
 //   * Therapists— clinical training, onboarding, supervision, best-practice modules.
-//   * Training & Certs — course completion, internal certifications, and CEU tracking.
+//   * Training & Hours — completion, certificates that affirm growth, and a real
+//                 training-hours ledger toward the Illinois MSW → LCSW pathway.
 //
-// Built on lib/practice-academy.js (audience scoping + certification framework),
-// which composes lib/tlc-lessons.js (content), lib/lesson-flow.js (the five-stage
-// arc + LessonFlowAudience renderer), and lib/learn-framework.js (depth levels +
-// real quiz-graded completion). Reading-support primitives (large-print + read-
-// aloud) are reused so a struggling or dyslexic reader still gets the full meaning.
+// The value is the HELP, not the credential (experience-over-credentials / SKOS):
+// OUTCOMES and growth lead the experience. Completion certificates affirm the
+// learning on their own merit. Hours are real training hours — for clinicians,
+// supervised clinical hours logged under a supervisor of record, the IL standard.
+// Accreditation / CE-provider info is a plain OPTIONAL field, never a gate.
 //
-// SCOPING: clients only ever see the client track; clinician + cert tracks are
+// Built on lib/practice-academy.js, which composes lib/tlc-lessons.js (content),
+// lib/lesson-flow.js (the five-stage arc + LessonFlowAudience), and lib/learn-
+// framework.js (depth levels + real quiz-graded completion). Reading-support
+// primitives (large-print + read-aloud) are reused.
+//
+// SCOPING: clients only ever see the client track; clinician + training tracks are
 // staff-gated. Until a real client/therapist login lands (Phase 2 roles layer),
 // staff can switch audiences to preview/run any track — stated honestly in-surface.
 //
-// COMPLIANCE: internal certificates issue freely; an accredited-CEU claim is
-// refused (certComplianceCheck) unless a real provider + accreditation number back
-// it. The framework carries provider / accreditation # / hours / expiry so real
-// CEU tracking drops in later without a false claim.
-//
-// PERSISTENCE: a learner's progress, quiz results, earned certificates, and the
-// (staff-edited) cert catalog persist on THIS device (localStorage) — the same
-// local-first pattern the sibling Client Growth surface uses. Cross-device sync is
-// the named next step (a practice_training table), not a painted promise.
+// PERSISTENCE: progress, quiz results, certificates, logged hours, and the (staff-
+// edited) cert catalog persist on THIS device (localStorage) — the same local-first
+// pattern the sibling Client Growth surface uses. Cross-device sync (a
+// practice_training table) is the named next step, not a painted promise.
 // =============================================================================
 import React, { useState, useMemo, useEffect } from 'react';
 import { SectionTitle, MetricCell } from './shared.jsx';
@@ -37,9 +37,10 @@ import { LessonFlowAudience } from './LessonFlow.jsx';
 import { LEARN_LEVELS, DEFAULT_LEVEL, gradeQuiz } from '../lib/learn-framework.js';
 import {
   ACADEMY_AUDIENCES, visibleAudiences, canSeeAudience, defaultAudience, getAudience,
-  audienceTracks, trackCompletion, moduleComplete,
-  DEFAULT_CERT_CATALOG, catalogForAudience, certComplianceCheck, isAccreditedCredit,
-  creditLabel, issueCertificate, certExpired, CERT_KINDS,
+  audienceTracks, outcomesFor, trackCompletion, moduleComplete,
+  DEFAULT_CERT_CATALOG, catalogForAudience, creditLabel, issueCertificate, certExpired,
+  HOUR_ACTIVITY_TYPES, DEFAULT_ACTIVITY_TYPE, activityType, CLINICAL_COMPETENCIES,
+  IL_LCSW_REQUIREMENT, makeHourEntry, requirementProgress, hoursByCompetency, sumHours,
   DEFAULT_REQUIRED_TRAININGS, requiredTrainingStatus, requiredTrainingSummary,
   isTrackPublishable, ceCreditsToConfirm,
 } from '../lib/practice-academy.js';
@@ -53,13 +54,15 @@ const LS = {
   progress: 'poe.practiceAcademy.progress.v1',
   quiz: 'poe.practiceAcademy.quiz.v1',
   certs: 'poe.practiceAcademy.certs.v1',
-  catalog: 'poe.practiceAcademy.catalog.v1',
+  catalog: 'poe.practiceAcademy.catalog.v2',
   reqs: 'poe.practiceAcademy.reqs.v1',
+  hours: 'poe.practiceAcademy.hours.v1',
 };
 function loadLS(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function saveLS(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* no storage */ } }
 
 const nowISO = () => new Date().toISOString();
+const todayISO = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (iso) => { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString(); } catch { return '—'; } };
 
 function PracticeLearn({ email = '', isStaff = false }) {
@@ -74,6 +77,7 @@ function PracticeLearn({ email = '', isStaff = false }) {
   const [certs, setCerts] = useState(() => loadLS(LS.certs, []));
   const [catalog, setCatalog] = useState(() => loadLS(LS.catalog, DEFAULT_CERT_CATALOG));
   const [reqCompletions, setReqCompletions] = useState(() => loadLS(LS.reqs, {}));
+  const [hours, setHours] = useState(() => loadLS(LS.hours, []));
   const [openModuleId, setOpenModuleId] = useState(null);
 
   useEffect(() => { saveLS(LS.audience, audience); }, [audience]);
@@ -83,21 +87,21 @@ function PracticeLearn({ email = '', isStaff = false }) {
   useEffect(() => { saveLS(LS.certs, certs); }, [certs]);
   useEffect(() => { saveLS(LS.catalog, catalog); }, [catalog]);
   useEffect(() => { saveLS(LS.reqs, reqCompletions); }, [reqCompletions]);
+  useEffect(() => { saveLS(LS.hours, hours); }, [hours]);
 
-  // Guard: if a saved audience is no longer allowed (e.g. staff flag changed), reset.
   useEffect(() => {
     if (!canSeeAudience(audience, { isStaff })) setAudience(defaultAudience({ isStaff }));
   }, [audience, isStaff]);
 
   const aud = getAudience(audience) || ACADEMY_AUDIENCES[0];
+  const outcomes = useMemo(() => outcomesFor(audience), [audience]);
   const tracks = useMemo(() => audienceTracks(audience), [audience]);
   const audCatalog = useMemo(() => catalogForAudience(catalog, audience), [catalog, audience]);
-  // Required trainings are clinician-compliance; they belong to the Therapist
-  // audience AND the Training & Certs hub (which manages all clinician trainings).
   const audReqs = useMemo(
     () => DEFAULT_REQUIRED_TRAININGS.filter((r) => r.audienceKey === audience || audience === 'training'),
     [audience],
   );
+  const myHours = useMemo(() => hours.filter((h) => !h.learnerEmail || h.learnerEmail === email), [hours, email]);
 
   // -- learner actions ------------------------------------------------------
   const recordQuiz = (moduleId, result) => {
@@ -115,14 +119,19 @@ function PracticeLearn({ email = '', isStaff = false }) {
     setCerts((prev) => (prev.some((c) => c.id === cert.id) ? prev : [cert, ...prev]));
   };
 
+  const logHours = (entry) => setHours((prev) => [makeHourEntry({ ...entry, learnerEmail: email, createdAt: nowISO() }), ...prev]);
+  const removeHours = (id) => setHours((prev) => prev.filter((h) => h.id !== id));
+
+  const showHoursLedger = isStaff && (audience === 'therapist' || audience === 'training');
+
   return (
     <div className="space-y-5">
       {/* Header + audience switcher */}
       <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions · Learn</div>
-        <h2 className="text-2xl mb-1" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>A Learn space for the whole Practice</h2>
+        <h2 className="text-2xl mb-1" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>A Learn space that builds real skill</h2>
         <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={SERIF}>
-          Learning that backs every side of the Practice — psychoeducation for clients and families, clinical training for therapists, and a path to completion certificates and continuing education. Built on the same paced, age-adaptive, read-aloud-ready Learn engine the rest of the app uses.
+          Learning that actually helps — psychoeducation and coping skills for clients and families, clinical growth for therapists, and a real record of the work. Built on the same paced, age-adaptive, read-aloud-ready Learn engine the rest of the app uses.
         </p>
 
         <div className="mt-4">
@@ -152,6 +161,27 @@ function PracticeLearn({ email = '', isStaff = false }) {
             </p>
           )}
         </div>
+      </section>
+
+      {/* OUTCOMES — what you'll gain. Leads the experience. */}
+      <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">What you’ll gain</div>
+        <p className="text-sm text-[#1A1815] mb-3 max-w-prose" style={SERIF}><strong>Understand:</strong> {outcomes.understand}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Skills you’ll build</div>
+            <ul className="list-disc pl-5 space-y-0.5">
+              {outcomes.skills.map((s, i) => <li key={i} className="text-xs text-[#1A1815]" style={SERIF}>{s}</li>)}
+            </ul>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Coping skills</div>
+            <ul className="list-disc pl-5 space-y-0.5">
+              {outcomes.coping.map((s, i) => <li key={i} className="text-xs text-[#1A1815]" style={SERIF}>{s}</li>)}
+            </ul>
+          </div>
+        </div>
+        <p className="text-[11px] text-[#5A5751] italic mt-3" style={SERIF}><strong className="text-[#5A6E3D] not-italic">How you’ll improve:</strong> {outcomes.improve}</p>
       </section>
 
       {/* Reading support (the shared accessibility primitives) */}
@@ -201,21 +231,16 @@ function PracticeLearn({ email = '', isStaff = false }) {
       {/* Certificates earned (this device) */}
       <EarnedCertificates certs={certs} onRemove={(id) => setCerts((prev) => prev.filter((c) => c.id !== id))} />
 
-      {/* Certification framework + required trainings (staff) */}
+      {/* Training-hours ledger (staff, clinician + training audiences) */}
+      {showHoursLedger && <HoursLedger entries={myHours} onLog={logHours} onRemove={removeHours} />}
+
+      {/* Certificate catalog + required trainings (staff) */}
       {isStaff && (audience === 'therapist' || audience === 'training') && (
         <>
           <CertCatalogPanel catalog={audCatalog} setCatalog={setCatalog} />
           <RequiredTrainings reqs={audReqs} completions={reqCompletions} setCompletions={setReqCompletions} />
         </>
       )}
-
-      {/* The compliance bright line — always visible */}
-      <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">Certificates vs. accredited CEUs — the bright line</div>
-        <p className="text-xs text-[#1A1815] leading-relaxed max-w-prose" style={SERIF}>
-          PoeTech / TLC can issue <strong>internal training certificates</strong> and completion records freely. State-licensure <strong>CEU credit</strong> requires a real <strong>accredited CE provider</strong> (APA / ASWB / NBCC, etc.) — so hours are never labeled accredited CEU unless a verified provider + accreditation number back them. The framework already carries those fields (provider, accreditation #, credit hours, expiry) so real CEU tracking drops in later. <strong>SME decision for Christina (LCSW):</strong> which trainings pursue real accreditation, and through which provider.
-        </p>
-      </section>
 
       {/* The single floating read-aloud control for the whole surface */}
       <TTSControl />
@@ -243,7 +268,7 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
       </div>
       <p className="text-xs text-[#5A5751] mb-2 max-w-prose" style={SERIF}>{track.purpose}</p>
       <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-3">
-        {track.modules.length} lessons · {completion.done}/{completion.total} done · {completion.progressPct}%{ce > 0 ? ` · ~${ce} CE (to confirm)` : ''}
+        {track.modules.length} lessons · {completion.done}/{completion.total} done · {completion.progressPct}%{ce > 0 ? ` · ~${ce} training hours` : ''}
       </div>
       <div className="h-1.5 bg-[#E8E4DC] mb-3"><div className="h-full bg-[#5A6E3D]" style={{ width: `${completion.progressPct}%` }} /></div>
 
@@ -275,18 +300,17 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
         })}
       </ul>
 
-      {/* Certificate offer on completion */}
+      {/* Certificate offer on completion — affirms the growth */}
       {certTemplates.length > 0 && (
         <div className="mt-4 border-t border-[#E8E4DC] pt-3">
           <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Certificate for this track</div>
           {certTemplates.map((tpl) => {
             const earned = alreadyEarned(tpl.id);
-            const accredited = isAccreditedCredit(tpl);
             return (
               <div key={tpl.id} className="flex items-center justify-between gap-2 flex-wrap border border-[#E8E4DC] p-2.5 mb-1.5">
                 <div className="min-w-0">
                   <div className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{tpl.title}</div>
-                  <div className={`text-[10px] uppercase tracking-wider ${accredited ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`}>{creditLabel(tpl)}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{creditLabel(tpl)}</div>
                 </div>
                 <button
                   type="button"
@@ -342,8 +366,7 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead }) {
 
 // -----------------------------------------------------------------------------
 // QuizBlock — a small, real check-for-understanding. Grades via the shared
-// gradeQuiz; passing marks the module complete. A quiz-less module shows a simple
-// "Mark as read" instead.
+// gradeQuiz; passing marks the module complete.
 // -----------------------------------------------------------------------------
 function QuizBlock({ module, saved, onRecord, onMarkRead }) {
   const questions = (module.quiz && Array.isArray(module.quiz.questions)) ? module.quiz.questions : [];
@@ -423,8 +446,8 @@ function QuizBlock({ module, saved, onRecord, onMarkRead }) {
 }
 
 // -----------------------------------------------------------------------------
-// EarnedCertificates — the learner's earned certificates with honest labels,
-// disclaimers, verify codes, and expiry.
+// EarnedCertificates — the learner's earned certificates: title, the learning +
+// hours they affirm, optional CE-provider metadata, verify code, and expiry.
 // -----------------------------------------------------------------------------
 function EarnedCertificates({ certs, onRemove }) {
   if (!certs || certs.length === 0) return null;
@@ -436,14 +459,13 @@ function EarnedCertificates({ certs, onRemove }) {
         {certs.map((c) => {
           const expired = certExpired(c, now);
           return (
-            <div key={c.id} className={`bg-white border-2 p-4 ${c.accredited ? 'border-[#5A6E3D]' : 'border-[#1A1815]'}`}>
+            <div key={c.id} className="bg-white border-2 border-[#5A6E3D] p-4">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{c.title}</span>
-                <span className={`text-[10px] uppercase tracking-wider ${c.accredited ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`}>{c.accredited ? 'Accredited CE' : 'Internal'}</span>
+                <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D]">Completed</span>
               </div>
-              <div className="text-[11px] text-[#5A5751] mt-0.5" style={SERIF}>{c.trackTitle} · {c.learnerName}</div>
+              <div className="text-[11px] text-[#5A5751] mt-0.5" style={SERIF}>{c.trackTitle} · {c.learnerName}{c.competency ? ` · ${c.competency}` : ''}</div>
               <div className="text-[11px] text-[#1A1815] mt-1" style={SERIF}><strong>{c.label}</strong></div>
-              {c.disclaimer && <div className="text-[10px] text-[#B85838] mt-1" style={SERIF}>{c.disclaimer}</div>}
               <div className="flex items-center gap-3 mt-2 text-[10px] text-[#5A5751]" style={MONO}>
                 <span>Issued {fmtDate(c.issuedAt)}</span>
                 {c.expiresAt && <span className={expired ? 'text-[#B85838] font-semibold' : ''}>{expired ? 'EXPIRED ' : 'Expires '}{fmtDate(c.expiresAt)}</span>}
@@ -459,69 +481,152 @@ function EarnedCertificates({ certs, onRemove }) {
 }
 
 // -----------------------------------------------------------------------------
-// CertCatalogPanel (staff) — view + edit the certificate catalog. Filling a
-// provider + accreditation number + hours and enabling "accredited" turns a CE
-// template real; the compliance guard blocks the accredited claim until they exist.
+// HoursLedger — the real, standard training-hours tracker for the IL MSW → LCSW
+// supervised-experience pathway. Logs hours per learner with the fields that
+// matter; totals them toward the requirement.
+// -----------------------------------------------------------------------------
+function HoursLedger({ entries, onLog, onRemove }) {
+  const [show, setShow] = useState(false);
+  const [form, setForm] = useState({ date: todayISO(), hours: '', activity: DEFAULT_ACTIVITY_TYPE, competency: '', supervisor: '', note: '' });
+  const prog = useMemo(() => requirementProgress(entries, IL_LCSW_REQUIREMENT), [entries]);
+  const byComp = useMemo(() => hoursByCompetency(entries), [entries]);
+  const totalAll = useMemo(() => sumHours(entries), [entries]);
+
+  const submit = () => {
+    const h = Number(form.hours);
+    if (!form.date || !(h > 0)) { alert('A date and a positive number of hours are required.'); return; }
+    if (activityType(form.activity)?.countsClinical && !form.supervisor.trim()) { alert('Supervised clinical hours need a supervisor of record.'); return; }
+    onLog({ ...form, hours: h });
+    setForm({ date: todayISO(), hours: '', activity: DEFAULT_ACTIVITY_TYPE, competency: '', supervisor: '', note: '' });
+    setShow(false);
+  };
+
+  return (
+    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <SectionTitle eyebrow="Training hours · IL MSW → LCSW">Supervised hours ledger</SectionTitle>
+        <button type="button" onClick={() => setShow(!show)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">{show ? '× Cancel' : '+ Log hours'}</button>
+      </div>
+
+      {/* Progress toward the requirement */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-2">
+        <MetricCell label="Supervised clinical" value={`${prog.logged}`} sub={`of ${prog.target}`} small accent="green" />
+        <MetricCell label="Remaining" value={`${prog.remaining}`} small accent="rust" />
+        <MetricCell label="Supervision hrs" value={`${prog.supervisionHours}`} small />
+        <MetricCell label="All logged" value={`${totalAll}`} small />
+      </div>
+      <div className="h-2 bg-[#E8E4DC] mb-1"><div className="h-full bg-[#5A6E3D]" style={{ width: `${prog.pct}%` }} /></div>
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <p className="text-[11px] text-[#5A5751]" style={SERIF}>
+          {prog.pct}% toward the Illinois supervised-clinical standard{prog.supervisors.length ? ` · supervisor(s) of record: ${prog.supervisors.join(', ')}` : ''}.
+        </p>
+      </div>
+      <p className="text-[10px] text-[#5A5751] italic mt-1" style={SERIF}>{IL_LCSW_REQUIREMENT.note}</p>
+
+      {/* Log form */}
+      {show && (
+        <div className="border border-[#B85838] p-3 mt-3 space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Date
+              <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
+            </label>
+            <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Hours
+              <input type="number" min="0" step="0.25" value={form.hours} onChange={(e) => setForm({ ...form, hours: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
+            </label>
+            <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Activity
+              <select value={form.activity} onChange={(e) => setForm({ ...form, activity: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case">
+                {HOUR_ACTIVITY_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+              </select>
+            </label>
+            <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Competency
+              <select value={form.competency} onChange={(e) => setForm({ ...form, competency: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case">
+                <option value="">—</option>
+                {CLINICAL_COMPETENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
+            <label className="text-[10px] uppercase tracking-wider text-[#5A5751] sm:col-span-2">Supervisor of record
+              <input value={form.supervisor} onChange={(e) => setForm({ ...form, supervisor: e.target.value })} placeholder="e.g., Christina Poe, LCSW" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
+            </label>
+            <label className="text-[10px] uppercase tracking-wider text-[#5A5751] sm:col-span-2">Note
+              <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="brief, no client-identifying detail" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
+            </label>
+          </div>
+          <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-white py-2 text-[10px] uppercase tracking-wider hover:bg-[#5A6E3D] min-h-[36px]">Log these hours</button>
+        </div>
+      )}
+
+      {/* Per-competency rollup */}
+      {Object.keys(byComp).length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {Object.entries(byComp).map(([k, v]) => (
+            <span key={k} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] bg-[#FAF8F4]">{k}: {v}h</span>
+          ))}
+        </div>
+      )}
+
+      {/* Entries */}
+      {entries.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {[...entries].sort((a, b) => String(b.date).localeCompare(String(a.date))).map((e) => (
+            <li key={e.id} className="flex items-baseline justify-between gap-2 border border-[#E8E4DC] p-2.5">
+              <div className="min-w-0">
+                <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{e.hours}h</span>
+                <span className="text-xs text-[#5A5751]"> · {(activityType(e.activity) || {}).label || e.activity}</span>
+                {e.competency && <span className="text-[10px] text-[#5A5751]"> · {e.competency}</span>}
+                <div className="text-[10px] text-[#5A5751]" style={MONO}>{fmtDate(e.date)}{e.supervisor ? ` · ${e.supervisor}` : ''}{e.note ? ` · ${e.note}` : ''}</div>
+              </div>
+              <button type="button" onClick={() => onRemove(e.id)} aria-label="Remove entry" className="text-[#5A5751] hover:text-[#B85838] shrink-0 min-h-[28px] min-w-[28px]">×</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// CertCatalogPanel (staff) — view + edit certificates. Hours and title are the
+// substance; CE-provider fields are OPTIONAL neutral metadata for the cases that
+// want continuing-education-provider info. No gate, no warnings.
 // -----------------------------------------------------------------------------
 function CertCatalogPanel({ catalog, setCatalog }) {
   const update = (id, patch) => setCatalog((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   return (
     <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
-      <SectionTitle eyebrow="Staff · certification framework">Certificate catalog</SectionTitle>
+      <SectionTitle eyebrow="Staff · certificates">Certificate catalog</SectionTitle>
       <p className="text-xs text-[#5A5751] mb-3 max-w-prose" style={SERIF}>
-        Internal certificates issue freely. To make a CE credit count as an <strong>accredited CEU</strong>, name the approved provider and its accreditation number, set the real hours, then enable the accredited claim — the guard blocks it until those are present.
+        Certificates affirm completion and the training hours earned. CE-provider fields are optional — fill them only when a course carries continuing-education-provider info.
       </p>
       <div className="space-y-3">
-        {catalog.map((c) => {
-          const check = certComplianceCheck(c);
-          const accreditedClaim = check.accreditedClaim;
-          return (
-            <div key={c.id} className="border border-[#E8E4DC] p-3">
-              <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-                <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{c.title}</span>
-                <span className={`text-[10px] uppercase tracking-wider ${isAccreditedCredit(c) ? 'text-[#5A6E3D]' : accreditedClaim ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{creditLabel(c)}</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Kind
-                  <select value={c.kind} onChange={(e) => update(c.id, { kind: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case">
-                    {Object.values(CERT_KINDS).map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
-                  </select>
-                </label>
-                <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Credit hours
-                  <input type="number" min="0" value={c.creditHours} onChange={(e) => update(c.id, { creditHours: Number(e.target.value) || 0 })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
-                </label>
-                <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">CE provider (APA / ASWB / NBCC…)
-                  <input value={c.provider || ''} onChange={(e) => update(c.id, { provider: e.target.value || null })} placeholder="e.g., ASWB ACE #1234" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
-                </label>
-                <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Accreditation number
-                  <input value={c.accreditationNumber || ''} onChange={(e) => update(c.id, { accreditationNumber: e.target.value || null })} placeholder="provider approval #" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
-                </label>
-                <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Expires (months)
-                  <input type="number" min="0" value={c.expiresMonths || ''} onChange={(e) => update(c.id, { expiresMonths: e.target.value ? Number(e.target.value) : null })} placeholder="none" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
-                </label>
-                <label className="flex items-center gap-2 text-xs text-[#5A5751] self-end" style={SERIF}>
-                  <input type="checkbox" checked={!!c.accredited} onChange={(e) => update(c.id, { accredited: e.target.checked })} className="w-4 h-4" />
-                  Claim accredited CEU
-                </label>
-              </div>
-              {accreditedClaim && !check.ok && (
-                <ul className="mt-2 space-y-0.5">
-                  {check.issues.map((iss, i) => (
-                    <li key={i} className="text-[11px] text-[#B85838]">⛔ {iss.why}</li>
-                  ))}
-                </ul>
-              )}
-              {isAccreditedCredit(c) && <div className="text-[11px] text-[#5A6E3D] mt-2 font-medium">✓ Accredited CEU claim is backed and will issue as CE credit.</div>}
+        {catalog.map((c) => (
+          <div key={c.id} className="border border-[#E8E4DC] p-3">
+            <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+              <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{c.title}</span>
+              <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">{creditLabel(c)}</span>
             </div>
-          );
-        })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Training hours
+                <input type="number" min="0" step="0.5" value={c.trainingHours} onChange={(e) => update(c.id, { trainingHours: Number(e.target.value) || 0 })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
+              </label>
+              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Expires (months)
+                <input type="number" min="0" value={c.expiresMonths || ''} onChange={(e) => update(c.id, { expiresMonths: e.target.value ? Number(e.target.value) : null })} placeholder="none" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
+              </label>
+              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">CE provider <span className="text-[#5A5751] normal-case">(optional)</span>
+                <input value={c.ceProvider || ''} onChange={(e) => update(c.id, { ceProvider: e.target.value || null })} placeholder="e.g., ASWB ACE" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
+              </label>
+              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">CE number <span className="text-[#5A5751] normal-case">(optional)</span>
+                <input value={c.ceNumber || ''} onChange={(e) => update(c.id, { ceNumber: e.target.value || null })} placeholder="provider #" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
+              </label>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
 // -----------------------------------------------------------------------------
-// RequiredTrainings (staff) — track trainings clinicians must keep current, with a
+// RequiredTrainings (staff) — track trainings clinicians keep current, with a
 // cadence and a status derived from the last completion.
 // -----------------------------------------------------------------------------
 function RequiredTrainings({ reqs, completions, setCompletions }) {
@@ -536,7 +641,7 @@ function RequiredTrainings({ reqs, completions, setCompletions }) {
   };
   return (
     <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
-      <SectionTitle eyebrow="Staff · compliance">Required trainings</SectionTitle>
+      <SectionTitle eyebrow="Staff · keeping current">Required trainings</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-3">
         <MetricCell label="Current" value={`${summary.current}`} small accent="green" />
         <MetricCell label="Due soon" value={`${summary.dueSoon}`} small accent="rust" />
