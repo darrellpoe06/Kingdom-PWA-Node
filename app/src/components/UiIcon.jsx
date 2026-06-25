@@ -69,6 +69,15 @@ const ICONS = {
       <circle cx="15" cy="16" r="2.3" />
     </>
   ),
+  // two people — CRM / contacts / leads
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
+      <path d="M16 6.2a3 3 0 0 1 0 5.6" />
+      <path d="M17.5 14.2c2 .6 3.5 2.4 3.5 4.8" />
+    </>
+  ),
   // padlock — Admin / Legal / Observation (was 🔒)
   lock: (
     <>
