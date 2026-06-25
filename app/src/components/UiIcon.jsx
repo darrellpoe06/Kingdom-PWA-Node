@@ -128,6 +128,14 @@ const ICONS = {
       <line x1="12" y1="13" x2="12" y2="21" />
     </>
   ),
+  // speaker with sound waves — Voice / read-aloud (was 🔊)
+  volume: (
+    <>
+      <path d="M4 9.5h3l4-3.5v12l-4-3.5H4Z" />
+      <path d="M15.5 9a4 4 0 0 1 0 6" />
+      <path d="M18 6.5a8 8 0 0 1 0 11" />
+    </>
+  ),
   // checkmark — finalized / teaching-ready (Finalize tab; was ✓)
   check: (
     <path d="M5 12.5l4.5 4.5L19 6.5" />
