@@ -16,7 +16,7 @@
 1. **Lesson + Scripture + presenter read-aloud** — replace browser Web Speech / cloud TTS with a sovereign local engine (Kokoro or LuxTTS), behind the existing `useTextToSpeech` seam. This is real accessibility for elderly, low-literacy, and dyslexic members (COMMUNITY-FIRST-MISSION) and removes the browser-voice-quality lottery.
 2. **Dictation / voice capture** — Voicebox's `transcribe` for the One-Voice input + Study + notes capture, upgrading the browser Web Speech recognition we use today (`app/src/lib/voice-dictation.js`).
 
-**DEFER, behind explicit consent + "AI-generated voice" labeling (Tier C):** voice *cloning* of real people (BG, choir, family) and the MCP `speak` "let the agents talk" capability for announcements/presenter. These carry impersonation risk and ship only with the guardrails in §6.
+**Voice CLONING of the BUILDING CIRCLE's own voices is now UNBLOCKED for build + test** (Darrell, Christina, BG, the keyboardist; son under guardian consent) — consent granted 2026-06-24, recorded in §6.1 / `intake-voice-clone-CONSENT.md`. **Still gated, behind explicit consent + "AI-generated voice" labeling:** cloning any voice *outside* the circle, any *public* use in a cloned voice, and the MCP `speak` "let the agents talk" capability for unattended announcements (three-brakes rule). Impersonation / putting false words in any mouth stays absolutely barred — consent or not.
 
 **Hardware:** runs NOW on the church's 2× RTX 4070 boxes (CUDA) and the planned home 5090 box. The light engines (Kokoro, LuxTTS, Qwen3-TTS 0.6B) fit the 4070's ~12GB; only the heaviest models want 16GB+ (§5). **Disable the one cloud engine (HumeAI TADA)** — keeping the deployment 100% sovereign is the whole point.
 
@@ -110,6 +110,19 @@ These are the bright lines. They are *not* optional polish — voice cloning of 
 
 Ties to the through-line: open-source stack + local-AI vision + accessibility. Read-aloud is **real** accessibility for kids, low-literacy, and dyslexic readers — not a gimmick.
 
+### 6.1 Consent record — the building circle (added 2026-06-24)
+
+**Consent granted by Darrell on behalf of the building circle, 2026-06-24:** *"we all consent — we're building it and testing it together."* The **BUILDING CIRCLE** (Darrell, Christina, Bishop Gwin, the keyboardist) **consent to cloning THEIR OWN voices for the build + test phase** of the voice layer. The son (minor) is covered by **guardian consent (Darrell/Christina), with child-safety care**. This **unblocks Phase 3 cloning for the circle's own voices now** — the rest of Phase 3 (outside-circle voices, public announcement use) stays gated.
+
+Full audit trail (who / scope = build+test / dated, plus each adult member's own counter-attestation as they confirm): **`infra/nas-sme-pipeline/intake-voice-clone-CONSENT.md`**.
+
+**The consent is scoped — these guardrails STILL hold:**
+- **Circle's own voices only.** Anyone OUTSIDE the circle (congregants, TLC clients, any non-circle person; minors beyond the son) needs their own explicit consent before their voice is cloned. Default is *don't* (guardrail 1 unchanged for them).
+- **The son is a minor** → guardian consent covers him, with child-safety care; not used beyond build/test.
+- **Public / published in a cloned voice still gets the "AI-generated voice" label** (guardrail 2).
+- **Never deceptive** — cloning is narration/TTS of *intended* content; do not make even a consenting member appear to say something they didn't (guardrail 3 — absolute, consent or not).
+- **Sovereign-only** — local engines, HumeAI off (guardrail 5).
+
 ---
 
 ## 7. Standard screens
@@ -131,7 +144,7 @@ Ties to the through-line: open-source stack + local-AI vision + accessibility. R
   2. Wire **read-aloud** through it behind the existing `tts.js` provider seam — synthetic preset voice for lessons/Scripture; browser Web Speech stays the graceful fallback.
   3. Evaluate **dictation/transcribe** against our current browser Web Speech recognition on the One-Voice/Study capture surfaces.
 - **Phase 2 (production-harden):** if read-aloud proves out, productionize against a **headless Kokoro/Piper TTS microservice** on the NAS/GPU box (cleaner than a desktop app) behind the same seam.
-- **Phase 3 (Tier C, consent-gated, deferred):** voice **cloning** of trusted voices and **MCP `speak`** for agent/announcement output — only after a written consent + labeling workflow exists and the home 5090 box is up.
+- **Phase 3 (build+test cloning UNBLOCKED for the circle, 2026-06-24):** voice **cloning of the building circle's own voices** (Darrell, Christina, BG, the keyboardist; son under guardian consent) is now consented for **building + testing** the voice layer — consent record in §6.1 / `intake-voice-clone-CONSENT.md`. **Still gated:** cloning any voice *outside* the circle (needs their consent), and any *public/announcement* use in a cloned voice (needs the "AI-generated voice" label + no-deception bar). **MCP `speak`** for unattended agent/announcement output remains deferred behind the three-brakes rule and the home 5090 box.
 
 **Build-it-in-the-app default (Layer 0):** the app surface for Phase 1 is the existing read-aloud control and One-Voice box — no new tab needed; the change is swapping the *provider* behind the seam. That is where the user lives, and it is the right place to ship this.
 
@@ -148,4 +161,6 @@ Ties to the through-line: open-source stack + local-AI vision + accessibility. R
 
 ---
 
-*Layer 4 working artifact. No code changed; this is the eval that authorizes a Phase-1 spike. Voice cloning and MCP-speak remain deferred behind explicit consent + "AI-generated voice" labeling.*
+*Layer 4 working artifact. No code changed; this is the eval that authorizes a Phase-1 spike. Cloning the building circle's OWN voices is consented for build+test (2026-06-24, §6.1); cloning outside the circle, public cloned-voice use, and MCP-speak remain gated behind explicit consent + "AI-generated voice" labeling + the no-deception bar.*
+
+*Update 2026-06-24: building-circle consent recorded (§6.1, `infra/nas-sme-pipeline/intake-voice-clone-CONSENT.md`) — Phase-3 cloning unblocked for the team's own voices in build+test; outside-circle + public-labeling + no-deception guardrails held.*
