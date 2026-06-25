@@ -38,6 +38,7 @@ import {
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import Presenter from './Presenter.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
+import { useReadingResume } from '../lib/reading-position.js';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) => {
@@ -165,7 +166,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
 // management controls + the in-progress drafts; everyone else sees only the
 // published list (the RPC returns no drafts to them).
 // -----------------------------------------------------------------------------
-function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [] }) {
+function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [q, setQ] = useState('');
   const [importMsg, setImportMsg] = useState('');
@@ -182,8 +183,16 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
     .filter((s) => !q || `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''}`.toLowerCase().includes(q.toLowerCase()))
     .sort(byDateDesc);
   const roster = speakerRoster(list);
+  // The Word is the second consumer of the shared reading-position primitive:
+  // return to the message library right where you were scrolled, not the top.
+  const { hasResume, resume, label } = useReadingResume({ userKey, surface: 'theword', itemId: 'library' });
   return (
     <div>
+      {hasResume && (
+        <button type="button" onClick={resume} className="mb-2 text-xs px-3 py-2 border w-full text-left bg-[#FAF8F4] border-[#B85838] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+          ↓ {label || 'Continue where you left off'}
+        </button>
+      )}
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Every past message — Sundays + Wednesday Bible Study, newest first. Bishop Gwin preaches most; guest preachers and teachers fill in so he can rest, and each message credits who delivered it. Watch the service right here.{canEdit ? ' Add, reuse, and manage messages below.' : ''}</p>
       {roster.length > 0 && (
         <div className="mb-3">
@@ -309,6 +318,7 @@ function MessagePicker({ library, onPick, onClose }) {
 // -----------------------------------------------------------------------------
 export default function Pulpit() {
   const [signedIn, setSignedIn] = useState(false);
+  const [email, setEmail] = useState(''); // namespaces reading-position per user
   const [canManage, setCanManage] = useState(false); // owner/admin = BG / Darrell / Christina
   const [tab, setTab] = useState('library');
   const [presenting, setPresenting] = useState(false); // live present mode: opens the message PICKER
@@ -320,7 +330,7 @@ export default function Pulpit() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
-  useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
+  useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setEmail(s?.user?.email || ''); }), []);
 
   // Resolve leadership (owner/admin) access when signed in.
   useEffect(() => {
@@ -447,7 +457,7 @@ export default function Pulpit() {
 
       {tab === 'library' && (
         <LibraryPanel
-          sermons={libraryItems} canEdit={canManage} busy={busy} speakers={speakers}
+          sermons={libraryItems} canEdit={canManage} busy={busy} speakers={speakers} userKey={email}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
         />

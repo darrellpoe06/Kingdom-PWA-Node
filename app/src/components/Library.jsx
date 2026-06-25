@@ -34,6 +34,7 @@ import {
   availableRecipes, buildRecipe, loadShelf, saveShelf, upsertBook, removeBook,
 } from '../lib/book-corpus.js';
 import { loadLibrary } from '../lib/eternal-algorithms.js';
+import { useReadingResume, anchorProps } from '../lib/reading-position.js';
 
 const PALETTE = {
   ink: '#1A1815', muted: '#5A5751', accent: '#B85838', line: '#E0DBD0', panel: '#FAF8F4',
@@ -133,16 +134,25 @@ function ChapterBlock({ block }) {
   return <p className="my-2 leading-relaxed" style={{ color: PALETTE.ink }}>{block.text}</p>;
 }
 
-function Reader({ book, onNavigate, onBack }) {
+function Reader({ book, onNavigate, onBack, userKey }) {
+  // Resume reading exactly where this reader left off in THIS book — not the top.
+  // Each chapter is a stable anchor (anchorProps) so resume + the font-size
+  // scroll-anchor land on the right paragraph, not a guessed offset.
+  const { hasResume, resume, label } = useReadingResume({ userKey, surface: 'book', itemId: book.id });
   return (
     <div className="max-w-2xl">
       <button type="button" onClick={onBack} className="text-xs underline mb-3" style={{ color: PALETTE.accent }}>← Back to the shelf</button>
       <h2 className="text-2xl" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{book.title}</h2>
       {book.subtitle && <p className="italic mb-1" style={{ color: PALETTE.muted }}>{book.subtitle}</p>}
       <p className="text-xs mb-4" style={{ color: PALETTE.muted }}>{book.author} · {book.stats?.chapters} chapters · ~{book.stats?.estReadingMinutes} min</p>
+      {hasResume && (
+        <button type="button" onClick={resume} className="mb-4 text-xs px-3 py-2 border w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.accent, background: PALETTE.panel, color: PALETTE.ink }}>
+          ↓ {label || 'Continue where you left off'}
+        </button>
+      )}
       {book.frontMatter && <p className="mb-4" style={{ color: PALETTE.ink }}>{book.frontMatter}</p>}
       {book.chapters.map((c) => (
-        <section key={c.id} className="mb-6 pt-2">
+        <section key={c.id} {...anchorProps(`ch-${c.id}`)} className="mb-6 pt-2">
           <h3 className="text-lg border-b-2 pb-1 mb-2" style={{ color: PALETTE.ink, borderColor: PALETTE.accent, fontFamily: '"Fraunces", serif' }}>{c.number}. {c.title}</h3>
           {c.intro && <p className="my-2" style={{ color: PALETTE.ink }}>{c.intro}</p>}
           {c.blocks.map((b, n) => <ChapterBlock key={n} block={b} />)}
@@ -257,7 +267,7 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
   }, [setView, setChurchView]);
 
   if (reading) {
-    return <Reader book={reading} onNavigate={onNavigate} onBack={() => setReading(null)} />;
+    return <Reader book={reading} onNavigate={onNavigate} onBack={() => setReading(null)} userKey={email} />;
   }
 
   const tabBtn = (id, label) => (
