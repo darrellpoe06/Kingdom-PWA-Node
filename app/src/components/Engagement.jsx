@@ -23,9 +23,12 @@ import { uploadTriviaAnswer, sendMessage, subscribeMessages } from '../lib/engag
 // message (John 18 / I Peter 5), NOT freshly-generated daily content — so the UI
 // shows its real date and does not claim "today" (Darrell 2026-06-15: reports must
 // be real, never painted freshness). Fresh daily questions begin when the church
-// inbox pipeline is connected (BG's weekly message → generate → review); that is
-// blocked on Christina's one-time Gmail OAuth, the same consent that opens the
-// banking import. Until then this anchor set is honest about being an anchor set.
+// inbox pipeline is connected (BG's weekly message → extract → LIVE BY DEFAULT —
+// these are BG's OWN questions, so there is no human-approval gate; only a
+// verifiable extraction-fidelity check stands between the message and the card,
+// per engagement-sync.checkQuestionFidelity). That pipeline is blocked on
+// Christina's one-time Gmail OAuth, the same consent that opens the banking
+// import. Until then this anchor set is honest about being an anchor set.
 // -----------------------------------------------------------------------------
 const ANCHOR_ISO = '2026-06-10';
 const TODAY_ISO = ANCHOR_ISO; // kept so the question ids below stay stable
