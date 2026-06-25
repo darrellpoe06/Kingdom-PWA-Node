@@ -344,7 +344,7 @@ function SourcesPanel({ smeNotes, songbook, onScan, onImportRepertoire, onImport
 
           <div>
             <button type="button" disabled={busy} onClick={() => run(onScan)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Scan the church YouTube archive</button>
-            <p className="text-[0.5625rem] text-[#5A5751] mt-1">Reads song lists / chapters in the channel’s video descriptions (real metadata). For the deeper “what was actually sung” extract, paste the pipeline’s repertoire.json below.</p>
+            <p className="text-[0.5625rem] text-[#5A5751] mt-1">Reads only songs a video lists in its <em>description / chapters</em>. The church’s service videos rarely list them, so this finds little on its own. The real repertoire comes from transcribing the recordings — paste the pipeline’s <strong>repertoire.json</strong> below (that’s the main source).</p>
           </div>
 
           <div>
@@ -457,8 +457,9 @@ export default function ChoirSongbook({ songs, access }) {
   };
   // Source actions return a human-readable status string for the panel.
   const onScan = async () => { setBusy(true); const r = await scanArchiveForSongs(); setBusy(false);
-    if (r.skipped === 'no-key') return 'No YouTube API key set — paste the pipeline’s repertoire.json instead.';
+    if (r.skipped === 'no-key') return 'No YouTube API key set — and the scan only reads songs a video lists. Paste the pipeline’s repertoire.json instead (the real source).';
     if (r.skipped) return `Couldn’t scan (${r.skipped}).`;
+    if (!r.imported) return `Scanned ${r.scanned} videos — none list their songs in the description, so nothing was seeded. Transcribe the recordings and import the repertoire.json below.`;
     return `Scanned ${r.scanned} videos · seeded ${r.imported} song${r.imported === 1 ? '' : 's'} (all need review).`; };
   const onImportRepertoire = async (text) => { setBusy(true); const r = await importRepertoireJson(text); setBusy(false);
     if (r.skipped === 'bad-json') return 'That isn’t valid JSON — paste the pipeline’s repertoire.json.';
@@ -521,7 +522,7 @@ export default function ChoirSongbook({ songs, access }) {
         </div>
       ) : (
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          {songbook.length ? 'No songs match — clear the search or theme filter.' : (canEdit ? 'No songs yet. Seed the choir’s past repertoire from the church archive using “Source the repertoire” above, or add this week’s music in the This Week tab.' : 'No songs yet. The director is loading the choir’s repertoire from the church archive — check back soon.')}
+          {songbook.length ? 'No songs match — clear the search or theme filter.' : (canEdit ? 'No songs yet. The choir’s songs live in the audio of the service recordings (not the YouTube titles), so the repertoire is sourced by transcribing them: run service-to-repertoire on the recordings, then paste the repertoire.json into “Source the repertoire” above. You can also add this week’s music in the This Week tab.' : 'No songs yet. The director is sourcing the choir’s repertoire from the service recordings — check back soon.')}
         </p>
       )}
     </div>
