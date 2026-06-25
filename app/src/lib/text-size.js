@@ -30,6 +30,9 @@
 //
 // Pure functions are exported and unit-tested; the React hook is thin glue.
 import { useCallback, useState } from 'react';
+// The shared scroll-anchor mechanism (also powers reading-position resume). One-
+// way dependency: reading-position.js never imports this, so no cycle.
+import { captureAnchor, applyAnchor } from './reading-position.js';
 
 const STORAGE_KEY = 'poe-text-size';
 
@@ -171,11 +174,25 @@ export function initTextSize() {
   return key;
 }
 
-/** Set + persist + apply in one call. Returns the validated key actually used. */
+/**
+ * Set + persist + apply in one call. Returns the validated key actually used.
+ *
+ * SCROLL-ANCHOR (anti-whiplash, Darrell 2026-06-25): a font-size change reflows
+ * the page, which used to throw the reader to the top. We capture the element
+ * the reader is looking at BEFORE the reflow and restore it to the same viewport
+ * offset AFTER — so changing text size keeps you exactly where you were. This is
+ * the SAME anchor mechanism the resume primitive uses (reading-position.js), so
+ * every reading/scroll surface the global control affects (The Word, Scripture,
+ * lessons, books) gets it for free — no per-surface wiring. Guarded: no-ops in
+ * SSR/boot (initTextSize calls applyTextSize directly, before any scroll).
+ */
 export function setTextSize(key) {
   const k = isValidTextSize(key) ? key : DEFAULT_TEXT_SIZE;
+  let anchor;
+  try { anchor = captureAnchor(); } catch (e) { anchor = null; }
   applyTextSize(k);
   saveTextSize(k);
+  if (anchor) { try { applyAnchor(anchor); } catch (e) { /* non-fatal */ } }
   return k;
 }
 
