@@ -1,8 +1,7 @@
 // =============================================================================
 // ClientGrowth — live render proof (Verification Doctrine: observe the REAL
 // surface, not just the pure engine). Mounts the actual component in jsdom with
-// real props and reads the DOM it produces, so a runtime render error (bad hook,
-// undefined map) is caught — the build alone can't catch that.
+// real props and reads the DOM — catching a runtime render error the build can't.
 // =============================================================================
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createElement, act } from 'react';
@@ -11,7 +10,6 @@ import ClientGrowth from '../components/ClientGrowth.jsx';
 import { newLead } from '../lib/client-acquisition.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
 let container, root;
 
 async function mount(props = {}) {
@@ -30,36 +28,50 @@ afterEach(() => {
   root = container = null;
 });
 
-describe('ClientGrowth renders the real 4-stage acquisition surface', () => {
-  it('mounts and shows all four agent-team roles + the guardrails ledger', async () => {
+describe('ClientGrowth renders the 3-sided automated surface', () => {
+  it('mounts with the run-the-team trigger, three sides, balance, lessons, and the outbound gate', async () => {
     await mount();
     const text = container.textContent;
     expect(text).toContain('Revenue Agent Team');
+    // The four roles (stage cards render the role even when collapsed).
     expect(text).toContain('Market Signal Researcher');
-    expect(text).toContain('Offer Architect');
-    expect(text).toContain('Content Angle Strategist');
     expect(text).toContain('Conversion System Builder');
-    // Binding guardrails are surfaced.
-    expect(text).toContain('Binding guardrails');
-    expect(text).toContain('No PHI in marketing');
+    // The automation headline + the one human gate.
+    expect(text).toContain('Run the team');
+    expect(text).toContain('Outbound — needs your approval');
+    // Three-sided marketplace + balance.
+    expect(text).toContain('Marketplace balance');
+    // Supporting lessons layer.
+    expect(text).toContain('Supporting lessons');
+    // Binding guardrails (incl. the approve-outbound line).
+    expect(text).toContain('Humans approve outbound');
     expect(text).toContain('No payment processing by us');
+    // Optional cadence is present but inert.
+    expect(text).toMatch(/Inert/i);
+    // The run trigger exists as a real control.
+    const runBtn = [...container.querySelectorAll('button')].find((b) => /run the team/i.test(b.textContent));
+    expect(runBtn).toBeTruthy();
   });
 
-  it('renders the first stage prompt (deterministic) for the default B2B path', async () => {
-    await mount();
-    // market-signal is open by default; its prompt names the role + tenant.
-    expect(container.textContent).toContain('TLC Therapy Solutions');
-    expect(container.textContent).toContain('A.I. prompt (deterministic)');
-  });
-
-  it('reflects real lead data in the funnel + metrics', async () => {
+  it('reflects real client-side lead data in the funnel + pipeline count', async () => {
     const leads = [
-      newLead({ audiencePresetKey: 'b2b-practices', stage: 'new', name: 'A' }, { id: 'a' }),
-      newLead({ audiencePresetKey: 'b2b-practices', stage: 'converted', name: 'B' }, { id: 'b' }),
+      newLead({ sideKey: 'client', stage: 'new', name: 'A' }, { id: 'a' }),
+      newLead({ sideKey: 'client', stage: 'intake-scheduled', name: 'B' }, { id: 'b' }),
+      newLead({ sideKey: 'therapist', stage: 'active', name: 'Dr T' }, { id: 't' }), // other side, excluded from client pipeline
     ];
     await mount({ leads });
     const text = container.textContent;
-    expect(text).toContain('Lead pipeline · 2');
+    expect(text).toContain('Clients pipeline · 2'); // only the 2 client-side leads
     expect(text).toContain('Funnel');
+  });
+
+  it('switches sides (Therapists) and shows the recruiting funnel', async () => {
+    await mount();
+    const therapistTab = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Therapists');
+    expect(therapistTab).toBeTruthy();
+    await act(async () => { therapistTab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    const text = container.textContent;
+    expect(text).toContain('Therapists pipeline');
+    expect(text).toContain('Credential check'); // a therapist-funnel stage label
   });
 });
