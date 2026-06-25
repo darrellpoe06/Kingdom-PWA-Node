@@ -28,6 +28,8 @@ import {
   getServiceProgramAccess, subscribePrograms, subscribeSegments, subscribeChanges, subscribeFinalizerMembers,
   saveProgram, deleteProgram, saveSegment, deleteSegment, seedProgramSegments, seedDefaultOrder, setFinalizer,
 } from '../lib/service-program.js';
+import ServiceActuals from './ServiceActuals.jsx';
+import { subscribeActuals, blueprintFromActual, pickBlueprintProgram, seedSegmentsFromBlueprint } from '../lib/service-actuals.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -223,6 +225,7 @@ export default function ServiceProgram() {
   const [reflowMin, setReflowMin] = useState('');
   const [changes, setChanges] = useState([]);
   const [members, setMembers] = useState([]);
+  const [actuals, setActuals] = useState([]);
   const [manageFinalizers, setManageFinalizers] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -249,6 +252,7 @@ export default function ServiceProgram() {
       subscribeSongs(setSongs),
       subscribeSermons(setSermons),
       subscribeChanges(setChanges),
+      subscribeActuals(setActuals),
       ...(access.canEdit ? [subscribeFinalizerMembers(setMembers)] : []),
     ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
@@ -283,7 +287,26 @@ export default function ServiceProgram() {
   const programChanges = useMemo(() => (program ? changes.filter((c) => c.programId === program.id).slice(0, 20) : []), [changes, program]);
   const finalizerMembers = useMemo(() => members.filter((m) => m.userId), [members]);
 
+  // The BLUEPRINT for THIS service: the most recent reconciled service of the
+  // same type seeds the next plan. Offered only when this program has no segments
+  // yet (a fresh service to build), so the steward starts from what worked.
+  const blueprint = useMemo(() => {
+    if (!program || programSegments.length > 0) return null;
+    const src = pickBlueprintProgram(programs, { serviceType: program.serviceType, beforeDate: program.serviceDate, excludeId: program.id });
+    if (!src) return null;
+    const srcSegments = segments.filter((s) => s.programId === src.id);
+    const srcActuals = actuals.filter((a) => a.programId === src.id);
+    return blueprintFromActual(src, srcSegments, srcActuals);
+  }, [program, programSegments, programs, segments, actuals]);
+
   const report = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Your change was not stored — try again.`); else setErr(''); return res; };
+
+  const onSeedBlueprint = async () => {
+    if (!program || !blueprint) return;
+    setBusy(true);
+    report(await seedSegmentsFromBlueprint(program.id, blueprint));
+    setBusy(false);
+  };
 
   const onSaveProgram = async (f) => {
     setBusy(true);
@@ -423,6 +446,11 @@ export default function ServiceProgram() {
               <button type="button" onClick={() => setSegmentForm({ initial: { sortOrder: (programSegments.length + 1) * 10 } })} className={`${BTN} bg-[#5A6E3D] text-white font-semibold`}>＋ Add segment</button>
               <button type="button" onClick={() => setProgramForm({ initial: program })} className={`${BTN} text-[#5A5751] hover:text-[#1A1815] border border-[#E8E4DC]`}>Edit master</button>
               {programSegments.length === 0 && <button type="button" onClick={onSeed} disabled={busy} className={`${BTN} text-[#B85838] border border-[#B85838] disabled:opacity-50`}>Start from standard order ({seedDefaultOrder().length})</button>}
+              {programSegments.length === 0 && blueprint && (
+                <button type="button" onClick={onSeedBlueprint} disabled={busy} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>
+                  Start from last {program.serviceType === 'wednesday' ? 'Wednesday' : program.serviceType === 'sunday' ? 'Sunday' : program.serviceType}&apos;s actual ({blueprint.segments.length})
+                </button>
+              )}
               <button type="button" onClick={onDeleteProgram} className={`${BTN} text-[#991B1B] hover:underline`}>Delete service</button>
             </div>
           )}
@@ -496,6 +524,12 @@ export default function ServiceProgram() {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* The ACTUAL side: what really happened -> reconcile -> blueprint.
+              Shown to the whole team (read); the finalizer circle reconciles. */}
+          {view && view.flow.length > 0 && (
+            <ServiceActuals program={program} plannedSegments={programSegments} actuals={actuals} songs={songs} sermons={sermons} canEdit={access.canEdit} />
           )}
         </>
       )}
