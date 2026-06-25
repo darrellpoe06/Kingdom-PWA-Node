@@ -15,11 +15,11 @@
 // degrades to a recover card, not a white screen; players load lazily on click
 // (no 10 iframes at once / offline-safe until asked); non-embeddable URLs fall
 // back to an "Open link" button — never a dead card; empty/over-long input is
-// capped + trimmed in the sync layer. Keyboard-operable, visible #B85838 focus,
-// and a large-print TextSizeControl that only scales root rem (layout holds).
+// capped + trimmed in the sync layer. Keyboard-operable, visible #B85838 focus.
+// Large-print is the ONE global control in the app header (lib/text-size.js scales
+// root rem app-wide); this surface carries no duplicate sizer.
 // =============================================================================
 import React, { useEffect, useMemo, useState } from 'react';
-import TextSizeControl from './TextSizeControl.jsx';
 import SectionBoundary from './SectionBoundary.jsx';
 import { subscribeMembers } from '../lib/choir-sync.js';
 import {
@@ -347,11 +347,10 @@ export default function ChoirSongWorkshop({ access }) {
 
   return (
     <SectionBoundary name="Song Workshop">
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="mb-2">
         <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           Add songs, play them, comment — {canEdit ? 'you choose the finals.' : 'the director chooses the finals.'}
         </p>
-        <TextSizeControl variant="header" />
       </div>
 
       <AddBar busy={busy} onAddOne={onAddOne} onAddList={onAddList} />

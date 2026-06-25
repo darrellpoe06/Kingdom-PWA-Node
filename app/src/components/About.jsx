@@ -4,7 +4,6 @@
 import React, { useState } from 'react';
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle } from './shared.jsx';
 import TrustedDevices from './TrustedDevices.jsx';
-import TextSizeControl from './TextSizeControl.jsx';
 
 // Patch the function signature to also accept VIEW_TIER_REQUIREMENTS as a prop.
 // 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
@@ -199,10 +198,9 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       </section>
       <section className="bg-white border border-[#E8E4DC] p-4">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Accessibility · Text size</div>
-        <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Need larger print to read comfortably? Make the words bigger here, or from the “aA” control in the header (top-right). It scales the whole app, and your choice is saved on this device.
+        <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          Need larger print to read comfortably? Use the “aA” control at the top of the screen (in the header, top-right). It scales the whole app from that one place, and your choice is saved on this device.
         </p>
-        <TextSizeControl variant="panel" />
       </section>
       {authUserId && (
         <section className="bg-white border border-[#E8E4DC] p-4">
