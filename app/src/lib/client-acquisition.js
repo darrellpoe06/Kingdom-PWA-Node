@@ -485,7 +485,7 @@ export function isOutbound(kind) { return OUTBOUND_KINDS.includes(kind); }
 // buildRunPlan — the ordered steps a single "Run the team" executes for a side.
 export function buildRunPlan(config = TLC_DEFAULT_CONFIG) {
   return ACQUISITION_STAGES.map((s) => ({
-    stageKey: s.key, role: s.role, emoji: s.emoji, producesKind: s.producesKind, sideKey: config.sideKey,
+    stageKey: s.key, n: s.n, role: s.role, emoji: s.emoji, producesKind: s.producesKind, sideKey: config.sideKey,
   }));
 }
 
@@ -505,8 +505,12 @@ export function newRun(config = TLC_DEFAULT_CONFIG, { now = null, id = null } = 
   return {
     id: id || `run-${(now ? new Date(now).getTime() : Date.now())}-${Math.random().toString(36).slice(2, 7)}`,
     sideKey: config.sideKey, tenant: config.tenant, startedAt: ts, finishedAt: null,
-    status: 'pending', // pending | running | produced | needs-capture | error
-    steps: buildRunPlan(config).map((p) => ({ ...p, status: 'pending', outputId: null, message: '' })),
+    status: 'pending', // pending | running | produced | needs-capture | error | killed
+    killed: false,
+    trigger: 'manual', // manual | cadence (cadence ships inert — see CADENCE_DEFAULT)
+    steps: buildRunPlan(config).map((p) => ({ ...p, status: 'pending', outputId: null, message: '', rationale: '' })),
+    events: [], // live observability reel — appended via pushRunEvent
+    summary: null,
   };
 }
 export function setRunStep(run, stageKey, patch) {
@@ -618,3 +622,205 @@ export function pipelineSummary(config = TLC_DEFAULT_CONFIG, { leads = [], outpu
 // Same-origin /n8n rewrite per project_n8n_same_origin_rewrite (never the Funnel URL).
 export const PRACTICE_GROWTH_WEBHOOK = '/n8n/webhook/practice-growth';
 export function sensitivityFor(config = TLC_DEFAULT_CONFIG) { return config.phiSensitive ? 'health-marketing-local-only' : 'commercial'; }
+
+// =============================================================================
+// COCKPIT + OBSERVABILITY + RUN BRAKES (added 2026-06-25, declared by Darrell:
+// "intuitive + DO the work + report on it — WHY it did what it did, with metrics").
+// All pure. Three jobs:
+//   1. Make the run OBSERVABLE — a live state, the current stage, what it produced.
+//   2. Make every step carry its DECISION RATIONALE — "did X, not Y, because Z."
+//   3. Put the on-demand run BEHIND THE THREE BRAKES — budget cap + single-flight
+//      lock + kill-switch — even though a human triggers it. Bounded by design.
+// =============================================================================
+
+// --- 1. RUN STATE READOUT (the cockpit reads these) --------------------------
+export const RUN_STATUSES = ['pending', 'running', 'produced', 'needs-capture', 'error', 'killed'];
+
+export function runStageInProgress(run) {
+  return ((run && run.steps) || []).find((s) => s.status === 'running') || null;
+}
+export function runProgress(run) {
+  const steps = (run && run.steps) || [];
+  const done = steps.filter((s) => ['produced', 'needs-capture', 'error'].includes(s.status)).length;
+  return { done, total: steps.length };
+}
+export function runStatusLabel(run) {
+  if (!run) return 'Idle — no run yet this session. Press Run the team to start.';
+  if (run.killed) return 'Stopped — the run was halted (kill-switch / Stop). Nothing was sent.';
+  const st = run.status || runOverallStatus(run);
+  const cur = runStageInProgress(run);
+  const { done, total } = runProgress(run);
+  if (cur) return `Running ${cur.emoji} ${cur.role} — stage ${cur.n} of ${total}…`;
+  if (st === 'produced') return `Done — produced ${done} of ${total} drafts for your review. Nothing sent.`;
+  if (st === 'needs-capture') return `Done — ${done} of ${total} stages handed you a prompt to run (sovereign A.I. pending). No fake output.`;
+  if (st === 'error') return 'Finished with an error in a stage — see the run log below.';
+  if (st === 'running') return 'Running…';
+  return 'Ready.';
+}
+// A short, plain phase token for a status chip: idle | running | review | capture | stopped | error.
+export function runPhase(run) {
+  if (!run) return 'idle';
+  if (run.killed) return 'stopped';
+  if (runStageInProgress(run)) return 'running';
+  const st = run.status || runOverallStatus(run);
+  if (st === 'produced') return 'review';
+  if (st === 'needs-capture') return 'capture';
+  if (st === 'error') return 'error';
+  if (st === 'running') return 'running';
+  return 'idle';
+}
+
+// --- 2. DECISION + RATIONALE (decisions-with-rationale: did X, not Y, because Z)
+// Every step records WHY it did what it did, so the report can show the reasoning,
+// not just the outcome. `mode` is the step's resolved status.
+export function stepRationale(stageKey, mode, { live = false } = {}) {
+  const stage = getStage(stageKey);
+  const role = stage ? stage.role : stageKey;
+  const produces = stage ? stage.producesLabel.toLowerCase() : 'output';
+  switch (mode) {
+    case 'produced':
+      return {
+        did: `Drafted the ${produces}${live ? ' on the live sovereign-A.I. workflow (wf-practice-growth)' : ''}.`,
+        why: 'The prior approved stages gave this stage what it needed, so the team produced the next artifact in the chain.',
+        not: 'It did NOT send anything to a real person — every outbound step waits for your approval.',
+      };
+    case 'needs-capture':
+      return {
+        did: `Handed you the exact deterministic prompt for the ${role}.`,
+        why: 'The sovereign-A.I. workflow (wf-practice-growth) is pending infrastructure and returned nothing.',
+        not: 'It did NOT fabricate an A.I. result (DR-0076: no fake output) — you run the prompt and paste the real draft.',
+      };
+    case 'budget-halt':
+      return {
+        did: 'Stopped this stage before running it.',
+        why: 'The run hit its budget ceiling (stage-call cap) — a brake, not a failure.',
+        not: 'It did NOT keep spending past the cap. Raise the budget or reset it to continue.',
+      };
+    case 'killed':
+      return {
+        did: 'Stopped mid-run.',
+        why: 'The Stop control or the kill-switch was engaged.',
+        not: 'It did NOT auto-continue or send anything. Nothing left the system.',
+      };
+    case 'error':
+      return {
+        did: `Could not complete the ${role}.`,
+        why: 'The stage call failed (network or workflow error) — surfaced honestly, not hidden.',
+        not: 'It did NOT invent a result to paper over the failure.',
+      };
+    default:
+      return { did: '', why: '', not: '' };
+  }
+}
+export function rationaleText(r) {
+  if (!r) return '';
+  return [r.did, r.why, r.not].filter(Boolean).join(' ');
+}
+
+// --- 3. RUN EVENT REEL (live observability — one line per thing that happened) -
+export const RUN_EVENT_TYPES = [
+  'run-started', 'stage-started', 'stage-produced', 'stage-needs-capture', 'stage-error',
+  'lead-landed', 'outbound-queued', 'budget-halt', 'run-killed', 'run-finished',
+];
+export function runEvent(type, detail = '', { now = null } = {}) {
+  return { ts: now || new Date().toISOString(), type, detail };
+}
+export function pushRunEvent(run, type, detail = '', opts = {}) {
+  return { ...run, events: [...((run && run.events) || []), runEvent(type, detail, opts)] };
+}
+
+// --- 4. THE THREE BRAKES for the on-demand run -------------------------------
+// The run is human-triggered, but it still chains real A.I. calls — so it is
+// bounded the same way the autonomous cadence is (budget + lock + kill-switch).
+export const RUN_COST_PER_STAGE = 1; // budget unit = one real stage-call (honest, counted)
+export const RUN_BUDGET_DEFAULT = Object.freeze({ capCalls: 200, usedCalls: 0 });
+export const RUN_LOCK_STALE_MS = 10 * 60 * 1000; // dead-man: a lock older than 10 min is stale
+
+export function newRunLock() { return { held: false, runId: null, startedAt: null }; }
+export function acquireRunLock(runId, { now = null } = {}) {
+  return { held: true, runId, startedAt: now || new Date().toISOString() };
+}
+export function releaseRunLock() { return { held: false, runId: null, startedAt: null }; }
+export function isLockStale(lock, { now = null, maxMs = RUN_LOCK_STALE_MS } = {}) {
+  if (!lock || !lock.held || !lock.startedAt) return false;
+  const t = new Date(lock.startedAt).getTime();
+  if (!isFinite(t)) return true; // unparseable timestamp = treat as stale (dead-man)
+  const ref = now ? new Date(now).getTime() : Date.now();
+  return (ref - t) > maxMs;
+}
+export function budgetRemaining(budget = RUN_BUDGET_DEFAULT) {
+  const b = budget || RUN_BUDGET_DEFAULT;
+  return Math.max(0, (b.capCalls || 0) - (b.usedCalls || 0));
+}
+
+// evaluateRunGate — can a NEW run start RIGHT NOW? Default-allow for a human
+// trigger, but ANY brake denies: master kill-switch, single-flight lock, budget.
+export function evaluateRunGate({ killSwitch = 'clear', lock = null, budget = RUN_BUDGET_DEFAULT, stagesInRun = STAGE_KEYS.length, now = null } = {}) {
+  const reasons = [];
+  if (killSwitch && killSwitch !== 'clear') reasons.push('Kill-switch engaged — clear it to run (master stop).');
+  if (lock && lock.held && !isLockStale(lock, { now })) reasons.push('A run is already in progress (single-flight lock held).');
+  const b = budget || RUN_BUDGET_DEFAULT;
+  if (!(b.capCalls > 0)) reasons.push('No budget ceiling set — set a stage-call cap to run.');
+  else if (budgetRemaining(b) < stagesInRun) reasons.push(`Budget nearly spent (${budgetRemaining(b)} of ${b.capCalls} stage-calls left, run needs ${stagesInRun}). Reset or raise the cap.`);
+  return { allowed: reasons.length === 0, reasons };
+}
+
+// --- 5. ACTIVITY / OUTCOME REPORT — what it DID, with metrics + rationale ------
+// Honest ESTIMATE of minutes a person would spend drafting each artifact by hand.
+// Real input (counts of produced drafts) × a transparent per-artifact assumption.
+export const TIME_SAVED_PER_ARTIFACT = Object.freeze({
+  'market-signals': 25, offer: 30, 'content-angles': 20, sequence: 25, output: 20,
+});
+export function estMinutesSavedFor(outputs = []) {
+  return outputs.reduce((sum, o) => sum + ((o && o.content && o.content.trim())
+    ? (TIME_SAVED_PER_ARTIFACT[o.kind] || TIME_SAVED_PER_ARTIFACT.output) : 0), 0);
+}
+
+export function buildActivityReport({ runs = [], leads = [], outbound = [], outputs = [], sideKey = null } = {}) {
+  const sideOf = (x) => (x && (x.sideKey || x.audiencePresetKey)) || DEFAULT_SIDE_KEY;
+  const runList = sideKey ? runs.filter((r) => r.sideKey === sideKey) : runs;
+  const obList = sideKey ? outbound.filter((o) => sideOf(o) === sideKey) : outbound;
+  const outList = sideKey ? outputs.filter((o) => sideOf(o) === sideKey) : outputs;
+  const leadList = sideKey ? leads.filter((l) => sideOf(l) === sideKey) : leads;
+
+  const draftsProduced = outList.filter((o) => o.content && o.content.trim()).length;
+  const needsCapture = outList.filter((o) => o.status === 'needs-capture').length;
+  const approvedDrafts = outList.filter((o) => o.status === 'approved').length;
+
+  const outboundQueued = obList.length;
+  const outboundPending = obList.filter((o) => o.status === 'pending').length;
+  const outboundApproved = obList.filter((o) => o.status === 'approved').length;
+  const outboundRejected = obList.filter((o) => o.status === 'rejected').length;
+
+  const leadsLanded = leadList.filter((l) => l.source === 'run-the-team').length;
+
+  const startedTimes = runList.map((r) => r.startedAt).filter(Boolean).sort();
+  const perRun = [...runList]
+    .sort((a, b) => new Date(b.startedAt || 0) - new Date(a.startedAt || 0))
+    .map((r) => {
+      const steps = r.steps || [];
+      return {
+        runId: r.id, side: r.sideKey, startedAt: r.startedAt, finishedAt: r.finishedAt,
+        status: r.killed ? 'killed' : (r.status || runOverallStatus(r)),
+        draftsProduced: steps.filter((s) => s.status === 'produced').length,
+        needsCapture: steps.filter((s) => s.status === 'needs-capture').length,
+        landedLeads: (r.summary && r.summary.landedLeads) || 0,
+        queuedOutbound: (r.summary && r.summary.queuedOutbound) || 0,
+        decisions: steps.filter((s) => s.rationale).map((s) => ({
+          stageKey: s.stageKey, n: s.n, role: s.role, emoji: s.emoji, status: s.status, rationale: s.rationale,
+        })),
+        events: r.events || [],
+      };
+    });
+
+  return {
+    runsTotal: runList.length,
+    lastRunAt: startedTimes.length ? startedTimes[startedTimes.length - 1] : null,
+    draftsProduced, needsCapture, approvedDrafts,
+    outboundQueued, outboundPending, outboundApproved, outboundRejected,
+    leadsLanded,
+    estMinutesSaved: estMinutesSavedFor(outList),
+    estTimeSavedAssumption: 'Estimate: counted drafts the team produced × ~20–30 min a person spends drafting each by hand.',
+    perRun,
+  };
+}

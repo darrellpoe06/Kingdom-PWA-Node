@@ -53,6 +53,45 @@ describe('ClientGrowth renders the 3-sided automated surface', () => {
     expect(runBtn).toBeTruthy();
   });
 
+  it('leads with an observable COCKPIT: live state, brakes, and what awaits the human', async () => {
+    await mount();
+    const text = container.textContent;
+    // The cockpit band + idle state (answers "why can't I tell").
+    expect(text).toMatch(/Cockpit/);
+    expect(text).toMatch(/Idle/i);
+    // The three brakes are visible controls.
+    expect(text).toMatch(/Kill-switch/i);
+    expect(text).toMatch(/Budget:/);
+    expect(text).toMatch(/Awaiting your approval/i);
+    // The kill-switch is a real toggle.
+    const killBtn = [...container.querySelectorAll('button')].find((b) => /kill-switch/i.test(b.textContent));
+    expect(killBtn).toBeTruthy();
+  });
+
+  it('shows the CONTRACT (what it should do) + the ACTIVITY REPORT (what it did, with metrics)', async () => {
+    await mount();
+    const text = container.textContent;
+    // Contract strip: automated vs you-approve is explicit.
+    expect(text).toMatch(/What the team does/i);
+    expect(text).toMatch(/Automated draft/);
+    expect(text).toMatch(/Drafts → you approve/);
+    // Activity report: metric labels + the empty-state honesty.
+    expect(text).toMatch(/Activity report/i);
+    expect(text).toMatch(/Drafts produced/i);
+    expect(text).toMatch(/Est\. time saved/i);
+    expect(text).toMatch(/No runs yet/i);
+  });
+
+  it('disables Run when the kill-switch is engaged (brake is real, not theater)', async () => {
+    await mount();
+    const killBtn = [...container.querySelectorAll('button')].find((b) => /kill-switch clear/i.test(b.textContent));
+    expect(killBtn).toBeTruthy();
+    await act(async () => { killBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    const runBtn = [...container.querySelectorAll('button')].find((b) => /run the team/i.test(b.textContent));
+    expect(runBtn.disabled).toBe(true);
+    expect(container.textContent).toMatch(/Kill-switch ON/i);
+  });
+
   it('reflects real client-side lead data in the funnel + pipeline count', async () => {
     const leads = [
       newLead({ sideKey: 'client', stage: 'new', name: 'A' }, { id: 'a' }),
