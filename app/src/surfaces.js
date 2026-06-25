@@ -65,6 +65,7 @@ export const SURFACES = [
   { id: 'events',           label: 'Events',        nav: 'church', view: 'church', sub: 'events',     load: () => import('./components/EventManagement.jsx') },
 
   // ── books sub-surfaces (view === 'books', booksView === sub) ────────────
+  { id: 'transactions', label: 'Transactions', nav: 'books', view: 'books', sub: 'transactions', load: () => import('./components/BooksTransactions.jsx') },
   { id: 'cart',  label: 'Subscriptions', nav: 'books', view: 'books', sub: 'cart',  load: pick(() => import('./components/Cart.jsx'), 'Cart') },
   { id: 'k1099', label: '1099',          nav: 'books', view: 'books', sub: 'k1099', load: pick(() => import('./components/Contractors1099.jsx'), 'Contractors1099') },
 ];
@@ -102,5 +103,6 @@ export const ConferenceModule = surfaceById['conference'].component;
 export const ConferenceVariance = surfaceById['conference-var'].component;
 export const EventCenterModule = surfaceById['event-center'].component;
 export const EventManagement  = surfaceById['events'].component;
+export const BooksTransactions = surfaceById['transactions'].component;
 export const Cart             = surfaceById['cart'].component;
 export const Contractors1099  = surfaceById['k1099'].component;
