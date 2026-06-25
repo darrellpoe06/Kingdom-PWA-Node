@@ -111,7 +111,7 @@ import {
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
-  CreationWorkspace, Study, BooksTransactions, HarvestLedger,
+  CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1758,7 +1758,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','admin','center','crm'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','admin','center','crm'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -5013,6 +5013,10 @@ html{scroll-padding-bottom:280px}
                 // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
                 // Available to every signed-in user; persistence is instance-scoped.
                 ['create', <><UiIcon name="palette" /> Create</>],
+                // Voice — "listen to anything" in a chosen voice; consent-gated
+                // personal (cloned) voices as a subscriber feature. Notes group
+                // sibling (capture -> reflect -> compose -> hear).
+                ['voice', <><UiIcon name="volume" /> Voice</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -5503,6 +5507,18 @@ html{scroll-padding-bottom:280px}
               updateWorkspace={updateWorkspace}
               deleteWorkspace={deleteWorkspace}
               currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+            />
+          </SectionBoundary>
+        )}
+        {/* Voice — "listen to anything" in a chosen voice; consent-gated personal
+            (cloned) voices as a subscriber feature. Own SectionBoundary so a thrown
+            error degrades just this surface. Personal-voice timbre is honest:
+            labeled stand-in until the local sovereign voice studio is live. */}
+        {view === 'voice' && (
+          <SectionBoundary name="Voice">
+            <VoiceStudio
+              personaKey={authSession ? personaOf(authSession.user?.email) : null}
+              isOwner={authSession ? personaOf(authSession.user?.email) === 'darrell' : false}
             />
           </SectionBoundary>
         )}
@@ -6084,6 +6100,7 @@ const FEEDBACK_AREAS = [
   { group: 'Notes', items: [
     ['notes', '🕊 Notes · thinking space (capture → prayer / voice / incident / inquiry)'],
     ['create', '🎨 Create · creation workspace (document → image export)'],
+    ['voice', '🔊 Voice · listen to anything (choose a voice · consent-gated enrollment)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "📓 Darrell's Study · reflections / processing / cultural research (device-local)"],
