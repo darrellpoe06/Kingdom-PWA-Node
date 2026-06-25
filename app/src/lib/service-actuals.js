@@ -233,6 +233,98 @@ export function summarizeReconcile(reconcile) {
   return parts.join(' · ');
 }
 
+// --- Harvest the ACTUAL from the YouTube service recording (one source) ------
+// Darrell 2026-06-25: "what actually occurred" comes from the YouTube service
+// recordings — the SAME already-ingested corpus the full-harvest pipeline mines
+// (lane local_1c5ad610). The same service video drives sermon, choir, and now the
+// order-of-service actual: ONE source, three harvests. We do NOT re-fetch — the
+// songs actually sung (choir_songs) and the sermon actually preached
+// (choir_sermons) for this service date are already in the app (choir-sync), each
+// carrying that performance's video link + timestamp + source honesty
+// (source/videoId/confidence/needsReview, 0042). This assembles them into the
+// ACTUAL run, in real order by the video timestamp, with durations estimated from
+// the gap to the next timestamped event.
+//
+// FAITHFUL (Reality-trace + Verification Doctrine, DR-0076): a YouTube recording
+// has no machine-readable run-of-show, so every harvested item lands
+// needs_review = true — a finalizer confirms it before it's trusted. Best-effort
+// auto-attribution links a harvested song to the planned segment that already
+// references it (or an open worship slot) and the sermon to its planned slot;
+// anything unmatched is honestly an 'added' item, never forced onto a plan.
+// mmss() is exported for the surface to show "@ 1:08:30" without re-deriving.
+export function mmss(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  const s = Math.floor(seconds);
+  const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
+}
+
+// Derive the ACTUAL run for a program from the already-ingested YouTube corpus.
+// `songs` = choir_songs shapes, `sermons` = choir_sermons shapes (both from
+// choir-sync, already subscribed by the surface — no re-fetch). Returns
+// { items, scope }: items are actual-item templates (no ids) ready for
+// captureActualFromHarvest; scope is the honest readout (counts + video + how
+// many auto-attributed). Empty + honest when the service video hasn't been
+// harvested yet (no songs/sermon on that date) — nothing painted.
+export function harvestActualsForService(program, plannedSegments, { songs = [], sermons = [] } = {}) {
+  const empty = { items: [], scope: { songs: 0, sermon: 0, videoId: null, matched: 0, unmatched: 0, hasVideo: false } };
+  if (!program?.serviceDate) return empty;
+  const date = program.serviceDate;
+  const typeOk = (t) => !program.serviceType || !t || t === program.serviceType || t === 'both';
+  const onDate = (r) => r.serviceDate === date && typeOk(r.serviceType) && r.status !== 'archived';
+  const songsOnDate = (songs || []).filter(onDate);
+  const sermonsOnDate = (sermons || []).filter(onDate);
+  if (!songsOnDate.length && !sermonsOnDate.length) return empty;
+
+  // One timeline of real events ordered by the video timestamp (untimed last).
+  const events = [];
+  for (const s of songsOnDate) events.push({ kind: 'song', at: Number.isFinite(s.startSeconds) ? s.startSeconds : null, title: s.title || '(song)', videoId: s.videoId || null, confidence: s.confidence || null, songId: s.id });
+  for (const s of sermonsOnDate) events.push({ kind: 'sermon', at: Number.isFinite(s.startSeconds) ? s.startSeconds : null, title: s.title || 'Sermon', videoId: s.videoId || null, confidence: 'high', sermonId: s.id, speaker: s.speaker || null });
+  events.sort((a, b) => ((a.at == null ? Infinity : a.at) - (b.at == null ? Infinity : b.at)));
+
+  // Best-effort attribution to the plan (greedy, no double-assign).
+  const used = new Set();
+  const findPlanned = (pred) => (plannedSegments || []).find((p) => !used.has(p.id) && pred(p));
+  const videoId = events.find((e) => e.videoId)?.videoId || null;
+
+  const items = events.map((e, i) => {
+    // Real duration from the gap to the NEXT timestamped event (approximate — the
+    // gap includes talking/transitions, so it stays needs_review).
+    let actualMinutes = null;
+    if (e.at != null) {
+      const next = events.slice(i + 1).find((n) => n.at != null);
+      if (next) actualMinutes = Math.max(1, Math.round((next.at - e.at) / 60));
+    }
+    const planned = e.kind === 'song'
+      ? (findPlanned((p) => Array.isArray(p.songIds) && p.songIds.includes(e.songId)) || findPlanned((p) => p.sector === 'worship'))
+      : (findPlanned((p) => p.sermonId && p.sermonId === e.sermonId) || findPlanned((p) => p.sector === 'pulpit'));
+    if (planned) used.add(planned.id);
+    const at = e.at != null ? mmss(e.at) : null;
+    return {
+      plannedSegmentId: planned ? planned.id : null,
+      disposition: planned ? 'as-planned' : 'added',
+      title: e.title,
+      sector: planned ? planned.sector : (e.kind === 'song' ? 'worship' : 'pulpit'),
+      actualOrder: (i + 1) * 10,
+      actualMinutes,
+      actualSongs: e.kind === 'song' ? [e.songId] : [],
+      actualSermonId: e.kind === 'sermon' ? e.sermonId : null,
+      note: `From the service video${at ? ` @ ${at}` : ''}${e.kind === 'sermon' && e.speaker ? ` — ${e.speaker}` : ''}`,
+      source: 'harvest',
+      confidence: e.confidence === 'high' ? 'high' : 'low',
+      videoId: e.videoId || videoId,
+      atSeconds: e.at,
+      needsReview: true,
+    };
+  });
+  const matched = items.filter((it) => it.plannedSegmentId).length;
+  return {
+    items,
+    scope: { songs: songsOnDate.length, sermon: sermonsOnDate.length, videoId, matched, unmatched: items.length - matched, hasVideo: !!videoId },
+  };
+}
+
 // --- The blueprint: reconciled actual -> a starting template for next time ---
 // The reconciled actual becomes the seed for the NEXT service of the same type.
 // Returns template segments in the SAME shape as service-program.seedDefaultOrder
@@ -431,6 +523,26 @@ export async function captureActualFromHarvest(programId, harvestedItems, displa
   if (error) return { skipped: 'insert-error', error };
   await logChange(ctx, programId, 'capture-harvest', null);
   return { saved: true, count: rows.length };
+}
+
+// Pull the ACTUAL straight from the YouTube service recording (Darrell's
+// confirmed source). Derives the actual run from the already-ingested choir_songs
+// + choir_sermons for this service date (REUSE, no re-fetch — the surface passes
+// the rows it already subscribed), then lands them as needs_review harvest
+// actuals + stamps the harvest_source as the service video so the provenance is
+// honest. The finalizer confirms each item, then marks reconciled.
+export async function captureActualFromYouTube(program, plannedSegments, songs, sermons, displayName) {
+  const { items, scope } = harvestActualsForService(program, plannedSegments, { songs, sermons });
+  if (!items.length) return { saved: true, count: 0, scope };
+  const res = await captureActualFromHarvest(program.id, items, displayName);
+  if (res.saved && scope.videoId) {
+    const ctx = await writeContext(displayName);
+    if (!ctx.error) {
+      const src = `https://www.youtube.com/watch?v=${scope.videoId}`;
+      await supabase.from('church_service_programs').update({ harvest_source: src, updated_by: ctx.userId }).eq('id', program.id);
+    }
+  }
+  return { ...res, scope };
 }
 
 // Mark the program reconciled — stamp the recap (real start/total/notes + the

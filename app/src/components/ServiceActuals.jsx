@@ -22,8 +22,8 @@ import React, { useMemo, useState } from 'react';
 import { sectorShort, SECTORS } from '../lib/service-program.js';
 import {
   dispositionMeta,
-  reconcileService, summarizeReconcile,
-  saveActual, deleteActual, seedActualsFromPlan, markReconciled,
+  reconcileService, summarizeReconcile, harvestActualsForService,
+  saveActual, deleteActual, seedActualsFromPlan, captureActualFromYouTube, markReconciled,
 } from '../lib/service-actuals.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -166,9 +166,15 @@ export default function ServiceActuals({ program, plannedSegments, actuals: allA
   }, [sermons, program]);
   const nextOrder = useMemo(() => (actuals.reduce((m, a) => Math.max(m, a.actualOrder || 0), 0) || 0) + 10, [actuals]);
 
+  // What the YouTube service recording shows (already-ingested choir_songs +
+  // sermon for this date — no re-fetch). The primary source for the actual.
+  const harvest = useMemo(() => harvestActualsForService(program, plannedSegments, { songs, sermons }), [program, plannedSegments, songs, sermons]);
+  const hasHarvested = useMemo(() => actuals.some((a) => a.source === 'harvest'), [actuals]);
+
   const report = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Try again.`); else setErr(''); return res; };
 
   const onSeed = async () => { if (!program) return; setBusy(true); report(await seedActualsFromPlan(program.id, plannedSegments)); setBusy(false); };
+  const onPullYouTube = async () => { if (!program) return; setBusy(true); report(await captureActualFromYouTube(program, plannedSegments, songs, sermons)); setBusy(false); };
   const onEditRow = async (row, patch) => { setBusy(true); report(await saveActual(program.id, { id: row.actual?.id, plannedSegmentId: row.plannedSegmentId, title: row.title, sector: row.sector, actualOrder: row.actual?.actualOrder ?? row.sortKey, disposition: row.disposition, ...patch }, undefined)); setBusy(false); };
   const onRemoveRow = async (row) => {
     if (!row.actual?.id) return;
@@ -207,13 +213,25 @@ export default function ServiceActuals({ program, plannedSegments, actuals: allA
         </div>
       )}
 
-      {/* Finalizer reconcile controls */}
+      {/* Finalizer reconcile controls. The PRIMARY source is the YouTube service
+          recording (Darrell's confirmed source); reconcile-from-plan is the
+          no-video fallback. */}
       {canEdit && (
         <div className="flex gap-2 flex-wrap mb-2">
-          {!hasActuals && <button type="button" onClick={onSeed} disabled={busy} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>Reconcile from plan ({plannedSegments.length})</button>}
+          {!hasHarvested && harvest.items.length > 0 && (
+            <button type="button" onClick={onPullYouTube} disabled={busy} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>
+              ▶ Pull from service video ({harvest.scope.songs} song{harvest.scope.songs === 1 ? '' : 's'}{harvest.scope.sermon ? ' + sermon' : ''})
+            </button>
+          )}
+          {!hasActuals && <button type="button" onClick={onSeed} disabled={busy} className={`${BTN} text-[#5A5751] border border-[#E8E4DC] disabled:opacity-50`}>Reconcile from plan ({plannedSegments.length})</button>}
           {hasActuals && <button type="button" onClick={() => setAdding((o) => !o)} className={`${BTN} text-[#B85838] border border-[#B85838]`}>＋ Add unplanned</button>}
           {hasActuals && <button type="button" onClick={() => setRecapOpen((o) => !o)} className={`${BTN} text-[#5A5751] border border-[#E8E4DC]`} aria-expanded={recapOpen}>{reconciled ? 'Edit recap' : 'Mark reconciled'}</button>}
         </div>
+      )}
+      {canEdit && !hasHarvested && harvest.items.length > 0 && (
+        <p className="text-[0.625rem] text-[#8A857C] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          From the YouTube recording of this service — {harvest.scope.matched} auto-matched to the plan, {harvest.scope.unmatched} unplanned. Each lands for review; confirm before it&apos;s trusted.
+        </p>
       )}
       {canEdit && adding && <AddedForm nextOrder={nextOrder} busy={busy} onSave={onAdd} onCancel={() => setAdding(false)} />}
       {canEdit && recapOpen && (
@@ -223,7 +241,11 @@ export default function ServiceActuals({ program, plannedSegments, actuals: allA
       {/* The reconciled flow */}
       {!hasActuals && !reconciled && (
         <p className="text-xs text-[#5A5751] bg-white border border-[#E8E4DC] p-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          {canEdit ? 'After the service, tap “Reconcile from plan” to start from what was scheduled, then adjust to what really happened.' : 'Not reconciled yet — a finalizer will record what actually happened after the service.'}
+          {canEdit
+            ? (harvest.items.length > 0
+                ? 'After the service, tap “Pull from service video” to bring in what was actually sung and preached from the YouTube recording, then confirm each.'
+                : 'After the service, once the YouTube recording is harvested, pull the actual from it here — or “Reconcile from plan” to start from what was scheduled and adjust.')
+            : 'Not reconciled yet — a finalizer will record what actually happened after the service.'}
         </p>
       )}
       {reconcile.rows.length > 0 && (

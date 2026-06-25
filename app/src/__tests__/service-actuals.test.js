@@ -7,6 +7,7 @@ import {
   DISPOSITIONS, SKIPPED, dispositionLabel,
   actualFromPlanned, reconcileService, summarizeReconcile,
   blueprintFromActual, pickBlueprintProgram, toActualShape, summarizeActualChange,
+  harvestActualsForService, mmss,
 } from '../lib/service-actuals.js';
 
 // A small planned order: praise (flexible 20), sermon (FIXED 35), altar (flexible 8).
@@ -199,5 +200,86 @@ describe('toActualShape + plumbing', () => {
   it('change-log summaries are human-readable', () => {
     expect(summarizeActualChange('reconcile')).toMatch(/reconciled/i);
     expect(summarizeActualChange('blueprint-seed')).toMatch(/blueprint/i);
+  });
+});
+
+describe('harvestActualsForService (the ACTUAL from the YouTube recording)', () => {
+  // Same source as the full-harvest pipeline: already-ingested choir_songs +
+  // choir_sermons for the service date (no re-fetch).
+  const program = { id: 'prog1', serviceDate: '2026-06-21', serviceType: 'sunday' };
+  // p1 Praise references song s1; p2 Sermon references sermon serm1.
+  const harvestPlanned = [
+    { id: 'p1', sortOrder: 10, title: 'Praise & Worship', sector: 'worship', plannedMinutes: 20, flexible: true, songIds: ['s1'], sermonId: null, cues: {}, notes: '' },
+    { id: 'p2', sortOrder: 20, title: 'Sermon', sector: 'pulpit', plannedMinutes: 35, flexible: false, songIds: [], sermonId: 'serm1', cues: {}, notes: '' },
+  ];
+  const songs = [
+    { id: 's1', title: 'Total Praise', serviceDate: '2026-06-21', serviceType: 'sunday', status: 'active', startSeconds: 600, videoId: 'VID9', confidence: 'high' },
+    { id: 's2', title: 'I Need You To Survive', serviceDate: '2026-06-21', serviceType: 'sunday', status: 'active', startSeconds: 1500, videoId: 'VID9', confidence: 'low' },
+    { id: 's-other', title: 'Old Song', serviceDate: '2026-06-14', serviceType: 'sunday', status: 'active', startSeconds: 100, videoId: 'VID1' },
+  ];
+  const sermons = [
+    { id: 'serm1', title: 'Let Go And Let God', serviceDate: '2026-06-21', serviceType: 'sunday', status: 'active', startSeconds: 3000, videoId: 'VID9', speaker: 'Bishop Gwin' },
+  ];
+
+  it('derives the actual run only from rows on THIS service date (reuse, no re-fetch)', () => {
+    const { items, scope } = harvestActualsForService(program, harvestPlanned, { songs, sermons });
+    expect(scope.songs).toBe(2);   // s1 + s2, not s-other (different date)
+    expect(scope.sermon).toBe(1);
+    expect(items).toHaveLength(3);
+    expect(items.every((i) => i.source === 'harvest' && i.needsReview)).toBe(true); // never auto-trusted
+  });
+
+  it('orders by the video timestamp and estimates minutes from the gap', () => {
+    const { items } = harvestActualsForService(program, harvestPlanned, { songs, sermons });
+    expect(items.map((i) => i.title)).toEqual(['Total Praise', 'I Need You To Survive', 'Let Go And Let God']);
+    expect(items[0].actualMinutes).toBe(15); // (1500-600)/60
+    expect(items[2].actualMinutes).toBeNull(); // last event — unknown end
+    expect(items[0].atSeconds).toBe(600);
+  });
+
+  it('auto-attributes to the planned segment that references the song/sermon', () => {
+    const { items, scope } = harvestActualsForService(program, harvestPlanned, { songs, sermons });
+    const total = items.find((i) => i.title === 'Total Praise');
+    expect(total.plannedSegmentId).toBe('p1'); // p1.songIds includes s1
+    const sermon = items.find((i) => i.title === 'Let Go And Let God');
+    expect(sermon.plannedSegmentId).toBe('p2'); // p2.sermonId === serm1
+    expect(scope.matched).toBeGreaterThanOrEqual(2);
+  });
+
+  it('keeps an unmatched song honest as an added (unplanned) item', () => {
+    const { items } = harvestActualsForService(program, harvestPlanned, { songs, sermons });
+    const extra = items.find((i) => i.title === 'I Need You To Survive');
+    // s2 not referenced by any plan; the one worship slot (p1) is taken by s1.
+    expect(extra.disposition).toBe('added');
+    expect(extra.plannedSegmentId).toBeNull();
+  });
+
+  it('returns empty + honest when the service video has not been harvested yet', () => {
+    const none = harvestActualsForService({ id: 'p9', serviceDate: '2030-01-01', serviceType: 'sunday' }, harvestPlanned, { songs, sermons });
+    expect(none.items).toHaveLength(0);
+    expect(none.scope.hasVideo).toBe(false);
+  });
+
+  it('carries the real video id as provenance', () => {
+    const { items, scope } = harvestActualsForService(program, harvestPlanned, { songs, sermons });
+    expect(scope.videoId).toBe('VID9');
+    expect(items[0].videoId).toBe('VID9');
+  });
+
+  it('end-to-end: harvested actual reconciles + blueprints', () => {
+    const { items } = harvestActualsForService(program, harvestPlanned, { songs, sermons });
+    const withIds = items.map((it, i) => ({ ...it, id: `h${i}` }));
+    const r = reconcileService(harvestPlanned, withIds, { reconciled: true });
+    expect(r.occurredCount).toBe(3);
+    const bp = blueprintFromActual(program, harvestPlanned, withIds);
+    expect(bp.segments.length).toBe(3); // structure carried into the next service
+  });
+});
+
+describe('mmss', () => {
+  it('formats seconds into a video timestamp', () => {
+    expect(mmss(90)).toBe('1:30');
+    expect(mmss(3690)).toBe('1:01:30');
+    expect(mmss(null)).toBeNull();
   });
 });
