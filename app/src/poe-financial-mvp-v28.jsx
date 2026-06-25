@@ -82,6 +82,7 @@ import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from './lib/discussions-sync.js';
 import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
+import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { compressImageFile } from './lib/image.js';
@@ -2884,6 +2885,9 @@ export default function PoeFinancialSystem() {
         // family instance the same proven way so a document opens on any device.
         { sync: workspacesSync,   key: 'workspaces',   localList: (latest.workspaces || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteWorkspaces },
         { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
+        // Practice leads (0045) — the client-acquisition (revenue agent team) CRM,
+        // pooled to the family instance the same proven way.
+        { sync: practiceLeadsSync, key: 'practiceLeads', localList: (latest.practiceLeads || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteLeads },
         // v2.13 — the QC record (work orders + dispatch + lifecycle trail)
         // and the shared 1099 worker roster pool to the family instance.
         { sync: incidentsSync,    key: 'incidents',       localList: (latest.incidents || []).filter(notDemoRow).filter(notSeedRow) },
@@ -3750,6 +3754,38 @@ export default function PoeFinancialSystem() {
       }
     }
     setData(d => ({ ...d, inquiries: (d.inquiries || []).filter(i => i.id !== id) }));
+  };
+  // Practice leads (0045) — client-acquisition CRM. The lead arrives fully formed
+  // (newLead() in ClientGrowth sets the id + shape); reducers mirror inquiries.
+  const addLead = (lead) => {
+    setData(d => ({ ...d, practiceLeads: [...(d.practiceLeads || []), lead] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      practiceLeadsSync.upload(lead).then((res) => {
+        if (res && res.remoteId) setData(d => ({ ...d, practiceLeads: (d.practiceLeads || []).map(q => q.id === lead.id ? { ...q, remoteUuid: res.remoteId } : q) }));
+      }).catch(e => console.warn('[practice-leads-sync] upload failed', e));
+    }
+  };
+  const updateLead = (id, updates) => {
+    setData(d => ({ ...d, practiceLeads: (d.practiceLeads || []).map(l => l.id === id ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l) }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.practiceLeads || []).find(l => l.id === id);
+      if (local && local.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(LEAD_COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (Object.keys(patch).length) practiceLeadsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[practice-leads-sync] update failed', e));
+      }
+    }
+  };
+  const deleteLead = (id) => {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.practiceLeads || []).find(l => l.id === id);
+      if (local && local.remoteUuid) {
+        practiceLeadsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[practice-leads-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, practiceLeads: (d.practiceLeads || []).filter(l => l.id !== id) }));
   };
   const toggleModuleInterest = (moduleKey, priority) => setData(d => { const current = d.moduleInterest || {}; if (priority === null || priority === undefined) { const next = {...current}; delete next[moduleKey]; return { ...d, moduleInterest: next }; } return { ...d, moduleInterest: { ...current, [moduleKey]: { signedAt: new Date().toISOString(), priority } } }; });
   // v28+ MVP v1.5: Capex / Tools list CRUD (data lives in About > Capital Spend)
@@ -5325,7 +5361,7 @@ html{scroll-padding-bottom:280px}
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'practice' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.practice)
-          ? <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} />
+          ? <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={data.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} />
           : <UpgradePrompt viewLabel="Practice Operations" requiredTier={VIEW_TIER_REQUIREMENTS.practice} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'opportunities' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.opportunities)
