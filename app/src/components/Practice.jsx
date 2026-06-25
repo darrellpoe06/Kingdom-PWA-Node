@@ -11,6 +11,8 @@ import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { Queue } from './Queue.jsx';
 import { ClientGrowth } from './ClientGrowth.jsx';
+import { PracticeLearn } from './PracticeLearn.jsx';
+import SectionBoundary from './SectionBoundary.jsx';
 
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -92,7 +94,7 @@ const insuranceLabel = (val) => {
   return m ? m.label + (m.accepted ? ' ✓' : '') : val;
 };
 
-function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry, practiceLeads = [], addLead, updateLead, deleteLead }) {
+function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry, practiceLeads = [], addLead, updateLead, deleteLead, email = '', isStaff = false }) {
   const [subTab, setSubTab] = useState('operations');
   const [statusFilter, setStatusFilter] = useState('active');
   const [showForm, setShowForm] = useState(false);
@@ -160,7 +162,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
     <div className="space-y-5">
       {/* Practice sub-tabs: day-to-day Operations vs the Client Growth workflow */}
       <TabScroll label="Practice sections">
-        {[['operations', 'Operations'], ['growth', 'Client Growth']].map(([k, l]) => (
+        {[['operations', 'Operations'], ['growth', 'Client Growth'], ['learn', 'Learn']].map(([k, l]) => (
           <button
             key={k}
             onClick={() => setSubTab(k)}
@@ -174,6 +176,12 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
 
       {subTab === 'growth' && (
         <ClientGrowth leads={practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} />
+      )}
+
+      {subTab === 'learn' && (
+        <SectionBoundary name="Practice Learn">
+          <PracticeLearn email={email} isStaff={isStaff} />
+        </SectionBoundary>
       )}
 
       {subTab === 'operations' && (<div className="space-y-5">
