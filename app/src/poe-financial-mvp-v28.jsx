@@ -100,7 +100,7 @@ import { Queue } from './components/Queue.jsx';
 // `const X = lazy(...)` lines that every new-surface PR collided on (choke-point
 // C1). Same lazy components, same chunks; only the declaration site moved.
 import {
-  About, Contractors1099, Cart, Practice, Markets, Rentals, Opportunities,
+  About, Contractors1099, Cart, Practice, CRM, Markets, Rentals, Opportunities,
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
@@ -1751,7 +1751,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','admin','center'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','admin','center','crm'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4898,6 +4898,10 @@ html{scroll-padding-bottom:280px}
                 // everyone else (no-leak), like Study. The component carries a
                 // defense-in-depth locked fallback for any deep-link.
                 ...(isFamilyMember ? [['center', <><UiIcon name="sliders" /> Center</>]] : []),
+                // CRM — the one shared acquisition backbone every funnel rides.
+                // Family/Governor only (steward tooling across all businesses);
+                // spread so the entry is absent from the DOM for everyone else.
+                ...(isFamilyMember ? [['crm', <><UiIcon name="users" /> CRM</>]] : []),
                 // Admin surfaced at the top so users can SEE a steward space
                 // exists (visible-but-locked, like 🔒 Observation). ACCESS is
                 // gated at the render below — the entry being visible is the goal.
@@ -5391,6 +5395,16 @@ html{scroll-padding-bottom:280px}
             currentUserId={authSession?.user?.id || null}
           />
         )}
+
+        {view === 'crm' && (isFamilyMember
+          ? <CRM inquiries={data.inquiries || []} currentUserId={authSession?.user?.id || null} />
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
+              <p className="text-sm text-[#1A1815] font-semibold">CRM is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The shared acquisition backbone is steward-only. Sign in with a family/governor account to manage the pipelines.</p>
+            </div>
+          ))}
 
         {view === 'admin' && ((isFamilyMember || !isPublicHost())
           ? <Admin />
@@ -5905,6 +5919,9 @@ const FEEDBACK_AREAS = [
     ['center-command', '└ Command · braked orchestrator · conflict loop (direct the build)'],
     ['center-control', '└ Control · projects · priorities · discussions (links to Projects)'],
     ['center-serve', '└ Serve · servant-king framing · role-scoped access'],
+  ]},
+  { group: 'CRM (🔒 steward · acquisition backbone)', items: [
+    ['crm', '👥 CRM · the one shared pipeline every funnel rides (TLC · GTM · Boxcar · Real Estate)'],
   ]},
   { group: 'Church', items: [
     ['church', 'Church · service times / media / prayer / ministry'],
