@@ -35,6 +35,7 @@ import {
 } from '../lib/book-corpus.js';
 import { loadLibrary } from '../lib/eternal-algorithms.js';
 import { useReadingResume, anchorProps } from '../lib/reading-position.js';
+import Bookstore from './Bookstore.jsx';
 
 const PALETTE = {
   ink: '#1A1815', muted: '#5A5751', accent: '#B85838', line: '#E0DBD0', panel: '#FAF8F4',
@@ -266,6 +267,14 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
     try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { /* noop */ }
   }, [setView, setChurchView]);
 
+  // Open a purchased/entitled store book in the in-app reader — assembled from
+  // its recipe (real corpus), then read with resume + companion deep-links.
+  const onReadProduct = useCallback((product) => {
+    const book = buildRecipe(product.recipeId, ctx, { nowIso: new Date().toISOString() });
+    if (book) setReading(book);
+    else setToast(`"${product.title}" content is not available to read yet.`);
+  }, [ctx]);
+
   if (reading) {
     return <Reader book={reading} onNavigate={onNavigate} onBack={() => setReading(null)} userKey={email} />;
   }
@@ -286,11 +295,16 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
       </p>
 
       <div className="flex gap-1 border-b mb-4" style={{ borderColor: PALETTE.line }}>
+        {tabBtn('store', 'Store')}
         {tabBtn('shelf', `My shelf${shelf.length ? ` (${shelf.length})` : ''}`)}
         {isFamilyMember && tabBtn('studio', 'Studio — build a book')}
       </div>
 
       {toast && <div className="mb-3 text-xs px-3 py-2 border" style={{ borderColor: PALETTE.line, background: PALETTE.panel, color: PALETTE.ink }}>{toast}</div>}
+
+      {mode === 'store' && (
+        <Bookstore email={email} isFamilyMember={isFamilyMember} onReadProduct={onReadProduct} />
+      )}
 
       {mode === 'shelf' && (
         shelf.length === 0
