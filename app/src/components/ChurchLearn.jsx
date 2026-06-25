@@ -55,6 +55,7 @@ import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
 import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import Presenter from './Presenter.jsx';
+import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable } from '../lib/presentable.js';
 
 const fmtDate = formatClassDate;
@@ -1116,6 +1117,11 @@ function CourseView({
               <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                 <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
               </p>
+
+              {/* World-Issues / Discernment modules carry a structured `issue`:
+                  render the dedicated five-stage walk-through. Other courses have
+                  no `issue`, so this is inert for them. */}
+              {m.issue && <DiscernmentStages issue={m.issue} />}
 
               {/* Actions: start the week (tutor + launch), and mark done */}
               <div className="flex flex-wrap gap-2 mt-3 items-center">

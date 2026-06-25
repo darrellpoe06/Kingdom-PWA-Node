@@ -54,6 +54,11 @@ import {
   SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
   buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
 } from './lib/sound-board-class.js';
+import {
+  WORLD_ISSUES_META, WORLD_ISSUES_SESSION_FLOW,
+  WORLD_ISSUES_INTEREST_TAG, WORLD_ISSUES_HELPER_TAG, WORLD_ISSUES_TUTOR_META,
+  buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown,
+} from './lib/world-issues-class.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -5377,6 +5382,40 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // World Issues & Discernment — a Word-first, SELF-PACED media-literacy +
+          // biblical-discernment track on the same shared engine (meta.unit renders
+          // it as "Issue(s)", no cohort clock). Each issue's modules carry a
+          // structured `issue` (lib/discernment-track.js) that ChurchLearn renders
+          // as the five labeled stages. Safeguards (claims labeled, dated sources,
+          // steelmanned sides, no one-sided persuasion against a named person,
+          // age-appropriate) are machine-checked in the lib + asserted in tests.
+          const submitWorldIssuesInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${WORLD_ISSUES_INTEREST_TAG} ${(name || 'A learner').trim()} wants more World Issues discernment lessons.` })
+            : null;
+          const worldIssuesRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], WORLD_ISSUES_INTEREST_TAG) : null;
+          const worldIssuesCourse = {
+            meta: { ...WORLD_ISSUES_META, key: 'world-issues' },
+            sessionFlow: WORLD_ISSUES_SESSION_FLOW,
+            schedule: buildWorldIssuesSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => worldIssuesProgressSummary(p),
+            exportMarkdown: () => exportWorldIssuesCurriculumMarkdown(),
+            downloadName: 'thinking-it-through-world-issues-discernment.md',
+            submitInterest: submitWorldIssuesInterest,
+            roster: worldIssuesRoster,
+            interestCopy: {
+              heading: 'Want more discernment lessons?',
+              blurb: 'Tell Darrell which world issue you’d like thought through The Way — media literacy + Scripture, evenhanded, never a verdict on a person. Read at your own pace, at any age.',
+              cta: 'I’d like more',
+              sent: '✓ Sent — Darrell will see what to think through next. We check sources and hold truth and grace.',
+            },
+            tutorCourseMeta: WORLD_ISSUES_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
@@ -5385,7 +5424,8 @@ html{scroll-padding-bottom:280px}
                   : courseKey === 'ai-legal-blueprint' ? AI_LEGAL_BLUEPRINT_HELPER_TAG
                     : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
                       : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
-                        : '[Class helper]'
+                        : courseKey === 'world-issues' ? WORLD_ISSUES_HELPER_TAG
+                          : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5417,7 +5457,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse, worldIssuesCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
