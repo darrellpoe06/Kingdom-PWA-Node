@@ -24,6 +24,12 @@ import {
 } from '../lib/voice-registry.js';
 import { loadVoiceProfiles, enrollMyVoice, revokeMyVoice } from '../lib/voice-sync.js';
 import { isVoiceServiceReady, synthesizeSpeech } from '../lib/voice-service.js';
+import {
+  useVoiceRecorder, RECORD_SCRIPT, formatDuration, durationQuality, meetsMinDuration,
+} from '../lib/voice-recording.js';
+import {
+  saveReference, loadReference, hasReference, clearReference, blobToDataUri,
+} from '../lib/voice-reference.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import { supabase } from '../lib/supabase.js';
 
@@ -44,6 +50,10 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   const [cloudPlaying, setCloudPlaying] = useState(false); // real cloned-voice audio in flight
   const audioRef = useRef(null);
 
+  // Record-your-voice enrollment (the recorded sample IS the clone reference).
+  const recorder = useVoiceRecorder();
+  const [myRefExists, setMyRefExists] = useState(false);
+
   // Resolve identity + load enrollment rows (RLS-scoped to the caller's instance).
   useEffect(() => {
     let alive = true;
@@ -55,9 +65,10 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       try { const id = await getInstanceId(); if (alive) setInstanceId(id || null); } catch (_) { /* offline */ }
       const { profiles: rows } = await loadVoiceProfiles();
       if (alive && rows) setProfiles(rows);
+      if (personaKey) { try { if (alive) setMyRefExists(await hasReference(personaKey)); } catch (_) {} }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [personaKey]);
 
   // Stop any cloud audio when the surface unmounts.
   useEffect(() => () => { if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; } }, []);
@@ -96,9 +107,17 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
     stopAll();
 
     if (prov.real && voice.kind === KIND.PERSONAL && sovereignVoiceReady) {
-      // REAL cloned voice via the local studio.
+      // REAL cloned voice: condition on the person's RECORDED sample (few-shot).
+      const refBlob = await loadReference(voice.personKey);
+      if (!refBlob) {
+        setNotice('Record a voice sample first — then this reads in that voice.');
+        if (!tts.supported) return;
+        tts.speak(clean); // honest stand-in until a sample exists
+        return;
+      }
+      const referenceDataUri = await blobToDataUri(refBlob);
       setBusy(true);
-      const { url, error } = await synthesizeSpeech({ text: clean, voiceId: voice.id, personKey: voice.personKey });
+      const { url, error } = await synthesizeSpeech({ text: clean, voiceId: voice.id, personKey: voice.personKey, referenceDataUri });
       setBusy(false);
       if (!error && url) {
         try {
@@ -151,6 +170,38 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
     setBusy(false);
   };
 
+  // Save the recorded sample as MY voice reference + grant consent in one gesture —
+  // recording IS the consent. The sample lives on the device (sovereign) and feeds
+  // the clone model when the endpoint is live.
+  const saveRecording = async () => {
+    if (!recorder.blob) return;
+    setBusy(true); setNotice('');
+    const ok = await saveReference(personaKey, recorder.blob);
+    if (!ok) { setNotice('That sample was too short or empty — record a few more seconds.'); setBusy(false); return; }
+    setMyRefExists(true);
+    // Persist consent (best-effort; the local sample already works for synth).
+    if (canEnrollSelf) {
+      const { error } = await enrollMyVoice({
+        instanceId, userId, personKey: personaKey,
+        displayName: PERSONA_NAME[personaKey], scope: 'read-aloud-narration',
+      });
+      if (!error) { const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows); }
+    }
+    recorder.reset();
+    setNotice(sovereignVoiceReady
+      ? 'Saved. Select your voice and press Read — it will speak in your voice.'
+      : 'Saved on this device. The moment the voice endpoint is live, this reads in your real voice.');
+    setBusy(false);
+  };
+
+  const clearMyRecording = async () => {
+    await clearReference(personaKey);
+    setMyRefExists(false);
+    setNotice('Your voice sample was removed from this device.');
+  };
+
+  const showRecorder = !!(personaKey && PERSONA_NAME[personaKey]);
+
   return (
     <div className="max-w-3xl">
       <div className="mb-1 text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Voice</div>
@@ -167,6 +218,66 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
           <em> AI-generated</em> and currently plays a <strong>stand-in</strong> voice that you can hear right
           now. The real cloned voice activates when the local voice studio (sovereign, on our own
           hardware) is live — nothing here pretends a stand-in is the person’s real voice.
+        </div>
+      )}
+
+      {/* RECORD YOUR VOICE — the primary enrollment: clean audio + explicit consent
+          in one gesture. The recorded sample IS the clone reference. */}
+      {showRecorder && (
+        <div className="mb-6 border border-[#1A1815] bg-white p-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+            <div className="text-sm font-semibold text-[#1A1815]">🎙 Record your voice — {PERSONA_NAME[personaKey]}</div>
+            <span className="text-[9px] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated voice</span>
+          </div>
+          <p className="text-[12px] text-[#5A5751] leading-relaxed mb-3">
+            Read the lines below aloud (about 30 seconds). This becomes <strong>your</strong> voice for
+            reading app text — clean audio, and recording it <strong>is</strong> your consent. It stays on
+            this device; it’s only ever sent to your own voice endpoint to read text you choose.
+          </p>
+
+          {!recorder.supported ? (
+            <p className="text-[11px] text-[#B85838]">Recording isn’t supported in this browser — try Chrome or Safari on your phone.</p>
+          ) : (
+            <>
+              <div className="text-[12px] text-[#1A1815] leading-relaxed border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3">
+                {RECORD_SCRIPT.map((line, i) => <div key={i} className="mb-1">{line}</div>)}
+              </div>
+
+              {myRefExists && !recorder.blob && !recorder.recording && (
+                <div className="text-[11px] text-[#1A1815] mb-2">✓ A voice sample is saved on this device.
+                  <button type="button" onClick={clearMyRecording} className="ml-2 underline text-[#B85838] hover:no-underline">Remove</button>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {!recorder.recording && !recorder.blob && (
+                  <button type="button" onClick={recorder.start} disabled={busy}
+                    className="bg-[#B85838] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">● Record</button>
+                )}
+                {recorder.recording && (
+                  <>
+                    <span className="text-sm font-mono text-[#B85838]" role="status" aria-live="polite">● {formatDuration(recorder.seconds)}</span>
+                    <button type="button" onClick={recorder.stop}
+                      className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">■ Stop</button>
+                    <span className={`text-[11px] ${durationQuality(recorder.seconds).tone === 'short' ? 'text-[#B85838]' : 'text-[#1A1815]'}`}>{durationQuality(recorder.seconds).label}</span>
+                  </>
+                )}
+                {recorder.blob && !recorder.recording && (
+                  <>
+                    <audio src={recorder.url} controls className="h-8 max-w-[200px]" />
+                    <button type="button" onClick={saveRecording} disabled={busy || !meetsMinDuration(recorder.seconds)}
+                      className="bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">✓ Save my voice</button>
+                    <button type="button" onClick={recorder.reset}
+                      className="border border-[#1A1815] text-[#1A1815] px-3 py-2 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↺ Re-record</button>
+                  </>
+                )}
+              </div>
+              {recorder.error && <p className="text-[11px] text-[#B85838] mt-2">{recorder.error}</p>}
+              {!sovereignVoiceReady && (
+                <p className="text-[10px] text-[#5A5751] mt-2">Recording works now. Hearing your voice read <em>new</em> text needs the voice endpoint live (bridge or the church GPU studio) — see your steward for the one-time enable.</p>
+              )}
+            </>
+          )}
         </div>
       )}
 
