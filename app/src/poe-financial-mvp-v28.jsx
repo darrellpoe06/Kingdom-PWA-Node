@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
-import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
+import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/shared.jsx';
 import TraceableNumber from './components/TraceableNumber.jsx';
 import { fmt, fmtCompact, MONTHS_ABBR, monthLabel } from './lib/format.js';
 import {
@@ -62,6 +62,7 @@ import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
 import TextSizeControl from './components/TextSizeControl.jsx';
 import Imported from './components/Imported.jsx';
+import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
@@ -1903,6 +1904,17 @@ export default function PoeFinancialSystem() {
   };
   const [booksView, setBooksView] = useState('calendar');
   const [churchView, setChurchView] = useState(getInitialChurchView());
+  // Real browser BACK / FORWARD (lib/nav-history.js). Every top tab + Books/
+  // Church sub-tab flows through this triple, so the device Back button, the
+  // in-app NavControls, and deep-links all work app-wide without a router. The
+  // hook owns window.history push/pop + scroll restoration; it is StrictMode-
+  // safe (ref-guarded) and a no-op when window.history is unavailable.
+  const navHistory = useBrowserHistoryNav({ view, setView, booksView, setBooksView, churchView, setChurchView });
+  // The app-wide feedback modal is a true overlay — device/in-app Back should
+  // CLOSE it, not leave the page. Stable close callback so the hook's listener
+  // identity is stable across renders.
+  const closeFeedback = useCallback(() => setFeedbackOpen(false), []);
+  useHistoryToggle(feedbackOpen, closeFeedback, 'feedback');
   const [entityFilter, setEntityFilter] = useState('all');
   const [snowballSort, setSnowballSort] = useState('smallest-balance');
   const [snowballExtra, setSnowballExtra] = useState(2000);
@@ -4869,7 +4881,14 @@ html{scroll-padding-bottom:280px}
               via zoom so the menu stays roughly fixed while body content scales
               (text-size scope split). Holds only rem tabs — no fixed-px control
               lives here, so nothing already-fixed is shrunk. */}
-          <TabScroll chrome className="px-1 sm:px-6 lg:px-8" rowClassName="sm:text-sm items-stretch">
+          {/* Browser-like Back/Forward, pinned left of the tab row so it never
+              scrolls away. Real window.history nav (lib/nav-history.js): Back
+              returns to the exact prior view/sub-view across every tab. */}
+          <div className="flex items-stretch">
+            <div className="pl-1 sm:pl-6 lg:pl-8 flex items-stretch">
+              <NavControls chrome {...navHistory} />
+            </div>
+            <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
               {[
                 ['overview','Big Picture'],
                 ['books','Books'],
@@ -4914,7 +4933,8 @@ html{scroll-padding-bottom:280px}
                   <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 );
               })}
-          </TabScroll>
+            </TabScroll>
+          </div>
         </nav>
         {view === 'books' && (
           <div className="border-t border-[#E8E4DC] bg-white">
