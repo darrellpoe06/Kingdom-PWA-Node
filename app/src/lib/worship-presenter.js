@@ -30,7 +30,7 @@
 // reach the screen.
 // =============================================================================
 import {
-  holdProgram, scriptureProgram, lyricProgram, lowerThird, slideProgram,
+  holdProgram, scriptureProgram, lyricProgram, lowerThird, slideProgram, imageProgram,
 } from './ndi-output.js';
 
 // How many lyric lines a single screen-cue shows before it becomes the next cue.
@@ -70,6 +70,12 @@ export function announcementItem({ id = '', title = '', body = '' } = {}) {
 }
 export function lowerThirdItem({ id = '', name = '', role = '' } = {}) {
   return { kind: 'lower-third', id: String(id || name || 'lower-third'), name: String(name || '').trim(), role: String(role || '').trim() };
+}
+// A full-bleed image cue (sermon graphic, worship background). Renders edge-to-edge at
+// native quality on the wall (NovaStar VX1000); feed a high-res source (see
+// display-targets.IMAGE_AUTHORING_RULE) — never upscale a small asset onto the 1.9 mm wall.
+export function imageItem({ id = '', src = '', fit = 'contain', caption = '', alt = '' } = {}) {
+  return { kind: 'image', id: String(id || src || 'image'), src: String(src || '').trim(), fit: fit === 'cover' ? 'cover' : 'contain', caption: String(caption || '').trim(), alt: String(alt || caption || '').trim() };
 }
 export function holdItem({ id = '', title = '' } = {}) {
   return { kind: 'hold', id: String(id || 'hold'), title: String(title || '').trim() };
@@ -156,6 +162,8 @@ export function cueToProgram(cue) {
       return slideProgram({ eyebrow: cue.eyebrow, title: cue.title, body: cue.body, ref: cue.ref });
     case 'lower-third':
       return lowerThird({ name: cue.name, role: cue.role });
+    case 'image':
+      return imageProgram({ src: cue.src, fit: cue.fit, caption: cue.caption, alt: cue.alt });
     case 'hold':
     default:
       return holdProgram(cue.title);
@@ -170,6 +178,7 @@ export function cueOperatorLabel(cue) {
   if (cue.itemKind === 'scripture') return `Scripture — ${cue.ref || ''}`.trim();
   if (cue.itemKind === 'slide') return `Slide — ${cue.title || cue.eyebrow || ''}`.trim();
   if (cue.itemKind === 'lower-third') return `Lower-third — ${cue.name || ''}`.trim();
+  if (cue.itemKind === 'image') return `Image — ${cue.caption || cue.src || ''}`.trim();
   return `Hold — ${cue.title || ''}`.trim();
 }
 
@@ -189,6 +198,7 @@ export function setListToPresentable(setList, { id = 'worship-set', title = 'Wor
     else if (c.itemKind === 'scripture') { sceneTitle = c.ref || 'Scripture'; lead = c.text || ''; }
     else if (c.itemKind === 'slide') { sceneTitle = c.title || c.eyebrow || ''; lead = c.body || ''; }
     else if (c.itemKind === 'lower-third') { sceneTitle = c.name || ''; lead = c.role || ''; }
+    else if (c.itemKind === 'image') { sceneTitle = c.caption || 'Image'; lead = ''; }
     else { sceneTitle = c.title || 'Hold'; lead = ''; }
     return {
       id: c.key,
@@ -228,6 +238,7 @@ export function masterProgramToSetList(rows) {
       case 'announcement': return announcementItem({ id, title: r.title, body: r.body });
       case 'slide': return slideItem({ id, eyebrow: r.eyebrow, title: r.title, body: r.body, ref: r.ref });
       case 'lower-third': return lowerThirdItem({ id, name: r.name, role: r.role });
+      case 'image': return imageItem({ id, src: r.src, fit: r.fit, caption: r.caption, alt: r.alt });
       case 'hold': default: return holdItem({ id, title: r.title });
     }
   });
@@ -243,6 +254,7 @@ export const PROPRESENTER_PARITY = [
   { feature: 'Song lyrics (verse/chorus advance)', status: PARITY.HAVE, note: 'songCues() follows the arrangement + auto-slices long sections; lyrics render big via lyricProgram.' },
   { feature: 'Scripture display', status: PARITY.HAVE, note: 'scriptureItem -> scriptureProgram; text fetched-not-from-memory upstream (SCRIPTURE-REFERENCE-STANDARD).' },
   { feature: 'Slides / announcements', status: PARITY.HAVE, note: 'slideItem / announcementItem -> slideProgram.' },
+  { feature: 'Full-bleed images (high-res media on the wall)', status: PARITY.HAVE, note: 'imageItem -> imageProgram; renders edge-to-edge at native quality on the 1.9 mm wall. Authoring rule: high-res source, never upscale (display-targets.IMAGE_AUTHORING_RULE).' },
   { feature: 'Lower-thirds (keyed overlay)', status: PARITY.HAVE, note: 'lowerThirdItem -> keyed, transparent NDI bar for the switcher to composite.' },
   { feature: 'Live NDI output to switcher + screens', status: PARITY.HAVE, note: 'OBS Browser Source + DistroAV (#322); each cue is a program payload.' },
   { feature: 'Two side-screen outputs', status: PARITY.HAVE, note: 'two NdiProgramOutput sources (program + keyed lower-third); both are NDI sources on the LAN.' },

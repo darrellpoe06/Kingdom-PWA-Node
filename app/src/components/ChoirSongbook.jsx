@@ -25,6 +25,12 @@ import {
   importRepertoireJson, scanArchiveForSongs, confirmArchiveSong,
 } from '../lib/choir-songbook-sync.js';
 import {
+  subscribeRenditionLoves, toggleRenditionLove, saveRenditionDetail, graduateAdLibToArrangement,
+} from '../lib/choir-renditions-sync.js';
+import { tallyRenditionLoves } from '../lib/choir-renditions.js';
+import ChoirRenditions from './ChoirRenditions.jsx';
+import { normalizeTitle } from '../lib/choir-songbook.js';
+import {
   buildSongbook, tallyLoves, allThemes, searchSongbook, filterByTheme,
   suggestSongsForSermon, suggestSongsForText, crossRefSermons, lastSungLabel,
   suggestThemes, parseThemes,
@@ -172,8 +178,8 @@ function KeyboardistNote({ sme, canEdit, onConfirm, busy }) {
 }
 
 // --- A single songbook card --------------------------------------------------
-function SongCard({ entry, sermons, canEdit, today, onLove, onAdd, onSaveMeta, onConfirmSme, onConfirmArchive, busy }) {
-  const [open, setOpen] = useState(null); // 'add' | 'meta' | 'video' | null
+function SongCard({ entry, rows, renditionLoves, sermons, canEdit, today, onLove, onAdd, onSaveMeta, onConfirmSme, onConfirmArchive, onLoveRendition, onSaveRenditionDetail, onGraduate, busy }) {
+  const [open, setOpen] = useState(null); // 'add' | 'meta' | 'video' | 'ways' | null
   const embed = youtubeEmbedUrl(entry.youtubeUrl);
   const fits = useMemo(() => crossRefSermons(entry, sermons, { limit: 2 }), [entry, sermons]);
   return (
@@ -222,6 +228,7 @@ function SongCard({ entry, sermons, canEdit, today, onLove, onAdd, onSaveMeta, o
       <KeyboardistNote sme={entry.sme} canEdit={canEdit} busy={busy} onConfirm={onConfirmSme} />
 
       <div className="flex items-center gap-2 flex-wrap mt-1">
+        {entry.timesUsed > 0 && <button type="button" onClick={() => setOpen(open === 'ways' ? null : 'ways')} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`} aria-expanded={open === 'ways'}>{open === 'ways' ? '▾ Hide' : `🎼 Ways we've sung it (${entry.timesUsed})`}</button>}
         {embed && <button type="button" onClick={() => setOpen(open === 'video' ? null : 'video')} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={open === 'video'}>{open === 'video' ? '▾ Hide' : '▶ Watch'}</button>}
         {!embed && entry.youtubeUrl && <a href={entry.youtubeUrl} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>▶ Link</a>}
         {canEdit && entry.needsReview && <button type="button" disabled={busy} onClick={() => onConfirmArchive(entry)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>✓ Confirm song</button>}
@@ -229,6 +236,13 @@ function SongCard({ entry, sermons, canEdit, today, onLove, onAdd, onSaveMeta, o
         {canEdit && <button type="button" onClick={() => setOpen(open === 'meta' ? null : 'meta')} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>✎ Cross-reference</button>}
       </div>
 
+      {open === 'ways' && (
+        <ChoirRenditions
+          entry={entry} rows={rows} renditionLoves={renditionLoves}
+          canEdit={canEdit} today={today} busy={busy}
+          onLove={onLoveRendition} onSaveDetail={onSaveRenditionDetail} onGraduate={onGraduate}
+        />
+      )}
       {open === 'add' && <AddToService entry={entry} onAdd={onAdd} onClose={() => setOpen(null)} />}
       {open === 'meta' && <MetaEditor entry={entry} sermons={sermons} busy={busy} onSave={(e, fields) => { onSaveMeta(e, fields); setOpen(null); }} onClose={() => setOpen(null)} />}
       {open === 'video' && embed && (
@@ -395,6 +409,7 @@ export default function ChoirSongbook({ songs, access }) {
   const [sermons, setSermons] = useState([]);
   const [loves, setLoves] = useState([]);
   const [smeNotes, setSmeNotes] = useState([]);
+  const [rLoves, setRLoves] = useState([]);
   const [query, setQuery] = useState('');
   const [theme, setTheme] = useState('');
   const [busy, setBusy] = useState(false);
@@ -402,7 +417,7 @@ export default function ChoirSongbook({ songs, access }) {
   const today = todayIso();
 
   useEffect(() => {
-    const unsubs = [subscribeSermons(setSermons), subscribeSongLoves(setLoves), subscribeSmeNotes(setSmeNotes)];
+    const unsubs = [subscribeSermons(setSermons), subscribeSongLoves(setLoves), subscribeSmeNotes(setSmeNotes), subscribeRenditionLoves(setRLoves)];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, []);
 
@@ -411,6 +426,19 @@ export default function ChoirSongbook({ songs, access }) {
   // Confirmed keyboardist notes ride on every song; the director also sees the
   // unconfirmed ones (to review). Faithful: extracted = unconfirmed until reviewed.
   const songbook = useMemo(() => attachSmeNotes(baseSongbook, smeNotes, { includeExtracted: canEdit }), [baseSongbook, smeNotes, canEdit]);
+  const renditionLoves = useMemo(() => tallyRenditionLoves(rLoves), [rLoves]);
+  // titleKey -> the song's real set-list rows (its renditions). The rendition
+  // data needs no new fetch — it's the same `songs` the songbook derives from.
+  const rowsByTitle = useMemo(() => {
+    const map = new Map();
+    for (const s of songs || []) {
+      const key = normalizeTitle(s.title);
+      if (!key) continue;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(s);
+    }
+    return map;
+  }, [songs]);
   const themes = useMemo(() => allThemes(songbook), [songbook]);
   const visible = useMemo(() => searchSongbook(filterByTheme(songbook, theme), query), [songbook, theme, query]);
 
@@ -442,6 +470,10 @@ export default function ChoirSongbook({ songs, access }) {
     if (r.skipped === 'empty') return 'No song notes found in that file.';
     if (r.skipped) return `Couldn’t import (${r.skipped}).`;
     return `Imported ${r.count} note${r.count === 1 ? '' : 's'} — confirm them below${r.unclear?.length ? ` · ${r.unclear.length} to ask Christian` : ''}.`; };
+  // --- Rendition-level handlers (per-performance) ---
+  const onLoveRendition = async (rendition) => { reportSkip(await toggleRenditionLove(rendition.id, rendition.lovedByMe)); };
+  const onSaveRenditionDetail = async (renditionId, fields) => { setBusy(true); reportSkip(await saveRenditionDetail(renditionId, fields)); setBusy(false); };
+  const onGraduate = async (rowIds, arrangement) => { setBusy(true); reportSkip(await graduateAdLibToArrangement(rowIds, arrangement)); setBusy(false); };
 
   return (
     <div>
@@ -478,7 +510,13 @@ export default function ChoirSongbook({ songs, access }) {
       {visible.length ? (
         <div className="space-y-3">
           {visible.map((entry) => (
-            <SongCard key={entry.titleKey} entry={entry} sermons={sermons} canEdit={canEdit} today={today} busy={busy} onLove={onLove} onAdd={onAdd} onSaveMeta={onSaveMeta} onConfirmSme={onConfirmSme} onConfirmArchive={onConfirmArchive} />
+            <SongCard
+              key={entry.titleKey} entry={entry} rows={rowsByTitle.get(entry.titleKey) || []}
+              renditionLoves={renditionLoves} sermons={sermons} canEdit={canEdit} today={today} busy={busy}
+              onLove={onLove} onAdd={onAdd} onSaveMeta={onSaveMeta}
+              onConfirmSme={onConfirmSme} onConfirmArchive={onConfirmArchive}
+              onLoveRendition={onLoveRendition} onSaveRenditionDetail={onSaveRenditionDetail} onGraduate={onGraduate}
+            />
           ))}
         </div>
       ) : (

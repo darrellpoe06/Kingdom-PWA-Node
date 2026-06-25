@@ -32,17 +32,28 @@
 // every control keyboard-reachable with a visible #B85838 focus ring and >=36px
 // touch targets, labelled inputs, aria-live on async confirmations, the course
 // picker exposed as an ARIA tablist.
+//
+// Large print (WCAG 1.4.4 Resize Text): ALL reading text here is authored in rem,
+// never fixed px, so the global A / A+ / A++ / A+++ control (lib/text-size.js, which
+// scales the document root font-size) actually enlarges the lesson body, segments,
+// quiz, anchor scripture, facilitator guide and every supporting label. Fixed-px
+// classes (text-[10px] etc.) are absolute and do NOT inherit the root scale — they
+// were the bug Darrell hit (Learn stayed small at Largest). They are now written at
+// the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
+// but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
 import React, { useState, useRef } from 'react';
 import {
-  CLASS_META, PROPOSED_COHORT_START,
+  CLASS_META, PROPOSED_COHORT_START, SESSION_FLOW,
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
 } from '../lib/church-classes.js';
 import { askTutor } from '../lib/class-tutor.js';
 import {
   LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
-  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, lessonPlanForAge,
+  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile,
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
+import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
+import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import Presenter from './Presenter.jsx';
 import { coursePresentable } from '../lib/presentable.js';
 import TextSizeControl from './TextSizeControl.jsx';
@@ -246,9 +257,9 @@ function MediaList({ module }) {
           return (
             <figure key={i} className="border border-[#E8E4DC] bg-white p-2">
               {DIAGRAMS[it.key] || (
-                <p className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>[{it.title || 'diagram'}]</p>
+                <p className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>[{it.title || 'diagram'}]</p>
               )}
-              {it.caption && <figcaption className="text-[10px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{it.caption}</figcaption>}
+              {it.caption && <figcaption className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{it.caption}</figcaption>}
             </figure>
           );
         }
@@ -256,7 +267,7 @@ function MediaList({ module }) {
           return (
             <figure key={i} className="border border-[#E8E4DC] bg-white p-2">
               <video controls src={it.src} className="w-full" aria-label={it.title} />
-              {it.caption && <figcaption className="text-[10px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{it.caption}</figcaption>}
+              {it.caption && <figcaption className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{it.caption}</figcaption>}
             </figure>
           );
         }
@@ -267,11 +278,11 @@ function MediaList({ module }) {
             <div className="flex items-center gap-2">
               <span aria-hidden="true">{isClip ? '🎬' : '🎞️'}</span>
               <span className="text-xs font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{it.title}</span>
-              <span className="text-[9px] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5">Not captured yet</span>
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5">Not captured yet</span>
             </div>
-            {it.caption && <p className="text-[10px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{it.caption}</p>}
+            {it.caption && <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{it.caption}</p>}
             {isClip && it.sopId && (
-              <p className="text-[10px] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Linked SOP: {it.sopId}</p>
+              <p className="text-[0.625rem] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Linked SOP: {it.sopId}</p>
             )}
           </div>
         );
@@ -294,7 +305,7 @@ function QuizBlock({ module, saved, onRecord }) {
   };
   return (
     <div className="mt-3 border-t border-[#E8E4DC] pt-3">
-      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">
         Check your understanding
         {saved?.passed && <span className="ml-2 text-[#5A6E3D]">· passed ({saved.pct}%)</span>}
       </div>
@@ -323,7 +334,7 @@ function QuizBlock({ module, saved, onRecord }) {
                 })}
               </div>
               {graded && q.explain && (
-                <p className="text-[10px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{q.explain}</p>
+                <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{q.explain}</p>
               )}
             </fieldset>
           </li>
@@ -333,7 +344,7 @@ function QuizBlock({ module, saved, onRecord }) {
         <button
           type="button"
           onClick={submit}
-          className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
         >
           {graded ? 'Check again' : 'Check my answers'}
         </button>
@@ -355,15 +366,15 @@ function SopLibrary({ sequences, pipeline }) {
   const captured = sequences.filter((s) => s.clip?.status === 'captured').length;
   return (
     <div className="mt-6 border-2 border-[#1A1815] p-4">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Sequence / SOP Library · POV</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Sequence / SOP Library · POV</div>
       <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         Each station’s real procedure, captured first-person and paired with a written checklist. {captured} of {sequences.length} clips captured so far — the checklists stand on their own until the {pipeline?.device || 'glasses'} capture lands.
       </p>
       {pipeline && (
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-3">
-          <p className="text-[10px] text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Sovereign pipeline (capture-only)</p>
-          <p className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{pipeline.steps?.join(' → ')}</p>
-          <p className="text-[10px] text-[#7A1F1F] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{pipeline.consent}</p>
+          <p className="text-[0.625rem] text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Sovereign pipeline (capture-only)</p>
+          <p className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{pipeline.steps?.join(' → ')}</p>
+          <p className="text-[0.625rem] text-[#7A1F1F] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{pipeline.consent}</p>
         </div>
       )}
       <ul className="space-y-3">
@@ -371,17 +382,17 @@ function SopLibrary({ sequences, pipeline }) {
           <li key={s.id} className="border border-[#E8E4DC] p-3">
             <div className="flex items-baseline justify-between gap-2 flex-wrap">
               <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                {s.title}{s.founding && <span className="ml-2 text-[9px] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5">founding</span>}
+                {s.title}{s.founding && <span className="ml-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5">founding</span>}
               </span>
-              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 border text-[#B85838] border-[#B85838]">
+              <span className="text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5 border text-[#B85838] border-[#B85838]">
                 {s.clip?.status === 'captured' ? 'clip ready' : 'clip pending'}
               </span>
             </div>
-            <p className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s.station} · {s.owner}</p>
-            {s.why && <p className="text-[11px] text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{s.why}</p>}
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s.station} · {s.owner}</p>
+            {s.why && <p className="text-[0.6875rem] text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{s.why}</p>}
             <ol className="list-decimal pl-5 mt-2 space-y-1">
               {s.steps.map((st, i) => (
-                <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{st}</li>
+                <li key={i} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{st}</li>
               ))}
             </ol>
           </li>
@@ -427,7 +438,7 @@ function AgePacedLesson({ plan, onSegmentComplete }) {
   return (
     <div className="mb-2 border border-[#E8E4DC] bg-white p-2">
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold">
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
           Step {idx + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
         </span>
         <div className="h-1.5 w-24 bg-[#E8E4DC]" role="progressbar" aria-valuenow={idx + 1} aria-valuemin={1} aria-valuemax={totalSegments} aria-label="Lesson step">
@@ -436,24 +447,24 @@ function AgePacedLesson({ plan, onSegmentComplete }) {
       </div>
       <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{segments[idx]}</p>
       {showBreak && (
-        <p className="text-[11px] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>🙆 Quick stretch break — then keep going!</p>
+        <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>🙆 Quick stretch break — then keep going!</p>
       )}
       {showCheckHint && (
-        <p className="text-[11px] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>👇 When you’re ready, try the quick check below.</p>
+        <p className="text-[0.6875rem] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>👇 When you’re ready, try the quick check below.</p>
       )}
       <div className="flex items-center gap-2 mt-2">
         <button
           type="button"
           onClick={() => setIdx((i) => Math.max(0, i - 1))}
           disabled={idx === 0}
-          className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
         >
           ◀ Back
         </button>
         <button
           type="button"
           onClick={advance}
-          className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${atLast ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f]'}`}
+          className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${atLast ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f]'}`}
         >
           {atLast ? 'Got it! ✓' : 'Next →'}
         </button>
@@ -472,10 +483,10 @@ function RpeBlock({ rpe }) {
   ].filter((s) => s.v);
   return (
     <div className="mb-2 border-l-4 border-[#5A6E3D] bg-white p-2">
-      <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">Research → Plan → Execute</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">Research → Plan → Execute</div>
       <ol className="space-y-1">
         {steps.map((s, i) => (
-          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <li key={i} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             <strong>{s.k}:</strong> {s.v}
           </li>
         ))}
@@ -490,10 +501,10 @@ function HardwarePairing({ hardware }) {
   if (!Array.isArray(hardware) || hardware.length === 0) return null;
   return (
     <div className="mb-2 border border-dashed border-[#5A6E3D] bg-[#5A6E3D]/5 p-2">
-      <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">🖐️ Go find it — touch the real thing</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">🖐️ Go find it — touch the real thing</div>
       <ul className="space-y-2">
         {hardware.map((h, i) => (
-          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <li key={i} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             <strong>{h.device}</strong>
             {h.look && <div>👀 Look: {h.look}</div>}
             {h.touch && <div>✋ Touch: {h.touch}</div>}
@@ -512,12 +523,12 @@ function HardwarePairing({ hardware }) {
 function GenerativeVisualNote() {
   return (
     <div className="mb-2 border border-[#E8E4DC] bg-white p-2">
-      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">On the big screen (venue)</div>
-      <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">On the big screen (venue)</div>
+      <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
         In the sanctuary this same lesson can play across every screen at the right level for each one (the video wall and the monitors together).
       </p>
-      <p className="text-[11px] text-[#7A1F1F] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-        <span className="uppercase tracking-wider text-[9px] border border-[#7A1F1F] px-1.5 py-0.5 mr-1">Build target</span>
+      <p className="text-[0.6875rem] text-[#7A1F1F] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        <span className="uppercase tracking-wider text-[0.5625rem] border border-[#7A1F1F] px-1.5 py-0.5 mr-1">Build target</span>
         {GENERATIVE_VISUAL_PIPELINE.summary} {GENERATIVE_VISUAL_PIPELINE.blockedReason}
       </p>
     </div>
@@ -530,15 +541,19 @@ function GenerativeVisualNote() {
 // reachable, and degrades honestly when it is not. `tutorCourseMeta` lets the
 // SAME engine introduce itself per course (youth class vs broadcast training).
 // -----------------------------------------------------------------------------
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week' }) {
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [offline, setOffline] = useState(false);
   const liveRef = useRef(null);
   const startedRef = useRef(false);
-  // The authored lesson, PACED to the learner's age band (chunked, not summarized).
-  const plan = lessonPlanForAge(module, ageBand, levelOverride);
+  // The lesson-flow STANDARD: one consistent five-stage arc (Open → Teach → Engage
+  // → Apply → Send-off), derived from this module's authored fields, paced to the
+  // learner's age/depth. The audience walks it ONE stage at a time (clear where you
+  // are / what's next); each stage's body is rendered by renderStage below, reusing
+  // the existing real-wired pieces (paced lesson, media, launch, quiz).
+  const arc = buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel });
 
   // Real engagement: this learner started this week (once per open).
   React.useEffect(() => {
@@ -567,54 +582,94 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
     }
   };
 
+  // renderStage — the learner-safe body for one arc stage. Each stage reuses the
+  // existing real-wired pieces; the LessonFlowAudience shell owns the arc chrome
+  // (rail, timing, one-at-a-time progression). NO facilitator notes here (no-leak).
+  const renderStage = (seg) => {
+    switch (seg.kind) {
+      case 'open':
+        return (
+          <>
+            {seg.audience.bigIdea && (
+              <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{seg.audience.bigIdea}</p>
+            )}
+            {seg.audience.anchorRef && (
+              <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <strong>Anchor — {seg.audience.anchorRef}:</strong> {seg.audience.anchorTheme}
+              </p>
+            )}
+          </>
+        );
+      case 'teach':
+        return (
+          <>
+            {/* Research → Plan → Execute — the shared doing-primitive */}
+            <RpeBlock rpe={module.rpe} />
+            {/* Authored walkthrough, PACED to age/depth (chunked, not summarized) */}
+            <AgePacedLesson plan={seg.audience.lessonPlan} onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)} />
+            {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
+            <MediaList module={module} />
+            {/* Christian's home path — go find + safely touch the real device */}
+            <HardwarePairing hardware={module.hardware} />
+            {/* Honest venue / generative-visual disclosure (build target) */}
+            {venueAware && <GenerativeVisualNote />}
+          </>
+        );
+      case 'engage':
+        return seg.audience.prompts.length > 0 ? (
+          <ul className="list-disc pl-5 space-y-1">
+            {seg.audience.prompts.map((q, i) => (
+              <li key={i} className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{q}</li>
+            ))}
+          </ul>
+        ) : null;
+      case 'apply':
+        return (
+          <>
+            <p className="text-xs text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              <strong>{handsOnLabel}:</strong> {module.inApp}
+            </p>
+            {module.launch && onLaunch && (
+              <button
+                type="button"
+                onClick={() => onLaunch(module.launch)}
+                className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                {launchLabel(module.launch)} →
+              </button>
+            )}
+            {/* Check-for-understanding quiz (real assessment) */}
+            <QuizBlock module={module} saved={quizSaved} onRecord={recordQuizAndEngage} />
+          </>
+        );
+      case 'send':
+        return Array.isArray(seg.audience.benefits) && seg.audience.benefits.length > 0 ? (
+          <div className="border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
+            <ul className="list-disc pl-4 space-y-1">
+              {seg.audience.benefits.map((b, i) => (
+                <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Carry one thing from this {unitNoun} into a real moment this week.
+          </p>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">
         🧭 Your guide for this {unitNoun}
       </div>
 
-      {/* Research → Plan → Execute — the shared doing-primitive, every lesson */}
-      <RpeBlock rpe={module.rpe} />
-
-      {/* Authored walkthrough — always available, never a dead end. PACED to the
-          learner's age band (chunked, not summarized); depth follows age + any
-          explicit override. */}
-      <AgePacedLesson plan={plan} onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)} />
-
-      {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
-      <MediaList module={module} />
-
-      {/* Christian's home path — go find, look at, and safely touch the real device */}
-      <HardwarePairing hardware={module.hardware} />
-
-      <p className="text-xs text-[#1A1815] mb-2 mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-        <strong>{handsOnLabel}:</strong> {module.inApp}
-      </p>
-
-      {/* Honest venue / generative-visual disclosure (build target) */}
-      {venueAware && <GenerativeVisualNote />}
-      {module.launch && onLaunch && (
-        <button
-          type="button"
-          onClick={() => onLaunch(module.launch)}
-          className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-        >
-          {launchLabel(module.launch)} →
-        </button>
-      )}
-      {Array.isArray(module.facilitator?.discussionPrompts) && module.facilitator.discussionPrompts.length > 0 && (
-        <div className="mt-3">
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Think about</div>
-          <ul className="list-disc pl-5 space-y-1">
-            {module.facilitator.discussionPrompts.map((q, i) => (
-              <li key={i} className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{q}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Check-for-understanding quiz (real assessment) */}
-      <QuizBlock module={module} saved={quizSaved} onRecord={recordQuizAndEngage} />
+      {/* The lesson-flow STANDARD — one clean, paced stage at a time */}
+      <LessonFlowAudience arc={arc} renderStage={renderStage} unitNoun={unitNoun} />
 
       {/* The chat with the local tutor */}
       <div className="mt-3 border-t border-[#E8E4DC] pt-3">
@@ -630,7 +685,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 >
                   {m.content}
                   {m.role === 'assistant' && (
-                    <span className="block text-[9px] uppercase tracking-wider text-[#5A6E3D] mt-1">
+                    <span className="block text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] mt-1">
                       Local tutor · test what it tells you
                     </span>
                   )}
@@ -641,7 +696,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         )}
 
         {offline && (
-          <p className="text-[11px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">
+          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">
             The live tutor isn’t connected right now — but you can still finish this {unitNoun} on your own: follow <strong>“{handsOnLabel}”</strong> above and the questions to think about. Try the tutor again later.
           </p>
         )}
@@ -666,7 +721,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             {busy ? '…' : 'Ask'}
           </button>
         </div>
-        <p className="text-[10px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           The tutor runs on the church’s own A.I. (sovereign, not sold). It can be wrong — verify what matters.
         </p>
       </div>
@@ -720,8 +775,11 @@ function CourseView({
     meta, schedule, cohortConfirmed, cohortStart, setCohortStart, confirmCohort,
     progressSummary: courseProgressSummary, exportMarkdown, downloadName,
     roster, interestCopy, tutorCourseMeta, sopSequences, capturePipeline,
-    venueAware = false, engagementByAge = null,
+    venueAware = false, engagementByAge = null, sessionFlow = null,
   } = course;
+  // The session length this course's run-of-show starts from (the lesson-flow
+  // standard reflows the arc to any total the facilitator picks).
+  const sessionMinutes = sessionMinutesFromFlow(sessionFlow);
   // The explicit depth override the learner picked, if any. 'auto' (default) means
   // "follow my age band" — the age picker is the master control; this fine-tunes it.
   const levelOverride = learnLevel && learnLevel !== 'auto' && learnLevel !== DEFAULT_AGE_BAND ? learnLevel : null;
@@ -801,7 +859,7 @@ function CourseView({
           </button>
         )}
         {!canSendInterest && (
-          <p className="text-[11px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to send your interest.</p>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to send your interest.</p>
         )}
       </div>
 
@@ -813,7 +871,7 @@ function CourseView({
             <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{roster.length} interested</span>
           </div>
           {roster.length === 0 ? (
-            <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
               No one has tapped “{interestCopy.cta}” yet. When they do — from any device, on any instance — they appear here.
             </p>
           ) : (
@@ -821,7 +879,7 @@ function CourseView({
               {roster.map((r, i) => (
                 <li key={r.id || i} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
                   <span>{r.who || r.displayName || 'A parishioner'}</span>
-                  <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(r.at || r.createdAt || '').slice(0, 10)}</span>
+                  <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(r.at || r.createdAt || '').slice(0, 10)}</span>
                 </li>
               ))}
             </ul>
@@ -839,7 +897,7 @@ function CourseView({
           <div className="h-2 bg-[#E8E4DC] overflow-hidden" role="progressbar" aria-valuenow={prog.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Class progress">
             <div className="h-full bg-[#5A6E3D]" style={{ width: `${prog.pct}%` }} />
           </div>
-          <p className="text-[11px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Check off each {U.noun} as you finish it — this is counted from your own record, just for you.
           </p>
         </div>
@@ -849,7 +907,7 @@ function CourseView({
           learner's age (short/visual/playful for a child, deeper for an adult). */}
       {setAgeBand && (
         <div className="border border-[#E8E4DC] p-3 mb-5">
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Who’s learning? (sets the pace)</div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Who’s learning? (sets the pace)</div>
           <div role="group" aria-label="Choose the learner's age" className="flex flex-wrap gap-2">
             {AGE_BANDS.map((b) => {
               const on = ageBand === b.id;
@@ -860,14 +918,14 @@ function CourseView({
                   aria-pressed={on}
                   title={b.hint}
                   onClick={() => setAgeBand(b.id)}
-                  className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
                 >
                   {b.label} <span className="opacity-70">{b.range}</span>
                 </button>
               );
             })}
           </div>
-          <p className="text-[11px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             {ageBandProfile(ageBand).pacing}
           </p>
         </div>
@@ -877,7 +935,7 @@ function CourseView({
           override on top of the age band. "Auto" follows your age. */}
       {setLearnLevel && (
         <div className="border border-[#E8E4DC] p-3 mb-5">
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Fine-tune depth (optional)</div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Fine-tune depth (optional)</div>
           <div role="group" aria-label="Choose your learning depth" className="flex flex-wrap gap-2">
             {[{ id: 'auto', label: 'Auto', hint: 'Follow my age band.' }, ...LEARN_LEVELS].map((lv) => {
               const on = (learnLevel || 'auto') === lv.id;
@@ -888,7 +946,7 @@ function CourseView({
                   aria-pressed={on}
                   title={lv.hint}
                   onClick={() => setLearnLevel(lv.id)}
-                  className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
                 >
                   {lv.label}
                 </button>
@@ -907,7 +965,7 @@ function CourseView({
             <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{engagementByAge.totals?.records || 0} signals</span>
           </div>
           {(engagementByAge.totals?.records || 0) === 0 ? (
-            <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
               No engagement signals yet. As learners use the courses, each age band’s real use shows here — and the pacing defaults get tuned from it.
             </p>
           ) : (
@@ -918,7 +976,7 @@ function CourseView({
                 return (
                   <li key={b.id} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
                     <span>{b.label} <span className="text-[#5A5751]">{b.range}</span></span>
-                    <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       {row.total} signals · score {row.score} · {row.counts['completed'] || 0} completed
                     </span>
                   </li>
@@ -954,7 +1012,7 @@ function CourseView({
       {/* The timeline + curriculum */}
       <div className="flex items-baseline justify-between gap-2 mb-1">
         <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{U.selfPaced ? (meta.weeks === 1 ? `The ${U.noun}` : `The ${meta.weeks} ${U.plural}`) : `The ${meta.weeks} ${U.plural}`}</h3>
-        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 border ${U.selfPaced ? 'text-[#5A6E3D] border-[#5A6E3D]' : cohortConfirmed ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B85838] border-[#B85838]'}`}>
+        <span className={`text-[0.625rem] uppercase tracking-wider px-2 py-0.5 border ${U.selfPaced ? 'text-[#5A6E3D] border-[#5A6E3D]' : cohortConfirmed ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B85838] border-[#B85838]'}`}>
           {U.selfPaced ? 'Self-paced' : (cohortConfirmed ? 'Cohort 1 · confirmed' : 'Cohort 1 · proposed')}
         </span>
       </div>
@@ -968,13 +1026,13 @@ function CourseView({
 
       {/* Export — Darrell trusts paper; same source as the screen */}
       <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
-        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Teach from paper — export the whole curriculum</div>
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Teach from paper — export the whole curriculum</div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={copyCurriculum} className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
-          <button type="button" onClick={downloadCurriculum} className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
-          <button type="button" onClick={printCurriculum} className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
+          <button type="button" onClick={copyCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
+          <button type="button" onClick={downloadCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
+          <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
         </div>
-        {exportNote && <p className="text-[11px] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{exportNote}</p>}
+        {exportNote && <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{exportNote}</p>}
       </div>
 
       {/* Governor-only: set / confirm the real start date + reveal the facilitator guide */}
@@ -982,7 +1040,7 @@ function CourseView({
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
           {setCohortStart && (
             <>
-              <label htmlFor={`cohort-start-${meta.key}`} className="block text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Governor · cohort 1 start date</label>
+              <label htmlFor={`cohort-start-${meta.key}`} className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Governor · cohort 1 start date</label>
               <div className="flex flex-wrap gap-2 items-center">
                 <input
                   id={`cohort-start-${meta.key}`}
@@ -995,13 +1053,13 @@ function CourseView({
                   <button
                     type="button"
                     onClick={() => confirmCohort(!cohortConfirmed)}
-                    className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
                   >
                     {cohortConfirmed ? 'Mark proposed' : 'Confirm dates'}
                   </button>
                 )}
               </div>
-              <p className="text-[11px] text-[#5A5751] mt-2 mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.6875rem] text-[#5A5751] mt-2 mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
                 Confirming sets it for your instance; publish the date to every learner by setting the course’s <span className="font-mono">CONFIRMED_COHORT</span> in its lib file. Class-interest notes show up in your Church voice review.
               </p>
             </>
@@ -1010,7 +1068,7 @@ function CourseView({
             type="button"
             onClick={() => setShowFacilitator((v) => !v)}
             aria-pressed={showFacilitator}
-            className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${showFacilitator ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
+            className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${showFacilitator ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
           >
             {showFacilitator ? '✓ Facilitator guide showing' : 'Show facilitator guide'}
           </button>
@@ -1019,7 +1077,7 @@ function CourseView({
           <button
             type="button"
             onClick={() => setTeaching(true)}
-            className="ml-2 text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            className="ml-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
             ▶ Teach live (presenter + class screen)
           </button>
@@ -1037,7 +1095,7 @@ function CourseView({
                   {U.cap} {m.week} · {m.title}
                 </span>
                 {!U.selfPaced && (
-                  <span className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     {m.date ? fmtDate(m.date) : 'date TBD'}
                   </span>
                 )}
@@ -1045,7 +1103,7 @@ function CourseView({
               <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
               {Array.isArray(m.benefits) && m.benefits.length > 0 && (
                 <div className="mt-2 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
                   <ul className="list-disc pl-4 space-y-1">
                     {m.benefits.map((b, i) => (
                       <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b}</li>
@@ -1056,7 +1114,7 @@ function CourseView({
               <p className="text-xs text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                 <strong className="text-[#1A1815]">{handsOnLabel}:</strong> {m.inApp}
               </p>
-              <p className="text-[11px] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                 <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
               </p>
 
@@ -1067,7 +1125,7 @@ function CourseView({
                   onClick={() => setOpenTutorId(tutorOpen ? null : m.id)}
                   aria-expanded={tutorOpen}
                   aria-controls={`tutor-panel-${m.id}`}
-                  className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
+                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
                 >
                   {tutorOpen ? 'Close the guide' : `Start this ${U.noun} →`}
                 </button>
@@ -1075,7 +1133,7 @@ function CourseView({
                   <button
                     type="button"
                     onClick={() => onLaunch(m.launch)}
-                    className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                   >
                     {launchLabel(m.launch)} →
                   </button>
@@ -1085,7 +1143,7 @@ function CourseView({
                     type="button"
                     onClick={() => toggleModule(m.id)}
                     aria-pressed={done}
-                    className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${done ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
+                    className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${done ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
                   >
                     {done ? '✓ Done' : `Mark this ${U.noun} done`}
                   </button>
@@ -1108,47 +1166,32 @@ function CourseView({
                     quizSaved={quizState[m.id] || null}
                     onRecordQuiz={recordQuiz}
                     unitNoun={U.noun}
+                    sessionFlow={sessionFlow}
                   />
                 </div>
               )}
 
-              {/* Facilitator guide (Governor-revealed) */}
+              {/* Facilitator run-of-show (Governor-revealed) — the lesson-flow
+                  standard: the same five-stage arc the learner walks, but TIMED
+                  with what-to-say / what-to-do / cues per stage, and a time-adaptive
+                  reflow so it fits any length. The deep `lesson` source stays above
+                  the arc for the leader to read in full. */}
               {isGovernor && showFacilitator && m.facilitator && (
-                <div className="mt-3 border-l-4 border-[#7A1F1F] bg-[#FAF8F4] p-3">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold mb-2">Facilitator guide</div>
+                <div className="mt-3">
                   {m.lesson && (
-                    <p className="text-xs text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.lesson}</p>
+                    <div className="border-l-4 border-[#7A1F1F] bg-[#FAF8F4] p-3 mb-0">
+                      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold mb-2">Deep source (read this first)</div>
+                      <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{m.lesson}</p>
+                    </div>
                   )}
-                  {m.facilitator.talkingPoints?.length > 0 && (
-                    <>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Talking points</div>
-                      <ul className="list-disc pl-5 space-y-1 mb-2">
-                        {m.facilitator.talkingPoints.map((t, i) => (
-                          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t}</li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  {m.facilitator.howToRun && (
-                    <>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">{U.sessionLabel}</div>
-                      <ul className="list-disc pl-5 space-y-1 mb-2">
-                        {m.facilitator.howToRun.split('|').map((s) => s.trim()).filter(Boolean).map((seg, i) => (
-                          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{seg}</li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  {m.facilitator.discussionPrompts?.length > 0 && (
-                    <>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Discussion prompts</div>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {m.facilitator.discussionPrompts.map((d, i) => (
-                          <li key={i} className="text-[11px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{d}</li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
+                  <LessonRunOfShow
+                    module={m}
+                    baseMinutes={sessionMinutes}
+                    ageBand={ageBand}
+                    levelOverride={levelOverride}
+                    sessionLabel={U.sessionLabel}
+                    handsOnLabel={handsOnLabel}
+                  />
                 </div>
               )}
             </li>
@@ -1159,7 +1202,7 @@ function CourseView({
       {/* POV Sequence / SOP Library (broadcast course only — present when wired) */}
       <SopLibrary sequences={sopSequences} pipeline={capturePipeline} />
 
-      <p className="text-[11px] text-[#5A5751] mt-5" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.6875rem] text-[#5A5751] mt-5" style={{ fontFamily: '"Fraunces", serif' }}>
         Taught by Darrell Poe · The Church of the Living God · built on PoeTech. The first community we serve, the way we serve every community after.
       </p>
       </div>
@@ -1253,6 +1296,7 @@ export default function ChurchLearn({
   const aiCourse = {
     key: 'ai',
     meta: { ...CLASS_META, key: 'ai' },
+    sessionFlow: SESSION_FLOW,
     schedule: buildSchedule(cohortStart),
     cohortStart, cohortConfirmed, setCohortStart, confirmCohort,
     progressSummary: (p) => progressSummary(p),
@@ -1310,7 +1354,7 @@ export default function ChurchLearn({
   return (
     <section className="max-w-3xl" aria-labelledby="learn-h">
       <div className="print:hidden">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
         <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           {active.meta.title}
         </h2>
@@ -1331,7 +1375,7 @@ export default function ChurchLearn({
                   role="tab"
                   aria-selected={selected}
                   onClick={() => setActiveKey(c.key)}
-                  className={`text-[11px] uppercase tracking-wider px-3 py-2 min-h-[40px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+                  className={`text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
                 >
                   {c.meta.title}
                 </button>

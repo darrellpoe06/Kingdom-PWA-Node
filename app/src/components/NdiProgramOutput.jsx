@@ -104,6 +104,27 @@ export default function NdiProgramOutput() {
     );
   }
 
+  // --- full-bleed IMAGE (sermon graphic / worship background) ----------------------
+  // Edge-to-edge at native quality for the 1.9 mm wall (NovaStar VX1000, ~1920x1440).
+  // fit='contain' shows the whole image (no crop); 'cover' fills (may crop). Authoring
+  // rule: feed a high-res source — never upscale a small asset onto the wall.
+  if (p.kind === 'image' && p.src) {
+    return (
+      <div style={{ minHeight: '100vh', width: '100%', background: '#000', position: 'relative', display: 'flex', overflow: 'hidden' }}>
+        <img
+          src={p.src}
+          alt={p.alt || ''}
+          style={{ width: '100%', height: '100vh', objectFit: p.fit === 'cover' ? 'cover' : 'contain', display: 'block' }}
+        />
+        {p.caption && (
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 'clamp(16px, 3vh, 48px)', background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)', color: TEXT, fontFamily: '"Fraunces", Georgia, serif', fontSize: 'clamp(20px, 2.6vw, 44px)', textAlign: 'center' }}>
+            {p.caption}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // --- full-frame program (hold / scripture / lyric / slide) -----------------------
   return (
     <div
