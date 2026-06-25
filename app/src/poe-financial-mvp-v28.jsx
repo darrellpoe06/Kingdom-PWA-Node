@@ -111,7 +111,7 @@ import {
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
-  CreationWorkspace, Study, BooksTransactions, HarvestLedger,
+  CreationWorkspace, Study, BooksTransactions, HarvestLedger, Library,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1758,7 +1758,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','admin','center','crm'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','library','admin','center','crm'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -5013,6 +5013,11 @@ html{scroll-padding-bottom:280px}
                 // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
                 // Available to every signed-in user; persistence is instance-scoped.
                 ['create', <><UiIcon name="palette" /> Create</>],
+                // Library — books assembled from the house's own corpus, with an
+                // in-app reader whose chapters deep-link back into the live app
+                // (the books<->app flywheel). Reading is open to every signed-in
+                // user; the build Studio is family/Governor-gated inside.
+                ['library', <><UiIcon name="bookOpen" /> Library</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -5503,6 +5508,21 @@ html{scroll-padding-bottom:280px}
               updateWorkspace={updateWorkspace}
               deleteWorkspace={deleteWorkspace}
               currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+            />
+          </SectionBoundary>
+        )}
+        {/* Library — the books<->app flywheel surface. Reader is open to any
+            signed-in user; the build Studio is family/Governor-gated inside the
+            component. Its own SectionBoundary keeps a thrown error scoped. */}
+        {view === 'library' && (
+          <SectionBoundary name="Library">
+            <Library
+              email={authSession?.user?.email || ''}
+              isFamilyMember={isFamilyMember}
+              sermons={[]}
+              setView={setView}
+              setChurchView={setChurchView}
+              setBooksView={setBooksView}
             />
           </SectionBoundary>
         )}
@@ -6084,6 +6104,7 @@ const FEEDBACK_AREAS = [
   { group: 'Notes', items: [
     ['notes', '🕊 Notes · thinking space (capture → prayer / voice / incident / inquiry)'],
     ['create', '🎨 Create · creation workspace (document → image export)'],
+    ['library', '📖 Library · books from the corpus + in-app reader (companion deep-links)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "📓 Darrell's Study · reflections / processing / cultural research (device-local)"],
