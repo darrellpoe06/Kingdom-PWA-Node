@@ -25,8 +25,9 @@
 // biblical views fairly and lets the Word + Spirit lead — present, don't divide.
 // =============================================================================
 import { KJV } from './scripture-kjv.js';
+import { WEB } from './scripture-web.js';
 
-export { KJV };
+export { KJV, WEB };
 
 // -----------------------------------------------------------------------------
 // SURFACES — the app surfaces a theme/verse BACKS (self-describing; a test
@@ -930,6 +931,22 @@ export function kjvText(ref) {
 
 export function hasVerse(ref) {
   return kjvText(ref) !== null;
+}
+
+// The verified World English Bible (modern English, public domain) text for a
+// reference, or null. The modern-English companion to kjvText — same contract,
+// same verbatim/never-reworded discipline (text fetched, see scripture-web.js).
+export function webText(ref) {
+  const key = normalizeRef(ref);
+  return Object.prototype.hasOwnProperty.call(WEB, key) ? WEB[key] : null;
+}
+
+// Generic resolver across the editions we reproduce in full. One place every
+// surface resolves base text from, so a new PD edition is added once, here.
+// Unknown version → KJV (the always-present base). null if the ref isn't carried.
+export function editionText(versionId, ref) {
+  if (versionId === 'WEB') return webText(ref);
+  return kjvText(ref);
 }
 
 export function allThemes() {
