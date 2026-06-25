@@ -128,8 +128,11 @@ async function archiveWriteContext(displayName) {
 }
 
 // Map a choir-archive row (parseRepertoireJson / buildArchiveSongsFromChannel)
-// to a choir_songs insert row.
-function archiveRowToInsert(ctx, r) {
+// to a choir_songs insert row. Exported (pure) so the persist guard can assert
+// every column it writes actually exists in the migrations — the deterministic
+// catch for the "archive insert silently fails on a missing column" class that
+// keeps the Songbook empty even after a successful scan/import.
+export function archiveRowToInsert(ctx, r) {
   return {
     instance_id: ctx.tenantId,
     created_by: ctx.userId,
