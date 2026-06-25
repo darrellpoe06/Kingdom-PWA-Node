@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
 import TraceableNumber from './components/TraceableNumber.jsx';
 import {
@@ -9,25 +9,14 @@ import {
   traceDebtFree,
   traceRentalsFree,
 } from './lib/number-trace.js';
-const About = lazy(() => import('./components/About.jsx'));
 import { LegalPlaceholder } from './components/Legal.jsx';
-const Contractors1099 = lazy(() => import('./components/Contractors1099.jsx').then(m => ({ default: m.Contractors1099 })));
-const Cart = lazy(() => import('./components/Cart.jsx').then(m => ({ default: m.Cart })));
 import { BooksEntities } from './components/BooksEntities.jsx';
-const Practice = lazy(() => import('./components/Practice.jsx').then(m => ({ default: m.Practice })));
-const Markets = lazy(() => import('./components/Markets.jsx').then(m => ({ default: m.Markets })));
 import { Debts } from './components/Debts.jsx';
 import { Inbound } from './components/Inbound.jsx';
-const Rentals = lazy(() => import('./components/Rentals.jsx').then(m => ({ default: m.Rentals })));
 import { ProjectsWrapper, DateField } from './components/Projects.jsx';
-const Opportunities = lazy(() => import('./components/DevOps.jsx').then(m => ({ default: m.Opportunities })));
 import AuthBanner from './components/AuthBanner.jsx';
 import PasswordAuth from './components/PasswordAuth.jsx';
 import { accessState } from './lib/access-gate.js';
-const Engagement = lazy(() => import('./components/Engagement.jsx'));
-const Choir = lazy(() => import('./components/Choir.jsx'));
-const ServiceProgram = lazy(() => import('./components/ServiceProgram.jsx'));
-const ChurchLearn = lazy(() => import('./components/ChurchLearn.jsx'));
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from './lib/church-live.js';
 import {
@@ -98,23 +87,23 @@ import VerifyBalances from './components/VerifyBalances.jsx';
 import { DispatchPanel } from './components/DispatchPanel.jsx';
 import { getAssignments, dispatchState, addAssignment, removeAssignment, markDone as markAssignmentDone, reopen as reopenAssignment, setPayout as setAssignmentPayout, summarize as summarizeAssignments } from './lib/assignments.js';
 import { LifeGallery } from './components/LifeGallery.jsx';
-const ConferenceModule = lazy(() => import('./components/ConferenceModule.jsx').then(m => ({ default: m.ConferenceModule })));
-const EventCenterModule = lazy(() => import('./components/EventCenterModule.jsx').then(m => ({ default: m.EventCenterModule })));
-const ConferenceVariance = lazy(() => import('./components/ConferenceVariance.jsx').then(m => ({ default: m.ConferenceVariance })));
-const ChurchObservation = lazy(() => import('./components/ChurchObservation.jsx').then(m => ({ default: m.ChurchObservation })));
-const EventManagement = lazy(() => import('./components/EventManagement.jsx'));
-const Pulpit = lazy(() => import('./components/Pulpit.jsx'));
-const ScriptureLibrary = lazy(() => import('./components/ScriptureLibrary.jsx'));
-const CommandServeCenter = lazy(() => import('./components/CommandServeCenter.jsx'));
-const ChurchVideoWall = lazy(() => import('./components/ChurchVideoWall.jsx'));
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ChurchGiveFloater } from './components/ChurchGiving.jsx';
-const ThinkingSpace = lazy(() => import('./components/ThinkingSpace.jsx').then(m => ({ default: m.ThinkingSpace })));
-const CreationWorkspace = lazy(() => import('./components/CreationWorkspace.jsx'));
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
-const Study = lazy(() => import('./components/Study.jsx'));
 import { Queue } from './components/Queue.jsx';
+// Lazy-loaded feature surfaces now mount through the surface-mount registry
+// (the modular spine). Their `() => import(...)` loaders + nav metadata live in
+// ONE place — app/src/surfaces.js (DR-0078 §4.3) — instead of 23 inline
+// `const X = lazy(...)` lines that every new-surface PR collided on (choke-point
+// C1). Same lazy components, same chunks; only the declaration site moved.
+import {
+  About, Contractors1099, Cart, Practice, Markets, Rentals, Opportunities,
+  Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
+  EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
+  Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
+  CreationWorkspace, Study,
+} from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
