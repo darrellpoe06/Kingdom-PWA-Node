@@ -1,13 +1,13 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
-  formatPrice, processorFee, normalizeProduct, validateProduct, publishableProduct,
+  formatPrice, processorFee, normalizeProduct, publishableProduct,
   unitEconomics, trialEconomics,
 } from '../lib/commerce.js';
 import {
   normalizeSubscriber, trialState, effectiveTier, appAccess, entitledToBook,
   startTrial, grantBookEntitlement, activatePaid, ensureSubscriber,
-  loadSubscriber, saveSubscriber, FREE_TIER, TRIAL_DAYS,
+  loadSubscriber, FREE_TIER, TRIAL_DAYS,
 } from '../lib/entitlements.js';
 import {
   conversationGate, addMessageGated, visibleMessages, messageCounts, normalizeMessage,
