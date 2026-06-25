@@ -2884,9 +2884,16 @@ export default function PoeFinancialSystem() {
             // Seed purge: once the cloud holds real rows for this table, the
             // local seed scaffolding is dropped — truth replaces the picture.
             setData(d => {
-              const incoming = result.merged.filter(notDemoRow);
-              let current = (d[t.key] || []).filter(notDemoRow);
-              if (incoming.length) current = current.filter(notSeedRow);
+              // 2026-06-24 RESURRECTION FIX — strip seed UNCONDITIONALLY. The old
+              // `if (incoming.length)` guard left SEED_DATA scaffolding (dev-ticket
+              // projects, sample incidents) in place whenever the cloud table was
+              // empty — and since `data` re-inits to SEED_DATA on every boot, those
+              // rows reappeared after the user deleted them. By the time this merge
+              // runs the user is signed-in + verified, so seed must never show.
+              // notSeedRow on `incoming` too: any legacy seed row that reached the
+              // cloud (pre-2026-06-12, before localList filtering) stays hidden.
+              const incoming = result.merged.filter(notDemoRow).filter(notSeedRow);
+              const current = (d[t.key] || []).filter(notDemoRow).filter(notSeedRow);
               const mergeFn = t.merge || unionPreservingLocal;
               return { ...d, [t.key]: mergeFn(current, incoming) };
             });
@@ -2903,9 +2910,11 @@ export default function PoeFinancialSystem() {
         if (cancelled) return;
         const unsubscribe = t.sync.subscribe((items) => {
           setData(d => {
-            const incoming = items.filter(notDemoRow);
-            let current = (d[t.key] || []).filter(notDemoRow);
-            if (incoming.length) current = current.filter(notSeedRow);
+            // 2026-06-24 RESURRECTION FIX — strip seed unconditionally (see the
+            // initialSync merge above for the full rationale). Without this, a
+            // realtime refetch could re-surface seed scaffolding the user removed.
+            const incoming = items.filter(notDemoRow).filter(notSeedRow);
+            const current = (d[t.key] || []).filter(notDemoRow).filter(notSeedRow);
             const mergeFn = t.merge || unionPreservingLocal;
             return { ...d, [t.key]: mergeFn(current, incoming) };
           });
@@ -3501,7 +3510,21 @@ export default function PoeFinancialSystem() {
   // captures by/when. Recurring + event are sibling shapes; mirror the pattern.
   const updateRecurring = (id, updates) => setData(d => ({ ...d, recurringObligations: d.recurringObligations.map(r => r.id === id ? { ...r, ...updates } : r) }));
   const updateEvent = (id, updates) => setData(d => ({ ...d, events: (d.events || []).map(e => e.id === id ? { ...e, ...updates } : e) }));
-  const deleteIncident = (id) => setData(d => ({ ...d, incidents: d.incidents.filter(i => i.id !== id) }));
+  // 2026-06-24 RESURRECTION FIX — a real (synced) incident must be deleted from
+  // the cloud too, else the realtime subscribe/initialSync merge (see the sync
+  // effect) re-fetches the still-present row and unionPreservingLocal adds it
+  // straight back on the next reload/refetch. This mirrors deleteProject /
+  // deleteAccount, which were already correct; deleteIncident was the lone
+  // local-only delete. Seed rows (no remoteUuid) skip the cloud call.
+  const deleteIncident = (id) => {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.incidents || []).find(i => i.id === id);
+      if (local && local.remoteUuid) {
+        incidentsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[incidents-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, incidents: (d.incidents || []).filter(i => i.id !== id) }));
+  };
   const deleteEvent = (id) => setData(d => ({ ...d, events: (d.events || []).filter(e => e.id !== id) }));
   // v28+ Session A: Accounts CRUD
   const addAccount = (item) => {
@@ -6356,10 +6379,6 @@ function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, s
         </section>
       )}
 
-      {/* THE BIGGEST PICTURE — family / business / project hero photos, so the
-          person sees what this is all for every time they open the app. */}
-      <LifeGallery photos={lifePhotos} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} rentals={rentals} />
-
       {/* v28+ MVP v1.5 round 10 — ACTION QUEUE
           One-glance triage panel: Changes (broken now), Incidents (3-day fix),
           Projects (planned work). Anything across the app that needs attention
@@ -6820,6 +6839,12 @@ function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, s
           )}
         </div>
       </section>
+
+      {/* THE BIGGEST PICTURE — family / business / project hero photos. Moved to
+          the BOTTOM (2026-06-24, Darrell): the Action Queue ("what needs you")
+          leads the tab; the photo wall closes it as the "this is what it's all
+          for" coda. */}
+      <LifeGallery photos={lifePhotos} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} rentals={rentals} />
     </div>
   );
 }
