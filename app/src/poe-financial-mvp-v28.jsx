@@ -43,6 +43,12 @@ import {
   resolveInfraCohort, INFRA_SOP_SEQUENCES,
 } from './lib/infrastructure-class.js';
 import {
+  SOVEREIGN_AI_META, SOVEREIGN_AI_SESSION_FLOW, SOVEREIGN_AI_PROPOSED_COHORT_START,
+  SOVEREIGN_AI_INTEREST_TAG, SOVEREIGN_AI_HELPER_TAG, SOVEREIGN_AI_TUTOR_META,
+  buildSovereignAiSchedule, sovereignAiProgressSummary, exportSovereignAiCurriculumMarkdown,
+  resolveSovereignAiCohort,
+} from './lib/sovereign-ai-class.js';
+import {
   AI_LEGAL_BLUEPRINT_META, AI_LEGAL_BLUEPRINT_SESSION_FLOW, AI_LEGAL_BLUEPRINT_PROPOSED_COHORT_START,
   AI_LEGAL_BLUEPRINT_INTEREST_TAG, AI_LEGAL_BLUEPRINT_HELPER_TAG, AI_LEGAL_BLUEPRINT_TUTOR_META,
   buildAiLegalBlueprintSchedule, aiLegalBlueprintProgressSummary, exportAiLegalBlueprintCurriculumMarkdown,
@@ -53,6 +59,11 @@ import {
   LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META,
   buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown,
 } from './lib/living-lessons-class.js';
+import {
+  SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW,
+  SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
+  buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
+} from './lib/sound-board-class.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -93,6 +104,7 @@ const ConferenceVariance = lazy(() => import('./components/ConferenceVariance.js
 const ChurchObservation = lazy(() => import('./components/ChurchObservation.jsx').then(m => ({ default: m.ChurchObservation })));
 const EventManagement = lazy(() => import('./components/EventManagement.jsx'));
 const Pulpit = lazy(() => import('./components/Pulpit.jsx'));
+const ScriptureLibrary = lazy(() => import('./components/ScriptureLibrary.jsx'));
 const CommandServeCenter = lazy(() => import('./components/CommandServeCenter.jsx'));
 const ChurchVideoWall = lazy(() => import('./components/ChurchVideoWall.jsx'));
 import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
@@ -318,7 +330,11 @@ export const SEED_DATA = {
     { id: 'pr-example-4', title: '1521 Oak Ave — resolve LATE rent', startDate: '2026-05-16', endDate: '2026-06-15', status: 'ending-soon', domain: 'business-poeprops', description: 'Tenant conversation, payment plan or escalation per scope. Recover $850 gap or transition unit.', hoursPerWeek: 3, entityId: 'e-poeprops', createdAt: '2026-05-16T00:00:00.000Z' },
     { id: 'pr-example-5', title: 'Wellness Practice — add 1-2 MSW contractors', startDate: '2026-06-01', endDate: '2026-09-15', status: 'planning', domain: 'business-tlc', description: 'Recruit through Naomi\'s clinical network. New scope agreements. Onboard via Practice Operations. Each contractor = ~$2K/mo additional revenue.', hoursPerWeek: 4, entityId: 'e-tlc', createdAt: '2026-05-16T00:00:00.000Z' },
     { id: 'pr-example-6', title: 'Worldview teaching book · finish + publish', startDate: '2026-05-16', endDate: '2026-11-30', status: 'active', domain: 'business-poetech', description: 'Complete the book. Publishing submission. Print proof. Launch alongside Spiritual Life module.', hoursPerWeek: 6, entityId: 'e-poetech', createdAt: '2026-05-16T00:00:00.000Z' },
-  ], // v17/v22: project timelines with start/end dates — workload coordination · examples to show usage
+    // Real sovereign-hardware procurement projects (recorded 2026-06-23). BOM + verified links live in
+    // docs/00-foundations/CUDA-BOX-PROCUREMENT-HOME-AND-CHURCH.md. Advisory only — Darrell places every order by hand.
+    { id: 'pr-cuda-home-box', title: 'Sovereign CUDA dev box — HOME (1× RTX PRO 6000 96GB)', startDate: '2026-06-23', endDate: '2026-07-20', status: 'active', domain: 'business-poetech', description: 'Procure + stand up Darrell’s private local-LLM coding/dev box: 1× RTX PRO 6000 Blackwell 96GB workstation (runs 70B+ w/ headroom, CUDA media, OpenClaw-local). DIY (TRX50, ECC) ~$17.4–$20.7K or BIZON X3000 prebuilt ~$12–$14K. Buy-ready BOM + verified 2026-06-23 links: docs/00-foundations/CUDA-BOX-PROCUREMENT-HOME-AND-CHURCH.md §2. Ties to LOCAL-LLM-HARDWARE-RECOMMENDATION + DR-0014/DR-0053. Orders placed by hand this weekend.', hoursPerWeek: 6, entityId: 'e-poetech', createdAt: '2026-06-23T19:52:34.568Z', lifecycle: { phase: 'active', openedAt: '2026-06-23T19:52:34.568Z', closedAt: null, log: [{ at: '2026-06-23T19:52:34.568Z', fromPhase: null, toPhase: 'planning', by: 'darrell', note: 'BOM verified + recorded — see CUDA-BOX-PROCUREMENT-HOME-AND-CHURCH.md §2' }, { at: '2026-06-23T19:52:35.568Z', fromPhase: 'planning', toPhase: 'active', by: 'darrell', note: 'procuring this weekend — orders placed by Darrell’s hand (advisory makes no purchase)' }] } },
+    { id: 'pr-cuda-colg-node', title: 'COLG media+AI node — CHURCH (2× RTX PRO 6000 = 192GB)', startDate: '2026-06-23', endDate: '2026-08-31', status: 'planning', domain: 'church', description: 'Procure the COLG sovereign media+AI node (128GB+ tier): 2× RTX PRO 6000 = 192GB. Drives Sanctuary LED video-wall media generation (Stable Diffusion/FLUX/ComfyUI), Whisper large-v3 transcription, local 70B/120B LLM, and concurrent congregant users. Recommended prebuilt BIZON X4000 ~$24–$28K (warrantied, validated); DIY reference ~$33–$41K. Buy-ready BOM + verified 2026-06-23 links: docs/00-foundations/CUDA-BOX-PROCUREMENT-HOME-AND-CHURCH.md §3. Physical front end = sanctuary-video-wall capital project (install started 2026-06-22); compute behind the NDI/CUDA pipeline. SCOPE DELTA: major step up from the ~$9k COLG NAS+camera build (DR-0050) — separate capital line; reconcile on the Video Wall capex surface before greenlight.', hoursPerWeek: 4, entityId: null, createdAt: '2026-06-23T19:52:34.568Z', lifecycle: { phase: 'planning', openedAt: '2026-06-23T19:52:34.568Z', closedAt: null, log: [{ at: '2026-06-23T19:52:34.568Z', fromPhase: null, toPhase: 'planning', by: 'darrell', note: '192GB node BOM verified + recorded; linked to sanctuary-video-wall + NDI/CUDA pipeline. Pending capex reconcile before greenlight (video-wall install gating note).' }] } },
+  ], // v17/v22: project timelines with start/end dates — workload coordination · examples + real CUDA procurement records (2026-06-23)
   subscriptions: [], // v18: recurring monthly purchases · cart · subscription audit
   feedback: [], // v24: tester feedback collection · MVP
   welcomeDismissed: false, // v24: first-run welcome panel
@@ -3131,11 +3147,12 @@ export default function PoeFinancialSystem() {
     });
   };
   const resolveIncident = (id) => updateIncident(id, { status: 'resolved', resolvedAt: new Date().toISOString().slice(0, 10), _note: 'Marked resolved' });
-  // Dispatch — assign 1099 workers to an open incident (work order).
-  // A work order carries a CREW: the assignment list lands on
-  // incident.dispatch ({ assignments: [...] }) and every op writes a lifecycle
-  // log entry. Bundled as workerOps so both surfaces (Action Queue +
-  // per-property Maintenance Log) wire the same handlers.
+  // Dispatch — assign 1099 workers to an open incident (work order). A work
+  // order carries a CREW: the assignment list lands on incident.dispatch
+  // ({ assignments: [...] }) and every op writes a lifecycle log entry, so
+  // who-was-sent / who-finished is part of the permanent QC record. Bundled
+  // as workerOps so both surfaces (Action Queue + per-property Maintenance
+  // Log) wire the same handlers.
   const assignWorker = (id, contractor, type) => updateIncident(id, { _assign: { kind: 'add', contractor, type } });
   const unassignWorker = (id, assignmentId) => updateIncident(id, { _assign: { kind: 'remove', assignmentId } });
   const markWorkerDone = (id, assignmentId) => updateIncident(id, { _assign: { kind: 'done', assignmentId } });
@@ -3810,6 +3827,9 @@ export default function PoeFinancialSystem() {
   // The Infrastructure course (Darrell 2026-06-16) — its OWN cohort, same machinery.
   const setInfraCohortStart = (date) => setData(d => ({ ...d, infraCohort: { ...(d.infraCohort || {}), startDate: date } }));
   const confirmInfraCohort = (confirmed) => setData(d => ({ ...d, infraCohort: { ...(d.infraCohort || {}), confirmed: !!confirmed } }));
+  // The Sovereign A.I. course (why we build local) — its OWN cohort, same machinery.
+  const setSovereignAiCohortStart = (date) => setData(d => ({ ...d, sovereignAiCohort: { ...(d.sovereignAiCohort || {}), startDate: date } }));
+  const confirmSovereignAiCohort = (confirmed) => setData(d => ({ ...d, sovereignAiCohort: { ...(d.sovereignAiCohort || {}), confirmed: !!confirmed } }));
   // The AI Legal Blueprint course — its OWN cohort, same machinery.
   const setAiLegalBlueprintCohortStart = (date) => setData(d => ({ ...d, aiLegalBlueprintCohort: { ...(d.aiLegalBlueprintCohort || {}), startDate: date } }));
   const confirmAiLegalBlueprintCohort = (confirmed) => setData(d => ({ ...d, aiLegalBlueprintCohort: { ...(d.aiLegalBlueprintCohort || {}), confirmed: !!confirmed } }));
@@ -4885,7 +4905,7 @@ html{scroll-padding-bottom:280px}
                 (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
                 caps the row via zoom while body text scales. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -4970,6 +4990,7 @@ html{scroll-padding-bottom:280px}
         {/* The Word — Migdal: PUBLIC library for everyone; the component itself
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
         {view === 'church' && churchView === 'pulpit' && <Pulpit />}
+        {view === 'church' && churchView === 'scripture' && <ScriptureLibrary />}
         {view === 'church' && churchView === 'videowall' && (isChurchStaff
           ? <ChurchVideoWall />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Video Wall capital project holds church financial data. Sign in with a church staff account to view it.</div>)}
@@ -5064,6 +5085,40 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // The Sovereign A.I. course — same shared framework +
+          // machinery. Teaches WHY we build local (resilience + data sovereignty),
+          // the verified model-tier landscape, the Cage-gated routing, and the five
+          // local-A.I. opportunities. No SOP library; reuses the Governor's
+          // engagement-by-age aggregate.
+          const sovereignAiCohort = resolveSovereignAiCohort(data.sovereignAiCohort);
+          const sovereignAiStart = sovereignAiCohort.startDate || SOVEREIGN_AI_PROPOSED_COHORT_START;
+          const submitSovereignAiInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${SOVEREIGN_AI_INTEREST_TAG} ${(name || 'A learner').trim()} wants to join the Sovereign A.I. course.` })
+            : null;
+          const sovereignAiRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SOVEREIGN_AI_INTEREST_TAG) : null;
+          const sovereignAiCourse = {
+            meta: { ...SOVEREIGN_AI_META, key: 'sovereign-ai' },
+            sessionFlow: SOVEREIGN_AI_SESSION_FLOW,
+            schedule: buildSovereignAiSchedule(sovereignAiStart),
+            cohortStart: sovereignAiStart,
+            cohortConfirmed: sovereignAiCohort.confirmed,
+            setCohortStart: setSovereignAiCohortStart,
+            confirmCohort: confirmSovereignAiCohort,
+            progressSummary: (p) => sovereignAiProgressSummary(p),
+            exportMarkdown: () => exportSovereignAiCurriculumMarkdown(sovereignAiStart),
+            downloadName: 'sovereign-ai-why-we-build-local-curriculum.md',
+            submitInterest: submitSovereignAiInterest,
+            roster: sovereignAiRoster,
+            interestCopy: {
+              heading: 'Want to understand why we build local?',
+              blurb: 'Tell Darrell you want to take the Sovereign A.I. course — local-first resilience, the model-tier landscape, and the strategy — and he’ll save you a spot in Cohort 1. Paced for every age.',
+              cta: 'I want to learn',
+              sent: '✓ Sent — Darrell will see you’re in. We build it sovereign.',
+            },
+            tutorCourseMeta: SOVEREIGN_AI_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // The AI Legal Blueprint course — the privacy/legal companion to the
           // Sovereign A.I. course. Plain-language, age-adaptive (child/teen/senior),
           // teaches what NOT to paste into a vendor chatbot and why. Same shared
@@ -5128,13 +5183,46 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // Running the Board — a SELF-PACED live-sound training track for the COLG
+          // sound team, same shared engine (meta.unit renders it as "Lesson(s)", no
+          // cohort clock). Seeded to be enriched/verified by the church sound engineer
+          // via the sovereign SME pipeline; the A.I. tutor is sovereign + assistive-only.
+          const submitSoundBoardInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${SOUND_BOARD_INTEREST_TAG} ${(name || 'A team member').trim()} wants to learn to run the sound board.` })
+            : null;
+          const soundBoardRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SOUND_BOARD_INTEREST_TAG) : null;
+          const soundBoardCourse = {
+            meta: { ...SOUND_BOARD_META, key: 'sound-board' },
+            sessionFlow: SOUND_BOARD_SESSION_FLOW,
+            schedule: buildSoundBoardSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => soundBoardProgressSummary(p),
+            exportMarkdown: () => exportSoundBoardCurriculumMarkdown(),
+            downloadName: 'running-the-board-live-sound.md',
+            submitInterest: submitSoundBoardInterest,
+            roster: soundBoardRoster,
+            interestCopy: {
+              heading: 'Want to learn the sound board?',
+              blurb: 'Tell Darrell you want to train on live sound for worship and he’ll get you started with the sound engineer. Learn at your own pace, right at the board, at any experience level.',
+              cta: 'I want to learn',
+              sent: '✓ Sent — Darrell will get you on the sound team. We mix so the Word is heard.',
+            },
+            tutorCourseMeta: SOUND_BOARD_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
               : courseKey === 'infrastructure' ? INFRA_HELPER_TAG
-                : courseKey === 'ai-legal-blueprint' ? AI_LEGAL_BLUEPRINT_HELPER_TAG
-                  : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
-                    : '[Class helper]'
+                : courseKey === 'sovereign-ai' ? SOVEREIGN_AI_HELPER_TAG
+                  : courseKey === 'ai-legal-blueprint' ? AI_LEGAL_BLUEPRINT_HELPER_TAG
+                    : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
+                      : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
+                        : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5166,7 +5254,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, aiLegalBlueprintCourse, livingLessonsCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
@@ -5800,6 +5888,7 @@ const FEEDBACK_AREAS = [
     ['church-videowall', 'Church · 📺 Video Wall (🔒 sanctuary LED capital project — budget · donations · spec)'],
     ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
     ['church-pulpit', "Church · 📖 The Word — Migdal (Bishop's study — historical sermons + corpus-grounded prep)"],
+    ['church-scripture', 'Church · Scripture (themed, depth-adaptive KJV library — His perspective + His love, for the soul)'],
     ['pulpit-library', '└ The Word — Migdal · Message library (watch · document · reuse)'],
     ['pulpit-prep', '└ The Word — Migdal · Prep from your corpus'],
     ['church-choir', 'Church · Choir (director hub)'],
