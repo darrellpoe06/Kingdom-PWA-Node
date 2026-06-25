@@ -321,7 +321,7 @@ export default function Study({ email }) {
         <button type="button" role="tab" aria-selected={space === 'finalize'} onClick={() => setSpace('finalize')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'finalize' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}><UiIcon name="check" /> Finalize{pendingFinalize ? ` · ${pendingFinalize}` : ''}</button>
       </div>
 
-      {space === 'finalize' ? <ThoughtFinalizer entries={study.entries} onSaveEntry={onFinalizeSave} />
+      {space === 'finalize' ? <ThoughtFinalizer entries={study.entries} onSaveEntry={onFinalizeSave} email={email} />
       : space === 'algorithms' ? <EternalAlgorithms email={email} /> : (
       <>
       {/* Room tabs — shared <TabScroll> primitive (same fluid scroll as the
