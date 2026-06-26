@@ -1,8 +1,8 @@
 {
   "poe-financial-mvp-v28.jsx": {
-    "emoji": 79,
+    "emoji": 81,
     "fixedPx": 276,
-    "widthCap": 16
+    "widthCap": 17
   },
   "components/About.jsx": {
     "emoji": 15,
@@ -41,7 +41,7 @@
   },
   "components/BooksTransactions.jsx": {
     "emoji": 12,
-    "fixedPx": 82,
+    "fixedPx": 0,
     "widthCap": 2
   },
   "components/BuildBoard.jsx": {
@@ -209,6 +209,11 @@
     "fixedPx": 22,
     "widthCap": 1
   },
+  "components/Forecast.jsx": {
+    "emoji": 1,
+    "fixedPx": 9,
+    "widthCap": 3
+  },
   "components/GovernanceQueue.jsx": {
     "emoji": 2,
     "fixedPx": 16,
@@ -233,6 +238,11 @@
     "emoji": 1,
     "fixedPx": 7,
     "widthCap": 0
+  },
+  "components/Inventory.jsx": {
+    "emoji": 0,
+    "fixedPx": 0,
+    "widthCap": 3
   },
   "components/KpiLegend.jsx": {
     "emoji": 1,
