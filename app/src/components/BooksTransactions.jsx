@@ -14,8 +14,36 @@ import { TabScroll } from './shared.jsx';
 import { fmt } from '../lib/format.js';
 import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
+import { versionTimeline } from '../lib/record-history.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
+
+// TxHistory — the Books living-record proof: every edit/delete to this
+// transaction is an immutable, attributed version in record_events
+// (lib/record-history.js). A flat row becomes a record with a recoverable past:
+// what it was, who changed it, and when. Empty (the common case) renders nothing.
+function TxHistory({ recordEvents, txId }) {
+  const timeline = useMemo(() => versionTimeline(recordEvents, 'transaction', txId), [recordEvents, txId]);
+  if (!timeline.length) return null;
+  const when = (iso) => { try { return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return iso; } };
+  return (
+    <div className="mt-2 pt-2 border-t border-[#E8E4DC]">
+      <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Edit history · {timeline.length} version{timeline.length === 1 ? '' : 's'}</div>
+      <div className="space-y-1">
+        {timeline.map((v) => (
+          <div key={`${v.version}-${v.at}`} className="text-[11px] text-[#5A5751]">
+            <span className="text-[#5A5751]">v{v.version} · {when(v.at)}{v.actor ? ` · ${v.actor}` : ''} · {v.action}</span>{' '}
+            {Object.keys(v.changes).length
+              ? Object.entries(v.changes).map(([k, c]) => (
+                  <span key={k} className="mr-2">{k}: <span className="text-[#7A1F1F]">{String(c.from ?? '∅')}</span> → <span className="text-[#3F5226]">{String(c.to ?? '∅')}</span></span>
+                ))
+              : <span>{v.summary}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction, ingestData = null, visibleEntities = null, visibleEntityIds = null }) {
   // UNBREAKABLE (2026-06-25 white-screen fix) — every account/entity access in
@@ -720,6 +748,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <button type="button" onClick={submit} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                 <button type="button" onClick={cancel} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
               </div>
+              <TxHistory recordEvents={data.recordEvents || []} txId={t.id} />
             </div>
           </td>
         </tr>

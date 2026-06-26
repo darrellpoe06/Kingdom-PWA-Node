@@ -82,6 +82,10 @@ import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
+import { inventoryItemsSync, mergeRemoteInventoryItems, INVENTORY_ITEM_COLUMN_OF } from './lib/inventory-items-sync.js';
+import { inventoryMovementsSync, mergeRemoteMovements } from './lib/inventory-movements-sync.js';
+import { recordEventsSync, mergeRemoteRecordEvents } from './lib/record-events-sync.js';
+import { makeHistoryEvent } from './lib/record-history.js';
 import { compressImageFile } from './lib/image.js';
 import { FreshnessDot } from './components/FreshnessDot.jsx';
 import SelfServeWelcome from './components/SelfServeWelcome.jsx';
@@ -113,6 +117,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
+  Inventory,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1759,7 +1764,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','admin','center','crm'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','admin','center','crm','inventory'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -2976,6 +2981,14 @@ export default function PoeFinancialSystem() {
         // and the shared 1099 worker roster pool to the family instance.
         { sync: incidentsSync,    key: 'incidents',       localList: (latest.incidents || []).filter(notDemoRow).filter(notSeedRow) },
         { sync: contractorsSync,  key: 'contractors1099', localList: (latest.contractors1099 || []).filter(notDemoRow).filter(notSeedRow) },
+        // Systems of record (0052) — the inventory catalog + the two APPEND-ONLY
+        // ledgers (stock movements, generic record-history events) pool to the
+        // family instance the same proven way. The tables loop only ever calls
+        // initialSync + subscribe, so the append-only contract is preserved (no
+        // updateRow/deleteRow path runs for movements / record_events here).
+        { sync: inventoryItemsSync,     key: 'inventoryItems',     localList: (latest.inventoryItems || []).filter(notDemoRow).filter(notSeedRow),     merge: mergeRemoteInventoryItems },
+        { sync: inventoryMovementsSync, key: 'inventoryMovements', localList: (latest.inventoryMovements || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteMovements },
+        { sync: recordEventsSync,       key: 'recordEvents',       localList: (latest.recordEvents || []).filter(notDemoRow).filter(notSeedRow),       merge: mergeRemoteRecordEvents },
       ];
       for (const t of tables) {
         if (cancelled) return;
@@ -3523,6 +3536,96 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, workspaces: (d.workspaces || []).filter(x => x.id !== id) }));
   };
 
+  // ── Systems of record: shared immutable history + inventory ───────────────
+  // recordHistoryEvent — append ONE record-history event (lib/record-history.js)
+  // to the append-only log and sync it. The shared primitive behind both the
+  // inventory item version-history AND Books transaction edit-history: a record
+  // becomes a versioned living record because every change is captured here, never
+  // overwritten. Best-effort: a failed cloud insert never blocks the local write
+  // (the optimistic row stays on device and retries on next sign-in).
+  const recordHistoryEvent = ({ recordKind, recordId, action, before, after, summary, meta }) => {
+    const actor = authSession ? personaOf(authSession.user?.email) : null;
+    const ev = makeHistoryEvent({
+      id: `re-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      recordKind, recordId, action, actor,
+      at: new Date().toISOString(), before: before || null, after: after || null,
+      summary: summary || null, meta: meta || null,
+    });
+    setData(d => ({ ...d, recordEvents: [...(d.recordEvents || []), ev] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      recordEventsSync.upload(ev).catch(e => console.warn('[record-events-sync] upload failed', e));
+    }
+    return ev;
+  };
+
+  const addInventoryItem = (item) => {
+    const nowIso = new Date().toISOString();
+    const localId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId, active: item.active !== false, createdAt: nowIso, updatedAt: nowIso, createdBy: authSession?.user?.id || null, authorPersona: authSession ? personaOf(authSession.user?.email) : null };
+    setData(d => ({ ...d, inventoryItems: [...(d.inventoryItems || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      inventoryItemsSync.upload(seeded)
+        .then(res => {
+          if (res && res.uploaded && res.remoteId) {
+            setData(d => ({ ...d, inventoryItems: (d.inventoryItems || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
+          }
+        })
+        .catch(e => console.warn('[inventory-items-sync] add upload failed', e));
+    }
+    recordHistoryEvent({ recordKind: 'inventory_item', recordId: localId, action: 'create', after: seeded, summary: `Item created: ${seeded.name}` });
+    return localId;
+  };
+
+  const updateInventoryItem = (id, updates) => setData(d => {
+    const before = (d.inventoryItems || []).find(x => x.id === id) || null;
+    const stamped = { ...updates, updatedAt: new Date().toISOString() };
+    const next = (d.inventoryItems || []).map(x => (x.id === id ? { ...x, ...stamped } : x));
+    const after = next.find(x => x.id === id) || null;
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      if (after && after.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(INVENTORY_ITEM_COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (Object.keys(patch).length > 0) {
+          inventoryItemsSync.updateRow(after.remoteUuid, patch).catch(e => console.warn('[inventory-items-sync] update failed', e));
+        }
+      }
+    }
+    // Capture the edit as an immutable version (before/after diff is derived).
+    recordHistoryEvent({ recordKind: 'inventory_item', recordId: id, action: 'update', before, after });
+    return { ...d, inventoryItems: next };
+  });
+
+  // recordInventoryMovements — post one or more APPEND-ONLY stock movements
+  // (a transfer is a balanced pair). Movements are never edited or deleted; this
+  // is the immutable ledger on-hand derives from. Each leg gets a stable id +
+  // actor + occurredAt, then syncs (insert-only).
+  const recordInventoryMovements = (movs) => {
+    const actor = authSession ? personaOf(authSession.user?.email) : null;
+    const nowIso = new Date().toISOString();
+    const stamped = (Array.isArray(movs) ? movs : [movs]).map((m, i) => ({
+      ...m,
+      id: m.id || `mv-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+      actor: m.actor || actor,
+      occurredAt: m.occurredAt || nowIso,
+      createdBy: authSession?.user?.id || null,
+    }));
+    setData(d => ({ ...d, inventoryMovements: [...(d.inventoryMovements || []), ...stamped] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      for (const mv of stamped) {
+        inventoryMovementsSync.upload(mv)
+          .then(res => {
+            if (res && res.uploaded && res.remoteId) {
+              setData(d => ({ ...d, inventoryMovements: (d.inventoryMovements || []).map(x => (x.id === mv.id ? { ...x, remoteUuid: res.remoteId } : x)) }));
+            }
+          })
+          .catch(e => console.warn('[inventory-movements-sync] upload failed', e));
+      }
+    }
+    return stamped.map(m => m.id);
+  };
+
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
   // r25 — 1099 contractor CRUD per EDITABLE-EVERYWHERE.md.
@@ -3691,6 +3794,13 @@ export default function PoeFinancialSystem() {
     }
   };
   const updateTransaction = (id, updates) => {
+    // Books living record: capture the BEFORE snapshot so the edit becomes an
+    // immutable, attributed version in record_events (lib/record-history.js) —
+    // "what was this transaction before, who changed it, when." The edit itself
+    // still mutates the live row (the current figure stays single-valued); the
+    // history is the recoverable trail beside it.
+    const before = (data.transactions || []).find(t => t.id === id) || null;
+    const after = before ? { ...before, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : before.amount } : null;
     setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.transactions || []).find(t => t.id === id);
@@ -3706,8 +3816,10 @@ export default function PoeFinancialSystem() {
         transactionsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[transactions-sync] update failed', e));
       }
     }
+    if (before && after) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'update', before, after });
   };
   const deleteTransaction = (id) => {
+    const before = (data.transactions || []).find(t => t.id === id) || null;
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.transactions || []).find(t => t.id === id);
       if (local && local.remoteUuid) {
@@ -3715,6 +3827,9 @@ export default function PoeFinancialSystem() {
       }
     }
     setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
+    // The deletion is recoverable: its `before` snapshot is preserved in the
+    // append-only history (the row leaves the live ledger, not the record).
+    if (before) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'delete', before, summary: `Transaction deleted: ${before.description || ''} ${before.amount}` });
   };
   // v28+ Rentals expansion: Rental property CRUD
   // 2026-06-10 — wired for cross-device sync (schema v2.2.2 rentals). Same gate
@@ -5044,6 +5159,11 @@ html{scroll-padding-bottom:280px}
                 // Family/Governor only (steward tooling across all businesses);
                 // spread so the entry is absent from the DOM for everyone else.
                 ...(isFamilyMember ? [['crm', <><UiIcon name="users" /> CRM</>]] : []),
+                // Inventory — a real inventory-control system of record (derived
+                // on-hand over an immutable movement ledger). Family/Governor only
+                // (operations tooling); spread so the entry is absent from the DOM
+                // for everyone else, like Center / CRM.
+                ...(isFamilyMember ? [['inventory', <><UiIcon name="tools" /> Inventory</>]] : []),
                 // Admin surfaced at the top so users can SEE a steward space
                 // exists (visible-but-locked, like 🔒 Observation). ACCESS is
                 // gated at the render below — the entry being visible is the goal.
@@ -5619,6 +5739,32 @@ html{scroll-padding-bottom:280px}
               <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
               <p className="text-sm text-[#1A1815] font-semibold">CRM is a stewardship space.</p>
               <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The shared acquisition backbone is steward-only. Sign in with a family/governor account to manage the pipelines.</p>
+            </div>
+          ))}
+
+        {/* Inventory — the systems-of-record demonstration: on-hand DERIVED from
+            an immutable movement ledger, versioned items, corporate controls.
+            Family/Governor only (operations tooling); own SectionBoundary so a
+            thrown error degrades just this surface (no white-screen). */}
+        {view === 'inventory' && (isFamilyMember
+          ? (
+            <SectionBoundary name="Inventory">
+              <Inventory
+                items={data.inventoryItems || []}
+                movements={data.inventoryMovements || []}
+                recordEvents={data.recordEvents || []}
+                addItem={addInventoryItem}
+                updateItem={updateInventoryItem}
+                recordMovements={recordInventoryMovements}
+                currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+              />
+            </SectionBoundary>
+          )
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
+              <p className="text-sm text-[#1A1815] font-semibold">Inventory is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The inventory system of record is steward-only. Sign in with a family/governor account to manage items and stock.</p>
             </div>
           ))}
 
