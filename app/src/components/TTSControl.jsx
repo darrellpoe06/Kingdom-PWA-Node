@@ -1,24 +1,23 @@
 // =============================================================================
 // TTSControl — the floating READ-ALOUD control (the HEAR half of see/hear a11y)
 // =============================================================================
-// Drives the shared TTS primitive (lib/tts.js). Big, obvious controls for a
-// non-technical, elderly reader: a play button, then a Pause/Stop pair, plain
-// speed steps (incl. a SLOWER option), and a voice picker when the device offers
-// more than one. Reads the visible page so anyone can conduct business without
-// reading the screen (COMMUNITY-FIRST-MISSION).
+// "Read anywhere": this floating control is on every page, and it reads in the
+// user's ONE chosen reading voice (lib/reading-voice via use-read-aloud). Pick a
+// voice once (here, in the header, or in the Voice tab) and every page reads in
+// it — no re-picking. Big, obvious controls for a non-technical, elderly reader:
+// a play button, then a Pause/Stop pair, plain speed steps (incl. SLOWER), and the
+// same global voice picker. Reads the visible page so anyone can conduct business
+// without reading the screen (COMMUNITY-FIRST-MISSION).
 //
-// Reliability + accessibility: the engine fixes the "speed didn't change" bug
-// (see lib/tts.js header) by re-speaking the current segment at the new rate, so
-// a speed change is AUDIBLE live. On a device without speech support the hook
-// reports supported:false and this renders nothing — no crash (unbreakable).
-// Status is announced politely for screen readers; every control is keyboard
-// reachable with a visible focus ring; the panel is a white card with high-
-// contrast (WCAG AA) text regardless of app theme.
+// On a device without speech support the hook reports supported:false and this
+// renders nothing — no crash (unbreakable). Status is announced for screen
+// readers; every control is keyboard reachable; the panel is a high-contrast
+// (WCAG AA) white card regardless of app theme.
 import React, { useState } from 'react';
-import { useTextToSpeech, RATE_STEPS } from '../lib/tts.js';
+import { RATE_STEPS } from '../lib/tts.js';
+import { useReadAloud } from '../lib/use-read-aloud.js';
 
-// Pull the visible page text the same way the old control did: clone <main>,
-// strip floating/hidden chrome (including this control), collapse whitespace.
+// Pull the visible page text: clone <main>, strip floating/hidden chrome.
 function readablePageText() {
   if (typeof document === 'undefined') return '';
   const main = document.querySelector('main') || document.body;
@@ -28,24 +27,23 @@ function readablePageText() {
   return (clone.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 32000);
 }
 
-export default function TTSControl() {
+export default function TTSControl({ isOwner = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const {
-    supported, isReading, isPaused, rate, voices, voiceURI,
-    speak, pause, resume, stop, setRate, setVoiceURI,
-  } = useTextToSpeech();
+    supported, isReading, isPaused, rate, read, pause, resume, stop, setRate,
+    catalog, voiceId, setVoiceId, currentItem,
+  } = useReadAloud({ isOwner });
 
   if (!supported) return null; // graceful: device can't speak — show nothing
 
-  const start = () => {
-    const text = readablePageText();
-    if (text) speak(text);
-  };
+  const start = () => { const text = readablePageText(); if (text) read(text); };
   const close = () => { stop(); setIsOpen(false); };
 
-  // Only English voices, de-duplicated, for an uncluttered picker.
-  const enVoices = voices.filter((v) => v && /^en/i.test(v.lang || ''));
-  const voiceOptions = enVoices.length ? enVoices : voices;
+  // Grouped voice options (System / Your voices / Voices & accents) — same global
+  // preference the header picker and Voice tab write.
+  const groups = catalog.reduce((acc, item) => { (acc[item.group] = acc[item.group] || []).push(item); return acc; }, {});
+  const order = ['Default', 'Your voices', 'Voices & accents'].filter((g) => groups[g] && groups[g].length);
+  const onVoice = (e) => { const item = catalog.find((c) => c.id === e.target.value); if (item && !item.usable) return; setVoiceId(e.target.value); };
   const statusLabel = isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready';
 
   return (
@@ -91,24 +89,30 @@ export default function TTSControl() {
             </div>
           </div>
 
-          {voiceOptions.length > 1 ? (
+          {catalog.length > 1 ? (
             <div className="mb-2">
-              <label htmlFor="tts-voice" className="block text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Voice</label>
+              <label htmlFor="tts-voice" className="block text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Voice (used everywhere)</label>
               <select
                 id="tts-voice"
-                value={voiceURI || ''}
-                onChange={(e) => setVoiceURI(e.target.value)}
+                value={voiceId}
+                onChange={onVoice}
                 className="w-full text-[11px] border border-[#E8E4DC] bg-white text-[#1A1815] px-2 py-2 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
               >
-                {voiceOptions.map((v) => (
-                  <option key={v.voiceURI} value={v.voiceURI}>{v.name}{v.localService ? '' : ' (online)'}</option>
+                {order.map((g) => (
+                  <optgroup key={g} label={g}>
+                    {groups[g].map((item) => (
+                      <option key={item.id} value={item.id} disabled={!item.usable}>
+                        {item.label}{item.ai ? ' · AI' : ''}{item.standIn ? ' (stand-in)' : ''}{!item.usable ? ' — subscriber' : ''}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
           ) : null}
 
           <p className="text-[9px] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
-            Reads the visible page so anyone can conduct business — even without reading the screen.
+            Reads the visible page in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''} — on every page, no re-picking.
           </p>
         </div>
       ) : (
