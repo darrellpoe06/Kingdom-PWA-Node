@@ -13,6 +13,13 @@
 // Built on shared primitives (SectionTitle, TextSizeControl, UiIcon) and the pure
 // engine (lib/chefs-corner.js). No device-font emoji; no fixed-px text — every
 // size is rem so the global large-print control scales it (consistency-guard).
+//
+// THEME (DR-0076, 2026-06-25): colors are the SHARED, theme-remapped Tailwind
+// CLASSES (the tokens below) — never one-off inline hex. The whole page was
+// inline `style={{ color: '#1A1815' }}` and rendered black-on-black under the
+// midnight (dark) theme because inline styles bypass the per-theme remap. Using
+// the classes is what makes the midnight theme legible (and what the per-theme
+// contrast gate can actually verify).
 // =============================================================================
 import React, { useState, useMemo } from 'react';
 import { SectionTitle } from './shared.jsx';
@@ -26,11 +33,23 @@ import { describeIngredient } from '../lib/recipe-units.js';
 import { importRecipeFromImage } from '../lib/recipe-photo-import.js';
 import { POE_FAMILY_RECIPES } from '../lib/chefs-corner-recipes.js';
 
-const ACCENT = '#B85838';
-const INK = '#1A1815';
-const MUTE = '#5A5751';
-const LINE = '#E8E4DC';
-const CREAM = '#FAF8F4';
+// Theme tokens — shared classes the midnight theme remaps to AA-legible values.
+// Used as CLASSES (never inline style) so dark mode actually works.
+//   text:  #1A1815 -> #E5E5E5 | #5A5751 -> #888888 | #B85838 -> #FB923C | #5A6E3D -> #86EFAC
+//   bg:    bg-white -> #141414 | #FAF8F4 -> #000000 | #1A1815 -> #1F1F1F | #5A6E3D -> #86EFAC
+//   border:#E8E4DC -> #2A2A2A | #1A1815 -> #3A3A3A | #B85838 -> #FB923C
+const T_INK = 'text-[#1A1815]';        // primary text
+const T_MUTE = 'text-[#5A5751]';       // secondary text
+const T_ACCENT = 'text-[#B85838]';     // accent (rust)
+const T_GREEN = 'text-[#5A6E3D]';      // affirmative
+const BG_CARD = 'bg-white';            // card surface
+const BG_CREAM = 'bg-[#FAF8F4]';       // inset panel
+const BG_INK = 'bg-[#1A1815]';         // dark button
+const BG_GREEN = 'bg-[#5A6E3D]';       // save button
+const BD_LINE = 'border-[#E8E4DC]';    // hairline
+const BD_INK = 'border-[#1A1815]';     // strong border
+const BD_ACCENT = 'border-[#B85838]';  // accent border
+const FOCUS = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
 const serif = { fontFamily: '"Fraunces", serif' };
 
 export default function ChefCorner({
@@ -131,17 +150,17 @@ export default function ChefCorner({
 function BrowseView({ collection, recipes, total, query, setQuery, onOpen, onAdd }) {
   return (
     <div className="space-y-5">
-      <div className="bg-white border-2 p-5" style={{ borderColor: ACCENT }}>
+      <div className={`${BG_CARD} border-2 p-5 ${BD_ACCENT}`}>
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-3xl shrink-0" style={{ color: ACCENT }}><UiIcon name="chefHat" /></span>
+          <span className={`text-3xl shrink-0 ${T_ACCENT}`}><UiIcon name="chefHat" /></span>
           <div className="min-w-0">
-            <div className="text-lg" style={{ ...serif, fontWeight: 600 }}>{collection.name}</div>
-            <div className="text-xs" style={{ color: MUTE }}>
+            <div className={`text-lg ${T_INK}`} style={{ ...serif, fontWeight: 600 }}>{collection.name}</div>
+            <div className={`text-xs ${T_MUTE}`}>
               by {collection.chef} · {total} recipe{total === 1 ? '' : 's'}
             </div>
           </div>
         </div>
-        <p className="text-sm leading-relaxed mt-3" style={{ ...serif, color: INK }}>{collection.blurb}</p>
+        <p className={`text-sm leading-relaxed mt-3 ${T_INK}`} style={serif}>{collection.blurb}</p>
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -151,20 +170,18 @@ function BrowseView({ collection, recipes, total, query, setQuery, onOpen, onAdd
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search recipes or ingredients…"
           aria-label="Search recipes"
-          className="flex-1 min-w-[12rem] border px-3 py-2 text-sm bg-white"
-          style={{ borderColor: LINE, color: INK }}
+          className={`flex-1 min-w-[12rem] border px-3 py-2 text-sm ${BG_CARD} ${BD_LINE} ${T_INK}`}
         />
         <button
           onClick={onAdd}
-          className="text-xs uppercase tracking-wider px-4 py-2.5 text-white font-semibold"
-          style={{ backgroundColor: INK }}
+          className={`text-xs uppercase tracking-wider px-4 py-2.5 text-white font-semibold ${BG_INK} ${FOCUS}`}
         >
           + Add recipe
         </button>
       </div>
 
       {recipes.length === 0 ? (
-        <div className="bg-white border p-8 text-center text-sm" style={{ borderColor: LINE, color: MUTE, ...serif }}>
+        <div className={`${BG_CARD} border p-8 text-center text-sm ${BD_LINE} ${T_MUTE}`} style={serif}>
           No recipes match that search yet.
         </div>
       ) : (
@@ -183,25 +200,24 @@ function RecipeCard({ recipe, onOpen }) {
   return (
     <button
       onClick={onOpen}
-      className="text-left bg-white border p-4 hover:shadow-md transition-shadow focus:outline focus:outline-2"
-      style={{ borderColor: INK, outlineColor: ACCENT }}
+      className={`text-left ${BG_CARD} border p-4 hover:shadow-md transition-shadow ${BD_INK} ${FOCUS}`}
     >
-      <h3 className="text-base leading-snug mb-1" style={{ ...serif, fontWeight: 600, color: INK }}>{recipe.title}</h3>
-      <div className="text-[0.625rem] uppercase tracking-[0.15em] mb-3" style={{ color: ACCENT }}>{recipe.chef}</div>
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs" style={{ color: MUTE }}>
+      <h3 className={`text-base leading-snug mb-1 ${T_INK}`} style={{ ...serif, fontWeight: 600 }}>{recipe.title}</h3>
+      <div className={`text-[0.625rem] uppercase tracking-[0.15em] mb-3 ${T_ACCENT}`}>{recipe.chef}</div>
+      <div className={`flex flex-wrap gap-x-3 gap-y-1 text-xs ${T_MUTE}`}>
         {recipe.servings && <span>Serves {recipe.servings}</span>}
         {recipe.prepTime && <span>Prep {recipe.prepTime}</span>}
         {recipe.cookTime && <span>Cook {recipe.cookTime}</span>}
       </div>
-      <div className="text-xs mt-3" style={{ color: MUTE }}>
+      <div className={`text-xs mt-3 ${T_MUTE}`}>
         {ingredientCount(recipe)} ingredients · {stepCount(recipe)} steps
       </div>
       {sectionLabels.length > 0 && (
-        <div className="text-xs mt-2" style={{ color: MUTE, ...serif }}>{sectionLabels.join(' · ')}</div>
+        <div className={`text-xs mt-2 ${T_MUTE}`} style={serif}>{sectionLabels.join(' · ')}</div>
       )}
       <div className="flex flex-wrap gap-1.5 mt-3">
         {(recipe.tags || []).map((t) => (
-          <span key={t} className="text-[0.625rem] uppercase tracking-wider px-2 py-0.5" style={{ backgroundColor: CREAM, color: MUTE }}>{t}</span>
+          <span key={t} className={`text-[0.625rem] uppercase tracking-wider px-2 py-0.5 ${BG_CREAM} ${T_MUTE}`}>{t}</span>
         ))}
       </div>
     </button>
@@ -226,25 +242,25 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
 
   return (
     <div className="space-y-5">
-      <button onClick={onBack} className="text-xs uppercase tracking-wider" style={{ color: MUTE }}>
+      <button onClick={onBack} className={`text-xs uppercase tracking-wider ${T_MUTE} ${FOCUS}`}>
         &#8592; All recipes
       </button>
 
-      <div className="bg-white border-2 p-5 sm:p-6" style={{ borderColor: INK }}>
-        <h2 className="text-2xl sm:text-3xl leading-tight" style={{ ...serif, fontWeight: 600, color: INK }}>{recipe.title}</h2>
-        <div className="text-xs uppercase tracking-[0.15em] mt-2" style={{ color: ACCENT }}>{recipe.chef}</div>
+      <div className={`${BG_CARD} border-2 p-5 sm:p-6 ${BD_INK}`}>
+        <h2 className={`text-2xl sm:text-3xl leading-tight ${T_INK}`} style={{ ...serif, fontWeight: 600 }}>{recipe.title}</h2>
+        <div className={`text-xs uppercase tracking-[0.15em] mt-2 ${T_ACCENT}`}>{recipe.chef}</div>
 
-        <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm mt-3" style={{ color: MUTE }}>
-          {recipe.servings && <span><span className="font-semibold" style={{ color: INK }}>Serves</span> {recipe.servings}</span>}
-          {recipe.prepTime && <span><span className="font-semibold" style={{ color: INK }}>Prep</span> {recipe.prepTime}</span>}
-          {recipe.cookTime && <span><span className="font-semibold" style={{ color: INK }}>Cook</span> {recipe.cookTime}</span>}
+        <div className={`flex flex-wrap gap-x-5 gap-y-1 text-sm mt-3 ${T_MUTE}`}>
+          {recipe.servings && <span><span className={`font-semibold ${T_INK}`}>Serves</span> {recipe.servings}</span>}
+          {recipe.prepTime && <span><span className={`font-semibold ${T_INK}`}>Prep</span> {recipe.prepTime}</span>}
+          {recipe.cookTime && <span><span className={`font-semibold ${T_INK}`}>Cook</span> {recipe.cookTime}</span>}
         </div>
 
         {/* Headline scaler: one number → every ingredient recomputes */}
         {base > 0 && (
-          <div className="mt-4 p-3" style={{ backgroundColor: CREAM }}>
+          <div className={`mt-4 p-3 ${BG_CREAM}`}>
             <div className="flex items-center gap-2 flex-wrap">
-              <label className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold" style={{ color: MUTE }} htmlFor="scale-target">Cook for</label>
+              <label className={`text-[0.625rem] uppercase tracking-[0.2em] font-semibold ${T_MUTE}`} htmlFor="scale-target">Cook for</label>
               <input
                 id="scale-target"
                 type="number"
@@ -253,19 +269,18 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
                 aria-label="Number of people to cook for"
-                className="w-20 border px-2 py-1.5 text-sm bg-white"
-                style={{ borderColor: LINE, color: INK }}
+                className={`w-20 border px-2 py-1.5 text-sm ${BG_CARD} ${BD_LINE} ${T_INK}`}
               />
-              <span className="text-sm" style={{ color: MUTE }}>people</span>
+              <span className={`text-sm ${T_MUTE}`}>people</span>
               {[1, 2, 3, 5].map((m) => (
-                <button key={m} onClick={() => setTarget(String(base * m))} className="text-xs px-2.5 py-1.5 border" style={{ backgroundColor: '#fff', color: INK, borderColor: LINE }}>×{m}</button>
+                <button key={m} onClick={() => setTarget(String(base * m))} className={`text-xs px-2.5 py-1.5 border ${BG_CARD} ${BD_LINE} ${T_INK} ${FOCUS}`}>×{m}</button>
               ))}
               {scaled && (
-                <span className="text-xs" style={{ color: ACCENT }}>scaling ×{factorLabel} from {base}</span>
+                <span className={`text-xs ${T_ACCENT}`}>scaling ×{factorLabel} from {base}</span>
               )}
             </div>
             {scaled && (
-              <p className="text-xs mt-2 leading-relaxed" style={{ color: MUTE }}>
+              <p className={`text-xs mt-2 leading-relaxed ${T_MUTE}`}>
                 Every ingredient below is recomputed automatically — cook one batch, then portion. Cooking times are a guide, not a multiplier: a bigger batch can need longer, so watch the food, not just the clock.
               </p>
             )}
@@ -274,13 +289,12 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
 
         {/* Units: metric AND American */}
         <div className="flex items-center gap-2 mt-3 flex-wrap">
-          <span className="text-[0.625rem] uppercase tracking-[0.2em]" style={{ color: MUTE }}>Units</span>
+          <span className={`text-[0.625rem] uppercase tracking-[0.2em] ${T_MUTE}`}>Units</span>
           {SYSTEMS.map(([id, label]) => (
             <button
               key={id}
               onClick={() => setSystem(id)}
-              className="text-xs px-3 py-1.5 border"
-              style={system === id ? { backgroundColor: INK, color: '#fff', borderColor: INK } : { backgroundColor: '#fff', color: INK, borderColor: LINE }}
+              className={`text-xs px-3 py-1.5 border ${FOCUS} ${system === id ? `${BG_INK} text-white ${BD_INK}` : `${BG_CARD} ${T_INK} ${BD_LINE}`}`}
             >
               {label}
             </button>
@@ -290,12 +304,12 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Ingredients — scaled + unit-converted via the dimension-aware engine */}
-        <div className="bg-white border p-5" style={{ borderColor: LINE }}>
+        <div className={`${BG_CARD} border p-5 ${BD_LINE}`}>
           <SubHead>Ingredients</SubHead>
           <div className="space-y-4">
             {recipe.ingredientSections.map((sec, i) => (
               <div key={i}>
-                {sec.title && <div className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1.5" style={{ color: ACCENT }}>{sec.title}</div>}
+                {sec.title && <div className={`text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1.5 ${T_ACCENT}`}>{sec.title}</div>}
                 <ul className="space-y-1.5">
                   {sec.items.map((item, j) => (
                     <IngredientLine key={j} item={item} factor={factor} system={system} />
@@ -307,16 +321,16 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
         </div>
 
         {/* Instructions */}
-        <div className="bg-white border p-5" style={{ borderColor: LINE }}>
+        <div className={`${BG_CARD} border p-5 ${BD_LINE}`}>
           <SubHead>Instructions</SubHead>
           <div className="space-y-4">
             {recipe.instructionSections.map((sec, i) => (
               <div key={i}>
-                {sec.title && <div className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1.5" style={{ color: ACCENT }}>{sec.title}</div>}
+                {sec.title && <div className={`text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1.5 ${T_ACCENT}`}>{sec.title}</div>}
                 <ol className="space-y-2">
                   {sec.steps.map((step, j) => (
-                    <li key={j} className="flex gap-3 text-sm leading-relaxed" style={{ color: INK }}>
-                      <span className="shrink-0 font-semibold" style={{ color: ACCENT, ...serif }}>{j + 1}.</span>
+                    <li key={j} className={`flex gap-3 text-sm leading-relaxed ${T_INK}`}>
+                      <span className={`shrink-0 font-semibold ${T_ACCENT}`} style={serif}>{j + 1}.</span>
                       <span>{step}</span>
                     </li>
                   ))}
@@ -328,11 +342,11 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
       </div>
 
       {recipe.toppings && recipe.toppings.length > 0 && (
-        <div className="bg-white border p-5" style={{ borderColor: LINE }}>
+        <div className={`${BG_CARD} border p-5 ${BD_LINE}`}>
           <SubHead>Optional Toppings</SubHead>
           <div className="flex flex-wrap gap-2">
             {recipe.toppings.map((t, i) => (
-              <span key={i} className="text-sm px-3 py-1" style={{ backgroundColor: CREAM, color: INK }}>{t}</span>
+              <span key={i} className={`text-sm px-3 py-1 ${BG_CREAM} ${T_INK}`}>{t}</span>
             ))}
           </div>
         </div>
@@ -344,21 +358,21 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
       </div>
 
       {recipe.chefNote && (
-        <div className="border-l-4 p-4" style={{ borderColor: ACCENT, backgroundColor: CREAM }}>
-          <div className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1" style={{ color: ACCENT }}>Chef's Note</div>
-          <p className="text-sm leading-relaxed italic" style={{ ...serif, color: INK }}>{recipe.chefNote}</p>
+        <div className={`border-l-4 p-4 ${BD_ACCENT} ${BG_CREAM}`}>
+          <div className={`text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1 ${T_ACCENT}`}>Chef's Note</div>
+          <p className={`text-sm leading-relaxed italic ${T_INK}`} style={serif}>{recipe.chefNote}</p>
         </div>
       )}
 
       <div className="flex items-center justify-between flex-wrap gap-3 pt-2">
         <div className="flex flex-wrap gap-1.5">
           {(recipe.tags || []).map((t) => (
-            <span key={t} className="text-[0.625rem] uppercase tracking-wider px-2 py-0.5" style={{ backgroundColor: CREAM, color: MUTE }}>{t}</span>
+            <span key={t} className={`text-[0.625rem] uppercase tracking-wider px-2 py-0.5 ${BG_CREAM} ${T_MUTE}`}>{t}</span>
           ))}
-          {recipe.dateAdded && <span className="text-[0.625rem] uppercase tracking-wider" style={{ color: MUTE }}>Added {recipe.dateAdded}</span>}
+          {recipe.dateAdded && <span className={`text-[0.625rem] uppercase tracking-wider ${T_MUTE}`}>Added {recipe.dateAdded}</span>}
         </div>
         {onDelete && editable && (
-          <button onClick={onDelete} className="text-xs px-3 py-2 border" style={{ borderColor: ACCENT, color: ACCENT }}>
+          <button onClick={onDelete} className={`text-xs px-3 py-2 border ${BD_ACCENT} ${T_ACCENT} ${FOCUS}`}>
             Delete recipe
           </button>
         )}
@@ -375,13 +389,13 @@ function IngredientLine({ item, factor, system }) {
   const primary = system === 'metric' ? d.metric : d.american;
   const showSecondary = system === 'both' && d.dim !== 'count' && d.metricAmount && d.metricAmount !== d.americanAmount;
   return (
-    <li className="flex gap-2 text-sm leading-relaxed" style={{ color: INK }}>
-      <span className="shrink-0" style={{ color: ACCENT }}>·</span>
+    <li className={`flex gap-2 text-sm leading-relaxed ${T_INK}`}>
+      <span className={`shrink-0 ${T_ACCENT}`}>·</span>
       <span>
         {primary}
-        {showSecondary && <span style={{ color: MUTE }}> ({d.metricAmount})</span>}
-        {d.altHint && <span style={{ color: MUTE }}> · {d.altHint}</span>}
-        {d.note && <span className="italic" style={{ color: MUTE }}> · {d.note}</span>}
+        {showSecondary && <span className={T_MUTE}> ({d.metricAmount})</span>}
+        {d.altHint && <span className={T_MUTE}> · {d.altHint}</span>}
+        {d.note && <span className={`italic ${T_MUTE}`}> · {d.note}</span>}
       </span>
     </li>
   );
@@ -389,15 +403,15 @@ function IngredientLine({ item, factor, system }) {
 
 function SubHead({ children }) {
   return (
-    <h3 className="text-lg mb-3 pb-2 border-b" style={{ ...serif, fontWeight: 600, color: INK, borderColor: LINE }}>{children}</h3>
+    <h3 className={`text-lg mb-3 pb-2 border-b ${T_INK} ${BD_LINE}`} style={{ ...serif, fontWeight: 600 }}>{children}</h3>
   );
 }
 
 function InfoBlock({ label, body }) {
   return (
-    <div className="bg-white border p-4" style={{ borderColor: LINE }}>
-      <div className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1" style={{ color: MUTE }}>{label}</div>
-      <p className="text-sm leading-relaxed" style={{ color: INK }}>{body}</p>
+    <div className={`${BG_CARD} border p-4 ${BD_LINE}`}>
+      <div className={`text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1 ${T_MUTE}`}>{label}</div>
+      <p className={`text-sm leading-relaxed ${T_INK}`}>{body}</p>
     </div>
   );
 }
@@ -449,7 +463,7 @@ function AddView({ collection, currentUserPersona, onCancel, onSave }) {
 
   return (
     <div className="space-y-5">
-      <button onClick={onCancel} className="text-xs uppercase tracking-wider" style={{ color: MUTE }}>
+      <button onClick={onCancel} className={`text-xs uppercase tracking-wider ${T_MUTE} ${FOCUS}`}>
         &#8592; Cancel
       </button>
 
@@ -458,22 +472,21 @@ function AddView({ collection, currentUserPersona, onCancel, onSave }) {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className="text-xs px-4 py-2 border-b-2"
-            style={tab === id ? { borderColor: INK, color: INK, fontWeight: 600 } : { borderColor: 'transparent', color: MUTE }}
+            className={`text-xs px-4 py-2 border-b-2 ${FOCUS} ${tab === id ? `${BD_INK} ${T_INK} font-semibold` : `border-transparent ${T_MUTE}`}`}
           >
             {label}
           </button>
         ))}
       </div>
 
-      {error && <div className="text-sm p-3 border-l-4" style={{ borderColor: ACCENT, backgroundColor: CREAM, color: INK }}>{error}</div>}
+      {error && <div className={`text-sm p-3 border-l-4 ${BD_ACCENT} ${BG_CREAM} ${T_INK}`}>{error}</div>}
 
       {tab === 'photo' ? (
-        <div className="bg-white border p-5 space-y-3" style={{ borderColor: LINE }}>
-          <p className="text-sm leading-relaxed" style={{ color: MUTE }}>
+        <div className={`${BG_CARD} border p-5 space-y-3 ${BD_LINE}`}>
+          <p className={`text-sm leading-relaxed ${T_MUTE}`}>
             Take a picture of a recipe (or pick one from your photos) and we'll read it straight into the fields — title, ingredients, steps. It then scales and converts units like any recipe. The picture stays on your device; only the open-source reader is downloaded.
           </p>
-          <label className="inline-block text-xs uppercase tracking-wider px-4 py-2.5 text-white font-semibold cursor-pointer" style={{ backgroundColor: ocrBusy ? MUTE : INK }}>
+          <label className={`inline-block text-xs uppercase tracking-wider px-4 py-2.5 text-white font-semibold cursor-pointer ${ocrBusy ? 'bg-[#5A5751]' : BG_INK}`}>
             {ocrBusy ? `Reading… ${Math.round(ocrProgress * 100)}%` : 'Take / choose a photo'}
             <input
               type="file"
@@ -485,32 +498,31 @@ function AddView({ collection, currentUserPersona, onCancel, onSave }) {
             />
           </label>
           {ocrBusy && (
-            <div className="h-1 w-full" style={{ backgroundColor: LINE }}>
-              <div className="h-full" style={{ width: `${Math.round(ocrProgress * 100)}%`, backgroundColor: ACCENT }} />
+            <div className="h-1 w-full bg-[#E8E4DC]">
+              <div className="h-full bg-[#B85838]" style={{ width: `${Math.round(ocrProgress * 100)}%` }} />
             </div>
           )}
-          <p className="text-xs leading-relaxed" style={{ color: MUTE }}>
+          <p className={`text-xs leading-relaxed ${T_MUTE}`}>
             Reading happens in your browser, so the first photo takes a few seconds to warm up. We'll drop you into the editable fields to confirm before saving — OCR is a first pass, not gospel.
           </p>
         </div>
       ) : tab === 'paste' ? (
-        <div className="bg-white border p-5 space-y-3" style={{ borderColor: LINE }}>
-          <p className="text-sm leading-relaxed" style={{ color: MUTE }}>
+        <div className={`${BG_CARD} border p-5 space-y-3 ${BD_LINE}`}>
+          <p className={`text-sm leading-relaxed ${T_MUTE}`}>
             Paste a full recipe in plain text — title, ingredients, instructions, storage, notes.
             We'll structure it into fields for you. Section headers like
-            <span style={{ color: INK }}> Burgers:</span> or
-            <span style={{ color: INK }}> Prepare the Slaw:</span> become sections automatically.
+            <span className={T_INK}> Burgers:</span> or
+            <span className={T_INK}> Prepare the Slaw:</span> become sections automatically.
           </p>
           <textarea
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
             placeholder={'Vegan Street-Style Tacos | Servings: 4–6 | Prep: 15 min | Cook: 20 min\n\nIngredients\nVegan Taco Filling:\n4 bags vegan protein crumbles; 2 tbsp olive oil; 1 onion, diced; ...\n\nInstructions\nPrepare the Filling: heat olive oil...; add onions...\n\nStorage: ...  Reheating: ...\nChef\'s Note: ...'}
             rows={12}
-            className="w-full border px-3 py-2 text-sm font-mono"
-            style={{ borderColor: LINE, color: INK }}
+            className={`w-full border px-3 py-2 text-sm font-mono ${BG_CARD} ${BD_LINE} ${T_INK}`}
           />
           <div className="flex gap-2">
-            <button onClick={parsePaste} disabled={!pasteText.trim()} className="text-xs uppercase tracking-wider px-4 py-2.5 text-white font-semibold disabled:opacity-40" style={{ backgroundColor: INK }}>
+            <button onClick={parsePaste} disabled={!pasteText.trim()} className={`text-xs uppercase tracking-wider px-4 py-2.5 text-white font-semibold disabled:opacity-40 ${BG_INK} ${FOCUS}`}>
               Structure it &#8594;
             </button>
           </div>
@@ -520,10 +532,10 @@ function AddView({ collection, currentUserPersona, onCancel, onSave }) {
       )}
 
       <div className="flex gap-2 pt-2">
-        <button onClick={save} className="text-xs uppercase tracking-wider px-5 py-2.5 text-white font-semibold" style={{ backgroundColor: '#5A6E3D' }}>
+        <button onClick={save} className={`text-xs uppercase tracking-wider px-5 py-2.5 text-white font-semibold ${BG_GREEN} ${FOCUS}`}>
           Save recipe
         </button>
-        <button onClick={onCancel} className="text-xs uppercase tracking-wider px-4 py-2.5 border" style={{ borderColor: LINE, color: MUTE }}>
+        <button onClick={onCancel} className={`text-xs uppercase tracking-wider px-4 py-2.5 border ${BD_LINE} ${T_MUTE} ${FOCUS}`}>
           Cancel
         </button>
       </div>
@@ -534,7 +546,7 @@ function AddView({ collection, currentUserPersona, onCancel, onSave }) {
 function RecipeForm({ form, setForm }) {
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   return (
-    <div className="bg-white border p-5 space-y-5" style={{ borderColor: LINE }}>
+    <div className={`${BG_CARD} border p-5 space-y-5 ${BD_LINE}`}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Title" value={form.title} onChange={(v) => set('title', v)} full />
         <Field label="Chef / author" value={form.chef} onChange={(v) => set('chef', v)} />
@@ -580,46 +592,44 @@ function SectionsEditor({ kind, label, sections, onChange }) {
 
   return (
     <div>
-      <div className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-2" style={{ color: ACCENT }}>{label}</div>
+      <div className={`text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-2 ${T_ACCENT}`}>{label}</div>
       <div className="space-y-4">
         {sections.map((sec, si) => (
-          <div key={si} className="border p-3" style={{ borderColor: LINE, backgroundColor: CREAM }}>
+          <div key={si} className={`border p-3 ${BD_LINE} ${BG_CREAM}`}>
             <div className="flex items-center gap-2 mb-2">
               <input
                 type="text"
                 value={sec.title}
                 onChange={(e) => setSectionTitle(si, e.target.value)}
                 placeholder={`Section name (optional, e.g. "House Burger Sauce")`}
-                className="flex-1 border px-2 py-1.5 text-sm bg-white"
-                style={{ borderColor: LINE, color: INK }}
+                className={`flex-1 border px-2 py-1.5 text-sm ${BG_CARD} ${BD_LINE} ${T_INK}`}
               />
               {sections.length > 1 && (
-                <button onClick={() => removeSection(si)} className="text-xs px-2 py-1" style={{ color: ACCENT }} aria-label="Remove section">Remove</button>
+                <button onClick={() => removeSection(si)} className={`text-xs px-2 py-1 ${T_ACCENT} ${FOCUS}`} aria-label="Remove section">Remove</button>
               )}
             </div>
             <div className="space-y-1.5">
               {sec[lineKey].map((line, li) => (
                 <div key={li} className="flex items-start gap-2">
-                  <span className="text-xs mt-2 shrink-0 w-4 text-right" style={{ color: MUTE }}>{kind === 'instructions' ? `${li + 1}.` : '·'}</span>
+                  <span className={`text-xs mt-2 shrink-0 w-4 text-right ${T_MUTE}`}>{kind === 'instructions' ? `${li + 1}.` : '·'}</span>
                   <textarea
                     value={line}
                     onChange={(e) => setLine(si, li, e.target.value)}
                     rows={kind === 'instructions' ? 2 : 1}
                     placeholder={`Add ${lineWord}`}
-                    className="flex-1 border px-2 py-1.5 text-sm bg-white resize-y"
-                    style={{ borderColor: LINE, color: INK }}
+                    className={`flex-1 border px-2 py-1.5 text-sm resize-y ${BG_CARD} ${BD_LINE} ${T_INK}`}
                   />
                   {sec[lineKey].length > 1 && (
-                    <button onClick={() => removeLine(si, li)} className="text-sm mt-1.5 shrink-0" style={{ color: MUTE }} aria-label={`Remove ${lineWord}`}>&times;</button>
+                    <button onClick={() => removeLine(si, li)} className={`text-sm mt-1.5 shrink-0 ${T_MUTE} ${FOCUS}`} aria-label={`Remove ${lineWord}`}>&times;</button>
                   )}
                 </div>
               ))}
             </div>
-            <button onClick={() => addLine(si)} className="text-xs uppercase tracking-wider mt-2" style={{ color: '#5A6E3D' }}>+ Add {lineWord}</button>
+            <button onClick={() => addLine(si)} className={`text-xs uppercase tracking-wider mt-2 ${T_GREEN} ${FOCUS}`}>+ Add {lineWord}</button>
           </div>
         ))}
       </div>
-      <button onClick={addSection} className="text-xs uppercase tracking-wider mt-2" style={{ color: INK }}>+ Add section</button>
+      <button onClick={addSection} className={`text-xs uppercase tracking-wider mt-2 ${T_INK} ${FOCUS}`}>+ Add section</button>
     </div>
   );
 }
@@ -627,11 +637,11 @@ function SectionsEditor({ kind, label, sections, onChange }) {
 function Field({ label, value, onChange, placeholder, full, textarea }) {
   return (
     <label className={`block ${full ? 'sm:col-span-2' : ''}`}>
-      <span className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold block mb-1" style={{ color: MUTE }}>{label}</span>
+      <span className={`text-[0.625rem] uppercase tracking-[0.2em] font-semibold block mb-1 ${T_MUTE}`}>{label}</span>
       {textarea ? (
-        <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2} className="w-full border px-2 py-1.5 text-sm bg-white" style={{ borderColor: LINE, color: INK }} />
+        <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2} className={`w-full border px-2 py-1.5 text-sm ${BG_CARD} ${BD_LINE} ${T_INK}`} />
       ) : (
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full border px-2 py-1.5 text-sm bg-white" style={{ borderColor: LINE, color: INK }} />
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`w-full border px-2 py-1.5 text-sm ${BG_CARD} ${BD_LINE} ${T_INK}`} />
       )}
     </label>
   );
