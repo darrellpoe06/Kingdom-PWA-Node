@@ -28,10 +28,10 @@ function TxHistory({ recordEvents, txId }) {
   const when = (iso) => { try { return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return iso; } };
   return (
     <div className="mt-2 pt-2 border-t border-[#E8E4DC]">
-      <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Edit history · {timeline.length} version{timeline.length === 1 ? '' : 's'}</div>
+      <div className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Edit history · {timeline.length} version{timeline.length === 1 ? '' : 's'}</div>
       <div className="space-y-1">
         {timeline.map((v) => (
-          <div key={`${v.version}-${v.at}`} className="text-[11px] text-[#5A5751]">
+          <div key={`${v.version}-${v.at}`} className="text-[0.6875rem] text-[#5A5751]">
             <span className="text-[#5A5751]">v{v.version} · {when(v.at)}{v.actor ? ` · ${v.actor}` : ''} · {v.action}</span>{' '}
             {Object.keys(v.changes).length
               ? Object.entries(v.changes).map(([k, c]) => (
@@ -608,7 +608,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         <td className="p-2 text-xs whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(t.date || '').slice(5)}</td>
         <td className="p-2">
           <div style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</div>
-          <div className="text-[10px] text-[#5A5751] mt-0.5">
+          <div className="text-[0.625rem] text-[#5A5751] mt-0.5">
             <span>{accLabel}</span>
             {currentBal !== null && <span className={`ml-1 ${currentBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>(now {fmt(currentBal)})</span>}
             {t.category && <span className="ml-2 uppercase tracking-wider">· {t.category}</span>}
@@ -616,21 +616,21 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             {/* Phase 2A — ingest provenance + reconcile status pills. Stays
                 quiet on plain manual entries so the existing UX is unchanged. */}
             {t._source === 'bank-ingest' && (
-              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider"
                 style={{ backgroundColor: '#1F6FEB22', color: '#1F6FEB', border: '1px solid #1F6FEB' }}
                 title={`Imported from bank QFX${t._fitid ? ' · FITID ' + t._fitid : ''}`}>
                 bank
               </span>
             )}
             {t._source === 'gmail-ingest' && (
-              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider"
                 style={{ backgroundColor: '#DB444422', color: '#DB4444', border: '1px solid #DB4444' }}
                 title="Imported from Gmail finance event">
                 gmail
               </span>
             )}
             {t._ingestMatched && (
-              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider"
                 style={{ backgroundColor: '#16A34A22', color: '#16A34A', border: '1px solid #16A34A' }}
                 title="A bank-ingested transaction matches this manual entry — verified.">
                 ✓ bank-confirmed
@@ -641,14 +641,14 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 debit (isReconciled) — a green badge always means the math held.
                 Sits beside the derived bank-confirmed badge above. */}
             {t.reconciliation?.matched && isReconciled(t.reconciliation, t.amount) && (
-              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider"
                 style={{ backgroundColor: '#16A34A22', color: '#16A34A', border: '1px solid #16A34A' }}
                 title={`Reconciled to the bank withdrawal${(t.reconciliation.matched_to || []).includes('email') ? ' (confirmed by receipt email)' : ''}. ${(t.reconciliation.orders || []).length} invoice(s) roll up to ${fmt(t.reconciliation.total)}.`}>
                 ✓ matched to bank{(t.reconciliation.matched_to || []).includes('email') ? ' · email' : ''}
               </span>
             )}
             {t._status && t._source === 'bank-ingest' && t._status !== 'unknown' && (
-              <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider"
                 style={{
                   backgroundColor: (t._status === 'verified' ? '#16A34A' : t._status === 'unexplained' ? '#DC2626' : '#D97706') + '22',
                   color: t._status === 'verified' ? '#16A34A' : t._status === 'unexplained' ? '#DC2626' : '#D97706',
@@ -663,7 +663,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               invoices. Shows that the parts sum to the whole so the single
               ledger amount is never mistaken for triple-counting. */}
           {t.reconciliation?.matched && Array.isArray(t.reconciliation.orders) && t.reconciliation.orders.length > 0 && (
-            <details className="mt-1 text-[11px]">
+            <details className="mt-1 text-[0.6875rem]">
               <summary className="cursor-pointer text-[#5A5751] hover:text-[#1A1815] select-none" style={{ fontFamily: '"Fraunces", serif' }}>
                 {t.reconciliation.orders.length} invoices → one {t.reconciliation.method === 'visa-debit' ? 'debit' : 'charge'}{t.reconciliation.card_last4 ? ` ···${t.reconciliation.card_last4}` : ''} · {fmt(t.reconciliation.total)}
               </summary>
@@ -677,7 +677,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   </div>
                 ))}
                 <div className="flex items-baseline justify-between gap-2 pt-1 border-t border-[#E8E4DC] font-semibold">
-                  <span className="uppercase tracking-wider text-[9px] text-[#5A6E3D]">rolls up to bank debit</span>
+                  <span className="uppercase tracking-wider text-[0.5625rem] text-[#5A6E3D]">rolls up to bank debit</span>
                   <span className="text-[#5A6E3D] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(t.reconciliation.total)}</span>
                 </div>
               </div>
@@ -687,12 +687,12 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             const short = shortfallFor(t);
             return (
               <>
-                <div className={`text-[10px] mt-0.5 ${afterBal < 0 ? 'text-[#B85838] font-semibold' : short > 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                <div className={`text-[0.625rem] mt-0.5 ${afterBal < 0 ? 'text-[#B85838] font-semibold' : short > 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                   {afterBal < 0 ? '⚠ ' : short > 0 ? '⚐ ' : '→ '}After this hits: {fmt(afterBal)}
                   {short > 0 && afterBal >= 0 && <span className="ml-1">(below {fmt(FUNDS_BUFFER)} buffer)</span>}
                 </div>
                 {short > 0 && (
-                  <button type="button" onClick={() => openTransfer(t)} className="mt-1 text-[10px] uppercase tracking-wider px-2 py-0.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+                  <button type="button" onClick={() => openTransfer(t)} className="mt-1 text-[0.625rem] uppercase tracking-wider px-2 py-0.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
                     ⚐ Cover with transfer
                   </button>
                 )}
@@ -735,15 +735,15 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         <tr className="border-b border-[#B85838]">
           <td colSpan={4} className="p-3 bg-[#FAF8F4] border-l-4 border-[#B85838]">
             <div className="space-y-2">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {t.description}</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {t.description}</div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
-                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
-                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}</select></div>
-                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}</select></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
               </div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Description</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity override (optional)</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}><option value="">— No override —</option>{entities.map(en => <option key={en.id} value={en.id}>{entityLabel(en)}</option>)}</select></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Description</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity override (optional)</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}><option value="">— No override —</option>{entities.map(en => <option key={en.id} value={en.id}>{entityLabel(en)}</option>)}</select></div>
               <div className="flex gap-2">
                 <button type="button" onClick={submit} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                 <button type="button" onClick={cancel} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
@@ -762,7 +762,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   return (
     <div className="space-y-6">
       <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Transactions · Upcoming · History · Add</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Transactions · Upcoming · History · Add</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Every dollar in. Every dollar out. Every dollar coming.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           Add transactions as they happen. See what is already cleared (History) and what is expected to hit next (Upcoming, including the next instance of each enabled recurring obligation). Filters carry through from Entities. Projections, funds-available checks, and the transfer-from popup come in the next pass.
@@ -781,22 +781,22 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">★ Primary Bill-Pay Account</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">★ Primary Bill-Pay Account</div>
                 <div className="text-sm text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{primary.name}{primary.fragment ? ' ' + primary.fragment : ''}</div>
               </div>
-              {!primary.isPrimary && <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Mark one account as primary in Accounts to lock this</span>}
+              {!primary.isPrimary && <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Mark one account as primary in Accounts to lock this</span>}
             </div>
             <div className="grid grid-cols-2 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
               <div className="bg-white p-3">
-                <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Right now</div>
+                <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Right now</div>
                 <div className={`text-2xl ${rightNow < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(rightNow)}</div>
               </div>
               <div className="bg-white p-3">
-                <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">After upcoming charges clear</div>
+                <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">After upcoming charges clear</div>
                 <div className={`text-2xl ${projected < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(projected)}</div>
               </div>
             </div>
-            <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
               Full balances for every account live at the bottom of this tab. Each row also shows that account's current balance inline.
             </p>
           </section>
@@ -819,15 +819,15 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             {((Array.isArray(visibleEntities) ? visibleEntities : null) || entities).map(e => <button key={e.id} onClick={() => setEntityFilter(e.id)} className={`px-3 py-1.5 border ${entityFilter === e.id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{entityLabel(e)}</button>)}
           </div>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setCsvOpen(true)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">📤 Import CSV</button>
-            <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
+            <button type="button" onClick={() => setCsvOpen(true)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">📤 Import CSV</button>
+            <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
           </div>
         </div>
 
         {/* Phase 2C — reconcile-status pills. Only show when there are
             ingest rows in the merged feed; otherwise this is just clutter. */}
         {statusCounts.all > (data.transactions || []).length && (
-          <div className="mb-3 flex items-center gap-1 flex-wrap text-[10px]">
+          <div className="mb-3 flex items-center gap-1 flex-wrap text-[0.625rem]">
             <span className="uppercase tracking-wider text-[#5A5751] mr-1">Filter</span>
             {[
               ['all', `All · ${statusCounts.all}`, '#1A1815'],
@@ -847,36 +847,36 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         {/* r32 — Top form for Add only; edit happens inline under the row. */}
         {showForm && !editingId && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New transaction</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New transaction</div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</label>
                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="-49.99" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>
                   {accounts.length === 0 && <option value="">— Add an account first —</option>}
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
                   {TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Description</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Description</label>
               <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Costco · groceries" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
             </div>
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity override (optional — defaults to account entity)</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity override (optional — defaults to account entity)</label>
               <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}>
                 <option value="">— No override —</option>
                 {entities.map(en => <option key={en.id} value={en.id}>{entityLabel(en)}</option>)}
@@ -905,10 +905,10 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[#1A1815]">
-                      <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Date</th>
-                      <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
-                      <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Amount</th>
-                      <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Actions</th>
+                      <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
+                      <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
+                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>{pageItems.map(renderRow)}</tbody>
@@ -916,15 +916,15 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               </section>
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-3 gap-2 flex-wrap">
-                  <button type="button" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={safePage === 0} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">« Previous</button>
-                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-[#5A5751]">
+                  <button type="button" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={safePage === 0} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">« Previous</button>
+                  <div className="flex items-center gap-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                     <span>Page</span>
                     <select value={safePage} onChange={e => setPage(parseInt(e.target.value, 10))} className="p-1 border border-[#E8E4DC] text-xs bg-[#FAF8F4]">
                       {Array.from({ length: totalPages }).map((_, i) => <option key={i} value={i}>{i + 1}</option>)}
                     </select>
                     <span>of {totalPages} · showing {startIdx + 1}–{Math.min(startIdx + pageSize, list.length)} of {list.length}</span>
                   </div>
-                  <button type="button" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">Next »</button>
+                  <button type="button" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-[#1A1815]">Next »</button>
                 </div>
               )}
             </>
@@ -937,18 +937,18 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           <div className="bg-white border-2 border-[#1A1815] max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b border-[#1A1815] flex items-baseline justify-between gap-3 flex-wrap">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📤 Import CSV</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📤 Import CSV</div>
                 <h2 className="text-2xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Drop a bank export</h2>
                 <div className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                   Chase, AMEX, Discover, and most banks export a CSV with Date / Description / Amount columns. Other columns are ignored.
                 </div>
               </div>
-              <button type="button" onClick={() => setCsvOpen(false)} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+              <button type="button" onClick={() => setCsvOpen(false)} aria-label="Close" className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
             </div>
 
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">1. Target account (all rows will be assigned to this account)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">1. Target account (all rows will be assigned to this account)</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={csvAccountId} onChange={e => setCsvAccountId(e.target.value)}>
                   {accounts.length === 0 && <option value="">— Add an account first —</option>}
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
@@ -956,8 +956,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               </div>
 
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">2. Pick CSV file</label>
-                <input type="file" accept=".csv,text/csv" onChange={e => onCsvFile(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[10px] file:hover:bg-[#B85838] file:cursor-pointer" />
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">2. Pick CSV file</label>
+                <input type="file" accept=".csv,text/csv" onChange={e => onCsvFile(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:hover:bg-[#B85838] file:cursor-pointer" />
               </div>
 
               <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -973,16 +973,16 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
 
               {csvParsed.rows.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">3. Preview · {csvParsed.rows.filter(r => r.ok).length} valid / {csvParsed.rows.length} total</div>
+                  <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">3. Preview · {csvParsed.rows.filter(r => r.ok).length} valid / {csvParsed.rows.length} total</div>
                   <div className="border border-[#1A1815] overflow-x-auto max-h-72 overflow-y-auto">
                     <table className="w-full text-xs">
                       <thead className="sticky top-0 bg-white">
                         <tr className="border-b border-[#1A1815]">
-                          <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Date</th>
-                          <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Description</th>
-                          <th className="text-right p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Amount</th>
-                          <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Cat</th>
-                          <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]">Ok?</th>
+                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
+                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description</th>
+                          <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Cat</th>
+                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Ok?</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -991,14 +991,14 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                             <td className="p-2 whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.date || r.rawDate}</td>
                             <td className="p-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.desc.slice(0, 60)}</td>
                             <td className={`p-2 text-right whitespace-nowrap ${r.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.amount > 0 ? '+' : ''}{fmt(r.amount)}</td>
-                            <td className="p-2 text-[10px] uppercase tracking-wider">{r.category}</td>
-                            <td className="p-2 text-[10px] uppercase tracking-wider">{r.ok ? <span className="text-[#5A6E3D]">✓</span> : <span className="text-[#B85838]">skip</span>}</td>
+                            <td className="p-2 text-[0.625rem] uppercase tracking-wider">{r.category}</td>
+                            <td className="p-2 text-[0.625rem] uppercase tracking-wider">{r.ok ? <span className="text-[#5A6E3D]">✓</span> : <span className="text-[#B85838]">skip</span>}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                  {csvParsed.rows.length > 100 && <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Showing first 100 rows in preview — all {csvParsed.rows.length} will import.</p>}
+                  {csvParsed.rows.length > 100 && <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Showing first 100 rows in preview — all {csvParsed.rows.length} will import.</p>}
                 </div>
               )}
 
@@ -1007,7 +1007,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               <button type="button" onClick={importCsv} disabled={csvParsed.rows.filter(r => r.ok).length === 0 || !csvAccountId} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
                 Import {csvParsed.rows.filter(r => r.ok).length} transaction{csvParsed.rows.filter(r => r.ok).length === 1 ? '' : 's'}
               </button>
-              <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.625rem] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
                 Rows without a parseable date are skipped automatically. Amounts with $ or commas are normalized. Unknown categories become 'other'.
               </p>
             </div>
@@ -1029,26 +1029,26 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             <div className="bg-white border-2 border-[#1A1815] max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="p-5 border-b border-[#1A1815] flex items-baseline justify-between gap-3 flex-wrap">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⚐ Too close to call</div>
+                  <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⚐ Too close to call</div>
                   <h2 className="text-2xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Cover the gap with a transfer</h2>
                   <div className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                     Upcoming: {transferContext.txDescription} ({fmt(transferContext.txAmount)}) on {tgt?.name}
                   </div>
                 </div>
-                <button type="button" onClick={closeTransfer} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+                <button type="button" onClick={closeTransfer} aria-label="Close" className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
               </div>
 
               <div className="p-5 space-y-4">
                 <div className="bg-[#FAF8F4] border border-[#B85838] p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold mb-1">Projected shortfall</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">Projected shortfall</div>
                   <div className="text-xl" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(transferContext.shortfall)}</div>
-                  <p className="text-[10px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                     Amount needed to keep <strong>{tgt?.name}</strong> at or above the {fmt(FUNDS_BUFFER)} cushion after this charge.
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] block mb-2">Transfer from</label>
+                  <label className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] block mb-2">Transfer from</label>
                   <div className="space-y-1 max-h-56 overflow-y-auto border border-[#E8E4DC]">
                     {candidates.length === 0 && <p className="p-3 text-xs text-[#5A5751] italic">No other accounts available.</p>}
                     {candidates.map(a => {
@@ -1061,7 +1061,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                             <span className={`text-sm ${!selected && a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</span>
                           </div>
                           {selected && (
-                            <div className={`text-[10px] mt-1 ${after < 0 ? 'text-[#B85838]' : 'opacity-75'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                            <div className={`text-[0.625rem] mt-1 ${after < 0 ? 'text-[#B85838]' : 'opacity-75'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                               After transfer: {fmt(after)} {after < 0 && '(would go negative)'}
                             </div>
                           )}
@@ -1072,7 +1072,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 </div>
 
                 <div>
-                  <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Transfer amount (defaults to shortfall + cushion)</label>
+                  <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Transfer amount (defaults to shortfall + cushion)</label>
                   <input type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} />
                 </div>
 
@@ -1085,7 +1085,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <button type="button" onClick={executeTransfer} disabled={!transferSourceId || (parseFloat(transferAmount) || 0) <= 0} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
                   Move {fmt(parseFloat(transferAmount) || 0)} · {src ? `${src.name} → ${tgt?.name}` : 'pick a source'}
                 </button>
-                <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+                <p className="text-[0.625rem] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
                   Creates two paired transactions dated today, both marked as <em>transfer</em> so they don't double-count in expense math.
                 </p>
               </div>
@@ -1095,23 +1095,23 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       })()}
 
       <section>
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">30 / 60 / 90-Day Cash Forecast · vs prior 30 / 60 / 90 actuals</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">30 / 60 / 90-Day Cash Forecast · vs prior 30 / 60 / 90 actuals</div>
         <div className="bg-white border border-[#1A1815] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
-                <th className="text-left p-2 text-[10px] uppercase tracking-wider text-[#5A5751]" rowSpan="2">Cash account</th>
-                <th className="text-center p-2 text-[10px] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]" colSpan="3">Previous (actual cash flow)</th>
-                <th className="text-center p-2 text-[10px] uppercase tracking-wider text-[#1A1815] border-l border-[#E8E4DC]" rowSpan="2">Now</th>
-                <th className="text-center p-2 text-[10px] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]" colSpan="3">Projected (forward)</th>
+                <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]" rowSpan="2">Cash account</th>
+                <th className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]" colSpan="3">Previous (actual cash flow)</th>
+                <th className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#1A1815] border-l border-[#E8E4DC]" rowSpan="2">Now</th>
+                <th className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]" colSpan="3">Projected (forward)</th>
               </tr>
               <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
-                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]">−90d</th>
-                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#5A5751]">−60d</th>
-                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#5A5751]">−30d</th>
-                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]">+30d</th>
-                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#B85838]">+60d</th>
-                <th className="text-right p-2 text-[9px] uppercase tracking-wider text-[#B85838]">+90d</th>
+                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]">−90d</th>
+                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−60d</th>
+                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−30d</th>
+                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]">+30d</th>
+                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+60d</th>
+                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+90d</th>
               </tr>
             </thead>
             <tbody>
@@ -1121,8 +1121,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <tr key={f.id} className="border-b border-[#E8E4DC]">
                   <td className="p-2">
                     <span style={{ fontFamily: '"Fraunces", serif' }}>{f.name}{f.fragment ? ' ' + f.fragment : ''}</span>
-                    {f.isPrimary && <span className="ml-2 text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">★</span>}
-                    <span className="ml-2 text-[9px] uppercase tracking-wider text-[#5A5751]">{f.type}</span>
+                    {f.isPrimary && <span className="ml-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">★</span>}
+                    <span className="ml-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{f.type}</span>
                   </td>
                   {/* Trailing actuals — net change over the lookback window */}
                   <td className={`p-2 text-right border-l border-[#E8E4DC] ${f.a90 < 0 ? 'text-[#B85838]' : f.a90 > 0 ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{f.a90 === 0 ? '—' : `${f.a90 > 0 ? '+' : ''}${fmt(f.a90)}`}</td>
@@ -1138,7 +1138,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               ))}
               {forecast.length > 1 && (
                 <tr className="border-t-2 border-[#1A1815] bg-[#FAF8F4]">
-                  <td className="p-2 text-[10px] uppercase tracking-[0.2em] text-[#1A1815] font-semibold">All cash (total)</td>
+                  <td className="p-2 text-[0.625rem] uppercase tracking-[0.2em] text-[#1A1815] font-semibold">All cash (total)</td>
                   <td className={`p-2 text-right border-l border-[#E8E4DC] ${forecastTotals.a90 < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{forecastTotals.a90 === 0 ? '—' : `${forecastTotals.a90 > 0 ? '+' : ''}${fmt(forecastTotals.a90)}`}</td>
                   <td className={`p-2 text-right ${forecastTotals.a60 < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{forecastTotals.a60 === 0 ? '—' : `${forecastTotals.a60 > 0 ? '+' : ''}${fmt(forecastTotals.a60)}`}</td>
                   <td className={`p-2 text-right ${forecastTotals.a30 < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{forecastTotals.a30 === 0 ? '—' : `${forecastTotals.a30 > 0 ? '+' : ''}${fmt(forecastTotals.a30)}`}</td>
@@ -1151,26 +1151,26 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           <strong>Cash only</strong> — credit cards and loans are tracked separately in Books → Accounts because they don't hold spendable cash. The <strong>left side</strong> is the actual net cash movement over the prior 30/60/90 days (from settled transactions, +inflow / −outflow). The <strong>right side</strong> is the projected balance at each forward window (current balance + upcoming charges + recurring). Compare the two sides to gut-check: if the forward projection drops faster than the prior 90 days bled, you're projecting tighter than reality — or you've got a real upcoming squeeze. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion. Tap any upcoming row's <strong>⚐ Cover with transfer</strong> button to move money preemptively.
         </p>
       </section>
 
       {(accounts || []).length > 0 && (
         <section>
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">All Account Balances</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">All Account Balances</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
             {(accounts || []).map(a => (
               <div key={a.id} className="bg-white p-3">
                 <div className="flex items-baseline justify-between gap-2">
-                  <div className="text-[10px] text-[#5A5751] truncate flex-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</div>
-                  {a.isPrimary && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold shrink-0">★</span>}
+                  <div className="text-[0.625rem] text-[#5A5751] truncate flex-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</div>
+                  {a.isPrimary && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold shrink-0">★</span>}
                 </div>
                 <div className={`text-base ${a.balance < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(a.balance)}</div>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Full balance sweep across every entity. The primary bill-pay account (★) is shown prominently at the top of this tab. Edit any account in Books · Accounts to mark it primary.
           </p>
         </section>

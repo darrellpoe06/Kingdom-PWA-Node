@@ -117,7 +117,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory,
+  Inventory, Forecast,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1764,7 +1764,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','admin','center','crm','inventory'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','admin','center','crm','inventory','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -5164,6 +5164,11 @@ html{scroll-padding-bottom:280px}
                 // (operations tooling); spread so the entry is absent from the DOM
                 // for everyone else, like Center / CRM.
                 ...(isFamilyMember ? [['inventory', <><UiIcon name="tools" /> Inventory</>]] : []),
+                // Forecast — the financial-engineering / forward-projection layer.
+                // Family/Governor only (it models the family's real money); spread
+                // so the entry is absent from the DOM for everyone else (no-leak),
+                // and the component carries a locked fallback for any deep-link.
+                ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
                 // Admin surfaced at the top so users can SEE a steward space
                 // exists (visible-but-locked, like 🔒 Observation). ACCESS is
                 // gated at the render below — the entry being visible is the goal.
@@ -5762,11 +5767,13 @@ html{scroll-padding-bottom:280px}
           )
           : (
             <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
-              <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
               <p className="text-sm text-[#1A1815] font-semibold">Inventory is a stewardship space.</p>
               <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The inventory system of record is steward-only. Sign in with a family/governor account to manage items and stock.</p>
             </div>
           ))}
+
+        {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
 
         {view === 'admin' && ((isFamilyMember || !isPublicHost())
           ? <Admin />
@@ -6286,6 +6293,11 @@ const FEEDBACK_AREAS = [
   ]},
   { group: 'CRM (🔒 steward · acquisition backbone)', items: [
     ['crm', '👥 CRM · the one shared pipeline every funnel rides (TLC · GTM · Boxcar · Real Estate)'],
+  ]},
+  { group: 'Forecast (🔒 steward · financial engineering)', items: [
+    ['forecast', '📈 Forecast · forward cash-flow projection from real data (per business / family / consolidated)'],
+    ['forecast-scenarios', '└ Scenarios · best/base/worst · add property / tier / capital purchase (editable assumptions)'],
+    ['forecast-track', '└ Track · projected-vs-actual over time (forecast accuracy)'],
   ]},
   { group: 'Church', items: [
     ['church', 'Church · service times / media / prayer / ministry'],

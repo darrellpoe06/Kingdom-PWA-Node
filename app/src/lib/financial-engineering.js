@@ -1,0 +1,421 @@
+// =============================================================================
+// financial-engineering.js — the forward projection engine (pure, no React)
+// =============================================================================
+// "Future financial situations should be clear" (Darrell, 2026-06-25). This is
+// the LONG-HORIZON financial layer that sits ON TOP of the existing finance
+// surfaces — it does NOT replace the per-account 30/60/90 cash forecast in Books
+// (that stays the short-horizon, transaction-level view). This engine answers
+// the bigger question — "where will we be financially in 12 / 24 / 36 months" —
+// for each business, the church, the family, and consolidated.
+//
+// EVERY number here is DERIVED from real, persisted data (accounts + cleared
+// transactions + recurring obligations + debts + rentals + salaries). Nothing is
+// hardcoded. Change a salary, a rent, or an obligation and the projection moves.
+// That is the whole point: a dynamic, tracked, grounded forecast — PROJECTIONS,
+// NOT PROMISES (a model of the owner's own data, never investment advice).
+//
+// Design (kept a pure leaf module so the math is fast + trivially unit-testable):
+//   projectCashFlow(inputs)         — the core projector (heavily tested)
+//   liveCashOnHand(data, date)      — starting cash, derived from the real ledger
+//   deriveMonthlyFlows(data)        — consolidated monthly in/out (matches Big Picture totals)
+//   deriveEntityFlows(data, id)     — itemized per-entity monthly in/out
+//   deriveLumpEvents(data, ...)     — non-monthly obligations landing on their real month
+//   buildProjection(data, opts)     — wires the above together for a scope
+//
+// The two small helpers (monthLabelFrom, freqToMonthly) mirror the monolith's
+// versions on purpose — re-implemented locally so this engine has NO import of
+// poe-financial-mvp-v28.jsx (which would drag React into the projection math).
+// =============================================================================
+
+const MONTHS_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// Cash = spendable balances only. Mirrors the Big Picture `allAccountsCash`
+// definition: credit/loan are debts, not cash; inLegal accounts are out of the
+// financial picture (disputed/frozen/probate) and surface in the Legal tab.
+export const CASH_TYPES = ['checking', 'savings', 'cash', 'investment'];
+
+export function monthLabelFrom(date, offset) {
+  const x = new Date(date.getFullYear(), date.getMonth() + offset, 1);
+  return `${MONTHS_ABBR[x.getMonth()]} '${String(x.getFullYear()).slice(2)}`;
+}
+
+// Mirror of frequencyToMonthly in financial-calcs.js (kept local — see header).
+export function freqToMonthly(amount, frequency) {
+  const a = Number(amount) || 0;
+  switch (frequency) {
+    case 'monthly': return a;
+    case 'quarterly': return a / 3;
+    case 'semi-annual': return a / 6;
+    case 'annual': return a / 12;
+    case 'biennial': return a / 24;
+    default: return 0;
+  }
+}
+
+export function freqToMonths(frequency) {
+  switch (frequency) {
+    case 'monthly': return 1;
+    case 'quarterly': return 3;
+    case 'semi-annual': return 6;
+    case 'annual': return 12;
+    case 'biennial': return 24;
+    default: return 0;
+  }
+}
+
+function round2(x) {
+  return Math.round((Number(x) || 0) * 100) / 100;
+}
+
+// Whole-month bucket distance from `from` to `to` (calendar months, sign-aware).
+export function monthsBetween(from, to) {
+  return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
+}
+
+// -----------------------------------------------------------------------------
+// liveCashOnHand — TODAY'S spendable cash, derived from the real ledger.
+//
+// Mirrors the Books → Tx derivation exactly: per cash account,
+//   balance = (openingBalance ?? balance) + sum of that account's CLEARED tx,
+// where "cleared" = transaction date on or before `currentDate`. This is the
+// single source of truth for "how much cash do we actually have right now," and
+// it moves automatically as real transactions post. Returns the total plus a
+// per-account breakdown (so per-entity views can sum their own accounts).
+// -----------------------------------------------------------------------------
+export function liveCashOnHand(data, currentDate = new Date()) {
+  const accounts = (data?.accounts || []).filter(
+    (a) => CASH_TYPES.includes(a.type) && !a.inLegal,
+  );
+  const clearedByAccount = {};
+  for (const t of data?.transactions || []) {
+    if (!t || !t.accountId) continue;
+    const d = new Date(t.date);
+    if (isNaN(d.getTime()) || d > currentDate) continue; // only settled history
+    clearedByAccount[t.accountId] = (clearedByAccount[t.accountId] || 0) + (Number(t.amount) || 0);
+  }
+  let total = 0;
+  const byAccount = [];
+  for (const a of accounts) {
+    const opening = a.openingBalance != null ? a.openingBalance : (a.balance || 0);
+    const balance = round2(opening + (clearedByAccount[a.id] || 0));
+    byAccount.push({ id: a.id, entityId: a.entityId, name: a.name, balance });
+    total += balance;
+  }
+  return { total: round2(total), byAccount };
+}
+
+// -----------------------------------------------------------------------------
+// deriveMonthlyFlows — consolidated steady monthly inflow/outflow.
+//
+// Deliberately uses the SAME basis as the Big Picture `totals` so the forecast
+// headline reconciles with the dashboard the family already trusts:
+//   inflow  = salaries actually received + income-producing rent actually received
+//   outflow = the aggregate monthly outflow buckets (mortgages + utilities +
+//             household + debt service + giving)
+// The NON-monthly obligations (quarterly/annual) are NOT in these buckets; they
+// ride in deriveLumpEvents as the lumpy reserve drains, matching computeReserves.
+// -----------------------------------------------------------------------------
+export function deriveMonthlyFlows(data) {
+  const salaries = data?.inflows?.salaries || [];
+  const rentals = (data?.inflows?.rentals || []).filter((r) => (r.rent || 0) > 0);
+  const salaryActual = salaries.reduce((s, x) => s + (Number(x.actual) || 0), 0);
+  const rentalActual = rentals.reduce((s, x) => s + (Number(x.actual) || 0), 0);
+  const monthlyInflow = salaryActual + rentalActual;
+  const outflows = data?.outflows || {};
+  const monthlyOutflow = Object.values(outflows).reduce((s, x) => s + (Number(x) || 0), 0);
+  return {
+    salaryActual,
+    rentalActual,
+    monthlyInflow: round2(monthlyInflow),
+    monthlyOutflow: round2(monthlyOutflow),
+    netMonthly: round2(monthlyInflow - monthlyOutflow),
+  };
+}
+
+// -----------------------------------------------------------------------------
+// deriveEntityFlows — itemized per-entity steady monthly inflow/outflow.
+//
+// The aggregate outflow buckets above are NOT entity-tagged, so per-entity views
+// derive from the itemized, entity-stamped records instead (every line carries
+// entityId): salaries + rent for inflow; debt minimums + rental mortgage P&I +
+// escrow + MONTHLY recurring obligations for steady outflow. Non-monthly entity
+// obligations land as lumps (deriveLumpEvents filtered by entity). Because the
+// family-level household/utility buckets aren't itemized per entity, the sum of
+// per-entity nets will not equal the consolidated net — the UI says so plainly.
+// -----------------------------------------------------------------------------
+export function deriveEntityFlows(data, entityId) {
+  const salaries = (data?.inflows?.salaries || []).filter((s) => s.entityId === entityId);
+  const incomeRentals = (data?.inflows?.rentals || []).filter(
+    (r) => r.entityId === entityId && (r.rent || 0) > 0,
+  );
+  const allEntityRentals = (data?.inflows?.rentals || []).filter((r) => r.entityId === entityId);
+  const inflow = salaries.reduce((s, x) => s + (Number(x.actual) || 0), 0)
+    + incomeRentals.reduce((s, x) => s + (Number(x.actual) || 0), 0);
+
+  const debtMin = (data?.debts || [])
+    .filter((d) => d.entityId === entityId && !d.leaveAlone)
+    .reduce((s, d) => s + (Number(d.minPayment) || 0), 0);
+  const mortgages = allEntityRentals.reduce(
+    (s, r) => s + ((Number(r.mortgage?.monthlyPI) || 0) + (Number(r.mortgage?.escrow) || 0)),
+    0,
+  );
+  const monthlyObligations = (data?.recurringObligations || [])
+    .filter((o) => o.enabled && o.entityId === entityId && o.frequency === 'monthly')
+    .reduce((s, o) => s + (Number(o.amount) || 0), 0);
+
+  const outflowSteady = debtMin + mortgages + monthlyObligations;
+  return {
+    entityId,
+    inflow: round2(inflow),
+    monthlyOutflow: round2(outflowSteady),
+    netMonthly: round2(inflow - outflowSteady),
+    parts: { debtMin: round2(debtMin), mortgages: round2(mortgages), monthlyObligations: round2(monthlyObligations) },
+  };
+}
+
+// -----------------------------------------------------------------------------
+// deriveLumpEvents — non-monthly recurring obligations as dated lump outflows.
+//
+// Quarterly/semi-annual/annual/biennial obligations don't hit every month — they
+// hit on their schedule. Each enabled non-monthly obligation is walked forward
+// from its `nextDue` across the horizon, dropping a negative lump on every month
+// it lands in. Optionally filtered to one entity. Monthly obligations are
+// excluded here (they're in the steady monthly outflow, not lumps).
+// -----------------------------------------------------------------------------
+export function deriveLumpEvents(data, currentDate = new Date(), months = 12, entityId = null) {
+  const events = [];
+  const obligations = (data?.recurringObligations || []).filter(
+    (o) => o.enabled && o.frequency && o.frequency !== 'monthly'
+      && (entityId == null || o.entityId === entityId),
+  );
+  for (const o of obligations) {
+    const step = freqToMonths(o.frequency);
+    if (!step) continue;
+    let due = o.nextDue ? new Date(o.nextDue) : null;
+    if (!due || isNaN(due.getTime())) continue;
+    for (let guard = 0; guard < 240; guard++) {
+      const offset = monthsBetween(currentDate, due);
+      if (offset > months) break;
+      if (offset >= 1) {
+        events.push({
+          monthOffset: offset,
+          amount: -(Number(o.amount) || 0),
+          label: o.name || 'Obligation',
+          kind: 'obligation',
+          entityId: o.entityId || null,
+        });
+      }
+      due = new Date(due.getFullYear(), due.getMonth() + step, due.getDate());
+    }
+  }
+  return events;
+}
+
+// -----------------------------------------------------------------------------
+// projectCashFlow — THE CORE PROJECTOR. Pure math over explicit inputs.
+//
+// Walks `months` forward. Each month: endCash = startCash + monthlyInflow
+// - monthlyOutflow + (signed lump total for that month). Returns the full
+// timeline plus the clarity figures: ending cash, runway (months of positive
+// cash), the lowest point, and totals. Inputs are explicit so scenario modeling
+// can pass adjusted values and tracking can replay a saved set of assumptions.
+// -----------------------------------------------------------------------------
+export function projectCashFlow(inputs = {}) {
+  const {
+    startingCash = 0,
+    monthlyInflow = 0,
+    monthlyOutflow = 0,
+    lumpEvents = [],
+    currentDate = new Date(),
+    months = 12,
+  } = inputs;
+
+  const lumpsByMonth = {};
+  for (const e of lumpEvents) {
+    const m = e.monthOffset;
+    if (!Number.isFinite(m) || m < 1 || m > months) continue;
+    if (!lumpsByMonth[m]) lumpsByMonth[m] = [];
+    lumpsByMonth[m].push({ label: e.label, amount: Number(e.amount) || 0, kind: e.kind || 'lump' });
+  }
+
+  const timeline = [];
+  let cash = Number(startingCash) || 0;
+  let runwayMonths = null; // null = never goes negative within horizon
+  let lowest = { monthOffset: 0, endCash: round2(cash), label: monthLabelFrom(currentDate, 0) };
+
+  for (let m = 1; m <= months; m++) {
+    const startCash = cash;
+    const lumps = lumpsByMonth[m] || [];
+    const lumpIn = lumps.filter((l) => l.amount > 0).reduce((s, l) => s + l.amount, 0);
+    const lumpOut = lumps.filter((l) => l.amount < 0).reduce((s, l) => s + l.amount, 0); // <= 0
+    const net = (monthlyInflow - monthlyOutflow) + lumpIn + lumpOut;
+    cash = startCash + net;
+    timeline.push({
+      monthOffset: m,
+      label: monthLabelFrom(currentDate, m),
+      startCash: round2(startCash),
+      inflow: round2(monthlyInflow + lumpIn),
+      outflow: round2(monthlyOutflow + Math.abs(lumpOut)),
+      lumps,
+      net: round2(net),
+      endCash: round2(cash),
+    });
+    if (runwayMonths === null && cash < 0) runwayMonths = m - 1;
+    if (cash < lowest.endCash) lowest = { monthOffset: m, endCash: round2(cash), label: monthLabelFrom(currentDate, m) };
+  }
+
+  return {
+    timeline,
+    startingCash: round2(startingCash),
+    endingCash: round2(cash),
+    netMonthly: round2(monthlyInflow - monthlyOutflow),
+    runwayMonths,
+    runwayDate: runwayMonths != null ? monthLabelFrom(currentDate, runwayMonths) : null,
+    lowest,
+    horizonMonths: months,
+    totalInflow: round2(timeline.reduce((s, r) => s + r.inflow, 0)),
+    totalOutflow: round2(timeline.reduce((s, r) => s + r.outflow, 0)),
+  };
+}
+
+// -----------------------------------------------------------------------------
+// buildProjection — the convenience that derives real inputs for a SCOPE and
+// runs the projector. scope = 'consolidated' | 'family' | <entityId>.
+// extraMonthlyIncome / extraMonthlyExpense / capitalEvents let scenario modeling
+// layer on top without re-deriving the base. Returns the projection plus the
+// derived inputs (so the UI can show the assumptions transparently).
+// -----------------------------------------------------------------------------
+export function buildProjection(data, opts = {}) {
+  const {
+    currentDate = new Date(),
+    months = 12,
+    scope = 'consolidated',
+    extraMonthlyIncome = 0,
+    extraMonthlyExpense = 0,
+    capitalEvents = [],
+  } = opts;
+
+  const cash = liveCashOnHand(data, currentDate);
+  let monthlyInflow;
+  let monthlyOutflow;
+  let startingCash;
+  let lumpEvents;
+
+  if (scope === 'consolidated' || scope === 'family') {
+    const flows = deriveMonthlyFlows(data);
+    monthlyInflow = flows.monthlyInflow;
+    monthlyOutflow = flows.monthlyOutflow;
+    startingCash = cash.total;
+    lumpEvents = deriveLumpEvents(data, currentDate, months);
+  } else {
+    const ef = deriveEntityFlows(data, scope);
+    monthlyInflow = ef.inflow;
+    monthlyOutflow = ef.monthlyOutflow;
+    startingCash = round2(
+      cash.byAccount.filter((a) => a.entityId === scope).reduce((s, a) => s + a.balance, 0),
+    );
+    lumpEvents = deriveLumpEvents(data, currentDate, months, scope);
+  }
+
+  const allLumps = [...lumpEvents, ...(capitalEvents || [])];
+  const projection = projectCashFlow({
+    startingCash,
+    monthlyInflow: monthlyInflow + (Number(extraMonthlyIncome) || 0),
+    monthlyOutflow: monthlyOutflow + (Number(extraMonthlyExpense) || 0),
+    lumpEvents: allLumps,
+    currentDate,
+    months,
+  });
+
+  return {
+    ...projection,
+    scope,
+    inputs: {
+      startingCash,
+      monthlyInflow: round2(monthlyInflow + (Number(extraMonthlyIncome) || 0)),
+      monthlyOutflow: round2(monthlyOutflow + (Number(extraMonthlyExpense) || 0)),
+      baseMonthlyInflow: round2(monthlyInflow),
+      baseMonthlyOutflow: round2(monthlyOutflow),
+      extraMonthlyIncome: round2(extraMonthlyIncome),
+      extraMonthlyExpense: round2(extraMonthlyExpense),
+      lumpCount: allLumps.length,
+    },
+  };
+}
+
+// -----------------------------------------------------------------------------
+// cashForScope — spendable cash at a date for a scope (consolidated or entity).
+// The "actual" side of projected-vs-actual tracking reads from here.
+// -----------------------------------------------------------------------------
+export function cashForScope(data, date, scope = 'consolidated') {
+  const cash = liveCashOnHand(data, date);
+  if (scope === 'consolidated' || scope === 'family') return cash.total;
+  return round2(cash.byAccount.filter((a) => a.entityId === scope).reduce((s, a) => s + a.balance, 0));
+}
+
+function addMonthsISO(baseDate, months) {
+  const d = new Date(baseDate);
+  return new Date(d.getFullYear(), d.getMonth() + months, d.getDate());
+}
+
+// -----------------------------------------------------------------------------
+// snapshotFromProjection — freeze a projection into a persistable record so the
+// forecast is TRACKED OVER TIME (institutional memory of what we predicted).
+// The assumptions are stored alongside, so a future review can see not just the
+// projected number but the stated basis it rested on. Persisted via forecast-sync.
+// -----------------------------------------------------------------------------
+export function snapshotFromProjection(projection, opts = {}) {
+  const { scope = projection.scope || 'consolidated', assumptions = {}, currentDate = new Date(), label = '' } = opts;
+  const baseDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  const horizonDate = addMonthsISO(baseDate, projection.horizonMonths || 12);
+  return {
+    scope,
+    label: label || `${scope} · ${projection.horizonMonths}mo`,
+    baseDate: baseDate.toISOString().slice(0, 10),
+    horizonMonths: projection.horizonMonths || 12,
+    horizonDate: horizonDate.toISOString().slice(0, 10),
+    startingCash: projection.startingCash,
+    projectedEndCash: projection.endingCash,
+    projectedLowestCash: projection.lowest ? projection.lowest.endCash : null,
+    projectedRunwayMonths: projection.runwayMonths,
+    netMonthly: projection.netMonthly,
+    assumptions,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// actualVsProjected — score a saved snapshot against what really happened.
+// Only computes an actual once the horizon date has been reached; before that it
+// returns { reached:false } so the UI shows "pending" honestly (no fake actual).
+// accuracyLabel buckets the absolute % error so forecast quality is visible over
+// time and the future picture becomes better-grounded with each closed cycle.
+// -----------------------------------------------------------------------------
+export function actualVsProjected(snapshot, data, asOf = new Date()) {
+  const horizon = new Date(snapshot.horizonDate);
+  const asOfDay = new Date(asOf.getFullYear(), asOf.getMonth(), asOf.getDate());
+  if (asOfDay < horizon) {
+    return { reached: false, projectedEndCash: snapshot.projectedEndCash, horizonDate: snapshot.horizonDate };
+  }
+  const actualEndCash = cashForScope(data, horizon, snapshot.scope);
+  const variance = round2(actualEndCash - snapshot.projectedEndCash);
+  const base = Math.abs(snapshot.projectedEndCash);
+  const variancePct = base > 0 ? round2((variance / base) * 100) : null;
+  const absPct = variancePct == null ? null : Math.abs(variancePct);
+  let accuracyLabel = 'unscored';
+  if (absPct != null) {
+    if (absPct <= 5) accuracyLabel = 'on-target';
+    else if (absPct <= 15) accuracyLabel = 'close';
+    else if (absPct <= 30) accuracyLabel = 'off';
+    else accuracyLabel = 'way-off';
+  }
+  return {
+    reached: true,
+    projectedEndCash: snapshot.projectedEndCash,
+    actualEndCash,
+    variance,
+    variancePct,
+    accuracyLabel,
+    horizonDate: snapshot.horizonDate,
+    direction: variance > 0 ? 'ahead' : variance < 0 ? 'behind' : 'exact',
+  };
+}

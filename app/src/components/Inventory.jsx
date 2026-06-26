@@ -30,6 +30,7 @@
 // rem-based chrome so the global text-size control scales it.
 import React, { useMemo, useState } from 'react';
 import { SectionTitle, MetricCell } from './shared.jsx';
+import UiIcon from './UiIcon.jsx';
 import {
   decorateItems, filterItems, summarizeInventory, onHandByItemLocation,
   onHandFor, validateMovement, buildTransfer, lowStockItems, dedupeBySku,
@@ -56,9 +57,9 @@ const UNITS = ['each', 'box', 'case', 'pair', 'set', 'ft', 'roll', 'pack'];
 function Field({ label, children, hint }) {
   return (
     <label className="block">
-      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{label}</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{label}</div>
       {children}
-      {hint && <div className="text-[10px] text-[#5A5751] mt-1">{hint}</div>}
+      {hint && <div className="text-[0.625rem] text-[#5A5751] mt-1">{hint}</div>}
     </label>
   );
 }
@@ -212,7 +213,7 @@ export default function Inventory({
       {/* Items table */}
       {decorated.length === 0 ? (
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-8 text-center">
-          <div className="text-2xl mb-1" aria-hidden="true">📦</div>
+          <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="tools" /></div>
           <div className="text-sm text-[#5A5751] mb-1">No items yet.</div>
           <div className="text-xs text-[#5A5751]">Add your first item (e.g. an AV cable, a mic, the LED-wall panels) and post an opening count — on-hand builds from there.</div>
         </div>
@@ -222,7 +223,7 @@ export default function Inventory({
         <div className="overflow-x-auto border border-[#E8E4DC]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-[#F4F2EE] text-left text-[10px] uppercase tracking-wider text-[#5A5751]">
+              <tr className="bg-[#F4F2EE] text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                 <th className="px-2 py-2">Item</th>
                 <th className="px-2 py-2 hidden sm:table-cell">Category</th>
                 <th className="px-2 py-2 hidden md:table-cell">Location</th>
@@ -243,12 +244,12 @@ export default function Inventory({
                     >
                       <td className="px-2 py-2">
                         <div className="font-medium text-[#1A1815]">{it.name}</div>
-                        <div className="text-[10px] text-[#5A5751]">{it.sku ? `SKU ${it.sku} · ` : ''}{it.movementCount} movement{it.movementCount === 1 ? '' : 's'}</div>
+                        <div className="text-[0.625rem] text-[#5A5751]">{it.sku ? `SKU ${it.sku} · ` : ''}{it.movementCount} movement{it.movementCount === 1 ? '' : 's'}</div>
                       </td>
                       <td className="px-2 py-2 hidden sm:table-cell text-[#5A5751]">{it.category || '—'}</td>
                       <td className="px-2 py-2 hidden md:table-cell text-[#5A5751]">{it.location || '—'}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-[#1A1815]">{qtyFmt(it.onHand)} <span className="text-[10px] text-[#5A5751]">{it.unit}</span></td>
-                      <td className="px-2 py-2"><span className={`inline-block px-1.5 py-0.5 text-[10px] font-semibold border ${badge.cls}`}>{badge.label}</span></td>
+                      <td className="px-2 py-2 text-right tabular-nums text-[#1A1815]">{qtyFmt(it.onHand)} <span className="text-[0.625rem] text-[#5A5751]">{it.unit}</span></td>
+                      <td className="px-2 py-2"><span className={`inline-block px-1.5 py-0.5 text-[0.625rem] font-semibold border ${badge.cls}`}>{badge.label}</span></td>
                       <td className="px-2 py-2 text-right tabular-nums hidden sm:table-cell text-[#5A5751]">{money(it.value)}</td>
                     </tr>
                     {isSel && (
@@ -311,7 +312,7 @@ function AddItemForm({ onAdd, onCancel, existingSkus }) {
   const canAdd = f.name.trim() && !skuDup;
   return (
     <div className="border border-[#B85838] bg-white p-3 mb-3">
-      <div className="text-[11px] uppercase tracking-wider text-[#B85838] mb-2 font-semibold">New item</div>
+      <div className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] mb-2 font-semibold">New item</div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <Field label="Name *"><input className={inputCls} value={f.name} onChange={set('name')} placeholder="Shure SM58 mic" /></Field>
         <Field label="SKU" hint={skuDup ? 'A SKU already exists' : ''}><input className={`${inputCls} ${skuDup ? 'outline outline-2 outline-[#7A1F1F]' : ''}`} value={f.sku} onChange={set('sku')} placeholder="AV-MIC-058" /></Field>
@@ -360,7 +361,7 @@ function ItemDetail({ item, movements, recordEvents, byLoc, onPostMovement, onTr
       </div>
 
       {locEntries.length > 1 && (
-        <div className="px-3 pt-2 text-[10px] text-[#5A5751]">
+        <div className="px-3 pt-2 text-[0.625rem] text-[#5A5751]">
           By location: {locEntries.map(([loc, v]) => `${loc}: ${qtyFmt(v)}`).join(' · ')}
         </div>
       )}
@@ -436,7 +437,7 @@ function EditItemForm({ item, onSave }) {
       >
         Save change
       </button>
-      <p className="text-[10px] text-[#5A5751] mt-2">Saving records a version in this item's edit history (who, when, what changed). On-hand is never edited here — post a count adjustment for that.</p>
+      <p className="text-[0.625rem] text-[#5A5751] mt-2">Saving records a version in this item's edit history (who, when, what changed). On-hand is never edited here — post a count adjustment for that.</p>
     </div>
   );
 }
@@ -447,7 +448,7 @@ function LedgerView({ ledger, unit }) {
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
-          <tr className="text-left text-[10px] uppercase tracking-wider text-[#5A5751]">
+          <tr className="text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
             <th className="py-1 pr-2">When</th><th className="py-1 pr-2">Type</th><th className="py-1 pr-2 text-right">Change</th><th className="py-1 pr-2 text-right">On hand</th><th className="py-1 pr-2">Where</th><th className="py-1 pr-2">Reason</th><th className="py-1 pr-2">By</th>
           </tr>
         </thead>
@@ -465,7 +466,7 @@ function LedgerView({ ledger, unit }) {
           ))}
         </tbody>
       </table>
-      <p className="text-[10px] text-[#5A5751] mt-2">Append-only audit trail — these rows cannot be edited or deleted, only corrected by a new movement.</p>
+      <p className="text-[0.625rem] text-[#5A5751] mt-2">Append-only audit trail — these rows cannot be edited or deleted, only corrected by a new movement.</p>
     </div>
   );
 }
@@ -476,7 +477,7 @@ function HistoryView({ timeline }) {
     <div className="space-y-2">
       {timeline.map((v) => (
         <div key={`${v.version}-${v.at}`} className="border-l-2 border-[#B85838] pl-2">
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">v{v.version} · {when(v.at)} {v.actor ? `· ${v.actor}` : ''} · {v.action}</div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">v{v.version} · {when(v.at)} {v.actor ? `· ${v.actor}` : ''} · {v.action}</div>
           <div className="text-sm text-[#1A1815]">
             {Object.keys(v.changes).length
               ? Object.entries(v.changes).map(([k, c]) => (
@@ -495,11 +496,11 @@ function CategoryRollup({ items, movements }) {
   if (roll.length <= 1) return null;
   return (
     <div className="mt-6">
-      <div className="text-[11px] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">By category</div>
+      <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">By category</div>
       <div className="overflow-x-auto border border-[#E8E4DC]">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-[#F4F2EE] text-left text-[10px] uppercase tracking-wider text-[#5A5751]">
+            <tr className="bg-[#F4F2EE] text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
               <th className="px-2 py-1.5">Category</th><th className="px-2 py-1.5 text-right">Items</th><th className="px-2 py-1.5 text-right">Units</th><th className="px-2 py-1.5 text-right">Value</th><th className="px-2 py-1.5 text-right">Low / Out</th>
             </tr>
           </thead>
