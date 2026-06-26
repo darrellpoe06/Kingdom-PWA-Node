@@ -24,6 +24,7 @@ import {
 } from '../lib/voice-registry.js';
 import { loadVoiceProfiles, enrollMyVoice, revokeMyVoice } from '../lib/voice-sync.js';
 import { isVoiceServiceReady, synthesizeSpeech } from '../lib/voice-service.js';
+import { useReadingVoice, personVoiceId, SYSTEM_VOICE_ID } from '../lib/reading-voice.js';
 import {
   useVoiceRecorder, RECORD_SCRIPT, formatDuration, durationQuality, meetsMinDuration,
 } from '../lib/voice-recording.js';
@@ -40,6 +41,7 @@ const PERSONA_NAME = { darrell: 'Darrell Poe', christina: 'Christina Poe', 'bish
 
 export default function VoiceStudio({ personaKey = null, isOwner = false, sovereignVoiceReady = isVoiceServiceReady() }) {
   const tts = useTextToSpeech();
+  const { setVoiceId: setGlobalVoiceId } = useReadingVoice(supabase); // the ONE global pref
   const [profiles, setProfiles] = useState([]);
   const [userId, setUserId] = useState(null);
   const [instanceId, setInstanceId] = useState(null);
@@ -86,6 +88,9 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
     if (!isVoiceSelectable(v, ctx)) return;
     setSelectedId(v.id);
     saveVoiceChoice(v.id);
+    // Make this the GLOBAL reading voice — honored by the floating control and
+    // every reading page, saved to the account so it follows the user everywhere.
+    setGlobalVoiceId(v.kind === KIND.PERSONAL ? personVoiceId(v.personKey) : SYSTEM_VOICE_ID);
     setNotice('');
   };
 

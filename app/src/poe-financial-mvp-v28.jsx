@@ -66,6 +66,7 @@ import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
 import TextSizeControl from './components/TextSizeControl.jsx';
+import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
 import { onAuthChange, signOut } from './lib/supabase.js';
@@ -4951,6 +4952,10 @@ html{scroll-padding-bottom:280px}
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
               <TextSizeControl variant="header" />
+              {/* Reading-voice picker (HEAR half): pick once, every page reads in it.
+                  Lives beside text size — the two "make this comfortable" controls
+                  together. Saved to the account so it follows the user to any device. */}
+              <ReadingVoiceControl variant="header" isOwner={isFamilyMember} />
               <div className="flex gap-1 items-center" role="group" aria-label="Theme selector">
                 {[
                   // White and Slate take design inspiration from the two phone
@@ -5641,7 +5646,7 @@ html{scroll-padding-bottom:280px}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
         </Suspense>
       </main>
-      <TTSControl />
+      <TTSControl isOwner={isFamilyMember} />
       <InstallPrompt />
       <UpdatePrompt />
       <NetworkStatus />
