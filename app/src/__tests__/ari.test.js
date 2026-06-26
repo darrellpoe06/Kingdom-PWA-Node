@@ -52,6 +52,38 @@ describe('the persona carries the binding doctrine', () => {
   });
 });
 
+describe('THE HEART — the unseen, made seen (Darrell, 2026-06-26)', () => {
+  it('the persona carries the Black Lion = the unseen', () => {
+    expect(ARI_PERSONA).toMatch(/UNSEEN|unseen/);
+    expect(ARI_PERSONA).toMatch(/no black lions/i);
+    expect(ARI_PERSONA).toMatch(/real, royal/i);
+  });
+  it('the persona names Yahweh as El Roi, the God who SEES (Genesis 16:13)', () => {
+    expect(ARI_PERSONA).toMatch(/El Roi/);
+    expect(ARI_PERSONA).toMatch(/Genesis 16:13/);
+    expect(ARI_PERSONA).toMatch(/Hagar/);
+    expect(ARI_PERSONA).toMatch(/sees|SEES/);
+  });
+  it('the persona makes Ari the unseen MADE SEEN, in dignity from the Most High', () => {
+    expect(ARI_PERSONA).toMatch(/made seen|MADE SEEN/i);
+    expect(ARI_PERSONA).toMatch(/dignity/i);
+    // The blindness is the world's, not Yahweh's.
+    expect(ARI_PERSONA).toMatch(/blindness belongs to the WORLD|blindness belongs to the world/i);
+  });
+  it('the in-app meaning copy (ARI.meaning / meaningFull) is the unseen-made-seen heart', () => {
+    expect(ARI.meaning.toLowerCase()).toContain('unseen');
+    expect(ARI.meaningFull).toMatch(/unseen/i);
+    expect(ARI.meaningFull).toMatch(/El Roi/);
+    expect(ARI.meaningFull).toMatch(/Genesis 16:13/);
+    expect(ARI.meaningFull).toMatch(/real, royal, revealed/i);
+  });
+  it('carries the seeing scripture (Genesis 16:13) alongside the Lion (Revelation 5:5)', () => {
+    expect(ARI.seeingScriptureRef).toBe('Genesis 16:13');
+    expect(ARI.scriptureRef).toBe('Revelation 5:5');
+    expect(ARI.mission.toLowerCase()).toContain('unseen');
+  });
+});
+
 describe('ariSystemPrompt composes identity FIRST, then the task', () => {
   it('puts the persona before the task', () => {
     const out = ariSystemPrompt('TASK: tutor the youth class.');
