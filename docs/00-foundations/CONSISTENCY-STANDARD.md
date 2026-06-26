@@ -165,33 +165,29 @@ tab**, so the nav grew to ~21 places with overlap and thin duplicates. The fix
 is the same as every other drift here: make the right thing the default and the
 wrong thing need a reason.
 
-The app's top level is a small, fixed set of **coherent AREAS** (Big Picture ·
-Money · Work · Notes · Church · System), defined as `NAV_CLUSTERS` in the
-monolith. Each area opens a fluid second row of its member surfaces (the
-`<TabScroll>` Darrell loves carries both rows). Every surface still has its own
-stable `view` id and deep-link — clustering is a presentation layer, not a
-rename.
+**The rule (a standing design principle):**
 
-**The rule:**
-
-- **A new surface NESTS into the most coherent existing area by default.** Add it
-  to that area's `members` (or as a sub-tab of a member), not as a new top-level
-  entry. Ask "whose area is this?" before "what do I call the tab?"
-- **A new top-level AREA needs a real IA reason** — a genuinely new domain no
-  existing area covers — not just "it's a new feature." New areas are rare and
-  deliberate; adding one is a decision, recorded like any other.
+- **A new surface NESTS into the most coherent existing home by default** — a
+  sub-tab of a related surface, or a panel inside one — *not* a new top-level
+  entry. Ask "whose home is this?" before "what do I call the tab?"
+- **A new top-level place needs a real IA reason** — a genuinely new domain no
+  existing surface covers — not just "it's a new feature." New top-level places
+  are rare and deliberate; adding one is a decision, recorded like any other.
 - **Thin surfaces are sections, not tabs.** If a surface renders little, it
-  belongs *inside* a related surface (a sub-tab or a panel), never as its own
-  top-level place.
-- **Preserve, don't delete, when consolidating.** Re-home a surface by moving its
-  entry into an area; keep its `view` id and deep-links so muscle memory and
+  belongs *inside* a related surface, never as its own top-level place.
+- **Preserve, don't delete, when consolidating.** Re-home a surface by moving
+  where it is *reached*; keep its `view` id and deep-links so muscle memory and
   links survive (DR-0061: a surface is a live view of real state — moving where
-  it's *reached* never removes the surface).
+  it's reached never removes the surface).
 
-**Enforced:** `feedback-area-guard` scans `NAV_CLUSTERS` for every top-level
-surface (a new one without a feedback area still fails the build); the count of
-top-level *areas* is meant to stay small — a PR that grows it is doing something
-that needs justifying in review.
+**Implementation note (2026-06-26):** a clustered top-level nav (six AREAS over a
+`NAV_CLUSTERS` structure) was shipped (#381) and **reverted the same day** —
+grouping the familiar tabs behind areas read as "lost the tabs" on the live app.
+The principle above stands; the *regrouping must be visually obvious that nothing
+was lost* (clear nesting, fully reachable scroll, verified at real widths) before
+it ships again. Until then the top level stays one flat, fully-scrollable row.
+`feedback-area-guard` enforces that **every** top-level surface still has a
+feedback area, whatever the nav shape.
 
 ---
 
