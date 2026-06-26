@@ -157,6 +157,42 @@ If a primitive is genuinely missing, the work is to **build the minimal shared
 primitive** and name it here — not to hand-roll a one-off that fragments as the
 next module copies it.
 
+### 8. INFORMATION ARCHITECTURE — nest by default, don't spawn a top-level tab
+
+Declared by Darrell 2026-06-26: *"we have a lot of places in the app, why?"* The
+cause was structural — over four weeks **every feature became its own top-level
+tab**, so the nav grew to ~21 places with overlap and thin duplicates. The fix
+is the same as every other drift here: make the right thing the default and the
+wrong thing need a reason.
+
+The app's top level is a small, fixed set of **coherent AREAS** (Big Picture ·
+Money · Work · Notes · Church · System), defined as `NAV_CLUSTERS` in the
+monolith. Each area opens a fluid second row of its member surfaces (the
+`<TabScroll>` Darrell loves carries both rows). Every surface still has its own
+stable `view` id and deep-link — clustering is a presentation layer, not a
+rename.
+
+**The rule:**
+
+- **A new surface NESTS into the most coherent existing area by default.** Add it
+  to that area's `members` (or as a sub-tab of a member), not as a new top-level
+  entry. Ask "whose area is this?" before "what do I call the tab?"
+- **A new top-level AREA needs a real IA reason** — a genuinely new domain no
+  existing area covers — not just "it's a new feature." New areas are rare and
+  deliberate; adding one is a decision, recorded like any other.
+- **Thin surfaces are sections, not tabs.** If a surface renders little, it
+  belongs *inside* a related surface (a sub-tab or a panel), never as its own
+  top-level place.
+- **Preserve, don't delete, when consolidating.** Re-home a surface by moving its
+  entry into an area; keep its `view` id and deep-links so muscle memory and
+  links survive (DR-0061: a surface is a live view of real state — moving where
+  it's *reached* never removes the surface).
+
+**Enforced:** `feedback-area-guard` scans `NAV_CLUSTERS` for every top-level
+surface (a new one without a feedback area still fails the build); the count of
+top-level *areas* is meant to stay small — a PR that grows it is doing something
+that needs justifying in review.
+
 ---
 
 ## Part II — Scale-resilience: why more people/modules can't break the build

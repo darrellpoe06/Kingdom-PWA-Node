@@ -60,6 +60,24 @@ export function mappedArraySlice(src, bodyMarker) {
   throw new Error(`feedback-area-guard: unbalanced brackets before ${bodyMarker}`);
 }
 
+// Slice a `const NAME = [ … ]` literal by balanced brackets from its opening `[`.
+// Used for the top nav, which is now a NAV_CLUSTERS literal (areas -> members)
+// rather than one flat array; every member `['id', …]` tuple still lives inside
+// it, so pairIds over the whole block yields every top-level surface id.
+export function bracketBlock(src, startMarker) {
+  const at = src.indexOf(startMarker);
+  if (at === -1) throw new Error(`feedback-area-guard: marker not found: ${startMarker}`);
+  const open = src.indexOf('[', at);
+  if (open === -1) throw new Error(`feedback-area-guard: no [ after ${startMarker}`);
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    const c = src[i];
+    if (c === '[') depth++;
+    else if (c === ']') { depth--; if (depth === 0) return src.slice(open, i + 1); }
+  }
+  throw new Error(`feedback-area-guard: unbalanced brackets after ${startMarker}`);
+}
+
 // The FEEDBACK_AREAS keys (the first string of each `['key', 'label']` item).
 export function feedbackKeys(src) {
   const start = src.indexOf('const FEEDBACK_AREAS = [');
@@ -93,7 +111,7 @@ export function coverageGaps({ topNav, churchSub, choirTabs, keys }) {
 export function scan() {
   const mono = readFileSync(MONOLITH, 'utf8');
   const choir = readFileSync(CHOIR, 'utf8');
-  const topNav = pairIds(mappedArraySlice(mono, 'setView(id)'));
+  const topNav = pairIds(bracketBlock(mono, 'const NAV_CLUSTERS = ['));
   const churchSub = pairIds(mappedArraySlice(mono, 'setChurchView(id)'));
   const choirStart = choir.indexOf('const TABS = [');
   const choirTabs = pairIds(choir.slice(choirStart, choir.indexOf('];', choirStart)));
