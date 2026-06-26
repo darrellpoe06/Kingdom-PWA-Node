@@ -86,6 +86,8 @@ import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { inventoryItemsSync, mergeRemoteInventoryItems, INVENTORY_ITEM_COLUMN_OF } from './lib/inventory-items-sync.js';
 import { inventoryMovementsSync, mergeRemoteMovements } from './lib/inventory-movements-sync.js';
 import { recordEventsSync, mergeRemoteRecordEvents } from './lib/record-events-sync.js';
+import { kitchenCountsSync, mergeRemoteCounts, COUNT_COLUMN_OF } from './lib/kitchen-counts-sync.js';
+import { kitchenCountLinesSync, mergeRemoteCountLines, COUNT_LINE_COLUMN_OF } from './lib/kitchen-count-lines-sync.js';
 import { makeHistoryEvent } from './lib/record-history.js';
 import { compressImageFile } from './lib/image.js';
 import { FreshnessDot } from './components/FreshnessDot.jsx';
@@ -118,7 +120,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, ChefCorner,
+  Inventory, KitchenInventory, Forecast, ChefCorner,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1765,7 +1767,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','admin','center','crm','inventory','forecast'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','admin','center','crm','inventory','kitchen','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -2994,6 +2996,12 @@ export default function PoeFinancialSystem() {
         { sync: inventoryItemsSync,     key: 'inventoryItems',     localList: (latest.inventoryItems || []).filter(notDemoRow).filter(notSeedRow),     merge: mergeRemoteInventoryItems },
         { sync: inventoryMovementsSync, key: 'inventoryMovements', localList: (latest.inventoryMovements || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteMovements },
         { sync: recordEventsSync,       key: 'recordEvents',       localList: (latest.recordEvents || []).filter(notDemoRow).filter(notSeedRow),       merge: mergeRemoteRecordEvents },
+        // Kitchen inventory counts (0053) — the count-session header + its lines
+        // (the chef vertical on the 0052 base). Closing a count posts adjust
+        // MOVEMENTS into inventoryMovements above, so these two are just working
+        // session state synced the same proven way.
+        { sync: kitchenCountsSync,     key: 'inventoryCounts',     localList: (latest.inventoryCounts || []).filter(notDemoRow).filter(notSeedRow),     merge: mergeRemoteCounts },
+        { sync: kitchenCountLinesSync, key: 'inventoryCountLines', localList: (latest.inventoryCountLines || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteCountLines },
       ];
       for (const t of tables) {
         if (cancelled) return;
@@ -3630,6 +3638,60 @@ export default function PoeFinancialSystem() {
     }
     return stamped.map(m => m.id);
   };
+
+  // ---- Kitchen inventory COUNT sessions (0053) — the chef vertical on the 0052
+  // base. A count + its lines are working session state (same optimistic-local-
+  // then-cloud pattern as addRecipe); CLOSING a count is not a special dispatch —
+  // the KitchenInventory surface reconciles it by posting adjust MOVEMENTS through
+  // recordInventoryMovements above, then flips the count's status to 'closed'.
+  const addInventoryCount = (count) => {
+    const nowIso = new Date().toISOString();
+    const localId = `count-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...count, id: localId, startedAt: count?.startedAt || nowIso, createdBy: authSession?.user?.id || null };
+    setData(d => ({ ...d, inventoryCounts: [...(d.inventoryCounts || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      kitchenCountsSync.upload(seeded)
+        .then(res => { if (res && res.uploaded && res.remoteId) setData(d => ({ ...d, inventoryCounts: (d.inventoryCounts || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) })); })
+        .catch(e => console.warn('[kitchen-counts-sync] add upload failed', e));
+    }
+    return localId;
+  };
+  const updateInventoryCount = (id, updates) => setData(d => {
+    const stamped = { ...updates, updatedAt: new Date().toISOString() };
+    const next = (d.inventoryCounts || []).map(x => (x.id === id ? { ...x, ...stamped } : x));
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(x => x.id === id);
+      if (updated && updated.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(COUNT_COLUMN_OF)) { if (updates[localKey] !== undefined) patch[column] = updates[localKey]; }
+        if (Object.keys(patch).length > 0) kitchenCountsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[kitchen-counts-sync] update failed', e));
+      }
+    }
+    return { ...d, inventoryCounts: next };
+  });
+  const addInventoryCountLine = (line) => {
+    const localId = `cl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...line, id: localId, countedAt: line?.countedAt || new Date().toISOString(), createdBy: authSession?.user?.id || null };
+    setData(d => ({ ...d, inventoryCountLines: [...(d.inventoryCountLines || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      kitchenCountLinesSync.upload(seeded)
+        .then(res => { if (res && res.uploaded && res.remoteId) setData(d => ({ ...d, inventoryCountLines: (d.inventoryCountLines || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) })); })
+        .catch(e => console.warn('[kitchen-count-lines-sync] add upload failed', e));
+    }
+    return localId;
+  };
+  const updateInventoryCountLine = (id, updates) => setData(d => {
+    const next = (d.inventoryCountLines || []).map(x => (x.id === id ? { ...x, ...updates } : x));
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(x => x.id === id);
+      if (updated && updated.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(COUNT_LINE_COLUMN_OF)) { if (updates[localKey] !== undefined) patch[column] = updates[localKey]; }
+        if (Object.keys(patch).length > 0) kitchenCountLinesSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[kitchen-count-lines-sync] update failed', e));
+      }
+    }
+    return { ...d, inventoryCountLines: next };
+  });
 
   // ---- Chef's Corner recipes (0052) — same optimistic-local-then-cloud pattern
   // as addWorkspace. The recipe object already carries its engine-shaped fields
@@ -5221,6 +5283,11 @@ html{scroll-padding-bottom:280px}
                 // (operations tooling); spread so the entry is absent from the DOM
                 // for everyone else, like Center / CRM.
                 ...(isFamilyMember ? [['inventory', <><UiIcon name="tools" /> Inventory</>]] : []),
+                // Kitchen — the chef/kitchen inventory vertical (Chef Mario) on the
+                // same inventory base: count by weight/unit, par alerts, variance +
+                // value. Family/Governor only (operations tooling); spread so the
+                // entry is absent from the DOM for everyone else, like Inventory.
+                ...(isFamilyMember ? [['kitchen', <><UiIcon name="chefHat" /> Kitchen</>]] : []),
                 // Forecast — the financial-engineering / forward-projection layer.
                 // Family/Governor only (it models the family's real money); spread
                 // so the entry is absent from the DOM for everyone else (no-leak),
@@ -5845,6 +5912,37 @@ html{scroll-padding-bottom:280px}
             </div>
           ))}
 
+        {/* Kitchen Inventory — Chef Mario's chef/kitchen vertical on the same
+            inventory base: count by weight/unit, par alerts, derived value +
+            variance. Family/Governor only; own SectionBoundary; reuses the 0052
+            items/movements + dispatchers, adds the 0053 count session state. */}
+        {view === 'kitchen' && (isFamilyMember
+          ? (
+            <SectionBoundary name="Kitchen Inventory">
+              <KitchenInventory
+                items={data.inventoryItems || []}
+                movements={data.inventoryMovements || []}
+                counts={data.inventoryCounts || []}
+                countLines={data.inventoryCountLines || []}
+                addItem={addInventoryItem}
+                updateItem={updateInventoryItem}
+                recordMovements={recordInventoryMovements}
+                addCount={addInventoryCount}
+                updateCount={updateInventoryCount}
+                addCountLine={addInventoryCountLine}
+                updateCountLine={updateInventoryCountLine}
+                currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+              />
+            </SectionBoundary>
+          )
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">Kitchen Inventory is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The kitchen inventory system is steward-only. Sign in with a family/governor account to manage items and run counts.</p>
+            </div>
+          ))}
+
         {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
 
         {view === 'admin' && ((isFamilyMember || !isPublicHost())
@@ -6371,6 +6469,11 @@ const FEEDBACK_AREAS = [
     ['forecast', '📈 Forecast · forward cash-flow projection from real data (per business / family / consolidated)'],
     ['forecast-scenarios', '└ Scenarios · best/base/worst · add property / tier / capital purchase (editable assumptions)'],
     ['forecast-track', '└ Track · projected-vs-actual over time (forecast accuracy)'],
+  ]},
+  { group: 'Kitchen (steward · chef inventory)', items: [
+    ['kitchen', "Kitchen · Chef Mario's inventory (count by weight/unit · par alerts · value)"],
+    ['kitchen-stock', '└ Stock · items by category / storage area · on-hand + value (derived)'],
+    ['kitchen-counts', '└ Counts · physical count → variance + shrink → reconcile the ledger'],
   ]},
   { group: 'Church', items: [
     ['church', 'Church · service times / media / prayer / ministry'],
