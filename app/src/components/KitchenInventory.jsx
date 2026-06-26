@@ -1,38 +1,36 @@
 // =============================================================================
-// KitchenInventory — the chef/kitchen inventory app (Chef Mario), the rich
-// VERTICAL on the systems-of-record inventory base.
+// KitchenInventory — the REUSABLE inventory MODULE (Stock + Counts), chef preset.
 // =============================================================================
-// Declared by Darrell + Chef Mario 2026-06-25. Mario wanted a mobile-first app
-// that simplifies inventory for a busy kitchen: organize by category, count by
-// weight or unit on a weekly/monthly cadence, compare against last time, see
-// value / food cost / usage / variance, get flagged when something runs low.
+// Darrell + Chef Mario 2026-06-25/26. Mario wanted a mobile-first app that
+// simplifies inventory for a busy kitchen: organize by category, count by weight
+// or unit, compare against last time, see value / variance, get flagged when
+// something runs low. This is that — built ON the proven primitives, not anew.
 //
-// This surface is that app, built ON the proven primitives — not from scratch:
+// HOMED inside Chef's Corner (recipes + inventory together), but ARCHITECTED as a
+// reusable MODULE: it takes a `config` (taxonomy + copy; default KITCHEN_CONFIG)
+// and renders the same Stock + Counts workflow for ANY context. A church-AV or
+// business-assets surface mounts the SAME component with a different config — same
+// engine, different vocabulary. It is mounted via a dynamic import (a runtime
+// mount, not a static feature-to-feature coupling — module-boundary-guard).
+//
 //   * ITEMS + ON-HAND + the LEDGER come from lib/inventory.js (migration 0052):
 //     on-hand is DERIVED from an append-only movement ledger, never typed. Par
 //     level = the item's reorderPoint; value = on-hand * unitCost.
-//   * KITCHEN MEANING (categories, storage areas, count units) comes from
-//     lib/kitchen-taxonomy.js — the item's category/location columns carry it.
-//   * THE COUNT is the new work (lib/kitchen-count.js, migration 0053): a chef
-//     walks a storage area, enters what is physically there, and the system shows
-//     variance + dollar value live. Closing the count RECONCILES the ledger
-//     (one adjust movement per non-zero line) so derived on-hand equals the shelf.
+//   * THE COUNT (lib/kitchen-count.js, migration 0053): a chef walks an area,
+//     enters what's physically there, sees variance + dollar value live. Closing
+//     RECONCILES the ledger (one adjust movement per off line) so on-hand == shelf.
 //
-// MONEY STAYS THE OWNER'S HAND: this tracks cost + value; it never takes a
-// payment. UNBREAKABLE basics: mounted in a <SectionBoundary>; defensive empty
-// states; optimistic local writes that sync on sign-in; rem-based chrome so the
-// global large-print control scales it; real <button>/<select>/<input>; UiIcon
-// not emoji (consistency-guard).
+// MONEY STAYS THE OWNER'S HAND: tracks cost + value; never takes a payment.
+// UNBREAKABLE: SectionBoundary by the host; defensive empty/unwired states;
+// optimistic-local-then-cloud; rem chrome (large-print scales it); real controls;
+// UiIcon not emoji; theme-covered colors (consistency- + contrast-guard).
 import React, { useMemo, useState } from 'react';
 import { SectionTitle, MetricCell, TabScroll } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import {
   decorateItems, filterItems, summarizeInventory, lowStockItems, onHandFor,
 } from '../lib/inventory.js';
-import {
-  KITCHEN_CATEGORIES, STORAGE_AREAS, ALL_KITCHEN_UNITS,
-  categoryLabel, storageAreaLabel, modeForUnit,
-} from '../lib/kitchen-taxonomy.js';
+import { KITCHEN_CONFIG, modeForUnit } from '../lib/kitchen-taxonomy.js';
 import {
   makeCount, makeCountLine, summarizeCount, lineVariance, lineVarianceValue,
   varianceStatus, reconcileCount, compareToPrevious,
@@ -52,16 +50,16 @@ const STATUS_BADGE = {
   low: { label: 'LOW', cls: 'bg-[#FBF7EC] text-[#B45309] border-[#B85838]' },
   out: { label: 'OUT', cls: 'bg-[#FEE2E2] text-[#7A1F1F] border-[#7A1F1F]' },
 };
-// Variance badges reuse the theme-covered status palette (green / amber / red)
-// so every theme — including midnight — has a contrast-safe remap (contrast-guard):
+// Variance badges reuse the theme-covered status palette (green / amber / red) so
+// every theme — incl. midnight — has a contrast-safe remap (contrast-guard):
 // match = good (green), over = caution (amber, same as LOW), short = loss (red).
 const VAR_BADGE = {
   match: { label: 'MATCH', cls: 'bg-[#F0F4EA] text-[#3F5226] border-[#5A6E3D]' },
   over:  { label: 'OVER',  cls: 'bg-[#FBF7EC] text-[#B45309] border-[#B85838]' },
   short: { label: 'SHORT', cls: 'bg-[#FEE2E2] text-[#7A1F1F] border-[#7A1F1F]' },
 };
-// Signed-figure text colors: loss (negative) = red, gain (positive) = green, flat
-// = green — the same convention the inventory ledger already uses (all midnight-safe).
+// Signed-figure text colors: loss = red, gain/flat = green (the inventory ledger
+// convention; all midnight-safe).
 const varText = (n) => (Number(n) < 0 ? 'text-[#7A1F1F]' : 'text-[#3F5226]');
 
 const inputCls = 'w-full border border-[#E8E4DC] bg-white px-2 py-1.5 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -76,7 +74,19 @@ function Field({ label, children, hint }) {
   );
 }
 
+// Build label resolvers from the config so the SAME component renders any
+// vocabulary (kitchen categories, or AV-gear categories, etc.).
+function makeLabelers(config) {
+  const cat = Object.fromEntries((config.categories || []).map((c) => [c.id, c.label]));
+  const area = Object.fromEntries((config.storageAreas || []).map((a) => [a.id, a.label]));
+  return {
+    catLabel: (id) => (id ? (cat[id] || id) : 'Uncategorized'),
+    areaLabel: (id) => (id ? (area[id] || id) : 'Unassigned'),
+  };
+}
+
 export default function KitchenInventory({
+  config = KITCHEN_CONFIG,
   items = [],
   movements = [],
   counts = [],
@@ -93,18 +103,19 @@ export default function KitchenInventory({
   const [tab, setTab] = useState('stock');
   const [notice, setNotice] = useState(null);
 
+  const labelers = useMemo(() => makeLabelers(config), [config]);
   const summary = useMemo(() => summarizeInventory(items, movements), [items, movements]);
   const lows = useMemo(() => lowStockItems(items, movements), [items, movements]);
   const openCount = useMemo(() => counts.find((c) => c.status === 'open') || null, [counts]);
 
-  // Defensive: never white-screen if wiring is incomplete (hooks run first so
-  // the hook order is stable across renders).
+  // Defensive: never white-screen if wiring is incomplete (hooks run first so the
+  // hook order stays stable across renders).
   if (!addItem || !addCount) {
     return (
       <div className="max-w-2xl">
-        <SectionTitle eyebrow="Chef Mario · kitchen inventory">Kitchen Inventory</SectionTitle>
+        <SectionTitle eyebrow={config.eyebrow}>{config.title}</SectionTitle>
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-6 text-sm text-[#5A5751]">
-          Kitchen Inventory is not wired to persistence in this view.
+          {config.title} is not wired to persistence in this view.
         </div>
       </div>
     );
@@ -112,25 +123,20 @@ export default function KitchenInventory({
 
   return (
     <div className="max-w-5xl">
-      <SectionTitle eyebrow="Chef Mario · count by weight or unit · value + variance, derived">Kitchen Inventory</SectionTitle>
+      <SectionTitle eyebrow={config.eyebrow}>{config.title}</SectionTitle>
 
-      <p className="text-sm text-[#5A5751] mb-4 max-w-3xl">
-        Built for a busy kitchen. Every on-hand and dollar figure is <strong>derived</strong> from the stock
-        ledger — never typed. Run a <strong>count</strong> by weight or unit and the system shows your variance
-        and its value live; closing the count reconciles the books to the shelf. It tracks cost and value; it
-        never touches the till.
-      </p>
+      <p className="text-sm text-[#5A5751] mb-4 max-w-3xl">{config.intro}</p>
 
       {/* Dashboard — derived from the ledger + the latest count. */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4">
         <MetricCell label="Items tracked" value={qtyFmt(summary.itemCount)} />
         <MetricCell label="Inventory value" value={money(summary.totalValue)} accent="green" />
-        <MetricCell label="Below par" value={qtyFmt(lows.length)} accent={lows.length ? 'rust' : undefined} sub={`${summary.outCount} out`} />
+        <MetricCell label={`Below ${config.parNoun || 'par'}`} value={qtyFmt(lows.length)} accent={lows.length ? 'rust' : undefined} sub={`${summary.outCount} out`} />
         <MetricCell
           label={openCount ? 'Count in progress' : 'Counts run'}
           value={openCount ? '1 open' : qtyFmt(counts.filter((c) => c.status === 'closed').length)}
           accent={openCount ? 'rust' : undefined}
-          sub={openCount ? (openCount.storageArea ? storageAreaLabel(openCount.storageArea) : 'whole kitchen') : 'closed'}
+          sub={openCount ? (openCount.storageArea ? labelers.areaLabel(openCount.storageArea) : `whole ${config.key}`) : 'closed'}
         />
       </div>
 
@@ -142,12 +148,12 @@ export default function KitchenInventory({
 
       {lows.length > 0 && (
         <div className="mb-3 px-3 py-2 text-sm border border-[#B85838] bg-[#FBF7EC] text-[#B45309]">
-          <strong>{lows.length}</strong> item{lows.length === 1 ? '' : 's'} at or below par — reorder:{' '}
+          <strong>{lows.length}</strong> item{lows.length === 1 ? '' : 's'} at or below {config.parNoun || 'par'} — reorder:{' '}
           {lows.slice(0, 6).map((r) => r.item.name).join(', ')}{lows.length > 6 ? '…' : ''}
         </div>
       )}
 
-      <TabScroll chrome={false} className="mb-4" label="Kitchen inventory sections">
+      <TabScroll chrome={false} className="mb-4" label={`${config.title} sections`}>
         {[['stock', 'Stock'], ['counts', `Counts${openCount ? ' · 1 open' : ''}`]].map(([k, label]) => (
           <button
             key={k}
@@ -162,10 +168,11 @@ export default function KitchenInventory({
 
       {tab === 'stock' && (
         <StockTab
+          config={config}
+          labelers={labelers}
           items={items}
           movements={movements}
           addItem={addItem}
-          updateItem={updateItem}
           recordMovements={recordMovements}
           setNotice={setNotice}
         />
@@ -173,6 +180,8 @@ export default function KitchenInventory({
 
       {tab === 'counts' && (
         <CountsTab
+          config={config}
+          labelers={labelers}
           items={items}
           movements={movements}
           counts={counts}
@@ -193,9 +202,9 @@ export default function KitchenInventory({
 
 // ---------------------------------------------------------------------------
 // StockTab — the item catalog: organize by category / storage area, see par
-// status + value, add an item with the kitchen vocabulary.
+// status + value, add an item with the configured vocabulary.
 // ---------------------------------------------------------------------------
-function StockTab({ items, movements, addItem, updateItem, recordMovements, setNotice }) {
+function StockTab({ config, labelers, items, movements, addItem, recordMovements, setNotice }) {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [area, setArea] = useState('');
@@ -220,33 +229,34 @@ function StockTab({ items, movements, addItem, updateItem, recordMovements, setN
           <Field label="Category">
             <select className={inputCls} value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">All categories</option>
-              {KITCHEN_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              {config.categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </Field>
         </div>
         <div className="min-w-[140px]">
-          <Field label="Storage area">
+          <Field label={config.areaNoun ? config.areaNoun.replace(/^\w/, (m) => m.toUpperCase()) : 'Storage area'}>
             <select className={inputCls} value={area} onChange={(e) => setArea(e.target.value)}>
               <option value="">All areas</option>
-              {STORAGE_AREAS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+              {config.storageAreas.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
             </select>
           </Field>
         </div>
         <label className="flex items-center gap-1.5 text-xs text-[#5A5751] pb-2 cursor-pointer">
           <input type="checkbox" checked={lowOnly} onChange={(e) => setLowOnly(e.target.checked)} />
-          Below par only
+          Below {config.parNoun || 'par'} only
         </label>
         <button
           type="button"
           onClick={() => setShowAdd((s) => !s)}
           className="pb-2 text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white"
         >
-          {showAdd ? '× Close' : '+ Add item'}
+          {showAdd ? '× Close' : `+ Add ${config.itemNoun || 'item'}`}
         </button>
       </div>
 
       {showAdd && (
         <AddItemForm
+          config={config}
           onCancel={() => setShowAdd(false)}
           existingSkus={items.map((it) => (it.sku || '').trim().toUpperCase()).filter(Boolean)}
           onAdd={(item, opening) => {
@@ -264,7 +274,7 @@ function StockTab({ items, movements, addItem, updateItem, recordMovements, setN
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-8 text-center">
           <div className="mb-1 flex justify-center text-2xl" aria-hidden="true"><UiIcon name="chefHat" /></div>
           <div className="text-sm text-[#5A5751] mb-1">No items yet.</div>
-          <div className="text-xs text-[#5A5751]">Add your first item (a protein, a produce case, a dry good) with its par level and unit cost, post an opening count — on-hand builds from there.</div>
+          <div className="text-xs text-[#5A5751]">{config.emptyHint}</div>
         </div>
       ) : visible.length === 0 ? (
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-6 text-center text-sm text-[#5A5751]">No items match the current filters.</div>
@@ -277,7 +287,7 @@ function StockTab({ items, movements, addItem, updateItem, recordMovements, setN
                 <th className="px-2 py-2 hidden sm:table-cell">Category</th>
                 <th className="px-2 py-2 hidden md:table-cell">Storage</th>
                 <th className="px-2 py-2 text-right">On hand</th>
-                <th className="px-2 py-2 text-right hidden sm:table-cell">Par</th>
+                <th className="px-2 py-2 text-right hidden sm:table-cell">{(config.parNoun || 'par').replace(/^\w/, (m) => m.toUpperCase())}</th>
                 <th className="px-2 py-2">Status</th>
                 <th className="px-2 py-2 text-right hidden sm:table-cell">Value</th>
               </tr>
@@ -291,8 +301,8 @@ function StockTab({ items, movements, addItem, updateItem, recordMovements, setN
                       <div className="font-medium text-[#1A1815]">{it.name}</div>
                       <div className="text-[0.625rem] text-[#5A5751]">{it.sku ? `SKU ${it.sku} · ` : ''}{money(it.unitCost)}/{it.unit}</div>
                     </td>
-                    <td className="px-2 py-2 hidden sm:table-cell text-[#5A5751]">{categoryLabel(it.category)}</td>
-                    <td className="px-2 py-2 hidden md:table-cell text-[#5A5751]">{storageAreaLabel(it.location)}</td>
+                    <td className="px-2 py-2 hidden sm:table-cell text-[#5A5751]">{labelers.catLabel(it.category)}</td>
+                    <td className="px-2 py-2 hidden md:table-cell text-[#5A5751]">{labelers.areaLabel(it.location)}</td>
                     <td className="px-2 py-2 text-right tabular-nums text-[#1A1815]">{qtyFmt(it.onHand)} <span className="text-[0.625rem] text-[#5A5751]">{it.unit}</span></td>
                     <td className="px-2 py-2 text-right tabular-nums hidden sm:table-cell text-[#5A5751]">{it.reorderPoint ? qtyFmt(it.reorderPoint) : '—'}</td>
                     <td className="px-2 py-2"><span className={`inline-block px-1.5 py-0.5 text-[0.625rem] font-semibold border ${badge.cls}`}>{badge.label}</span></td>
@@ -309,27 +319,30 @@ function StockTab({ items, movements, addItem, updateItem, recordMovements, setN
   );
 }
 
-function AddItemForm({ onAdd, onCancel, existingSkus }) {
-  const [f, setF] = useState({ name: '', sku: '', category: 'proteins', location: 'walk-in', unit: 'each', reorderPoint: '', unitCost: '', opening: '' });
+function AddItemForm({ config, onAdd, onCancel, existingSkus }) {
+  const cats = config.categories;
+  const areas = config.storageAreas;
+  const units = config.units;
+  const [f, setF] = useState({ name: '', sku: '', category: cats[0]?.id || '', location: areas[0]?.id || '', unit: units[0] || 'each', reorderPoint: '', unitCost: '', opening: '' });
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
   const skuDup = f.sku.trim() && existingSkus.includes(f.sku.trim().toUpperCase());
   const canAdd = f.name.trim() && !skuDup;
   return (
     <div className="border border-[#B85838] bg-white p-3 mb-3">
-      <div className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] mb-2 font-semibold">New item</div>
+      <div className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] mb-2 font-semibold">New {config.itemNoun || 'item'}</div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <Field label="Name *"><input className={inputCls} value={f.name} onChange={set('name')} placeholder="Chicken breast" /></Field>
         <Field label="SKU / PLU" hint={skuDup ? 'A SKU already exists' : ''}><input className={`${inputCls} ${skuDup ? 'outline outline-2 outline-[#7A1F1F]' : ''}`} value={f.sku} onChange={set('sku')} placeholder="PROT-CHK" /></Field>
         <Field label="Category">
-          <select className={inputCls} value={f.category} onChange={set('category')}>{KITCHEN_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select>
+          <select className={inputCls} value={f.category} onChange={set('category')}>{cats.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select>
         </Field>
-        <Field label="Storage area">
-          <select className={inputCls} value={f.location} onChange={set('location')}>{STORAGE_AREAS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}</select>
+        <Field label={config.areaNoun ? config.areaNoun.replace(/^\w/, (m) => m.toUpperCase()) : 'Storage area'}>
+          <select className={inputCls} value={f.location} onChange={set('location')}>{areas.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}</select>
         </Field>
         <Field label="Stock unit">
-          <select className={inputCls} value={f.unit} onChange={set('unit')}>{ALL_KITCHEN_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
+          <select className={inputCls} value={f.unit} onChange={set('unit')}>{units.map((u) => <option key={u} value={u}>{u}</option>)}</select>
         </Field>
-        <Field label="Par level" hint="below this = reorder"><input className={inputCls} type="number" min="0" value={f.reorderPoint} onChange={set('reorderPoint')} placeholder="10" /></Field>
+        <Field label={`${(config.parNoun || 'par').replace(/^\w/, (m) => m.toUpperCase())} level`} hint="below this = reorder"><input className={inputCls} type="number" min="0" value={f.reorderPoint} onChange={set('reorderPoint')} placeholder="10" /></Field>
         <Field label="Unit cost"><input className={inputCls} type="number" min="0" step="0.01" value={f.unitCost} onChange={set('unitCost')} placeholder="2.00" /></Field>
         <Field label="Opening count" hint="posts a 'Received' movement"><input className={inputCls} type="number" min="0" value={f.opening} onChange={set('opening')} placeholder="20" /></Field>
       </div>
@@ -343,7 +356,7 @@ function AddItemForm({ onAdd, onCancel, existingSkus }) {
           )}
           className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-white bg-[#B85838] disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          Add item
+          Add {config.itemNoun || 'item'}
         </button>
         <button type="button" onClick={onCancel} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815]">Cancel</button>
       </div>
@@ -352,13 +365,15 @@ function AddItemForm({ onAdd, onCancel, existingSkus }) {
 }
 
 // ---------------------------------------------------------------------------
-// CountsTab — start a count, fill the count sheet (by weight or unit), see the
+// CountsTab — start a count, fill the count sheet (weight or unit), see the
 // running variance + value, close it to reconcile the ledger; past counts list.
 // ---------------------------------------------------------------------------
-function CountsTab({ items, movements, counts, countLines, openCount, addCount, updateCount, addCountLine, updateCountLine, recordMovements, currentUserPersona, setNotice }) {
+function CountsTab({ config, labelers, items, movements, counts, countLines, openCount, addCount, updateCount, addCountLine, updateCountLine, recordMovements, currentUserPersona, setNotice }) {
   if (openCount) {
     return (
       <CountSheet
+        config={config}
+        labelers={labelers}
         count={openCount}
         items={items}
         movements={movements}
@@ -372,12 +387,13 @@ function CountsTab({ items, movements, counts, countLines, openCount, addCount, 
           const s = summarizeCount(lines);
           setNotice({ kind: 'ok', message: `Count closed — ${adjusts.length} adjustment${adjusts.length === 1 ? '' : 's'} posted. Net variance ${signedMoney(s.varianceValue)}.` });
         }}
-        setNotice={setNotice}
       />
     );
   }
   return (
     <StartCount
+      config={config}
+      labelers={labelers}
       counts={counts}
       countLines={countLines}
       addCount={addCount}
@@ -387,7 +403,7 @@ function CountsTab({ items, movements, counts, countLines, openCount, addCount, 
   );
 }
 
-function StartCount({ counts, countLines, addCount, currentUserPersona, setNotice }) {
+function StartCount({ config, labelers, counts, countLines, addCount, currentUserPersona, setNotice }) {
   const [area, setArea] = useState('');
   const [label, setLabel] = useState('');
   const closed = useMemo(
@@ -397,13 +413,13 @@ function StartCount({ counts, countLines, addCount, currentUserPersona, setNotic
 
   const start = () => {
     const c = makeCount({
-      label: label.trim() || (area ? `${storageAreaLabel(area)} count` : 'Full count'),
+      label: label.trim() || (area ? `${labelers.areaLabel(area)} count` : 'Full count'),
       storageArea: area || null,
       countedBy: currentUserPersona,
       startedAt: new Date().toISOString(),
     });
     addCount(c);
-    setNotice({ kind: 'ok', message: `Count started${area ? ` — ${storageAreaLabel(area)}` : ''}. Walk the shelf and enter what's there.` });
+    setNotice({ kind: 'ok', message: `Count started${area ? ` — ${labelers.areaLabel(area)}` : ''}. Walk the shelf and enter what's there.` });
   };
 
   return (
@@ -413,8 +429,8 @@ function StartCount({ counts, countLines, addCount, currentUserPersona, setNotic
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
           <Field label="Scope">
             <select className={inputCls} value={area} onChange={(e) => setArea(e.target.value)}>
-              <option value="">Whole kitchen</option>
-              {STORAGE_AREAS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+              <option value="">Whole {config.key}</option>
+              {config.storageAreas.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
             </select>
           </Field>
           <Field label="Label" hint="optional">
@@ -434,7 +450,6 @@ function StartCount({ counts, countLines, addCount, currentUserPersona, setNotic
           {closed.map((c, i) => {
             const lines = countLines.filter((l) => l.countId === c.id);
             const s = summarizeCount(lines);
-            // compare to the previous closed count of the SAME scope
             const prev = closed.slice(i + 1).find((p) => (p.storageArea || null) === (c.storageArea || null));
             const cmp = prev ? compareToPrevious(s, summarizeCount(countLines.filter((l) => l.countId === prev.id))) : null;
             return (
@@ -442,7 +457,7 @@ function StartCount({ counts, countLines, addCount, currentUserPersona, setNotic
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
                     <div className="font-medium text-[#1A1815]">{c.label}</div>
-                    <div className="text-[0.625rem] text-[#5A5751]">{c.storageArea ? storageAreaLabel(c.storageArea) : 'Whole kitchen'} · {when(c.closedAt)} · {c.countedBy || '—'}</div>
+                    <div className="text-[0.625rem] text-[#5A5751]">{c.storageArea ? labelers.areaLabel(c.storageArea) : `Whole ${config.key}`} · {when(c.closedAt)} · {c.countedBy || '—'}</div>
                   </div>
                   <div className="text-right">
                     <div className={`text-sm font-semibold tabular-nums ${varText(s.varianceValue)}`}>{signedMoney(s.varianceValue)}</div>
@@ -451,7 +466,7 @@ function StartCount({ counts, countLines, addCount, currentUserPersona, setNotic
                 </div>
                 {cmp && (
                   <div className="text-[0.625rem] text-[#5A5751] mt-1">
-                    {cmp.tightening ? 'Tighter than last time' : 'Wider than last time'} ({signedMoney(cmp.delta)} vs last {storageAreaLabel(c.storageArea || '')} count)
+                    {cmp.tightening ? 'Tighter than last time' : 'Wider than last time'} ({signedMoney(cmp.delta)} vs last {c.storageArea ? labelers.areaLabel(c.storageArea) : 'full'} count)
                   </div>
                 )}
               </div>
@@ -464,9 +479,9 @@ function StartCount({ counts, countLines, addCount, currentUserPersona, setNotic
 }
 
 // CountSheet — the live count. For each in-scope item: expected on-hand (derived,
-// snapshotted on save), a counted input, the count mode, and the live variance +
-// its value. Closing reconciles the ledger.
-function CountSheet({ count, items, movements, countLines, addCountLine, updateCountLine, onClose, setNotice }) {
+// snapshotted on save), a counted input, and the live variance + its value.
+// Closing reconciles the ledger.
+function CountSheet({ config, labelers, count, items, movements, countLines, addCountLine, updateCountLine, onClose }) {
   const [drafts, setDrafts] = useState({});   // itemId -> string being typed
 
   const scoped = useMemo(() => {
@@ -480,7 +495,7 @@ function CountSheet({ count, items, movements, countLines, addCountLine, updateC
     return m;
   }, [countLines]);
 
-  // A line's effective values for live display: the typed draft (if any) over the saved line.
+  // A line's effective values for live display: typed draft (if any) over the saved line.
   const effectiveLine = (it) => {
     const saved = lineByItem[it.id] || null;
     const draft = drafts[it.id];
@@ -510,9 +525,8 @@ function CountSheet({ count, items, movements, countLines, addCountLine, updateC
     }
   };
 
-  // The lines we actually have entries for (saved), for the summary + close.
-  // Plain consts (cheap) so the live totals can't drift from the rendered rows
-  // and we don't memoize over the per-render effectiveLine closure.
+  // Plain consts (cheap) so the live totals can't drift from the rendered rows and
+  // we don't memoize over the per-render effectiveLine closure.
   const enteredLines = scoped
     .map((it) => (lineByItem[it.id] ? effectiveLine(it) : null))
     .filter(Boolean);
@@ -524,7 +538,7 @@ function CountSheet({ count, items, movements, countLines, addCountLine, updateC
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div>
           <div className="font-medium text-[#1A1815]">{count.label}</div>
-          <div className="text-[0.625rem] text-[#5A5751]">{count.storageArea ? storageAreaLabel(count.storageArea) : 'Whole kitchen'} · started {when(count.startedAt)} · {countedItems}/{scoped.length} counted</div>
+          <div className="text-[0.625rem] text-[#5A5751]">{count.storageArea ? labelers.areaLabel(count.storageArea) : `Whole ${config.key}`} · started {when(count.startedAt)} · {countedItems}/{scoped.length} counted</div>
         </div>
         <button
           type="button"
@@ -546,7 +560,7 @@ function CountSheet({ count, items, movements, countLines, addCountLine, updateC
 
       {scoped.length === 0 ? (
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-6 text-center text-sm text-[#5A5751]">
-          No items in {count.storageArea ? storageAreaLabel(count.storageArea) : 'the kitchen'} yet. Add items in the Stock tab first.
+          No items in {count.storageArea ? labelers.areaLabel(count.storageArea) : `the ${config.key}`} yet. Add items in the Stock tab first.
         </div>
       ) : (
         <div className="overflow-x-auto border border-[#E8E4DC]">

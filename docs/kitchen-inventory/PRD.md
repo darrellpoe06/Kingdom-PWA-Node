@@ -25,6 +25,21 @@ on-device OCR, and a voice layer. Kitchen Inventory is the **chef-domain vertica
 on that base**. That is why increment 1 is small, real, and trustworthy rather
 than a thin mock of a big surface.
 
+### Placement & modularity (Darrell, 2026-06-26)
+
+Kitchen Inventory is **homed inside Chef's Corner** — recipes and inventory
+together — as Chef's Corner's stewardship sections (**Recipes · Kitchen
+Inventory · Recipe Costing**), gated to inventory stewards. It is built as a
+**clean, configurable module** (`components/KitchenInventory.jsx`) that takes a
+`config` of taxonomy + copy (default `KITCHEN_CONFIG`) and renders the same
+Stock + Counts workflow for **any** context, so the *same* module can surface
+elsewhere later — e.g. church AV gear or business assets — with a different
+config (categories/areas/units/copy), same derived-on-hand + variance engine.
+It is mounted by a **dynamic import** (a runtime mount, not a static
+feature-to-feature coupling — `module-boundary-guard`), so its chunk stays split
+and loads only when the Kitchen tab opens. **Recipe Costing** ties the Chef's
+Corner recipes *directly* to the kitchen's real item costs (see §3.2).
+
 ### Design principles (inherited, binding)
 
 - **Derived, never painted.** Every on-hand and dollar figure is computed from
@@ -110,9 +125,15 @@ Legend: **[1]** = in increment 1 (this PR) · **[R]** = roadmap.
 
 - **[1] Par levels + reorder flagging** (par = the item's reorder point).
   **[R] Automatic shopping list** from par gaps (order qty = par − on-hand).
-- **[R] Recipe costing + menu profitability** — join Chef's Corner recipes
-  (`recipes` table) to item unit costs; cost a plate, surface margin. Ties the
-  financial-engineering lane.
+- **[1] Recipe costing + menu profitability** — `lib/recipe-costing.js` joins a
+  Chef's Corner recipe's ingredients to inventory item unit costs (reusing the
+  dimension-aware `recipe-units` engine): per-batch + per-serving plate cost,
+  **honest coverage** (an unmatched ingredient is flagged, never priced at $0),
+  and an optional ephemeral menu price → **food-cost % + margin**. Surfaced as
+  Chef's Corner's **Recipe Costing** section. Money stays the owner's hand (the
+  menu price is a what-if, never stored). *AC:* a recipe with matched, costed
+  ingredients shows a per-serving cost and coverage; an unmatched ingredient is
+  listed as such; entering a menu price shows food-cost % + margin. (Unit-tested.)
 - **[R] Vendor management + price tracking** — `vendors`, `vendor_prices`
   (history); show price trend per item; cheapest-vendor hint.
 - **[R] Invoice scanning auto-updates inventory** — OCR a delivery invoice →
@@ -268,13 +289,20 @@ movements in the immutable 0052 ledger). No anon policy. Both tables added to th
 
 ## 7. What shipped in increment 1
 
-Files: `lib/kitchen-taxonomy.js`, `lib/kitchen-count.js`,
-`lib/kitchen-counts-sync.js`, `lib/kitchen-count-lines-sync.js`,
-`components/KitchenInventory.jsx`, migration
-`0053-kitchen-inventory-counts.sql`, tests `__tests__/kitchen-count.test.js`
-(incl. the end-to-end value/variance/reconcile proof) + `kitchen-taxonomy.test.js`,
-wired into `surfaces.js` + the shell (nav, sync, dispatchers, render, feedback
-area). Reuses `inventory.js`, `inventory_items` / `inventory_movements`, the
+Files: `lib/kitchen-taxonomy.js` (incl. `KITCHEN_CONFIG`, the module config),
+`lib/kitchen-count.js`, `lib/kitchen-counts-sync.js`,
+`lib/kitchen-count-lines-sync.js`, `lib/recipe-costing.js` (recipe ↔ item-cost
+join), `components/KitchenInventory.jsx` (the config-driven reusable module),
+`components/ChefCorner.jsx` (homes the module + the Recipe Costing section),
+migration `0053-kitchen-inventory-counts.sql`, tests
+`__tests__/kitchen-count.test.js` (incl. the end-to-end value/variance/reconcile
+proof), `kitchen-taxonomy.test.js`, and `recipe-costing.test.js`.
+
+**Placement:** mounted **inside Chef's Corner** (Recipes · Kitchen Inventory ·
+Recipe Costing), steward-gated, via a dynamic import. The standalone top-level
+Kitchen tab from the first increment was **retired** in favor of this home; the
+shell still owns the inventory data + dispatchers and passes them down to Chef's
+Corner. Reuses `inventory.js`, `inventory_items` / `inventory_movements`, the
 table-sync layer, the role/tenant model, and the shared UI primitives.
 
 **Apply on merge:** run `0053-kitchen-inventory-counts.sql` against the cloud

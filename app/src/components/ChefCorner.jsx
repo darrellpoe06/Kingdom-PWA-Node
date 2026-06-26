@@ -21,8 +21,8 @@
 // the classes is what makes the midnight theme legible (and what the per-theme
 // contrast gate can actually verify).
 // =============================================================================
-import React, { useState, useMemo } from 'react';
-import { SectionTitle } from './shared.jsx';
+import React, { useState, useMemo, Suspense } from 'react';
+import { SectionTitle, TabScroll } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import TextSizeControl from './TextSizeControl.jsx';
 import {
@@ -32,6 +32,13 @@ import {
 import { describeIngredient } from '../lib/recipe-units.js';
 import { importRecipeFromImage } from '../lib/recipe-photo-import.js';
 import { POE_FAMILY_RECIPES } from '../lib/chefs-corner-recipes.js';
+import { costRecipe, foodCostMargin } from '../lib/recipe-costing.js';
+
+// Kitchen Inventory is homed INSIDE Chef's Corner (recipes + inventory together).
+// It is a sibling feature module mounted by a DYNAMIC import — a runtime mount,
+// not a static feature-to-feature coupling (module-boundary-guard) — so its chunk
+// stays split and only loads when the Kitchen tab is opened.
+const KitchenInventory = React.lazy(() => import('./KitchenInventory.jsx'));
 
 // Theme tokens — shared classes the midnight theme remaps to AA-legible values.
 // Used as CLASSES (never inline style) so dark mode actually works.
@@ -51,6 +58,7 @@ const BD_INK = 'border-[#1A1815]';     // strong border
 const BD_ACCENT = 'border-[#B85838]';  // accent border
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
 const serif = { fontFamily: '"Fraunces", serif' };
+const fmtMoney = (n) => `$${(Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function ChefCorner({
   recipes = [],
@@ -58,10 +66,16 @@ export default function ChefCorner({
   updateRecipe,
   deleteRecipe,
   currentUserPersona = null,
+  inventory = null, // { items, movements, counts, countLines, add*/update* dispatchers, canManage } — steward-only
 }) {
   const [mode, setMode] = useState('browse'); // 'browse' | 'detail' | 'add'
   const [selectedId, setSelectedId] = useState(null);
   const [query, setQuery] = useState('');
+  const [section, setSection] = useState('recipes'); // 'recipes' | 'kitchen' | 'costing'
+  const canManageInventory = !!(inventory && inventory.canManage);
+  // Steward-only sections are absent from the DOM for everyone else (no-leak);
+  // force back to Recipes if the gate isn't held.
+  const activeSection = canManageInventory ? section : 'recipes';
 
   // Canonical content ∪ cloud-synced additions, deduped by id (canonical wins).
   const allRecipes = useMemo(() => {
@@ -101,44 +115,204 @@ export default function ChefCorner({
         <TextSizeControl variant="panel" />
       </div>
 
-      {mode === 'browse' && (
-        <BrowseView
-          collection={collection}
-          recipes={filtered}
-          total={allRecipes.length}
-          query={query}
-          setQuery={setQuery}
-          onOpen={openDetail}
-          onAdd={() => setMode('add')}
-        />
+      {/* Section tabs — Recipes is always here; Kitchen (the inventory module) +
+          Costing are steward-only, so the strip only appears for stewards and is
+          absent from the DOM otherwise (no-leak). Recipes + inventory live
+          together: this is Kitchen Inventory's home. */}
+      {canManageInventory && (
+        <TabScroll chrome={false} label="Chef's Corner sections">
+          {[['recipes', 'Recipes'], ['kitchen', 'Kitchen Inventory'], ['costing', 'Recipe Costing']].map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setSection(k)}
+              className={`whitespace-nowrap px-3 py-2 text-xs uppercase tracking-wider border-b-2 ${FOCUS} ${activeSection === k ? `${BD_ACCENT} ${T_INK} font-medium` : `border-transparent ${T_MUTE}`}`}
+            >
+              {label}
+            </button>
+          ))}
+        </TabScroll>
       )}
 
-      {mode === 'detail' && selected && (
-        <DetailView
-          recipe={selected}
-          editable={!canonicalIds.has(selected.id)}
-          onBack={backToBrowse}
-          onDelete={
-            deleteRecipe && !canonicalIds.has(selected.id)
-              ? () => { deleteRecipe(selected.id); backToBrowse(); }
-              : null
-          }
-        />
+      {activeSection === 'recipes' && (
+        <>
+          {mode === 'browse' && (
+            <BrowseView
+              collection={collection}
+              recipes={filtered}
+              total={allRecipes.length}
+              query={query}
+              setQuery={setQuery}
+              onOpen={openDetail}
+              onAdd={() => setMode('add')}
+            />
+          )}
+
+          {mode === 'detail' && selected && (
+            <DetailView
+              recipe={selected}
+              editable={!canonicalIds.has(selected.id)}
+              onBack={backToBrowse}
+              onDelete={
+                deleteRecipe && !canonicalIds.has(selected.id)
+                  ? () => { deleteRecipe(selected.id); backToBrowse(); }
+                  : null
+              }
+            />
+          )}
+
+          {mode === 'add' && (
+            <AddView
+              collection={collection}
+              currentUserPersona={currentUserPersona}
+              onCancel={backToBrowse}
+              onSave={(recipe) => {
+                if (addRecipe) {
+                  const id = addRecipe(recipe);
+                  if (id) { setSelectedId(id); setMode('detail'); return; }
+                }
+                backToBrowse();
+              }}
+            />
+          )}
+        </>
       )}
 
-      {mode === 'add' && (
-        <AddView
-          collection={collection}
-          currentUserPersona={currentUserPersona}
-          onCancel={backToBrowse}
-          onSave={(recipe) => {
-            if (addRecipe) {
-              const id = addRecipe(recipe);
-              if (id) { setSelectedId(id); setMode('detail'); return; }
-            }
-            backToBrowse();
-          }}
-        />
+      {activeSection === 'kitchen' && canManageInventory && (
+        <Suspense fallback={<div className={`py-10 text-center text-sm ${T_MUTE}`}>Loading kitchen inventory…</div>}>
+          <KitchenInventory
+            items={inventory.items || []}
+            movements={inventory.movements || []}
+            counts={inventory.counts || []}
+            countLines={inventory.countLines || []}
+            addItem={inventory.addItem}
+            updateItem={inventory.updateItem}
+            recordMovements={inventory.recordMovements}
+            addCount={inventory.addCount}
+            updateCount={inventory.updateCount}
+            addCountLine={inventory.addCountLine}
+            updateCountLine={inventory.updateCountLine}
+            currentUserPersona={currentUserPersona}
+          />
+        </Suspense>
+      )}
+
+      {activeSection === 'costing' && canManageInventory && (
+        <CostingView recipes={allRecipes} items={inventory.items || []} />
+      )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// CostingView — recipe cost from the kitchen's REAL item costs (lib/recipe-
+// costing.js). The tie that makes recipes + inventory together pay off: a plate
+// cost, honest coverage, and (with an optional menu price) food-cost % + margin —
+// the seed of menu profitability. Money stays the owner's hand: the menu price is
+// an ephemeral what-if, never stored.
+// -----------------------------------------------------------------------------
+function CostingView({ recipes, items }) {
+  const [openId, setOpenId] = useState(null);
+  const priced = useMemo(
+    () => recipes
+      .map((r) => ({ recipe: r, cost: costRecipe(r, items) }))
+      .sort((a, b) => (b.cost.perServing || b.cost.perBatch || 0) - (a.cost.perServing || a.cost.perBatch || 0)),
+    [recipes, items],
+  );
+  const haveCosts = (items || []).some((it) => Number(it.unitCost) > 0);
+
+  return (
+    <div className="space-y-4">
+      <div className={`${BG_CARD} border p-4 ${BD_LINE}`}>
+        <div className={`text-sm leading-relaxed ${T_INK}`} style={serif}>
+          Each recipe priced from your <strong>Kitchen Inventory</strong> item costs — a plate cost you can trust because
+          it traces to real numbers. Coverage shows how much of a recipe we could price; an unmatched ingredient is
+          flagged, never counted as free.
+        </div>
+        {!haveCosts && (
+          <p className={`text-xs mt-2 ${T_MUTE}`}>
+            Add unit costs to your items in the <strong>Kitchen Inventory</strong> tab and matching ingredients will price automatically.
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {priced.map(({ recipe, cost }) => {
+          const open = openId === recipe.id;
+          const pct = Math.round(cost.coverage * 100);
+          return (
+            <div key={recipe.id} className={`${BG_CARD} border ${BD_LINE}`}>
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : recipe.id)}
+                className={`w-full text-left p-3 flex flex-wrap items-baseline justify-between gap-2 ${FOCUS}`}
+              >
+                <div className="min-w-0">
+                  <div className={`font-medium ${T_INK}`} style={serif}>{recipe.title}</div>
+                  <div className={`text-[0.625rem] ${T_MUTE}`}>
+                    {cost.costableLines}/{cost.totalLines} ingredients priced ({pct}% coverage){cost.approximate ? ' · incl. approx.' : ''}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`text-sm font-semibold tabular-nums ${T_INK}`}>
+                    {cost.perServing != null ? `${fmtMoney(cost.perServing)}/serving` : fmtMoney(cost.perBatch)}
+                  </div>
+                  <div className={`text-[0.625rem] ${T_MUTE}`}>
+                    batch {fmtMoney(cost.perBatch)}{cost.partial ? ' · partial (lower bound)' : ''}
+                  </div>
+                </div>
+              </button>
+              {open && <CostBreakdown cost={cost} />}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CostBreakdown({ cost }) {
+  const [price, setPrice] = useState('');
+  const margin = foodCostMargin(cost.perServing || 0, price);
+  return (
+    <div className={`border-t p-3 space-y-3 ${BD_LINE}`}>
+      <ul className="space-y-1">
+        {cost.lines.map((l, i) => (
+          <li key={i} className={`flex items-baseline justify-between gap-3 text-xs ${l.costable ? T_INK : T_MUTE}`}>
+            <span className="min-w-0 truncate">
+              {l.costable ? <span className={T_GREEN}>·</span> : <span className={T_ACCENT}>·</span>}{' '}
+              {l.raw}
+              {!l.costable && <span className={`italic ${T_MUTE}`}> — {l.reason === 'no-item' ? 'no matching item' : l.reason === 'no-quantity' ? 'no quantity' : 'no unit conversion'}</span>}
+              {l.costable && l.approximate && <span className={`italic ${T_MUTE}`}> ~approx</span>}
+            </span>
+            <span className="tabular-nums shrink-0">{l.costable ? fmtMoney(l.lineCost) : '—'}</span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Ephemeral menu-price what-if → food-cost % + margin (never stored). */}
+      {cost.perServing != null && (
+        <div className={`flex flex-wrap items-center gap-2 pt-2 border-t ${BD_LINE}`}>
+          <label className={`text-[0.625rem] uppercase tracking-wider ${T_MUTE}`} htmlFor="menu-price">Menu price / serving</label>
+          <input
+            id="menu-price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="12.00"
+            className={`w-24 border px-2 py-1.5 text-sm ${BG_CARD} ${BD_LINE} ${T_INK}`}
+          />
+          {margin.foodCostPct != null ? (
+            <span className={`text-xs ${T_MUTE}`}>
+              food cost <span className={`font-semibold ${T_INK}`}>{margin.foodCostPct.toFixed(1)}%</span> · margin{' '}
+              <span className={`font-semibold ${T_GREEN}`}>{fmtMoney(margin.marginDollars)}</span> ({margin.marginPct.toFixed(0)}%)
+            </span>
+          ) : (
+            <span className={`text-xs ${T_MUTE}`}>enter a price to see food-cost % + margin</span>
+          )}
+        </div>
       )}
     </div>
   );
