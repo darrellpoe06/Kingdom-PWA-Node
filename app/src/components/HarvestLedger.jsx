@@ -28,7 +28,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import { getChoirAccess } from '../lib/choir-sync.js';
-import { HARVEST_TYPES, harvestMapFor, harvestType } from '../lib/video-harvest.js';
+import { HARVEST_TYPES, harvestMapFor, harvestType, NAS_GATED_KEYS } from '../lib/video-harvest.js';
+
+// Which harvests need the Whisper transcript (NAS / GPU) vs. auto-derive in-app.
+const NAS_GATED = new Set(NAS_GATED_KEYS);
 import { subscribeLedger, recordHarvest, markHarvestNotApplicable } from '../lib/harvest-ledger.js';
 
 const fmtDate = (d) => {
@@ -240,16 +243,34 @@ export default function HarvestLedger() {
           </div>
 
           <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
-            <p className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2">Harvest coverage across the corpus</p>
+            <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
+              <p className="text-[10px] uppercase tracking-wider text-[#5A5751]">Harvest coverage across the corpus</p>
+              <p className="text-[10px] text-[#5A5751]">
+                <span className="font-semibold" style={{ color: '#166534' }}>auto</span> = mined now from the recording ·
+                <span className="font-semibold" style={{ color: '#92400E' }}> NAS</span> = needs the Whisper transcript
+              </p>
+            </div>
             <div className="space-y-1">
               {HARVEST_TYPES.map((t) => {
+                // count a partial harvest as progress too, so an auto type that
+                // lights partially (scripture / songs) still shows movement.
                 const bt = l.byType[t.key] || { complete: 0, partial: 0, none: 0, na: 0 };
-                const done = bt.complete;
+                const done = bt.complete + bt.partial * 0.5;
                 const pct = l.videos ? Math.round((done / l.videos) * 100) : 0;
+                const gated = NAS_GATED.has(t.key);
                 return (
                   <div key={t.key} className="flex items-center gap-2">
-                    <span className="text-[11px] text-[#1A1815] w-28 shrink-0" title={t.description}>{t.label}</span>
-                    <div className="flex-1 h-2 rounded" style={{ background: '#EFEBE3' }}><div className="h-2 rounded bg-[#5A6E3D]" style={{ width: `${pct}%` }} /></div>
+                    <span className="text-[11px] text-[#1A1815] w-28 shrink-0 flex items-center gap-1" title={t.description}>
+                      <span className="truncate">{t.label}</span>
+                      <span
+                        className="text-[8px] px-1 rounded leading-tight shrink-0"
+                        style={gated
+                          ? { color: '#92400E', background: '#FBF6EC', border: '1px solid #B8893B' }
+                          : { color: '#166534', background: '#F0FAF1', border: '1px solid #166534' }}
+                        title={gated ? 'Needs the Whisper transcript — run on the SME pipeline (NAS / GPU)' : 'Auto-derived in-app from the ingested recording'}
+                      >{gated ? 'NAS' : 'auto'}</span>
+                    </span>
+                    <div className="flex-1 h-2 rounded" style={{ background: '#EFEBE3' }}><div className="h-2 rounded" style={{ width: `${pct}%`, background: gated ? '#B8893B' : '#5A6E3D' }} /></div>
                     <span className="text-[10px] text-[#5A5751] w-24 text-right shrink-0">{bt.complete}✓ {bt.partial}◐ {bt.none}·{bt.na ? ` ${bt.na}—` : ''}</span>
                   </div>
                 );
@@ -265,7 +286,7 @@ export default function HarvestLedger() {
             ))}
           </div>
           <p className="mt-3 text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
-            ✦ marks a harvest verified against real app data (the message library, the choir library). Off-app harvests (transcript, lessons, discernment) are recorded by a steward as each recording is mined on the SME pipeline.
+            ✦ marks a harvest verified against real app data. The <span className="font-semibold not-italic">auto</span> harvests — message, Scripture cited, worship songs, and the service event — are mined in-app the moment a recording is ingested. The <span className="font-semibold not-italic">NAS</span> harvests — transcript, lessons, discernment, testimony, trivia — need the Whisper transcript produced on the SME pipeline (a steward’s NAS / GPU run), then recorded here.
           </p>
         </>
       )}

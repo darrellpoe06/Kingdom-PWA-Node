@@ -21,27 +21,42 @@
 // `derived: 'transcript'` marks a harvest that comes from re-reading the already-
 // ingested corpus (the Whisper transcript), NOT from re-fetching the video — the
 // one-source-many-harvests rule.
+//
+// HOW each type is mined (the honest split that keeps the % moving — see
+// deriveSignals):
+//   `auto: true`  — derived in-app NOW from real fields already on the ingested
+//                   row (no transcript, no GPU): message, scripture, songs, events.
+//   `gate: 'nas'` — needs the Whisper TRANSCRIPT, produced on the SME pipeline
+//                   (NAS / GPU) and then recorded: the transcript + its LLM
+//                   derivatives (lessons / discernment / testimony / trivia).
+// An `auto` type with no real evidence still reads 'none' (an honest gap); a
+// gated type stays 'none' until the NAS run records it. Nothing is painted.
 export const HARVEST_TYPES = [
   { key: 'transcript', label: 'Transcript', short: 'Words', foundation: true,
-    surface: 'sme-pipeline',
-    description: 'The base corpus — the Whisper transcript every other harvest derives from. Mine this once; reuse it for all the rest.' },
-  { key: 'sermon', label: 'Message', short: 'Sermon', surface: 'pulpit', derived: 'transcript',
+    surface: 'sme-pipeline', gate: 'nas',
+    description: 'The base corpus — the Whisper transcript every other harvest derives from. Mine this once on the SME pipeline (NAS); reuse it for all the rest.' },
+  { key: 'sermon', label: 'Message', short: 'Sermon', surface: 'pulpit', derived: 'transcript', auto: true,
     description: 'The teaching itself — speaker, title, the message-library entry congregants watch.' },
-  { key: 'scripture', label: 'Scripture', short: 'Refs', surface: 'scripture', derived: 'transcript',
+  { key: 'scripture', label: 'Scripture', short: 'Refs', surface: 'scripture', derived: 'transcript', auto: true,
     description: 'Every Scripture reference cited in the service, fed to the Scripture library.' },
-  { key: 'songs', label: 'Worship songs', short: 'Songs', surface: 'choir', derived: 'transcript',
+  { key: 'songs', label: 'Worship songs', short: 'Songs', surface: 'choir', derived: 'transcript', auto: true,
     description: 'Choir / worship songs sung, fed to the historical choir library (the choir lane consumes these).' },
-  { key: 'lessons', label: 'Lessons', short: 'Learn', surface: 'learn', derived: 'transcript',
-    description: 'The teaching turned into paced Learn course material.' },
-  { key: 'discernment', label: 'Discernment', short: 'World', surface: 'discernment', derived: 'transcript',
-    description: 'World-issue / cultural context the teaching engages (e.g. the African-American plight), fed to the discernment track.' },
-  { key: 'testimony', label: 'Testimony & stories', short: 'Stories', surface: 'study', derived: 'transcript',
-    description: 'Quotable testimonies and Sermon Stories worth keeping.' },
-  { key: 'trivia', label: 'Trivia', short: 'Trivia', surface: 'engagement', derived: 'transcript',
-    description: 'Engagement questions drawn from the message (BG’s own end-of-message questions).' },
-  { key: 'events', label: 'Events-as-data', short: 'Events', surface: 'institutional-memory', derived: 'transcript',
+  { key: 'lessons', label: 'Lessons', short: 'Learn', surface: 'learn', derived: 'transcript', gate: 'nas',
+    description: 'The teaching turned into paced Learn course material (needs the transcript).' },
+  { key: 'discernment', label: 'Discernment', short: 'World', surface: 'discernment', derived: 'transcript', gate: 'nas',
+    description: 'World-issue / cultural context the teaching engages (e.g. the African-American plight), fed to the discernment track (needs the transcript).' },
+  { key: 'testimony', label: 'Testimony & stories', short: 'Stories', surface: 'study', derived: 'transcript', gate: 'nas',
+    description: 'Quotable testimonies and Sermon Stories worth keeping (needs the transcript).' },
+  { key: 'trivia', label: 'Trivia', short: 'Trivia', surface: 'engagement', derived: 'transcript', gate: 'nas',
+    description: 'Engagement questions drawn from the message (BG’s own end-of-message questions) — needs the transcript / audio.' },
+  { key: 'events', label: 'Events-as-data', short: 'Events', surface: 'institutional-memory', derived: 'transcript', auto: true,
     description: 'Institutional-memory events — what happened this service, captured as structured data.' },
 ];
+
+// The harvests that auto-derive in-app now (no transcript) vs. the ones gated on
+// the NAS Whisper run. Exported so the surface can label the gate honestly.
+export const AUTO_HARVEST_KEYS = HARVEST_TYPES.filter((t) => t.auto).map((t) => t.key);
+export const NAS_GATED_KEYS = HARVEST_TYPES.filter((t) => t.gate === 'nas').map((t) => t.key);
 
 export const HARVEST_KEYS = HARVEST_TYPES.map((t) => t.key);
 const TYPE_BY_KEY = Object.fromEntries(HARVEST_TYPES.map((t) => [t.key, t]));
@@ -52,6 +67,53 @@ const VALID_STATUS = new Set(['none', 'partial', 'complete', 'na']);
 // 'na' (a steward marking a type genuinely absent — e.g. a Bible study with no
 // choir song) ranks as a settled, non-gap state alongside 'complete'.
 const RANK = { none: 0, partial: 1, complete: 2, na: 2 };
+
+// --- Scripture-reference scanner (dependency-free) ---------------------------
+// Pulls Book chapter:verse references out of free text (a title, a note, a
+// transcript). Kept inline so this module stays import-free (Node + browser +
+// test). Conservative: it ONLY matches a real "<Book> <ch>:<vs>" shape, so a
+// message title like "LET GO AND LET GOD" yields nothing (no false positives).
+// The refs it returns are REAL — they literally appear in the source text — so
+// the scripture harvest stays evidence-backed, never painted (DR-0076).
+const BIBLE_BOOKS = [
+  'Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth',
+  '1 Samuel','2 Samuel','1 Kings','2 Kings','1 Chronicles','2 Chronicles','Ezra',
+  'Nehemiah','Esther','Job','Psalms','Psalm','Proverbs','Ecclesiastes',
+  'Song of Solomon','Song of Songs','Isaiah','Jeremiah','Lamentations','Ezekiel',
+  'Daniel','Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk',
+  'Zephaniah','Haggai','Zechariah','Malachi','Matthew','Mark','Luke','John','Acts',
+  'Romans','1 Corinthians','2 Corinthians','Galatians','Ephesians','Philippians',
+  'Colossians','1 Thessalonians','2 Thessalonians','1 Timothy','2 Timothy','Titus',
+  'Philemon','Hebrews','James','1 Peter','2 Peter','1 John','2 John','3 John',
+  'Jude','Revelation',
+];
+// Longest names first so "Song of Solomon" wins over "Song"; "1 John" over "John".
+const BOOK_ALT = [...BIBLE_BOOKS].sort((a, b) => b.length - a.length)
+  .map((b) => b.replace(/ /g, '\\s+')).join('|');
+const REF_RE = new RegExp(`\\b(${BOOK_ALT})\\.?\\s+(\\d{1,3}):(\\d{1,3})(?:\\s*[-–]\\s*\\d{1,3})?\\b`, 'gi');
+
+// Tidy one matched book name to its canonical spelling (collapse whitespace,
+// title-case via the registry so "1  john" -> "1 John").
+const CANON_BOOK = new Map(BIBLE_BOOKS.map((b) => [b.toLowerCase().replace(/\s+/g, ' '), b]));
+
+export function extractScriptureRefs(texts) {
+  const list = Array.isArray(texts) ? texts : [texts];
+  const seen = new Set();
+  const out = [];
+  for (const raw of list) {
+    if (!raw || typeof raw !== 'string') continue;
+    let m;
+    REF_RE.lastIndex = 0;
+    while ((m = REF_RE.exec(raw)) !== null) {
+      const bookKey = m[1].toLowerCase().replace(/\s+/g, ' ');
+      const book = CANON_BOOK.get(bookKey) || m[1].replace(/\s+/g, ' ');
+      const ref = `${book} ${m[2]}:${m[3]}`;
+      const key = ref.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); out.push(ref); }
+    }
+  }
+  return out;
+}
 
 // --- Single harvest record ---------------------------------------------------
 
@@ -114,18 +176,63 @@ export function videoCoverage(rawMap) {
 
 // --- Real-state signals (anti-painted-number cross-check) ---------------------
 
+// A one-line structured label for the institutional-memory event this service IS.
+// Real data only (date / type / speaker / message title) — the structured record
+// of "what happened this service", which is exactly the events-as-data harvest.
+export function eventLabel(sermon) {
+  const type = sermon?.serviceType === 'wednesday' ? 'Wednesday Bible study'
+    : sermon?.serviceType === 'sunday' ? 'Sunday service'
+    : (sermon?.serviceType || 'service');
+  const parts = [type, sermon?.serviceDate, sermon?.speaker, sermon?.title && `“${sermon.title}”`]
+    .filter(Boolean);
+  return parts.join(' · ');
+}
+
 // Derive harvest signals from real, queryable app rows for one video. This is
-// the verification-doctrine bridge: scripture present ON the sermon row, songs
-// LINKED to the video — evidence that lives in the DB now, not a recorded claim.
-// Returns a sparse map (only evidenced types). `evidenced: true` on each.
-export function deriveSignals({ sermon, songs } = {}) {
+// the verification-doctrine bridge: every signal traces to real state that lives
+// in the DB now, NOT a painted claim. Returns a sparse map (only evidenced types),
+// `evidenced: true` on each. The honest split (HARVEST_TYPES auto vs gate):
+//
+//   AUTO, no transcript needed — these move the % the instant a video is ingested:
+//     • sermon    — the sermon row existing IS the message captured.
+//     • events    — a dated service IS a structured institutional-memory event.
+//     • scripture — refs literally cited in the title / notes / scriptureRef
+//                   (and, when present, the transcript).
+//     • songs     — real choir_songs linked to this video (passed in by buildLedger).
+//
+//   TRANSCRIPT-GATED (NAS / GPU) — only the foundation `transcript` auto-derives
+//   here, and only when a real transcript is supplied. lessons / discernment /
+//   testimony / trivia need LLM extraction off that transcript and are RECORDED by
+//   the SME pipeline (recordHarvest); we never auto-mark them from mere presence.
+export function deriveSignals({ sermon, songs, transcript } = {}) {
   const sig = {};
+  const transcriptText = transcript && typeof transcript === 'object'
+    ? (transcript.text || '') : (typeof transcript === 'string' ? transcript : '');
+
   if (sermon) {
     // The sermon row existing IS the message captured.
     sig.sermon = { status: 'complete', count: 1, evidenced: true };
-    const ref = sermon.scriptureRef && String(sermon.scriptureRef).trim();
-    if (ref) sig.scripture = { status: 'partial', count: 1, refs: [ref], evidenced: true };
+
+    // Events-as-data: a dated service is a real structured event. This is the
+    // metadata harvest every ingested service yields — the un-freeze of the %.
+    if (sermon.serviceDate) {
+      sig.events = { status: 'complete', count: 1, refs: [eventLabel(sermon)], evidenced: true };
+    }
+
+    // Scripture: real references cited in the row's own text (+ transcript when
+    // present, which is far richer than a title). Honest 'partial' — the full
+    // scripture sweep of a whole message still wants the transcript.
+    const refs = extractScriptureRefs([sermon.scriptureRef, sermon.title, sermon.notes, transcriptText]);
+    if (refs.length) {
+      sig.scripture = { status: 'partial', count: refs.length, refs: refs.slice(0, 25), evidenced: true };
+    }
   }
+
+  // Transcript foundation: a real transcript present IS the transcript harvest.
+  if (transcriptText && transcriptText.trim().length > 0) {
+    sig.transcript = { status: 'complete', count: 1, evidenced: true };
+  }
+
   const linked = (songs || []).filter(Boolean);
   if (linked.length) {
     sig.songs = { status: 'partial', count: linked.length, evidenced: true };
@@ -231,22 +338,44 @@ export function harvestLedgerSummary(videos) {
 // we refuse to allow. Harvest rows whose video isn't a sermon (e.g. an SME lesson
 // recording) are included too, so the ledger covers the full ingested corpus.
 //
-//   sermons:  [{ videoId, title, serviceDate, serviceType, youtubeUrl, scriptureRef }]
-//   harvests: [{ videoId, title, serviceDate, serviceType, sourceKind, harvests }]
-//   songs:    [{ id, title, sourceVideoId, ... }]   (linked back to their source video)
+//   sermons:    [{ videoId, title, serviceDate, serviceType, youtubeUrl, scriptureRef }]
+//   harvests:   [{ videoId, title, serviceDate, serviceType, sourceKind, harvests }]
+//   songs:      [{ id, title, sourceVideoId, serviceDate, serviceType, ... }]
+//   transcripts:{ [videoId]: { text } }  — optional; the NAS Whisper output. When a
+//               video's transcript is present, its `transcript` harvest (and a
+//               richer scripture sweep) light up. Absent today (NAS-gated) -> {}.
 //
 // Returns harvestLedgerSummary(...) over the merged corpus.
-export function buildLedger({ sermons = [], harvests = [], songs = [] } = {}) {
+export function buildLedger({ sermons = [], harvests = [], songs = [], transcripts = {} } = {}) {
   const harvestByVideo = new Map();
   for (const h of harvests) if (h && h.videoId) harvestByVideo.set(h.videoId, h);
 
+  // Songs linked back to a video. PRIMARY link is source_video_id (an explicit
+  // harvest provenance). FALLBACK: a song logged on the same service date+type as
+  // a video is from that service's recording — a real link, not a guess — so the
+  // songs harvest lights for services that have songs even before backfill writes
+  // source_video_id. Keyed `date|type`; a 'both'-type song matches either service.
   const songsByVideo = new Map();
+  const songsByDateType = new Map();
+  const pushTo = (map, key, s) => { if (!map.has(key)) map.set(key, []); map.get(key).push(s); };
   for (const s of songs) {
-    const v = s && s.sourceVideoId;
-    if (!v) continue;
-    if (!songsByVideo.has(v)) songsByVideo.set(v, []);
-    songsByVideo.get(v).push(s);
+    if (!s) continue;
+    if (s.sourceVideoId) pushTo(songsByVideo, s.sourceVideoId, s);
+    else if (s.serviceDate) pushTo(songsByDateType, `${s.serviceDate}|${s.serviceType || 'sunday'}`, s);
   }
+  // Resolve the songs that belong to a video: explicit links + same date/service
+  // matches (a 'both' song matches any type that day), de-duped by song id.
+  const songsForVideo = (vid, date, type) => {
+    const out = [];
+    const seenIds = new Set();
+    const add = (s) => { const id = s.id ?? s; if (!seenIds.has(id)) { seenIds.add(id); out.push(s); } };
+    for (const s of songsByVideo.get(vid) || []) add(s);
+    if (date) {
+      for (const s of songsByDateType.get(`${date}|${type || 'sunday'}`) || []) add(s);
+      for (const s of songsByDateType.get(`${date}|both`) || []) add(s);
+    }
+    return out;
+  };
 
   const videos = [];
   const seen = new Set();
@@ -258,7 +387,11 @@ export function buildLedger({ sermons = [], harvests = [], songs = [] } = {}) {
     const ledgerRow = harvestByVideo.get(vid);
     const merged = mergeHarvests(
       ledgerRow ? ledgerRow.harvests : null,
-      deriveSignals({ sermon, songs: songsByVideo.get(vid) || [] }),
+      deriveSignals({
+        sermon,
+        songs: songsForVideo(vid, sermon.serviceDate, sermon.serviceType),
+        transcript: transcripts[vid] || null,
+      }),
     );
     videos.push({
       videoId: vid,
@@ -284,7 +417,10 @@ export function buildLedger({ sermons = [], harvests = [], songs = [] } = {}) {
       youtubeUrl: h.youtubeUrl || null,
       sourceKind: h.sourceKind || 'other',
       hasLedgerRow: true,
-      harvests: mergeHarvests(h.harvests, deriveSignals({ songs: songsByVideo.get(h.videoId) || [] })),
+      harvests: mergeHarvests(h.harvests, deriveSignals({
+        songs: songsForVideo(h.videoId, h.serviceDate, h.serviceType),
+        transcript: transcripts[h.videoId] || null,
+      })),
     });
   }
 
