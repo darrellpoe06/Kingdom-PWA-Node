@@ -147,6 +147,16 @@ const ICONS = {
       <path d="M7.5 14.5l3.5-4 3 2.5 4.5-6" />
     </>
   ),
+  // chef's toque — Chef's Corner / recipes (was a food emoji)
+  chefHat: (
+    <>
+      <path d="M7 13.5a3.5 3.5 0 0 1-1-6.86A4 4 0 0 1 14 5.2 3.5 3.5 0 0 1 17 13.5" />
+      <path d="M7 13.5h10v4a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 7 17.5Z" />
+      <line x1="9.5" y1="15.5" x2="9.5" y2="18.5" />
+      <line x1="12" y1="15.5" x2="12" y2="18.5" />
+      <line x1="14.5" y1="15.5" x2="14.5" y2="18.5" />
+    </>
+  ),
 };
 
 export const UI_ICON_NAMES = Object.keys(ICONS);
