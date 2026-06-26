@@ -271,40 +271,44 @@ export function describeIngredient(text, factor = 1) {
   const parsed = scaleAmount(parseAmount(text), factor);
   const { qty, unit, dim, name, raw, hadQuantity } = parsed;
 
+  const withName = (amount) => `${amount} ${name}`.trim();
+
   // No parseable quantity (e.g. "Salt, to taste") — nothing to scale or convert.
   if (!hadQuantity) {
-    return { raw, name, dim: null, hadQuantity: false, american: raw.trim(), metric: raw.trim(), altHint: null, approximate: false, note: null };
+    const r = raw.trim();
+    return { raw, name, dim: null, hadQuantity: false, american: r, metric: r, americanAmount: '', metricAmount: '', altHint: null, approximate: false, note: null };
   }
 
   // Count (no metric/imperial unit): scale the number, keep the words. Offer a
   // flagged approximate gram-equivalent for known items (eggs, cloves).
   if (!unit) {
     const amount = formatQuantity(qty);
-    const line = `${amount} ${name}`.trim();
+    const line = withName(amount);
     const item = itemWeightFor(name);
     const altHint = item ? `~${formatWeight(qty * item.grams, 'metric')} (${item.source})` : null;
-    return { raw, name, dim: DIMENSION.COUNT, hadQuantity: true, american: line, metric: line, altHint, approximate: !!altHint, note: altHint ? null : null };
+    return { raw, name, dim: DIMENSION.COUNT, hadQuantity: true, american: line, metric: line, americanAmount: amount, metricAmount: amount, altHint, approximate: !!altHint, note: null };
   }
 
   if (dim === DIMENSION.WEIGHT) {
     const grams = toBase(qty, unit);
-    const american = `${formatWeight(grams, 'american')} ${name}`.trim();
-    const metric = `${formatWeight(grams, 'metric')} ${name}`.trim();
+    const americanAmount = formatWeight(grams, 'american');
+    const metricAmount = formatWeight(grams, 'metric');
     const alt = weightToMl(grams, name); // approximate volume, only if density known
     const altHint = alt ? `~${formatVolume(alt.ml, 'american')} (${alt.density.source})` : null;
-    return { raw, name, dim, hadQuantity: true, american, metric, altHint, approximate: !!altHint, note: null };
+    return { raw, name, dim, hadQuantity: true, american: withName(americanAmount), metric: withName(metricAmount), americanAmount, metricAmount, altHint, approximate: !!altHint, note: null };
   }
 
   if (dim === DIMENSION.VOLUME) {
     const ml = toBase(qty, unit);
-    const american = `${formatVolume(ml, 'american')} ${name}`.trim();
-    const metric = `${formatVolume(ml, 'metric')} ${name}`.trim();
+    const americanAmount = formatVolume(ml, 'american');
+    const metricAmount = formatVolume(ml, 'metric');
     const alt = volumeToGrams(ml, name); // approximate weight, only if density known
     const altHint = alt ? `~${formatWeight(alt.grams, 'metric')} (${alt.density.source})` : null;
     const note = alt ? null : 'no density on file — kept by volume (not guessed)';
-    return { raw, name, dim, hadQuantity: true, american, metric, altHint, approximate: !!altHint, note };
+    return { raw, name, dim, hadQuantity: true, american: withName(americanAmount), metric: withName(metricAmount), americanAmount, metricAmount, altHint, approximate: !!altHint, note };
   }
 
   // Fallback (shouldn't happen): echo the raw line.
-  return { raw, name, dim: null, hadQuantity: true, american: raw.trim(), metric: raw.trim(), altHint: null, approximate: false, note: null };
+  const r = raw.trim();
+  return { raw, name, dim: null, hadQuantity: true, american: r, metric: r, americanAmount: '', metricAmount: '', altHint: null, approximate: false, note: null };
 }

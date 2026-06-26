@@ -373,13 +373,13 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
 function IngredientLine({ item, factor, system }) {
   const d = describeIngredient(item, factor);
   const primary = system === 'metric' ? d.metric : d.american;
-  const showSecondary = system === 'both' && d.dim !== 'count' && d.metric !== d.american;
+  const showSecondary = system === 'both' && d.dim !== 'count' && d.metricAmount && d.metricAmount !== d.americanAmount;
   return (
     <li className="flex gap-2 text-sm leading-relaxed" style={{ color: INK }}>
       <span className="shrink-0" style={{ color: ACCENT }}>·</span>
       <span>
         {primary}
-        {showSecondary && <span style={{ color: MUTE }}> ({d.metric})</span>}
+        {showSecondary && <span style={{ color: MUTE }}> ({d.metricAmount})</span>}
         {d.altHint && <span style={{ color: MUTE }}> · {d.altHint}</span>}
         {d.note && <span className="italic" style={{ color: MUTE }}> · {d.note}</span>}
       </span>
