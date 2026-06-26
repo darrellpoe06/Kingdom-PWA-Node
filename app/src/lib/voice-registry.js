@@ -31,6 +31,8 @@
 // lib/tts.js + TTSControl.jsx (the TTS lane). The two meet at resolveVoiceProvider:
 // it returns which engine + voice the player should drive, and the honest label.
 
+import { ARI_VOICE_NAME, ARI_VOICE_DESCRIPTION } from './ari.js';
+
 export const KIND = { SYNTHETIC: 'synthetic', PERSONAL: 'personal' };
 
 // Consent state machine for a personal voice. Self-consent only (a person enrolls
@@ -63,8 +65,13 @@ export const SYSTEM_VOICE = Object.freeze({
   id: 'system-default',
   kind: KIND.SYNTHETIC,
   personKey: null,
-  name: 'System voice',
-  description: 'The built-in reading voice — free, works on every device.',
+  // The default reading voice is Ari, speaking through the device's built-in
+  // (synthetic) voice. Honest: this is the free preset timbre, NOT a cloned
+  // human voice (bright line 2) — the name + description say exactly that, and
+  // both come from the one Ari identity source (lib/ari.js) so the assistant is
+  // the same Ari here as everywhere else.
+  name: ARI_VOICE_NAME,
+  description: ARI_VOICE_DESCRIPTION,
   consentState: CONSENT.GRANTED, // synthetic: no person, nothing to consent to
   entitlement: ENTITLEMENT.FREE,
   providerHint: PROVIDER.BROWSER,
