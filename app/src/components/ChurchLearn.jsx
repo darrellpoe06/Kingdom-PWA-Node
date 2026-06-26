@@ -47,6 +47,7 @@ import {
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
 } from '../lib/church-classes.js';
 import { askTutor } from '../lib/class-tutor.js';
+import { ARI } from '../lib/ari.js';
 import {
   LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
   AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile,
@@ -665,7 +666,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   return (
     <div className="mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">
-        🧭 Your guide for this {unitNoun}
+        🧭 {ARI.name} — your guide for this {unitNoun}
       </div>
 
       {/* The lesson-flow STANDARD — one clean, paced stage at a time */}
@@ -686,7 +687,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                   {m.content}
                   {m.role === 'assistant' && (
                     <span className="block text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] mt-1">
-                      Local tutor · test what it tells you
+                      {ARI.name} · the local tutor · test what it tells you
                     </span>
                   )}
                 </span>
@@ -701,7 +702,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
           </p>
         )}
 
-        <label htmlFor={`tutor-${module.id}`} className="sr-only">Ask the tutor about this {unitNoun}</label>
+        <label htmlFor={`tutor-${module.id}`} className="sr-only">Ask {ARI.name} about this {unitNoun}</label>
         <div className="flex gap-2 items-end">
           <textarea
             id={`tutor-${module.id}`}
@@ -709,7 +710,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }}
-            placeholder={`Ask the tutor anything about this ${unitNoun}…`}
+            placeholder={`Ask ${ARI.name} anything about this ${unitNoun}…`}
             className="flex-1 text-sm p-2 border border-[#E8E4DC] bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
           />
           <button
@@ -722,7 +723,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
           </button>
         </div>
         <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-          The tutor runs on the church’s own A.I. (sovereign, not sold). It can be wrong — verify what matters.
+          {ARI.honesty}
         </p>
       </div>
     </div>
