@@ -1,0 +1,153 @@
+{
+  "generatedFrom": "scripts/legibility-guard.mjs",
+  "standard": "WCAG 2.1 AA, per-page, per-theme (dark-on-dark + light-on-light)",
+  "themesChecked": [
+    "midnight"
+  ],
+  "summary": {
+    "pages": 108,
+    "passing": 93,
+    "trackedDebtPages": 15,
+    "regressionPages": 0,
+    "regressions": 0,
+    "debtViolations": 170
+  },
+  "pages": [
+    {
+      "page": "components/ChefCorner.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 58,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Presenter.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 38,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/CreationWorkspace.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 29,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Forecast.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 9,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/HarvestLedger.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 7,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/ClientGrowth.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 6,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Pulpit.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 5,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "poe-financial-mvp-v28.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 4,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Imported.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 3,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Bookstore.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 2,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/BooksTransactions.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 2,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/EventCenterModule.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 2,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Inbound.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 2,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Rentals.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 2,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Projects.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 1,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    }
+  ],
+  "trend": "Tracked-debt pages are the backlog the fix lane works down; the gate blocks any NEW failing page. Fewer tracked pages over time = perpetual ITIL CSI."
+}
