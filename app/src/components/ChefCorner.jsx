@@ -19,9 +19,11 @@ import { SectionTitle } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import TextSizeControl from './TextSizeControl.jsx';
 import {
-  COLLECTIONS, DEFAULT_COLLECTION, makeRecipe, parseRecipeText, scaleRecipe,
+  COLLECTIONS, DEFAULT_COLLECTION, makeRecipe, parseRecipeText,
   servingsBaseOf, ingredientCount, stepCount,
 } from '../lib/chefs-corner.js';
+import { describeIngredient } from '../lib/recipe-units.js';
+import { importRecipeFromImage } from '../lib/recipe-photo-import.js';
 import { POE_FAMILY_RECIPES } from '../lib/chefs-corner-recipes.js';
 
 const ACCENT = '#B85838';
@@ -207,14 +209,20 @@ function RecipeCard({ recipe, onOpen }) {
 }
 
 // -----------------------------------------------------------------------------
-// Detail — the full recipe with a serving scaler.
+// Detail — the full recipe with the headline serving scaler + metric/American
+// unit display. Enter a target number of people; every ingredient recomputes.
 // -----------------------------------------------------------------------------
+const SYSTEMS = [['american', 'American'], ['metric', 'Metric'], ['both', 'Both']];
+
 function DetailView({ recipe, editable, onBack, onDelete }) {
   const base = recipe.servingsBase || servingsBaseOf(recipe.servings) || 0;
-  const [factor, setFactor] = useState(1);
-  const view = useMemo(() => scaleRecipe(recipe, factor), [recipe, factor]);
+  const [target, setTarget] = useState(base ? String(base) : '');
+  const [system, setSystem] = useState('american');
 
-  const scaledServings = base ? Math.round(base * factor) : null;
+  const targetN = Number(target);
+  const factor = base > 0 && Number.isFinite(targetN) && targetN > 0 ? targetN / base : 1;
+  const factorLabel = factor === 1 ? '1' : (Math.round(factor * 100) / 100).toString();
+  const scaled = factor !== 1;
 
   return (
     <div className="space-y-5">
@@ -232,41 +240,65 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
           {recipe.cookTime && <span><span className="font-semibold" style={{ color: INK }}>Cook</span> {recipe.cookTime}</span>}
         </div>
 
+        {/* Headline scaler: one number → every ingredient recomputes */}
         {base > 0 && (
-          <div className="flex items-center gap-2 mt-4 flex-wrap">
-            <span className="text-[0.625rem] uppercase tracking-[0.2em]" style={{ color: MUTE }}>Scale</span>
-            {[[0.5, '½×'], [1, '1×'], [2, '2×'], [3, '3×']].map(([f, label]) => (
-              <button
-                key={f}
-                onClick={() => setFactor(f)}
-                className="text-xs px-3 py-1.5 border"
-                style={factor === f
-                  ? { backgroundColor: INK, color: '#fff', borderColor: INK }
-                  : { backgroundColor: '#fff', color: INK, borderColor: LINE }}
-              >
-                {label}
-              </button>
-            ))}
-            {scaledServings != null && factor !== 1 && (
-              <span className="text-xs" style={{ color: MUTE }}>≈ {scaledServings} servings</span>
+          <div className="mt-4 p-3" style={{ backgroundColor: CREAM }}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <label className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold" style={{ color: MUTE }} htmlFor="scale-target">Cook for</label>
+              <input
+                id="scale-target"
+                type="number"
+                min="1"
+                inputMode="numeric"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                aria-label="Number of people to cook for"
+                className="w-20 border px-2 py-1.5 text-sm bg-white"
+                style={{ borderColor: LINE, color: INK }}
+              />
+              <span className="text-sm" style={{ color: MUTE }}>people</span>
+              {[1, 2, 3, 5].map((m) => (
+                <button key={m} onClick={() => setTarget(String(base * m))} className="text-xs px-2.5 py-1.5 border" style={{ backgroundColor: '#fff', color: INK, borderColor: LINE }}>×{m}</button>
+              ))}
+              {scaled && (
+                <span className="text-xs" style={{ color: ACCENT }}>scaling ×{factorLabel} from {base}</span>
+              )}
+            </div>
+            {scaled && (
+              <p className="text-xs mt-2 leading-relaxed" style={{ color: MUTE }}>
+                Every ingredient below is recomputed automatically — cook one batch, then portion. Cooking times are a guide, not a multiplier: a bigger batch can need longer, so watch the food, not just the clock.
+              </p>
             )}
           </div>
         )}
+
+        {/* Units: metric AND American */}
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <span className="text-[0.625rem] uppercase tracking-[0.2em]" style={{ color: MUTE }}>Units</span>
+          {SYSTEMS.map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setSystem(id)}
+              className="text-xs px-3 py-1.5 border"
+              style={system === id ? { backgroundColor: INK, color: '#fff', borderColor: INK } : { backgroundColor: '#fff', color: INK, borderColor: LINE }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Ingredients */}
+        {/* Ingredients — scaled + unit-converted via the dimension-aware engine */}
         <div className="bg-white border p-5" style={{ borderColor: LINE }}>
           <SubHead>Ingredients</SubHead>
           <div className="space-y-4">
-            {view.ingredientSections.map((sec, i) => (
+            {recipe.ingredientSections.map((sec, i) => (
               <div key={i}>
                 {sec.title && <div className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1.5" style={{ color: ACCENT }}>{sec.title}</div>}
                 <ul className="space-y-1.5">
                   {sec.items.map((item, j) => (
-                    <li key={j} className="flex gap-2 text-sm leading-relaxed" style={{ color: INK }}>
-                      <span className="shrink-0" style={{ color: ACCENT }}>·</span><span>{item}</span>
-                    </li>
+                    <IngredientLine key={j} item={item} factor={factor} system={system} />
                   ))}
                 </ul>
               </div>
@@ -278,7 +310,7 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
         <div className="bg-white border p-5" style={{ borderColor: LINE }}>
           <SubHead>Instructions</SubHead>
           <div className="space-y-4">
-            {view.instructionSections.map((sec, i) => (
+            {recipe.instructionSections.map((sec, i) => (
               <div key={i}>
                 {sec.title && <div className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold mb-1.5" style={{ color: ACCENT }}>{sec.title}</div>}
                 <ol className="space-y-2">
@@ -335,6 +367,26 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
   );
 }
 
+// One ingredient row: scaled (full precision) + shown in the chosen unit system.
+// "Both" appends the metric form in parens; an approximate cross-dimension
+// equivalent (e.g. flour ~120 g) and an honest density note ride along subtly.
+function IngredientLine({ item, factor, system }) {
+  const d = describeIngredient(item, factor);
+  const primary = system === 'metric' ? d.metric : d.american;
+  const showSecondary = system === 'both' && d.dim !== 'count' && d.metric !== d.american;
+  return (
+    <li className="flex gap-2 text-sm leading-relaxed" style={{ color: INK }}>
+      <span className="shrink-0" style={{ color: ACCENT }}>·</span>
+      <span>
+        {primary}
+        {showSecondary && <span style={{ color: MUTE }}> ({d.metric})</span>}
+        {d.altHint && <span style={{ color: MUTE }}> · {d.altHint}</span>}
+        {d.note && <span className="italic" style={{ color: MUTE }}> · {d.note}</span>}
+      </span>
+    </li>
+  );
+}
+
 function SubHead({ children }) {
   return (
     <h3 className="text-lg mb-3 pb-2 border-b" style={{ ...serif, fontWeight: 600, color: INK, borderColor: LINE }}>{children}</h3>
@@ -356,16 +408,35 @@ function InfoBlock({ label, body }) {
 const blankSection = (kind) => (kind === 'ingredients' ? { title: '', items: [''] } : { title: '', steps: [''] });
 
 function AddView({ collection, currentUserPersona, onCancel, onSave }) {
-  const [tab, setTab] = useState('paste'); // 'paste' | 'form'
+  const [tab, setTab] = useState('photo'); // 'photo' | 'paste' | 'form'
   const [pasteText, setPasteText] = useState('');
   const [form, setForm] = useState(() => emptyForm(collection));
   const [error, setError] = useState('');
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
 
   const parsePaste = () => {
     const parsed = parseRecipeText(pasteText);
     setForm(recipeToForm(parsed, collection));
     setTab('form');
     setError('');
+  };
+
+  // Snap-it-and-it's-in: OCR the photo ON-DEVICE, parse to the structured form,
+  // drop the user into the editable form to confirm before saving.
+  const handlePhoto = async (file) => {
+    if (!file) return;
+    setError(''); setOcrBusy(true); setOcrProgress(0);
+    try {
+      const { recipe } = await importRecipeFromImage(file, setOcrProgress);
+      setForm(recipeToForm(recipe, collection));
+      setTab('form');
+    } catch (e) {
+      console.warn('[chef-photo-import] OCR failed', e);
+      setError("Couldn't read that photo automatically — you can paste the text or fill it in instead.");
+    } finally {
+      setOcrBusy(false);
+    }
   };
 
   const save = () => {
@@ -383,7 +454,7 @@ function AddView({ collection, currentUserPersona, onCancel, onSave }) {
       </button>
 
       <div className="flex gap-1">
-        {[['paste', 'Paste a recipe'], ['form', 'Fill it in']].map(([id, label]) => (
+        {[['photo', 'Snap a photo'], ['paste', 'Paste a recipe'], ['form', 'Fill it in']].map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -397,7 +468,32 @@ function AddView({ collection, currentUserPersona, onCancel, onSave }) {
 
       {error && <div className="text-sm p-3 border-l-4" style={{ borderColor: ACCENT, backgroundColor: CREAM, color: INK }}>{error}</div>}
 
-      {tab === 'paste' ? (
+      {tab === 'photo' ? (
+        <div className="bg-white border p-5 space-y-3" style={{ borderColor: LINE }}>
+          <p className="text-sm leading-relaxed" style={{ color: MUTE }}>
+            Take a picture of a recipe (or pick one from your photos) and we'll read it straight into the fields — title, ingredients, steps. It then scales and converts units like any recipe. The picture stays on your device; only the open-source reader is downloaded.
+          </p>
+          <label className="inline-block text-xs uppercase tracking-wider px-4 py-2.5 text-white font-semibold cursor-pointer" style={{ backgroundColor: ocrBusy ? MUTE : INK }}>
+            {ocrBusy ? `Reading… ${Math.round(ocrProgress * 100)}%` : 'Take / choose a photo'}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={ocrBusy}
+              className="hidden"
+              onChange={(e) => { handlePhoto(e.target.files && e.target.files[0]); e.target.value = ''; }}
+            />
+          </label>
+          {ocrBusy && (
+            <div className="h-1 w-full" style={{ backgroundColor: LINE }}>
+              <div className="h-full" style={{ width: `${Math.round(ocrProgress * 100)}%`, backgroundColor: ACCENT }} />
+            </div>
+          )}
+          <p className="text-xs leading-relaxed" style={{ color: MUTE }}>
+            Reading happens in your browser, so the first photo takes a few seconds to warm up. We'll drop you into the editable fields to confirm before saving — OCR is a first pass, not gospel.
+          </p>
+        </div>
+      ) : tab === 'paste' ? (
         <div className="bg-white border p-5 space-y-3" style={{ borderColor: LINE }}>
           <p className="text-sm leading-relaxed" style={{ color: MUTE }}>
             Paste a full recipe in plain text — title, ingredients, instructions, storage, notes.
