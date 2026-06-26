@@ -49,6 +49,7 @@ export const SURFACES = [
   { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
   { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
   { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
+  { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
   // NOTE: church 'home' (the inline `Church` composer) is NOT in this registry
@@ -98,6 +99,7 @@ export const Library          = surfaceById['library'].component;
 export const Study            = surfaceById['study'].component;
 export const CommandServeCenter = surfaceById['center'].component;
 export const CRM              = surfaceById['crm'].component;
+export const Forecast         = surfaceById['forecast'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
 export const ServiceProgram   = surfaceById['program'].component;

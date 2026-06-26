@@ -140,6 +140,13 @@ const ICONS = {
   check: (
     <path d="M5 12.5l4.5 4.5L19 6.5" />
   ),
+  // upward trend line over an axis — Forecast tab (financial projection)
+  chart: (
+    <>
+      <path d="M4 4v16h16" />
+      <path d="M7.5 14.5l3.5-4 3 2.5 4.5-6" />
+    </>
+  ),
 };
 
 export const UI_ICON_NAMES = Object.keys(ICONS);
