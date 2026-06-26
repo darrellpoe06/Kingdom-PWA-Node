@@ -2,7 +2,7 @@
 
 **Product:** PoeTech Kitchen Inventory — a chef/restaurant/kitchen inventory app
 **Sponsors:** Darrell Poe (governs) + Chef Mario (domain owner)
-**Status:** Increment 1 shipped (this PR); roadmap below
+**Status:** Increments 1–2 shipped (catalog · counts · recipe costing · homed in Chef's Corner); the phased road to direct-to-purchasing is below (§9)
 **Date:** 2026-06-26
 **Built on:** the PoeTech PWA's shared primitives — this is a *vertical on the inventory-control system of record*, not a greenfield app.
 
@@ -24,6 +24,40 @@ versioned items, cross-device sync, role/tenant scoping, unit-conversion math,
 on-device OCR, and a voice layer. Kitchen Inventory is the **chef-domain vertical
 on that base**. That is why increment 1 is small, real, and trustworthy rather
 than a thin mock of a big surface.
+
+### North Star — input everything → live inventory → direct-to-purchasing (Chef Mario, 2026-06-26)
+
+> "Eventually I want this system to work directly with **PURCHASING**. If we input
+> everything, by the end of the night it will have an inventory of everything by
+> the end of every service." — Chef Mario
+
+The target end-state is a **perpetual, self-closing inventory that drives
+purchasing**:
+
+1. **Input everything** → the system maintains a **live on-hand** that updates as
+   stock moves — received in, usage/depletion out, waste, prep — not just periodic
+   weekly/monthly counts.
+2. **Every service closes itself** → by the end of each service/night the system
+   shows the current inventory of everything **automatically** (the running truth
+   computed from the transaction history), and captures **usage per service**
+   (what got consumed) — no full manual count required.
+3. **Purchasing drafts** → from live on-hand + par levels + usage trends, the
+   system generates **what to order** (par-based purchase-order drafts / shopping
+   lists per vendor, with quantities to hit par), and eventually connects to
+   vendor ordering.
+4. **The human approves the buy** → the system **drafts and previews** the order;
+   **placing the order / spending money is the owner's hand**. The system never
+   auto-executes a purchase or a payment (the approve-to-purchase gate).
+
+**The arc:** input everything → live inventory closes out every service
+automatically → drives par-based purchasing drafts → human approves the order.
+
+This is reachable precisely because the base already computes **on-hand from an
+append-only history** — a periodic count and a per-service close are the *same*
+derivation over different time windows. So the remaining work is **input
+coverage** (post every receive / usage / waste / prep), a **service-close**
+snapshot, and a **par-based reorder engine** behind an approve gate — not a new
+inventory engine. The phased plan to get there is **§9**.
 
 ### Placement & modularity (Darrell, 2026-06-26)
 
@@ -47,6 +81,11 @@ Corner recipes *directly* to the kitchen's real item costs (see §3.2).
   (Reality-Trace, DR-0061; Verification Doctrine, DR-0076.)
 - **Money stays the owner's hand.** This tracks **cost and value**; it never
   processes a payment or moves money.
+- **Approve-to-purchase (binding).** Purchasing features **draft and preview** an
+  order; a human **approves and places** it. The system never auto-executes a
+  purchase, transmits an order, or moves money — the same preview→approve→execute
+  standard as outbound CRM, and the "three brakes" required of any automation
+  (budget · single-flight · kill-switch). A draft sitting unapproved buys nothing.
 - **Honest uncertainty.** Unknown conversions, missing sales for food-cost % →
   return *null* and say so, never fabricate a number.
 - **Reuse one primitive per axis** (icons, theme tokens, text-size, sync, roles)
@@ -74,7 +113,8 @@ counter) are a roadmap refinement of the same role primitive, not a new system.
 
 ## 3. Feature list with acceptance criteria
 
-Legend: **[1]** = in increment 1 (this PR) · **[R]** = roadmap.
+Legend: **[1]** = shipped (increments 1–2) · **[P2] / [P3] / [P4] / [P5]** = the
+phased road to direct-to-purchasing (§9) · **[R]** = further roadmap.
 
 ### 3.1 Core inventory
 
@@ -158,6 +198,48 @@ Legend: **[1]** = in increment 1 (this PR) · **[R]** = roadmap.
   realtime path; offline-first with optimistic local writes.
 - **[R] Multi-location** — the instance/tenant model already scopes data per
   unit; the explicit location switcher + cross-unit compare is the roadmap step.
+
+### 3.4 The road to direct-to-purchasing (Chef Mario's north star)
+
+- **[P2] Perpetual / real-time inventory.** Fast input of every stock move keeps a
+  **live** on-hand between counts — **Receive** (in), **Usage/Depletion** (out),
+  **Waste** (out, flagged), **Prep** (transform raw → prepped). On-hand is already
+  derived from the append-only ledger; P2 adds the quick-input surfaces + the
+  `waste` / `prep` movement vocabulary so the running truth stays current without a
+  manual count.
+  *AC:* posting a receive / usage / waste immediately moves on-hand; the dashboard
+  reflects it live; waste is separable from sales depletion in reports.
+- **[P3] End-of-service close.** A "close the night" action opens/closes a
+  **service period** and, at close, **snapshots** the inventory state for that
+  service and captures **usage per service** (everything consumed in the window) —
+  so you always know where you stand at the end of every service without a full
+  manual count.
+  *AC:* closing a service shows on-hand for every item with no manual count;
+  usage-per-service = the depletion movements in `[opened_at, closed_at)`; the
+  snapshot is reproducible from the ledger (derived, not painted).
+- **[P4] Par-based purchasing drafts.** From live on-hand + par + usage trend, a
+  reorder engine computes **order quantity to hit par** and groups lines into
+  **purchase-order drafts per vendor** (cheapest / preferred vendor from price
+  history) — the "what to order" list.
+  *AC:* an item below par appears on a draft PO with qty = `par − on-hand`
+  (+ optional usage buffer); drafts group by vendor; line totals use the latest
+  vendor price; **nothing is ordered**.
+- **[P4] Approve-to-purchase gate (binding).** A draft PO is **previewed and must
+  be approved by a human** before it is placed; placing the order is the owner's
+  action.
+  *AC:* a PO moves `draft → approved → placed → received`; the system never
+  transitions to placed / paid on its own (binding constraint, §1 + §6).
+- **[P5] Vendor ordering connection.** Optionally transmit an **approved** PO to a
+  vendor (email / API / EDI), still human-approved, still no auto-pay; a received
+  delivery reconciles back into stock as receive movements (the loop closes).
+  *AC:* only an approved PO can be sent; sending is an explicit human action;
+  receiving posts receive movements that update on-hand.
+- **[P3→P4] Usage → costing → food-cost loop.** Usage (depletion) valued at unit
+  cost feeds consumption cost; tied to **recipe costing** (what's actually being
+  cooked / sold) and **food-cost %**, so purchasing is informed by real
+  consumption, not guesswork.
+  *AC:* top-used items + usage velocity surface on the dashboard and feed the
+  reorder quantities.
 
 ---
 
@@ -261,10 +343,46 @@ count-lines DELETE = member (working data — the permanent record is the adjust
 movements in the immutable 0052 ledger). No anon policy. Both tables added to the
 `supabase_realtime` publication. Idempotent; applied by hand per the db-migrate gap.
 
-### 5.3 Schema roadmap (not in increment 1)
-`storage_areas` (per-area par), `vendors`, `vendor_prices` (history), `invoices`
-+ `invoice_lines`, `item_lots` (expiry), `recipe_costs` (recipe↔item join),
-`prep_lists`. Each follows the same instance-scoped RLS + realtime pattern.
+### 5.3 Schema roadmap — modeled for the direct-to-purchasing arc
+
+How each milestone is modeled on the existing base (every new table follows the
+same instance-scoped RLS + realtime pattern; on-hand stays **derived**, never
+stored):
+
+**[P2] Perpetual inventory** — *no new on-hand mechanism.* The append-only
+`inventory_movements` ledger already is the live truth; P2 extends the movement
+**vocabulary** so every real-world event is captured:
+- add `waste` and `prep` to the movement `kind` CHECK (or carry them as a typed
+  `reason` on `out` / `transfer`), so depletion-by-sale, waste, and prep
+  transforms are distinguishable in reports. On-hand = `Σ signedQty` as today.
+
+**[P3] End-of-service close**
+- `service_periods` — `(id, instance_id, created_by, slug, label, status
+  open|closed, opened_at, closed_at, opened_by, closed_by, note)`. The window a
+  service's usage is measured over.
+- `service_close_snapshots` — `(id, instance_id, slug, period_slug, snapshot_at,
+  on_hand jsonb {item_slug→qty}, usage jsonb {item_slug→consumed}, value
+  numeric)`. The per-service close-out. **Derivable from the ledger** (the jsonb
+  is a cached snapshot for fast history, exactly like the count's `expected_qty`
+  snapshot); usage = depletion movements in `[opened_at, closed_at)`.
+
+**[P4] Purchasing**
+- `vendors` — `(id, instance_id, slug, name, contact, terms, active)`.
+- `vendor_prices` — append-only price history `(id, instance_id, slug, vendor_slug,
+  item_slug, unit_price, pack_size, observed_at)` → latest + trend per item.
+- `purchase_orders` — `(id, instance_id, slug, vendor_slug, status
+  draft|approved|placed|received, totals, drafted_by, approved_by, approved_at,
+  placed_at, note)`. **Status is the approve-to-purchase gate.**
+- `purchase_order_lines` — `(id, instance_id, slug, po_slug, item_slug, order_qty,
+  unit_price snapshot, line_total)`. On **receive**, each line posts a `receive`
+  movement into `inventory_movements` (the loop closes; on-hand updates).
+
+**Further [R]:** `storage_areas` (per-area par as rows vs. config), `invoices` +
+`invoice_lines` (scan-to-receive), `item_lots` (expiry), `prep_lists`.
+
+The pure reorder engine (P4) is a lib (à la `recipe-costing.js`): `order_qty =
+max(0, par − on_hand)` + an optional usage-trend buffer, grouped by preferred /
+cheapest vendor — unit-tested, no side effects, emits **drafts** only.
 
 ---
 
@@ -275,8 +393,12 @@ movements in the immutable 0052 ledger). No anon policy. Both tables added to th
 - **Performance:** all math is pure and O(n) over movements/lines; the surface is
   lazy-loaded (own chunk) via the surface-mount registry.
 - **Security / privacy:** RLS on every table; family/governor gate with a
-  defense-in-depth locked fallback for deep-links; no anon access; no PHI; no
-  payment flow. CSP already covers the OCR/voice roadmap.
+  defense-in-depth locked fallback for deep-links; no anon access; no PHI; **no
+  payment flow — purchasing produces drafts only; a human approves and places the
+  order (approve-to-purchase, §1)**. CSP already covers the OCR/voice roadmap.
+- **Automation safety:** any auto-generated purchasing draft is inert until a
+  human approves it; nothing self-executes (the "three brakes" standard —
+  budget · single-flight · kill-switch — applies to any future auto-reorder job).
 - **Accessibility:** WCAG 2.1 AA on every theme (incl. midnight) — verified by
   contrast-guard; large-print via the text-size primitive; real
   button/select/input; labeled count inputs.
@@ -320,3 +442,35 @@ once applied, count sessions sync cross-device.
 - **Gates:** lint, full vitest suite, `vite build`, consistency-guard,
   contrast-guard (per-theme incl. midnight), feedback-area-guard,
   module-boundary-guard, tab-overflow-guard — all green.
+
+---
+
+## 9. Phased build — the road to direct-to-purchasing
+
+Chef Mario's north star (§1) as deliverable milestones. The through-line: the base
+already derives **on-hand from an append-only history**, so each phase adds
+*inputs* and *windows* over that one engine, never a parallel source of truth. The
+binding **approve-to-purchase** gate holds from P4 on.
+
+| Phase | Milestone | What it adds | How it's modeled | Status |
+|---|---|---|---|---|
+| **1–2** | Catalog · counts · costing | categories, storage areas, items, par; counts by weight/unit; derived on-hand + value; reconcile; recipe costing; homed in Chef's Corner | `inventory_items` + `inventory_movements` (0052) + `inventory_counts/_lines` (0053) + `recipe-costing.js`; on-hand = `Σ signedQty` | **Shipped** (#382, #386) |
+| **P2** | **Perpetual / real-time inventory** | quick-input of Receive / Usage / Waste / Prep so on-hand is live between counts | extend movement **vocabulary** (`waste`, `prep`); fast input surfaces; on-hand engine unchanged | Next |
+| **P3** | **End-of-service close** | "close the night" → per-service inventory snapshot + usage-per-service | `service_periods` + `service_close_snapshots`; usage = depletion in `[open, close)`; snapshot cached but ledger-derivable | After P2 |
+| **P4** | **Par-based purchasing drafts + approve gate** | reorder engine → PO drafts per vendor; preview → **human approves** → placed | `vendors`, `vendor_prices`, `purchase_orders` (status gate), `purchase_order_lines`; pure reorder lib emits drafts only | After P3 |
+| **P5** | **Vendor ordering connection** | transmit an **approved** PO; receive reconciles to stock | send action on an approved PO (email/API/EDI); receive posts `receive` movements | After P4 |
+
+**Which phase delivers Chef Mario's ask:**
+- *"by the end of the night it has an inventory of everything"* → **P2** (live
+  on-hand from every input) made automatic at service boundaries by **P3** (the
+  self-closing per-service snapshot).
+- *"work directly with purchasing"* → **P4** (par-based PO drafts) with the
+  **approve-to-purchase** gate, then **P5** (transmit to the vendor) — always with
+  the human placing the buy.
+- *purchasing informed by what's cooked/sold* → the **usage → costing → food-cost
+  loop** (P3→P4), tying depletion + recipe costing into reorder quantities.
+
+**Sequencing rationale:** P2 before P3 (a self-closing service needs live inputs
+to close over); P3 before P4 (good purchasing needs real usage trends, not just a
+par gap); the approve gate ships *with* the first draft (P4), never after. Each
+phase is independently shippable and rides the existing sync + RLS + guard stack.
