@@ -78,6 +78,7 @@ import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from './lib/discussions-sync.js';
 import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
+import { recipesSync, mergeRemoteRecipes, RECIPE_COLUMN_OF } from './lib/recipes-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
@@ -117,7 +118,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast,
+  Inventory, Forecast, ChefCorner,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1764,7 +1765,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','admin','center','crm','inventory','forecast'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','admin','center','crm','inventory','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -2973,6 +2974,10 @@ export default function PoeFinancialSystem() {
         // Creation Workspaces (0037) — composed documents/images, pooled to the
         // family instance the same proven way so a document opens on any device.
         { sync: workspacesSync,   key: 'workspaces',   localList: (latest.workspaces || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteWorkspaces },
+        // Recipes (0052) — Chef's Corner recipes the family adds (the canonical
+        // three ship as content; this carries everything added afterward), pooled
+        // to the family instance the same proven way so a recipe opens on any device.
+        { sync: recipesSync,      key: 'recipes',      localList: (latest.recipes || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteRecipes },
         { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
         // Practice leads (0045) — the client-acquisition (revenue agent team) CRM,
         // pooled to the family instance the same proven way.
@@ -3624,6 +3629,54 @@ export default function PoeFinancialSystem() {
       }
     }
     return stamped.map(m => m.id);
+  };
+
+  // ---- Chef's Corner recipes (0052) — same optimistic-local-then-cloud pattern
+  // as addWorkspace. The recipe object already carries its engine-shaped fields
+  // (sectioned ingredients/steps, etc.) from makeRecipe; we only stamp the local
+  // id + timestamps. addRecipe RETURNS the new local id so the UI can open the
+  // saved recipe's detail view. Fails soft so the device copy always survives.
+  const addRecipe = (item) => {
+    const nowIso = new Date().toISOString();
+    const localId = item?.id && /^recipe-/.test(item.id) ? `${item.id}-${Date.now().toString(36)}` : `recipe-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId, dateAdded: item?.dateAdded || nowIso.slice(0, 10), createdAt: nowIso, updatedAt: nowIso, createdBy: authSession?.user?.id || null };
+    setData(d => ({ ...d, recipes: [...(d.recipes || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      recipesSync.upload(seeded)
+        .then(res => {
+          if (res && res.uploaded && res.remoteId) {
+            setData(d => ({ ...d, recipes: (d.recipes || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
+          }
+        })
+        .catch(e => console.warn('[recipes-sync] add upload failed', e));
+    }
+    return localId;
+  };
+  const updateRecipe = (id, updates) => setData(d => {
+    const stamped = { ...updates, updatedAt: new Date().toISOString() };
+    const next = (d.recipes || []).map(x => (x.id === id ? { ...x, ...stamped } : x));
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(x => x.id === id);
+      if (updated && updated.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(RECIPE_COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (Object.keys(patch).length > 0) {
+          recipesSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[recipes-sync] update failed', e));
+        }
+      }
+    }
+    return { ...d, recipes: next };
+  });
+  const deleteRecipe = (id) => {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.recipes || []).find(x => x.id === id);
+      if (local && local.remoteUuid) {
+        recipesSync.deleteRow(local.remoteUuid).catch(e => console.warn('[recipes-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, recipes: (d.recipes || []).filter(x => x.id !== id) }));
   };
 
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
@@ -5142,6 +5195,10 @@ html{scroll-padding-bottom:280px}
                 // (the books<->app flywheel). Reading is open to every signed-in
                 // user; the build Studio is family/Governor-gated inside.
                 ['library', <><UiIcon name="bookOpen" /> Library</>],
+                // Chef's Corner — the recipe surface (starts with the Poe Family
+                // Vegan Recipes by Chef Mario). Open to every signed-in user;
+                // persistence is instance-scoped (family-private).
+                ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -5641,6 +5698,21 @@ html{scroll-padding-bottom:280px}
               addWorkspace={addWorkspace}
               updateWorkspace={updateWorkspace}
               deleteWorkspace={deleteWorkspace}
+              currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+            />
+          </SectionBoundary>
+        )}
+        {/* Chef's Corner — the recipe surface. Starts with the Poe Family Vegan
+            Recipes by Chef Mario (canonical content) + every recipe the family
+            adds (persisted, instance-scoped). Own SectionBoundary so a thrown
+            error degrades just this surface. */}
+        {view === 'recipes' && (
+          <SectionBoundary name="Chef's Corner">
+            <ChefCorner
+              recipes={data.recipes || []}
+              addRecipe={addRecipe}
+              updateRecipe={updateRecipe}
+              deleteRecipe={deleteRecipe}
               currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
             />
           </SectionBoundary>
@@ -6280,6 +6352,7 @@ const FEEDBACK_AREAS = [
     ['create', '🎨 Create · creation workspace (document → image export)'],
     ['voice', '🔊 Voice · listen to anything (choose a voice · consent-gated enrollment)'],
     ['library', '📖 Library · books from the corpus + in-app reader (companion deep-links)'],
+    ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "📓 Darrell's Study · reflections / processing / cultural research (device-local)"],
