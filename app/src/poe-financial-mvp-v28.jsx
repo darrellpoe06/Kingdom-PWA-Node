@@ -120,7 +120,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, KitchenInventory, Forecast, ChefCorner,
+  Inventory, Forecast, ChefCorner,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1767,7 +1767,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','admin','center','crm','inventory','kitchen','forecast'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','admin','center','crm','inventory','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -5263,10 +5263,6 @@ html{scroll-padding-bottom:280px}
                 // Inventory — system of record (derived on-hand over a movement
                 // ledger). Family/Governor only (no-leak spread).
                 ...(isFamilyMember ? [['inventory', <><UiIcon name="tools" /> Inventory</>]] : []),
-                // Kitchen — Chef Mario's chef/kitchen inventory vertical on the same
-                // base: count by weight/unit, par alerts, variance + value.
-                // Family/Governor only (no-leak spread).
-                ...(isFamilyMember ? [['kitchen', <><UiIcon name="chefHat" /> Kitchen</>]] : []),
               ] },
               // Notes — the capture -> reflect -> compose -> hear -> apply flywheel.
               { key: 'notes', label: <><UiIcon name="dove" /> Notes</>, members: [
@@ -5799,6 +5795,20 @@ html{scroll-padding-bottom:280px}
               updateRecipe={updateRecipe}
               deleteRecipe={deleteRecipe}
               currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+              inventory={isFamilyMember ? {
+                items: data.inventoryItems || [],
+                movements: data.inventoryMovements || [],
+                counts: data.inventoryCounts || [],
+                countLines: data.inventoryCountLines || [],
+                addItem: addInventoryItem,
+                updateItem: updateInventoryItem,
+                recordMovements: recordInventoryMovements,
+                addCount: addInventoryCount,
+                updateCount: updateInventoryCount,
+                addCountLine: addInventoryCountLine,
+                updateCountLine: updateInventoryCountLine,
+                canManage: true,
+              } : null}
             />
           </SectionBoundary>
         )}
@@ -5927,37 +5937,6 @@ html{scroll-padding-bottom:280px}
               <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
               <p className="text-sm text-[#1A1815] font-semibold">Inventory is a stewardship space.</p>
               <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The inventory system of record is steward-only. Sign in with a family/governor account to manage items and stock.</p>
-            </div>
-          ))}
-
-        {/* Kitchen Inventory — Chef Mario's chef/kitchen vertical on the same
-            inventory base: count by weight/unit, par alerts, derived value +
-            variance. Family/Governor only; own SectionBoundary; reuses the 0052
-            items/movements + dispatchers, adds the 0053 count session state. */}
-        {view === 'kitchen' && (isFamilyMember
-          ? (
-            <SectionBoundary name="Kitchen Inventory">
-              <KitchenInventory
-                items={data.inventoryItems || []}
-                movements={data.inventoryMovements || []}
-                counts={data.inventoryCounts || []}
-                countLines={data.inventoryCountLines || []}
-                addItem={addInventoryItem}
-                updateItem={updateInventoryItem}
-                recordMovements={recordInventoryMovements}
-                addCount={addInventoryCount}
-                updateCount={updateInventoryCount}
-                addCountLine={addInventoryCountLine}
-                updateCountLine={updateInventoryCountLine}
-                currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
-              />
-            </SectionBoundary>
-          )
-          : (
-            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
-              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
-              <p className="text-sm text-[#1A1815] font-semibold">Kitchen Inventory is a stewardship space.</p>
-              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The kitchen inventory system is steward-only. Sign in with a family/governor account to manage items and run counts.</p>
             </div>
           ))}
 
@@ -6488,10 +6467,11 @@ const FEEDBACK_AREAS = [
     ['forecast-scenarios', '└ Scenarios · best/base/worst · add property / tier / capital purchase (editable assumptions)'],
     ['forecast-track', '└ Track · projected-vs-actual over time (forecast accuracy)'],
   ]},
-  { group: 'Kitchen (steward · chef inventory)', items: [
-    ['kitchen', "Kitchen · Chef Mario's inventory (count by weight/unit · par alerts · value)"],
+  { group: "Chef's Corner — Kitchen Inventory (steward · homed in Chef's Corner)", items: [
+    ['kitchen', "Kitchen Inventory · Chef Mario's inventory, in Chef's Corner (count by weight/unit · par alerts · value)"],
     ['kitchen-stock', '└ Stock · items by category / storage area · on-hand + value (derived)'],
     ['kitchen-counts', '└ Counts · physical count → variance + shrink → reconcile the ledger'],
+    ['kitchen-costing', '└ Recipe Costing · plate cost from item costs · coverage · food-cost % + margin'],
   ]},
   { group: 'Church', items: [
     ['church', 'Church · service times / media / prayer / ministry'],

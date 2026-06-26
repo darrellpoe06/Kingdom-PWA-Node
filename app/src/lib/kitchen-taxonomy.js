@@ -95,3 +95,34 @@ export function dimensionForUnit(unit) {
   if (KITCHEN_UNITS.volume.includes(u)) return 'volume';
   return 'count';
 }
+
+// =============================================================================
+// MODULE CONFIG — the InventoryModule (components/KitchenInventory.jsx) is a
+// REUSABLE inventory module: it takes a `config` of taxonomy + copy and renders
+// the same Stock + Counts workflow for ANY context. KITCHEN_CONFIG is the chef
+// preset that homes the module inside Chef's Corner; a different surface (church
+// AV gear, business assets) mounts the SAME module with its own config.
+//
+// Shape: { key, title, eyebrow, intro, itemNoun, areaNoun, parNoun, emptyHint,
+//          categories:[{id,label}], storageAreas:[{id,label}], units:[string] }
+// =============================================================================
+export const KITCHEN_CONFIG = Object.freeze({
+  key: 'kitchen',
+  title: 'Kitchen Inventory',
+  eyebrow: 'Chef Mario · count by weight or unit · value + variance, derived',
+  intro: 'Built for a busy kitchen. Every on-hand and dollar figure is derived from the stock ledger — never typed. Run a count by weight or unit and the system shows your variance and its value live; closing the count reconciles the books to the shelf. It tracks cost and value; it never touches the till.',
+  itemNoun: 'item',
+  areaNoun: 'storage area',
+  parNoun: 'par',
+  emptyHint: "Add your first item (a protein, a produce case, a dry good) with its par level and unit cost, post an opening count — on-hand builds from there.",
+  categories: KITCHEN_CATEGORIES,
+  storageAreas: STORAGE_AREAS,
+  units: ALL_KITCHEN_UNITS,
+});
+
+// Example of mounting the SAME module in a DIFFERENT context (not wired here —
+// it documents the reuse seam the church AV / business-assets surfaces will use):
+//   <KitchenInventory config={AV_GEAR_CONFIG} items={...} .../>
+// where AV_GEAR_CONFIG swaps categories (Audio/Video/Lighting/Cabling), areas
+// (Booth/Stage/Storage), units (each/case/ft), and the copy. Same Stock+Counts
+// engine, same derived on-hand + variance — different vocabulary.
