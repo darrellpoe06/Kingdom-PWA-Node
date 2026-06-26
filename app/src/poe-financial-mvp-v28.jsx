@@ -5228,103 +5228,91 @@ html{scroll-padding-bottom:280px}
           {/* Browser-like Back/Forward, pinned left of the tab row so it never
               scrolls away. Real window.history nav (lib/nav-history.js): Back
               returns to the exact prior view/sub-view across every tab. */}
-          {(() => {
-            // App-wide IA (2026-06-25): ~21 top-level surfaces grouped into 6
-            // coherent AREAS so the nav stops sprawling. Every view id + deep-link
-            // is preserved — the `view === '…'` render branches below are
-            // unchanged; this is a presentation layer over the same surfaces. The
-            // fluid <TabScroll> Darrell loves carries BOTH rows. New features NEST
-            // into an area by default (CONSISTENCY-STANDARD §IA: a new top-level
-            // area needs a real IA reason, not just "it's a new feature").
-            // NOTE: keep the literal ['id', …] tuples — feedback-area-guard scans
-            // this NAV_CLUSTERS block for every top-level surface's feedback area.
-            const NAV_CLUSTERS = [
-              { key: 'home', label: 'Big Picture', members: [
-                ['overview', 'Big Picture'],
-              ] },
-              // Money — the household's books, real estate, watchlist, projections.
-              { key: 'money', label: 'Money', members: [
-                ['books', 'Books'],
-                ['rentals', 'Real Estate'],
-                ['markets', 'Markets'],
-                // Forecast — financial-engineering / forward projections (models
-                // the family's real money). Family/Governor only (no-leak spread).
-                ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
-              ] },
-              // Work — projects, the practices, opportunities, the inbound funnel,
-              // and the steward-only acquisition + operations backbones.
-              { key: 'work', label: 'Work', members: [
-                ['projects', 'Projects'],
-                ['practice', 'Practice'],
-                ['opportunities', 'Dev/Ops'],
+          {/* THE reference tab row Darrell loves ("easy and fluid," "classy") —
+              ONE flat row of every top-level surface, routed through the shared
+              <TabScroll> primitive (horizontal scroll reaches every tab). A 6-area
+              cluster nav was tried (#381) and reverted 2026-06-26: grouping the
+              familiar tabs behind areas read as "lost the tabs" on the live app.
+              The anti-sprawl goal stands, but the regrouping must be visually
+              obvious before it ships again — until then, every surface is one tap. */}
+          <div className="flex items-stretch">
+            <div className="pl-1 sm:pl-6 lg:pl-8 flex items-stretch">
+              <NavControls chrome {...navHistory} />
+            </div>
+            <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
+              {[
+                ['overview','Big Picture'],
+                ['books','Books'],
                 ['inbound', <><UiIcon name="phone" /> Inbound</>],
+                ['rentals','Real Estate'],
+                ['projects','Projects'],
+                ['practice','Practice'],
+                ['opportunities','Dev/Ops'],
+                ['about','About'],
+                ['__sep__', null],
+                ['notes', <><UiIcon name="dove" /> Notes</>],
+                // Create — the document / image creation workspace (Notes group:
+                // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
+                // Available to every signed-in user; persistence is instance-scoped.
+                ['create', <><UiIcon name="palette" /> Create</>],
+                // Voice — "listen to anything" in a chosen voice; consent-gated
+                // personal (cloned) voices as a subscriber feature. Notes group
+                // sibling (capture -> reflect -> compose -> hear).
+                ['voice', <><UiIcon name="volume" /> Voice</>],
+                // Library — books assembled from the house's own corpus, with an
+                // in-app reader whose chapters deep-link back into the live app
+                // (the books<->app flywheel). Reading is open to every signed-in
+                // user; the build Studio is family/Governor-gated inside.
+                ['library', <><UiIcon name="bookOpen" /> Library</>],
+                // Chef's Corner — the recipe surface (starts with the Poe Family
+                // Vegan Recipes by Chef Mario). Open to every signed-in user;
+                // persistence is instance-scoped (family-private).
+                ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
+                // Darrell's Study — private to the circle (Darrell/Christina/BG).
+                // Spread so the entry is absent from the DOM entirely for everyone
+                // else (no-leak); the feedback-area-guard still sees the literal
+                // pair below and requires its 'study' feedback area.
+                ...(isStudyCircle ? [['study', <><UiIcon name="book" /> Study</>]] : []),
+                ['church','Church'],
+                ['markets','Markets'],
+                // Command, Control & Serve Center — the steward's seat (the
+                // cockpit from which the app is built + observed). Family/Governor
+                // only; spread so the entry is absent from the DOM entirely for
+                // everyone else (no-leak), like Study. The component carries a
+                // defense-in-depth locked fallback for any deep-link.
+                ...(isFamilyMember ? [['center', <><UiIcon name="sliders" /> Center</>]] : []),
                 // CRM — the one shared acquisition backbone every funnel rides.
+                // Family/Governor only (steward tooling across all businesses);
+                // spread so the entry is absent from the DOM for everyone else.
                 ...(isFamilyMember ? [['crm', <><UiIcon name="users" /> CRM</>]] : []),
-                // Inventory — system of record (derived on-hand over a movement
-                // ledger). Family/Governor only (no-leak spread).
+                // Inventory — a real inventory-control system of record (derived
+                // on-hand over an immutable movement ledger). Family/Governor only
+                // (operations tooling); spread so the entry is absent from the DOM
+                // for everyone else, like Center / CRM.
                 ...(isFamilyMember ? [['inventory', <><UiIcon name="tools" /> Inventory</>]] : []),
                 // Kitchen — Chef Mario's chef/kitchen inventory vertical on the same
-                // base: count by weight/unit, par alerts, variance + value.
-                // Family/Governor only (no-leak spread).
+                // inventory-control base (count by weight/unit, par alerts, variance
+                // + value). Family/Governor only (no-leak spread).
                 ...(isFamilyMember ? [['kitchen', <><UiIcon name="chefHat" /> Kitchen</>]] : []),
-              ] },
-              // Notes — the capture -> reflect -> compose -> hear -> apply flywheel.
-              { key: 'notes', label: <><UiIcon name="dove" /> Notes</>, members: [
-                ['notes', <><UiIcon name="dove" /> Notes</>],
-                ['create', <><UiIcon name="palette" /> Create</>],
-                ['voice', <><UiIcon name="volume" /> Voice</>],
-                ['library', <><UiIcon name="bookOpen" /> Library</>],
-                ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
-                // Study — private to the circle (Darrell/Christina/BG); spread so
-                // the entry is absent from the DOM for everyone else (no-leak).
-                ...(isStudyCircle ? [['study', <><UiIcon name="book" /> Study</>]] : []),
-              ] },
-              { key: 'church', label: 'Church', members: [
-                ['church', 'Church'],
-              ] },
-              // System — the steward seat + settings + the internal admin surface.
-              { key: 'system', label: <><UiIcon name="sliders" /> System</>, members: [
-                // Center — the steward's cockpit. Family/Governor only (no-leak).
-                ...(isFamilyMember ? [['center', <><UiIcon name="sliders" /> Center</>]] : []),
-                ['about', 'About'],
-                // Admin — visible-but-locked; ACCESS gated at the render below.
+                // Forecast — the financial-engineering / forward-projection layer.
+                // Family/Governor only (it models the family's real money); spread
+                // so the entry is absent from the DOM for everyone else (no-leak),
+                // and the component carries a locked fallback for any deep-link.
+                ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
+                // Admin surfaced at the top so users can SEE a steward space
+                // exists (visible-but-locked, like 🔒 Observation). ACCESS is
+                // gated at the render below — the entry being visible is the goal.
                 ['admin', <><UiIcon name="lock" /> Admin</>],
-              ] },
-            ];
-            const visibleClusters = NAV_CLUSTERS.filter((c) => c.members.length > 0);
-            const activeCluster = visibleClusters.find((c) => c.members.some(([id]) => id === view)) || visibleClusters[0];
-            const firstOf = (c) => (c.members[0] ? c.members[0][0] : 'overview');
-            return (
-              <div>
-                {/* Row 1 — the 6 AREAS. Back/Forward pinned left (never scrolls
-                    away). Tapping an area lands on its first surface. */}
-                <div className="flex items-stretch">
-                  <div className="pl-1 sm:pl-6 lg:pl-8 flex items-stretch">
-                    <NavControls chrome {...navHistory} />
-                  </div>
-                  <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
-                    {visibleClusters.map((c) => {
-                      const active = c.key === activeCluster.key;
-                      return (
-                        <button key={c.key} onClick={() => { if (!c.members.some(([id]) => id === view)) setView(firstOf(c)); }} aria-current={active ? 'page' : undefined} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${active ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{c.label}</button>
-                      );
-                    })}
-                  </TabScroll>
-                </div>
-                {/* Row 2 — the surfaces inside the active area (hidden when an area
-                    holds just one, e.g. Big Picture / Church). Same fluid scroll. */}
-                {activeCluster.members.length > 1 && (
-                  <div className="flex items-stretch bg-[#FAF8F4] border-t border-[#E8E4DC]">
-                    <TabScroll chrome className="px-1 sm:px-6 lg:px-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
-                      {activeCluster.members.map(([id, label]) => (
-                        <button key={id} onClick={() => setView(id)} aria-current={view === id ? 'page' : undefined} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${view === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-                      ))}
-                    </TabScroll>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+              ].map(([id, label]) => {
+                if (id === '__sep__') {
+                  return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
+                }
+                return (
+                  <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+                );
+              })}
+            </TabScroll>
+          </div>
         </nav>
         {view === 'books' && (
           <div className="border-t border-[#E8E4DC] bg-white">
