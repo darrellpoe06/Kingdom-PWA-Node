@@ -86,12 +86,27 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     setCloudPlaying(false);
   }, [tts]);
 
+  // Stop only in-flight CLOUD audio before a fresh browser-voice read. The TTS
+  // engine's play() already cancels a prior utterance safely; a bare cancel() here
+  // (via the full stop()) immediately before the first speak() is swallowed on
+  // Chrome/mobile — the "tap Read, nothing happens" race. So we don't pre-cancel.
+  const stopCloud = useCallback(() => {
+    if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
+    setCloudPlaying(false);
+  }, []);
+
+  // Surface a silent-start miss (mobile blocked/suspended synth) instead of a dead
+  // button — the engine flips `failed` when a tap produces no audio at all.
+  useEffect(() => {
+    if (tts.failed) setNotice('Audio didn’t start — press play once more, or pick the System voice.');
+  }, [tts.failed]);
+
   // The one play path, honoring the global voice preference.
   const read = useCallback(async (text) => {
     const clean = String(text || '').trim();
     if (!clean) return;
     setNotice('');
-    stop();
+    stopCloud();
 
     if (isPersonVoiceId(voiceId)) {
       const personKey = personKeyOf(voiceId);
@@ -120,7 +135,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
 
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
     tts.speak(clean);
-  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stop]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud]);
 
   return {
     supported: tts.supported,
