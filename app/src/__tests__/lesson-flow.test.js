@@ -1,0 +1,154 @@
+// @vitest-environment node
+//
+// lesson-flow — THE shared lesson-flow standard (Darrell 2026-06-24): one consistent,
+// well-paced FIVE-STAGE arc (Open → Teach → Engage → Apply → Send-off) derived from a
+// module's authored fields, better for BOTH the facilitator and the audience. These
+// tests are adversarial / proven-to-catch (DR-0076): they try to make the standard
+// (a) leak facilitator notes onto the audience side, (b) lose authored run-of-show
+// text, (c) reflow to a wrong total, or (d) throw on a bare module — and FAIL if it does.
+import { describe, it, expect } from 'vitest';
+import {
+  LESSON_ARC, ARC_KINDS, DEFAULT_SESSION_MINUTES,
+  sessionMinutesFromFlow, reflowArcMinutes, parseHowToRun, phaseKind, buildLessonArc,
+} from '../lib/lesson-flow.js';
+import { MODULES, SESSION_FLOW } from '../lib/church-classes.js';
+import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
+
+const FORBIDDEN_AUDIENCE_KEYS = ['say', 'do', 'talkingPoints', 'howToRun', 'watchFor'];
+// Deep-scan an object for any forbidden key (the no-leak guard).
+function findForbiddenKey(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  for (const k of Object.keys(obj)) {
+    if (FORBIDDEN_AUDIENCE_KEYS.includes(k)) return k;
+    const hit = findForbiddenKey(obj[k]);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+describe('the canonical arc', () => {
+  it('is exactly Open → Teach → Engage → Apply → Send-off, weights summing to 1', () => {
+    expect(ARC_KINDS).toEqual(['open', 'teach', 'engage', 'apply', 'send']);
+    const sum = LESSON_ARC.reduce((t, s) => t + s.weight, 0);
+    expect(sum).toBeCloseTo(1, 5);
+    for (const s of LESSON_ARC) {
+      expect(s.title).toBeTruthy();
+      expect(s.subtitle).toBeTruthy();
+      expect(s.icon).toBeTruthy();
+      expect(s.weight).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('session minutes + time-adaptive reflow (#309)', () => {
+  it('sums a real SESSION_FLOW and defends junk', () => {
+    expect(sessionMinutesFromFlow(SESSION_FLOW)).toBe(75);
+    expect(sessionMinutesFromFlow(null)).toBe(DEFAULT_SESSION_MINUTES);
+    expect(sessionMinutesFromFlow([])).toBe(DEFAULT_SESSION_MINUTES);
+  });
+  it('reflows to ANY total and ALWAYS sums exactly to the target', () => {
+    for (const target of [0, 1, 17, 20, 30, 35, 45, 60, 75, 90, 123, 240]) {
+      const mins = reflowArcMinutes(target);
+      expect(mins.length).toBe(5);
+      expect(mins.reduce((t, v) => t + v, 0)).toBe(target); // exact, no rounding drift
+      for (const v of mins) expect(Number.isInteger(v)).toBe(true);
+      for (const v of mins) expect(v).toBeGreaterThanOrEqual(0);
+    }
+  });
+  it('apply (hands-on) gets the largest share at a real class length', () => {
+    const mins = reflowArcMinutes(75);
+    const applyIdx = ARC_KINDS.indexOf('apply');
+    expect(mins[applyIdx]).toBe(Math.max(...mins));
+  });
+});
+
+describe('parseHowToRun + phaseKind', () => {
+  it('parses a "(minutes):" pipe-delimited run-of-show', () => {
+    const phases = parseHowToRun('Prayer + the anchor (5): open in prayer. | Teach the big idea (15): explain it. | Hands-on in the app (25): everyone tries it.');
+    expect(phases.length).toBe(3);
+    expect(phases[0]).toEqual({ label: 'Prayer + the anchor', minutes: 5, text: 'open in prayer.' });
+    expect(phases[2].minutes).toBe(25);
+    expect(parseHowToRun('')).toEqual([]);
+    expect(parseHowToRun(null)).toEqual([]);
+  });
+  it('maps phase labels to the right arc stage', () => {
+    expect(phaseKind('Prayer + the anchor')).toBe('open');
+    expect(phaseKind('Recap last week')).toBe('open');
+    expect(phaseKind('Teach the big idea')).toBe('teach');
+    expect(phaseKind('Discussion')).toBe('engage');
+    expect(phaseKind('Hands-on in the app')).toBe('apply');
+    expect(phaseKind('Send-off + solo task')).toBe('send');
+    expect(phaseKind('nonsense xyz')).toBe(null);
+  });
+});
+
+describe('buildLessonArc — derives a consistent arc from real authored content', () => {
+  const perfect = LIVING_LESSONS_MODULES[0]; // "The Perfect You Were Made For"
+  const wk1 = MODULES[0];                     // "What is A.I., really?"
+
+  it('returns all 5 stages, timed, summing to the target, for a real lesson', () => {
+    const arc = buildLessonArc(perfect, { targetMinutes: 35 });
+    expect(arc.segments.length).toBe(5);
+    expect(arc.segments.map((s) => s.kind)).toEqual(['open', 'teach', 'engage', 'apply', 'send']);
+    expect(arc.totalMinutes).toBe(35);
+    expect(arc.segments.reduce((t, s) => t + s.minutes, 0)).toBe(35);
+    for (const s of arc.segments) {
+      expect(s.title && s.icon && s.cue).toBeTruthy();
+      expect(s.audience && s.facilitator).toBeTruthy();
+    }
+    expect(arc.audienceSegments.length).toBeGreaterThan(0);
+  });
+
+  it('NO-LEAK: no audience segment carries facilitator notes (say/do/talkingPoints/howToRun)', () => {
+    for (const mod of [perfect, wk1]) {
+      const arc = buildLessonArc(mod, { sessionFlow: SESSION_FLOW });
+      for (const seg of arc.segments) {
+        const leak = findForbiddenKey(seg.audience);
+        expect(leak, `audience leaked "${leak}" on ${seg.kind}`).toBe(null);
+      }
+      // ...and the facilitator side DOES carry them (so they weren't just dropped)
+      const teach = arc.segments.find((s) => s.kind === 'teach');
+      expect(Array.isArray(teach.facilitator.say)).toBe(true);
+    }
+  });
+
+  it('routes authored run-of-show text into the matching stage (text never lost)', () => {
+    const arc = buildLessonArc(wk1, { sessionFlow: SESSION_FLOW });
+    const open = arc.segments.find((s) => s.kind === 'open');
+    const apply = arc.segments.find((s) => s.kind === 'apply');
+    const send = arc.segments.find((s) => s.kind === 'send');
+    // wk1.howToRun has "Prayer + the anchor", "Hands-on in the app", "Send-off + solo task"
+    expect(open.facilitator.do.join(' ')).toMatch(/prayer/i);
+    expect(apply.facilitator.do.join(' ')).toMatch(/prompt|app/i);
+    expect(send.facilitator.do.join(' ')).toMatch(/solo|week/i);
+    // talking points land on teach.facilitator.say
+    const teach = arc.segments.find((s) => s.kind === 'teach');
+    expect(teach.facilitator.say.length).toBe(wk1.facilitator.talkingPoints.length);
+  });
+
+  it('composes with depth/age: a child gets more teach segments than an adult (same lesson)', () => {
+    const childArc = buildLessonArc(perfect, { ageBand: 'child', targetMinutes: 60 });
+    const adultArc = buildLessonArc(perfect, { ageBand: 'adult', targetMinutes: 60 });
+    const childTeach = childArc.segments.find((s) => s.kind === 'teach');
+    const adultTeach = adultArc.segments.find((s) => s.kind === 'teach');
+    expect(childTeach.audience.lessonPlan.totalSegments).toBeGreaterThan(adultTeach.audience.lessonPlan.totalSegments);
+  });
+
+  it('a target override changes the total; default uses the session flow', () => {
+    expect(buildLessonArc(perfect, { targetMinutes: 90 }).totalMinutes).toBe(90);
+    expect(buildLessonArc(wk1, { sessionFlow: SESSION_FLOW }).totalMinutes).toBe(75);
+    expect(buildLessonArc(wk1, {}).totalMinutes).toBe(DEFAULT_SESSION_MINUTES);
+  });
+
+  it('never throws and never fabricates on a bare/empty module', () => {
+    expect(() => buildLessonArc(null)).not.toThrow();
+    const empty = buildLessonArc(null);
+    expect(empty.segments.length).toBe(5);
+    expect(empty.audienceSegments.length).toBe(0); // nothing authored → nothing shown
+    const lean = buildLessonArc({ id: 'x', title: 'Lean', bigIdea: 'just a hook', inApp: 'do one thing' });
+    const kinds = lean.audienceSegments.map((s) => s.kind);
+    expect(kinds).toContain('open');  // has bigIdea
+    expect(kinds).toContain('apply'); // has inApp
+    expect(kinds).not.toContain('engage'); // no prompts authored → hidden, not empty
+  });
+});

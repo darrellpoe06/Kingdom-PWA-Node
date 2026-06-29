@@ -3,8 +3,14 @@
 events/*.jsonl
 state/ARMED
 state/WAKE_SUMMON
+state/RESUME_ARMED
 state/orchestrator.lock/
+state/resume.lock/
 state/spend-*.txt
+state/calls-*.txt
 state/handoffs/
+state/approved-queue.json
 
 # NOTE: state/KILL_SWITCH is intentionally TRACKED -- it ships engaged.
+# NOTE: resume/example.approved-queue.json IS tracked (the template); the live
+#       state/approved-queue.json (real task text) stays local to the NAS.

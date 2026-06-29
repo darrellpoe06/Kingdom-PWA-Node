@@ -26,7 +26,11 @@ import { normalizeFinalization } from '../lib/study-space.js';
 import {
   unfinalizedThoughts, finalizationProgress, isTeachingReady,
   askFinalizer, applySuggestion, editFinalization, acceptFinalization, clearFinalization,
+  toEternalAlgorithmDraft,
 } from '../lib/thought-finalizer.js';
+import {
+  loadLibrary, saveLibrary, seedIfEmpty, promoteFromStudy, promotedSourceIds,
+} from '../lib/eternal-algorithms.js';
 
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const AREA = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] leading-relaxed focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -53,7 +57,7 @@ function MicButton({ onText, label }) {
 // -----------------------------------------------------------------------------
 // One thought: the owner's words (read-only) beside the editable treatment.
 // -----------------------------------------------------------------------------
-function FinalizeCard({ entry, onSave, busy }) {
+function FinalizeCard({ entry, onSave, busy, onPromote, inLibrary }) {
   const fin = normalizeFinalization(entry.finalization);
   const [draft, setDraft] = useState({
     fourSummary: fin.fourD.summary,
@@ -135,10 +139,20 @@ function FinalizeCard({ entry, onSave, busy }) {
       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#E8E4DC] flex-wrap">
         <button type="button" disabled={busy || !draftHasAll} onClick={accept} className={`${BTN} bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815] disabled:opacity-50`} title={draftHasAll ? '' : 'Fill all three parts (4D, 3D, Outcome) first'}>{ready ? 'Re-accept' : '✓ Accept · teaching-ready'}</button>
         <button type="button" disabled={busy} onClick={saveEdits} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:bg-[#FAF8F4] disabled:opacity-50`}>Save edits</button>
+        {/* Promote to the finished gallery — ONLY when teaching-ready (accepted +
+            all parts). A draft can't promote; it stays here in the workshop. */}
+        {ready && onPromote && (
+          <button type="button" disabled={busy} onClick={() => onPromote(entry)} className={`${BTN} ${inLibrary ? 'border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#F2F4EC]' : 'bg-[#B85838] text-white font-semibold hover:bg-[#1A1815]'} disabled:opacity-50`} title="Send this finished framework to the Eternal Algorithms library">
+            {inLibrary ? '↻ Update in Eternal Algorithms' : '✦ Promote to Eternal Algorithms'}
+          </button>
+        )}
         {(status !== 'unfinalized' || draftHasAll) && (
           <button type="button" disabled={busy} onClick={dismiss} className={`${BTN} text-[#5A5751] hover:text-[#B85838] ml-auto`}>Clear treatment</button>
         )}
       </div>
+      {ready && inLibrary && (
+        <p className="text-[10px] text-[#5A6E3D] mt-1.5" style={serif}>✓ In the Eternal Algorithms library. Edits here re-accept; press Update to refresh the finished entry.</p>
+      )}
     </div>
   );
 }
@@ -146,15 +160,41 @@ function FinalizeCard({ entry, onSave, busy }) {
 // -----------------------------------------------------------------------------
 // Surface
 // -----------------------------------------------------------------------------
-export default function ThoughtFinalizer({ entries = [], onSaveEntry }) {
+export default function ThoughtFinalizer({ entries = [], onSaveEntry, email }) {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [notice, setNotice] = useState(null); // { kind:'offline'|'done'|'capped', text }
+  const [notice, setNotice] = useState(null); // { kind:'offline'|'done'|'capped'|'promoted', text }
+  // The Study-thought ids already promoted into the Eternal Algorithms library —
+  // so a teaching-ready card shows Promote vs. Update. Loaded once per identity.
+  const [promotedIds, setPromotedIds] = useState(() => new Set());
   const abortRef = useRef(null);
+
+  useEffect(() => {
+    setPromotedIds(promotedSourceIds(loadLibrary(email).entries));
+  }, [email]);
 
   const prog = useMemo(() => finalizationProgress(entries), [entries]);
   const pending = useMemo(() => unfinalizedThoughts(entries), [entries]);
   const ready = useMemo(() => entries.filter(isTeachingReady), [entries]);
+
+  // Promote a finalized thought into the finished gallery. The gate lives in
+  // promoteFromStudy: a non-final draft is rejected (it never reaches here,
+  // since the button only shows when teaching-ready). Idempotent by sourceId —
+  // re-promoting an edited thought UPDATES its entry. The library is seeded first
+  // so promoting before ever opening the gallery never drops the seed catalog.
+  const onPromote = (entry) => {
+    const draft = toEternalAlgorithmDraft(entry);
+    if (!draft) return; // not teaching-ready — defensive; the button is gated already
+    const lib = seedIfEmpty(loadLibrary(email), Date.now());
+    const res = promoteFromStudy(lib, draft, { sourceId: entry.id, nowMs: Date.now() });
+    if (!res.ok) {
+      setNotice({ kind: 'offline', text: `Can't promote yet — still needs: ${(res.missing || []).join(', ')}.` });
+      return;
+    }
+    saveLibrary(email, res.library);
+    setPromotedIds(promotedSourceIds(res.library.entries));
+    setNotice({ kind: 'promoted', text: `“${draft.name}” is in the Eternal Algorithms library — the finished gallery. Open it from the Eternal Algorithms tab.` });
+  };
 
   const stop = () => { if (abortRef.current) abortRef.current.abort(); setRunning(false); };
 
@@ -222,7 +262,7 @@ export default function ThoughtFinalizer({ entries = [], onSaveEntry }) {
           <span className="text-[10px] text-[#5A5751] italic" style={serif}>On-demand only — runs when you press it, never on its own.</span>
         </div>
         {notice && (
-          <div className={`mt-2 text-[11px] p-2 border ${notice.kind === 'offline' ? 'border-[#B45309] bg-[#FAF8F4] text-[#9A3412]' : 'border-[#E8E4DC] bg-[#FAF8F4] text-[#5A5751]'}`} style={serif} role="status">
+          <div className={`mt-2 text-[11px] p-2 border ${notice.kind === 'offline' ? 'border-[#B45309] bg-[#FAF8F4] text-[#9A3412]' : notice.kind === 'promoted' ? 'border-[#5A6E3D] bg-[#F2F4EC] text-[#5A6E3D]' : 'border-[#E8E4DC] bg-[#FAF8F4] text-[#5A5751]'}`} style={serif} role="status">
             {notice.text}
           </div>
         )}
@@ -237,8 +277,8 @@ export default function ThoughtFinalizer({ entries = [], onSaveEntry }) {
       ) : (
         <div className="space-y-2">
           {/* Pending first (the work), then the teaching-ready ones (the proof). */}
-          {pending.map((e) => <FinalizeCard key={e.id} entry={e} onSave={onSaveEntry} busy={running} />)}
-          {ready.map((e) => <FinalizeCard key={e.id} entry={e} onSave={onSaveEntry} busy={running} />)}
+          {pending.map((e) => <FinalizeCard key={e.id} entry={e} onSave={onSaveEntry} busy={running} onPromote={onPromote} inLibrary={promotedIds.has(e.id)} />)}
+          {ready.map((e) => <FinalizeCard key={e.id} entry={e} onSave={onSaveEntry} busy={running} onPromote={onPromote} inLibrary={promotedIds.has(e.id)} />)}
         </div>
       )}
 

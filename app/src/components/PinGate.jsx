@@ -29,10 +29,17 @@ export default function PinGate({
   onForgot,
   onCancel,
   submitLabel,
+  // Biometric fast-unlock (optional). When onBiometric is provided AND we're in
+  // 'enter' mode, a prominent fingerprint/Face button appears ABOVE the PIN, and
+  // the PIN stays right below it as the always-available fallback. onBiometric
+  // resolves to { ok, reason? }; on ok the parent unmounts the gate.
+  onBiometric,
+  biometricLabel,
 }) {
   const [pin, setPin] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bioBusy, setBioBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const firstRef = useRef(null);
@@ -44,6 +51,24 @@ export default function PinGate({
   }, []);
 
   const isSet = mode === 'set';
+  const showBiometric = !isSet && typeof onBiometric === 'function';
+
+  async function handleBiometric() {
+    setError(''); setInfo('');
+    setBioBusy(true);
+    let res;
+    try { res = await onBiometric(); }
+    catch (_) { res = { ok: false, reason: 'error' }; }
+    setBioBusy(false);
+    if (res && res.ok) return; // parent unmounts on success
+    // Any failure (cancelled, no match, unsupported) just falls back to the PIN.
+    if (res && res.reason === 'cancelled') {
+      setInfo('No problem — enter your PIN instead.');
+    } else {
+      setError('Fingerprint / Face didn’t verify. Enter your PIN to continue.');
+    }
+    if (firstRef.current) firstRef.current.focus();
+  }
   const heading = title || (isSet ? 'Create your PIN' : 'Enter your PIN');
   const sub = subtitle || (isSet
     ? 'Pick a 4–8 digit PIN. This is your second key — you’ll use it with this device or your email sign-in.'
@@ -94,6 +119,30 @@ export default function PinGate({
         <h2 id="pin-gate-h" className="text-xl sm:text-2xl mb-2"
           style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{heading}</h2>
         <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>{sub}</p>
+
+        {showBiometric && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={handleBiometric}
+              disabled={bioBusy || busy}
+              className="w-full flex items-center justify-center gap-2 bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50 disabled:cursor-not-allowed">
+              {/* Fingerprint glyph (decorative; the label carries the meaning). */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 11c0 2.5 0 5-1 7" />
+                <path d="M7 11a5 5 0 0 1 10 0c0 3 0 5-1 8" />
+                <path d="M9.5 11a2.5 2.5 0 0 1 5 0c0 3.5-.5 6-1.5 8.5" />
+                <path d="M4.5 9a8 8 0 0 1 15 0v2" />
+              </svg>
+              {bioBusy ? 'Waiting for fingerprint / Face…' : (biometricLabel || 'Unlock with fingerprint / Face')}
+            </button>
+            <div className="flex items-center gap-3 my-3" aria-hidden="true">
+              <span className="h-px bg-[#1A1815]/20 flex-1" />
+              <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">or enter your PIN</span>
+              <span className="h-px bg-[#1A1815]/20 flex-1" />
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>

@@ -20,12 +20,24 @@
 // =============================================================================
 import React, { useEffect, useMemo, useState } from 'react';
 import { youtubeEmbedUrl, reuseSong, saveSong, subscribeSermons } from '../lib/choir-sync.js';
-import { subscribeSongLoves, toggleSongLove, saveSongCrossRef } from '../lib/choir-songbook-sync.js';
+import {
+  subscribeSongLoves, toggleSongLove, saveSongCrossRef,
+  importRepertoireJson, scanArchiveForSongs, confirmArchiveSong,
+} from '../lib/choir-songbook-sync.js';
+import {
+  subscribeRenditionLoves, toggleRenditionLove, saveRenditionDetail, graduateAdLibToArrangement,
+} from '../lib/choir-renditions-sync.js';
+import { tallyRenditionLoves } from '../lib/choir-renditions.js';
+import ChoirRenditions from './ChoirRenditions.jsx';
+import { normalizeTitle } from '../lib/choir-songbook.js';
 import {
   buildSongbook, tallyLoves, allThemes, searchSongbook, filterByTheme,
   suggestSongsForSermon, suggestSongsForText, crossRefSermons, lastSungLabel,
   suggestThemes, parseThemes,
 } from '../lib/choir-songbook.js';
+import { subscribeSmeNotes, importKnowledgeJson, reviewSmeNote, deleteSmeNote } from '../lib/choir-sme-sync.js';
+import { attachSmeNotes, generalGuidance, pendingSmeNotes, orphanSmeNotes } from '../lib/choir-sme-notes.js';
+import { repertoireCoverage } from '../lib/choir-archive.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -136,9 +148,39 @@ function MetaEditor({ entry, sermons, busy, onSave, onClose }) {
   );
 }
 
+// The keyboardist's (Christian) SME note for a song: how to play it, the key,
+// the arrangement — sourced from his video, with provenance + a confirm action.
+function KeyboardistNote({ sme, canEdit, onConfirm, busy }) {
+  const [open, setOpen] = useState(false);
+  if (!sme) return null;
+  const unconfirmed = sme.status !== 'reviewed';
+  return (
+    <div className="mt-2 bg-[#F2F4EC] border border-[#5A6E3D] p-2">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">🎹 {sme.smeName} · {sme.smeRole}</span>
+        <div className="flex items-center gap-1">
+          {sme.confidence && <Chip tone="theme">{sme.confidence} confidence</Chip>}
+          {unconfirmed && <Chip tone="reason">unconfirmed</Chip>}
+        </div>
+      </div>
+      <div className="text-[0.8125rem] text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        {[sme.songKey && `Key: ${sme.songKey}`, sme.arrangement].filter(Boolean).join(' · ')}
+      </div>
+      {sme.howToPlay && <p className="text-[0.8125rem] text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{sme.howToPlay}</p>}
+      <div className="flex items-center gap-2 flex-wrap mt-1">
+        {sme.sourceQuote && <button type="button" onClick={() => setOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`} aria-expanded={open}>{open ? '▾ Hide source' : '“ Source'}</button>}
+        {canEdit && unconfirmed && <button type="button" disabled={busy} onClick={() => onConfirm(sme)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>✓ Confirm</button>}
+      </div>
+      {open && sme.sourceQuote && (
+        <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>“{sme.sourceQuote}”{sme.sourceVideo ? ` — ${sme.sourceVideo}` : ''}</p>
+      )}
+    </div>
+  );
+}
+
 // --- A single songbook card --------------------------------------------------
-function SongCard({ entry, sermons, canEdit, today, onLove, onAdd, onSaveMeta, busy }) {
-  const [open, setOpen] = useState(null); // 'add' | 'meta' | 'video' | null
+function SongCard({ entry, rows, renditionLoves, sermons, canEdit, today, onLove, onAdd, onSaveMeta, onConfirmSme, onConfirmArchive, onLoveRendition, onSaveRenditionDetail, onGraduate, busy }) {
+  const [open, setOpen] = useState(null); // 'add' | 'meta' | 'video' | 'ways' | null
   const embed = youtubeEmbedUrl(entry.youtubeUrl);
   const fits = useMemo(() => crossRefSermons(entry, sermons, { limit: 2 }), [entry, sermons]);
   return (
@@ -147,6 +189,8 @@ function SongCard({ entry, sermons, canEdit, today, onLove, onAdd, onSaveMeta, b
         <div className="flex items-baseline gap-2 flex-wrap">
           <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{entry.title}</span>
           {entry.lovesCount >= 3 && <Chip tone="reason">♥ most-loved</Chip>}
+          {entry.fromArchive && <Chip tone="scripture">📼 archive</Chip>}
+          {entry.needsReview && <Chip tone="reason">needs review</Chip>}
         </div>
         <button
           type="button"
@@ -182,13 +226,24 @@ function SongCard({ entry, sermons, canEdit, today, onLove, onAdd, onSaveMeta, b
         </div>
       )}
 
+      <KeyboardistNote sme={entry.sme} canEdit={canEdit} busy={busy} onConfirm={onConfirmSme} />
+
       <div className="flex items-center gap-2 flex-wrap mt-1">
+        {entry.timesUsed > 0 && <button type="button" onClick={() => setOpen(open === 'ways' ? null : 'ways')} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`} aria-expanded={open === 'ways'}>{open === 'ways' ? '▾ Hide' : `🎼 Ways we've sung it (${entry.timesUsed})`}</button>}
         {embed && <button type="button" onClick={() => setOpen(open === 'video' ? null : 'video')} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={open === 'video'}>{open === 'video' ? '▾ Hide' : '▶ Watch'}</button>}
         {!embed && entry.youtubeUrl && <a href={entry.youtubeUrl} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>▶ Link</a>}
+        {canEdit && entry.needsReview && <button type="button" disabled={busy} onClick={() => onConfirmArchive(entry)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>✓ Confirm song</button>}
         {canEdit && <button type="button" onClick={() => setOpen(open === 'add' ? null : 'add')} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Add to service</button>}
         {canEdit && <button type="button" onClick={() => setOpen(open === 'meta' ? null : 'meta')} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>✎ Cross-reference</button>}
       </div>
 
+      {open === 'ways' && (
+        <ChoirRenditions
+          entry={entry} rows={rows} renditionLoves={renditionLoves}
+          canEdit={canEdit} today={today} busy={busy}
+          onLove={onLoveRendition} onSaveDetail={onSaveRenditionDetail} onGraduate={onGraduate}
+        />
+      )}
       {open === 'add' && <AddToService entry={entry} onAdd={onAdd} onClose={() => setOpen(null)} />}
       {open === 'meta' && <MetaEditor entry={entry} sermons={sermons} busy={busy} onSave={(e, fields) => { onSaveMeta(e, fields); setOpen(null); }} onClose={() => setOpen(null)} />}
       {open === 'video' && embed && (
@@ -263,11 +318,117 @@ function AddSuggestion({ entry, onAdd }) {
   return <AddToService entry={entry} onAdd={onAdd} onClose={() => setOpen(false)} />;
 }
 
+// --- Director "Sources" panel: auto-seed the repertoire + import keyboardist --
+// knowledge from the same archive the content engine uses (reviewed, faithful).
+function SourcesPanel({ smeNotes, songbook, coverage, onScan, onImportRepertoire, onImportKnowledge, onReviewSme, onDeleteSme, busy }) {
+  const [open, setOpen] = useState(false);
+  const [rep, setRep] = useState('');
+  const [know, setKnow] = useState('');
+  const [video, setVideo] = useState('');
+  const [msg, setMsg] = useState('');
+  const pending = useMemo(() => pendingSmeNotes(smeNotes).filter((n) => n.kind === 'song'), [smeNotes]);
+  const guidance = useMemo(() => generalGuidance(smeNotes, { includeExtracted: true }), [smeNotes]);
+  const orphans = useMemo(() => orphanSmeNotes(smeNotes, songbook), [smeNotes, songbook]);
+
+  const run = async (fn) => { setMsg('Working…'); const r = await fn(); setMsg(r); };
+
+  return (
+    <div className="border border-[#5A6E3D] mb-4">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className={`${BTN} w-full text-left text-[#5A6E3D] hover:text-[#1A1815] flex items-center justify-between`}>
+        <span>📼 Source the repertoire + keyboardist knowledge</span><span>{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div className="p-3 space-y-3 bg-[#FAF8F4]">
+          <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Build the choir’s <strong>historical</strong> library from the services we already have — the same recordings the sermons came from carry the songs the choir sang. Each harvested song becomes a rendition of that real service (one source, two harvests). Every seeded song is flagged <em>needs review</em> until you confirm it; nothing is guessed.
+          </p>
+
+          {coverage && coverage.totalServices > 0 && (
+            <div className="bg-white border border-[#E8E4DC] p-2" aria-live="polite">
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-0.5">Historical sweep — from the services we already hold</div>
+              <p className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                {coverage.totalServices} service video{coverage.totalServices === 1 ? '' : 's'} in the archive · songs harvested from{' '}
+                <strong>{coverage.coveredServices}</strong>
+                {coverage.pendingServices > 0
+                  ? ` · ${coverage.pendingServices} still to sweep`
+                  : ' · all swept'}.
+              </p>
+              {coverage.pendingServices > 0 && (
+                <p className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Run service-to-repertoire on the remaining services (or the corpus driver) and import the results to grow the history. Scope is honest — it counts only services we actually hold, so a partial sweep reads as partial.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div>
+            <button type="button" disabled={busy} onClick={() => run(onScan)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Scan the church YouTube archive</button>
+            <p className="text-[0.5625rem] text-[#5A5751] mt-1">Reads only songs a video lists in its <em>description / chapters</em>. The church’s service videos rarely list them, so this finds little on its own. The real repertoire comes from transcribing the recordings — paste the pipeline’s <strong>repertoire.json</strong> below (that’s the main source).</p>
+          </div>
+
+          <div>
+            <label className={LABEL} htmlFor="src-rep">Import repertoire.json (the SME/content pipeline’s per-song extract)</label>
+            <textarea id="src-rep" rows={3} className={FIELD} value={rep} onChange={(e) => setRep(e.target.value)} placeholder='{ "songs": [ { "title": "...", "video_id": "...", "confidence": "high" } ] }' />
+            <button type="button" disabled={busy || !rep.trim()} onClick={() => run(async () => { const r = await onImportRepertoire(rep); if (!r.skipped) setRep(''); return r; })} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50 mt-1`}>Import repertoire</button>
+          </div>
+
+          <div>
+            <label className={LABEL} htmlFor="src-know">Import knowledge.json (Christian, the keyboardist)</label>
+            <input className={`${FIELD} mb-1`} value={video} onChange={(e) => setVideo(e.target.value)} placeholder="Source video name (optional, for provenance)" aria-label="Source video name" />
+            <textarea id="src-know" rows={3} className={FIELD} value={know} onChange={(e) => setKnow(e.target.value)} placeholder='{ "sme": {"name":"Christian"}, "songs": [ { "title":"...", "key_label":"B", "note":"..." } ] }' />
+            <button type="button" disabled={busy || !know.trim()} onClick={() => run(async () => { const r = await onImportKnowledge(know, video); if (!r.skipped) setKnow(''); return r; })} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50 mt-1`}>Import keyboardist knowledge</button>
+          </div>
+
+          {msg && <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{msg}</p>}
+
+          {pending.length > 0 && (
+            <div>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">Keyboardist notes to confirm ({pending.length})</div>
+              <div className="space-y-1">
+                {pending.map((n) => (
+                  <div key={n.id} className="bg-white border border-[#E8E4DC] p-2 text-[0.6875rem]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <strong>{n.titleDisplay}</strong>{n.songKey ? ` · key ${n.songKey}` : ''}{n.confidence ? ` · ${n.confidence}` : ''}
+                    {n.howToPlay && <div className="text-[#5A5751]">{n.howToPlay}</div>}
+                    <div className="flex gap-2 mt-1">
+                      <button type="button" disabled={busy} onClick={() => onReviewSme(n.id, 'reviewed')} className={`${BTN} text-[#166534] hover:underline`}>✓ Confirm</button>
+                      <button type="button" disabled={busy} onClick={() => onDeleteSme(n.id)} className={`${BTN} text-[#991B1B] hover:underline`}>Discard</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {orphans.length > 0 && (
+            <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              {orphans.length} keyboardist note{orphans.length > 1 ? 's' : ''} reference a song not in the songbook yet ({orphans.slice(0, 4).map((n) => n.titleDisplay).join(', ')}). Add the song, then the note will attach.
+            </p>
+          )}
+
+          {guidance.length > 0 && (
+            <div>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">General guidance from {guidance[0].smeName}</div>
+              {guidance.map((g) => (
+                <div key={g.id} className="text-[0.6875rem] text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {g.topic ? <strong>{g.topic}: </strong> : null}{g.guidance}
+                  {g.status !== 'reviewed' && <button type="button" disabled={busy} onClick={() => onReviewSme(g.id, 'reviewed')} className={`${BTN} text-[#166534] hover:underline ml-1`}>✓</button>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Surface -----------------------------------------------------------------
 export default function ChoirSongbook({ songs, access }) {
   const canEdit = !!access?.canEdit;
   const [sermons, setSermons] = useState([]);
   const [loves, setLoves] = useState([]);
+  const [smeNotes, setSmeNotes] = useState([]);
+  const [rLoves, setRLoves] = useState([]);
   const [query, setQuery] = useState('');
   const [theme, setTheme] = useState('');
   const [busy, setBusy] = useState(false);
@@ -275,18 +436,39 @@ export default function ChoirSongbook({ songs, access }) {
   const today = todayIso();
 
   useEffect(() => {
-    const unsubs = [subscribeSermons(setSermons), subscribeSongLoves(setLoves)];
+    const unsubs = [subscribeSermons(setSermons), subscribeSongLoves(setLoves), subscribeSmeNotes(setSmeNotes), subscribeRenditionLoves(setRLoves)];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, []);
 
   const lovesMap = useMemo(() => tallyLoves(loves), [loves]);
-  const songbook = useMemo(() => buildSongbook(songs, { loves: lovesMap, today }), [songs, lovesMap, today]);
+  const baseSongbook = useMemo(() => buildSongbook(songs, { loves: lovesMap, today }), [songs, lovesMap, today]);
+  // Confirmed keyboardist notes ride on every song; the director also sees the
+  // unconfirmed ones (to review). Faithful: extracted = unconfirmed until reviewed.
+  const songbook = useMemo(() => attachSmeNotes(baseSongbook, smeNotes, { includeExtracted: canEdit }), [baseSongbook, smeNotes, canEdit]);
+  const renditionLoves = useMemo(() => tallyRenditionLoves(rLoves), [rLoves]);
+  // titleKey -> the song's real set-list rows (its renditions). The rendition
+  // data needs no new fetch — it's the same `songs` the songbook derives from.
+  const rowsByTitle = useMemo(() => {
+    const map = new Map();
+    for (const s of songs || []) {
+      const key = normalizeTitle(s.title);
+      if (!key) continue;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(s);
+    }
+    return map;
+  }, [songs]);
   const themes = useMemo(() => allThemes(songbook), [songbook]);
   const visible = useMemo(() => searchSongbook(filterByTheme(songbook, theme), query), [songbook, theme, query]);
+  // Honest historical-sweep readout: of the service videos we already hold
+  // (sermons corpus), how many have at least one harvested choir song.
+  const coverage = useMemo(() => repertoireCoverage(sermons, songs), [sermons, songs]);
 
   const reportSkip = (res) => { setErr(res && res.skipped ? `Could not save (${res.skipped}). Try again.` : ''); };
   const onLove = async (entry) => { reportSkip(await toggleSongLove(entry.titleKey, entry.lovedByMe)); };
   const onAdd = async (entry, date, type) => { setBusy(true); reportSkip(await reuseSong(toSongRecord(entry), date, type)); setBusy(false); };
+  const onConfirmSme = async (sme) => { setBusy(true); reportSkip(await reviewSmeNote(sme.id, 'reviewed')); setBusy(false); };
+  const onConfirmArchive = async (entry) => { setBusy(true); for (const id of entry.reviewRowIds) await confirmArchiveSong(id); setBusy(false); };
   const onSaveMeta = async (entry, fields) => {
     setBusy(true);
     // Coherent across the song's rows; if it's a single library row, saveSong keeps it.
@@ -295,14 +477,43 @@ export default function ChoirSongbook({ songs, access }) {
       : await saveSong({ ...toSongRecord(entry), id: entry.latestId, ...fields, themes: fields.themes });
     reportSkip(res); setBusy(false);
   };
+  // Source actions return a human-readable status string for the panel.
+  const onScan = async () => { setBusy(true); const r = await scanArchiveForSongs(); setBusy(false);
+    if (r.skipped === 'no-key') return 'No YouTube API key set — and the scan only reads songs a video lists. Paste the pipeline’s repertoire.json instead (the real source).';
+    if (r.skipped) return `Couldn’t scan (${r.skipped}).`;
+    if (!r.imported) return `Scanned ${r.scanned} videos — none list their songs in the description, so nothing was seeded. Transcribe the recordings and import the repertoire.json below.`;
+    return `Scanned ${r.scanned} videos · seeded ${r.imported} song${r.imported === 1 ? '' : 's'} (all need review).`; };
+  const onImportRepertoire = async (text) => { setBusy(true); const r = await importRepertoireJson(text); setBusy(false);
+    if (r.skipped === 'bad-json') return 'That isn’t valid JSON — paste the pipeline’s repertoire.json.';
+    if (r.skipped === 'empty') return 'No songs found in that file.';
+    if (r.skipped) return `Couldn’t import (${r.skipped}).`;
+    return `Seeded ${r.imported} song${r.imported === 1 ? '' : 's'}${r.linked ? ` · ${r.linked} linked to a service we already have` : ''}${r.unclear?.length ? ` · ${r.unclear.length} to confirm with the team` : ''}.`; };
+  const onImportKnowledge = async (text, video) => { setBusy(true); const r = await importKnowledgeJson(text, { sourceVideo: video }); setBusy(false);
+    if (r.skipped === 'bad-json') return 'That isn’t valid JSON — paste Christian’s knowledge.json.';
+    if (r.skipped === 'empty') return 'No song notes found in that file.';
+    if (r.skipped) return `Couldn’t import (${r.skipped}).`;
+    return `Imported ${r.count} note${r.count === 1 ? '' : 's'} — confirm them below${r.unclear?.length ? ` · ${r.unclear.length} to ask Christian` : ''}.`; };
+  // --- Rendition-level handlers (per-performance) ---
+  const onLoveRendition = async (rendition) => { reportSkip(await toggleRenditionLove(rendition.id, rendition.lovedByMe)); };
+  const onSaveRenditionDetail = async (renditionId, fields) => { setBusy(true); reportSkip(await saveRenditionDetail(renditionId, fields)); setBusy(false); };
+  const onGraduate = async (rowIds, arrangement) => { setBusy(true); reportSkip(await graduateAdLibToArrangement(rowIds, arrangement)); setBusy(false); };
 
   return (
     <div>
       <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-        Every song the choir sings, cross-referenced by scripture, theme, and the message it fits — so Sunday's set is a few taps away. {canEdit ? 'Tag a song once; it stays cross-referenced everywhere.' : 'Tap ♥ on the songs you love.'}
+        Every song the choir sings, cross-referenced by scripture, theme, the message it fits, and how the keyboardist plays it — so Sunday's set is a few taps away. {canEdit ? 'Seed the repertoire from the archive below; tag a song once and it stays cross-referenced everywhere.' : 'Tap ♥ on the songs you love.'}
       </p>
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
+
+      {canEdit && (
+        <SourcesPanel
+          smeNotes={smeNotes} songbook={songbook} coverage={coverage} busy={busy}
+          onScan={onScan} onImportRepertoire={onImportRepertoire} onImportKnowledge={onImportKnowledge}
+          onReviewSme={async (id, status) => { reportSkip(await reviewSmeNote(id, status)); }}
+          onDeleteSme={async (id) => { reportSkip(await deleteSmeNote(id)); }}
+        />
+      )}
 
       <SuggestPanel songbook={songbook} sermons={sermons} canEdit={canEdit} today={today} onAdd={onAdd} />
 
@@ -322,12 +533,18 @@ export default function ChoirSongbook({ songs, access }) {
       {visible.length ? (
         <div className="space-y-3">
           {visible.map((entry) => (
-            <SongCard key={entry.titleKey} entry={entry} sermons={sermons} canEdit={canEdit} today={today} busy={busy} onLove={onLove} onAdd={onAdd} onSaveMeta={onSaveMeta} />
+            <SongCard
+              key={entry.titleKey} entry={entry} rows={rowsByTitle.get(entry.titleKey) || []}
+              renditionLoves={renditionLoves} sermons={sermons} canEdit={canEdit} today={today} busy={busy}
+              onLove={onLove} onAdd={onAdd} onSaveMeta={onSaveMeta}
+              onConfirmSme={onConfirmSme} onConfirmArchive={onConfirmArchive}
+              onLoveRendition={onLoveRendition} onSaveRenditionDetail={onSaveRenditionDetail} onGraduate={onGraduate}
+            />
           ))}
         </div>
       ) : (
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          {songbook.length ? 'No songs match — clear the search or theme filter.' : 'No songs yet. Add the week’s music in the This Week tab, then cross-reference it here.'}
+          {songbook.length ? 'No songs match — clear the search or theme filter.' : (canEdit ? 'No songs yet. The choir’s songs live in the audio of the service recordings (not the YouTube titles), so the repertoire is sourced by transcribing them: run service-to-repertoire on the recordings, then paste the repertoire.json into “Source the repertoire” above. You can also add this week’s music in the This Week tab.' : 'No songs yet. The director is sourcing the choir’s repertoire from the service recordings — check back soon.')}
         </p>
       )}
     </div>

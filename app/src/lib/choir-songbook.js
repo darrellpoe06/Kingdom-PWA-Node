@@ -241,6 +241,12 @@ export function buildSongbook(songs, { loves, today } = {}) {
       nextScheduled: future.length ? future.sort()[0] : null,
       lovesCount: love.count,
       lovedByMe: !!love.mine,
+      // Archive provenance (0042): seeded from the church archive, and whether a
+      // steward still needs to confirm the match. reviewRowIds = the rows to
+      // clear when confirmed.
+      fromArchive: rows.some((r) => r.source === 'archive'),
+      needsReview: rows.some((r) => r.needsReview),
+      reviewRowIds: rows.filter((r) => r.needsReview).map((r) => r.id),
     });
   }
   // Default order: most-loved first, then most recently sung, then title.

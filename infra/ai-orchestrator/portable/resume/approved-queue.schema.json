@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://poetech.us/schemas/approved-resume-queue.v1.json",
+  "title": "PoeTech Bounded Auto-Resume Queue (Approved-Work Queue) v1",
+  "description": "A materialized, EXPLICIT list of greenlit tasks the cap-resume runner is allowed to continue after a vendor outage/cap resets. This is BOUNDED resume of already-approved work, NOT open-ended autonomy: an item the human did not set approved:true can never be eligible. The runner (scripts/cap-resume.mjs) reads this, runs only approved+pending items behind the three brakes, and writes status back (idempotent). No item = no-op. The live instance lives at state/approved-queue.json on the NAS (gitignored); this folder ships the schema + a worked example.",
+  "type": "object",
+  "required": ["v", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "v": { "const": 1, "description": "Queue contract version. Bump only on a breaking change." },
+    "items": {
+      "type": "array",
+      "description": "The queued tasks. Empty array = nothing approved = the runner no-ops.",
+      "items": { "$ref": "#/definitions/queueItem" }
+    }
+  },
+  "definitions": {
+    "queueItem": {
+      "type": "object",
+      "required": ["id", "approved", "status", "handoff"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "description": "Stable unique id for this queued task (e.g. 'resume-darrells-study-001'). Used for dedupe, the per-task idempotency, and audit."
+        },
+        "approved": {
+          "type": "boolean",
+          "description": "THE greenlight gate. Only true is eligible. There is no default-true path: a missing or false value means the runner skips the item. Darrell (governor) sets this."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "done", "failed", "skipped"],
+          "description": "Lifecycle. Only 'pending' is eligible; the runner writes 'in_progress' then 'done'/'failed'. A 'done' item is never resumed twice (idempotency)."
+        },
+        "not_before": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional UTC ISO-8601 floor: even when approved + the cap window is open, do not resume this item before this instant."
+        },
+        "handoff": {
+          "description": "The resume payload — a full wake/handoff object (REUSED verbatim from the wake bridge: handoff/schema.json). Carries lane, the concrete approved task, work_type (vendor affinity), private (sovereignty gate), and the state_pointer so a cold session can pick up. The wake_at field inside is not used for cap-resume scheduling (the cap window + approved gate drive that); it may be omitted or left as a placeholder.",
+          "$ref": "../handoff/schema.json"
+        },
+        "last_run_at": { "type": "string", "description": "Set by the runner: UTC ISO-8601 of the last attempt." },
+        "last_note": { "type": "string", "maxLength": 500, "description": "Set by the runner: short outcome note (vendor/model/cost or error)." }
+      }
+    }
+  }
+}

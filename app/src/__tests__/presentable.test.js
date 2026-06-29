@@ -9,6 +9,7 @@ import {
   ageHint, PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE,
   DEFAULT_SCENE_MIN, PRIORITY,
   withSceneTiming, estimateSceneMinutes, fullContentMin, fitToBudget, deterministicSkipRanker,
+  importanceSkipRanker, DEFAULT_IMPORTANCE,
   makeScene, addScene, editScene,
   loadOverlay, saveOverlay, applyOverlay, overlayKey, EMPTY_OVERLAY,
 } from '../lib/presentable.js';
@@ -351,6 +352,71 @@ describe('fitToBudget — PROPORTIONAL reflow (weight-preserving + floors + skip
     // a throwing ranker must not break the reflow (deterministic fallback engages)
     const safe = fitToBudget(RANKABLE, 16, { rankSkips: () => { throw new Error('llm down'); } });
     expect(safe.skipped.length).toBeGreaterThan(0);
+  });
+});
+
+// scene with an explicit importance (lesson weight)
+const wscene = (id, estimatedMin, priority, minMin, importance) => ({ id, estimatedMin, priority, minMin, importance, audience: { title: id }, notes: [] });
+
+describe('fitToBudget — IMPORTANCE-weighted (lesson weights protect the essential)', () => {
+  it('importance defaults to 1 and is honored when set (backfill)', () => {
+    expect(withSceneTiming({ id: 'x', audience: {} }).importance).toBe(DEFAULT_IMPORTANCE);
+    expect(withSceneTiming({ id: 'x', importance: 3, audience: {} }).importance).toBe(3);
+    expect(withSceneTiming({ id: 'x', importance: -2, audience: {} }).importance).toBe(1); // bad -> default
+  });
+
+  it('uniform importance reflows EXACTLY like the time-proportional model (no regression)', () => {
+    const UNI = [wscene('A', 10, PRIORITY.CORE), wscene('B', 10, PRIORITY.CORE), wscene('C', 10, PRIORITY.SUPPLEMENTARY), wscene('D', 5, PRIORITY.SUPPLEMENTARY)];
+    const r = fitToBudget(UNI, 20);                 // 20 of 35; floors fit
+    expect(r.weighted).toBe(false);
+    expect(byId(r.plan, 'A').allocatedMin).toBeCloseTo(5.7, 1); // same as the proportional test
+    expect(r.skipped).toHaveLength(0);
+  });
+
+  it('the most essential material is PROTECTED and gets the minutes; low-weight compresses', () => {
+    // A (weight 3) + B (weight 1), both need 10 min; budget 15 (< 20 full)
+    const r = fitToBudget([wscene('A', 10, PRIORITY.CORE, 2, 3), wscene('B', 10, PRIORITY.CORE, 2, 1)], 15);
+    expect(r.weighted).toBe(true);
+    // A's importance-weighted share (30/40*15=11.25) is capped at its natural need (10);
+    // B takes the remainder and compresses to 5.
+    expect(byId(r.plan, 'A').allocatedMin).toBe(10);
+    expect(byId(r.plan, 'A').atCap).toBe(true);
+    expect(byId(r.plan, 'B').allocatedMin).toBeCloseTo(5, 1);
+    expect(byId(r.plan, 'A').allocatedMin).toBeGreaterThan(byId(r.plan, 'B').allocatedMin);
+  });
+
+  it('drops by ASCENDING importance — least essential first, weightiest protected', () => {
+    // floors 6 each (sum 24) > budget 20 -> drop exactly ONE supplementary
+    const DROP = [
+      wscene('A', 10, PRIORITY.CORE, 6, 1), wscene('B', 10, PRIORITY.CORE, 6, 1),
+      wscene('C', 10, PRIORITY.SUPPLEMENTARY, 6, 0.5), wscene('D', 10, PRIORITY.SUPPLEMENTARY, 6, 5),
+    ];
+    const r = fitToBudget(DROP, 20);
+    expect(byId(r.plan, 'C').skipped).toBe(true);   // least essential (0.5) goes first
+    expect(byId(r.plan, 'D').skipped).toBe(false);  // weightiest supplementary protected
+    expect(byId(r.plan, 'A').skipped).toBe(false);  // core never dropped
+    expect(byId(r.plan, 'B').skipped).toBe(false);
+    expect(r.summary).toMatch(/least-essential/i);
+  });
+
+  it('importanceSkipRanker orders ascending importance, tie-break largest-time; uniform == deterministic', () => {
+    const cands = [
+      { _key: 'a', _i: 0, estimatedMin: 5, importance: 2 },
+      { _key: 'b', _i: 1, estimatedMin: 10, importance: 1 },
+      { _key: 'c', _i: 2, estimatedMin: 5, importance: 1 },
+    ];
+    expect(importanceSkipRanker(cands)).toEqual(['b', 'c', 'a']); // imp 1s first (largest-time b before c), then imp 2
+    const uni = cands.map((c) => ({ ...c, importance: 1 }));
+    expect(importanceSkipRanker(uni)).toEqual(deterministicSkipRanker(uni)); // uniform == old order
+  });
+
+  it('coursePresentable passes a module importance weight through to the scene', () => {
+    const cp = coursePresentable({ meta: { key: 'x', title: 'X' }, schedule: [
+      { id: 'a', title: 'A', bigIdea: 'i', week: 1, importance: 4, facilitator: { howToRun: 'Teach (10): x' } },
+      { id: 'b', title: 'B', bigIdea: 'i', week: 2, facilitator: { howToRun: 'Teach (10): y' } },
+    ] });
+    expect(byId(cp.scenes, 'a').importance).toBe(4);
+    expect(byId(cp.scenes, 'b').importance).toBe(1); // default
   });
 });
 

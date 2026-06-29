@@ -42,6 +42,12 @@ export function statusMeta(status) {
 // -----------------------------------------------------------------------------
 export const SEED_CONCERNS = [
   {
+    id: 'seed-consistency-enforced',
+    concern: 'Surfaces drifted because consistency was a slogan, not an enforced standard — phone render differed from laptop, a device-font emoji showed as a tofu box on one device, contrast and text-size varied surface to surface. Every same-day bug shared this one root.',
+    solution: 'Consistency enforced via shared primitives + a CI check. CONSISTENCY-STANDARD.md (DR-0079) names the one canonical primitive per axis (UiIcon for icons, theme tokens for color, lib/text-size.js for text, the shell container for layout, supabase.js for persistence, surfaces.js for module mounting, canonical entities for identity). A new consistency-guard (vitest-gated) hard-fails the build on any NEW emoji-as-icon or fixed-px font over a frozen per-file baseline; color stays owned by the contrast guard, boundaries by the module-boundary guard. Drift now fails before merge.',
+    status: 'in-progress', targetDate: '2026-07-15', area: 'Consistency', created: '2026-06-25',
+  },
+  {
     id: 'seed-feedback-auto-eval',
     concern: 'In-app feedback is never auto-evaluated — a submitted note just sits until someone reads it by hand.',
     solution: 'Feedback → AI-reviewed follow-up: route each item to the right person with a follow-up sequence that improves over time (the loop this very board closes the first half of — feedback now returns in-app automatically).',

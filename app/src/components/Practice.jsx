@@ -7,9 +7,12 @@
 // this surface tracks PRE-INTAKE inquiries only (non-PHI). PHI stays in
 // Acuity, never in SKOS.
 import React, { useState, useMemo } from 'react';
-import { MetricCell, SectionTitle } from './shared.jsx';
+import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { Queue } from './Queue.jsx';
+import { ClientGrowth } from './ClientGrowth.jsx';
+import { PracticeLearn } from './PracticeLearn.jsx';
+import SectionBoundary from './SectionBoundary.jsx';
 
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -91,7 +94,8 @@ const insuranceLabel = (val) => {
   return m ? m.label + (m.accepted ? ' ✓' : '') : val;
 };
 
-function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry }) {
+function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry, practiceLeads = [], addLead, updateLead, deleteLead, email = '', isStaff = false }) {
+  const [subTab, setSubTab] = useState('operations');
   const [statusFilter, setStatusFilter] = useState('active');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyInquiry());
@@ -156,6 +160,31 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
 
   return (
     <div className="space-y-5">
+      {/* Practice sub-tabs: day-to-day Operations vs the Client Growth workflow */}
+      <TabScroll label="Practice sections">
+        {[['operations', 'Operations'], ['growth', 'Client Growth'], ['learn', 'Learn']].map(([k, l]) => (
+          <button
+            key={k}
+            onClick={() => setSubTab(k)}
+            aria-pressed={subTab === k}
+            className={`px-3 py-2 min-h-[40px] text-[11px] uppercase tracking-wider whitespace-nowrap border focus:outline focus:outline-2 focus:outline-[#B85838] ${subTab === k ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#B85838]'}`}
+          >
+            {l}
+          </button>
+        ))}
+      </TabScroll>
+
+      {subTab === 'growth' && (
+        <ClientGrowth leads={practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} />
+      )}
+
+      {subTab === 'learn' && (
+        <SectionBoundary name="Practice Learn">
+          <PracticeLearn email={email} isStaff={isStaff} />
+        </SectionBoundary>
+      )}
+
+      {subTab === 'operations' && (<div className="space-y-5">
       {/* TLC Therapy Solutions integration banner */}
       <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
@@ -495,6 +524,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
           </div>
         </section>
       )}
+      </div>)}
     </div>
   );
 }

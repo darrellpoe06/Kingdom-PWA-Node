@@ -20,6 +20,8 @@
 import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
 import { normalizeTitle } from './choir-songbook.js';
+import { parseServiceTitle } from './choir-sync.js';
+import { parseRepertoireJson, buildArchiveSongsFromChannel, selectNewArchiveSongs, attributeToCorpus } from './choir-archive.js';
 
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -105,4 +107,133 @@ export async function saveSongCrossRef(rowIds, fields) {
   if (fields.sermonRef !== undefined) patch.sermon_ref = fields.sermonRef || null;
   const { error } = await supabase.from('choir_songs').update(patch).in('id', ids);
   return error ? { skipped: 'update-error', error } : { saved: true, count: ids.length };
+}
+
+// --- Archive sourcing: auto-seed the historical repertoire (0042) ------------
+// The choir's PAST songs are inside the church archive (the YouTube channel +
+// NAS recordings the content engine uses). Two faithful sources feed the seed,
+// both reviewed before they are trusted (see lib/choir-archive.js):
+//   importRepertoireJson — the SME/content pipeline's reviewed per-song extract.
+//   scanArchiveForSongs  — song lists / chapters in the channel's video
+//                          DESCRIPTIONS (real-today, always needs_review).
+// Both insert into choir_songs (the cross-referenced Songbook home), deduped by
+// (video_id, title), owner/admin via RLS.
+
+async function archiveWriteContext(displayName) {
+  const session = await currentSession();
+  if (!session) return { error: 'signed-out' };
+  const tenantId = await churchInstanceId(displayName);
+  if (!tenantId) return { error: 'no-church' };
+  return { tenantId, userId: session.user.id };
+}
+
+// The service videos we ALREADY have (choir_sermons) — the corpus the historical
+// repertoire is harvested from. Read-only; degrades to [] so a corpus read never
+// blocks an import. Used to REUSE each service's existing video link + date
+// instead of re-fetching the channel (one source, two harvests).
+async function fetchServiceCorpus(ctx) {
+  const { data, error } = await supabase.from('choir_sermons')
+    .select('video_id, youtube_url, service_date, service_type').eq('instance_id', ctx.tenantId);
+  if (error) { console.warn('[choir-songbook] service corpus fetch failed:', error); return []; }
+  return (data || []).map((r) => ({
+    videoId: r.video_id, youtubeUrl: r.youtube_url, serviceDate: r.service_date, serviceType: r.service_type,
+  }));
+}
+
+// Map a choir-archive row (parseRepertoireJson / buildArchiveSongsFromChannel)
+// to a choir_songs insert row. Exported (pure) so the persist guard can assert
+// every column it writes actually exists in the migrations — the deterministic
+// catch for the "archive insert silently fails on a missing column" class that
+// keeps the Songbook empty even after a successful scan/import.
+export function archiveRowToInsert(ctx, r) {
+  return {
+    instance_id: ctx.tenantId,
+    created_by: ctx.userId,
+    title: r.title,
+    youtube_url: r.youtubeUrl,
+    video_id: r.videoId,
+    start_seconds: Number.isFinite(r.startSeconds) ? r.startSeconds : null,
+    service_date: r.serviceDate || null,
+    service_type: r.serviceType || 'sunday',
+    scripture_ref: r.scriptureRef || null,
+    source: 'archive',
+    confidence: r.confidence || null,
+    needs_review: r.needsReview !== false,
+    status: 'active',
+  };
+}
+
+async function insertArchiveRows(ctx, rows) {
+  // Dedup against what's already seeded (idempotent re-seed).
+  const { data: existing } = await supabase.from('choir_songs').select('video_id, title').eq('instance_id', ctx.tenantId);
+  const fresh = selectNewArchiveSongs(rows, (existing || []).map((e) => ({ videoId: e.video_id, title: e.title })));
+  if (!fresh.length) return { imported: 0, scanned: rows.length };
+  const { error } = await supabase.from('choir_songs').insert(fresh.map((r) => archiveRowToInsert(ctx, r)));
+  if (error) return { skipped: 'insert-error', error };
+  return { imported: fresh.length, scanned: rows.length };
+}
+
+// Import the pipeline's repertoire.json (paste/upload) into the Songbook. Each
+// song is attributed to the service it was sung in — REUSING the existing service
+// video we already hold (choir_sermons) for its link + date — so the imported
+// song lands as a rendition of that real, historical service (one source, two
+// harvests; reuse, don't re-fetch).
+export async function importRepertoireJson(jsonText, displayName) {
+  let parsed;
+  try { parsed = parseRepertoireJson(jsonText); }
+  catch (e) { return { skipped: 'bad-json', error: e }; }
+  if (!parsed.rows.length) return { skipped: 'empty', unclear: parsed.unclear };
+  const ctx = await archiveWriteContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const corpus = await fetchServiceCorpus(ctx);
+  const { rows, scope } = attributeToCorpus(parsed.rows, corpus);
+  const res = await insertArchiveRows(ctx, rows);
+  return res.skipped ? res : { ...res, unclear: parsed.unclear, linked: scope.matched, unlinked: scope.unmatched };
+}
+
+// Scan the church YouTube channel's recent uploads and seed any songs listed in
+// their descriptions / chapters (real metadata; always needs_review). Idempotent.
+const CHURCH_CHANNEL_HANDLE = 'thelovecorner';
+async function ytApi(path, key) {
+  const res = await fetch(`https://www.googleapis.com/youtube/v3/${path}&key=${encodeURIComponent(key)}`);
+  if (!res.ok) { const body = await res.text().catch(() => ''); throw new Error(`YouTube API ${res.status}: ${body.slice(0, 160)}`); }
+  return res.json();
+}
+
+export async function scanArchiveForSongs(displayName) {
+  const key = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY) || '';
+  if (!key) return { skipped: 'no-key' };
+  const ctx = await archiveWriteContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  try {
+    const ch = await ytApi(`channels?part=contentDetails&forHandle=${encodeURIComponent('@' + CHURCH_CHANNEL_HANDLE)}`, key);
+    const uploads = ch?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+    if (!uploads) return { skipped: 'channel-not-found' };
+    const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${encodeURIComponent(uploads)}`, key);
+    const items = (pl?.items || []).map((i) => {
+      const parsed = parseServiceTitle(i?.snippet?.title || '');
+      return {
+        videoId: i?.contentDetails?.videoId,
+        title: i?.snippet?.title,
+        description: i?.snippet?.description || '',
+        serviceDate: parsed.serviceDate || null,
+        serviceType: parsed.serviceType || 'sunday',
+      };
+    });
+    const built = buildArchiveSongsFromChannel(items);
+    if (!built.length) return { imported: 0, scanned: items.length, songsFound: 0 };
+    // Reuse the services we already hold for each song's link + date.
+    const { rows } = attributeToCorpus(built, await fetchServiceCorpus(ctx));
+    const res = await insertArchiveRows(ctx, rows);
+    return res.skipped ? res : { ...res, songsFound: rows.length };
+  } catch (e) {
+    return { skipped: 'api-error', error: e };
+  }
+}
+
+// A steward confirms an archive-seeded song is correct (clears needs_review), or
+// rejects it (deletes the seeded row). Owner/admin via RLS.
+export async function confirmArchiveSong(rowId) {
+  const { error } = await supabase.from('choir_songs').update({ needs_review: false }).eq('id', rowId);
+  return error ? { skipped: 'update-error', error } : { saved: true };
 }

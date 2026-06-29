@@ -39,6 +39,17 @@ const ICONS = {
       <line x1="12" y1="11.5" x2="16.5" y2="11.5" />
     </>
   ),
+  // die showing five — the Games hub ("our games"); a board-game journey
+  dice: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <circle cx="8.5" cy="8.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="8.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="8.5" cy="15.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="15.5" r="1.1" fill="currentColor" stroke="none" />
+    </>
+  ),
   // open book — The Word / scripture (was 📖)
   bookOpen: (
     <>
@@ -67,6 +78,15 @@ const ICONS = {
       <line x1="4" y1="16" x2="20" y2="16" />
       <circle cx="9" cy="8" r="2.3" />
       <circle cx="15" cy="16" r="2.3" />
+    </>
+  ),
+  // two people — CRM / contacts / leads
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
+      <path d="M16 6.2a3 3 0 0 1 0 5.6" />
+      <path d="M17.5 14.2c2 .6 3.5 2.4 3.5 4.8" />
     </>
   ),
   // padlock — Admin / Legal / Observation (was 🔒)
@@ -119,9 +139,42 @@ const ICONS = {
       <line x1="12" y1="13" x2="12" y2="21" />
     </>
   ),
+  // speaker with sound waves — Voice / read-aloud (was 🔊)
+  volume: (
+    <>
+      <path d="M4 9.5h3l4-3.5v12l-4-3.5H4Z" />
+      <path d="M15.5 9a4 4 0 0 1 0 6" />
+      <path d="M18 6.5a8 8 0 0 1 0 11" />
+    </>
+  ),
   // checkmark — finalized / teaching-ready (Finalize tab; was ✓)
   check: (
     <path d="M5 12.5l4.5 4.5L19 6.5" />
+  ),
+  // upward trend line over an axis — Forecast tab (financial projection)
+  chart: (
+    <>
+      <path d="M4 4v16h16" />
+      <path d="M7.5 14.5l3.5-4 3 2.5 4.5-6" />
+    </>
+  ),
+  // chevron up — "tuck the header away" affordance (header hideaway toggle)
+  chevronUp: (
+    <path d="M6 14.5l6-6 6 6" />
+  ),
+  // chevron down — "bring the header back" affordance (header hideaway toggle)
+  chevronDown: (
+    <path d="M6 9.5l6 6 6-6" />
+  ),
+  // chef's toque — Chef's Corner / recipes (was a food emoji)
+  chefHat: (
+    <>
+      <path d="M7 13.5a3.5 3.5 0 0 1-1-6.86A4 4 0 0 1 14 5.2 3.5 3.5 0 0 1 17 13.5" />
+      <path d="M7 13.5h10v4a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 7 17.5Z" />
+      <line x1="9.5" y1="15.5" x2="9.5" y2="18.5" />
+      <line x1="12" y1="15.5" x2="12" y2="18.5" />
+      <line x1="14.5" y1="15.5" x2="14.5" y2="18.5" />
+    </>
   ),
 };
 
