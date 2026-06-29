@@ -151,7 +151,9 @@ describe('verified substance (DR-0076 — accurate facts, grounded in the real s
     const wall = blob(byId('dsi8-the-led-wall'));
     expect(wall).toMatch(/novastar/);
     expect(wall).toMatch(/vx1000/);
-    expect(wall).toMatch(/1\.9 ?mm/);
+    expect(wall).toMatch(/p1\.99|1\.99 ?mm/);  // confirmed Mirackle pitch (corrects the 1.9mm estimate)
+    expect(wall).toMatch(/16:9/);              // confirmed aspect (corrects the ~4:3 estimate)
+    expect(wall).toMatch(/2560/);              // confirmed native res ~2560x1440 (corrects ~1920x1440)
     expect(wall).toMatch(/ndi/);
     expect(wall).toMatch(/native resolution/);
     const svc = blob(byId('dsi9-sunday-and-wednesday'));
