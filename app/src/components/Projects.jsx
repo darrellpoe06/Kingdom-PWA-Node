@@ -3,6 +3,7 @@
 // PROJECT_DOMAINS + PROJECT_STATUSES constants. Inline edit per row
 // shipped r20; this is the structural extraction.
 import React, { useState, useMemo } from 'react';
+import { useHistoryValue } from '../lib/nav-history.js';
 import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import { ConcernsBoard } from './ConcernsBoard.jsx';
@@ -160,20 +161,25 @@ const SCOPE_TEMPLATES = [
 
 function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null }) {
   const [subView, setSubView] = useState('list');
+  // Back returns from a Projects sub-tab (Discussions/Concerns/Scopes/etc.) to
+  // the timeline list, then on up the app history — the device Back button no
+  // longer jumps straight out of Projects. (lib/nav-history.js; base = 'list'.)
+  useHistoryValue(subView, setSubView, { base: 'list', key: 'projects-sub' });
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
   const tabs = [['list','Projects · Timeline'],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
-  // The Review surface shows the freshness loop's staged proposals (DR-0072) —
-  // family-internal oversight, so it rides the same Governor gate.
-  if (isGovernor) tabs.push(['review','🔄 Review']);
   // Loop Health (DR-0061/0075) — the app reviews its own loops; stagnant ones
   // ask the Governor to keep or retire them. Governor-gated like the rest.
+  // The freshness-loop Review feed (DR-0072) used to be its own sub-tab, but it
+  // sits at the same altitude as Loops ("the system watching itself") and its
+  // name overloaded "review" against feedback — per the Projects coherence
+  // review it now folds in here as the "what the loops are flowing" section.
   if (isGovernor) tabs.push(['loops','🩺 Loops']);
   return (
     <div className="space-y-4">
       {/* The sub-tab strip scrolls horizontally so every section stays reachable
-          on a phone — Decisions / Review / Loops fall off the right edge of a
+          on a phone — Decisions / Loops fall off the right edge of a
           full-width <main> (#264) otherwise, and the un-scrollable overflow used
           to expose a white band beside the dark theme. <TabScroll> owns the
           scroll; see shared.jsx. */}
@@ -206,8 +212,16 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
       {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} onNavigate={onNavigate} />}
       {subView === 'governance' && isGovernor && <GovernanceQueue />}
-      {subView === 'review' && isGovernor && <ReviewFeed />}
-      {subView === 'loops' && isGovernor && <LoopHealth data={loopData} decisions={loopDecisions} onDecision={onLoopDecision} financialDocAt={financialDocAt} />}
+      {subView === 'loops' && isGovernor && (
+        <div className="space-y-6">
+          <LoopHealth data={loopData} decisions={loopDecisions} onDecision={onLoopDecision} financialDocAt={financialDocAt} />
+          {/* The freshness-loop Review feed, folded in from its former standalone
+              sub-tab: Loops shows whether the loops are running; this shows what
+              one of them (the freshness loop) is flowing for the Governor to
+              keep or dismiss. Same altitude, one home. */}
+          <ReviewFeed />
+        </div>
+      )}
     </div>
   );
 }

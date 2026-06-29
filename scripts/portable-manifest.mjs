@@ -53,9 +53,13 @@ export function isRuntimeFile(relPosix) {
     (relPosix.startsWith('events/') && relPosix.endsWith('.jsonl')) ||
     relPosix === 'state/ARMED' ||
     relPosix === 'state/WAKE_SUMMON' ||
+    relPosix === 'state/RESUME_ARMED' ||
+    relPosix === 'state/approved-queue.json' ||
     relPosix.startsWith('state/orchestrator.lock/') ||
+    relPosix.startsWith('state/resume.lock/') ||
     relPosix.startsWith('state/handoffs/') ||
-    (relPosix.startsWith('state/spend-') && relPosix.endsWith('.txt'))
+    (relPosix.startsWith('state/spend-') && relPosix.endsWith('.txt')) ||
+    (relPosix.startsWith('state/calls-') && relPosix.endsWith('.txt'))
   );
 }
 

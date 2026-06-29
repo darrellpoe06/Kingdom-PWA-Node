@@ -37,7 +37,8 @@ import {
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import Presenter from './Presenter.jsx';
-import { wordPresentable } from '../lib/presentable.js';
+import { wordLibrary, messagePresentable } from '../lib/presentable.js';
+import { useReadingResume } from '../lib/reading-position.js';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) => {
@@ -165,7 +166,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
 // management controls + the in-progress drafts; everyone else sees only the
 // published list (the RPC returns no drafts to them).
 // -----------------------------------------------------------------------------
-function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [] }) {
+function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [q, setQ] = useState('');
   const [importMsg, setImportMsg] = useState('');
@@ -182,8 +183,16 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
     .filter((s) => !q || `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''}`.toLowerCase().includes(q.toLowerCase()))
     .sort(byDateDesc);
   const roster = speakerRoster(list);
+  // The Word is the second consumer of the shared reading-position primitive:
+  // return to the message library right where you were scrolled, not the top.
+  const { hasResume, resume, label } = useReadingResume({ userKey, surface: 'theword', itemId: 'library' });
   return (
     <div>
+      {hasResume && (
+        <button type="button" onClick={resume} className="mb-2 text-xs px-3 py-2 border w-full text-left bg-[#FAF8F4] border-[#B85838] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+          ↓ {label || 'Continue where you left off'}
+        </button>
+      )}
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Every past message — Sundays + Wednesday Bible Study, newest first. Bishop Gwin preaches most; guest preachers and teachers fill in so he can rest, and each message credits who delivered it. Watch the service right here.{canEdit ? ' Add, reuse, and manage messages below.' : ''}</p>
       {roster.length > 0 && (
         <div className="mb-3">
@@ -273,14 +282,47 @@ function PrepPanel({ sermons, canEdit, onReuse }) {
   );
 }
 
+// The message PICKER — present mode is per-MESSAGE, so the leader chooses which one
+// to put up (newest first; older messages remain selectable — BG presents the newest
+// and, when he wants, an older one). Picking enters the Presenter for that one message.
+function MessagePicker({ library, onPick, onClose }) {
+  const items = Array.isArray(library) ? library : [];
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label="Pick a message to present">
+      <div style={{ position: 'sticky', top: 0, background: '#1A1815', color: '#FAF8F4', padding: '12px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Present a message</span>
+        <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 15 }}>Pick one to put on the screen</strong>
+        <button type="button" onClick={onClose} style={{ marginLeft: 'auto', cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '1px solid #B85838', background: 'transparent', color: '#FAF8F4', fontSize: 12 }}>Close ✕</button>
+      </div>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(16px, 3vw, 28px)' }}>
+        <p style={{ fontSize: 13, color: '#5A5751', margin: '0 0 14px' }}>
+          Each message is its own presentation — newest first. {items.length} message{items.length === 1 ? '' : 's'}.
+        </p>
+        {items.length === 0 && <p style={{ fontSize: 14, color: '#7A1F1F' }}>No published messages to present yet.</p>}
+        {items.map((m) => (
+          <button key={m.id} type="button" onClick={() => onPick(m.id)}
+            style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer', border: '1px solid #E8E4DC', background: '#fff', color: '#1A1815', padding: '12px 14px', marginBottom: 10 }}>
+            <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 16, display: 'block' }}>{m.title}</strong>
+            <span style={{ fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+              {m.dateLabel || 'date TBD'} · {m.dayLabel}{m.speaker ? ` · ${m.speaker}` : ''}{m.scriptureRef ? ` · ${m.scriptureRef}` : ''}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // -----------------------------------------------------------------------------
 // Surface
 // -----------------------------------------------------------------------------
 export default function Pulpit() {
   const [signedIn, setSignedIn] = useState(false);
+  const [email, setEmail] = useState(''); // namespaces reading-position per user
   const [canManage, setCanManage] = useState(false); // owner/admin = BG / Darrell / Christina
   const [tab, setTab] = useState('library');
-  const [presenting, setPresenting] = useState(false); // live present mode (leadership)
+  const [presenting, setPresenting] = useState(false); // live present mode: opens the message PICKER
+  const [presentId, setPresentId] = useState(null);    // the ONE message selected to present
   const [sermons, setSermons] = useState([]);        // leadership: table (incl drafts)
   const [publicSermons, setPublicSermons] = useState([]); // everyone else: RPC (published)
   const [sermonDocs, setSermonDocs] = useState([]);  // owner/admin only (RLS)
@@ -288,7 +330,7 @@ export default function Pulpit() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
-  useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
+  useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setEmail(s?.user?.email || ''); }), []);
 
   // Resolve leadership (owner/admin) access when signed in.
   useEffect(() => {
@@ -343,20 +385,26 @@ export default function Pulpit() {
   // crediting himself while linking the original deliverer's material (0038).
   const onReuse = async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType, primarySpeaker)); setTab('library'); };
 
-  // The published messages, presentable on the screen behind the speaker (the same
-  // shared Presenter the Learn courses use). Drafts/prep stay off it by construction.
+  // The published messages — a LIBRARY of pickable messages, not one mega-presentation.
+  // Drafts/prep stay off it by construction. Each message is its OWN presentation.
   const presentMessages = (canManage ? withDocs : publicSermons).filter((s) => s && s.status !== 'draft');
   const canPresent = presentMessages.length > 0;
+  const library = wordLibrary(presentMessages);                  // newest-first, pickable
+  const selectedMessage = presentId ? presentMessages.find((s) => s.id === presentId) : null;
 
-  // Live present mode takes over the surface (presenter console here, projected
-  // message screen in a popped window) — the same primitive as the Learn courses.
+  // Live present mode: first PICK one message (newest-first; older ones selectable),
+  // then present THAT one message — its own slides, its own budget reflow. You do not
+  // preach all of them at once.
   if (presenting) {
-    return (
-      <Presenter
-        presentable={wordPresentable(presentMessages, { title: 'The Word — Migdal' })}
-        onClose={() => setPresenting(false)}
-      />
-    );
+    if (selectedMessage) {
+      return (
+        <Presenter
+          presentable={messagePresentable(selectedMessage)}
+          onClose={() => setPresentId(null)}   // back to the picker, not all the way out
+        />
+      );
+    }
+    return <MessagePicker library={library} onPick={(id) => setPresentId(id)} onClose={() => setPresenting(false)} />;
   }
 
   return (
@@ -399,17 +447,17 @@ export default function Pulpit() {
         <div className="mb-3">
           <button
             type="button"
-            onClick={() => setPresenting(true)}
+            onClick={() => { setPresentId(null); setPresenting(true); }}
             className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
-            ▶ Present live (message + class screen)
+            ▶ Present a message (pick + class screen)
           </button>
         </div>
       )}
 
       {tab === 'library' && (
         <LibraryPanel
-          sermons={libraryItems} canEdit={canManage} busy={busy} speakers={speakers}
+          sermons={libraryItems} canEdit={canManage} busy={busy} speakers={speakers} userKey={email}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
         />

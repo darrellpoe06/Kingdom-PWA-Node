@@ -21,6 +21,10 @@ initTextSize();
 //   ?register=1 — the public, no-login CONFERENCE registration. A leader texts this
 //                 to the congregation; anyone registers in seconds, no account.
 //   ?audience=1 — the projected class screen the presenter pops onto the projector.
+//   ?output=1   — the NDI-ready PROGRAM OUTPUT screen OBS ingests as a Browser Source
+//                 (DistroAV republishes it as an NDI source on the church LAN). Useful
+//                 standalone via params, e.g. ?output=1&kind=scripture&ref=John%203:16.
+//                 ?key=1 / a lower-third payload renders transparent for switcher keying.
 //   ?teach=1    — the presenter view standalone (a quick entry / fallback to the
 //                 in-app Governor button). The full PWA never loads in these modes —
 //                 the heavy app (and its supabase/auth init) is dynamically imported
@@ -34,6 +38,7 @@ initTextSize();
 const __params = new URLSearchParams(window.location.search);
 const __standalone = __params.get('join') === '1' || __params.get('invites') === '1'
   || __params.get('register') === '1' || __params.get('audience') === '1'
+  || __params.get('output') === '1'
   || __params.get('teach') === '1' || __params.get('login') === '1'
   || __params.get('request-space') === '1'
   || __params.get('oauth_popup') === '1';
@@ -71,6 +76,13 @@ if (__params.get('oauth_popup') === '1') {
 } else if (__params.get('audience') === '1') {
   import('./components/AudienceWindow.jsx').then(({ default: AudienceWindow }) => {
     __root.render(<React.StrictMode><ErrorBoundary><AudienceWindow /></ErrorBoundary></React.StrictMode>);
+  });
+} else if (__params.get('output') === '1') {
+  // NDI-ready program output: OBS ingests this as a Browser Source; DistroAV
+  // republishes it as an NDI source on the church LAN. Lazy-imported like every
+  // boot so the entry chunk stays lean. See lib/ndi-output.js for the contract.
+  import('./components/NdiProgramOutput.jsx').then(({ default: NdiProgramOutput }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><NdiProgramOutput /></ErrorBoundary></React.StrictMode>);
   });
 } else if (__params.get('teach') === '1') {
   // Standalone presenter (fallback to the in-app Governor button, which passes the

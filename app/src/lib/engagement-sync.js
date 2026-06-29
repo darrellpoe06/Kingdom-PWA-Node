@@ -185,15 +185,24 @@ export function subscribeMessages(onMessages, opts = {}) {
 }
 
 // -----------------------------------------------------------------------------
-// Trivia QUESTIONS (schema-v2.12) — generated-from-a-message, reviewed content.
-// These are DORMANT until the v2.12 migration is applied and the UI calls them;
-// they do not touch the shipped demo-trivia path above.
+// Trivia QUESTIONS (schema-v2.12 + migration 0044) — Bishop Gwin's OWN questions
+// from his Wednesday messages, surfaced LIVE BY DEFAULT.
+//
+// These are the pastor's real authored questions (like a sermon), NOT
+// AI-generated content — so there is NO human-approval gate. An extracted
+// question goes live the moment it lands; nothing parks on Darrell, Christina,
+// or any reviewer (binding rule: no hold on a non-technical person; validation =
+// ship + feedback returns in-app). Any concern about whether the EXTRACTION is
+// faithful is handled as a verifiable, deterministic check (checkQuestionFidelity)
+// — the gate is on the DATA, never on a person. Correction is post-hoc and
+// reversible (retractQuestion): ship-then-fix, not pre-publish review.
 // -----------------------------------------------------------------------------
 
 /**
- * Fetch the current LIVE question (status='active') for the signed-in user's
- * instance, newest active_date first. Returns the question shape or null
- * (signed out, none active, or the table not present yet).
+ * Fetch the current LIVE question for the signed-in user's instance — the newest
+ * question that has not been retracted. Live by default: a freshly-extracted
+ * question shows without waiting on an approval step. Returns the question shape
+ * or null (signed out, none yet, or the table not present yet).
  */
 export async function getActiveQuestion() {
   const session = await currentSession();
@@ -205,8 +214,9 @@ export async function getActiveQuestion() {
     .from('trivia_questions')
     .select('*')
     .eq('instance_id', instanceId)
-    .eq('status', 'active')
-    .order('active_date', { ascending: false })
+    .neq('status', 'rejected')
+    .order('active_date', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
     .limit(1);
   if (error) {
     console.warn('[engagement-sync] active question fetch failed:', error);
@@ -216,10 +226,10 @@ export async function getActiveQuestion() {
 }
 
 /**
- * Reviewer-only: fetch questions awaiting review (status='draft'), oldest
- * first. RLS returns rows only to owner/admin members; everyone else gets [].
+ * Fetch recent LIVE questions (newest first) for a member-facing history.
+ * Live by default; retracted questions are excluded.
  */
-export async function getReviewQuestions() {
+export async function getRecentQuestions(limit = 20) {
   const session = await currentSession();
   if (!session) return [];
   const instanceId = await churchInstanceId();
@@ -229,44 +239,61 @@ export async function getReviewQuestions() {
     .from('trivia_questions')
     .select('*')
     .eq('instance_id', instanceId)
-    .eq('status', 'draft')
-    .order('created_at', { ascending: true });
+    .neq('status', 'rejected')
+    .order('created_at', { ascending: false })
+    .limit(limit);
   if (error) {
-    console.warn('[engagement-sync] review fetch failed:', error);
+    console.warn('[engagement-sync] recent questions fetch failed:', error);
     return [];
   }
   return (data || []).map(toQuestionShape);
 }
 
 /**
- * Reviewer-only: approve a draft and make it the live question — sets
- * status='active', active_date=today, approved_by + approved_at. RLS enforces
- * owner/admin. Returns { ok:true } | { error }.
+ * Verifiable EXTRACTION-FIDELITY check (pure; no I/O) — the quality gate that
+ * REPLACES human approval. A question pulled from BG's message must be
+ * well-formed to publish honestly: a real prompt, at least two distinct labeled
+ * choices, a correct_choice that matches one of those choice keys, and a known
+ * provenance source. Returns { ok, issues: string[] }. A failing question is a
+ * broken EXTRACTION to re-run or auto-retract, never content held on a person —
+ * the gate is on the DATA, not on Darrell.
  */
-export async function approveQuestion(questionId, { activeDate } = {}) {
-  const session = await currentSession();
-  if (!session) return { error: 'signed-out' };
+export function checkQuestionFidelity(question = {}) {
+  const issues = [];
+  const prompt = String(question.prompt ?? '').trim();
+  if (prompt.length < 6) issues.push('prompt-missing-or-too-short');
 
-  const today = activeDate || new Date().toISOString().slice(0, 10);
-  const { error } = await supabase
-    .from('trivia_questions')
-    .update({
-      status: 'active',
-      active_date: today,
-      approved_by: session.user.id,
-      approved_at: new Date().toISOString(),
-      updated_by: session.user.id,
-    })
-    .eq('id', questionId);
-  if (error) {
-    console.warn('[engagement-sync] approve failed:', error);
-    return { error };
+  const choices = Array.isArray(question.choices) ? question.choices : [];
+  const keys = choices
+    .map((c) => (c && typeof c === 'object' ? c.key : undefined))
+    .filter((k) => k !== undefined && k !== null && String(k).trim() !== '');
+  const labels = choices
+    .map((c) => (c && typeof c === 'object' ? String(c.label ?? '').trim() : ''))
+    .filter((l) => l !== '');
+  if (keys.length < 2) issues.push('fewer-than-two-choices');
+  if (new Set(keys.map(String)).size !== keys.length) issues.push('duplicate-choice-keys');
+  if (labels.length !== keys.length) issues.push('choice-missing-label');
+
+  const correct = question.correctChoice ?? question.correct_choice;
+  if (correct === undefined || correct === null || String(correct).trim() === '') {
+    issues.push('correct-choice-missing');
+  } else if (!keys.map(String).includes(String(correct))) {
+    issues.push('correct-choice-not-in-choices');
   }
-  return { ok: true };
+
+  const source = question.source ?? 'standard';
+  if (!['bg-email', 'youtube', 'standard'].includes(source)) issues.push('unknown-source');
+
+  return { ok: issues.length === 0, issues };
 }
 
-/** Reviewer-only: reject a draft (status='rejected'). */
-export async function rejectQuestion(questionId) {
+/**
+ * Retract a live question (status='rejected') — POST-HOC correction for a bad
+ * extraction, NOT a pre-publish gate. Reversible. RLS scopes this to owner/admin
+ * (editing live church content), but it never holds a healthy question from
+ * appearing: questions are live the moment they land.
+ */
+export async function retractQuestion(questionId) {
   const session = await currentSession();
   if (!session) return { error: 'signed-out' };
 
@@ -275,7 +302,7 @@ export async function rejectQuestion(questionId) {
     .update({ status: 'rejected', updated_by: session.user.id })
     .eq('id', questionId);
   if (error) {
-    console.warn('[engagement-sync] reject failed:', error);
+    console.warn('[engagement-sync] retract failed:', error);
     return { error };
   }
   return { ok: true };

@@ -249,6 +249,40 @@ This ties back to the binding line of this whole Study — **Yahweh's opinion IS
 
 ---
 
+## 2026-06-23 — Testimony: Peace in Turnkey
+
+*A testimony in Darrell's own voice, captured faithfully as he gave it. Recorded as a testimony — what Yahweh did — not as new teaching. Lightly shaped for the page; the words and the facts are his.*
+
+---
+
+### Entry: Peace in Turnkey — Pastor Lee and the Keeping Power of Yahweh
+
+> **Darrell:** *"I came up in Valley Homes in Rock Island — a place we nicknamed 'Turnkey,' a violent neighborhood. And we still had peace from Yahweh. Pastor Lee, my childhood pastor and my hero, would come in and preach when the police wouldn't even come at times. The whole neighborhood would be hiding from him and the church folks. His words are Yahweh's Words — and they stuck. Bishop Gwin is my hero too. Men of Yahweh. 'Train up a child in the way he should go: and when he is old, he will not depart from it.' (Proverbs 22:6) I'm the proof."*
+
+The testimony is plain: a violent place, and peace from Yahweh inside it anyway. Where even the police would not always come, Pastor Lee — Darrell's childhood pastor and hero — came and preached, and the neighborhood that hid from everyone else hid from the man and the church folk carrying the Word. Those words were Yahweh's Words, and they held. Bishop Gwin stands in the same line — men of Yahweh whose words stuck. Darrell names himself the living proof of the promise of Proverbs 22:6: trained up in The Way as a child, and not departed from it.
+
+**The promise Darrell stands on — the verse he quoted (KJV, the wording he carries):**
+
+**KJV — Proverbs 22:6:** *"Train up a child in the way he should go: and when he is old, he will not depart from it."*
+
+**ESV — Proverbs 22:6:** *"Train up a child in the way he should go; even when he is old he will not depart from it."*
+
+**Peace that does not depend on the neighborhood — the peace he names:**
+
+**ESV — John 14:27:** *"Peace I leave with you; my peace I give to you. Not as the world gives do I give to you. Let not your hearts be troubled, neither let them be afraid."*
+
+**ESV — Philippians 4:7:** *"And the peace of God, which surpasses all understanding, will guard your hearts and your minds in Christ Jesus."*
+
+The peace in Turnkey was not the peace the world gives (the absence of danger — the danger was real, the police did not always come). It was the peace Yahweh gives in the middle of it, the peace that guards the heart and mind regardless of the street. That is the testimony: not that the place was safe, but that Yahweh kept them in it.
+
+**The keepers He sent — His Word in the mouths of His men:**
+
+**ESV — Jeremiah 3:15:** *"And I will give you shepherds after my own heart, who will feed you with knowledge and understanding."*
+
+Pastor Lee and Bishop Gwin are named here as shepherds after Yahweh's own heart — men whose words were His Words, sent to feed and to keep. The training of the child (Proverbs 22:6) came through them; the not-departing is the fruit Darrell testifies to in himself.
+
+---
+
 ## 2026-06-18 — This Week's Reflection: "You Were Built to Win" (COLG / The Love Corner Wednesday Bible Study)
 
 *Captured this week (Wednesday, 2026-06-18) for Darrell to sit with through the week, as proof and a reflection. **Private — Darrell, Christina, and Bishop Gwin (BG) only.***

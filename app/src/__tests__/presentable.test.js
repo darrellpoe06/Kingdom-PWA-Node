@@ -3,10 +3,13 @@ import { MODULES, CLASS_META, buildSchedule } from '../lib/church-classes.js';
 import {
   TEACH_CHANNEL, formatClock, DEFAULT_KICKER,
   buildSlideForScene, holdingSlide,
-  coursePresentable, wordPresentable,
+  coursePresentable, wordLibrary, messagePresentable, parseRunOfShow,
+  studyPresentable, conferencePresentable, documentPresentable,
+  stripTags, splitHtmlSections,
   ageHint, PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE,
   DEFAULT_SCENE_MIN, PRIORITY,
-  withSceneTiming, fullContentMin, fitToBudget, deterministicSkipRanker,
+  withSceneTiming, estimateSceneMinutes, fullContentMin, fitToBudget, deterministicSkipRanker,
+  importanceSkipRanker, DEFAULT_IMPORTANCE,
   makeScene, addScene, editScene,
   loadOverlay, saveOverlay, applyOverlay, overlayKey, EMPTY_OVERLAY,
 } from '../lib/presentable.js';
@@ -87,10 +90,15 @@ describe('coursePresentable — any Learn course becomes presentable', () => {
     // facilitator guide flows into presenter-only notes (never the audience payload)
     const headings = sc.notes.map((n) => n.heading);
     expect(headings).toContain('Say this');
-    expect(headings).toContain('Run of show');
-    // the broadcast slide built from this scene leaks none of it
+    // the run-of-show is NO LONGER a static note — it is reflowable scene.runOfShow
+    expect(headings).not.toContain('Run of show');
+    expect(Array.isArray(sc.runOfShow)).toBe(true);
+    expect(sc.runOfShow.length).toBeGreaterThan(0);
+    expect(sc.runOfShow[0]).toMatchObject({ name: expect.any(String) });
+    // the broadcast slide built from this scene leaks neither notes NOR the run-of-show
     const slide = buildSlideForScene(p.scenes, 0, { kicker: p.kicker });
     expect(JSON.stringify(slide)).not.toContain(MODULES[0].facilitator.talkingPoints[0]);
+    expect(slide).not.toHaveProperty('runOfShow');
   });
 
   it('handles a bare course (no facilitator/lesson) without inventing notes', () => {
@@ -100,32 +108,65 @@ describe('coursePresentable — any Learn course becomes presentable', () => {
   });
 });
 
-describe('wordPresentable — the sermon library becomes presentable', () => {
+describe('parseRunOfShow — facilitator run-of-show into reflowable weighted segments', () => {
+  it('parses "Name (min): detail | ..." with the minutes as the weight', () => {
+    const segs = parseRunOfShow('Prayer + the anchor (5): open in prayer | Hands-on in the app (25): everyone tries it | Send-off (5): solo task');
+    expect(segs.length).toBe(3);
+    expect(segs[0]).toMatchObject({ name: 'Prayer + the anchor', estimatedMin: 5 });
+    expect(segs[0].detail).toContain('open in prayer');
+    expect(segs[1].estimatedMin).toBe(25);    // Hands-on is heaviest, by the authored minutes
+    // these weights drive the proportional reflow directly
+    const fit = fitToBudget(segs, 14);        // half of 35 -> each ~halves, Hands-on stays biggest
+    const handsOn = fit.plan.find((s) => s.name === 'Hands-on in the app');
+    expect(handsOn.allocatedMin).toBeGreaterThan(fit.plan.find((s) => s.name === 'Prayer + the anchor').allocatedMin);
+  });
+
+  it('is empty-safe and tolerates a segment with no (min) hint', () => {
+    expect(parseRunOfShow('')).toEqual([]);
+    expect(parseRunOfShow(null)).toEqual([]);
+    const segs = parseRunOfShow('Welcome: greet the room');
+    expect(segs[0].name).toBe('Welcome');
+    expect(segs[0].estimatedMin).toBeUndefined();  // backfilled by fitToBudget later
+  });
+});
+
+describe('The Word — a LIBRARY of messages, each its OWN presentation', () => {
   const sermons = [
     { id: 'm1', title: 'Faith Over Fear', serviceDate: '2026-06-21', serviceType: 'sunday', speaker: 'Bishop Lloyd E. Gwin', scriptureRef: '1 Peter 5', notes: 'cast your cares', status: 'active' },
     { id: 'm2', title: 'Older', serviceDate: '2026-06-14', serviceType: 'wednesday', speaker: 'Guest', scriptureRef: 'Psalm 23', status: 'active' },
     { id: 'd1', title: 'A Draft', serviceDate: '2026-07-01', status: 'draft' },
   ];
-  const p = wordPresentable(sermons);
 
-  it('drops drafts and orders newest-first', () => {
-    expect(p.scenes.length).toBe(2); // draft excluded
-    expect(p.scenes[0].audience.title).toBe('Faith Over Fear'); // newest first
-    expect(p.scenes[0].indexLabel).toBe('Message 1 of 2');
+  it('wordLibrary lists pickable published messages, newest-first, drafts dropped', () => {
+    const lib = wordLibrary(sermons);
+    expect(lib.length).toBe(2);                  // draft excluded
+    expect(lib[0].id).toBe('m1');                // newest first
+    expect(lib[0].dayLabel).toBe('Sunday');
+    expect(lib[1].dayLabel).toBe('Wednesday Bible Study');
+    expect(wordLibrary(null)).toEqual([]);
   });
 
-  it('puts the scripture on the audience anchor and the speaker/theme in notes', () => {
-    const sc = p.scenes[0];
-    expect(sc.audience.anchorRef).toBe('1 Peter 5');
-    expect(sc.audience.anchorTheme).toContain('Bishop');
-    const headings = sc.notes.map((n) => n.heading);
-    expect(headings).toContain('Delivered by');
-    expect(headings).toContain('Text');
+  it('messagePresentable builds ONE message into its OWN slides (not all messages)', () => {
+    const p = messagePresentable(sermons[0]);
+    // its scenes are THIS message's own slides (opening / text / message) — a few, not 163
+    expect(p.scenes.length).toBe(3);
+    expect(p.id).toBe('message:m1');
+    expect(p.title).toBe('Faith Over Fear');
+    expect(p.scenes[0].indexLabel).toBe('Opening');
+    expect(p.scenes[1].audience.title).toBe('1 Peter 5');   // the text slide
+    // the pager walks THIS message's 3 slides (not 163 messages)
+    const slide = buildSlideForScene(p.scenes, 0, { kicker: p.kicker });
+    expect(slide.total).toBe(3);
+    expect(slide.index).toBe(1);
+    expect(slide.indexLabel).toBe('Opening');
+    // speaker/theme stay presenter-side (no leak to the projected slide)
+    expect(JSON.stringify(slide)).not.toContain('cast your cares');
   });
 
-  it('is empty-safe', () => {
-    expect(wordPresentable(null).scenes).toEqual([]);
-    expect(wordPresentable([]).scenes).toEqual([]);
+  it('messagePresentable is minimal-safe for a bare message (title only)', () => {
+    const p = messagePresentable({ id: 'x', title: 'Just a title' });
+    expect(p.scenes.length).toBe(1);             // only the opening slide
+    expect(p.scenes[0].audience.title).toBe('Just a title');
   });
 });
 
@@ -138,10 +179,11 @@ describe('age-adaptive presenter hook', () => {
 });
 
 // -----------------------------------------------------------------------------
-// time-adaptive: contract additions + fit-to-budget + skip-suggest
+// time-adaptive: weight contract + PROPORTIONAL fit-to-budget + floors + skip
 // -----------------------------------------------------------------------------
-const scene = (id, estimatedMin, priority) => ({ id, estimatedMin, priority, audience: { title: id }, notes: [] });
-// Two core (10+10) + two supplementary (10+5) = 35 min full curriculum.
+// scene(id, weight, priority, floor) — floor optional (defaults via withSceneTiming).
+const scene = (id, estimatedMin, priority, minMin) => ({ id, estimatedMin, priority, minMin, audience: { title: id }, notes: [] });
+// Two core (10+10) + two supplementary (10+5) = 35 min full curriculum; floors default to 2.
 const CURRICULUM = [
   scene('A', 10, PRIORITY.CORE),
   scene('B', 10, PRIORITY.CORE),
@@ -150,15 +192,24 @@ const CURRICULUM = [
 ];
 const byId = (rows, id) => rows.find((r) => r.id === id);
 
-describe('scene timing contract (estimatedMin + priority) with backfill', () => {
-  it('withSceneTiming supplies defaults without mutating + normalizes priority', () => {
+describe('scene weight contract (estimatedMin + priority + floor) with backfill', () => {
+  it('withSceneTiming supplies a weight, priority, and floor without mutating', () => {
     const bare = { id: 'x', audience: { title: 'X' } };
     const t = withSceneTiming(bare);
-    expect(t.estimatedMin).toBe(DEFAULT_SCENE_MIN);
-    expect(t.priority).toBe(PRIORITY.CORE);    // un-annotated -> core (protected)
-    expect(bare.estimatedMin).toBeUndefined(); // non-mutating
+    expect(t.estimatedMin).toBe(DEFAULT_SCENE_MIN);  // content estimate clamps up to 5
+    expect(t.priority).toBe(PRIORITY.CORE);          // un-annotated -> core (protected)
+    expect(t.minMin).toBe(2);                        // default floor, clamped <= weight
+    expect(bare.estimatedMin).toBeUndefined();       // non-mutating
     expect(withSceneTiming({ id: 'y', estimatedMin: 0 }, { defaultMin: 7 }).estimatedMin).toBe(7);
     expect(withSceneTiming({ id: 'z', priority: 'supplementary' }).priority).toBe(PRIORITY.SUPPLEMENTARY);
+    // a floor never exceeds the section's own weight
+    expect(withSceneTiming({ id: 'w', estimatedMin: 3, minMin: 9 }).minMin).toBe(3);
+  });
+
+  it('estimateSceneMinutes weights deeper content heavier (non-uniform default)', () => {
+    const rich = estimateSceneMinutes({ audience: { lead: 'x'.repeat(300) }, notes: [{ kind: 'steps', items: [1, 2, 3, 4] }, { kind: 'list', items: ['a', 'b'] }] });
+    const thin = estimateSceneMinutes({ audience: { title: 'a' }, notes: [] });
+    expect(rich).toBeGreaterThan(thin);
   });
 
   it('fullContentMin sums the whole curriculum', () => {
@@ -166,70 +217,111 @@ describe('scene timing contract (estimatedMin + priority) with backfill', () => 
     expect(fullContentMin([{ id: 'a' }, { id: 'b' }], { defaultMin: 4 })).toBe(8);
   });
 
-  it('the course + word adapters now carry timing fields (back-compat)', () => {
-    const p = wordPresentable([{ id: 'm1', title: 'T', serviceDate: '2026-06-21', status: 'active' }]);
+  it('adapters carry weight + floor, and course weights are NON-uniform by content', () => {
+    const p = messagePresentable({ id: 'm1', title: 'T', serviceDate: '2026-06-21', status: 'active' });
     expect(p.scenes[0].estimatedMin).toBeGreaterThan(0);
+    expect(p.scenes[0].minMin).toBeGreaterThan(0);
     expect(p.scenes[0].priority).toBe(PRIORITY.CORE);
+    // a week's weight = its real session length (sum of its run-of-show minutes), so a
+    // longer-run week weighs more than a thin one with no timed run-of-show
+    const cp = coursePresentable({ meta: { key: 'x', title: 'X' }, schedule: [
+      { id: 'a', title: 'A', bigIdea: 'idea', week: 1, facilitator: { howToRun: 'Teach (10): x | Hands-on (20): y' } },
+      { id: 'b', title: 'B', bigIdea: 'x', week: 2 },
+    ] });
+    expect(cp.scenes[0].estimatedMin).toBe(30);                       // 10 + 20
+    expect(cp.scenes[0].estimatedMin).toBeGreaterThan(cp.scenes[1].estimatedMin);
   });
 });
 
-describe('fitToBudget — reflow into the time available', () => {
-  it('keeps everything when the full curriculum fits (no skips, own estimates)', () => {
+describe('fitToBudget — PROPORTIONAL reflow (weight-preserving + floors + skip)', () => {
+  it('with MORE time than needed, each section runs to its own weight (no padding)', () => {
     const r = fitToBudget(CURRICULUM, 60);
     expect(r.fits).toBe(true);
-    expect(r.overBudget).toBe(false);
     expect(r.compressed).toBe(false);
     expect(r.skipped).toHaveLength(0);
     expect(r.keptMin).toBe(35);
-    expect(r.summary).toMatch(/full curriculum/i);
+    expect(byId(r.plan, 'A').allocatedMin).toBe(10); // its weight, not stretched
+    expect(byId(r.plan, 'D').allocatedMin).toBe(5);
+    expect(r.summary).toMatch(/own weight/i);
   });
 
-  it('drops supplementary first to fit, never core', () => {
-    const r = fitToBudget(CURRICULUM, 30);          // 35 -> needs to shed 5+
-    expect(r.fits).toBe(false);
+  it('shrinks PROPORTIONALLY — every section keeps the same percentage of the clock', () => {
+    const r = fitToBudget(CURRICULUM, 20);           // 20 of 35; floors (2 each) fit, no skip
+    expect(r.skipped).toHaveLength(0);
+    expect(r.compressed).toBe(true);
+    expect(r.counts.atFloor).toBe(0);
+    // weight share preserved: A is 10/35 = 28.6% of content -> 28.6% of 20 ≈ 5.7 min
+    expect(byId(r.plan, 'A').allocatedMin).toBeCloseTo(5.7, 1);
+    expect(byId(r.plan, 'D').allocatedMin).toBeCloseTo(2.9, 1);
+    const shareWeight = 10 / 35;
+    const shareTime = byId(r.plan, 'A').allocatedMin / r.keptMin;
+    expect(shareTime).toBeCloseTo(shareWeight, 2);   // SAME percentage
+    expect(r.keptMin).toBeCloseTo(20, 1);
+    expect(r.summary).toMatch(/keeps its share/i);
+  });
+
+  it('honors a per-section FLOOR: a light section pins to its floor, rest re-split', () => {
+    const FLOORY = [scene('A', 90, PRIORITY.CORE, 5), scene('B', 10, PRIORITY.CORE, 5)]; // full 100, floors 5
+    const r = fitToBudget(FLOORY, 20);               // B's proportional 2 < floor 5 -> pin to 5
+    expect(r.skipped).toHaveLength(0);
+    expect(byId(r.plan, 'B').allocatedMin).toBe(5);
+    expect(byId(r.plan, 'B').atFloor).toBe(true);
+    expect(byId(r.plan, 'A').allocatedMin).toBe(15); // gets the remainder
+    expect(byId(r.plan, 'A').atFloor).toBe(false);
+    expect(r.counts.atFloor).toBe(1);
     expect(r.overBudget).toBe(false);
-    // largest supplementary (C=10) dropped first; D (5) retained; both core kept
+  });
+
+  it('falls back to SKIP only when floors overflow the budget — supplementary first, core protected', () => {
+    const TIGHT = [
+      scene('A', 10, PRIORITY.CORE, 8), scene('B', 10, PRIORITY.CORE, 8),
+      scene('C', 10, PRIORITY.SUPPLEMENTARY, 8), scene('D', 10, PRIORITY.SUPPLEMENTARY, 8),
+    ]; // floors 8 each = 32 > budget
+    const r = fitToBudget(TIGHT, 20);                // 32 floor-min > 20 -> must skip supplementary
     expect(byId(r.plan, 'C').skipped).toBe(true);
     expect(byId(r.plan, 'C').skipReason).toBe('auto');
-    expect(byId(r.plan, 'D').skipped).toBe(false);
-    expect(byId(r.plan, 'A').skipped).toBe(false);
+    expect(byId(r.plan, 'D').skipped).toBe(true);
+    expect(byId(r.plan, 'A').skipped).toBe(false);   // core protected
     expect(byId(r.plan, 'B').skipped).toBe(false);
-    expect(r.counts).toMatchObject({ coreKept: 2, suppKept: 1, suppSkipped: 1, coreSkipped: 0 });
-    expect(r.keptMin).toBeLessThanOrEqual(30);
-    expect(r.summary).toMatch(/core understanding still lands/i);
+    expect(r.counts).toMatchObject({ coreKept: 2, suppSkipped: 2, coreSkipped: 0 });
+    expect(r.overBudget).toBe(false);                // after skipping, A+B floors (16) fit 20
+    expect(r.keptMin).toBeCloseTo(20, 1);
+    expect(r.summary).toMatch(/skipping 2 supplementary/i);
   });
 
-  it('protects core: when core alone exceeds budget it compresses, never skips core', () => {
-    const r = fitToBudget(CURRICULUM, 15);          // core is 20 > 15
+  it('protects core even when its floors overflow: compresses below floor, never skips core', () => {
+    const CORETIGHT = [scene('A', 10, PRIORITY.CORE, 8), scene('B', 10, PRIORITY.CORE, 8)]; // floors 16
+    const r = fitToBudget(CORETIGHT, 10);            // 16 floor-min > 10, nothing droppable
     expect(r.overBudget).toBe(true);
-    expect(r.compressed).toBe(true);
-    expect(r.counts.coreSkipped).toBe(0);            // core NEVER auto-skipped
+    expect(r.counts.coreSkipped).toBe(0);
     expect(byId(r.plan, 'A').skipped).toBe(false);
-    expect(byId(r.plan, 'B').skipped).toBe(false);
-    // both supplementary dropped, core compressed proportionally to fit 15
-    expect(byId(r.plan, 'A').allocatedMin).toBeCloseTo(7.5, 5);
-    expect(r.keptMin).toBeCloseTo(15, 5);
-    expect(r.summary).toMatch(/core/i);
+    expect(byId(r.plan, 'A').allocatedMin).toBeCloseTo(5, 1); // proportional, below floor
+    expect(r.summary).toMatch(/below their floor/i);
   });
 
   it('honors a forced KEEP of a supplementary scene (survives auto-skip)', () => {
-    const r = fitToBudget(CURRICULUM, 20, { overrides: { C: 'keep' } });
+    const TIGHT = [
+      scene('A', 10, PRIORITY.CORE, 8), scene('B', 10, PRIORITY.CORE, 8),
+      scene('C', 10, PRIORITY.SUPPLEMENTARY, 8), scene('D', 10, PRIORITY.SUPPLEMENTARY, 8),
+    ];
+    const r = fitToBudget(TIGHT, 20, { overrides: { C: 'keep' } });
     expect(byId(r.plan, 'C').skipped).toBe(false);   // user override wins
     expect(byId(r.plan, 'D').skipped).toBe(true);    // the other supplementary goes
   });
 
   it('honors a forced SKIP (even of a core scene — the user decides)', () => {
     const r = fitToBudget(CURRICULUM, 100, { overrides: { A: 'skip' } });
-    expect(r.fits).toBe(true);                        // full content fits the 100
+    expect(r.fits).toBe(true);
     expect(byId(r.plan, 'A').skipped).toBe(true);
     expect(byId(r.plan, 'A').skipReason).toBe('forced');
     expect(r.counts.coreSkipped).toBe(1);
   });
 
-  it('treats no/!finite budget as "keep all"', () => {
+  it('treats no/!finite budget as "full weights"', () => {
     const r = fitToBudget(CURRICULUM, 0);
     expect(r.budgetMin).toBe(35);
     expect(r.skipped).toHaveLength(0);
+    expect(byId(r.plan, 'A').allocatedMin).toBe(10); // natural weight
   });
 
   it('NEVER leaks notes through the slide built from a kept scene', () => {
@@ -249,13 +341,82 @@ describe('fitToBudget — reflow into the time available', () => {
   });
 
   it('accepts an adaptive ranker seam (opts.rankSkips) and falls back safely', () => {
-    // a custom ranker that drops D before C (opposite of the default largest-first)
-    const r = fitToBudget(CURRICULUM, 30, { rankSkips: () => ['D'] });
+    const RANKABLE = [
+      scene('A', 10, PRIORITY.CORE, 5), scene('B', 10, PRIORITY.CORE, 5),
+      scene('C', 10, PRIORITY.SUPPLEMENTARY, 5), scene('D', 10, PRIORITY.SUPPLEMENTARY, 5),
+    ]; // floors 5 each = 20
+    // budget 16 needs ONE supplementary dropped; custom ranker drops D (not the default C)
+    const r = fitToBudget(RANKABLE, 16, { rankSkips: () => ['D'] });
     expect(byId(r.plan, 'D').skipped).toBe(true);
     expect(byId(r.plan, 'C').skipped).toBe(false);
     // a throwing ranker must not break the reflow (deterministic fallback engages)
-    const safe = fitToBudget(CURRICULUM, 30, { rankSkips: () => { throw new Error('llm down'); } });
+    const safe = fitToBudget(RANKABLE, 16, { rankSkips: () => { throw new Error('llm down'); } });
     expect(safe.skipped.length).toBeGreaterThan(0);
+  });
+});
+
+// scene with an explicit importance (lesson weight)
+const wscene = (id, estimatedMin, priority, minMin, importance) => ({ id, estimatedMin, priority, minMin, importance, audience: { title: id }, notes: [] });
+
+describe('fitToBudget — IMPORTANCE-weighted (lesson weights protect the essential)', () => {
+  it('importance defaults to 1 and is honored when set (backfill)', () => {
+    expect(withSceneTiming({ id: 'x', audience: {} }).importance).toBe(DEFAULT_IMPORTANCE);
+    expect(withSceneTiming({ id: 'x', importance: 3, audience: {} }).importance).toBe(3);
+    expect(withSceneTiming({ id: 'x', importance: -2, audience: {} }).importance).toBe(1); // bad -> default
+  });
+
+  it('uniform importance reflows EXACTLY like the time-proportional model (no regression)', () => {
+    const UNI = [wscene('A', 10, PRIORITY.CORE), wscene('B', 10, PRIORITY.CORE), wscene('C', 10, PRIORITY.SUPPLEMENTARY), wscene('D', 5, PRIORITY.SUPPLEMENTARY)];
+    const r = fitToBudget(UNI, 20);                 // 20 of 35; floors fit
+    expect(r.weighted).toBe(false);
+    expect(byId(r.plan, 'A').allocatedMin).toBeCloseTo(5.7, 1); // same as the proportional test
+    expect(r.skipped).toHaveLength(0);
+  });
+
+  it('the most essential material is PROTECTED and gets the minutes; low-weight compresses', () => {
+    // A (weight 3) + B (weight 1), both need 10 min; budget 15 (< 20 full)
+    const r = fitToBudget([wscene('A', 10, PRIORITY.CORE, 2, 3), wscene('B', 10, PRIORITY.CORE, 2, 1)], 15);
+    expect(r.weighted).toBe(true);
+    // A's importance-weighted share (30/40*15=11.25) is capped at its natural need (10);
+    // B takes the remainder and compresses to 5.
+    expect(byId(r.plan, 'A').allocatedMin).toBe(10);
+    expect(byId(r.plan, 'A').atCap).toBe(true);
+    expect(byId(r.plan, 'B').allocatedMin).toBeCloseTo(5, 1);
+    expect(byId(r.plan, 'A').allocatedMin).toBeGreaterThan(byId(r.plan, 'B').allocatedMin);
+  });
+
+  it('drops by ASCENDING importance — least essential first, weightiest protected', () => {
+    // floors 6 each (sum 24) > budget 20 -> drop exactly ONE supplementary
+    const DROP = [
+      wscene('A', 10, PRIORITY.CORE, 6, 1), wscene('B', 10, PRIORITY.CORE, 6, 1),
+      wscene('C', 10, PRIORITY.SUPPLEMENTARY, 6, 0.5), wscene('D', 10, PRIORITY.SUPPLEMENTARY, 6, 5),
+    ];
+    const r = fitToBudget(DROP, 20);
+    expect(byId(r.plan, 'C').skipped).toBe(true);   // least essential (0.5) goes first
+    expect(byId(r.plan, 'D').skipped).toBe(false);  // weightiest supplementary protected
+    expect(byId(r.plan, 'A').skipped).toBe(false);  // core never dropped
+    expect(byId(r.plan, 'B').skipped).toBe(false);
+    expect(r.summary).toMatch(/least-essential/i);
+  });
+
+  it('importanceSkipRanker orders ascending importance, tie-break largest-time; uniform == deterministic', () => {
+    const cands = [
+      { _key: 'a', _i: 0, estimatedMin: 5, importance: 2 },
+      { _key: 'b', _i: 1, estimatedMin: 10, importance: 1 },
+      { _key: 'c', _i: 2, estimatedMin: 5, importance: 1 },
+    ];
+    expect(importanceSkipRanker(cands)).toEqual(['b', 'c', 'a']); // imp 1s first (largest-time b before c), then imp 2
+    const uni = cands.map((c) => ({ ...c, importance: 1 }));
+    expect(importanceSkipRanker(uni)).toEqual(deterministicSkipRanker(uni)); // uniform == old order
+  });
+
+  it('coursePresentable passes a module importance weight through to the scene', () => {
+    const cp = coursePresentable({ meta: { key: 'x', title: 'X' }, schedule: [
+      { id: 'a', title: 'A', bigIdea: 'i', week: 1, importance: 4, facilitator: { howToRun: 'Teach (10): x' } },
+      { id: 'b', title: 'B', bigIdea: 'i', week: 2, facilitator: { howToRun: 'Teach (10): y' } },
+    ] });
+    expect(byId(cp.scenes, 'a').importance).toBe(4);
+    expect(byId(cp.scenes, 'b').importance).toBe(1); // default
   });
 });
 
@@ -334,5 +495,162 @@ describe('living curriculum — persisted overlay (storage-injected)', () => {
     // and the reflow consumes the grown curriculum end-to-end
     const fit = fitToBudget(result, 40);
     expect(fit.counts.total).toBe(5);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// studyPresentable — Darrell's Study reflections become presentable
+// -----------------------------------------------------------------------------
+describe('studyPresentable — a reflection becomes presentable, deep source stays back', () => {
+  const entries = [
+    { id: 'r1', kind: 'reflection', title: 'Metanoia', scripture: 'Rom 12:2',
+      plain: 'Real change starts in how you think.', deep: 'SECRET-DEEP-SOURCE about the nous', tags: ['mind'], createdAt: '2026-06-16T00:00:00Z', pinned: false },
+    { id: 'r2', kind: 'research', title: 'For a wide room', scripture: '1 Cor 9:22',
+      plain: 'One truth, reworked to reach a culture.', deep: 'CONFIDENTIAL research notes', culture: 'campus students', createdAt: '2026-06-15T00:00:00Z', pinned: true },
+    { id: 'r3', kind: 'reflection', title: 'Undistilled', plain: '', deep: 'only a deep source, no plain yet', createdAt: '2026-06-14T00:00:00Z' },
+  ];
+  const p = studyPresentable(entries, { title: "Darrell's Study" });
+
+  it('only presents entries that have a plain (audience) layer', () => {
+    expect(p.scenes.length).toBe(2); // r3 (no plain) is skipped
+    expect(p.title).toBe("Darrell's Study");
+  });
+
+  it('pinned-first then newest-first order', () => {
+    expect(p.scenes[0].audience.title).toBe('For a wide room'); // pinned wins
+    expect(p.scenes[1].audience.title).toBe('Metanoia');
+    expect(p.scenes[0].indexLabel).toBe('Reflection 1 of 2');
+  });
+
+  it('puts the plain layer on the audience and the scripture on the anchor', () => {
+    const sc = p.scenes[1];
+    expect(sc.audience.lead).toBe('Real change starts in how you think.');
+    expect(sc.audience.anchorRef).toBe('Rom 12:2');
+    expect(sc.audience.anchorTheme).toBe('Reflection');
+  });
+
+  it('NEVER leaks the deep source to the projected slide (no-leak)', () => {
+    p.scenes.forEach((_, i) => {
+      const slide = buildSlideForScene(p.scenes, i, { kicker: p.kicker });
+      expect(JSON.stringify(slide)).not.toContain('SECRET-DEEP-SOURCE');
+      expect(JSON.stringify(slide)).not.toContain('CONFIDENTIAL');
+    });
+    // the deep source is present, but only in presenter notes
+    const metanoia = p.scenes.find((s) => s.audience.title === 'Metanoia');
+    expect(JSON.stringify(metanoia.notes)).toContain('SECRET-DEEP-SOURCE');
+  });
+
+  it('is empty-safe', () => {
+    expect(studyPresentable(null).scenes).toEqual([]);
+    expect(studyPresentable([]).scenes).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// conferencePresentable — a session agenda becomes presentable
+// -----------------------------------------------------------------------------
+describe('conferencePresentable — the agenda becomes presentable, logistics stay back', () => {
+  const sessions = [
+    { id: 's2', title: 'Evening Worship', day: 'Tue Jul 15', time: '7:00 PM', speaker: 'Bishop Gwin',
+      sessionType: 'main_service', capacity: 800, sortOrder: 1, status: 'active' },
+    { id: 's1', title: 'Welcome Breakout', day: 'Tue Jul 15', time: '5:00 PM', speaker: 'Host',
+      sessionType: 'breakout', capacity: 60, sortOrder: 0, status: 'active' },
+    { id: 's3', title: 'Archived', sessionType: 'other', sortOrder: 2, status: 'archived' },
+  ];
+  const p = conferencePresentable(sessions, {
+    title: 'The Assembly',
+    resolveRoom: (s) => (s.id === 's2' ? 'South Campus · Main Sanctuary' : null),
+    resolveSermon: (s) => (s.id === 's2' ? 'Faith Over Fear' : null),
+    resolveSongs: (s) => (s.id === 's2' ? ['Total Praise', 'Way Maker'] : []),
+  });
+
+  it('drops archived sessions and orders by sortOrder', () => {
+    expect(p.scenes.length).toBe(2);
+    expect(p.scenes[0].audience.title).toBe('Welcome Breakout'); // sortOrder 0
+    expect(p.scenes[1].audience.title).toBe('Evening Worship');
+    expect(p.title).toBe('The Assembly');
+  });
+
+  it('audience sees title/speaker/when-where + the linked message & music', () => {
+    const sc = p.scenes[1];
+    expect(sc.audience.lead).toBe('Bishop Gwin');
+    expect(sc.audience.detail).toContain('Tue Jul 15');
+    expect(sc.audience.detail).toContain('Main Sanctuary');
+    expect(sc.audience.anchorRef).toBe('Faith Over Fear');
+    expect(sc.audience.anchorTheme).toContain('Total Praise');
+  });
+
+  it('keeps capacity/type off the projected slide (presenter-only)', () => {
+    const slide = buildSlideForScene(p.scenes, 1, { kicker: p.kicker });
+    expect(JSON.stringify(slide)).not.toContain('800'); // capacity not projected
+    // capacity rides in presenter notes instead
+    expect(JSON.stringify(p.scenes[1].notes)).toContain('800');
+  });
+
+  it('is empty-safe and resolver-optional', () => {
+    expect(conferencePresentable(null).scenes).toEqual([]);
+    const bare = conferencePresentable([{ id: 'x', title: 'Bare', status: 'active' }]);
+    expect(bare.scenes[0].audience.title).toBe('Bare');
+    expect(bare.scenes[0].audience.anchorRef).toBeNull();
+  });
+});
+
+// -----------------------------------------------------------------------------
+// documentPresentable — a created document becomes presentable (HTML -> slides)
+// -----------------------------------------------------------------------------
+describe('stripTags + splitHtmlSections — pure HTML helpers (no DOM)', () => {
+  it('stripTags decodes entities and inserts block spacing', () => {
+    expect(stripTags('<p>Hello<br>there</p><p>friend &amp; co</p>')).toBe('Hello there friend & co');
+    expect(stripTags('')).toBe('');
+    expect(stripTags('<h1>Title</h1>')).toBe('Title');
+  });
+
+  it('splitHtmlSections splits on H1/H2 with a preamble section', () => {
+    const html = '<p>Intro line.</p><h1>First</h1><p>Body one.</p><h2>Second</h2><p>Body two.</p>';
+    const secs = splitHtmlSections(html);
+    expect(secs.map((s) => s.heading)).toEqual([null, 'First', 'Second']);
+    expect(secs[0].text).toBe('Intro line.');
+    expect(secs[1].text).toBe('Body one.');
+    expect(secs[2].level).toBe(2);
+  });
+
+  it('a document with no headings is one heading-less section', () => {
+    const secs = splitHtmlSections('<p>Just one paragraph.</p>');
+    expect(secs.length).toBe(1);
+    expect(secs[0].heading).toBeNull();
+    expect(secs[0].text).toBe('Just one paragraph.');
+    expect(splitHtmlSections('')).toEqual([]);
+  });
+});
+
+describe('documentPresentable — a document becomes a deck', () => {
+  it('splits a headed document into a title slide + one slide per heading', () => {
+    const ws = { id: 'w1', title: 'My Plan', content: '<p>Opening.</p><h1>Vision</h1><p>The why.</p><h2>Steps</h2><ul><li>One</li><li>Two</li></ul>' };
+    const p = documentPresentable(ws);
+    expect(p.title).toBe('My Plan');
+    expect(p.id).toBe('doc:w1');
+    expect(p.scenes.map((s) => s.audience.title)).toEqual(['My Plan', 'Vision', 'Steps']);
+    expect(p.scenes[0].audience.lead).toBe('Opening.'); // preamble on the title slide
+    expect(p.scenes[1].indexLabel).toBe('Section 1 of 2');
+    expect(p.scenes[2].audience.lead).toContain('One');
+  });
+
+  it('a heading-less document collapses to a single slide', () => {
+    const p = documentPresentable({ id: 'w2', title: 'Note', content: '<p>One thought, no headings.</p>' });
+    expect(p.scenes.length).toBe(1);
+    expect(p.scenes[0].audience.title).toBe('Note');
+    expect(p.scenes[0].audience.lead).toBe('One thought, no headings.');
+  });
+
+  it('every document scene carries no presenter notes (nothing to leak)', () => {
+    const p = documentPresentable({ id: 'w3', title: 'T', content: '<h1>A</h1><p>x</p><h2>B</h2><p>y</p>' });
+    p.scenes.forEach((s) => expect(s.notes).toEqual([]));
+  });
+
+  it('handles an empty / untitled document safely', () => {
+    const p = documentPresentable({});
+    expect(p.title).toBe('Untitled document');
+    expect(p.scenes.length).toBe(1);
+    expect(p.scenes[0].audience.title).toBe('Untitled document');
   });
 });

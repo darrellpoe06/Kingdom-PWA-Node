@@ -1,0 +1,66 @@
+{
+  "$schema": "https://kingdom-pwa.dev/schemas/seed-projects/v1.json",
+  "seed_id": "2026-06-24-colg-sanctuary-av-gpu-docs",
+  "generated_at": "2026-06-24T00:00:00Z",
+  "generated_by": "orchestrator-driven session (sanctuary AV + GPU planning)",
+  "instance_slug": "colg",
+  "intent": "Materialize this session's sanctuary AV + GPU planning as in-app documentation under the EXISTING seeded project 'COLG media+AI node — CHURCH' (client-seed id pr-cuda-colg-node, domain church), using the discussions (institutional-memory / decisions-with-rationale) model so each entry RENDERS in the app (Projects -> the project -> Manage -> Discussions driving this; and the Discussions tab). Reuses the exact mechanism of 2026-06-23-colg-local-infrastructure-docs (the content-engine lane) — same model, new file, NOT a fork.",
+  "poe_binding": "Decisions-with-rationale (we chose X not Y because Z). Verification doctrine (DR-0076): specs recorded as provided; items not read off the real hardware are explicitly marked TO CONFIRM (exact wall pixel resolution, exact QL console model, exact 4070 VRAM). Perpetual improvement (DR-0075): the deferred VX1000-API-control entry carries a re-review date. Three-brakes rule applies to any autonomous live-mix control.",
+  "links_to_existing_project": {
+    "slug": "pr-cuda-colg-node",
+    "title": "COLG media+AI node — CHURCH (2x RTX PRO 6000 = 192GB)",
+    "where_defined": "app/src/poe-financial-mvp-v28.jsx (projects[] client seed)",
+    "note": "Client-seed project, not a DB row. No project is created by this seed; discussions link to it by slug string (no FK), and the app's discussionsForProject matches client-side."
+  },
+  "apply": "Idempotent. Apply once in Supabase Studio against the COLG cloud instance: run infra/seed-data/2026-06-24-colg-sanctuary-av-gpu-docs.sql (resolves the instance by slug='colg'; ON CONFLICT (instance_id, slug) DO NOTHING). Renders live after apply. NOT yet applied to cloud as of this commit.",
+  "discussions": [
+    {
+      "slug": "dc-colg-av-led-wall-vx1000",
+      "kind": "decision",
+      "title": "Sanctuary LED wall (9ft x 12ft, 1.9mm) driven by NovaStar VX1000",
+      "project_slugs": ["pr-cuda-colg-node"],
+      "links": { "dr_ref": "DR-0076" },
+      "summary": "New 9ft x 12ft, 1.9mm fine-pitch altar wall (~1920x1440 ~2.76M px, TO CONFIRM off NovaStar) driven by the on-hand VX1000 all-in-one (6.5M px cap, 10240x8192 max, 2x HDMI1.4 / 2x DVI / 3G-SDI / 2x 10G fiber, 3x 4K layers, 1-frame latency, genlock, 10 presets, RJ45/USB + NovaStar API). Chose the VX1000 we already have over a new processor — capacity and inputs cover this wall with headroom."
+    },
+    {
+      "slug": "dc-colg-av-signal-path-presenter-vx1000",
+      "kind": "decision",
+      "title": "Signal path: PoeTech Presenter -> HDMI/DVI -> VX1000 -> wall (NDI is LAN routing, not wall-direct)",
+      "project_slugs": ["pr-cuda-colg-node"],
+      "links": {},
+      "summary": "Presenter -> HDMI/DVI -> VX1000 -> wall. VX1000 has NO native NDI input; NDI->HDMI bridge needed if NDI transport is ever wanted into the wall. NDI = production-LAN routing (cameras/feeds/other screens), not the direct wall feed. Direct video cable is simplest/lowest-latency/most-reliable."
+    },
+    {
+      "slug": "dc-colg-av-presenter-replaces-propresenter",
+      "kind": "directive",
+      "title": "PoeTech Presenter targets feature-parity to retire ProPresenter (frees a CUDA box)",
+      "project_slugs": ["pr-cuda-colg-node"],
+      "links": {},
+      "summary": "Bring Presenter to parity + reliability, then retire ProPresenter -> frees one church CUDA box for AI. Staged: run alongside -> prove on real services -> cut over (ProPresenter held as fallback through soak). Reuses Presenter.jsx + lib/presentable.js + lib/ndi-output.js. No rip-and-replace — Sunday cannot risk a blank wall."
+    },
+    {
+      "slug": "dc-colg-av-gpu-inventory-runs-now",
+      "kind": "decision",
+      "title": "GPU inventory: church-side AI runs NOW on 2x existing RTX 4070 boxes (not gated on the weekend purchase)",
+      "project_slugs": ["pr-cuda-colg-node"],
+      "links": {},
+      "summary": "Church already has 2x CUDA machines w/ RTX 4070 (~12-16GB, TO CONFIRM exact VRAM). Live-mix/EQ, faster-whisper, content processing, NDI/CUDA media, mid-size LLM run on these NOW — not gated on the weekend buy (that's the heavier home/70B+ tier). Retiring ProPresenter frees one 4070 box fully for AI."
+    },
+    {
+      "slug": "dc-colg-av-livemix-ai-ql",
+      "kind": "decision",
+      "title": "Live-mix AI on the Yamaha QL console: staged assistive -> supervised -> autonomous, human-on-loop",
+      "project_slugs": ["pr-cuda-colg-node"],
+      "links": {},
+      "summary": "Yamaha QL (software-controllable). Staged per-voice EQ: assistive -> supervised -> autonomous, hard safety bounds (gain ceilings/feedback guard/rate limits), human on loop at every stage. Autonomous control ships behind the three brakes + INACTIVE. Cross-ref live-sound SME lane local_ecc353b2. TO CONFIRM: exact QL model (QL1 vs QL5)."
+    },
+    {
+      "slug": "dc-colg-av-vx1000-api-control-optional",
+      "kind": "decision",
+      "title": "OPTIONAL/FUTURE: app drives VX1000 (brightness/presets/genlock) via NovaStar API from the master Sunday program",
+      "project_slugs": ["pr-cuda-colg-node"],
+      "links": { "dr_ref": "DR-0075" },
+      "summary": "Optional future: app controls VX1000 brightness/presets/genlock via NovaStar API, cued by the master Sunday Order-of-Service program. Deferred (manual control is day-one). re-review: 2026-09-30 after Presenter parity/cutover is proven. Parked WITH a date, not dropped silently (DR-0075)."
+    }
+  ]
+}

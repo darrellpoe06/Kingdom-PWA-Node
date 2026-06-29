@@ -24,12 +24,17 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle, TabScroll } from './shared.jsx';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import EternalAlgorithms from './EternalAlgorithms.jsx';
+import ThoughtFinalizer from './ThoughtFinalizer.jsx';
 import UiIcon from './UiIcon.jsx';
+import Presenter from './Presenter.jsx';
+import { studyPresentable } from '../lib/presentable.js';
+import { unfinalizedThoughts } from '../lib/thought-finalizer.js';
 import {
   KINDS, KIND_ORDER, DEFAULT_LABEL,
   loadStudy, saveStudy, seedIfEmpty,
   normalizeEntry, upsertEntry, removeEntry, togglePin,
   sortEntries, filterEntries, countsByKind, distillState, captureExchange,
+  deriveFrom,
 } from '../lib/study-space.js';
 
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -138,7 +143,7 @@ function EntryEditor({ initial, kind, onSave, onCancel }) {
 // Entry card — plain layer shown first; the deep 4th-dimensional source unfolds
 // one click beneath (progressive disclosure, the exact briefing motion).
 // -----------------------------------------------------------------------------
-function EntryCard({ entry, onEdit, onDelete, onPin }) {
+function EntryCard({ entry, onEdit, onDelete, onPin, onDeriveFrom }) {
   const [openDeep, setOpenDeep] = useState(false);
   const ds = distillState(entry);
   const badge = DISTILL_BADGE[ds];
@@ -149,6 +154,7 @@ function EntryCard({ entry, onEdit, onDelete, onPin }) {
         <div className="flex items-baseline gap-2 flex-wrap">
           <span style={{ ...serif, fontWeight: 600 }} className="text-[#1A1815]">{entry.pinned ? <><UiIcon name="pin" /> </> : ''}<UiIcon name={KINDS[entry.kind].icon} /> {entry.title || 'Untitled'}</span>
           {entry.seed && <span className="text-[9px] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">seed theme</span>}
+          {entry.source && entry.source.label && <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5" title={`Saved from ${entry.source.where || entry.source.label}`}>↓ {entry.source.label}</span>}
         </div>
         <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${badge.cls}`}>{badge.text}</span>
       </div>
@@ -183,6 +189,7 @@ function EntryCard({ entry, onEdit, onDelete, onPin }) {
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#E8E4DC] flex-wrap">
         <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtDate(entry.createdAt)}</span>
         <button type="button" onClick={() => onEdit(entry)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
+        <button type="button" onClick={() => onDeriveFrom(entry)} title="Start a new study from this one — your own notes, building on it" className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">✦ Create from this</button>
         <button type="button" onClick={() => onPin(entry.id)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{entry.pinned ? 'Unpin' : 'Pin'}</button>
         <button type="button" onClick={() => { if (window.confirm('Delete this entry? It is only on this device.')) onDelete(entry.id); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
       </div>
@@ -217,12 +224,13 @@ function CaptureBox({ onCapture }) {
 // -----------------------------------------------------------------------------
 export default function Study({ email }) {
   const [study, setStudy] = useState(() => emptyStateFor(email));
-  const [space, setSpace] = useState('workspace'); // 'workspace' | 'algorithms'
+  const [space, setSpace] = useState('workspace'); // 'workspace' | 'algorithms' | 'finalize'
   const [kind, setKind] = useState('reflection');
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState(null); // entry being edited, {} = new, null = none
   const [renaming, setRenaming] = useState(false);
   const [labelDraft, setLabelDraft] = useState('');
+  const [presenting, setPresenting] = useState(false); // live present mode (the circle)
   const loadedFor = useRef(null);
 
   // Load (and first-time seed) the device-local store for this identity. Reloads
@@ -243,6 +251,11 @@ export default function Study({ email }) {
 
   const counts = useMemo(() => countsByKind(study.entries), [study.entries]);
   const shown = useMemo(() => sortEntries(filterEntries(study.entries, kind, query)), [study.entries, kind, query]);
+  // Reflections ready to put on a screen: the present adapter keeps the deep
+  // 4th-dimensional source in presenter notes (off the projector) and shows only
+  // the plain wider-audience layer, so an entry needs a plain version to qualify.
+  const presentable = useMemo(() => studyPresentable(study.entries, { id: 'study', title: study.label || DEFAULT_LABEL, kicker: study.label || DEFAULT_LABEL }), [study.entries, study.label]);
+  const canPresent = presentable.scenes.length > 0;
 
   const saveEntry = (raw) => {
     setStudy((s) => {
@@ -260,6 +273,18 @@ export default function Study({ email }) {
   };
   const onDelete = (id) => setStudy((s) => ({ ...s, entries: removeEntry(s.entries, id) }));
   const onPin = (id) => setStudy((s) => ({ ...s, entries: togglePin(s.entries, id) }));
+  // The flywheel: create a NEW study seeded from an existing one, switch to its room,
+  // and open it in the editor so the owner builds on it right away.
+  const onDeriveFrom = (entry) => {
+    const derived = deriveFrom(entry, nowMs(), study.entries.length);
+    setStudy((s) => ({ ...s, entries: upsertEntry(s.entries, derived) }));
+    setKind(derived.kind);
+    setEditing(derived);
+  };
+  // The finalizer writes back a whole (already-normalized) entry whose ONLY
+  // change is the added `finalization` layer — the owner's words are untouched.
+  const onFinalizeSave = (entry) => setStudy((s) => ({ ...s, entries: upsertEntry(s.entries, entry) }));
+  const pendingFinalize = useMemo(() => unfinalizedThoughts(study.entries).length, [study.entries]);
   const commitRename = () => {
     const next = labelDraft.trim() || DEFAULT_LABEL;
     setStudy((s) => ({ ...s, label: next }));
@@ -267,6 +292,14 @@ export default function Study({ email }) {
   };
 
   const serif = { fontFamily: '"Fraunces", serif' };
+
+  // Live present mode takes over the surface (presenter console here, a clean
+  // reflection screen in a popped window) — the same shared Presenter the Learn
+  // courses + The Word use. The deep source stays presenter-side by construction.
+  if (presenting) {
+    return <Presenter presentable={presentable} onClose={() => setPresenting(false)} />;
+  }
+
   return (
     <div className="max-w-3xl">
       <SectionTitle eyebrow="Private · for the circle only">
@@ -296,9 +329,11 @@ export default function Study({ email }) {
       <div className="flex gap-1 text-xs mb-4 flex-wrap" role="tablist" aria-label="Study spaces">
         <button type="button" role="tab" aria-selected={space === 'workspace'} onClick={() => setSpace('workspace')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'workspace' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}><UiIcon name="book" /> Workspace</button>
         <button type="button" role="tab" aria-selected={space === 'algorithms'} onClick={() => setSpace('algorithms')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'algorithms' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}><UiIcon name="sparkle" /> Eternal Algorithms</button>
+        <button type="button" role="tab" aria-selected={space === 'finalize'} onClick={() => setSpace('finalize')} className={`px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${space === 'finalize' ? 'bg-[#1A1815] text-white border-[#1A1815] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}><UiIcon name="check" /> Finalize{pendingFinalize ? ` · ${pendingFinalize}` : ''}</button>
       </div>
 
-      {space === 'algorithms' ? <EternalAlgorithms email={email} /> : (
+      {space === 'finalize' ? <ThoughtFinalizer entries={study.entries} onSaveEntry={onFinalizeSave} email={email} />
+      : space === 'algorithms' ? <EternalAlgorithms email={email} /> : (
       <>
       {/* Room tabs — shared <TabScroll> primitive (same fluid scroll as the
           main nav); children keep role="tab", so the row is a real tablist. */}
@@ -319,6 +354,9 @@ export default function Study({ email }) {
         {editing === null && (
           <button type="button" onClick={() => setEditing({})} className={`${BTN} text-[#B85838] hover:text-[#1A1815] border border-[#B85838]`}>+ New {KINDS[kind].label.toLowerCase()}</button>
         )}
+        {canPresent && (
+          <button type="button" onClick={() => setPresenting(true)} className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white`} title="Put the plain layer on a screen; the deep source stays with you">▶ Present</button>
+        )}
         <label className="sr-only" htmlFor="study-q">Search this space</label>
         <input id="study-q" className={`${FIELD} flex-1 min-w-[12rem]`} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search titles, both layers, scripture, tags…" />
       </div>
@@ -329,7 +367,7 @@ export default function Study({ email }) {
 
       {shown.length ? (
         <div className="space-y-2">
-          {shown.map((e) => <EntryCard key={e.id} entry={e} onEdit={setEditing} onDelete={onDelete} onPin={onPin} />)}
+          {shown.map((e) => <EntryCard key={e.id} entry={e} onEdit={setEditing} onDelete={onDelete} onPin={onPin} onDeriveFrom={onDeriveFrom} />)}
         </div>
       ) : (
         <div className="bg-[#FAF8F4] border border-dashed border-[#E8E4DC] p-6 text-center">

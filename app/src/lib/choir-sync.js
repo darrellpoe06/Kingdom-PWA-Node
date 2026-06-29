@@ -42,6 +42,25 @@ export function toSongShape(row) {
     startSeconds: row.start_seconds ?? null,
     sortOrder: row.sort_order ?? 0,
     status: row.status ?? 'active',
+    // Cross-reference + practical metadata (0041) — see lib/choir-songbook.js.
+    themes: Array.isArray(row.themes) ? row.themes : [],
+    songKey: row.song_key ?? null,
+    arrangement: row.arrangement ?? null,
+    soloist: row.soloist ?? null,
+    sermonRef: row.sermon_ref ?? null,
+    // Archive provenance (0042) — auto-seeded from the church archive. A row IS
+    // one rendition; these ALSO carry that performance's source honesty (the
+    // renditions surface, lib/choir-renditions.js, reads source/videoId/
+    // confidence/needsReview rather than adding parallel columns).
+    source: row.source ?? 'manual',
+    videoId: row.video_id ?? null,
+    confidence: row.confidence ?? null,
+    needsReview: !!row.needs_review,
+    // Per-rendition story (0043) — see lib/choir-renditions.js. The ad-libs and
+    // the keyboardist's per-PERFORMANCE notes for THIS rendition (distinct from
+    // the song-level SME notes in choir_sme_notes, 0042).
+    adLibs: Array.isArray(row.ad_libs) ? row.ad_libs : [],
+    keyboardistNotes: row.keyboardist_notes ?? null,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
   };
@@ -172,7 +191,17 @@ export function deriveAccess(role, inChoir) {
 }
 
 // Normalize a YouTube URL to its embeddable form; null if not recognizable.
-// Accepts watch?v=, youtu.be/, and /embed/ forms.
+// Accepts watch?v=, youtu.be/, /embed/, /live/, /shorts/, /v/, and bare-id forms.
+//
+// WHY /live/ and /shorts/ (added 2026-06-23): the church's service recordings on
+// YouTube carry the `youtube.com/live/<id>` URL (that is the link a director
+// copies straight off a finished livestream — "the YouTube recording of this
+// service"), and short clips carry `youtube.com/shorts/<id>`. Neither form was
+// recognized before, so a pasted live-stream link fell through to null and the
+// embed silently degraded to a plain "Open link" — the "choir YouTube link →
+// video processing broken" report (feedback d23b37f3). Recognizing them embeds
+// the video in place. Pure + additive: every URL that embedded before still
+// embeds; nothing that resolved to a real id changes.
 export function youtubeEmbedUrl(url) {
   if (!url || typeof url !== 'string') return null;
   const u = url.trim();
@@ -181,6 +210,9 @@ export function youtubeEmbedUrl(url) {
   if ((m = u.match(/[?&]v=([\w-]{11})/))) id = m[1];
   else if ((m = u.match(/youtu\.be\/([\w-]{11})/))) id = m[1];
   else if ((m = u.match(/\/embed\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/live\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/shorts\/([\w-]{11})/))) id = m[1];
+  else if ((m = u.match(/\/v\/([\w-]{11})/))) id = m[1];
   else if ((m = u.match(/^([\w-]{11})$/))) id = m[1];
   return id ? `https://www.youtube.com/embed/${id}` : null;
 }
@@ -407,7 +439,20 @@ export async function saveSong(song, displayName) {
     start_seconds: Number.isFinite(song.startSeconds) ? song.startSeconds : null,
     sort_order: Number.isFinite(song.sortOrder) ? song.sortOrder : 0,
     status: song.status ?? 'active',
+    // Cross-reference + practical metadata (0041). themes is text[]; the rest
+    // are nullable text/uuid. Only written when provided (additive).
+    themes: Array.isArray(song.themes) ? song.themes : [],
+    song_key: song.songKey ?? null,
+    arrangement: song.arrangement ?? null,
+    soloist: song.soloist ?? null,
+    sermon_ref: song.sermonRef ?? null,
   };
+  // Archive provenance (0042) — written ONLY when provided, so a manual save
+  // (SongForm) never resets an archive-seeded row's source back to 'manual'.
+  if (song.source !== undefined) row.source = song.source || 'manual';
+  if (song.videoId !== undefined) row.video_id = song.videoId || null;
+  if (song.confidence !== undefined) row.confidence = song.confidence || null;
+  if (song.needsReview !== undefined) row.needs_review = !!song.needsReview;
   if (song.id) {
     const { error } = await supabase.from('choir_songs').update({ ...row, updated_by: ctx.userId }).eq('id', song.id);
     return error ? { skipped: 'update-error', error } : { saved: true };
@@ -437,6 +482,14 @@ export function buildReusedSong(song, newDate, newType) {
     startSeconds: song.startSeconds ?? null,
     sortOrder: 0,
     status: 'active',
+    // Carry the cross-reference forward so a reused song keeps its themes /
+    // scripture / key / arrangement / soloist (0041) — the new row stays
+    // cross-referenced without re-tagging.
+    themes: Array.isArray(song.themes) ? song.themes : [],
+    songKey: song.songKey ?? null,
+    arrangement: song.arrangement ?? null,
+    soloist: song.soloist ?? null,
+    sermonRef: song.sermonRef ?? null,
   };
 }
 
@@ -730,26 +783,45 @@ async function ytApi(path, key) {
   return res.json();
 }
 
-export async function importSermonsFromChannel(displayName) {
+// Page through the uploads playlist so the service corpus can be COMPREHENSIVE
+// (the historical choir-song sweep harvests from these same services, so the
+// deeper this corpus, the larger the song history). Bounded by maxPages (a brake
+// against a runaway loop); returns the items plus whether more remain. ~50/page.
+async function fetchUploadsItems(uploads, key, maxPages) {
+  const items = [];
+  let pageToken = '';
+  let pages = 0;
+  let more = false;
+  do {
+    const tok = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
+    const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50${tok}&playlistId=${encodeURIComponent(uploads)}`, key);
+    for (const i of pl?.items || []) {
+      items.push({ videoId: i?.contentDetails?.videoId, title: i?.snippet?.title });
+    }
+    pageToken = pl?.nextPageToken || '';
+    pages += 1;
+    if (pageToken && pages >= maxPages) { more = true; break; }
+  } while (pageToken);
+  return { items, pages, more };
+}
+
+export async function importSermonsFromChannel(displayName, opts = {}) {
   const key = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY) || '';
   if (!key) return { skipped: 'no-key' };
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
+  const maxPages = Number.isFinite(opts.maxPages) && opts.maxPages > 0 ? Math.floor(opts.maxPages) : 12;
   try {
     // Resolve the channel's uploads playlist from its handle.
     const ch = await ytApi(`channels?part=contentDetails&forHandle=${encodeURIComponent('@' + CHURCH_CHANNEL_HANDLE)}`, key);
     const uploads = ch?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
     if (!uploads) return { skipped: 'channel-not-found' };
-    // Most recent 50 uploads (newest first).
-    const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${encodeURIComponent(uploads)}`, key);
-    const items = (pl?.items || []).map((i) => ({
-      videoId: i?.contentDetails?.videoId,
-      title: i?.snippet?.title,
-    }));
+    // Walk the full upload history (bounded), newest first, so the corpus is deep.
+    const { items, more } = await fetchUploadsItems(uploads, key, maxPages);
     const { data: existing } = await supabase.from('choir_sermons').select('video_id').eq('instance_id', ctx.tenantId);
     const existingIds = (existing || []).map((r) => r.video_id).filter(Boolean);
     const fresh = selectNewSermonImports(items, existingIds);
-    if (!fresh.length) return { imported: 0, scanned: items.length };
+    if (!fresh.length) return { imported: 0, scanned: items.length, more };
     const rows = fresh.map((r) => ({
       instance_id: ctx.tenantId,
       created_by: ctx.userId,
@@ -763,7 +835,7 @@ export async function importSermonsFromChannel(displayName) {
     }));
     const { error } = await supabase.from('choir_sermons').insert(rows);
     if (error) return { skipped: 'insert-error', error };
-    return { imported: rows.length, scanned: items.length };
+    return { imported: rows.length, scanned: items.length, more };
   } catch (e) {
     return { skipped: 'api-error', error: e };
   }

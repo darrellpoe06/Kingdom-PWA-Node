@@ -80,6 +80,13 @@ export function normalizeAlgorithm(raw = {}, nowMs = 0, salt = 0) {
       : [],
     pinned: !!raw.pinned,
     seed: !!raw.seed,
+    // Provenance — where this finished entry came from. 'study' = promoted from a
+    // finalized Study thought (sourceId links back to that entry, and is the
+    // idempotency key so re-promoting updates instead of duplicating); 'manual' /
+    // null = entered directly in the library. promotedAt stamps the promotion.
+    source: raw.source === 'study' || raw.source === 'manual' ? raw.source : null,
+    sourceId: raw.sourceId ? String(raw.sourceId) : null,
+    promotedAt: raw.promotedAt || null,
     createdAt: iso,
     updatedAt: raw.updatedAt || iso,
   };
@@ -147,6 +154,67 @@ export function frameworksAndOutcomes(entries) {
 // catalog has none).
 export function missingOutcome(entries) {
   return (entries || []).filter((e) => !e.outcome || !String(e.outcome).trim());
+}
+
+// --- The no-rough-drafts gate (the finished gallery accepts only FINAL) -------
+// The Eternal Algorithms library is the canonical FINISHED output. Drafting and
+// iteration happen in Study (the workshop); ONLY a complete, finalized framework
+// is admitted here. validateFinal is the single gate every add + promote passes —
+// a missing required part is REJECTED, never half-formed in the gallery.
+//
+// Required = name + the three teaching parts (4D summary, 3D summary, OUTCOME),
+// mirroring thought-finalizer.hasAllParts. Scripture is RECOMMENDED but NOT a
+// hard block: a thought may have no single clean anchor, and inventing one would
+// violate the Word-first / no-fabrication rule — so admission never forces a
+// fabricated verse. (hasScripture is reported so the UI can nudge, not block.)
+export const REQUIRED_FINAL_PARTS = Object.freeze(['name', '4D expression', '3D expression', 'outcome']);
+
+export function validateFinal(algLike) {
+  const e = normalizeAlgorithm(algLike || {});
+  const missing = [];
+  if (!e.name) missing.push('name');
+  if (!e.fourD.summary) missing.push('4D expression');
+  if (!e.threeD.summary) missing.push('3D expression');
+  if (!e.outcome) missing.push('outcome');
+  return { ok: missing.length === 0, missing, hasScripture: !!e.fourD.scripture };
+}
+
+// The entry promoted from a given Study thought (provenance dedup key), or null.
+export function findBySource(entries, sourceId) {
+  if (!sourceId) return null;
+  return (entries || []).find((e) => e.sourceId && e.sourceId === sourceId) || null;
+}
+
+// The set of Study thought ids already promoted — so the Finalize surface can
+// badge "in the library" and offer Update vs. Promote.
+export function promotedSourceIds(entries) {
+  return new Set((entries || []).map((e) => e.sourceId).filter(Boolean));
+}
+
+// Promote a FINALIZED Study thought into the library — the single write path from
+// the workshop to the finished gallery:
+//   • REJECTS a draft — validateFinal must pass, else { ok:false, missing }.
+//   • IDEMPOTENT by sourceId — re-promoting an edited finalized thought UPDATES
+//     its existing entry (keeps its id + pinned), never duplicates.
+// Pure (the caller persists). Returns { ok, library?, entry?, missing? }.
+export function promoteFromStudy(library, draft, { sourceId = null, nowMs = 0, salt = 0 } = {}) {
+  const check = validateFinal(draft);
+  if (!check.ok) return { ok: false, missing: check.missing };
+  const lib = library && Array.isArray(library.entries) ? library : emptyLibrary();
+  const existing = findBySource(lib.entries, sourceId);
+  const iso = isoOf(nowMs);
+  const entry = normalizeAlgorithm({
+    ...(existing || {}),
+    ...draft,
+    id: existing ? existing.id : undefined,
+    pinned: existing ? existing.pinned : false,
+    seed: false,
+    source: 'study',
+    sourceId: sourceId || (existing && existing.sourceId) || null,
+    promotedAt: (existing && existing.promotedAt) || iso,
+    updatedAt: iso,
+  }, nowMs, salt);
+  return { ok: true, library: { ...lib, entries: upsertAlgorithm(lib.entries, entry) }, entry };
 }
 
 // --- Device-local persistence (the only I/O; fails soft) ---------------------
@@ -363,6 +431,22 @@ export const SEED_ALGORITHMS = [
     tags: ['stewardship', 'faithfulness', 'promotion', 'excellence'],
     links: [
       { label: 'EXCELLENCE-STANDARD.md', where: 'docs/00-foundations' },
+    ],
+  },
+  {
+    name: 'The Perfect You Were Made For (whole, not flawless)',
+    fourD: {
+      summary: 'God\'s "perfect" never meant flawless. "You therefore must be perfect, as your heavenly Father is perfect" (Matt 5:48, ESV) uses teleios (Strong\'s G5046, from telos, "end / goal") — complete, brought to its purpose, full-grown, mature, lacking nothing necessary. "Walk before me, and be thou perfect" (Gen 17:1, KJV) is tamim (H8549) — whole, sound, having integrity (ESV: "blameless"). The KJV renders BOTH as "perfect," and the old English "perfect" simply meant whole. It is grace-work, not self-manufacture: "perfect and complete, lacking in nothing" (Jas 1:4), "go on to maturity" (Heb 6:1), "perfected in love" so that "perfect love casts out fear" (1 Jn 4:17-18). Even Paul: "Not that I am already perfect, but I press on" (Phil 3:12).',
+      scripture: 'Matthew 5:48; Genesis 17:1; James 1:4; Hebrews 6:1; Colossians 1:28; 1 John 4:17-18; Philippians 3:12-15',
+    },
+    threeD: {
+      summary: 'Chasing flawless 3rd-dimensional performance is a trap — it breeds anxiety, endless self-measuring, and the fear of never being enough, and it is a standard the Bible never set. Trade it for the Perfect actually expected: whole, wholehearted, maturing, all-in love — a target God Himself grows in you by grace. Aim at whole, not flawless, and let Him do the perfecting.',
+    },
+    outcome: 'Freedom from crushing perfectionism: the fear and self-condemnation lift, acceptance is received as grace instead of earned by a spotless record, and you grow whole — wholehearted and perfected in love — at rest with God rather than performing for Him.',
+    tags: ['perfect', 'teleios', 'tamim', 'grace', 'maturity', 'love', 'perfectionism', 'wholeness', 'well-being', '4d-3d'],
+    links: [
+      { label: 'The Perfect You Were Made For (Learn lesson)', where: 'Church › Learn › Living Lessons' },
+      { label: 'Verified: teleios G5046 (from telos) / tamim H8549', where: 'Strong\'s lexicon' },
     ],
   },
 ];

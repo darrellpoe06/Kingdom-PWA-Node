@@ -1,0 +1,86 @@
+// =============================================================================
+// voice-service — client for the voice endpoint (BRIDGE now → SOVEREIGN later)
+// =============================================================================
+// The single seam where a personal voice stops being a labeled browser STAND-IN
+// and becomes the person's REAL cloned timbre. Decided path (bridge-to-sovereign):
+//
+//   1. BRIDGE (fastest first result): a same-origin Vercel function at
+//      /api/voice-speak runs XTTS-v2 (few-shot) on a GPU via Replicate. It
+//      conditions on the person's RECORDED sample (lib/voice-reference.js) and
+//      reads any app text back in their voice. Enable with VITE_VOICE_BRIDGE=1
+//      (client) + REPLICATE_API_TOKEN (server). His-hand: set those two.
+//   2. SOVEREIGN (the destination): the SAME contract, served from the church
+//      2x RTX 4070 local studio (infra/voice-studio). Point VITE_VOICE_SERVICE_URL
+//      at it; the UI/voice slot is unchanged — only the backend swaps.
+//
+// Contract every endpoint honors (model-agnostic, so XTTS today / F5/OpenVoice/
+// Kokoro later swap with no app change):
+//   POST {endpoint}  { text, voice, person_key, reference_audio, language }
+//                    ->  audio/* body (wav/mp3)
+//
+// Every call is null-safe and returns a tagged error instead of throwing, so the
+// caller can fall back to the browser stand-in and NEVER fail silently.
+
+const BRIDGE_PATH = '/api/voice-speak';
+
+function env(name) {
+  try { const v = import.meta && import.meta.env && import.meta.env[name]; return typeof v === 'string' ? v.trim() : ''; }
+  catch (_) { return ''; }
+}
+
+/** A custom / sovereign studio base URL (expects POST {base}/speak), or ''. */
+export function voiceServiceUrl() {
+  return env('VITE_VOICE_SERVICE_URL').replace(/\/+$/, '');
+}
+
+/** The same-origin XTTS-v2 bridge (Vercel function) is enabled. */
+export function voiceBridgeEnabled() {
+  return env('VITE_VOICE_BRIDGE') === '1';
+}
+
+/** The active POST endpoint + whether the recorded reference must accompany it. */
+export function activeVoiceEndpoint() {
+  const sovereign = voiceServiceUrl();
+  if (sovereign) return { url: `${sovereign}/speak`, kind: 'sovereign', needsReference: true };
+  if (voiceBridgeEnabled()) return { url: BRIDGE_PATH, kind: 'bridge', needsReference: true };
+  return null;
+}
+
+/** True when SOME voice endpoint (bridge or sovereign studio) is configured. */
+export function isVoiceServiceReady() {
+  return !!activeVoiceEndpoint();
+}
+
+/**
+ * Synthesize speech in the chosen voice and return a playable object URL.
+ * `referenceDataUri` is the person's recorded sample (base64) — required for the
+ * few-shot clone. Returns { url } on success or { error } on any failure so the
+ * caller can fall back to the browser stand-in.
+ */
+export async function synthesizeSpeech({ text, voiceId, personKey, referenceDataUri, language, signal } = {}) {
+  const endpoint = activeVoiceEndpoint();
+  if (!endpoint) return { error: 'voice-service-not-configured' };
+  const body = String(text || '').trim();
+  if (!body) return { error: 'empty-text' };
+  if (endpoint.needsReference && !referenceDataUri) return { error: 'no-voice-sample' };
+  try {
+    const res = await fetch(endpoint.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: body,
+        voice: voiceId || null,
+        person_key: personKey || null,
+        reference_audio: referenceDataUri || null,
+        language: language || 'en',
+      }),
+      signal,
+    });
+    if (!res || !res.ok) return { error: `voice-service-${res ? res.status : 'no-response'}` };
+    const blob = await res.blob();
+    if (!blob || !blob.size) return { error: 'voice-service-empty' };
+    return { url: URL.createObjectURL(blob) };
+  } catch (e) {
+    return { error: (e && e.message) || 'voice-service-error' };
+  }
+}

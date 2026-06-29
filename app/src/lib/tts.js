@@ -45,6 +45,13 @@ export const MAX_RATE = 3.0;
 export const DEFAULT_RATE = 1.0;
 export const DEFAULT_PITCH = 1.0;
 
+// How long to wait for speech to ACTUALLY start before treating the tap as a
+// silent miss. Mobile browsers (iOS Safari, Chrome/Android) can accept a speak()
+// and then never start it — the synth was suspended, voices weren't ready, or the
+// user-gesture window was lost. We give it a beat, kick it once, and if it is still
+// silent we surface an honest failure instead of leaving a dead, quiet button.
+const START_WATCHDOG_MS = 1400;
+
 // Big, plain-language speed steps for non-technical readers — a SLOWER option
 // (the old control had none) plus normal and faster. Slider-free on purpose:
 // large tap targets beat a fiddly 0.1x slider for an elderly reader.
@@ -175,8 +182,19 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
     pitch: Number.isFinite(Number(p.pitch)) ? Number(p.pitch) : DEFAULT_PITCH,
     voice: null,
     status: 'idle', // 'idle' | 'playing' | 'paused'
+    failed: false,  // last play() produced no audio at all (surfaced to the UI)
     _gen: 0,
     _dirty: false, // a rate/voice change happened while paused → re-speak on resume
+    _started: false, // the current segment's onstart fired (real audio began)
+    _retried: false, // we've already kicked-and-retried a silent start this playback
+    _watch: null,    // start-watchdog timer id
+
+    _clearWatch() {
+      if (this._watch != null && typeof clearTimeout === 'function') {
+        try { clearTimeout(this._watch); } catch (_) { /* ignore */ }
+      }
+      this._watch = null;
+    },
 
     _emit() {
       this.onState({
@@ -186,19 +204,29 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
         voiceURI: this.voice ? this.voice.voiceURI : null,
         segmentIndex: this.idx,
         segmentCount: this.segments.length,
+        failed: this.failed,
       });
     },
 
     _speakSegment() {
       const gen = ++this._gen;
+      this._clearWatch();
       const seg = this.segments[this.idx];
       if (seg == null) { this._finish(); return; }
       const u = new this.Utterance(seg);
       u.rate = clampRate(this.rate);
       u.pitch = this.pitch;
       if (this.voice) u.voice = this.voice;
+      this._started = false;
+      u.onstart = () => {
+        if (gen !== this._gen) return;
+        this._started = true;       // real audio began — the watchdog can stand down
+        this.failed = false;
+        this._clearWatch();
+      };
       u.onend = () => {
         if (gen !== this._gen) return;            // superseded — ignore
+        this._clearWatch();
         this.idx += 1;
         if (this.status === 'playing' && this.idx < this.segments.length) this._speakSegment();
         else if (this.idx >= this.segments.length) this._finish();
@@ -208,9 +236,47 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
         // interrupted/canceled are the NORMAL result of our own cancel() — ignore.
         const err = e && e.error;
         if (err === 'interrupted' || err === 'canceled') return;
+        this._clearWatch();
         this._finish();
       };
+      // Retain the live utterance on the engine. Chrome/Android garbage-collect an
+      // utterance that has no JS reference WHILE it is speaking, which silently cuts
+      // playback off (or never starts it) — a real "the button does nothing" cause.
+      this._u = u;
       try { this.synth.speak(u); } catch (_) { this._finish(); return; }
+      // Chrome can start the synth in a PAUSED state (and pauses it when the tab is
+      // backgrounded); a resume() kick shortly after speak un-sticks it without any
+      // audible stutter. No-op when already actively playing. Guarded for the fake
+      // synth used in unit tests.
+      if (typeof this.synth.resume === 'function' && typeof setTimeout === 'function') {
+        setTimeout(() => { try { if (this.status === 'playing') this.synth.resume(); } catch (_) { /* ignore */ } }, 120);
+      }
+      // START WATCHDOG (the "never a silent button" guarantee). If onstart has not
+      // fired AND the synth is not actually speaking after a beat, the tap produced
+      // no audio (mobile suspended-synth / voices-not-ready / lost gesture). Kick
+      // once via resume()+re-speak; if it is STILL silent, surface a real failure so
+      // the UI can tell the user instead of sitting quiet. Gated on a synth that
+      // exposes `speaking` so the simple unit-test fakes are unaffected.
+      if (typeof setTimeout === 'function' && this.synth && ('speaking' in this.synth)) {
+        this._watch = setTimeout(() => {
+          if (gen !== this._gen || this.status !== 'playing' || this._started) return;
+          let isSpeaking = false;
+          try { isSpeaking = !!this.synth.speaking; } catch (_) { /* ignore */ }
+          if (isSpeaking) return; // it did start; we just never got an onstart event
+          if (!this._retried) {
+            this._retried = true;
+            try { if (typeof this.synth.resume === 'function') this.synth.resume(); } catch (_) { /* ignore */ }
+            this._restartCurrent();
+            return;
+          }
+          // Truly silent after a retry — report it. Never a dead, silent button.
+          this._clearWatch();
+          this.failed = true;
+          this.status = 'idle';
+          this.idx = 0;
+          this._emit();
+        }, START_WATCHDOG_MS);
+      }
       this._emit();
     },
 
@@ -222,6 +288,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
     },
 
     _finish() {
+      this._clearWatch();
       this.status = 'idle';
       this.idx = 0;
       this._dirty = false;
@@ -238,15 +305,29 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
     /** Speak the loaded text from the start. */
     play() {
       if (!this.segments.length) return;
-      try { this.synth.cancel(); } catch (_) { /* ignore */ }
+      // Only cancel when the synth is actually busy. A bare cancel() immediately
+      // before the FIRST speak() is swallowed by Chrome (cancel is async and races
+      // the speak) — the classic "tap Read, nothing happens." Guarding the cancel
+      // lets a fresh start speak immediately.
+      try {
+        if (this.synth.speaking || this.synth.pending || this.synth.paused) this.synth.cancel();
+      } catch (_) { /* ignore */ }
+      // IN THE GESTURE: iOS/Android can hold the synth suspended after page load or a
+      // backgrounding; a resume()+voices touch here (while we still have the user's
+      // tap) is what makes the FIRST speak actually start. No-op when already active.
+      try { if (typeof this.synth.resume === 'function') this.synth.resume(); } catch (_) { /* ignore */ }
+      try { if (typeof this.synth.getVoices === 'function') this.synth.getVoices(); } catch (_) { /* ignore */ }
       this.idx = 0;
       this.status = 'playing';
       this._dirty = false;
+      this.failed = false;
+      this._retried = false;
       this._speakSegment();
     },
 
     pause() {
       if (this.status !== 'playing') return;
+      this._clearWatch();
       try { this.synth.pause(); } catch (_) { /* ignore */ }
       this.status = 'paused';
       this._emit();
@@ -306,7 +387,7 @@ export function useTextToSpeech() {
   const supported = useMemo(() => isTTSSupported(), []);
   const [prefs, setPrefs] = useState(() => loadTTSPrefs());
   const [voices, setVoices] = useState([]);
-  const [state, setState] = useState({ status: 'idle', rate: prefs.rate, pitch: prefs.pitch, voiceURI: prefs.voiceURI, segmentIndex: 0, segmentCount: 0 });
+  const [state, setState] = useState({ status: 'idle', rate: prefs.rate, pitch: prefs.pitch, voiceURI: prefs.voiceURI, segmentIndex: 0, segmentCount: 0, failed: false });
   const engineRef = useRef(null);
 
   // Create the engine once, on a supported device.
@@ -352,9 +433,20 @@ export function useTextToSpeech() {
     return () => { if (supported && engineRef.current) engineRef.current.stop(); };
   }, [supported]);
 
-  const speak = useCallback((text) => {
+  // speak(text) uses the engine's current voice. speak(text, voiceURI) speaks THIS
+  // utterance in a specific device voice WITHOUT persisting it as the saved default —
+  // this is how a gendered stand-in (a male system voice for a male person, a
+  // different voice per person) is honored per-play without clobbering the user's
+  // chosen browser-voice pref. Passing voiceURI null/'' forces the device default.
+  const speak = useCallback((text, voiceURI) => {
     const eng = engineRef.current;
     if (!eng) return;
+    if (voiceURI !== undefined) {
+      const v = voiceURI
+        ? ((window.speechSynthesis.getVoices() || []).find((x) => x.voiceURI === voiceURI) || null)
+        : null;
+      eng.setVoice(v); // transient — does not touch saved prefs
+    }
     eng.load(text);
     eng.play();
   }, []);
@@ -383,9 +475,17 @@ export function useTextToSpeech() {
     status: state.status,
     isReading: state.status !== 'idle',
     isPaused: state.status === 'paused',
+    // True when the last Read produced no audio at all (mobile blocked/suspended) —
+    // the caller shows an honest retry hint instead of a dead, silent button.
+    failed: !!state.failed,
     rate: prefs.rate,
     voices,
     voiceURI: state.voiceURI != null ? state.voiceURI : prefs.voiceURI,
+    // Which sentence is being spoken right now — lets a caller highlight-as-it-reads
+    // (the segments are deterministic via segmentText, so the caller can map index
+    // -> sentence without the engine handing back the text).
+    segmentIndex: state.segmentIndex || 0,
+    segmentCount: state.segmentCount || 0,
     speak, pause, resume, stop, setRate, setVoiceURI,
   };
 }

@@ -48,6 +48,17 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
       - run: npm run lint
+      # Hybrid-modular boundary gate (DR-0078 §4.1 / DR-0076): the surface-mount
+      # registry stays core — mounts via lazy thunks only, is shell-only, and no
+      # feature reaches back into the monolith shell (outside the dated baseline).
+      # Fails the build on any new re-tangle. Also covered by vitest, but run as a
+      # named step so the boundary is a visible green check.
+      - run: node ../scripts/module-boundary-guard.mjs
+      # Interconnection-loop guard (DR-0076 / 2026-06-29): fails the build if a
+      # module-to-module loop declared LIVE lost the wiring that makes a destination
+      # read its live source — a loop can't silently go static. Also covered by
+      # vitest, run as a named step so the live-data promise is a visible check.
+      - run: node ../scripts/interconnect-guard.mjs
       - run: npx vitest run
       # Real production bundle. Rollup hard-fails on a missing named export, so
       # this catches the cross-module-export break that lint+vitest let through.

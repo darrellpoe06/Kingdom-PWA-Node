@@ -77,8 +77,56 @@ export function normalizeEntry(raw = {}, nowMs = 0, salt = 0) {
     tags: Array.isArray(raw.tags) ? raw.tags.filter(Boolean).map((t) => String(t).trim()).filter(Boolean) : [],
     pinned: !!raw.pinned,
     seed: !!raw.seed, // seeded today's-themes entry (so the UI can mark provenance)
+    // The thought-finalizer LAYER (additive, reversible): the 4th-dimensional
+    // framework treatment of this thought (4D scriptural + 3D practical +
+    // OUTCOME), kept SEPARATE from the person's own words above so finalizing a
+    // thought never overwrites deep/plain/title. See lib/thought-finalizer.js.
+    finalization: normalizeFinalization(raw.finalization),
+    // Provenance: where this entry was SAVED FROM (a scripture lesson, The Word, a
+    // discernment lesson, the connections web) or DERIVED FROM (another Study entry,
+    // the content flywheel). null for an entry the owner authored directly. Old
+    // entries with no `source` load forward-compatibly to null.
+    source: normalizeSource(raw.source),
     createdAt: iso,
     updatedAt: raw.updatedAt || iso,
+  };
+}
+
+// A saved-from / derived-from pointer. Small + serializable; the Study card reads it
+// to show the "saved from …" badge and the flywheel "create from this" link. Pure +
+// total: a malformed value normalizes to null (no provenance), never throws.
+export function normalizeSource(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const kind = String(raw.kind || '').trim();
+  const id = String(raw.id || '').trim();
+  const label = String(raw.label || '').trim();
+  if (!kind && !id && !label) return null;
+  return { kind, id, label, where: String(raw.where || '').trim() };
+}
+
+// The finalization sub-shape (the framework treatment). Kept HERE (not in the
+// finalizer lib) so study-space stays the single owner of the persisted entry
+// shape and there is no import cycle (the finalizer imports this; study-space
+// imports nothing from it). Pure + total: any malformed stored value normalizes
+// to a clean 'unfinalized' layer, so an old entry loads forward-compatibly.
+export const FINAL_STATUS = Object.freeze(['unfinalized', 'suggested', 'accepted']);
+export const FINAL_SOURCE = Object.freeze(['local', 'vendor', 'manual']);
+
+export function normalizeFinalization(raw = {}) {
+  const f = raw && typeof raw === 'object' ? raw : {};
+  const fourD = f.fourD && typeof f.fourD === 'object' ? f.fourD : {};
+  const threeD = f.threeD && typeof f.threeD === 'object' ? f.threeD : {};
+  return {
+    status: FINAL_STATUS.includes(f.status) ? f.status : 'unfinalized',
+    fourD: {
+      summary: String(fourD.summary || '').trim(),
+      scripture: String(fourD.scripture || '').trim(),
+    },
+    threeD: { summary: String(threeD.summary || '').trim() },
+    outcome: String(f.outcome || '').trim(),
+    source: FINAL_SOURCE.includes(f.source) ? f.source : null,
+    generatedAt: f.generatedAt || null,
+    acceptedAt: f.acceptedAt || null,
   };
 }
 
@@ -165,6 +213,76 @@ export function captureExchange({ title, text, scripture, tags }, nowMs = 0, sal
     deep: body,
     scripture: scripture || '',
     tags: tags || [],
+  }, nowMs, salt);
+}
+
+// --- Import a scripture lesson / source into the Study (the "save into Study") ---
+// A `studySeed` (see lib/studyable.js) is the surface-agnostic shape any scripture
+// surface produces. This turns one into a real, normalized Study entry that carries
+// its provenance — so the saved lesson lands in a room (default 'research') as the
+// DEEP source the owner then studies + distills + builds on (the content flywheel).
+export function entryFromSeed(seed = {}, nowMs = 0, salt = 0) {
+  const s = seed && typeof seed === 'object' ? seed : {};
+  return normalizeEntry({
+    kind: s.kind || 'research',
+    title: s.title || '',
+    deep: s.deep || '',
+    plain: s.plain || '',          // usually empty — the owner's distillation is the work
+    scripture: s.scripture || '',
+    tags: s.tags || [],
+    source: s.source || (s.sourceKind || s.sourceId
+      ? { kind: s.sourceKind, id: s.sourceId, label: s.title }
+      : null),
+  }, nowMs, salt);
+}
+
+// The dedupe key for a saved-from entry: the source identity. So "Add to my Study"
+// is idempotent — saving the same lesson twice updates rather than duplicates.
+export function seedKey(seedOrEntry = {}) {
+  const src = seedOrEntry.source && typeof seedOrEntry.source === 'object' ? seedOrEntry.source : seedOrEntry;
+  const kind = String(src.kind || src.sourceKind || '').trim();
+  const id = String(src.id || src.sourceId || '').trim();
+  return kind && id ? `${kind}:${id}` : '';
+}
+
+// Save a seed into a study (pure): returns { study, entry, added }. If an entry with
+// the same source already exists, it is REFRESHED in place (added:false) so re-saving
+// a lesson never creates a duplicate; otherwise the new entry is prepended (added:true).
+export function addSeedToStudy(study, seed, nowMs = 0, salt = 0) {
+  const base = study && Array.isArray(study.entries) ? study : emptyStudy();
+  const key = seedKey(seed);
+  const existing = key
+    ? base.entries.find((e) => seedKey(e) === key)
+    : null;
+  if (existing) {
+    // refresh the source material but keep the owner's own work (plain, pin, tags edits)
+    const entry = normalizeEntry({
+      ...existing,
+      deep: seed.deep || existing.deep,
+      scripture: seed.scripture || existing.scripture,
+      updatedAt: isoOf(nowMs),
+    }, nowMs, salt);
+    return { study: { ...base, entries: upsertEntry(base.entries, entry) }, entry, added: false };
+  }
+  const entry = entryFromSeed(seed, nowMs, salt);
+  return { study: { ...base, entries: upsertEntry(base.entries, entry) }, entry, added: true };
+}
+
+// --- The flywheel: CREATE FROM an existing entry (a new study seeded from it) ----
+// "From there they can CREATE from it as a starting point." Produces a NEW entry
+// whose deep source is the origin entry's material, plain left blank for the owner's
+// fresh work, with provenance pointing back at what it grew from. Reversible + pure.
+export function deriveFrom(entry = {}, nowMs = 0, salt = 0) {
+  const origin = entry && typeof entry === 'object' ? entry : {};
+  const originText = origin.plain && origin.plain.trim() ? origin.plain : (origin.deep || '');
+  return normalizeEntry({
+    kind: origin.kind || 'research',
+    title: origin.title ? `From: ${origin.title}` : 'New study',
+    deep: originText,
+    plain: '',
+    scripture: origin.scripture || '',
+    tags: Array.isArray(origin.tags) ? origin.tags.slice() : [],
+    source: { kind: 'study-entry', id: origin.id || '', label: origin.title || 'a Study entry', where: 'Study' },
   }, nowMs, salt);
 }
 

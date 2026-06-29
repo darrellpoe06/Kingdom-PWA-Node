@@ -23,8 +23,8 @@ const PRESENTABLE = {
   title: 'Test deck',
   targetMin: 20,
   scenes: [
-    { id: 'core', indexLabel: '1 of 2', estimatedMin: 10, priority: 'core', audience: { title: 'Core idea' }, notes: [] },
-    { id: 'supp', indexLabel: '2 of 2', estimatedMin: 10, priority: 'supplementary', audience: { title: 'Bonus idea' }, notes: [] },
+    { id: 'core', indexLabel: '1 of 2', estimatedMin: 10, minMin: 6, priority: 'core', audience: { title: 'Core idea' }, notes: [] },
+    { id: 'supp', indexLabel: '2 of 2', estimatedMin: 10, minMin: 6, priority: 'supplementary', audience: { title: 'Bonus idea' }, notes: [] },
   ],
 };
 
@@ -50,22 +50,54 @@ function fireInput(node, value) {
 }
 
 describe('Presenter — time-adaptive render', () => {
-  it('mounts and shows the budget input + full-curriculum framing', () => {
+  it('mounts and shows the budget input + weight framing', () => {
     act(() => root.render(createElement(Presenter, { presentable: PRESENTABLE, storage: store })));
     expect(container.querySelector('input[aria-label="Minutes available"]')).toBeTruthy();
     expect(container.textContent).toMatch(/full = 20 min/);
-    expect(container.textContent).toMatch(/full curriculum/i);
+    expect(container.textContent).toMatch(/own weight/i);     // each section runs to its weight
   });
 
-  it('reflows to a budget and surfaces a skip suggestion (core protected)', () => {
+  it('reflows PROPORTIONALLY at a budget that fits the floors (no skip)', () => {
     act(() => root.render(createElement(Presenter, { presentable: PRESENTABLE, storage: store })));
     const input = container.querySelector('input[aria-label="Minutes available"]');
-    act(() => fireInput(input, '12')); // 12 < 20 full; drop the 10-min supplementary, keep the 10-min core
+    act(() => fireInput(input, '16')); // 16 < 20 full, but > floors (6+6) -> shrink both to 8, no skip
+    expect(container.textContent).toMatch(/keeps its share/i);
+    expect(container.textContent).toMatch(/8 min/);            // live computed minutes
+    expect(container.textContent).not.toMatch(/skipping/i);
+  });
+
+  it('falls back to a skip suggestion when the floors no longer fit (core protected)', () => {
+    act(() => root.render(createElement(Presenter, { presentable: PRESENTABLE, storage: store })));
+    const input = container.querySelector('input[aria-label="Minutes available"]');
+    act(() => fireInput(input, '10')); // 10 < floors (6+6=12) -> must skip the supplementary
     expect(container.textContent).toMatch(/skipping 1 supplementary/i);
-    // the plan opens automatically and shows the supplementary as a skip
-    expect(container.textContent.toLowerCase()).toContain('skip');
-    // core understanding still lands (it is not skipped)
-    expect(container.textContent).toMatch(/core understanding still lands/i);
+    expect(container.textContent).toMatch(/core still lands/i);
+  });
+
+  it('RESCALES the run-of-show segments live and shows original → adjusted', () => {
+    // A scene carrying a real run-of-show (segments sum to 30): Prayer 5 / Teach 10 / Hands-on 15.
+    const withRos = {
+      id: 'ros:deck', title: 'ROS', targetMin: 30,
+      scenes: [{
+        id: 's1', indexLabel: 'Week 1', estimatedMin: 30, audience: { title: 'Session' }, notes: [],
+        runOfShow: [
+          { id: 'a', name: 'Prayer', estimatedMin: 5, priority: 'core' },
+          { id: 'b', name: 'Teach', estimatedMin: 10, priority: 'core' },
+          { id: 'c', name: 'Hands-on', estimatedMin: 15, priority: 'core' },
+        ],
+      }],
+    };
+    act(() => root.render(createElement(Presenter, { presentable: withRos, storage: store })));
+    // at full budget (none set), the run-of-show shows its authored total, not "rescaled"
+    expect(container.textContent).toMatch(/Run of show/i);
+    expect(container.textContent).toMatch(/30 min total/);
+    expect(container.textContent).not.toMatch(/rescaled to/i);
+    // lower the clock to 15 -> proportional halving, shown as original → adjusted
+    const input = container.querySelector('input[aria-label="Minutes available"]');
+    act(() => fireInput(input, '15'));
+    expect(container.textContent).toMatch(/rescaled to 15 min/i);
+    expect(container.textContent).toMatch(/15 → 7\.5/);  // Hands-on 15 -> 7.5, the heaviest stays heaviest
+    expect(container.textContent).toMatch(/5 → 2\.5/);   // Prayer 5 -> 2.5
   });
 
   it('adds a section and persists the overlay to the injected storage', () => {

@@ -102,3 +102,6 @@ docs/.sandbox-write-test.md
 # Generated backfill artifacts
 scripts/out/
 infra/supabase/seeds/
+# YouTube-caption transcript corpus (sourced on the NAS; not committed — sovereign,
+# rebuilt incrementally by youtube-captions.py).
+infra/nas-sme-pipeline/out/

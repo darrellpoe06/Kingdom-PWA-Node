@@ -43,6 +43,8 @@ import {
 } from '../lib/conference-register.js';
 import SectionBoundary from './SectionBoundary.jsx';
 import ConferenceSetupChecklist from './ConferenceSetupChecklist.jsx';
+import Presenter from './Presenter.jsx';
+import { conferencePresentable } from '../lib/presentable.js';
 
 // Shared visual tokens — identical to ConferenceModule (already WCAG AA + gated
 // by contrast-guard). Reusing them keeps this surface consistent + compliant.
@@ -230,6 +232,24 @@ function EventCenterModuleInner() {
   const [sessForm, setSessForm] = useState({ day: '', time: '', title: '', speaker: '', sessionType: 'breakout', venueId: '', roomResourceId: '', capacity: '', sermonRef: '', musicSet: [] });
   const [showSessForm, setShowSessForm] = useState(false);
   const [rsvp, setRsvp] = useState({ name: '', mealType: 'Regular', dietary: '', sessionId: '' });
+  const [presenting, setPresenting] = useState(false); // live agenda present mode (organizers)
+
+  // The agenda, presentable on the screen behind the host (the same shared
+  // Presenter the Learn courses + The Word use). Room/sermon/song NAMES are
+  // resolved here from the lookups the component already holds; host logistics
+  // (capacity, type) ride in presenter notes and never reach the projector.
+  const presentable = useMemo(() => conferencePresentable(confSessions, {
+    id: conference ? `conference:${conference.id}` : 'conference',
+    title: conference?.name || conference?.title || 'Conference',
+    resolveRoom: (s) => {
+      const room = roomForSession(s, activeRooms);
+      const venue = venueById(activeVenues, s.venueId);
+      return [venue?.name, room?.name].filter(Boolean).join(' · ') || null;
+    },
+    resolveSermon: (s) => (isMainServiceSession(s) ? (sessionSermon(s, sermons)?.title || null) : null),
+    resolveSongs: (s) => (isMainServiceSession(s) ? sessionSongs(s, songs).map((sg) => sg.title) : []),
+  }), [confSessions, conference, activeRooms, activeVenues, sermons, songs]);
+  const canPresent = presentable.scenes.length > 0;
 
   // Default a room/session's building to the one currently in view.
   const defaultVenueId = venueFilter !== 'all' ? venueFilter : (activeVenues[0]?.id || '');
@@ -357,6 +377,11 @@ function EventCenterModuleInner() {
         )}
       </section>
     );
+  }
+
+  // Live present mode takes over the surface — only an organizer reaches here.
+  if (presenting) {
+    return <Presenter presentable={presentable} onClose={() => setPresenting(false)} />;
   }
 
   return (
@@ -538,7 +563,10 @@ function EventCenterModuleInner() {
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
         <div className="flex items-baseline justify-between gap-2 mb-2">
           <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">📅 Sessions · {confSessions.length}</h3>
-          {canEdit && <button type="button" onClick={() => setShowSessForm(!showSessForm)} className={btnGhost}>{showSessForm ? '× Cancel' : '+ Add session'}</button>}
+          <div className="flex items-center gap-3">
+            {canPresent && <button type="button" onClick={() => setPresenting(true)} className="text-[10px] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]" title="Put the agenda on a screen, one session at a time">▶ Present agenda</button>}
+            {canEdit && <button type="button" onClick={() => setShowSessForm(!showSessForm)} className={btnGhost}>{showSessForm ? '× Cancel' : '+ Add session'}</button>}
+          </div>
         </div>
         {canEdit && showSessForm && (
           <div className="bg-[#FAF8F4] border border-[#B85838] p-2 mb-3 grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">

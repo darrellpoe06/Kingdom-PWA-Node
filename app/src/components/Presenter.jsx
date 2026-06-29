@@ -83,6 +83,42 @@ function NoteSection({ note }) {
   );
 }
 
+// The session's RUN OF SHOW — reflowable timed segments (presenter-only; never
+// broadcast). The authored per-segment minutes ARE the proportional-reflow weights,
+// so when a budget is set every line rescales and shows "original -> adjusted" (e.g.
+// "Hands-on 25 -> 17"), with the same percentage preserved + floors + skip fallback.
+function RunOfShowPanel({ segments, budgetMin }) {
+  const fit = useMemo(() => fitToBudget(segments, budgetMin), [segments, budgetMin]);
+  const reflowed = budgetMin > 0 && Math.round(budgetMin) !== Math.round(fit.fullMin);
+  const card = { border: '1px solid #E8E4DC', padding: 16, marginBottom: 16, background: '#fff' };
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 13, margin: 0, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F' }}>Run of show</h4>
+        <span style={{ fontSize: 12, color: reflowed ? '#5A6E3D' : '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+          {reflowed ? `rescaled to ${Math.round(budgetMin)} min (full ${fit.fullMin})` : `${fit.fullMin} min total`}
+        </span>
+      </div>
+      {fit.plan.map((seg, i) => (
+        <div key={seg.id || i} style={{ display: 'flex', gap: 12, padding: '7px 0', borderBottom: i < fit.plan.length - 1 ? '1px solid #F0EDE6' : 'none', opacity: seg.skipped ? 0.5 : 1 }}>
+          <span style={{ flex: 1 }}>
+            <strong style={{ display: 'block', fontFamily: '"Fraunces", serif', fontSize: 14, textDecoration: seg.skipped ? 'line-through' : 'none' }}>{seg.name}</strong>
+            {seg.detail && <span style={{ fontSize: 12, color: '#5A5751', lineHeight: 1.4, fontFamily: '"Fraunces", serif' }}>{seg.detail}</span>}
+          </span>
+          <span title={seg.atFloor ? 'At its minimum time' : (seg.skipped ? 'Dropped to fit the budget' : (reflowed ? 'original → adjusted' : 'authored minutes'))}
+            style={{ fontSize: 13, fontFamily: '"JetBrains Mono", monospace', color: seg.skipped ? '#7A1F1F' : (seg.atFloor ? '#B85838' : '#1A1815'), minWidth: reflowed ? 96 : 56, textAlign: 'right', whiteSpace: 'nowrap' }}>
+            {seg.skipped
+              ? 'skip'
+              : reflowed
+                ? `${seg.estimatedMin} → ${seg.allocatedMin}${seg.atFloor ? ' ⤓' : ''}`
+                : `${seg.estimatedMin} min`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // A controls-in-context form to ADD a new section or EDIT an existing one. Lives
 // inline on the presenter screen (never the projector). `initial` seeds the fields
 // for an edit; absent => an add. Returns the collected fields to onSave.
@@ -91,6 +127,8 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
   const [lead, setLead] = useState(initial?.audience?.lead || '');
   const [note, setNote] = useState(initial?.notes?.[0]?.body || '');
   const [minutes, setMinutes] = useState(initial?.estimatedMin != null ? String(initial.estimatedMin) : '5');
+  const [floor, setFloor] = useState(initial?.minMin != null ? String(initial.minMin) : '');
+  const [importance, setImportance] = useState(initial?.importance != null ? String(initial.importance) : '1');
   const [priority, setPriority] = useState(initial?.priority === PRIORITY.SUPPLEMENTARY ? PRIORITY.SUPPLEMENTARY : PRIORITY.CORE);
 
   const field = { display: 'block', width: '100%', boxSizing: 'border-box', padding: '8px 10px', marginTop: 4, border: '1px solid #CFC9BD', fontFamily: '"Fraunces", serif', fontSize: 15, background: '#fff', color: '#1A1815' };
@@ -99,11 +137,16 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
 
   const submit = () => {
     if (!title.trim()) return;
+    const weight = Math.max(1, Math.round(Number(minutes) || 5));
     const patch = {
       audience: { title: title.trim(), lead: lead.trim() },
-      estimatedMin: Math.max(1, Math.round(Number(minutes) || 5)),
+      estimatedMin: weight,
       priority,
     };
+    const f = Math.round(Number(floor));
+    if (Number.isFinite(f) && f > 0) patch.minMin = Math.min(f, weight); // floor never above weight
+    const imp = Number(importance);
+    if (Number.isFinite(imp) && imp > 0) patch.importance = imp; // lesson weight (1 = normal)
     // For a brand-new section we attach the note as the first presenter-only note.
     if (!initial) patch.note = note.trim();
     else patch.notes = note.trim() ? [{ kind: 'body', heading: 'Your note', body: note.trim() }] : [];
@@ -125,8 +168,14 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
         <textarea style={{ ...field, minHeight: 56, resize: 'vertical' }} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Talking points, kept off the screen" />
       </label>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 12 }}>
-        <label style={lbl}>Minutes
-          <input type="number" min="1" style={{ ...field, width: 90 }} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+        <label style={lbl}>Weight (full min)
+          <input type="number" min="1" aria-label="Weight in minutes at full depth" style={{ ...field, width: 90 }} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+        </label>
+        <label style={lbl}>Min floor
+          <input type="number" min="1" aria-label="Minimum minutes this section can shrink to" placeholder="auto" style={{ ...field, width: 90 }} value={floor} onChange={(e) => setFloor(e.target.value)} />
+        </label>
+        <label style={lbl}>Weight
+          <input type="number" min="0" step="0.5" aria-label="Lesson importance weight (1 = normal, higher = more essential)" style={{ ...field, width: 90 }} value={importance} onChange={(e) => setImportance(e.target.value)} />
         </label>
         <div role="radiogroup" aria-label="Priority" style={{ display: 'flex', gap: 8 }}>
           {[{ id: PRIORITY.CORE, label: 'Core' }, { id: PRIORITY.SUPPLEMENTARY, label: 'Supplementary' }].map((p) => {
@@ -141,7 +190,8 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
         </div>
       </div>
       <p style={{ fontSize: 12, color: '#5A5751', margin: '12px 0', fontFamily: '"Fraunces", serif' }}>
-        Core sections are never auto-skipped to fit a budget; supplementary ones drop first.
+        Weight is how essential this is (1 = normal). The weightiest material is protected and gets the
+        minutes when time is short; lower-weight material compresses, and supplementary sections drop first.
       </p>
       <div style={{ display: 'flex', gap: 10 }}>
         <button type="button" onClick={submit} disabled={!title.trim()} style={{ ...btn, border: '2px solid #1A1815', background: '#1A1815', color: '#fff', opacity: title.trim() ? 1 : 0.4 }}>
@@ -485,8 +535,9 @@ export default function Presenter({
                     <span style={{ flex: 1, fontSize: 14, textDecoration: row.skipped ? 'line-through' : 'none', fontFamily: '"Fraunces", serif' }}>
                       {row.audience?.title || row.indexLabel || key}
                     </span>
-                    <span style={{ fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace', minWidth: 64, textAlign: 'right' }}>
-                      {row.skipped ? `skip${row.skipReason === 'forced' ? ' (you)' : ''}` : `${row.allocatedMin} min`}
+                    <span title={row.atFloor ? 'At its minimum time' : (row.skipped ? 'Skipped to fit the budget' : 'Computed share of the budget')}
+                      style={{ fontSize: 12, color: row.atFloor ? '#B85838' : '#5A5751', fontFamily: '"JetBrains Mono", monospace', minWidth: 78, textAlign: 'right' }}>
+                      {row.skipped ? `skip${row.skipReason === 'forced' ? ' (you)' : ''}` : `${row.allocatedMin} min${row.atFloor ? ' · floor' : ''}`}
                     </span>
                     {canEdit && (
                       <button type="button" onClick={() => setEditorOpen(editorOpen === key ? null : key)} aria-label={`Edit ${row.audience?.title || key}`} style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: 11 }}>Edit</button>
@@ -499,11 +550,11 @@ export default function Presenter({
                   </div>
                 );
               })}
-              {fit.counts.suppSkipped > 0 && (
-                <p style={{ margin: '12px 0 0', fontSize: 12, color: '#5A5751', fontFamily: '"Fraunces", serif' }}>
-                  Skips are suggestions — tap “Keep” to force any section back in, or “Skip” to drop one yourself. Core stays unless you skip it.
-                </p>
-              )}
+              <p style={{ margin: '12px 0 0', fontSize: 12, color: '#5A5751', fontFamily: '"Fraunces", serif' }}>
+                Time is split proportionally — heavier sections keep more of the clock. A section at its{' '}
+                <span style={{ color: '#B85838' }}>floor</span> can’t shrink further; when floors don’t fit, supplementary
+                sections are skipped first (core is protected). Tap “Keep”/“Skip” to override any of it.
+              </p>
             </div>
           )}
 
@@ -524,8 +575,8 @@ export default function Presenter({
           <div style={{ fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <span>On the class screen now{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}</span>
             {curPlan && budgetMin > 0 && (
-              <span style={{ color: curPlan.skipped ? '#7A1F1F' : '#5A6E3D' }}>
-                {curPlan.skipped ? '· planned skip' : `· planned ${curPlan.allocatedMin} min`}
+              <span style={{ color: curPlan.skipped ? '#7A1F1F' : (curPlan.atFloor ? '#B85838' : '#5A6E3D') }}>
+                {curPlan.skipped ? '· planned skip' : `· planned ${curPlan.allocatedMin} min${curPlan.atFloor ? ' (floor)' : ''}`}
               </span>
             )}
           </div>
@@ -534,6 +585,11 @@ export default function Presenter({
           {a.detail && <p style={{ fontSize: 14, lineHeight: 1.5, color: '#5A5751', margin: '0 0 10px' }}><strong style={{ color: '#1A1815' }}>{a.detailLabel || 'In the app'}:</strong> {a.detail}</p>}
           {a.anchorRef && <p style={{ fontSize: 14, lineHeight: 1.5, color: '#5A6E3D', margin: 0 }}><strong>{a.anchorRef}{a.anchorTheme ? ' —' : ''}</strong> {a.anchorTheme || ''}</p>}
         </div>
+
+        {/* the session's reflowable run-of-show (rescales with the time budget) */}
+        {Array.isArray(cur.runOfShow) && cur.runOfShow.length > 0 && (
+          <RunOfShowPanel segments={cur.runOfShow} budgetMin={budgetMin} />
+        )}
 
         {/* presenter-only notes */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '20px 0 12px' }}>

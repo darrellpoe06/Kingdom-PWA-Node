@@ -14,9 +14,12 @@ import { KpiDot } from './KpiDot.jsx';
 // Loop status -> shared KPI state (lib/kpi-status.js): fresh = good, stale =
 // attention, never-updated = problem. Used for both the per-loop badge and the
 // card's one summary KPI, so loop health reads like every other KPI in the app.
-export const LOOP_KPI = { fresh: 'good', stale: 'attention', never: 'problem' };
+export const LOOP_KPI = { fresh: 'good', stale: 'attention', awaiting: 'attention', never: 'problem' };
 
 const fmtAgo = (loop) => {
+  // 'awaiting' = wired to a REAL source that isn't connected yet — show the
+  // honest why, not a dead "never" (DR-0075 / DR-0076).
+  if (loop.status === 'awaiting') return loop.awaitingSource || 'awaiting its data source';
   if (loop.lastUpdate == null) return 'never updated from real data';
   if (loop.daysSince <= 0) return 'updated today';
   if (loop.daysSince === 1) return 'updated 1 day ago';
@@ -35,12 +38,16 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
   const fresh = loops.filter((l) => l.status === 'fresh');
 
   // Shared-palette classes (literal so Tailwind JIT emits them): good #15803D,
-  // attention #B45309, problem #DC2626.
+  // attention #B45309, problem #DC2626, awaiting neutral-slate #5A5751 (AA on
+  // white) — deliberately NOT red: the source IS identified and in progress
+  // (e.g. BG's Wednesday YouTube message), the extraction just isn't wired yet.
   const badge = (status) => status === 'fresh'
     ? { t: '● updating', cls: 'text-[#15803D] border-[#15803D]' }
     : status === 'stale'
       ? { t: '◐ stagnant', cls: 'text-[#B45309] border-[#B45309]' }
-      : { t: '○ never', cls: 'text-[#DC2626] border-[#DC2626]' };
+      : status === 'awaiting'
+        ? { t: '◌ source pending', cls: 'text-[#5A5751] border-[#5A5751]' }
+        : { t: '○ never', cls: 'text-[#DC2626] border-[#DC2626]' };
 
   const summaryKpi = attention.length === 0
     ? { status: 'good', label: 'All looping' }

@@ -6,7 +6,7 @@
 // segment at the NEW rate. It fails against the old stale-closure/old-rate
 // behavior. Also locks segmentation, voice picking, prefs persistence, clamping,
 // and graceful no-throw behavior.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   segmentText, clampRate, pickDefaultVoice, isTTSSupported,
   loadTTSPrefs, saveTTSPrefs, createBrowserTTS,
@@ -183,6 +183,66 @@ describe('engine — live rate change (THE bug fix, proven-to-catch)', () => {
     engine.setRate(1.5);
     expect(engine.rate).toBe(1.5);
     expect(synth.spoken.length).toBe(0);
+  });
+
+  it('speaks each utterance in the assigned voice (the gendered stand-in override)', () => {
+    // The fix for "every option sounds like the same default voice": the play path
+    // sets a specific device voice per selection, and the engine must put THAT voice
+    // on every spoken utterance. A male stand-in (e.g. Microsoft Mark) must reach the
+    // utterance — not be dropped back to the default.
+    const { synth, engine } = makeEngine({ rate: 1.0 });
+    const male = { name: 'Microsoft Mark', voiceURI: 'mark', lang: 'en-US' };
+    engine.setVoice(male);
+    engine.load('First one. Second one.');
+    engine.play();
+    expect(synth.spoken[0].voice).toBe(male);
+    synth.spoken[0].onend();                 // advance to the next segment
+    expect(synth.spoken[1].voice).toBe(male); // every segment keeps the assigned voice
+  });
+});
+
+describe('engine — start watchdog (silent tap, proven-to-catch)', () => {
+  // Reproduces the mobile failure Darrell hit: the browser accepts speak() but never
+  // actually starts audio (suspended synth / voices not ready / lost gesture). The
+  // engine must KICK once and, if still silent, surface a failure — never a dead,
+  // quiet button. These fakes expose `speaking` so the watchdog arms (it is gated on
+  // a real-looking synth; the simpler fakes above are intentionally unaffected).
+  it('kicks once then reports failure when no audio ever starts', () => {
+    vi.useFakeTimers();
+    const states = [];
+    const synth = {
+      speaking: false, pending: false, paused: false, _n: 0,
+      speak() { this._n += 1; },          // accepts the utterance but never fires onstart
+      cancel() {}, pause() {}, resume() {}, getVoices() { return []; },
+    };
+    const engine = createBrowserTTS({ synth, Utterance: FakeUtterance, onState: (s) => states.push(s), prefs: { rate: 1 } });
+    engine.load('Hello there friend.');
+    engine.play();
+    expect(synth._n).toBe(1);             // first attempt
+    vi.advanceTimersByTime(1500);         // watchdog #1 → resume()+re-speak the segment
+    expect(synth._n).toBe(2);             // it retried rather than giving up immediately
+    vi.advanceTimersByTime(1500);         // watchdog #2 → still silent → surface failure
+    expect(engine.failed).toBe(true);
+    expect(engine.status).toBe('idle');
+    expect(states.some((s) => s.failed === true)).toBe(true);
+    vi.clearAllTimers(); vi.useRealTimers();
+  });
+
+  it('does NOT report failure when the synth actually starts speaking', () => {
+    vi.useFakeTimers();
+    const states = [];
+    const synth = {
+      speaking: false, pending: false, paused: false,
+      speak(u) { this.speaking = true; this._cur = u; }, // real start
+      cancel() { this.speaking = false; }, pause() {}, resume() {}, getVoices() { return []; },
+    };
+    const engine = createBrowserTTS({ synth, Utterance: FakeUtterance, onState: (s) => states.push(s), prefs: { rate: 1 } });
+    engine.load('Hello there friend.');
+    engine.play();
+    vi.advanceTimersByTime(3000);
+    expect(engine.failed).toBe(false);
+    expect(states.some((s) => s.failed === true)).toBe(false);
+    vi.clearAllTimers(); vi.useRealTimers();
   });
 });
 

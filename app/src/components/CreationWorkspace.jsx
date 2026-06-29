@@ -32,6 +32,8 @@ import {
   WORKSPACE_TYPES, typeFor, exportFormatsFor, blankWorkspace,
   validateWorkspace, sanitizeHtml, exportNodeToImage, triggerDownload,
 } from '../lib/creation-workspace.js';
+import Presenter from './Presenter.jsx';
+import { documentPresentable } from '../lib/presentable.js';
 
 const FORMAT_LABEL = { png: 'PNG', jpg: 'JPG', jpeg: 'JPG' };
 
@@ -63,6 +65,7 @@ export default function CreationWorkspace({
   // so React's initial render seeds the right innerHTML without fighting the DOM.
   const [editorKey, setEditorKey] = useState(0);
   const initialHtmlRef = useRef('');
+  const [presenting, setPresenting] = useState(null); // a presentable to present, or null
 
   const cfg = typeFor(type);
   const formats = exportFormatsFor(type);
@@ -183,11 +186,34 @@ export default function CreationWorkspace({
     flash('ok', 'Deleted.');
   };
 
+  // Present the open document on a screen. Saves first so the projected artifact
+  // and the stored document never drift (same discipline as export), then builds
+  // a presentable from the live editor HTML — split into one slide per H1/H2 the
+  // document already uses. Document type only; an image tile has no sections to
+  // advance through. Everything in a document is audience-facing, so there are no
+  // presenter notes to leak.
+  const presentDoc = useCallback(() => {
+    const id = save() || activeId;
+    const snapshot = {
+      id: id || 'workspace',
+      title: title.trim() || 'Untitled document',
+      content: sanitizeHtml(editorRef.current ? editorRef.current.innerHTML : ''),
+    };
+    setPresenting(documentPresentable(snapshot, { id: `doc:${snapshot.id}`, kicker: snapshot.title }));
+  }, [save, activeId, title]);
+
   // ----- styles (palette-matched, rem-based so the global text-size scales it)
   const accent = '#B85838';
   const ink = '#1A1815';
   const muted = '#5A5751';
   const border = '#E8E4DC';
+
+  // Live present mode takes over the surface — a clean document screen pops in a
+  // second window; this stays the presenter console. Same shared Presenter the
+  // Learn courses + The Word use.
+  if (presenting) {
+    return <Presenter presentable={presenting} onClose={() => setPresenting(null)} />;
+  }
 
   return (
     <div className="max-w-6xl">
@@ -330,6 +356,17 @@ export default function CreationWorkspace({
                   </button>
                 ))}
               </span>
+            )}
+            {type === 'document' && (
+              <button
+                type="button"
+                onClick={presentDoc}
+                className="px-4 py-2 text-sm font-medium border focus:outline focus:outline-2"
+                style={{ borderColor: '#5A6E3D', color: '#5A6E3D', outlineColor: ink }}
+                title="Put this document on a screen, one section at a time"
+              >
+                ▶ Present
+              </button>
             )}
             <button
               type="button"
