@@ -45,6 +45,13 @@
       "dr_ref": "DR-0073"
     },
     {
+      "slug": "sm-local-coder-worker-tier",
+      "kind": "decision",
+      "title": "The two church towers = parallel sovereign coding workers (Aider + Ollama + coder), tiered with the vendor",
+      "body": "BEST WAY: set up each church CUDA tower (1x RTX 4070, the OBS/ProPresenter boxes) as a NETWORKED LOCAL-CODER WORKER - Aider + Ollama + qwen2.5-coder:14b (the Cage OLLAMA_CODER_MODEL, fits one 4070 per DR-0012) - addressable across Tailscale. Two towers = two parallel local coding workers + the home NAS. TIERED DISPATCH (deterministic-first + sovereign-LLM tiers): heavy/novel/ambiguous reasoning -> vendor Claude; routine/bounded build tasks + transcription + voice -> local towers IN PARALLEL (sovereign, free). HONEST LIMIT (DR-0076, stated not hidden): local coder models are materially weaker on hard reasoning, so a tower takes WELL-SCOPED tasks only (clear spec, bounded blast radius, verifiable result); the vendor is reserved for the hard problems; on a task that proves hard the local outcome is ESCALATE, never ship a confident-wrong diff. A local diff passes the SAME gates (tests/build/legibility+consistency guards) before trust. Ties the existing Aider auto-commit lane (2026-06-01 sovereign-LLM-teams review; local_7e8eed31 Hermes/OpenClaw). Behind the Cage brakes on EACH node (budget+lock+kill-switch); arming any tower's autonomous build loop is Tier C, his hand, never while traveling. DR-0012 service-time preemption: a tower stops heavy model work during Sunday/Wednesday live. WE CHOSE towers-as-parallel-coders + a hard/routine tier split, NOT vendor-for-everything and NOT local-for-everything, BECAUSE routine bounded work is sovereign and free on two parallel towers while the vendor's strength is spent only where hard reasoning actually needs it.",
+      "dr_ref": "DR-0073"
+    },
+    {
       "slug": "sm-brakes-every-node-fail-closed",
       "kind": "decision",
       "title": "Brakes on every node, plus a fail-closed mesh kill-switch",

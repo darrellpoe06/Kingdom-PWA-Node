@@ -1,5 +1,5 @@
 {
-  "_comment": "Sovereign-mesh node/capability registry. DECLARATIVE source of truth for capability-routed federation (research-review docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md). The job router selects the node whose declared `caps` is a superset of a job's `requires`, health-green, cheapest/closest first. DECLARED, NOT GUESSED (DR-0061 reality-trace) and DETERMINISTIC (no LLM in the dispatch decision; the LLM is only the worker on the chosen node). Generalizes the vendor-axis picker in scripts/wake-router.mjs + DR-0073 to a node axis. SHIPS INERT: editing this file does not arm anything; routing still passes through the per-node Cage brakes (infra/ai-orchestrator/portable/orchestrator/lib/brakes.sh) and the mesh kill-switch. Values marked SME-CONFIRM are flagged for Darrell/BG (church hardware, GPU-endpoint IP, church NAS access) per the research-review section 6 — DO NOT fabricate; an SME-CONFIRM cap is treated as OFFLINE by the router until a real value lands.",
+  "_comment": "Sovereign-mesh node/capability registry. DECLARATIVE source of truth for capability-routed federation (research-review docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md). The job router selects the node whose declared `caps` is a superset of a job's `requires`, health-green, cheapest/closest first. DECLARED, NOT GUESSED (DR-0061 reality-trace) and DETERMINISTIC (no LLM in the dispatch decision; the LLM is only the worker on the chosen node). Generalizes the vendor-axis picker in scripts/wake-router.mjs + DR-0073 to a node axis. The two church CUDA towers are NETWORKED LOCAL-CODER WORKERS (Aider + Ollama + qwen2.5-coder:14b), not just inference endpoints: tiered dispatch sends heavy/novel reasoning to vendor Claude and routine/bounded build + transcription + voice to the local towers IN PARALLEL (two towers + home NAS). Honest limit (DR-0076): local coders are weaker on hard reasoning -> well-scoped tasks only; vendor reserved for the hard problems. SHIPS INERT: editing this file does not arm anything; routing still passes through the per-node Cage brakes (infra/ai-orchestrator/portable/orchestrator/lib/brakes.sh) and the mesh kill-switch. Values marked SME-CONFIRM are flagged for Darrell/BG (church hardware, GPU-endpoint IP, church NAS access) per the research-review section 6 — DO NOT fabricate; an SME-CONFIRM cap is treated as OFFLINE by the router until a real value lands.",
   "schema_version": 1,
   "private_routing": "local-only-always",
   "mode_default": "vendor-first",
@@ -21,18 +21,34 @@
       "notes": "Verified: Xeon D-1527 4c/8t CPU-only, 32 GB ECC, dual 10 GbE. Runs Caddy poetech-web, n8n, Ollama (CPU), self-hosted Supabase compose. The single authoritative registry/ledger lives here."
     },
     {
-      "id": "church-cuda",
+      "id": "church-tower-1",
       "site": "church",
-      "role": "gpu worker (voice clone / whisper transcription / local 14B LLM)",
+      "role": "sovereign coder worker + gpu (Aider + Ollama coder / voice clone / whisper / local 14B LLM)",
       "tailscale": "SME-CONFIRM",
       "online": false,
-      "caps": ["gpu", "whisper", "ollama-14b", "voice-clone"],
+      "caps": ["coder", "aider", "ollama-coder", "gpu", "whisper", "ollama-14b", "voice-clone"],
       "endpoints": {
         "ollama": "http://SME-CONFIRM:11434",
         "voice_studio": "http://SME-CONFIRM:8770",
-        "whisper": "http://SME-CONFIRM:8771"
+        "whisper": "http://SME-CONFIRM:8771",
+        "coder": "http://SME-CONFIRM:11434"
       },
-      "notes": "SME-CONFIRM the IP only — ports/endpoints match the real church GPU stack (infra/church-gpu-node/docker-compose.yml, PR #405 / [[project_church_gpu_node]]): Ollama :11434 (qwen2.5:14b-instruct-q4_K_M), voice-studio XTTS :8770 (POST /speak, wired via VITE_VOICE_SERVICE_URL), whisper-gpu :8771 (faster-whisper large-v3-turbo). The 2x RTX 4070 live in the OBS/ProPresenter boxes on the church LAN, NOT in the Synology NAS. NOT on the mesh as of the 2026-06-10 probe. Passive endpoints; brakes live on the caller. DR-0012 service-time preemption: stop Ollama during Sunday/Wednesday live."
+      "notes": "Tower 1 of 2 (1x RTX 4070, an OBS/ProPresenter box on the church LAN — NOT the Synology NAS). Networked LOCAL-CODER WORKER: Aider + Ollama + qwen2.5-coder:14b (the Cage OLLAMA_CODER_MODEL, ~9 GB Q5, fits one 4070 per DR-0012), addressable across Tailscale. Also serves the inference endpoints (real ports per PR #405 / [[project_church_gpu_node]]). SME-CONFIRM the IP only. One large model resident at a time per 12 GB box (DR-0012) -> coder and whisper/voice contend; schedule, do not co-pin. Passive/allowlisted; brakes live on the caller. DR-0012 service-time preemption during Sunday/Wednesday live."
+    },
+    {
+      "id": "church-tower-2",
+      "site": "church",
+      "role": "sovereign coder worker + gpu (parallel second tower)",
+      "tailscale": "SME-CONFIRM",
+      "online": false,
+      "caps": ["coder", "aider", "ollama-coder", "gpu", "whisper", "ollama-14b", "voice-clone"],
+      "endpoints": {
+        "ollama": "http://SME-CONFIRM:11434",
+        "voice_studio": "http://SME-CONFIRM:8770",
+        "whisper": "http://SME-CONFIRM:8771",
+        "coder": "http://SME-CONFIRM:11434"
+      },
+      "notes": "Tower 2 of 2 — the parallel second local-coder worker (same stack as tower 1). Two towers = two routine build/transcription/voice jobs in parallel + the home NAS. SME-CONFIRM the IP only."
     },
     {
       "id": "church-rs",
@@ -46,6 +62,8 @@
     }
   ],
   "job_classes": [
+    { "id": "code-build-routine",   "requires": ["coder"],       "private": false, "fallback_vendor": true,  "parallel": true, "tier": "local-first", "note": "well-scoped/bounded build tasks -> least-loaded healthy church tower, two towers in parallel; HARD/NOVEL reasoning is NOT this class -> see code-reasoning-hard. Local coders are weaker on hard reasoning: well-scoped only; on a task that proves hard, ESCALATE to vendor, never ship a confident-wrong diff. Same gates (tests/build/guards) apply before trust." },
+    { "id": "code-reasoning-hard",  "requires": [],              "private": false, "fallback_vendor": false, "parallel": false, "tier": "vendor-only", "note": "heavy/novel/ambiguous reasoning + cross-cutting design -> vendor Claude (ORCH_MODE vendor-first). Reserved for the hard problems the 14B local coder should not attempt." },
     { "id": "voice-clone",          "requires": ["voice-clone"], "private": true,  "fallback_vendor": false, "note": "private family voice -> church GPU only; if offline, WAITS (never a cloud vendor)" },
     { "id": "harvest-transcription","requires": ["whisper"],     "private": true,  "fallback_vendor": false, "note": "church recordings -> church GPU; private; brakes on the caller queue" },
     { "id": "local-llm-14b",        "requires": ["ollama-14b"],  "private": false, "fallback_vendor": true,  "note": "non-private heavy gen -> church GPU; vendor fallback only when armed+budgeted+GPU-offline" },

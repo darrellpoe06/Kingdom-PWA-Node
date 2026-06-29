@@ -1,6 +1,6 @@
 -- 2026-06-29 — Sovereign Mesh (two-NAS): in-app infrastructure documentation
 -- Materializes the DECIDED architecture for running the PoeTech PWA on BOTH NAS units
--- (home DS1621xs + church site) as in-app docs: one infrastructure project + 7 discussion
+-- (home DS1621xs + church site) as in-app docs: one infrastructure project + 8 discussion
 -- entries (institutional-memory / Events-as-data model). Renders at:
 --   Projects -> (domain: Infrastructure) -> "Sovereign Mesh" -> Discussions driving this
 --   Projects -> Discussions (filtered to the project)
@@ -37,7 +37,7 @@ BEGIN
   )
   ON CONFLICT (instance_id, slug) WHERE slug IS NOT NULL DO NOTHING;
 
-  -- 2) Seven best-way discussion entries ------------------------------------
+  -- 2) Eight best-way discussion entries ------------------------------------
   INSERT INTO discussions
     (id, instance_id, created_by, slug, kind, title, body, project_slugs, visibility, status, links, meta, author_persona, created_at, updated_at)
   VALUES
@@ -54,6 +54,11 @@ BEGIN
     (gen_random_uuid(), v_instance, NULL, 'sm-capability-routed-federation', 'decision',
      'Federation = declared-capability routing (GPU -> church box, CPU/storage -> home NAS)',
      'BEST WAY: a committed registry infra/ai-orchestrator/mesh/nodes.json declares each node caps once; the router selects the node whose caps superset a job requires, health-green, cheapest/closest first. GPU jobs (voice clone, harvest transcription, local 14B LLM) -> the church GPU box; storage/CPU/registry jobs -> home DS1621xs. No matching healthy node -> the job HOLDS (logged), never runs on the wrong hardware. Generalizes the vendor-axis picker in scripts/wake-router.mjs + DR-0073 to a node axis; selection is DETERMINISTIC (no LLM in dispatch). WE CHOSE declared-capability + deterministic routing, NOT guess-and-probe and NOT an LLM dispatcher, BECAUSE a CPU node grinding a GPU job for 20 minutes is the exact waste DR-0073 forbids and routing must be predictable.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{"dr_ref":"DR-0073"}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'sm-local-coder-worker-tier', 'decision',
+     'The two church towers = parallel sovereign coding workers (Aider + Ollama + coder), tiered with the vendor',
+     'BEST WAY: set up each church CUDA tower (1x RTX 4070, the OBS/ProPresenter boxes) as a NETWORKED LOCAL-CODER WORKER - Aider + Ollama + qwen2.5-coder:14b (the Cage OLLAMA_CODER_MODEL, fits one 4070 per DR-0012) - addressable across Tailscale. Two towers = two parallel local coding workers + the home NAS. TIERED DISPATCH (deterministic-first + sovereign-LLM tiers): heavy/novel/ambiguous reasoning -> vendor Claude; routine/bounded build tasks + transcription + voice -> local towers IN PARALLEL (sovereign, free). HONEST LIMIT (DR-0076, stated not hidden): local coder models are materially weaker on hard reasoning, so a tower takes WELL-SCOPED tasks only (clear spec, bounded blast radius, verifiable result); the vendor is reserved for the hard problems; on a task that proves hard the local outcome is ESCALATE, never ship a confident-wrong diff. A local diff passes the SAME gates (tests/build/legibility+consistency guards) before trust. Ties the existing Aider auto-commit lane (2026-06-01 sovereign-LLM-teams review; local_7e8eed31 Hermes/OpenClaw). Behind the Cage brakes on EACH node (budget+lock+kill-switch); arming any tower autonomous build loop is Tier C, his hand, never while traveling. DR-0012 service-time preemption: a tower stops heavy model work during Sunday/Wednesday live. WE CHOSE towers-as-parallel-coders + a hard/routine tier split, NOT vendor-for-everything and NOT local-for-everything, BECAUSE routine bounded work is sovereign and free on two parallel towers while the vendor strength is spent only where hard reasoning actually needs it.',
      '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{"dr_ref":"DR-0073"}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
 
     (gen_random_uuid(), v_instance, NULL, 'sm-brakes-every-node-fail-closed', 'decision',
