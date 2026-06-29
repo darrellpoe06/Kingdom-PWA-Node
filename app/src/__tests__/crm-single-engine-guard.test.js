@@ -1,6 +1,6 @@
 // @vitest-environment node
 //
-// ONE-CRM guard — proven-to-catch (DR-0080 / principle ONE-CRM, DR-0076).
+// ONE-CRM guard — proven-to-catch (DR-0081 / principle ONE-CRM, DR-0076).
 // Pins the binding rule: ONE shared sovereign CRM backbone; every funnel +
 // business rides it via config, never a per-business fork. This test is the CI
 // enforcement — it proves the guard CATCHES a forked CRM table and PASSES on the

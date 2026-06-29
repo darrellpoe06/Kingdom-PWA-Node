@@ -1,6 +1,6 @@
 // @vitest-environment node
 //
-// ONE-CRM structure guard (DR-0080 / principle ONE-CRM, DR-0076 proven-to-catch).
+// ONE-CRM structure guard (DR-0081 / principle ONE-CRM, DR-0076 proven-to-catch).
 //
 // Binding rule, declared by Darrell 2026-06-24 ("always"): there is ONE shared
 // sovereign CRM backbone, and EVERY acquisition funnel + EVERY business/tenant
@@ -39,7 +39,7 @@ export const BACKBONE_TABLES = ['crm_leads', 'crm_activities'];
 //     acquisition CRM (e.g. a "lead vocalist" part). Add here with a reason
 //     instead of weakening the pattern.
 export const ALLOWLIST = {
-  practice_leads: 'grandfathered — TLC client-acquisition leads; federated read-side via leadFromPracticeAcquisition(), slated to converge into crm_leads (DR-0080).',
+  practice_leads: 'grandfathered — TLC client-acquisition leads; federated read-side via leadFromPracticeAcquisition(), slated to converge into crm_leads (DR-0081).',
   choir_song_leads: 'non-crm — a song\'s lead vocal part, not an acquisition lead.',
   inquiries: 'grandfathered — TLC pre-intake inquiries; federated read-side via leadFromInquiry(), not a separate CRM engine.',
 };
@@ -103,7 +103,7 @@ export function scan() {
 // CLI
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const { tables, violations, enginePresent, capturePresent, backbonePresent } = scan();
-  console.log('# ONE-CRM STRUCTURE GUARD (DR-0080)\n');
+  console.log('# ONE-CRM STRUCTURE GUARD (DR-0081)\n');
   console.log(`Migration tables scanned: ${tables.length}\n`);
   let ok = true;
   if (violations.length) {
@@ -115,7 +115,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log('    2) capture through the crm_capture_lead() RPC,');
     console.log('    3) federate any pre-existing table read-side via an adapter.');
     console.log('  If a flagged table is genuinely NOT an acquisition CRM, add it to');
-    console.log('  ALLOWLIST in this guard WITH a one-line reason (DR-0080 / ONE-CRM).');
+    console.log('  ALLOWLIST in this guard WITH a one-line reason (DR-0081 / ONE-CRM).');
   }
   if (!enginePresent) { ok = false; console.log('FAIL — the shared engine (lib/crm-engine.js PIPELINES/BUSINESSES) is missing.'); }
   if (!capturePresent) { ok = false; console.log('FAIL — the crm_capture_lead() API seam is missing from migrations.'); }
