@@ -108,6 +108,12 @@ import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ChurchGiveFloater } from './components/ChurchGiving.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
+// Scroll-anchor primitive (same mechanism that powers reading-resume + the
+// font-size whiplash fix): capture the content element the reader is looking at,
+// let the sticky header change height, restore it to the same viewport spot — so
+// collapsing/opening the header chrome never makes the page jump.
+import { captureAnchor, applyAnchor } from './lib/reading-position.js';
+import { readHeaderCollapsed, writeHeaderCollapsed, nextCollapsed } from './lib/header-hideaway.js';
 import { Queue } from './components/Queue.jsx';
 // Lazy-loaded feature surfaces now mount through the surface-mount registry
 // (the modular spine). Their `() => import(...)` loaders + nav metadata live in
@@ -1936,6 +1942,28 @@ export default function PoeFinancialSystem() {
   const [debtSnowballSort, setDebtSnowballSort] = useState('snowball');
   const [debtSnowballExtra, setDebtSnowballExtra] = useState(500);
   const [theme, setTheme] = useState('midnight');
+  // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
+  // date/time, build line, account/business/subscribe row, voice picker, font
+  // controls, theme swatches, the Sample banner — to ALL the room for the
+  // dashboard, while the TAB ROW stays pinned at the top so navigation never
+  // moves. One tap reopens it. The preference is per-device (the same fail-soft
+  // localStorage pattern as text-size + profile), so it stays however the user
+  // left it. Default = open (the full header) for a familiar first impression.
+  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed());
+  const toggleHeaderChrome = () => {
+    // Reuse the scroll-anchor: pin the content the user is looking at, flip the
+    // header height, restore the same spot after layout — no jump (DR-0075 feel).
+    const token = (typeof window !== 'undefined') ? captureAnchor() : null;
+    setHeaderCollapsed(prev => {
+      const next = nextCollapsed(prev);
+      writeHeaderCollapsed(next); // per-device, fail soft
+      return next;
+    });
+    if (typeof window !== 'undefined' && token) {
+      // two frames: let the header re-layout before we re-align the anchor
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => { try { applyAnchor(token); } catch (e) { /* soft */ } }));
+    }
+  };
   const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
   // 2026-06-12 — persistence problems must be VISIBLE (PERPETUAL-PIPELINE-
   // HEALTH: no silent failure on the path the family's memories ride).
@@ -5013,7 +5041,7 @@ html{scroll-padding-bottom:280px}
       {/* Demo banner — thin strip across the top whenever in demo mode (not
           picker). Stays visible the whole session. CTAs: switch persona, see
           welcome modal again, or start your own. */}
-      {isDemoMode && !demoWelcomeOpen && (
+      {isDemoMode && !demoWelcomeOpen && !headerCollapsed && (
         <div className="bg-[#B85838] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="uppercase tracking-[0.2em] font-semibold">Sample · {DEMO_PERSONA_META[demoPersona]?.label || 'Family of 4'}</span>
@@ -5140,6 +5168,10 @@ html{scroll-padding-bottom:280px}
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
             from growing taller and pushing content down at larger sizes. */}
+        {/* HEADER HIDEAWAY: this whole top block (title, date/time, build line,
+            account/subscribe row, voice + font controls, theme swatches) hides
+            when collapsed; only the <nav> tab row below stays pinned. */}
+        {!headerCollapsed && (
         <div className="w-full px-3 sm:px-6 lg:px-8 py-[12px] sm:py-[16px]">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
               screens so the tier-preview dropdown and Subscribe/Feedback buttons
@@ -5213,6 +5245,7 @@ html{scroll-padding-bottom:280px}
             </div>
           </div>
         </div>
+        )}
         <nav className="border-t border-[#E8E4DC]">
           {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
               first, About anchors the right side of the primary group, then a
@@ -5308,6 +5341,27 @@ html{scroll-padding-bottom:280px}
                 );
               })}
             </TabScroll>
+            {/* HEADER HIDEAWAY toggle — pinned to the right of the tab row so it
+                is ALWAYS visible (it never scrolls with the tabs and it is the
+                one control that survives a collapse). One tap hides the whole top
+                chrome (date/time, build line, account/subscribe row, voice + font
+                controls, theme swatches, Sample banner) for max dashboard room;
+                one tap brings it all back. The chevron points UP to "tuck away"
+                and DOWN to "bring back." Preference persists per device. The
+                color is a chrome token (#5A5751 -> 5.9:1 on the bar, remapped to
+                #888888 on midnight) and the icon inherits it via currentColor, so
+                it stays WCAG-legible in every theme. */}
+            <button
+              type="button"
+              onClick={toggleHeaderChrome}
+              aria-expanded={!headerCollapsed}
+              aria-label={headerCollapsed ? 'Show the full header (date, account, voice, font, theme controls)' : 'Hide the top bar — keep only the tabs for more room'}
+              title={headerCollapsed ? 'Show the full header' : 'Hide the top bar (keep tabs)'}
+              className="shrink-0 self-stretch px-2.5 sm:px-3 flex items-center justify-center border-l border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              <UiIcon name={headerCollapsed ? 'chevronDown' : 'chevronUp'} className="text-base" />
+              <span className="sr-only">{headerCollapsed ? 'Show header' : 'Hide header'}</span>
+            </button>
           </div>
         </nav>
         {view === 'books' && (
