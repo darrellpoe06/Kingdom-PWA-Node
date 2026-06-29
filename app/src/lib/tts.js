@@ -433,9 +433,20 @@ export function useTextToSpeech() {
     return () => { if (supported && engineRef.current) engineRef.current.stop(); };
   }, [supported]);
 
-  const speak = useCallback((text) => {
+  // speak(text) uses the engine's current voice. speak(text, voiceURI) speaks THIS
+  // utterance in a specific device voice WITHOUT persisting it as the saved default —
+  // this is how a gendered stand-in (a male system voice for a male person, a
+  // different voice per person) is honored per-play without clobbering the user's
+  // chosen browser-voice pref. Passing voiceURI null/'' forces the device default.
+  const speak = useCallback((text, voiceURI) => {
     const eng = engineRef.current;
     if (!eng) return;
+    if (voiceURI !== undefined) {
+      const v = voiceURI
+        ? ((window.speechSynthesis.getVoices() || []).find((x) => x.voiceURI === voiceURI) || null)
+        : null;
+      eng.setVoice(v); // transient — does not touch saved prefs
+    }
     eng.load(text);
     eng.play();
   }, []);

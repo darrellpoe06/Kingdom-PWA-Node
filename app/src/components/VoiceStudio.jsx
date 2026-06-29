@@ -23,6 +23,7 @@ import {
   aiVoiceLabel, enrollmentStatus, loadVoiceChoice, saveVoiceChoice, KIND, CONSENT,
 } from '../lib/voice-registry.js';
 import { loadVoiceProfiles, enrollMyVoice, revokeMyVoice } from '../lib/voice-sync.js';
+import { buildStandInAssignments, standInVoiceURI } from '../lib/voice-assignment.js';
 import { isVoiceServiceReady, synthesizeSpeech } from '../lib/voice-service.js';
 import { useReadingVoice, personVoiceId, SYSTEM_VOICE_ID } from '../lib/reading-voice.js';
 import {
@@ -79,6 +80,15 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   const ctx = { isOwner, subscribed: isOwner }; // owner/building circle entitled; real billing slots in here
   const selected = voices.find((v) => v.id === selectedId) || voices[0];
 
+  // Map each option to a DISTINCT, gender-correct device voice (the stand-in fix):
+  // a man reads in a male voice, a woman in a female voice, different people sound
+  // different — instead of everything falling through to the one default voice.
+  const assignments = useMemo(() => buildStandInAssignments(voices, tts.voices), [voices, tts.voices]);
+  const voiceLabelFor = (v) => {
+    const dev = v && assignments[v.id];
+    return dev && dev.name ? dev.name : null;
+  };
+
   // Highlight-as-it-reads: the engine segments deterministically, so we segment the
   // SAME text and highlight the sentence the engine is currently speaking.
   const segments = useMemo(() => segmentText(text), [text]);
@@ -132,7 +142,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       if (!refBlob) {
         setNotice('Record a voice sample first — then this reads in that voice.');
         if (!tts.supported) return;
-        tts.speak(clean); // honest stand-in until a sample exists
+        tts.speak(clean, standInVoiceURI(assignments, voice.id)); // gendered stand-in until a sample exists
         return;
       }
       const referenceDataUri = await blobToDataUri(refBlob);
@@ -145,7 +155,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
           audioRef.current = a;
           setCloudPlaying(true);
           a.onended = () => { setCloudPlaying(false); try { URL.revokeObjectURL(url); } catch (_) {} };
-          a.onerror = () => { setCloudPlaying(false); tts.speak(clean); }; // never silent
+          a.onerror = () => { setCloudPlaying(false); tts.speak(clean, standInVoiceURI(assignments, voice.id)); }; // never silent
           await a.play();
           return;
         } catch (_) { setCloudPlaying(false); /* fall through to browser */ }
@@ -154,9 +164,11 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       setNotice('The voice studio was unreachable — using the stand-in voice for now.');
     }
 
-    // Browser path: System voice (real) or the labeled personal stand-in. Works today.
+    // Browser path: System voice (real) or the labeled personal stand-in. Each option
+    // speaks in its assigned device voice (gender-correct + distinct) — never the one
+    // shared default that made every pick sound like the same person.
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
-    tts.speak(clean);
+    tts.speak(clean, standInVoiceURI(assignments, voice.id));
   };
 
   const readNow = () => playWith(selected, text);
@@ -331,6 +343,13 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                     {prov.standIn ? ' · plays a stand-in until the voice studio is live' : ''}
                     {prov.real && v.kind === KIND.PERSONAL ? ' · cloned voice live' : ''}
                   </div>
+                  {/* Transparency: the actual device voice this option speaks in, so
+                      the listener can SEE (and hear) that each pick is different. */}
+                  {selectable && voiceLabelFor(v) && (
+                    <div className="text-[10px] text-[#5A5751] mt-0.5">
+                      {prov.standIn ? 'Stand-in voice: ' : 'Voice: '}<span className="text-[#1A1815]">{voiceLabelFor(v)}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1">
                   {selectable ? (
