@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "_comment": "The braked deterministic NAS loop registry. Each entry is a routine job the DSM Task Scheduler fires headless on the always-on NAS, behind the three brakes (run.mjs). 'enabled' is the committed greenlight (no default-true). 'kind:deterministic' loops run with NO LLM and keep going whether or not Claude/Dispatch is online; 'kind:ai' loops are delegated to the cap-resume/wake gate (a strict superset of brakes) and are NOT run by this dispatcher. Adding a loop here does NOT arm it: the runner ships inert until state/LOOPS_ARMED, and each loop also needs its own DSM Task Scheduler entry (registered by hand). schedule is documentation for the DSM entry; DSM owns the clock.",
+  "loops": [
+    {
+      "name": "health-check",
+      "kind": "deterministic",
+      "script": "health-check.sh",
+      "enabled": true,
+      "schedule": "every 10 minutes",
+      "max_calls_per_day": 200,
+      "timeout_seconds": 60,
+      "description": "The 'is the system up' probe (wf20 class). GETs each HEALTH_TARGETS endpoint (n8n /healthz + Ollama by default); exits 0 only when all are healthy. No LLM. Migrated first per the 2026-06-29 research-review."
+    }
+  ]
+}

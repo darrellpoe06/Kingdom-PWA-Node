@@ -1,0 +1,14 @@
+# Local runtime state — never committed. The runner creates these on the NAS:
+#   KILL_SWITCH      panic stop (touch to halt the fleet)
+#   LOOPS_ARMED      the deterministic-class arm flag (ships ABSENT = inert)
+#   <loop>.lock/     per-loop single-flight lockdir
+#   calls-*-*.txt    per-loop per-day call counters (the call-cap budget brake)
+state/*
+!state/.gitkeep
+
+# Per-deployment config (caps, ntfy, reel path) — never committed.
+.env
+
+# Local event log + reel — runtime, not source.
+events/*
+!events/.gitkeep
