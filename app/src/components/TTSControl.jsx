@@ -16,6 +16,10 @@
 import React, { useState } from 'react';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
+import UiIcon from './UiIcon.jsx';
+import { helpFor } from '../lib/help-content.js';
+import { buildSurfaceDigest } from '../lib/surface-digest.js';
+import { talkAboutSurface } from '../lib/talk-about.js';
 
 // Pull the visible page text: clone <main>, strip floating/hidden chrome.
 function readablePageText() {
@@ -27,8 +31,12 @@ function readablePageText() {
   return (clone.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 32000);
 }
 
-export default function TTSControl({ isOwner = false }) {
+export default function TTSControl({ isOwner = false, view, churchView, booksView }) {
   const [isOpen, setIsOpen] = useState(false);
+  // "Talk about this" state: thinking, and the source of the last explanation
+  // (live NAS A.I. vs on-device authored) so the user knows which they heard.
+  const [talking, setTalking] = useState(false);
+  const [talkSource, setTalkSource] = useState('');
   const {
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate,
     catalog, voiceId, setVoiceId, currentItem,
@@ -37,6 +45,23 @@ export default function TTSControl({ isOwner = false }) {
   if (!supported) return null; // graceful: device can't speak — show nothing
 
   const start = () => { const text = readablePageText(); if (text) read(text); };
+
+  // TALK ABOUT THIS: build a grounded digest of the CURRENT surface (real
+  // on-screen numbers via data-talk markers, else the surface's "?" help), have
+  // Ari explain it (live NAS model when reachable, deterministic on-device
+  // otherwise — never fabricated), then speak it in the chosen reading voice.
+  const talkAbout = async () => {
+    setTalking(true);
+    setTalkSource('');
+    const main = (typeof document !== 'undefined' && document.querySelector('main')) || null;
+    const helpEntry = helpFor({ view, churchView, booksView });
+    const digest = buildSurfaceDigest({ root: main, helpEntry, title: helpEntry && helpEntry.title });
+    const { text, source } = await talkAboutSurface(digest);
+    setTalking(false);
+    setTalkSource(source === 'live' ? 'Ari, live' : 'Ari, on-device');
+    if (text) read(text);
+  };
+
   const close = () => { stop(); setIsOpen(false); };
 
   // Grouped voice options (System / Your voices / Voices & accents) — same global
@@ -53,14 +78,19 @@ export default function TTSControl({ isOwner = false }) {
           <div className="flex items-baseline justify-between mb-3">
             <div>
               <div className="text-[9px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
-              <div className="text-[10px] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{statusLabel}</div>
+              <div className="text-[10px] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : statusLabel)}</div>
             </div>
             <button type="button" onClick={close} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
           </div>
 
           <div className="grid grid-cols-3 gap-1 mb-3">
             {!isReading ? (
-              <button type="button" onClick={start} className="col-span-3 bg-[#1A1815] text-white px-3 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read this page</button>
+              <>
+                <button type="button" onClick={start} className="col-span-3 bg-[#1A1815] text-white px-3 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read this page</button>
+                {/* TALK ABOUT THIS — Ari explains the current screen (its real
+                    numbers, or what the tab is), spoken in the chosen voice. */}
+                <button type="button" onClick={talkAbout} disabled={talking} className="col-span-3 flex items-center justify-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="volume" /> {talking ? 'Thinking…' : 'Talk about this'}</button>
+              </>
             ) : (
               <>
                 <button type="button" onClick={isPaused ? resume : pause} className="bg-[#1A1815] text-white px-2 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
@@ -112,7 +142,7 @@ export default function TTSControl({ isOwner = false }) {
           ) : null}
 
           <p className="text-[9px] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
-            Reads the visible page in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''} — on every page, no re-picking.
+            Read this page recites it; Talk about this has Ari explain what is on it — both in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
           </p>
         </div>
       ) : (

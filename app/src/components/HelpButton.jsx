@@ -36,6 +36,10 @@ import Modal from './Modal.jsx';
 import {
   helpFor, ROADMAP, SECTION_TITLE, ariHelpLead, HELP_VOICE_NAME,
 } from '../lib/help-content.js';
+import UiIcon from './UiIcon.jsx';
+import { useReadAloud } from '../lib/use-read-aloud.js';
+import { digestFromHelp } from '../lib/surface-digest.js';
+import { narrateDigest } from '../lib/talk-about.js';
 
 // A single roadmap journey, rendered as a numbered list of clickable stops.
 function RoadmapSection({ section, onNavigate }) {
@@ -102,10 +106,14 @@ export default function HelpButton({
   setView,
   setChurchView,
   setBooksView,
+  isOwner = false,
   className = '',
 }) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // Read-aloud, so the "?" can SPEAK the explanation (ties help to the voice
+  // EXPLAIN mode): Ari tells you what this surface is, in your chosen voice.
+  const { supported: speakSupported, isReading, read, stop } = useReadAloud({ isOwner });
   // mode: 'topic' (explain this surface) | 'section' (this surface's journey) |
   // 'overview' (the whole roadmap)
   const [mode, setMode] = useState('topic');
@@ -126,7 +134,14 @@ export default function HelpButton({
     setMode(entry ? 'topic' : 'overview');
     setOpen(true);
   }
-  function closeSheet() { setOpen(false); }
+  function closeSheet() { try { stop(); } catch (e) { /* ignore */ } setOpen(false); }
+
+  // Speak the explanation of THIS surface in the chosen voice (or stop if going).
+  function hearThis() {
+    if (isReading) { stop(); return; }
+    if (!entry) return;
+    read(narrateDigest(digestFromHelp(entry)));
+  }
 
   // Navigate the app to a roadmap step, then close the sheet.
   function navigateTo(to) {
@@ -194,7 +209,18 @@ export default function HelpButton({
 
         {mode === 'topic' && entry && (
           <div className="mt-3">
-            <p className="text-xs text-[#5A5751] italic mb-3">{ariHelpLead()}</p>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <p className="text-xs text-[#5A5751] italic">{ariHelpLead()}</p>
+              {speakSupported && (
+                <button
+                  type="button"
+                  onClick={hearThis}
+                  className="shrink-0 inline-flex items-center gap-1 text-[0.625rem] uppercase tracking-wider border border-[#B85838] text-[#B85838] px-2 py-1 font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+                >
+                  <UiIcon name="volume" /> {isReading ? 'Stop' : 'Hear this'}
+                </button>
+              )}
+            </div>
 
             {/* WHAT */}
             <p className="text-sm leading-relaxed text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>

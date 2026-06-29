@@ -57,8 +57,11 @@ function ClarityLine({ q, children }) {
 
 function Metric({ label, value, tone }) {
   const color = tone === 'bad' ? '#9B2C2C' : tone === 'good' ? '#2F6B3A' : '#1A1815';
+  // data-talk markers expose this real figure to "Talk about this" (the voice
+  // EXPLAIN mode, lib/surface-digest) so Ari narrates the actual on-screen number,
+  // never an invented one. label/value are plain strings, so the digest is exact.
   return (
-    <div className="border border-[#E3DDD2] bg-[#FAF8F4] px-3 py-2">
+    <div className="border border-[#E3DDD2] bg-[#FAF8F4] px-3 py-2" data-talk-fact={label} data-talk-value={value}>
       <div className={labelCls}>{label}</div>
       <div className="text-lg font-semibold tabular-nums" style={{ color }}>{value}</div>
     </div>

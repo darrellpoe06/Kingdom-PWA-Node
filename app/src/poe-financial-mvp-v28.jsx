@@ -6091,7 +6091,7 @@ html{scroll-padding-bottom:280px}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
         </Suspense>
       </main>
-      <TTSControl isOwner={isFamilyMember} />
+      <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} />
       <InstallPrompt />
       <UpdatePrompt />
       <NetworkStatus />
