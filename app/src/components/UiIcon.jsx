@@ -39,6 +39,17 @@ const ICONS = {
       <line x1="12" y1="11.5" x2="16.5" y2="11.5" />
     </>
   ),
+  // die showing five — the Games hub ("our games"); a board-game journey
+  dice: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <circle cx="8.5" cy="8.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="8.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="8.5" cy="15.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="15.5" r="1.1" fill="currentColor" stroke="none" />
+    </>
+  ),
   // open book — The Word / scripture (was 📖)
   bookOpen: (
     <>
