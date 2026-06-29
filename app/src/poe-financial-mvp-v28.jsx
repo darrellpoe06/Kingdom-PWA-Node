@@ -71,6 +71,7 @@ import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
+import { reportPresence } from './lib/access-metrics-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
@@ -120,7 +121,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, ChefCorner,
+  Inventory, Forecast, AccessUsageMetrics, ChefCorner,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -2846,6 +2847,11 @@ export default function PoeFinancialSystem() {
         console.warn('[auth] tenant join failed', e);
         return;
       }
+      // Access-governance heartbeat: this session reports the build it runs +
+      // a last-seen stamp (build-freshness + activity for the steward's Access
+      // surface). Privacy: build + heartbeat only — no behavior, no content.
+      // Fire-and-forget; never blocks sign-in, never surfaces an error.
+      reportPresence();
       unsubscribeFeedback = subscribeFeedback((items) => setRemoteFeedback(items));
 
       // Entities sync (no verify-gate needed — no load-bearing numbers).
@@ -5295,6 +5301,11 @@ html{scroll-padding-bottom:280px}
                 // so the entry is absent from the DOM for everyone else (no-leak),
                 // and the component carries a locked fallback for any deep-link.
                 ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
+                // Access & Usage — WHO has access + counts/activity + build-
+                // freshness (rollout management). Family/Governor only (steward
+                // governance over real members); spread so the entry is absent
+                // from the DOM for everyone else (no-leak), like Center / CRM.
+                ...(isFamilyMember ? [['access', <><UiIcon name="monitor" /> Access</>]] : []),
                 // Admin surfaced at the top so users can SEE a steward space
                 // exists (visible-but-locked, like 🔒 Observation). ACCESS is
                 // gated at the render below — the entry being visible is the goal.
@@ -5930,6 +5941,24 @@ html{scroll-padding-bottom:280px}
 
         {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
 
+        {/* Access & Usage — access governance + aggregate usage + build-freshness.
+            Family/Governor only (real members, real build-freshness); own
+            SectionBoundary so a thrown error degrades just this surface. The
+            member_presence read is owner/admin-gated at the DB too (defense in
+            depth). Locked fallback for any deep-link by a non-steward. */}
+        {view === 'access' && (isFamilyMember
+          ? (
+            <SectionBoundary name="Access">
+              <AccessUsageMetrics />
+            </SectionBoundary>
+          ) : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="monitor" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">Access &amp; Usage is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Who-has-access and rollout metrics are governor-only. Sign in with a steward account to view them.</p>
+            </div>
+          ))}
+
         {view === 'admin' && ((isFamilyMember || !isPublicHost())
           ? <Admin />
           : (
@@ -6454,6 +6483,9 @@ const FEEDBACK_AREAS = [
     ['forecast', '📈 Forecast · forward cash-flow projection from real data (per business / family / consolidated)'],
     ['forecast-scenarios', '└ Scenarios · best/base/worst · add property / tier / capital purchase (editable assumptions)'],
     ['forecast-track', '└ Track · projected-vs-actual over time (forecast accuracy)'],
+  ]},
+  { group: 'Access & Usage (steward · access governance)', items: [
+    ['access', 'Access & Usage · who has access (role · scope) + counts/activity + build-freshness (rollout management)'],
   ]},
   { group: "Chef's Corner — Kitchen Inventory (steward · homed in Chef's Corner)", items: [
     ['kitchen', "Kitchen Inventory · Chef Mario's inventory, in Chef's Corner (count by weight/unit · par alerts · value)"],
