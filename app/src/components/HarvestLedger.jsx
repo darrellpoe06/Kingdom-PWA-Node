@@ -28,10 +28,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import { getChoirAccess } from '../lib/choir-sync.js';
-import { HARVEST_TYPES, harvestMapFor, harvestType, NAS_GATED_KEYS } from '../lib/video-harvest.js';
+import { HARVEST_TYPES, harvestMapFor, harvestType, TRANSCRIPT_DERIVED_KEYS } from '../lib/video-harvest.js';
 
-// Which harvests need the Whisper transcript (NAS / GPU) vs. auto-derive in-app.
-const NAS_GATED = new Set(NAS_GATED_KEYS);
+// Which harvests are mined from the service transcript (now auto-sourced from the
+// video's YouTube captions, no GPU) vs. derived from the row the instant it lands.
+const FROM_TRANSCRIPT = new Set(TRANSCRIPT_DERIVED_KEYS);
 import { subscribeLedger, recordHarvest, markHarvestNotApplicable } from '../lib/harvest-ledger.js';
 
 const fmtDate = (d) => {
@@ -246,8 +247,8 @@ export default function HarvestLedger() {
             <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
               <p className="text-[10px] uppercase tracking-wider text-[#5A5751]">Harvest coverage across the corpus</p>
               <p className="text-[10px] text-[#5A5751]">
-                <span className="font-semibold" style={{ color: '#166534' }}>auto</span> = mined now from the recording ·
-                <span className="font-semibold" style={{ color: '#92400E' }}> NAS</span> = needs the Whisper transcript
+                <span className="font-semibold" style={{ color: '#166534' }}>now</span> = mined the moment a recording lands ·
+                <span className="font-semibold" style={{ color: '#1D4ED8' }}> caption</span> = mined automatically from the video’s YouTube transcript (no GPU)
               </p>
             </div>
             <div className="space-y-1">
@@ -257,20 +258,20 @@ export default function HarvestLedger() {
                 const bt = l.byType[t.key] || { complete: 0, partial: 0, none: 0, na: 0 };
                 const done = bt.complete + bt.partial * 0.5;
                 const pct = l.videos ? Math.round((done / l.videos) * 100) : 0;
-                const gated = NAS_GATED.has(t.key);
+                const fromTranscript = FROM_TRANSCRIPT.has(t.key);
                 return (
                   <div key={t.key} className="flex items-center gap-2">
                     <span className="text-[11px] text-[#1A1815] w-28 shrink-0 flex items-center gap-1" title={t.description}>
                       <span className="truncate">{t.label}</span>
                       <span
                         className="text-[8px] px-1 rounded leading-tight shrink-0"
-                        style={gated
-                          ? { color: '#92400E', background: '#FBF6EC', border: '1px solid #B8893B' }
+                        style={fromTranscript
+                          ? { color: '#1D4ED8', background: '#EFF4FF', border: '1px solid #1D4ED8' }
                           : { color: '#166534', background: '#F0FAF1', border: '1px solid #166534' }}
-                        title={gated ? 'Needs the Whisper transcript — run on the SME pipeline (NAS / GPU)' : 'Auto-derived in-app from the ingested recording'}
-                      >{gated ? 'NAS' : 'auto'}</span>
+                        title={fromTranscript ? 'Mined automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is the fallback for a video with no captions.' : 'Derived in-app the moment the recording is ingested.'}
+                      >{fromTranscript ? 'caption' : 'now'}</span>
                     </span>
-                    <div className="flex-1 h-2 rounded" style={{ background: '#EFEBE3' }}><div className="h-2 rounded" style={{ width: `${pct}%`, background: gated ? '#B8893B' : '#5A6E3D' }} /></div>
+                    <div className="flex-1 h-2 rounded" style={{ background: '#EFEBE3' }}><div className="h-2 rounded" style={{ width: `${pct}%`, background: fromTranscript ? '#1D4ED8' : '#5A6E3D' }} /></div>
                     <span className="text-[10px] text-[#5A5751] w-24 text-right shrink-0">{bt.complete}✓ {bt.partial}◐ {bt.none}·{bt.na ? ` ${bt.na}—` : ''}</span>
                   </div>
                 );
@@ -286,7 +287,7 @@ export default function HarvestLedger() {
             ))}
           </div>
           <p className="mt-3 text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
-            ✦ marks a harvest verified against real app data. The <span className="font-semibold not-italic">auto</span> harvests — message, Scripture cited, worship songs, and the service event — are mined in-app the moment a recording is ingested. The <span className="font-semibold not-italic">NAS</span> harvests — transcript, lessons, discernment, testimony, trivia — need the Whisper transcript produced on the SME pipeline (a steward’s NAS / GPU run), then recorded here.
+            ✦ marks a harvest verified against real app data. The <span className="font-semibold not-italic">now</span> harvests — message, Scripture cited, worship songs, and the service event — are mined in-app the moment a recording is ingested. The <span className="font-semibold not-italic">caption</span> harvests — transcript, lessons, discernment, testimony, trivia — are mined from the service transcript, sourced automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is only the fallback for a video that has no captions at all.
           </p>
         </>
       )}
