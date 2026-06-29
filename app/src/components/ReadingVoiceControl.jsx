@@ -50,7 +50,7 @@ export default function ReadingVoiceControl({ variant = 'header', isOwner = fals
         <optgroup key={g} label={g}>
           {groups[g].map((item) => (
             <option key={item.id} value={item.id} disabled={!item.usable}>
-              {item.label}{item.ai ? ' · AI' : ''}{item.standIn ? ' (stand-in)' : ''}{!item.usable ? ' — subscriber' : ''}
+              {item.label}{item.ai ? ' · AI' : ''}{item.standIn ? ' (stand-in)' : ''}{item.deviceVoice ? ` · ${item.deviceVoice}` : ''}{!item.usable ? ' — subscriber' : ''}
             </option>
           ))}
         </optgroup>

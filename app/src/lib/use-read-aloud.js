@@ -19,7 +19,8 @@ import { useTextToSpeech } from './tts.js';
 import {
   useReadingVoice, isPersonVoiceId, personKeyOf, isSystemVoiceId, SYSTEM_VOICE_ID, personVoiceId,
 } from './reading-voice.js';
-import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND } from './voice-registry.js';
+import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
+import { buildStandInAssignments, standInVoiceURI } from './voice-assignment.js';
 import { isVoiceServiceReady, synthesizeSpeech } from './voice-service.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
@@ -46,19 +47,39 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
 
   useEffect(() => () => { if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; } }, []);
 
-  const personalVoices = useMemo(() => mergeVoiceCatalog(profiles).filter((v) => v.kind === KIND.PERSONAL), [profiles]);
+  const fullCatalog = useMemo(() => mergeVoiceCatalog(profiles), [profiles]);
+  const personalVoices = useMemo(() => fullCatalog.filter((v) => v.kind === KIND.PERSONAL), [fullCatalog]);
   const ctx = { isOwner, subscribed: isOwner };
+
+  // Distinct, gender-correct device-voice assignment for System + each person, so a
+  // man's stand-in sounds male, a woman's female, and different people sound
+  // different — instead of every pick falling through to one default voice.
+  const assignments = useMemo(() => buildStandInAssignments(fullCatalog, tts.voices), [fullCatalog, tts.voices]);
+
+  // The actual device voiceURI to speak a given global selection in: the mapped
+  // stand-in for System/person, or the specific browser voice/accent picked.
+  const resolveSpeakURI = useCallback((id) => {
+    if (isSystemVoiceId(id)) return standInVoiceURI(assignments, SYSTEM_VOICE.id);
+    if (isPersonVoiceId(id)) {
+      const c = fullCatalog.find((x) => x.personKey === personKeyOf(id));
+      return c ? standInVoiceURI(assignments, c.id) : undefined;
+    }
+    return id; // a specific browser voice / accent
+  }, [assignments, fullCatalog]);
 
   // The merged catalog every picker renders: System (free) + personal (cloned) +
   // browser voices/accents. Each item is { id, label, group, ai, entitled, usable }.
   const catalog = useMemo(() => {
-    const out = [{ id: SYSTEM_VOICE_ID, label: 'System voice', group: 'Default', ai: false, entitled: true, usable: true }];
+    const sysDev = assignments[SYSTEM_VOICE.id];
+    const out = [{ id: SYSTEM_VOICE_ID, label: 'System voice', group: 'Default', ai: false, entitled: true, usable: true, deviceVoice: sysDev ? sysDev.name : null }];
     for (const v of personalVoices) {
       if (!canCloneVoice(v)) continue; // only consented personal voices are offerable
+      const dev = assignments[v.id];
       out.push({
         id: personVoiceId(v.personKey), label: v.name, group: 'Your voices', ai: true,
         entitled: isVoiceEntitled(v, ctx), usable: isVoiceEntitled(v, ctx),
         standIn: !resolveVoiceProvider(v, { sovereignVoiceReady }).real,
+        deviceVoice: dev ? dev.name : null,
       });
     }
     const browser = (tts.voices || []).filter((v) => v && /^en/i.test(v.lang || ''));
@@ -68,7 +89,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     }
     return out;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personalVoices, tts.voices, isOwner, sovereignVoiceReady]);
+  }, [personalVoices, tts.voices, isOwner, sovereignVoiceReady, assignments]);
 
   const currentItem = useMemo(() => catalog.find((c) => c.id === voiceId) || catalog[0], [catalog, voiceId]);
 
@@ -120,7 +141,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
             try {
               const a = new Audio(url); audioRef.current = a; setCloudPlaying(true);
               a.onended = () => { setCloudPlaying(false); try { URL.revokeObjectURL(url); } catch (_) {} };
-              a.onerror = () => { setCloudPlaying(false); if (tts.supported) tts.speak(clean); };
+              a.onerror = () => { setCloudPlaying(false); if (tts.supported) tts.speak(clean, resolveSpeakURI(voiceId)); };
               await a.play();
               return;
             } catch (_) { setCloudPlaying(false); }
@@ -130,12 +151,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
           setNotice('Record a voice sample first — then this reads in that voice.');
         }
       }
-      // Stand-in until the endpoint/reference is live: labeled browser voice.
+      // Stand-in until the endpoint/reference is live: a gender-correct browser voice.
     }
 
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
-    tts.speak(clean);
-  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud]);
+    tts.speak(clean, resolveSpeakURI(voiceId));
+  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI]);
 
   return {
     supported: tts.supported,

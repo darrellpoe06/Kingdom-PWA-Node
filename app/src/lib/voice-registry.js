@@ -81,6 +81,7 @@ export const SEED_PERSONAL_VOICES = Object.freeze([
   {
     id: 'voice-dp', kind: KIND.PERSONAL, personKey: 'darrell',
     name: 'Darrell Poe', description: 'Darrell reading in his own voice.',
+    gender: 'male', // so the labeled STAND-IN sounds like a man, not the default voice
     circle: true, // building circle — he may enroll himself with one tap (already consented)
     consentState: CONSENT.NONE, entitlement: ENTITLEMENT.SUBSCRIBER,
     providerHint: PROVIDER.SOVEREIGN_CLONE,
@@ -88,6 +89,7 @@ export const SEED_PERSONAL_VOICES = Object.freeze([
   {
     id: 'voice-cp', kind: KIND.PERSONAL, personKey: 'christina',
     name: 'Christina Poe', description: 'Christina reading in her own voice.',
+    gender: 'female',
     circle: true,
     consentState: CONSENT.NONE, entitlement: ENTITLEMENT.SUBSCRIBER,
     providerHint: PROVIDER.SOVEREIGN_CLONE,
@@ -95,6 +97,7 @@ export const SEED_PERSONAL_VOICES = Object.freeze([
   {
     id: 'voice-bg', kind: KIND.PERSONAL, personKey: 'bishop-gwin',
     name: 'Bishop Lloyd E. Gwin', description: 'Bishop Gwin reading in his own voice.',
+    gender: 'male',
     circle: true,
     consentState: CONSENT.NONE, entitlement: ENTITLEMENT.SUBSCRIBER,
     providerHint: PROVIDER.SOVEREIGN_CLONE,
@@ -123,6 +126,7 @@ export function mergeVoiceCatalog(profiles = []) {
     return {
       ...seed,
       name: p.displayName || seed.name,
+      gender: p.gender || seed.gender || 'unknown',
       consentState: p.consentState || seed.consentState,
       entitlement: p.entitlement || seed.entitlement,
       providerHint: p.providerHint || seed.providerHint,
@@ -139,6 +143,7 @@ export function mergeVoiceCatalog(profiles = []) {
       personKey: p.personKey,
       name: p.displayName || p.personKey,
       description: `${p.displayName || p.personKey} reading in their own voice.`,
+      gender: p.gender || 'unknown',
       circle: false,
       consentState: p.consentState || CONSENT.NONE,
       entitlement: p.entitlement || ENTITLEMENT.SUBSCRIBER,

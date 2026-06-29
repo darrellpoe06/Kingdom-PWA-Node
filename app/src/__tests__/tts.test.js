@@ -184,6 +184,21 @@ describe('engine — live rate change (THE bug fix, proven-to-catch)', () => {
     expect(engine.rate).toBe(1.5);
     expect(synth.spoken.length).toBe(0);
   });
+
+  it('speaks each utterance in the assigned voice (the gendered stand-in override)', () => {
+    // The fix for "every option sounds like the same default voice": the play path
+    // sets a specific device voice per selection, and the engine must put THAT voice
+    // on every spoken utterance. A male stand-in (e.g. Microsoft Mark) must reach the
+    // utterance — not be dropped back to the default.
+    const { synth, engine } = makeEngine({ rate: 1.0 });
+    const male = { name: 'Microsoft Mark', voiceURI: 'mark', lang: 'en-US' };
+    engine.setVoice(male);
+    engine.load('First one. Second one.');
+    engine.play();
+    expect(synth.spoken[0].voice).toBe(male);
+    synth.spoken[0].onend();                 // advance to the next segment
+    expect(synth.spoken[1].voice).toBe(male); // every segment keeps the assigned voice
+  });
 });
 
 describe('engine — start watchdog (silent tap, proven-to-catch)', () => {
