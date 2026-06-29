@@ -1,0 +1,84 @@
+-- 2026-06-29 -- Church Infrastructure Program: in-app program + 7 milestone records
+-- Materializes the church HARDWARE/COMPUTE infrastructure work as ONE in-app
+-- program (one projects row, domain=church) with seven discussion records (the
+-- milestones), using the institutional-memory / Events-as-data model. Renders at:
+--   Projects -> (domain: Church) -> "Church Infrastructure Program" -> Discussions driving this
+--   Projects -> Discussions (filtered to the project)
+--
+-- SOURCE OF TRUTH for the prose: infra/seed-data/2026-06-29-colg-church-infrastructure-program.json
+-- DEVICE REGISTER (item 4): docs/99-session-notes/2026-06-29-colg-church-device-asset-register.md
+-- UMBRELLA SURVEY: docs/99-session-notes/2026-06-09-research-review-colg-9k-church-build.md
+--
+-- ROLE-SCOPED / NO LEAK: instance=colg, discussions RLS scopes every row to the
+-- COLG instance + owner/admin/member roles (no anon policy; see 0035-discussions).
+-- This is NOT public seed.
+--
+-- APPLY: run ONCE in Supabase Studio (SQL editor) against the COLG cloud instance.
+--   Idempotent: resolves the instance by slug='colg' (the proven pattern from
+--   migration 0013-colg-sermon-backfill.sql); ON CONFLICT (instance_id, slug) DO NOTHING.
+--   created_by is left NULL (system-seeded record). If projects.created_by /
+--   discussions.created_by is NOT NULL in your schema, set a COLG owner/admin uuid
+--   and swap the NULLs.
+--   NOT yet applied to cloud as of this commit (this session cannot reach the cloud Studio).
+
+DO $$
+DECLARE
+  v_instance uuid;
+BEGIN
+  SELECT id INTO v_instance FROM instances WHERE slug = 'colg';
+  IF v_instance IS NULL THEN
+    RAISE EXCEPTION 'No instance with slug=colg; seed migration 0012 must be applied first.';
+  END IF;
+
+  -- 1) The program project ---------------------------------------------------
+  INSERT INTO projects (id, instance_id, created_by, slug, title, status, domain, description, created_at, updated_at)
+  VALUES (
+    gen_random_uuid(), v_instance, NULL,
+    'colg-church-infra-program-2026-06',
+    'Church Infrastructure Program',
+    'active', 'church',
+    'COLG sovereign hardware + compute infrastructure program. Umbrella for the physical/compute build at the church: the sanctuary LED video wall, the two CUDA towers next to the NovaStar (livestream-primary, AI on idle only), idle-GPU opportunistic scheduling behind the Cage brakes, the unified church device asset register, the two-NAS mesh (church + home) with a capability-routed job router and local-coder workers, and a staff/volunteer Learn course on the data systems. Hardware sibling of Church Local Infrastructure (colg-local-infra-2026-06), the content/study-to-course pipeline that runs ON this hardware. Survey: docs/99-session-notes/2026-06-09-research-review-colg-9k-church-build.md',
+    now(), now()
+  )
+  ON CONFLICT (instance_id, slug) DO NOTHING;
+
+  -- 2) The seven milestone records (discussions) -----------------------------
+  INSERT INTO discussions
+    (id, instance_id, created_by, slug, kind, title, body, project_slugs, visibility, status, links, meta, author_persona, created_at, updated_at)
+  VALUES
+    (gen_random_uuid(), v_instance, NULL, 'dc-colg-infra-led-video-wall', 'decision',
+     'LED video wall capital project + install/power/data runbook',
+     'The sanctuary altar LED video wall is a capital project with an on-site install/power/data runbook. Signal path is HDMI/DVI into a NovaStar VX1000 processor (not NDI-direct). The capital-FINANCE side (pledged/received) is tracked separately in the gated church_capital_projects table (migration 0030, owner/admin RLS); this record is the BUILD/install side. WE CHOSE a NovaStar-processor HDMI/DVI path, NOT NDI-direct to the wall, BECAUSE the wall hardware ingests a processor feed. STATUS: install-started + signal-path are documented on main; the comprehensive install/power/data runbook is in the local working tree and pending commit.',
+     '["colg-church-infra-program-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{"verify_status":"PARTIAL","item_no":1}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-colg-infra-cuda-towers', 'decision',
+     'Two CUDA towers next to the NovaStar (livestream-primary, AI-idle-only)',
+     'Two CUDA towers sit next to the NovaStar: each carries 1x RTX 4070 (~12 GB VRAM) and is the SAME box that runs OBS / ProPresenter for the live stream. POSTURE (binding): livestream-primary, AI on idle only - AI inference is preempted during Sunday / Wednesday services so NVENC and the LLM never contend for the 12 GB. WE CHOSE reuse-the-stream-boxes-on-idle, NOT a dedicated always-on AI box, BECAUSE it is sovereign and free of new hardware while the stream stays first-class. SME-PENDING: detailed per-box specs (CPU / RAM / PSU / storage / exact GPU SKU) are not yet supplied by Darrell and are NOT fabricated here.',
+     '["colg-church-infra-program-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{"verify_status":"PARTIAL","item_no":2,"sme_pending":true}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-colg-infra-idle-gpu-scheduling', 'decision',
+     'Idle-GPU opportunistic scheduling (service-window lock, live-detection, checkpoint/resume, Cage brakes)',
+     'AI work runs on the towers ONLY when they are idle of livestream duty. MECHANICS: a service-window lock (stop Ollama during Sunday / Wednesday services), live-detection, and checkpoint/resume so a preempted job resumes rather than restarts. BRAKES (binding): every loop ships with all three Cage brakes - budget ceiling, single-flight concurrency lock, kill-switch - reusing the Cage primitives already in the repo, BEFORE its scheduler entry is enabled (the 2026-06-06 runaway lesson; three-brakes rule). WE CHOSE preempt-on-service + checkpoint/resume behind the Cage, NOT best-effort always-on inference, BECAUSE the live stream is first-class and unattended automation never ships without the three brakes.',
+     '["colg-church-infra-program-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{"verify_status":"PARTIAL","item_no":3}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-colg-infra-device-asset-register', 'directive',
+     'Church device inventory / asset register',
+     'ONE unified register of every church device: the two CUDA towers, the church NAS, the NovaStar VX1000, the LED wall, network gear, cameras, and the sound board. Built this pass because the facts existed but were scattered with no single register. GROUNDING RULE: records only what is grounded in a repo doc or verified inventory; uninventoried items are marked SME-PENDING with no fabricated value (DR-0076). CONFIRMED today: 2x RTX 4070 towers, NovaStar VX1000, NAS ~100 TB capacity. SME-PENDING: per-box specs, network gear, cameras, sound board make/model. Register: docs/99-session-notes/2026-06-29-colg-church-device-asset-register.md.',
+     '["colg-church-infra-program-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{"verify_status":"CONFIRMED","item_no":4,"sme_pending":true}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-colg-infra-two-nas-mesh', 'decision',
+     'Two-NAS mesh (church + home): replication + capability-routed job router + local-coder workers',
+     'The church NAS and the home NAS form ONE sovereign mesh over a single Tailscale tailnet: replication for coherence, a capability-routed job router (pick a worker by declared capability behind the brakes - GPU jobs to church-cuda, etc.), and local-coder workers (Aider + Ollama on the towers) as a future capability. A committed node manifest (infra/ai-orchestrator/mesh/nodes.json) declares each node once. WE CHOSE capability-routed federation over a single tailnet, NOT a flat cron fan-out and NOT cloud orchestration, BECAUSE it is sovereign, low-latency on-LAN, and routes each job to the node that can actually run it. STATUS: NAS-loop hardening is on main; the mesh research review + node manifest are in the local working tree, pending commit.',
+     '["colg-church-infra-program-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{"verify_status":"PARTIAL","item_no":5,"sme_pending":true}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-colg-infra-staff-learn-course', 'directive',
+     'Staff/volunteer Learn course: PoeTech Data Systems & Infrastructure',
+     'PLACEHOLDER (clearly labeled, not fabricated): a staff/volunteer Learn course teaching the COLG data systems and infrastructure - what the towers/NAS/wall do, how to operate the stream and the app cockpit, who to call. The Learn framework exists (age-adaptive lessons, quizzes, retention testing) and CAN host this course, but the course itself is NOT yet authored. NO lesson content is invented here. SME-PENDING: course outline + curriculum from Darrell / the operating staff. This record reserves the milestone and points at the Learn framework; it ships no fabricated curriculum.',
+     '["colg-church-infra-program-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{"verify_status":"SME-PENDING","item_no":6,"sme_pending":true}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'dc-colg-infra-program-record', 'decision',
+     'Church infrastructure program record (this program)',
+     'This program record itself: Church Infrastructure Program is the single in-app frame that holds items 1-6 as milestones, role-scoped to the COLG instance (no public seed). It is the HARDWARE/compute sibling of Church Local Infrastructure (colg-local-infra-2026-06, the content/study-to-course pipeline) and the Content Engine (content-engine-2026-06). Together they cover: the boxes (this program), the pipeline that runs on them, and the content the pipeline produces. WE CHOSE a dedicated hardware program cross-linked to the existing content program, NOT folding hardware into the content project, BECAUSE the two are distinct workstreams with distinct owners and milestones even though they share the same physical infrastructure.',
+     '["colg-church-infra-program-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{"verify_status":"CONFIRMED","item_no":7}'::jsonb, 'darrell', now(), now())
+  ON CONFLICT (instance_id, slug) DO NOTHING;
+END $$;
