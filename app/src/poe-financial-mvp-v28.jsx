@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/shared.jsx';
 import TraceableNumber from './components/TraceableNumber.jsx';
+// Contextual help — the discrete "?" that explains the current tab/tool (Ari's
+// voice) + the optional first-run roadmap tour. lib/help-content.js is the one
+// help registry every surface reads from. Small + always-present chrome, so it
+// rides the initial bundle rather than a lazy chunk.
+import HelpButton from './components/HelpButton.jsx';
+import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { fmt, fmtCompact, MONTHS_ABBR, monthLabel } from './lib/format.js';
 import {
   traceNetCashFlow,
@@ -5182,6 +5188,11 @@ html{scroll-padding-bottom:280px}
         </div>
       )}
 
+      {/* First-run roadmap tour — a discrete bottom card offering the "what is
+          this app" walkthrough, dismissible and remembered per device. Self-
+          positions (fixed); placed once near the app root. */}
+      <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
+
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
@@ -5228,6 +5239,20 @@ html{scroll-padding-bottom:280px}
               </button>
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
+              {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any
+                  tab and Ari explains THAT surface (what / how / why), plus the user
+                  roadmap. Context-aware: it reads the live view/sub-view, so one
+                  button covers every tab with no per-tab wiring. Sits with the other
+                  "make this comfortable to understand" controls. */}
+              <HelpButton
+                variant="header"
+                view={view}
+                churchView={churchView}
+                booksView={booksView}
+                setView={setView}
+                setChurchView={setChurchView}
+                setBooksView={setBooksView}
+              />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
