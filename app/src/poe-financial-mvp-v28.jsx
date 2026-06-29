@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/shared.jsx';
 import TraceableNumber from './components/TraceableNumber.jsx';
+// Contextual help — the discrete "?" that explains the current tab/tool (Ari's
+// voice) + the optional first-run roadmap tour. lib/help-content.js is the one
+// help registry every surface reads from. Small + always-present chrome, so it
+// rides the initial bundle rather than a lazy chunk.
+import HelpButton from './components/HelpButton.jsx';
+import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { fmt, fmtCompact, MONTHS_ABBR, monthLabel } from './lib/format.js';
 import {
   traceNetCashFlow,
@@ -71,6 +77,7 @@ import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
+import { reportPresence } from './lib/access-metrics-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
@@ -126,7 +133,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, ChefCorner, Relationships,
+  Inventory, Forecast, AccessUsageMetrics, ChefCorner, Games, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1773,7 +1780,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','admin','center','crm','relationships','inventory','forecast'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','admin','center','crm','relationships','inventory','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -2874,6 +2881,11 @@ export default function PoeFinancialSystem() {
         console.warn('[auth] tenant join failed', e);
         return;
       }
+      // Access-governance heartbeat: this session reports the build it runs +
+      // a last-seen stamp (build-freshness + activity for the steward's Access
+      // surface). Privacy: build + heartbeat only — no behavior, no content.
+      // Fire-and-forget; never blocks sign-in, never surfaces an error.
+      reportPresence();
       unsubscribeFeedback = subscribeFeedback((items) => setRemoteFeedback(items));
 
       // Entities sync (no verify-gate needed — no load-bearing numbers).
@@ -3768,6 +3780,18 @@ export default function PoeFinancialSystem() {
     }
     setData(d => ({ ...d, recipes: (d.recipes || []).filter(x => x.id !== id) }));
   };
+
+  // ---- Games hub saves — local-first (the app data store is localStorage-backed
+  // and instance-scoped). A game survives a reload and a not-signed-in child can
+  // still play. addGameSave RETURNS the new local id so the hub can open it.
+  const addGameSave = (item) => {
+    const localId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId };
+    setData(d => ({ ...d, gameSaves: [...(d.gameSaves || []), seeded] }));
+    return localId;
+  };
+  const updateGameSave = (id, updates) => setData(d => ({ ...d, gameSaves: (d.gameSaves || []).map(g => (g.id === id ? { ...g, ...updates } : g)) }));
+  const deleteGameSave = (id) => setData(d => ({ ...d, gameSaves: (d.gameSaves || []).filter(g => g.id !== id) }));
 
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
@@ -5164,6 +5188,11 @@ html{scroll-padding-bottom:280px}
         </div>
       )}
 
+      {/* First-run roadmap tour — a discrete bottom card offering the "what is
+          this app" walkthrough, dismissible and remembered per device. Self-
+          positions (fixed); placed once near the app root. */}
+      <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
+
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
@@ -5210,6 +5239,20 @@ html{scroll-padding-bottom:280px}
               </button>
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
+              {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any
+                  tab and Ari explains THAT surface (what / how / why), plus the user
+                  roadmap. Context-aware: it reads the live view/sub-view, so one
+                  button covers every tab with no per-tab wiring. Sits with the other
+                  "make this comfortable to understand" controls. */}
+              <HelpButton
+                variant="header"
+                view={view}
+                churchView={churchView}
+                booksView={booksView}
+                setView={setView}
+                setChurchView={setChurchView}
+                setBooksView={setBooksView}
+              />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
@@ -5301,6 +5344,11 @@ html{scroll-padding-bottom:280px}
                 // Vegan Recipes by Chef Mario). Open to every signed-in user;
                 // persistence is instance-scoped (family-private).
                 ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
+                // Games — the family games hub ("our games"). Open to everyone
+                // (the children most of all); the first game walks an African
+                // American life journey, measured by Yahweh. Persistence is
+                // instance-scoped and local-first.
+                ['games', <><UiIcon name="dice" /> Games</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -5333,6 +5381,11 @@ html{scroll-padding-bottom:280px}
                 // so the entry is absent from the DOM for everyone else (no-leak),
                 // and the component carries a locked fallback for any deep-link.
                 ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
+                // Access & Usage — WHO has access + counts/activity + build-
+                // freshness (rollout management). Family/Governor only (steward
+                // governance over real members); spread so the entry is absent
+                // from the DOM for everyone else (no-leak), like Center / CRM.
+                ...(isFamilyMember ? [['access', <><UiIcon name="monitor" /> Access</>]] : []),
                 // Admin surfaced at the top so users can SEE a steward space
                 // exists (visible-but-locked, like 🔒 Observation). ACCESS is
                 // gated at the render below — the entry being visible is the goal.
@@ -5859,6 +5912,18 @@ html{scroll-padding-bottom:280px}
             />
           </SectionBoundary>
         )}
+        {/* Games — the family games hub. Own SectionBoundary so a thrown error
+            degrades just this surface. Local-first persistence via gameSaves. */}
+        {view === 'games' && (
+          <SectionBoundary name="Games">
+            <Games
+              saves={data.gameSaves || []}
+              addSave={addGameSave}
+              updateSave={updateGameSave}
+              deleteSave={deleteGameSave}
+            />
+          </SectionBoundary>
+        )}
         {/* Voice — "listen to anything" in a chosen voice; consent-gated personal
             (cloned) voices as a subscriber feature. Own SectionBoundary so a thrown
             error degrades just this surface. Personal-voice timbre is honest:
@@ -5952,7 +6017,7 @@ html{scroll-padding-bottom:280px}
         )}
 
         {view === 'crm' && (isFamilyMember
-          ? <CRM inquiries={data.inquiries || []} currentUserId={authSession?.user?.id || null} />
+          ? <CRM inquiries={data.inquiries || []} practiceLeads={data.practiceLeads || []} currentUserId={authSession?.user?.id || null} />
           : (
             <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
               <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
@@ -5999,6 +6064,24 @@ html{scroll-padding-bottom:280px}
           ))}
 
         {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
+
+        {/* Access & Usage — access governance + aggregate usage + build-freshness.
+            Family/Governor only (real members, real build-freshness); own
+            SectionBoundary so a thrown error degrades just this surface. The
+            member_presence read is owner/admin-gated at the DB too (defense in
+            depth). Locked fallback for any deep-link by a non-steward. */}
+        {view === 'access' && (isFamilyMember
+          ? (
+            <SectionBoundary name="Access">
+              <AccessUsageMetrics />
+            </SectionBoundary>
+          ) : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="monitor" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">Access &amp; Usage is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Who-has-access and rollout metrics are governor-only. Sign in with a steward account to view them.</p>
+            </div>
+          ))}
 
         {view === 'admin' && ((isFamilyMember || !isPublicHost())
           ? <Admin />
@@ -6506,6 +6589,7 @@ const FEEDBACK_AREAS = [
     ['voice', '🔊 Voice · listen to anything (choose a voice · consent-gated enrollment)'],
     ['library', '📖 Library · books from the corpus + in-app reader (companion deep-links)'],
     ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
+    ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "📓 Darrell's Study · reflections / processing / cultural research (device-local)"],
@@ -6529,6 +6613,9 @@ const FEEDBACK_AREAS = [
     ['forecast', '📈 Forecast · forward cash-flow projection from real data (per business / family / consolidated)'],
     ['forecast-scenarios', '└ Scenarios · best/base/worst · add property / tier / capital purchase (editable assumptions)'],
     ['forecast-track', '└ Track · projected-vs-actual over time (forecast accuracy)'],
+  ]},
+  { group: 'Access & Usage (steward · access governance)', items: [
+    ['access', 'Access & Usage · who has access (role · scope) + counts/activity + build-freshness (rollout management)'],
   ]},
   { group: "Chef's Corner — Kitchen Inventory (steward · homed in Chef's Corner)", items: [
     ['kitchen', "Kitchen Inventory · Chef Mario's inventory, in Chef's Corner (count by weight/unit · par alerts · value)"],
