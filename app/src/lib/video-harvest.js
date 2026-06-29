@@ -6,57 +6,75 @@
 //    give us new content and context to something."
 //
 // Every ingested church recording is ONE source that fans out into MANY harvests.
-// This module is the PURE, dependency-free core: the harvest-type registry, the
-// per-video coverage math, and the corpus roll-up that MEASURES "no video lost".
-// No imports -> safe in Node + browser + tests. The Supabase wiring lives in
+// This module is the PURE core: the harvest-type registry, the per-video coverage
+// math, and the corpus roll-up that MEASURES "no video lost". Its only import is
+// the equally-pure transcript-harvest.js (the YouTube-caption extractors), so it
+// stays safe in Node + browser + tests. The Supabase wiring lives in
 // harvest-ledger.js; the surface in components/HarvestLedger.jsx.
 //
 // HONESTY (DR-0076 verification doctrine): coverage is derived, never painted.
 // A harvest type is only ever 'complete'/'partial' when there's a recorded run
 // OR real downstream rows evidencing it (deriveSignals). An untouched type reads
 // as 'none' — a gap, surfaced for processing, not hidden.
+//
+// THE YOUTUBE-TRANSCRIPT UNBLOCK (Darrell 2026-06-29): the transcript-derived
+// harvests used to be gated on a Whisper-on-NAS (GPU) run that never happened, so
+// the % stalled at ~22%. YouTube AUTO-GENERATES captions for every service video
+// — that IS the transcript. Sourced from YouTube (no GPU), the transcript-derived
+// harvests run automatically too. Whisper-on-NAS is now only the rare fallback for
+// a video that has NO captions at all.
 // =============================================================================
+import { harvestFromTranscript } from './transcript-harvest.js';
 
 // The harvests every service recording can yield. Order = display order.
 // `derived: 'transcript'` marks a harvest that comes from re-reading the already-
-// ingested corpus (the Whisper transcript), NOT from re-fetching the video — the
+// ingested corpus (the transcript), NOT from re-fetching the video — the
 // one-source-many-harvests rule.
 //
 // HOW each type is mined (the honest split that keeps the % moving — see
 // deriveSignals):
-//   `auto: true`  — derived in-app NOW from real fields already on the ingested
-//                   row (no transcript, no GPU): message, scripture, songs, events.
-//   `gate: 'nas'` — needs the Whisper TRANSCRIPT, produced on the SME pipeline
-//                   (NAS / GPU) and then recorded: the transcript + its LLM
-//                   derivatives (lessons / discernment / testimony / trivia).
-// An `auto` type with no real evidence still reads 'none' (an honest gap); a
-// gated type stays 'none' until the NAS run records it. Nothing is painted.
+//   `fromRow: true`        — derived in-app the instant a video is ingested, from
+//                            real fields already on the row (no transcript, no
+//                            GPU): message, scripture-in-title, songs, events.
+//   `fromTranscript: true` — mined from the service TRANSCRIPT. The transcript is
+//                            now sourced automatically from YouTube auto-captions
+//                            (no GPU): the transcript itself + lessons /
+//                            discernment / testimony / trivia. Whisper-on-NAS is
+//                            only the fallback for a no-caption video.
+// Every type has exactly one of these flags (exhaustive, disjoint). A type with
+// no real evidence still reads 'none' (an honest gap). Nothing is painted.
 export const HARVEST_TYPES = [
   { key: 'transcript', label: 'Transcript', short: 'Words', foundation: true,
-    surface: 'sme-pipeline', gate: 'nas',
-    description: 'The base corpus — the Whisper transcript every other harvest derives from. Mine this once on the SME pipeline (NAS); reuse it for all the rest.' },
-  { key: 'sermon', label: 'Message', short: 'Sermon', surface: 'pulpit', derived: 'transcript', auto: true,
+    surface: 'sme-pipeline', fromTranscript: true,
+    description: 'The base corpus — the transcript every other harvest derives from. Sourced from the video’s YouTube auto-captions (no GPU); Whisper-on-NAS is the fallback when a video has no captions.' },
+  { key: 'sermon', label: 'Message', short: 'Sermon', surface: 'pulpit', derived: 'transcript', fromRow: true,
     description: 'The teaching itself — speaker, title, the message-library entry congregants watch.' },
-  { key: 'scripture', label: 'Scripture', short: 'Refs', surface: 'scripture', derived: 'transcript', auto: true,
-    description: 'Every Scripture reference cited in the service, fed to the Scripture library.' },
-  { key: 'songs', label: 'Worship songs', short: 'Songs', surface: 'choir', derived: 'transcript', auto: true,
+  { key: 'scripture', label: 'Scripture', short: 'Refs', surface: 'scripture', derived: 'transcript', fromRow: true,
+    description: 'Every Scripture reference cited in the service, fed to the Scripture library. Lights from the title; the full sweep completes off the transcript.' },
+  { key: 'songs', label: 'Worship songs', short: 'Songs', surface: 'choir', derived: 'transcript', fromRow: true,
     description: 'Choir / worship songs sung, fed to the historical choir library (the choir lane consumes these).' },
-  { key: 'lessons', label: 'Lessons', short: 'Learn', surface: 'learn', derived: 'transcript', gate: 'nas',
-    description: 'The teaching turned into paced Learn course material (needs the transcript).' },
-  { key: 'discernment', label: 'Discernment', short: 'World', surface: 'discernment', derived: 'transcript', gate: 'nas',
-    description: 'World-issue / cultural context the teaching engages (e.g. the African-American plight), fed to the discernment track (needs the transcript).' },
-  { key: 'testimony', label: 'Testimony & stories', short: 'Stories', surface: 'study', derived: 'transcript', gate: 'nas',
-    description: 'Quotable testimonies and Sermon Stories worth keeping (needs the transcript).' },
-  { key: 'trivia', label: 'Trivia', short: 'Trivia', surface: 'engagement', derived: 'transcript', gate: 'nas',
-    description: 'Engagement questions drawn from the message (BG’s own end-of-message questions) — needs the transcript / audio.' },
-  { key: 'events', label: 'Events-as-data', short: 'Events', surface: 'institutional-memory', derived: 'transcript', auto: true,
+  { key: 'lessons', label: 'Lessons', short: 'Learn', surface: 'learn', derived: 'transcript', fromTranscript: true,
+    description: 'The teaching turned into paced Learn course material — seeded from BG’s own teaching beats in the transcript.' },
+  { key: 'discernment', label: 'Discernment', short: 'World', surface: 'discernment', derived: 'transcript', fromTranscript: true,
+    description: 'World-issue / cultural context the teaching engages (e.g. the African-American plight), fed to the discernment track — the themes the message actually speaks to, from the transcript.' },
+  { key: 'testimony', label: 'Testimony & stories', short: 'Stories', surface: 'study', derived: 'transcript', fromTranscript: true,
+    description: 'Quotable testimonies and Sermon Stories worth keeping — the first-person stories told in the transcript.' },
+  { key: 'trivia', label: 'Trivia', short: 'Trivia', surface: 'engagement', derived: 'transcript', fromTranscript: true,
+    description: 'Engagement questions drawn from the message (BG’s own questions) — pulled from the transcript.' },
+  { key: 'events', label: 'Events-as-data', short: 'Events', surface: 'institutional-memory', derived: 'transcript', fromRow: true,
     description: 'Institutional-memory events — what happened this service, captured as structured data.' },
 ];
 
-// The harvests that auto-derive in-app now (no transcript) vs. the ones gated on
-// the NAS Whisper run. Exported so the surface can label the gate honestly.
-export const AUTO_HARVEST_KEYS = HARVEST_TYPES.filter((t) => t.auto).map((t) => t.key);
-export const NAS_GATED_KEYS = HARVEST_TYPES.filter((t) => t.gate === 'nas').map((t) => t.key);
+// The harvests that derive from the ingested row the instant a video lands (no
+// transcript) vs. the ones mined from the service transcript (now auto-sourced
+// from YouTube captions). Exhaustive + disjoint. Exported so the surface can label
+// each harvest's source honestly.
+export const AUTO_HARVEST_KEYS = HARVEST_TYPES.filter((t) => t.fromRow).map((t) => t.key);
+export const TRANSCRIPT_DERIVED_KEYS = HARVEST_TYPES.filter((t) => t.fromTranscript).map((t) => t.key);
+// Back-compat alias (was "needs the Whisper transcript"). These are no longer
+// GPU-gated — they're the transcript-derived harvests, now auto-sourced from
+// YouTube captions. Kept as an alias so older imports keep resolving.
+export const NAS_GATED_KEYS = TRANSCRIPT_DERIVED_KEYS;
 
 export const HARVEST_KEYS = HARVEST_TYPES.map((t) => t.key);
 const TYPE_BY_KEY = Object.fromEntries(HARVEST_TYPES.map((t) => [t.key, t]));
@@ -200,14 +218,18 @@ export function eventLabel(sermon) {
 //                   (and, when present, the transcript).
 //     • songs     — real choir_songs linked to this video (passed in by buildLedger).
 //
-//   TRANSCRIPT-GATED (NAS / GPU) — only the foundation `transcript` auto-derives
-//   here, and only when a real transcript is supplied. lessons / discernment /
-//   testimony / trivia need LLM extraction off that transcript and are RECORDED by
-//   the SME pipeline (recordHarvest); we never auto-mark them from mere presence.
+//   TRANSCRIPT-DERIVED (now auto-sourced from YouTube captions, no GPU) — when a
+//   real transcript is supplied, the foundation `transcript` lights AND the four
+//   mined harvests (lessons / discernment / testimony / trivia) light from real
+//   extracted evidence via the shared transcript-harvest.js extractors. Each is
+//   'partial' (heuristic-extracted, deepenable by a later LLM pass over the SAME
+//   transcript) — never painted from mere presence; an extractor that finds
+//   nothing leaves its harvest an honest 'none'.
 export function deriveSignals({ sermon, songs, transcript } = {}) {
   const sig = {};
   const transcriptText = transcript && typeof transcript === 'object'
     ? (transcript.text || '') : (typeof transcript === 'string' ? transcript : '');
+  const hasTranscript = !!(transcriptText && transcriptText.trim().length > 0);
 
   if (sermon) {
     // The sermon row existing IS the message captured.
@@ -220,22 +242,28 @@ export function deriveSignals({ sermon, songs, transcript } = {}) {
     }
 
     // Scripture: real references cited in the row's own text (+ transcript when
-    // present, which is far richer than a title). Honest 'partial' — the full
-    // scripture sweep of a whole message still wants the transcript.
+    // present, which is far richer than a title). A full transcript means the
+    // whole-service Scripture sweep is done -> 'complete'; title-only -> 'partial'.
     const refs = extractScriptureRefs([sermon.scriptureRef, sermon.title, sermon.notes, transcriptText]);
     if (refs.length) {
-      sig.scripture = { status: 'partial', count: refs.length, refs: refs.slice(0, 25), evidenced: true };
+      const full = hasTranscript && transcriptText.trim().length > 200;
+      sig.scripture = { status: full ? 'complete' : 'partial', count: refs.length, refs: refs.slice(0, 25), evidenced: true };
     }
-  }
-
-  // Transcript foundation: a real transcript present IS the transcript harvest.
-  if (transcriptText && transcriptText.trim().length > 0) {
-    sig.transcript = { status: 'complete', count: 1, evidenced: true };
   }
 
   const linked = (songs || []).filter(Boolean);
   if (linked.length) {
     sig.songs = { status: 'partial', count: linked.length, evidenced: true };
+  }
+
+  // Transcript-derived harvests — the YouTube-caption unblock. ONE shared
+  // extractor (transcript-harvest.js) lights the foundation `transcript` plus
+  // lessons / discernment / testimony / trivia from real text. Used identically by
+  // the browser (here) and the loader script (scripts/harvest-from-transcripts.mjs)
+  // so there's no drift between what the % shows and what gets recorded. Does not
+  // emit `scripture` (deriveSignals owns that above), so this never clobbers it.
+  if (hasTranscript) {
+    Object.assign(sig, harvestFromTranscript(transcriptText));
   }
   return sig;
 }
@@ -341,9 +369,11 @@ export function harvestLedgerSummary(videos) {
 //   sermons:    [{ videoId, title, serviceDate, serviceType, youtubeUrl, scriptureRef }]
 //   harvests:   [{ videoId, title, serviceDate, serviceType, sourceKind, harvests }]
 //   songs:      [{ id, title, sourceVideoId, serviceDate, serviceType, ... }]
-//   transcripts:{ [videoId]: { text } }  — optional; the NAS Whisper output. When a
-//               video's transcript is present, its `transcript` harvest (and a
-//               richer scripture sweep) light up. Absent today (NAS-gated) -> {}.
+//   transcripts:{ [videoId]: { text } }  — optional; the service transcript, now
+//               sourced from YouTube auto-captions (Whisper-on-NAS fallback). When a
+//               video's transcript is present, its `transcript`, lessons,
+//               discernment, testimony, trivia harvests (and the full scripture
+//               sweep) light up. Absent -> {} and those stay an honest gap.
 //
 // Returns harvestLedgerSummary(...) over the merged corpus.
 export function buildLedger({ sermons = [], harvests = [], songs = [], transcripts = {} } = {}) {

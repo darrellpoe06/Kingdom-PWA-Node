@@ -128,7 +128,7 @@ describe('songs link by service date when not explicitly tied to the video', () 
   });
 });
 
-describe('transcript is the NAS-gated unlock (forward-wired, honest until it lands)', () => {
+describe('transcript unlock — now sourced from YouTube auto-captions (no GPU)', () => {
   it('a supplied transcript lights the foundation transcript harvest + richer Scripture', () => {
     const sig = deriveSignals({
       sermon: { serviceDate: '2026-06-01', title: 'untitled' },
@@ -146,7 +146,7 @@ describe('transcript is the NAS-gated unlock (forward-wired, honest until it lan
     expect(s.rows[0].harvests.transcript.status).toBe('complete');
   });
 
-  it('without a transcript, the NAS-gated harvests stay an honest gap (never painted)', () => {
+  it('without a transcript, the transcript-derived harvests stay an honest gap (never painted)', () => {
     const s = buildLedger({ sermons: [{ videoId: 'v1', serviceDate: '2026-06-01' }] });
     for (const k of ['lessons', 'discernment', 'testimony', 'trivia']) {
       expect(s.rows[0].harvests[k].status).toBe('none');
@@ -154,8 +154,8 @@ describe('transcript is the NAS-gated unlock (forward-wired, honest until it lan
   });
 });
 
-describe('the auto / NAS partition is exhaustive and disjoint', () => {
-  it('every harvest type is exactly one of auto-now or NAS-gated', () => {
+describe('the row / transcript-derived partition is exhaustive and disjoint', () => {
+  it('every harvest type is exactly one of from-row or from-transcript', () => {
     const auto = new Set(AUTO_HARVEST_KEYS);
     const nas = new Set(NAS_GATED_KEYS);
     for (const k of HARVEST_KEYS) {
