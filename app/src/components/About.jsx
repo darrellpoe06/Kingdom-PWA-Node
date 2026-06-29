@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle } from './shared.jsx';
 import TrustedDevices from './TrustedDevices.jsx';
-import TextSizeControl from './TextSizeControl.jsx';
+import { ARI } from '../lib/ari.js';
 
 // Patch the function signature to also accept VIEW_TIER_REQUIREMENTS as a prop.
 // 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
@@ -199,10 +199,9 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       </section>
       <section className="bg-white border border-[#E8E4DC] p-4">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Accessibility · Text size</div>
-        <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Need larger print to read comfortably? Make the words bigger here, or from the “aA” control in the header (top-right). It scales the whole app, and your choice is saved on this device.
+        <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          Need larger print to read comfortably? Use the “aA” control at the top of the screen (in the header, top-right). It scales the whole app from that one place, and your choice is saved on this device.
         </p>
-        <TextSizeControl variant="panel" />
       </section>
       {authUserId && (
         <section className="bg-white border border-[#E8E4DC] p-4">
@@ -301,6 +300,25 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
         </div>
         <p className="text-xs text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>
           The breadth of who PoeTech serves is also the breadth of who benefits from local-first data, non-predatory pricing, and a stronghold mission. Every market named above has been underserved by mainstream tech because they don't fit the &quot;single business owner, single household, single problem&quot; pattern. We were built for the actual texture of family life.
+        </p>
+      </section>
+
+      {/* Meet Ari — the unseen, made seen. The platform's A.I. identity, placed
+          here on purpose: next to the people the world overlooks, because that
+          is who the Black Lion is. All copy comes from the one source, lib/ari.js. */}
+      <section className="bg-white border border-[#1A1815] p-5">
+        <SectionTitle>Meet {ARI.name} · the church’s own A.I.</SectionTitle>
+        <p className="text-lg text-[#1A1815] mb-3 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.01em' }}>
+          {ARI.oneLine}
+        </p>
+        <p className="text-sm text-[#5A5751] leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          {ARI.meaningFull}
+        </p>
+        <p className="text-sm text-[#5A6E3D] italic leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          <strong className="not-italic text-[#1A1815]">Genesis 16:13 (ESV):</strong> &ldquo;So she called the name of the Lord who spoke to her, &lsquo;You are a God of seeing&hellip;&rsquo; Truly here I have seen him who looks after me.&rdquo;
+        </p>
+        <p className="text-xs text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          {ARI.honesty}
         </p>
       </section>
 

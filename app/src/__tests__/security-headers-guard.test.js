@@ -1,17 +1,23 @@
 // =============================================================================
-// Security headers — vercel.json defense-in-depth gate (DR-0076 / DR-0060)
+// Security headers — defense-in-depth gate for BOTH hosts (DR-0076 / DR-0060)
 // =============================================================================
-// The app is served by Vercel; the only place to set response security headers is
-// app/vercel.json. This gate proves the headers + CSP are present and meaningfully
-// strict, and (per DR-0060) is proven-to-catch: a weakened CSP (e.g. script-src
-// regaining 'unsafe-inline', which would re-open inline-script XSS), a dropped
-// clickjacking guard, or a removed CSP all FAIL here.
+// Response security headers are set in TWO places, one per host:
+//   - app/vercel.json          (Vercel — the host today)
+//   - app/public/_headers      (Cloudflare Pages — the host after the cutover,
+//                               docs/00-foundations/CLOUDFLARE-CUTOVER-RUNBOOK.md)
+// On Cloudflare, _headers is the ONLY place headers are set: anything not listed
+// is not served. So the off-Vercel move could SILENTLY drop the CSP/HSTS/
+// clickjacking guards. This gate proves both files carry strict headers AND that
+// the Cloudflare CSP is at byte parity with Vercel's — and (per DR-0060) is
+// proven-to-catch: a weakened CSP, a dropped guard, or a host drifting from the
+// other all FAIL here.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const VERCEL = join(dirname(fileURLToPath(import.meta.url)), '../../vercel.json');
+const CF_HEADERS = join(dirname(fileURLToPath(import.meta.url)), '../../public/_headers');
 
 // Pull the header object that carries the CSP, flattened to { key: value }.
 function securityHeaderMap(config) {
@@ -23,11 +29,13 @@ function securityHeaderMap(config) {
   return null;
 }
 
-// Pure checker: returns { ok, problems }.
-export function checkSecurityHeaders(config) {
+// Shared core: run the strict-headers checks against a { key: value } header map
+// (keys lowercased). Used for both the Vercel and Cloudflare header sources.
+function checkHeaderMap(map) {
   const problems = [];
-  const map = securityHeaderMap(config);
-  if (!map) return { ok: false, problems: ['no header block carries a Content-Security-Policy'] };
+  if (!map || !map['content-security-policy']) {
+    return { ok: false, problems: ['no header source carries a Content-Security-Policy'] };
+  }
 
   const required = ['x-frame-options', 'x-content-type-options', 'referrer-policy', 'permissions-policy', 'strict-transport-security'];
   for (const k of required) if (!map[k]) problems.push(`missing header ${k}`);
@@ -51,7 +59,45 @@ export function checkSecurityHeaders(config) {
   return { ok: problems.length === 0, problems };
 }
 
+// Pure checker for the Vercel config: returns { ok, problems }.
+export function checkSecurityHeaders(config) {
+  return checkHeaderMap(securityHeaderMap(config));
+}
+
+// --- Cloudflare Pages _headers (the post-cutover host) -----------------------
+// Parse the _headers file into { '<path>': { header-name(lowercase): value } }.
+// Format: a path line at column 0, followed by indented "Header: value" lines;
+// '#' lines and blanks are ignored. https://developers.cloudflare.com/pages/configuration/headers/
+export function parseCloudflareHeaders(text) {
+  const rules = {};
+  let current = null;
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/\r$/, '');
+    if (!line.trim() || line.trim().startsWith('#')) continue;
+    if (/^\s/.test(line)) {
+      // Indented → a header on the current rule.
+      const idx = line.indexOf(':');
+      if (current && idx !== -1) {
+        const key = line.slice(0, idx).trim().toLowerCase();
+        current[key] = line.slice(idx + 1).trim();
+      }
+    } else {
+      // Column 0 → a path pattern; start a new rule.
+      current = {};
+      rules[line.trim()] = current;
+    }
+  }
+  return rules;
+}
+
+// The security headers live on the catch-all '/*' rule. Returns { ok, problems }.
+export function checkCloudflareHeaders(text) {
+  const rules = parseCloudflareHeaders(text);
+  return checkHeaderMap(rules['/*'] || null);
+}
+
 const realConfig = () => JSON.parse(readFileSync(VERCEL, 'utf8'));
+const realCfHeaders = () => readFileSync(CF_HEADERS, 'utf8');
 
 describe('vercel.json security headers', () => {
   it('PASSES the real vercel.json (CSP + headers present and strict)', () => {
@@ -86,5 +132,50 @@ describe('vercel.json security headers', () => {
     const { ok, problems } = checkSecurityHeaders(cfg);
     expect(ok).toBe(false);
     expect(problems.join(' ')).toMatch(/frame-ancestors/i);
+  });
+});
+
+describe('Cloudflare _headers security headers (post-cutover host)', () => {
+  it('PASSES the real _headers (strict security headers on /*)', () => {
+    const { ok, problems } = checkCloudflareHeaders(realCfHeaders());
+    expect(ok, problems.join('; ')).toBe(true);
+  });
+
+  it('keeps the Cloudflare CSP at byte parity with vercel.json', () => {
+    const cfCsp = (parseCloudflareHeaders(realCfHeaders())['/*'] || {})['content-security-policy'];
+    const vercelCsp = securityHeaderMap(realConfig())['content-security-policy'];
+    // Drift on either host is a regression: a relaxed CSP on one is a hole on
+    // whichever host serves it. They must move together.
+    expect(cfCsp).toBe(vercelCsp);
+  });
+
+  // --- proven-to-catch (DR-0060) ---------------------------------------------
+  it('CATCHES a _headers with no /* security block (the pre-fix regression)', () => {
+    // This is exactly the state main was in before the cutover hardening: only
+    // cache rules, no security block. It MUST fail.
+    const cacheOnly = '/poetech-app/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n';
+    expect(checkCloudflareHeaders(cacheOnly).ok).toBe(false);
+  });
+
+  it("CATCHES script-src regaining 'unsafe-inline' in _headers", () => {
+    const weakened = realCfHeaders().replace("script-src 'self'", "script-src 'self' 'unsafe-inline'");
+    const { ok, problems } = checkCloudflareHeaders(weakened);
+    expect(ok).toBe(false);
+    expect(problems.join(' ')).toMatch(/unsafe-inline/i);
+  });
+
+  it('CATCHES a dropped HSTS header in _headers', () => {
+    const noHsts = realCfHeaders().replace(/^\s*Strict-Transport-Security:.*$/m, '');
+    expect(checkCloudflareHeaders(noHsts).ok).toBe(false);
+  });
+
+  it('CATCHES the two hosts drifting apart (parity guard)', () => {
+    const cfCsp = (parseCloudflareHeaders(realCfHeaders())['/*'] || {})['content-security-policy'];
+    const driftedVercel = JSON.parse(readFileSync(VERCEL, 'utf8'));
+    const map = securityHeaderMap(driftedVercel);
+    const entry = driftedVercel.headers.find((e) => (e.headers || []).some((h) => h.value === map['content-security-policy']));
+    const cspHeader = entry.headers.find((h) => h.key === 'Content-Security-Policy');
+    cspHeader.value = cspHeader.value + " https://evil.example.com";
+    expect(cfCsp).not.toBe(securityHeaderMap(driftedVercel)['content-security-policy']);
   });
 });

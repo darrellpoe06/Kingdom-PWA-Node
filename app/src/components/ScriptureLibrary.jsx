@@ -19,9 +19,13 @@
 // Accessibility mirrors Pulpit/Choir/Study: white / #FAF8F4 cards, #1A1815 body,
 // #5A5751 secondary, #5A6E3D scripture green, visible #B85838 focus outline (AA).
 // =============================================================================
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { SectionTitle } from './shared.jsx';
-import TextSizeControl from './TextSizeControl.jsx';
+// Live church corpus for the Scripture "appearances" cross-module link: where a
+// verse already shows up in the church's REAL sermons + songs. Subscribed here
+// (the real source) instead of receiving empty props — the monolith holds no
+// sermon/song state, so passing data.* would have starved the engine with [].
+import { subscribeSermons, subscribeSongs } from '../lib/choir-sync.js';
 import {
   THEMES, SURFACES, OTHER_VERSIONS, VERSE_ROLES, COPYRIGHT_NOTE,
   kjvText, readOnline, searchVerses,
@@ -30,6 +34,13 @@ import {
   DEPTH_TIERS, EXPERIENCE_LEVELS, GOVERNING_LENS, PRIVACY, ACCESSIBILITY,
   resolveDepth, resolveLevel, rankByInterest, gradeTest, encouragement,
 } from '../lib/scripture-teaching.js';
+import {
+  buildStudyEntry, checkSeparation, clarifiedRefs, INTEGRITY_BANNER,
+} from '../lib/study-edition.js';
+import { provenanceLine } from '../lib/bible-editions.js';
+import ScriptureConnections from './ScriptureConnections.jsx';
+import { studySeedFromVerse } from '../lib/studyable.js';
+import { loadStudy, saveStudy, addSeedToStudy } from '../lib/study-space.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -81,14 +92,39 @@ function OtherTranslations({ refStr }) {
   );
 }
 
+// Save one curated verse into the personal Study as a seed (the content flywheel).
+// Renders only for Study-circle users (canStudy) — gate-respecting, never widens the
+// private Study. Idempotent: re-saving the same verse refreshes, never duplicates.
+function AddVerseToStudy({ verse, email }) {
+  const [saved, setSaved] = useState(null);
+  const save = () => {
+    const seed = studySeedFromVerse(verse);
+    const study = loadStudy(email);
+    const { study: next, added } = addSeedToStudy(study, seed, Date.now(), study.entries.length);
+    saveStudy(email, next);
+    setSaved({ added });
+  };
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <button type="button" onClick={save}
+        title="Save this verse into your personal Study to keep studying and build on it"
+        className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">+ Study</button>
+      {saved && <span className="text-[10px] text-[#5A6E3D]" style={serif}>{saved.added ? '✓ Saved' : '✓ Refreshed'}</span>}
+    </span>
+  );
+}
+
 // --- One verse ---------------------------------------------------------------
-function VerseCard({ refStr, kjv, gloss, role, backs }) {
+function VerseCard({ refStr, kjv, gloss, role, backs, canStudy = false, email = null, themeId = null, themeTitle = null }) {
   const roleLabel = (VERSE_ROLES[role] || {}).label || role;
   return (
     <div className="bg-white border border-[#E8E4DC] p-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="text-[11px] uppercase tracking-wider text-[#5A6E3D] font-semibold" style={mono}>{refStr}</div>
-        {role && <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${ROLE_CLS[role] || ROLE_CLS.truth}`}>{roleLabel}</span>}
+        <div className="flex items-center gap-2">
+          {canStudy && <AddVerseToStudy verse={{ ref: refStr, kjv, gloss, role, themeId, themeTitle }} email={email} />}
+          {role && <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${ROLE_CLS[role] || ROLE_CLS.truth}`}>{roleLabel}</span>}
+        </div>
       </div>
       <p className="text-sm text-[#1A1815] mt-1 leading-relaxed" style={serif}>
         <span className="sr-only">King James Version. </span>
@@ -171,7 +207,7 @@ function ThemeTest({ test }) {
 }
 
 // --- One theme ---------------------------------------------------------------
-function ThemeSection({ theme, tier, level }) {
+function ThemeSection({ theme, tier, level, canStudy = false, email = null }) {
   const [localTier, setLocalTier] = useState(null); // per-theme override of global tier
   const effectiveTier = localTier || tier;
   const depth = resolveDepth(theme, effectiveTier);
@@ -249,7 +285,8 @@ function ThemeSection({ theme, tier, level }) {
       {/* The verses */}
       <div className="space-y-2">
         {theme.verses.map((v) => (
-          <VerseCard key={v.ref} refStr={v.ref} kjv={kjvText(v.ref)} gloss={v.gloss} role={v.role} backs={v.backs || theme.surfaces} />
+          <VerseCard key={v.ref} refStr={v.ref} kjv={kjvText(v.ref)} gloss={v.gloss} role={v.role} backs={v.backs || theme.surfaces}
+            canStudy={canStudy} email={email} themeId={theme.id} themeTitle={theme.title} />
         ))}
       </div>
 
@@ -259,13 +296,186 @@ function ThemeSection({ theme, tier, level }) {
   );
 }
 
-export default function ScriptureLibrary() {
+// --- Study Edition: one reference, two structurally-distinct layers ----------
+// The marquee of the sovereign edition. The SCRIPTURE layer is verbatim public-
+// domain text (version + license labeled); the CLARIFICATION layer is OUR study
+// help, rendered in a visibly different treatment so it can never read as the
+// Word. checkSeparation() runs before render — if the guardrail ever failed, we
+// show that honestly rather than blurring the line.
+function StudyEditionEntry({ refStr }) {
+  const entry = useMemo(() => buildStudyEntry(refStr), [refStr]);
+  if (!entry) return null;
+  const sep = checkSeparation(entry);
+  const clar = entry.clarification;
+
+  return (
+    <div>
+      {/* The binding banner — which is which */}
+      <p className="text-[11px] text-[#5A5751] mb-2 leading-relaxed" style={serif}>{INTEGRITY_BANNER}</p>
+
+      {!sep.ok && (
+        <p className="text-xs text-white bg-[#7A4A1E] px-2 py-1 mb-2" style={serif}>
+          Integrity check failed for this entry — the text/commentary separation could not be verified. Showing nothing rather than risk blurring the Word.
+        </p>
+      )}
+
+      {sep.ok && (
+        <>
+          {/* SCRIPTURE TEXT LAYER — verbatim, version + license labeled */}
+          <div className="border border-[#5A6E3D] bg-white mb-3">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-white bg-[#5A6E3D] px-3 py-1.5 font-semibold">
+              Scripture text — public domain, reproduced verbatim
+            </div>
+            <div className="p-3 space-y-3">
+              {entry.scripture.editions.map((ed) => (
+                <div key={ed.versionId}>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[11px] uppercase tracking-wider text-[#5A6E3D] font-semibold" style={mono}>{entry.ref}</span>
+                    <span className="text-[9px] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5" style={mono}>{ed.versionId}</span>
+                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751] px-1 py-0.5">{ed.license}</span>
+                  </div>
+                  <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>
+                    <span className="sr-only">{ed.version}. </span>“{ed.text}”
+                  </p>
+                  <p className="text-[9px] text-[#5A5751] mt-0.5" style={mono}>{provenanceLine(ed.versionId)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CLARIFICATION LAYER — visibly distinct; clearly NOT Scripture */}
+          {clar ? (
+            <div className="border-2 border-dashed border-[#B85838] bg-[#FAF8F4]">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] px-3 py-1.5 font-semibold border-b border-dashed border-[#B85838]">
+                Clarification — PoeTech Study Edition · study notes, not Scripture
+              </div>
+              <div className="p-3 space-y-2.5" style={serif}>
+                {clar.plain && <p className="text-sm text-[#1A1815] leading-relaxed">{clar.plain}</p>}
+
+                {clar.fourD && (
+                  <div className="bg-white border border-[#E8E4DC] p-2.5 space-y-1">
+                    <p className="text-xs text-[#1A1815]"><span className="uppercase tracking-wider text-[9px] text-[#B85838]">Deep source · </span>{clar.fourD.source}</p>
+                    <p className="text-xs text-[#1A1815]"><span className="uppercase tracking-wider text-[9px] text-[#B85838]">In plain words · </span>{clar.fourD.plain}</p>
+                    <p className="text-xs text-[#1A1815]"><span className="uppercase tracking-wider text-[9px] text-[#B85838]">What it gives you · </span>{clar.fourD.benefits}</p>
+                  </div>
+                )}
+
+                {clar.yahwehContext && (
+                  <p className="text-xs text-[#1A1815]"><span className="uppercase tracking-wider text-[9px] text-[#5A6E3D]">In the context of Yahweh · </span>{clar.yahwehContext}</p>
+                )}
+
+                {clar.wordStudy && clar.wordStudy.length > 0 && (
+                  <div>
+                    <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Word study — Strong’s (public domain)</div>
+                    <div className="space-y-1">
+                      {clar.wordStudy.map((w) => (
+                        <div key={w.strongs} className="bg-white border border-[#E8E4DC] p-2">
+                          <p className="text-xs text-[#1A1815]">
+                            <span className="font-semibold">{w.word}</span>
+                            <span className="text-[#5A5751]"> — {w.original} </span>
+                            <span style={mono} className="text-[10px] text-[#5A6E3D]">{w.translit} · {w.strongs}</span>
+                          </p>
+                          <p className="text-xs text-[#5A5751]">{w.gloss}{w.note ? ` — ${w.note}` : ''}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {clar.textNotes && clar.textNotes.length > 0 && (
+                  <div className="border-l-2 border-[#B85838] pl-2.5">
+                    <div className="text-[9px] uppercase tracking-wider text-[#B85838] mb-0.5">Honest note about the text</div>
+                    {clar.textNotes.map((n, i) => (
+                      <p key={i} className="text-xs text-[#1A1815]">{n.note}</p>
+                    ))}
+                  </div>
+                )}
+
+                {clar.godheadViews && clar.godheadViews.length > 0 && (
+                  <div className="border border-[#B85838] bg-white p-2.5">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1.5">The main biblical views — presented fairly, Word-first</div>
+                    <div className="space-y-2">
+                      {clar.godheadViews.map((view) => (
+                        <div key={view.name}>
+                          <p className="text-sm text-[#1A1815] font-medium">
+                            {view.name}
+                            {view.sme && <span className="text-[9px] uppercase tracking-wider bg-[#7A4A1E] text-white px-1.5 py-0.5 ml-2">SME call — Bishop / Darrell</span>}
+                          </p>
+                          <p className="text-xs text-[#5A5751]">{view.summary}</p>
+                          {(view.scriptures || []).length > 0 && <p className="text-[10px] text-[#5A6E3D] mt-0.5" style={mono}>{view.scriptures.join(' · ')}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {clar.crossRefs && clar.crossRefs.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cross-references:</span>
+                    {clar.crossRefs.map((r) => (
+                      <span key={r} className="text-[10px] bg-white border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5" style={mono}>{r}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-[#5A5751] italic" style={serif}>Clarification for this reference is on the way — the verbatim Scripture above stands on its own meanwhile.</p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function StudyEdition() {
+  const refs = clarifiedRefs();
+  const [active, setActive] = useState(refs[0] || null);
+  if (!refs.length) return null;
+  return (
+    <details className="mb-3 border border-[#5A6E3D] bg-white">
+      <summary className="cursor-pointer px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+        Study Edition — Scripture + clarification, kept distinct (sovereign · public domain)
+      </summary>
+      <div className="px-3 pb-3">
+        <p className="text-xs text-[#5A5751] mb-2" style={serif}>
+          Our own freely-usable edition: public-domain Scripture (modern English + KJV, shown side by side) with our clarification beside it. The two are always kept visibly separate — the Word is the Word; the notes are notes.
+        </p>
+        <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1" role="tablist" aria-label="Study Edition references">
+          {refs.map((r) => (
+            <button key={r} type="button" role="tab" aria-selected={active === r} onClick={() => setActive(r)}
+              className={`px-2.5 py-1.5 text-xs whitespace-nowrap border focus:outline focus:outline-2 focus:outline-[#B85838] ${active === r ? 'bg-[#5A6E3D] text-white border-[#5A6E3D] font-medium' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}
+              style={mono}>{r}</button>
+          ))}
+        </div>
+        {active && <StudyEditionEntry refStr={active} />}
+      </div>
+    </details>
+  );
+}
+
+export default function ScriptureLibrary({ email = null, canStudy = false, sermons = [], lessons = [], songs = [] }) {
   const [query, setQuery] = useState('');
   const [activeTheme, setActiveTheme] = useState('all');
   const [tier, setTier] = useState('standard');
   const [level, setLevel] = useState('standard');
   const [consented, setConsented] = useState(false);
   const [interests, setInterests] = useState([]);
+
+  // Live church corpus (real choir_sermons / choir_songs rows). A caller MAY still
+  // inject rows via props (DI / tests); when it doesn't, we read the live source so
+  // the "appearances" web is fed real data instead of always-empty arrays.
+  const [liveSermons, setLiveSermons] = useState([]);
+  const [liveSongs, setLiveSongs] = useState([]);
+  useEffect(() => {
+    const offSermons = subscribeSermons((rows) => setLiveSermons(rows || []));
+    const offSongs = subscribeSongs((rows) => setLiveSongs(rows || []));
+    return () => { if (typeof offSermons === 'function') offSermons(); if (typeof offSongs === 'function') offSongs(); };
+  }, []);
+  const liveAppearances = useMemo(() => ({
+    sermons: sermons.length ? sermons : liveSermons,
+    songs: songs.length ? songs : liveSongs,
+  }), [sermons, songs, liveSermons, liveSongs]);
 
   const profile = useMemo(() => ({ consented, interests, youtube: [] }), [consented, interests]);
   const orderedThemes = useMemo(() => rankByInterest(THEMES, profile), [profile]);
@@ -297,9 +507,22 @@ export default function ScriptureLibrary() {
         </div>
       </details>
 
-      <p className="text-[11px] text-[#5A5751] mb-3" style={serif}>{COPYRIGHT_NOTE}</p>
+      {/* Study Edition — the sovereign two-layer reader (text + clarification, distinct) */}
+      <StudyEdition />
 
-      <div className="mb-3"><TextSizeControl variant="panel" /></div>
+      {/* Connections — the Logos-style navigable web (cross-refs, word study, harvest).
+          Open-by-default closed; sermons/lessons/songs flow in for the "appearances"
+          tie when the caller has them (DI; honestly empty otherwise). */}
+      <details className="mb-3 border border-[#5A6E3D] bg-white">
+        <summary className="cursor-pointer px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Scripture connections — cross-references + word study (sovereign · public domain)
+        </summary>
+        <div className="px-3 pb-3">
+          <ScriptureConnections email={email} canStudy={canStudy} sermons={liveAppearances.sermons} lessons={lessons} songs={liveAppearances.songs} />
+        </div>
+      </details>
+
+      <p className="text-[11px] text-[#5A5751] mb-3" style={serif}>{COPYRIGHT_NOTE}</p>
 
       {/* Read-at-your-depth + level controls */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
@@ -361,7 +584,8 @@ export default function ScriptureLibrary() {
           {results.length ? (
             <div className="space-y-2">
               {results.map((v) => (
-                <VerseCard key={`${v.themeId}-${v.ref}`} refStr={v.ref} kjv={v.kjv} role={v.role} gloss={`${v.gloss} · ${v.themeTitle}`} backs={v.backs} />
+                <VerseCard key={`${v.themeId}-${v.ref}`} refStr={v.ref} kjv={v.kjv} role={v.role} gloss={`${v.gloss} · ${v.themeTitle}`} backs={v.backs}
+                  canStudy={canStudy} email={email} themeId={v.themeId} themeTitle={v.themeTitle} />
               ))}
             </div>
           ) : (
@@ -382,7 +606,7 @@ export default function ScriptureLibrary() {
             ))}
           </div>
 
-          {shownThemes.map((t) => <ThemeSection key={t.id} theme={t} tier={tier} level={level} />)}
+          {shownThemes.map((t) => <ThemeSection key={t.id} theme={t} tier={tier} level={level} canStudy={canStudy} email={email} />)}
         </>
       )}
 

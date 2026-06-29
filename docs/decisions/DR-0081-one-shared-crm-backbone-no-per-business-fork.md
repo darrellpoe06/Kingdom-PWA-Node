@@ -1,5 +1,5 @@
 ---
-id: DR-0080
+id: DR-0081
 title: One shared sovereign CRM backbone — every acquisition funnel and every business/tenant rides it via config, never a per-business fork
 date: 2026-06-24
 status: accepted

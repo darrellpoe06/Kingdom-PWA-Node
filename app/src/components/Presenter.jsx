@@ -128,6 +128,7 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
   const [note, setNote] = useState(initial?.notes?.[0]?.body || '');
   const [minutes, setMinutes] = useState(initial?.estimatedMin != null ? String(initial.estimatedMin) : '5');
   const [floor, setFloor] = useState(initial?.minMin != null ? String(initial.minMin) : '');
+  const [importance, setImportance] = useState(initial?.importance != null ? String(initial.importance) : '1');
   const [priority, setPriority] = useState(initial?.priority === PRIORITY.SUPPLEMENTARY ? PRIORITY.SUPPLEMENTARY : PRIORITY.CORE);
 
   const field = { display: 'block', width: '100%', boxSizing: 'border-box', padding: '8px 10px', marginTop: 4, border: '1px solid #CFC9BD', fontFamily: '"Fraunces", serif', fontSize: 15, background: '#fff', color: '#1A1815' };
@@ -144,6 +145,8 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
     };
     const f = Math.round(Number(floor));
     if (Number.isFinite(f) && f > 0) patch.minMin = Math.min(f, weight); // floor never above weight
+    const imp = Number(importance);
+    if (Number.isFinite(imp) && imp > 0) patch.importance = imp; // lesson weight (1 = normal)
     // For a brand-new section we attach the note as the first presenter-only note.
     if (!initial) patch.note = note.trim();
     else patch.notes = note.trim() ? [{ kind: 'body', heading: 'Your note', body: note.trim() }] : [];
@@ -171,6 +174,9 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
         <label style={lbl}>Min floor
           <input type="number" min="1" aria-label="Minimum minutes this section can shrink to" placeholder="auto" style={{ ...field, width: 90 }} value={floor} onChange={(e) => setFloor(e.target.value)} />
         </label>
+        <label style={lbl}>Weight
+          <input type="number" min="0" step="0.5" aria-label="Lesson importance weight (1 = normal, higher = more essential)" style={{ ...field, width: 90 }} value={importance} onChange={(e) => setImportance(e.target.value)} />
+        </label>
         <div role="radiogroup" aria-label="Priority" style={{ display: 'flex', gap: 8 }}>
           {[{ id: PRIORITY.CORE, label: 'Core' }, { id: PRIORITY.SUPPLEMENTARY, label: 'Supplementary' }].map((p) => {
             const on = priority === p.id;
@@ -184,7 +190,8 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
         </div>
       </div>
       <p style={{ fontSize: 12, color: '#5A5751', margin: '12px 0', fontFamily: '"Fraunces", serif' }}>
-        Core sections are never auto-skipped to fit a budget; supplementary ones drop first.
+        Weight is how essential this is (1 = normal). The weightiest material is protected and gets the
+        minutes when time is short; lower-weight material compresses, and supplementary sections drop first.
       </p>
       <div style={{ display: 'flex', gap: 10 }}>
         <button type="button" onClick={submit} disabled={!title.trim()} style={{ ...btn, border: '2px solid #1A1815', background: '#1A1815', color: '#fff', opacity: title.trim() ? 1 : 0.4 }}>

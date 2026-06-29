@@ -9,7 +9,7 @@ import { newLead } from '../lib/client-acquisition.js';
 describe('lead <-> row mapping', () => {
   it('toRow includes instance_id + created_by and the flat columns', () => {
     const lead = newLead({
-      audiencePresetKey: 'b2b-practices', name: 'Acme Counseling', org: 'Acme', role: 'Owner',
+      sideKey: 'therapist', name: 'Acme Counseling', org: 'Acme', role: 'Owner',
       contactMethod: 'email', contactValue: 'a@acme.org', source: 'youtube', stage: 'contacted',
       consent: { outreachOk: true, capturedAt: '2026-06-24T00:00:00.000Z', note: '' },
     }, { id: 'lead-1' });
@@ -17,20 +17,22 @@ describe('lead <-> row mapping', () => {
     expect(row.instance_id).toBe('inst-9');
     expect(row.created_by).toBe('user-7');
     expect(row.slug).toBe('lead-1');
+    expect(row.audience_preset_key).toBe('therapist'); // side key stored in the CRM column
     expect(row.name).toBe('Acme Counseling');
     expect(row.stage).toBe('contacted');
     expect(row.consent.outreachOk).toBe(true);
   });
 
-  it('round-trips toRow -> fromRow preserving the local shape', () => {
-    const lead = newLead({ name: 'X', org: 'Org', source: 'linkedin', stage: 'qualified', fitScore: 80, signalTags: ['ce-demand'] }, { id: 'lead-2' });
+  it('round-trips toRow -> fromRow preserving the local shape (incl. sideKey)', () => {
+    const lead = newLead({ sideKey: 'training', name: 'X', org: 'Org', source: 'linkedin', stage: 'enrolled', fitScore: 80, signalTags: ['ce-demand'] }, { id: 'lead-2' });
     const row = { ...leadToRow(lead, { tenantId: 't', userId: 'u' }), id: 'uuid-abc', created_at: '2026-06-24T00:00:00.000Z' };
     const back = leadFromRow(row);
     expect(back.id).toBe('lead-2');         // slug -> id
     expect(back.remoteUuid).toBe('uuid-abc');
+    expect(back.sideKey).toBe('training');
     expect(back.fitScore).toBe(80);
     expect(back.signalTags).toEqual(['ce-demand']);
-    expect(back.stage).toBe('qualified');
+    expect(back.stage).toBe('enrolled');
   });
 
   it('has no clinical columns (PHI wall is structural)', () => {
@@ -46,7 +48,7 @@ describe('LEAD_COLUMN_OF', () => {
     expect(LEAD_COLUMN_OF.stage).toBe('stage');
     expect(LEAD_COLUMN_OF.contactValue).toBe('contact_value');
     expect(LEAD_COLUMN_OF.signalTags).toBe('signal_tags');
-    expect(LEAD_COLUMN_OF.audiencePresetKey).toBe('audience_preset_key');
+    expect(LEAD_COLUMN_OF.sideKey).toBe('audience_preset_key');
   });
 
   it('does not allow patching identity columns', () => {

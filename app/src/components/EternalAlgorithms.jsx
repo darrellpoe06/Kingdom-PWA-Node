@@ -22,7 +22,7 @@ import { SectionTitle } from './shared.jsx';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import {
   DEFAULT_LABEL,
-  loadLibrary, saveLibrary, seedIfEmpty,
+  loadLibrary, saveLibrary, seedIfEmpty, validateFinal,
   normalizeAlgorithm, upsertAlgorithm, removeAlgorithm, togglePin,
   sortAlgorithms, filterAlgorithms, frameworksAndOutcomes,
 } from '../lib/eternal-algorithms.js';
@@ -65,14 +65,19 @@ function AlgorithmEditor({ initial, onSave, onCancel }) {
   });
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const append = (k) => (t) => setF((p) => ({ ...p, [k]: (p[k] ? p[k] + ' ' : '') + t }));
-  const submit = () => onSave({
+  const candidate = {
     id: f.id,
     name: f.name,
     outcome: f.outcome,
     fourD: { summary: f.fourSummary, scripture: f.scripture },
     threeD: { summary: f.threeSummary },
     tags: f.tags.split(',').map((t) => t.trim()).filter(Boolean),
-  });
+  };
+  // The no-rough-drafts gate, applied at the source: the finished gallery only
+  // saves a COMPLETE framework (name + 4D + 3D + outcome). A missing part keeps
+  // Save disabled and names what's needed — drafts belong in Study, not here.
+  const check = validateFinal(candidate);
+  const submit = () => { if (check.ok) onSave(candidate); };
   return (
     <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
       <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit' : 'New'} eternal algorithm</div>
@@ -114,8 +119,16 @@ function AlgorithmEditor({ initial, onSave, onCancel }) {
         <input id="ea-tags" className={FIELD} value={f.tags} onChange={set('tags')} placeholder="response, joy, 90-10…" />
       </div>
 
+      {!check.ok && (
+        <p className="text-[11px] text-[#9A3412]" style={serif} role="status">
+          Final only — still needs: {check.missing.join(', ')}. (Rough drafts live in Study › Finalize.)
+        </p>
+      )}
+      {check.ok && !check.hasScripture && (
+        <p className="text-[11px] text-[#5A5751]" style={serif}>No Scripture ref yet — add one if it has a clear anchor (never invent a verse).</p>
+      )}
       <div className="flex gap-2 flex-wrap pt-1">
-        <button type="button" disabled={!f.name.trim() && !f.outcome.trim()} onClick={submit} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Save</button>
+        <button type="button" disabled={!check.ok} onClick={submit} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`} title={check.ok ? '' : `Needs: ${check.missing.join(', ')}`}>Save</button>
         <button type="button" onClick={onCancel} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:bg-white`}>Cancel</button>
       </div>
     </div>
@@ -162,7 +175,11 @@ function AlgorithmCard({ entry, onEdit, onDelete, onPin, openByDefault }) {
     <div className={`bg-white border p-3 ${entry.pinned ? 'border-[#B85838]' : 'border-[#E8E4DC]'}`}>
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <span style={{ ...serif, fontWeight: 600 }} className="text-[#1A1815]">{entry.pinned ? '📌 ' : ''}✦ {entry.name || 'Untitled framework'}</span>
-        {entry.seed && <span className="text-[9px] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">seed</span>}
+        {entry.seed
+          ? <span className="text-[9px] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">seed</span>
+          : entry.source === 'study'
+            ? <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5" title="Promoted from a finalized Study thought">✓ Finalized from Study</span>
+            : null}
       </div>
 
       {/* OUTCOME — first-class, highlighted. */}
@@ -252,6 +269,9 @@ export default function EternalAlgorithms({ email }) {
   const pairs = useMemo(() => frameworksAndOutcomes(filtered), [filtered]);
 
   const saveEntry = (raw) => {
+    // The no-rough-drafts gate, also enforced here (not only in the editor): the
+    // finished gallery never persists an incomplete framework.
+    if (!validateFinal(raw).ok) return;
     setLibrary((s) => {
       const existing = raw.id ? s.entries.find((e) => e.id === raw.id) : null;
       const entry = normalizeAlgorithm(
@@ -277,6 +297,12 @@ export default function EternalAlgorithms({ email }) {
         <p className="text-sm text-[#1A1815] italic">“I perceived that whatever God does endures forever; nothing can be added to it, nor anything taken from it.”</p>
         <footer className="text-[11px] text-[#5A5751] mt-1">— Ecclesiastes 3:14 (ESV). Each framework runs the same in the eternal (4D) and in this-world life and work (3D); the outcome is what you win with it.</footer>
       </blockquote>
+
+      {/* The rule, stated on the surface: this is the finished gallery; the
+          workshop is Study › Finalize. No rough drafts here. */}
+      <p className="text-[11px] text-[#5A6E3D] bg-[#F2F4EC] border border-[#E8E4DC] px-3 py-1.5 mb-3" style={serif}>
+        <strong>The finished gallery.</strong> Only final, finalized frameworks live here. Drafting and iteration happen in <strong>Study › Finalize</strong> — a thought promotes in only once it's complete (4D · 3D · outcome) and accepted.
+      </p>
 
       {/* View toggle + count */}
       <div className="flex items-center gap-1 text-xs mb-3 flex-wrap" role="tablist" aria-label="Library views">

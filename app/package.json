@@ -13,6 +13,9 @@
     "test:run": "vitest run",
     "charter:gen": "node ../scripts/generate-charter.mjs",
     "charter:check": "node ../scripts/generate-charter.mjs --check",
+    "legibility": "node ../scripts/legibility-guard.mjs --check",
+    "legibility:health": "node ../scripts/legibility-guard.mjs --health",
+    "legibility:baseline": "node ../scripts/legibility-guard.mjs --generate",
     "verify": "npm run lint && vitest run"
   },
   "dependencies": {

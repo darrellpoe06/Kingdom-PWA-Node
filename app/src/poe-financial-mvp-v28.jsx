@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
-import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
+import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/shared.jsx';
 import TraceableNumber from './components/TraceableNumber.jsx';
+// Contextual help — the discrete "?" that explains the current tab/tool (Ari's
+// voice) + the optional first-run roadmap tour. lib/help-content.js is the one
+// help registry every surface reads from. Small + always-present chrome, so it
+// rides the initial bundle rather than a lazy chunk.
+import HelpButton from './components/HelpButton.jsx';
+import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { fmt, fmtCompact, MONTHS_ABBR, monthLabel } from './lib/format.js';
 import {
   traceNetCashFlow,
@@ -54,6 +60,11 @@ import {
   SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
   buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
 } from './lib/sound-board-class.js';
+import {
+  WORLD_ISSUES_META, WORLD_ISSUES_SESSION_FLOW,
+  WORLD_ISSUES_INTEREST_TAG, WORLD_ISSUES_HELPER_TAG, WORLD_ISSUES_TUTOR_META,
+  buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown,
+} from './lib/world-issues-class.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -61,9 +72,12 @@ import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
 import TextSizeControl from './components/TextSizeControl.jsx';
+import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import Imported from './components/Imported.jsx';
+import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
+import { reportPresence } from './lib/access-metrics-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
@@ -71,10 +85,17 @@ import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from './lib/discussions-sync.js';
 import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
+import { recipesSync, mergeRemoteRecipes, RECIPE_COLUMN_OF } from './lib/recipes-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
+import { inventoryItemsSync, mergeRemoteInventoryItems, INVENTORY_ITEM_COLUMN_OF } from './lib/inventory-items-sync.js';
+import { inventoryMovementsSync, mergeRemoteMovements } from './lib/inventory-movements-sync.js';
+import { recordEventsSync, mergeRemoteRecordEvents } from './lib/record-events-sync.js';
+import { kitchenCountsSync, mergeRemoteCounts, COUNT_COLUMN_OF } from './lib/kitchen-counts-sync.js';
+import { kitchenCountLinesSync, mergeRemoteCountLines, COUNT_LINE_COLUMN_OF } from './lib/kitchen-count-lines-sync.js';
+import { makeHistoryEvent } from './lib/record-history.js';
 import { compressImageFile } from './lib/image.js';
 import { FreshnessDot } from './components/FreshnessDot.jsx';
 import SelfServeWelcome from './components/SelfServeWelcome.jsx';
@@ -82,6 +103,7 @@ import PinGate from './components/PinGate.jsx';
 import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
 import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/device-trust.js';
+import { isBiometricEnrolled, isPlatformAuthenticatorAvailable, enrollBiometric, unlockWithBiometric } from './lib/webauthn.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import { concernsSync, mergeRemoteConcerns, CONCERN_COLUMN_OF } from './lib/concerns-sync.js';
 import { SEED_CONCERNS } from './lib/concerns.js';
@@ -93,6 +115,12 @@ import { ChurchOneVoice } from './components/ChurchOneVoice.jsx';
 import { ChurchGiveFloater } from './components/ChurchGiving.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
+// Scroll-anchor primitive (same mechanism that powers reading-resume + the
+// font-size whiplash fix): capture the content element the reader is looking at,
+// let the sticky header change height, restore it to the same viewport spot — so
+// collapsing/opening the header chrome never makes the page jump.
+import { captureAnchor, applyAnchor } from './lib/reading-position.js';
+import { readHeaderCollapsed, writeHeaderCollapsed, nextCollapsed } from './lib/header-hideaway.js';
 import { Queue } from './components/Queue.jsx';
 // Lazy-loaded feature surfaces now mount through the surface-mount registry
 // (the modular spine). Their `() => import(...)` loaders + nav metadata live in
@@ -104,7 +132,8 @@ import {
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
-  CreationWorkspace, Study, BooksTransactions,
+  CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
+  Inventory, Forecast, AccessUsageMetrics, ChefCorner, Games, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1751,7 +1780,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','admin','center','crm'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','admin','center','crm','relationships','inventory','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -1903,12 +1932,45 @@ export default function PoeFinancialSystem() {
   };
   const [booksView, setBooksView] = useState('calendar');
   const [churchView, setChurchView] = useState(getInitialChurchView());
+  // Real browser BACK / FORWARD (lib/nav-history.js). Every top tab + Books/
+  // Church sub-tab flows through this triple, so the device Back button, the
+  // in-app NavControls, and deep-links all work app-wide without a router. The
+  // hook owns window.history push/pop + scroll restoration; it is StrictMode-
+  // safe (ref-guarded) and a no-op when window.history is unavailable.
+  const navHistory = useBrowserHistoryNav({ view, setView, booksView, setBooksView, churchView, setChurchView });
+  // The app-wide feedback modal is a true overlay — device/in-app Back should
+  // CLOSE it, not leave the page. Stable close callback so the hook's listener
+  // identity is stable across renders.
+  const closeFeedback = useCallback(() => setFeedbackOpen(false), []);
+  useHistoryToggle(feedbackOpen, closeFeedback, 'feedback');
   const [entityFilter, setEntityFilter] = useState('all');
   const [snowballSort, setSnowballSort] = useState('smallest-balance');
   const [snowballExtra, setSnowballExtra] = useState(2000);
   const [debtSnowballSort, setDebtSnowballSort] = useState('snowball');
   const [debtSnowballExtra, setDebtSnowballExtra] = useState(500);
   const [theme, setTheme] = useState('midnight');
+  // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
+  // date/time, build line, account/business/subscribe row, voice picker, font
+  // controls, theme swatches, the Sample banner — to ALL the room for the
+  // dashboard, while the TAB ROW stays pinned at the top so navigation never
+  // moves. One tap reopens it. The preference is per-device (the same fail-soft
+  // localStorage pattern as text-size + profile), so it stays however the user
+  // left it. Default = open (the full header) for a familiar first impression.
+  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed());
+  const toggleHeaderChrome = () => {
+    // Reuse the scroll-anchor: pin the content the user is looking at, flip the
+    // header height, restore the same spot after layout — no jump (DR-0075 feel).
+    const token = (typeof window !== 'undefined') ? captureAnchor() : null;
+    setHeaderCollapsed(prev => {
+      const next = nextCollapsed(prev);
+      writeHeaderCollapsed(next); // per-device, fail soft
+      return next;
+    });
+    if (typeof window !== 'undefined' && token) {
+      // two frames: let the header re-layout before we re-align the anchor
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => { try { applyAnchor(token); } catch (e) { /* soft */ } }));
+    }
+  };
   const [notifPermission, setNotifPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
   // 2026-06-12 — persistence problems must be VISIBLE (PERPETUAL-PIPELINE-
   // HEALTH: no silent failure on the path the family's memories ride).
@@ -2012,6 +2074,19 @@ export default function PoeFinancialSystem() {
   // boolean that this tab session has cleared the PIN. Cleared on sign-out.
   const [mpPinVerified, setMpPinVerified] = useState(false);
   const mpPinOkKey = (uid) => 'poe-pin-ok:' + String(uid || 'anon');
+  // Biometric (fingerprint / Face via WebAuthn — lib/webauthn.js). A faster way
+  // to satisfy the SAME human-presence point as the PIN, on a known device.
+  // mpHasBiometric = a credential is enrolled on THIS device; mpBioSupported =
+  // the device has a platform authenticator we could offer enrollment on;
+  // mpBiometricVerified = this tab session unlocked via biometric (a verified
+  // presence proof, session-scoped exactly like the PIN flag). The biometric
+  // never leaves the device; we store only its public key + credential id.
+  const [mpHasBiometric, setMpHasBiometric] = useState(false);
+  const [mpBioSupported, setMpBioSupported] = useState(false);
+  const [mpBiometricVerified, setMpBiometricVerified] = useState(false);
+  const [bioOfferOpen, setBioOfferOpen] = useState(false); // post-grant enroll offer
+  const mpBioOkKey = (uid) => 'poe-bio-ok:' + String(uid || 'anon');
+  const mpBioOfferKey = (uid) => 'poe-bio-offered:' + String(uid || 'anon');
   // Persona-PIN (family shared-device picker gate) state.
   const [mpPersonasWithPin, setMpPersonasWithPin] = useState([]);
   const [mpInstanceId, setMpInstanceId] = useState(null);
@@ -2083,16 +2158,31 @@ export default function PoeFinancialSystem() {
     deviceTrusted: mpDeviceTrusted,
     pinVerified: mpPinVerified,
     hasPin: mpHasPin,
+    biometricVerified: mpBiometricVerified,
+    hasBiometric: mpHasBiometric,
     backendAvailable: mpBackendAvailable,
   });
+  // The presence gate renders for SET_PIN / ENTER_PIN / ENTER_BIOMETRIC. The PIN
+  // gate IS the surface for all three (it carries the biometric button on top in
+  // the ENTER cases), so the new step joins the same render condition.
   const showPinGate = mpEnforce
-    && (accessDecision.nextStep === NEXT_STEP.SET_PIN || accessDecision.nextStep === NEXT_STEP.ENTER_PIN);
+    && (accessDecision.nextStep === NEXT_STEP.SET_PIN
+      || accessDecision.nextStep === NEXT_STEP.ENTER_PIN
+      || accessDecision.nextStep === NEXT_STEP.ENTER_BIOMETRIC);
 
   const markPinVerified = () => {
     setMpPinVerified(true);
     try {
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.setItem(mpPinOkKey(authSession?.user?.id), String(new Date().toISOString()));
+      }
+    } catch (_) { /* sessionStorage unavailable */ }
+  };
+  const markBiometricVerified = () => {
+    setMpBiometricVerified(true);
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(mpBioOkKey(authSession?.user?.id), String(new Date().toISOString()));
       }
     } catch (_) { /* sessionStorage unavailable */ }
   };
@@ -2107,12 +2197,48 @@ export default function PoeFinancialSystem() {
   };
   const handleSetPin = async (pin) => {
     const r = await setUserPin(pin);
-    if (r.ok) { setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); }
+    if (r.ok) { setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric(); }
     return r;
   };
   const handleEnterPin = async (pin) => {
     const r = await verifyUserPin(pin);
-    if (r.ok) { markPinVerified(); await maybeTrustDevice(); }
+    if (r.ok) { markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric(); }
+    return r;
+  };
+  // Biometric fast-unlock: prompt the platform authenticator and, on a verified
+  // assertion, mark presence + take the device-trust fast path. Any failure
+  // (cancel / no match / unsupported) returns !ok and the gate keeps the PIN as
+  // the fallback — biometric can never strand the user (no-lockout).
+  const handleBiometricUnlock = async () => {
+    const r = await unlockWithBiometric(authSession?.user?.id);
+    if (r.ok) { markBiometricVerified(); await maybeTrustDevice(); }
+    return r;
+  };
+  // After a successful PIN entry/set on a biometric-capable device that hasn't
+  // enrolled yet, offer the one-tap unlock — once (we remember the offer so we
+  // never nag). Opt-in: enrollment only runs on the user's explicit tap.
+  const maybeOfferBiometric = () => {
+    try {
+      const uid = authSession?.user?.id;
+      if (!mpBioSupported || mpHasBiometric) return;
+      if (typeof localStorage !== 'undefined' && localStorage.getItem(mpBioOfferKey(uid))) return;
+      setBioOfferOpen(true);
+    } catch (_) { /* ignore */ }
+  };
+  const dismissBiometricOffer = () => {
+    setBioOfferOpen(false);
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(mpBioOfferKey(authSession?.user?.id), '1');
+    } catch (_) { /* ignore */ }
+  };
+  const handleEnrollBiometric = async () => {
+    const r = await enrollBiometric({
+      userId: authSession?.user?.id,
+      userName: authSession?.user?.email || 'PoeTech user',
+      displayName: authSession?.user?.email || 'PoeTech user',
+    });
+    if (r.ok) { setMpHasBiometric(true); markBiometricVerified(); }
+    dismissBiometricOffer();
     return r;
   };
   // No-lockout recovery: forget this device's local trust and sign out so the
@@ -2629,6 +2755,8 @@ export default function PoeFinancialSystem() {
     if (!authSession) {
       setMpSignalsLoaded(false); setMpDeviceTrusted(false); setMpHasPin(false);
       setMpBackendAvailable(true); setMpPinVerified(false);
+      setMpHasBiometric(false); setMpBioSupported(false); setMpBiometricVerified(false);
+      setBioOfferOpen(false);
       setMpPersonasWithPin([]); setMpInstanceId(null); setPendingPersona(null);
       return;
     }
@@ -2639,13 +2767,23 @@ export default function PoeFinancialSystem() {
       if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(mpPinOkKey(uid))) {
         setMpPinVerified(true);
       }
+      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(mpBioOkKey(uid))) {
+        setMpBiometricVerified(true);
+      }
     } catch (_) { /* sessionStorage unavailable */ }
+    // Biometric is device-local: enrollment is a localStorage credential record,
+    // and "supported" asks the platform if a fingerprint/Face authenticator
+    // exists. Both are best-effort and never block the gate.
+    setMpHasBiometric(isBiometricEnrolled(uid));
     (async () => {
-      const [h, d] = await Promise.all([hasUserPin(), isDeviceTrusted(uid)]);
+      const [h, d, bioOk] = await Promise.all([
+        hasUserPin(), isDeviceTrusted(uid), isPlatformAuthenticatorAvailable(),
+      ]);
       if (cancelled) return;
       setMpHasPin(h.hasPin);
       setMpDeviceTrusted(d.trusted);
       setMpBackendAvailable(h.backendAvailable && d.backendAvailable);
+      setMpBioSupported(!!bioOk);
       setMpSignalsLoaded(true);
     })();
     return () => { cancelled = true; };
@@ -2743,6 +2881,11 @@ export default function PoeFinancialSystem() {
         console.warn('[auth] tenant join failed', e);
         return;
       }
+      // Access-governance heartbeat: this session reports the build it runs +
+      // a last-seen stamp (build-freshness + activity for the steward's Access
+      // surface). Privacy: build + heartbeat only — no behavior, no content.
+      // Fire-and-forget; never blocks sign-in, never surfaces an error.
+      reportPresence();
       unsubscribeFeedback = subscribeFeedback((items) => setRemoteFeedback(items));
 
       // Entities sync (no verify-gate needed — no load-bearing numbers).
@@ -2873,6 +3016,10 @@ export default function PoeFinancialSystem() {
         // Creation Workspaces (0037) — composed documents/images, pooled to the
         // family instance the same proven way so a document opens on any device.
         { sync: workspacesSync,   key: 'workspaces',   localList: (latest.workspaces || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteWorkspaces },
+        // Recipes (0052) — Chef's Corner recipes the family adds (the canonical
+        // three ship as content; this carries everything added afterward), pooled
+        // to the family instance the same proven way so a recipe opens on any device.
+        { sync: recipesSync,      key: 'recipes',      localList: (latest.recipes || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteRecipes },
         { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
         // Practice leads (0045) — the client-acquisition (revenue agent team) CRM,
         // pooled to the family instance the same proven way.
@@ -2881,6 +3028,20 @@ export default function PoeFinancialSystem() {
         // and the shared 1099 worker roster pool to the family instance.
         { sync: incidentsSync,    key: 'incidents',       localList: (latest.incidents || []).filter(notDemoRow).filter(notSeedRow) },
         { sync: contractorsSync,  key: 'contractors1099', localList: (latest.contractors1099 || []).filter(notDemoRow).filter(notSeedRow) },
+        // Systems of record (0052) — the inventory catalog + the two APPEND-ONLY
+        // ledgers (stock movements, generic record-history events) pool to the
+        // family instance the same proven way. The tables loop only ever calls
+        // initialSync + subscribe, so the append-only contract is preserved (no
+        // updateRow/deleteRow path runs for movements / record_events here).
+        { sync: inventoryItemsSync,     key: 'inventoryItems',     localList: (latest.inventoryItems || []).filter(notDemoRow).filter(notSeedRow),     merge: mergeRemoteInventoryItems },
+        { sync: inventoryMovementsSync, key: 'inventoryMovements', localList: (latest.inventoryMovements || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteMovements },
+        { sync: recordEventsSync,       key: 'recordEvents',       localList: (latest.recordEvents || []).filter(notDemoRow).filter(notSeedRow),       merge: mergeRemoteRecordEvents },
+        // Kitchen inventory counts (0053) — the count-session header + its lines
+        // (the chef vertical on the 0052 base). Closing a count posts adjust
+        // MOVEMENTS into inventoryMovements above, so these two are just working
+        // session state synced the same proven way.
+        { sync: kitchenCountsSync,     key: 'inventoryCounts',     localList: (latest.inventoryCounts || []).filter(notDemoRow).filter(notSeedRow),     merge: mergeRemoteCounts },
+        { sync: kitchenCountLinesSync, key: 'inventoryCountLines', localList: (latest.inventoryCountLines || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteCountLines },
       ];
       for (const t of tables) {
         if (cancelled) return;
@@ -3428,6 +3589,210 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, workspaces: (d.workspaces || []).filter(x => x.id !== id) }));
   };
 
+  // ── Systems of record: shared immutable history + inventory ───────────────
+  // recordHistoryEvent — append ONE record-history event (lib/record-history.js)
+  // to the append-only log and sync it. The shared primitive behind both the
+  // inventory item version-history AND Books transaction edit-history: a record
+  // becomes a versioned living record because every change is captured here, never
+  // overwritten. Best-effort: a failed cloud insert never blocks the local write
+  // (the optimistic row stays on device and retries on next sign-in).
+  const recordHistoryEvent = ({ recordKind, recordId, action, before, after, summary, meta }) => {
+    const actor = authSession ? personaOf(authSession.user?.email) : null;
+    const ev = makeHistoryEvent({
+      id: `re-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      recordKind, recordId, action, actor,
+      at: new Date().toISOString(), before: before || null, after: after || null,
+      summary: summary || null, meta: meta || null,
+    });
+    setData(d => ({ ...d, recordEvents: [...(d.recordEvents || []), ev] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      recordEventsSync.upload(ev).catch(e => console.warn('[record-events-sync] upload failed', e));
+    }
+    return ev;
+  };
+
+  const addInventoryItem = (item) => {
+    const nowIso = new Date().toISOString();
+    const localId = `inv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId, active: item.active !== false, createdAt: nowIso, updatedAt: nowIso, createdBy: authSession?.user?.id || null, authorPersona: authSession ? personaOf(authSession.user?.email) : null };
+    setData(d => ({ ...d, inventoryItems: [...(d.inventoryItems || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      inventoryItemsSync.upload(seeded)
+        .then(res => {
+          if (res && res.uploaded && res.remoteId) {
+            setData(d => ({ ...d, inventoryItems: (d.inventoryItems || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
+          }
+        })
+        .catch(e => console.warn('[inventory-items-sync] add upload failed', e));
+    }
+    recordHistoryEvent({ recordKind: 'inventory_item', recordId: localId, action: 'create', after: seeded, summary: `Item created: ${seeded.name}` });
+    return localId;
+  };
+
+  const updateInventoryItem = (id, updates) => setData(d => {
+    const before = (d.inventoryItems || []).find(x => x.id === id) || null;
+    const stamped = { ...updates, updatedAt: new Date().toISOString() };
+    const next = (d.inventoryItems || []).map(x => (x.id === id ? { ...x, ...stamped } : x));
+    const after = next.find(x => x.id === id) || null;
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      if (after && after.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(INVENTORY_ITEM_COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (Object.keys(patch).length > 0) {
+          inventoryItemsSync.updateRow(after.remoteUuid, patch).catch(e => console.warn('[inventory-items-sync] update failed', e));
+        }
+      }
+    }
+    // Capture the edit as an immutable version (before/after diff is derived).
+    recordHistoryEvent({ recordKind: 'inventory_item', recordId: id, action: 'update', before, after });
+    return { ...d, inventoryItems: next };
+  });
+
+  // recordInventoryMovements — post one or more APPEND-ONLY stock movements
+  // (a transfer is a balanced pair). Movements are never edited or deleted; this
+  // is the immutable ledger on-hand derives from. Each leg gets a stable id +
+  // actor + occurredAt, then syncs (insert-only).
+  const recordInventoryMovements = (movs) => {
+    const actor = authSession ? personaOf(authSession.user?.email) : null;
+    const nowIso = new Date().toISOString();
+    const stamped = (Array.isArray(movs) ? movs : [movs]).map((m, i) => ({
+      ...m,
+      id: m.id || `mv-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+      actor: m.actor || actor,
+      occurredAt: m.occurredAt || nowIso,
+      createdBy: authSession?.user?.id || null,
+    }));
+    setData(d => ({ ...d, inventoryMovements: [...(d.inventoryMovements || []), ...stamped] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      for (const mv of stamped) {
+        inventoryMovementsSync.upload(mv)
+          .then(res => {
+            if (res && res.uploaded && res.remoteId) {
+              setData(d => ({ ...d, inventoryMovements: (d.inventoryMovements || []).map(x => (x.id === mv.id ? { ...x, remoteUuid: res.remoteId } : x)) }));
+            }
+          })
+          .catch(e => console.warn('[inventory-movements-sync] upload failed', e));
+      }
+    }
+    return stamped.map(m => m.id);
+  };
+
+  // ---- Kitchen inventory COUNT sessions (0053) — the chef vertical on the 0052
+  // base. A count + its lines are working session state (same optimistic-local-
+  // then-cloud pattern as addRecipe); CLOSING a count is not a special dispatch —
+  // the KitchenInventory surface reconciles it by posting adjust MOVEMENTS through
+  // recordInventoryMovements above, then flips the count's status to 'closed'.
+  const addInventoryCount = (count) => {
+    const nowIso = new Date().toISOString();
+    const localId = `count-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...count, id: localId, startedAt: count?.startedAt || nowIso, createdBy: authSession?.user?.id || null };
+    setData(d => ({ ...d, inventoryCounts: [...(d.inventoryCounts || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      kitchenCountsSync.upload(seeded)
+        .then(res => { if (res && res.uploaded && res.remoteId) setData(d => ({ ...d, inventoryCounts: (d.inventoryCounts || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) })); })
+        .catch(e => console.warn('[kitchen-counts-sync] add upload failed', e));
+    }
+    return localId;
+  };
+  const updateInventoryCount = (id, updates) => setData(d => {
+    const stamped = { ...updates, updatedAt: new Date().toISOString() };
+    const next = (d.inventoryCounts || []).map(x => (x.id === id ? { ...x, ...stamped } : x));
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(x => x.id === id);
+      if (updated && updated.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(COUNT_COLUMN_OF)) { if (updates[localKey] !== undefined) patch[column] = updates[localKey]; }
+        if (Object.keys(patch).length > 0) kitchenCountsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[kitchen-counts-sync] update failed', e));
+      }
+    }
+    return { ...d, inventoryCounts: next };
+  });
+  const addInventoryCountLine = (line) => {
+    const localId = `cl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...line, id: localId, countedAt: line?.countedAt || new Date().toISOString(), createdBy: authSession?.user?.id || null };
+    setData(d => ({ ...d, inventoryCountLines: [...(d.inventoryCountLines || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      kitchenCountLinesSync.upload(seeded)
+        .then(res => { if (res && res.uploaded && res.remoteId) setData(d => ({ ...d, inventoryCountLines: (d.inventoryCountLines || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) })); })
+        .catch(e => console.warn('[kitchen-count-lines-sync] add upload failed', e));
+    }
+    return localId;
+  };
+  const updateInventoryCountLine = (id, updates) => setData(d => {
+    const next = (d.inventoryCountLines || []).map(x => (x.id === id ? { ...x, ...updates } : x));
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(x => x.id === id);
+      if (updated && updated.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(COUNT_LINE_COLUMN_OF)) { if (updates[localKey] !== undefined) patch[column] = updates[localKey]; }
+        if (Object.keys(patch).length > 0) kitchenCountLinesSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[kitchen-count-lines-sync] update failed', e));
+      }
+    }
+    return { ...d, inventoryCountLines: next };
+  });
+
+  // ---- Chef's Corner recipes (0052) — same optimistic-local-then-cloud pattern
+  // as addWorkspace. The recipe object already carries its engine-shaped fields
+  // (sectioned ingredients/steps, etc.) from makeRecipe; we only stamp the local
+  // id + timestamps. addRecipe RETURNS the new local id so the UI can open the
+  // saved recipe's detail view. Fails soft so the device copy always survives.
+  const addRecipe = (item) => {
+    const nowIso = new Date().toISOString();
+    const localId = item?.id && /^recipe-/.test(item.id) ? `${item.id}-${Date.now().toString(36)}` : `recipe-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId, dateAdded: item?.dateAdded || nowIso.slice(0, 10), createdAt: nowIso, updatedAt: nowIso, createdBy: authSession?.user?.id || null };
+    setData(d => ({ ...d, recipes: [...(d.recipes || []), seeded] }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      recipesSync.upload(seeded)
+        .then(res => {
+          if (res && res.uploaded && res.remoteId) {
+            setData(d => ({ ...d, recipes: (d.recipes || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
+          }
+        })
+        .catch(e => console.warn('[recipes-sync] add upload failed', e));
+    }
+    return localId;
+  };
+  const updateRecipe = (id, updates) => setData(d => {
+    const stamped = { ...updates, updatedAt: new Date().toISOString() };
+    const next = (d.recipes || []).map(x => (x.id === id ? { ...x, ...stamped } : x));
+    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const updated = next.find(x => x.id === id);
+      if (updated && updated.remoteUuid) {
+        const patch = {};
+        for (const [localKey, column] of Object.entries(RECIPE_COLUMN_OF)) {
+          if (updates[localKey] !== undefined) patch[column] = updates[localKey];
+        }
+        if (Object.keys(patch).length > 0) {
+          recipesSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[recipes-sync] update failed', e));
+        }
+      }
+    }
+    return { ...d, recipes: next };
+  });
+  const deleteRecipe = (id) => {
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      const local = (data.recipes || []).find(x => x.id === id);
+      if (local && local.remoteUuid) {
+        recipesSync.deleteRow(local.remoteUuid).catch(e => console.warn('[recipes-sync] delete failed', e));
+      }
+    }
+    setData(d => ({ ...d, recipes: (d.recipes || []).filter(x => x.id !== id) }));
+  };
+
+  // ---- Games hub saves — local-first (the app data store is localStorage-backed
+  // and instance-scoped). A game survives a reload and a not-signed-in child can
+  // still play. addGameSave RETURNS the new local id so the hub can open it.
+  const addGameSave = (item) => {
+    const localId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId };
+    setData(d => ({ ...d, gameSaves: [...(d.gameSaves || []), seeded] }));
+    return localId;
+  };
+  const updateGameSave = (id, updates) => setData(d => ({ ...d, gameSaves: (d.gameSaves || []).map(g => (g.id === id ? { ...g, ...updates } : g)) }));
+  const deleteGameSave = (id) => setData(d => ({ ...d, gameSaves: (d.gameSaves || []).filter(g => g.id !== id) }));
+
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
   // r25 — 1099 contractor CRUD per EDITABLE-EVERYWHERE.md.
@@ -3596,6 +3961,13 @@ export default function PoeFinancialSystem() {
     }
   };
   const updateTransaction = (id, updates) => {
+    // Books living record: capture the BEFORE snapshot so the edit becomes an
+    // immutable, attributed version in record_events (lib/record-history.js) —
+    // "what was this transaction before, who changed it, when." The edit itself
+    // still mutates the live row (the current figure stays single-valued); the
+    // history is the recoverable trail beside it.
+    const before = (data.transactions || []).find(t => t.id === id) || null;
+    const after = before ? { ...before, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : before.amount } : null;
     setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.transactions || []).find(t => t.id === id);
@@ -3611,8 +3983,10 @@ export default function PoeFinancialSystem() {
         transactionsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[transactions-sync] update failed', e));
       }
     }
+    if (before && after) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'update', before, after });
   };
   const deleteTransaction = (id) => {
+    const before = (data.transactions || []).find(t => t.id === id) || null;
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.transactions || []).find(t => t.id === id);
       if (local && local.remoteUuid) {
@@ -3620,6 +3994,9 @@ export default function PoeFinancialSystem() {
       }
     }
     setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
+    // The deletion is recoverable: its `before` snapshot is preserved in the
+    // append-only history (the row leaves the live ledger, not the record).
+    if (before) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'delete', before, summary: `Transaction deleted: ${before.description || ''} ${before.amount}` });
   };
   // v28+ Rentals expansion: Rental property CRUD
   // 2026-06-10 — wired for cross-device sync (schema v2.2.2 rentals). Same gate
@@ -4688,7 +5065,7 @@ html{scroll-padding-bottom:280px}
       {/* Demo banner — thin strip across the top whenever in demo mode (not
           picker). Stays visible the whole session. CTAs: switch persona, see
           welcome modal again, or start your own. */}
-      {isDemoMode && !demoWelcomeOpen && (
+      {isDemoMode && !demoWelcomeOpen && !headerCollapsed && (
         <div className="bg-[#B85838] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="uppercase tracking-[0.2em] font-semibold">Sample · {DEMO_PERSONA_META[demoPersona]?.label || 'Family of 4'}</span>
@@ -4722,11 +5099,38 @@ html{scroll-padding-bottom:280px}
           title={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Secure your space' : 'Welcome back'}
           subtitle={accessDecision.nextStep === NEXT_STEP.SET_PIN
             ? 'One more step: choose a 4–8 digit PIN. It’s your second key — used with your email sign-in or this trusted device.'
-            : 'Enter your PIN to unlock your space.'}
+            : (mpHasBiometric
+              ? 'Use your fingerprint / Face to unlock — or enter your PIN.'
+              : 'Enter your PIN to unlock your space.')}
           submitLabel={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Set PIN & continue' : 'Unlock'}
           onSubmit={accessDecision.nextStep === NEXT_STEP.SET_PIN ? handleSetPin : handleEnterPin}
-          onForgot={accessDecision.nextStep === NEXT_STEP.ENTER_PIN ? handleForgotPin : undefined}
+          onForgot={accessDecision.nextStep !== NEXT_STEP.SET_PIN ? handleForgotPin : undefined}
+          onBiometric={mpHasBiometric ? handleBiometricUnlock : undefined}
         />
+      )}
+
+      {/* Post-grant offer: enable fingerprint / Face on this device (opt-in,
+          shown once). Enrollment only runs on the explicit tap; the biometric
+          never leaves the device. */}
+      {bioOfferOpen && authSession && (
+        <div role="dialog" aria-modal="true" aria-labelledby="bio-offer-h"
+          className="fixed inset-0 z-[60] bg-[#1A1815]/95 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-sm w-full p-5 sm:p-6">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Faster sign-in</div>
+            <h2 id="bio-offer-h" className="text-xl sm:text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Unlock with your fingerprint or face?</h2>
+            <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+              On this device you can skip the PIN next time and just use your fingerprint or face. It stays on this device — we never see or store it. Your PIN still works any time.
+            </p>
+            <button type="button" onClick={handleEnrollBiometric}
+              className="w-full bg-[#1A1815] text-white py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] mb-2">
+              Enable fingerprint / Face
+            </button>
+            <button type="button" onClick={dismissBiometricOffer}
+              className="w-full py-2 text-[11px] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Not now — keep using my PIN
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Family shared-device persona gate — verify the selected person's PIN. */}
@@ -4784,10 +5188,19 @@ html{scroll-padding-bottom:280px}
         </div>
       )}
 
+      {/* First-run roadmap tour — a discrete bottom card offering the "what is
+          this app" walkthrough, dismissible and remembered per device. Self-
+          positions (fixed); placed once near the app root. */}
+      <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
+
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
             from growing taller and pushing content down at larger sizes. */}
+        {/* HEADER HIDEAWAY: this whole top block (title, date/time, build line,
+            account/subscribe row, voice + font controls, theme swatches) hides
+            when collapsed; only the <nav> tab row below stays pinned. */}
+        {!headerCollapsed && (
         <div className="w-full px-3 sm:px-6 lg:px-8 py-[12px] sm:py-[16px]">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
               screens so the tier-preview dropdown and Subscribe/Feedback buttons
@@ -4826,10 +5239,28 @@ html{scroll-padding-bottom:280px}
               </button>
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
+              {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any
+                  tab and Ari explains THAT surface (what / how / why), plus the user
+                  roadmap. Context-aware: it reads the live view/sub-view, so one
+                  button covers every tab with no per-tab wiring. Sits with the other
+                  "make this comfortable to understand" controls. */}
+              <HelpButton
+                variant="header"
+                view={view}
+                churchView={churchView}
+                booksView={booksView}
+                setView={setView}
+                setChurchView={setChurchView}
+                setBooksView={setBooksView}
+              />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
               <TextSizeControl variant="header" />
+              {/* Reading-voice picker (HEAR half): pick once, every page reads in it.
+                  Lives beside text size — the two "make this comfortable" controls
+                  together. Saved to the account so it follows the user to any device. */}
+              <ReadingVoiceControl variant="header" isOwner={isFamilyMember} />
               <div className="flex gap-1 items-center" role="group" aria-label="Theme selector">
                 {[
                   // White and Slate take design inspiration from the two phone
@@ -4857,6 +5288,7 @@ html{scroll-padding-bottom:280px}
             </div>
           </div>
         </div>
+        )}
         <nav className="border-t border-[#E8E4DC]">
           {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
               first, About anchors the right side of the primary group, then a
@@ -4869,7 +5301,21 @@ html{scroll-padding-bottom:280px}
               via zoom so the menu stays roughly fixed while body content scales
               (text-size scope split). Holds only rem tabs — no fixed-px control
               lives here, so nothing already-fixed is shrunk. */}
-          <TabScroll chrome className="px-1 sm:px-6 lg:px-8" rowClassName="sm:text-sm items-stretch">
+          {/* Browser-like Back/Forward, pinned left of the tab row so it never
+              scrolls away. Real window.history nav (lib/nav-history.js): Back
+              returns to the exact prior view/sub-view across every tab. */}
+          {/* THE reference tab row Darrell loves ("easy and fluid," "classy") —
+              ONE flat row of every top-level surface, routed through the shared
+              <TabScroll> primitive (horizontal scroll reaches every tab). A 6-area
+              cluster nav was tried (#381) and reverted 2026-06-26: grouping the
+              familiar tabs behind areas read as "lost the tabs" on the live app.
+              The anti-sprawl goal stands, but the regrouping must be visually
+              obvious before it ships again — until then, every surface is one tap. */}
+          <div className="flex items-stretch">
+            <div className="pl-1 sm:pl-6 lg:pl-8 flex items-stretch">
+              <NavControls chrome {...navHistory} />
+            </div>
+            <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
               {[
                 ['overview','Big Picture'],
                 ['books','Books'],
@@ -4885,6 +5331,24 @@ html{scroll-padding-bottom:280px}
                 // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
                 // Available to every signed-in user; persistence is instance-scoped.
                 ['create', <><UiIcon name="palette" /> Create</>],
+                // Voice — "listen to anything" in a chosen voice; consent-gated
+                // personal (cloned) voices as a subscriber feature. Notes group
+                // sibling (capture -> reflect -> compose -> hear).
+                ['voice', <><UiIcon name="volume" /> Voice</>],
+                // Library — books assembled from the house's own corpus, with an
+                // in-app reader whose chapters deep-link back into the live app
+                // (the books<->app flywheel). Reading is open to every signed-in
+                // user; the build Studio is family/Governor-gated inside.
+                ['library', <><UiIcon name="bookOpen" /> Library</>],
+                // Chef's Corner — the recipe surface (starts with the Poe Family
+                // Vegan Recipes by Chef Mario). Open to every signed-in user;
+                // persistence is instance-scoped (family-private).
+                ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
+                // Games — the family games hub ("our games"). Open to everyone
+                // (the children most of all); the first game walks an African
+                // American life journey, measured by Yahweh. Persistence is
+                // instance-scoped and local-first.
+                ['games', <><UiIcon name="dice" /> Games</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -4902,6 +5366,26 @@ html{scroll-padding-bottom:280px}
                 // Family/Governor only (steward tooling across all businesses);
                 // spread so the entry is absent from the DOM for everyone else.
                 ...(isFamilyMember ? [['crm', <><UiIcon name="users" /> CRM</>]] : []),
+                // Relationships — the relationship-based permission model: who can
+                // do what based on the relationship (guardian<->child, family,
+                // landlord<->tenant). Family/Governor only (it SETS access); spread
+                // so the entry is absent from the DOM for everyone else (no-leak).
+                ...(isFamilyMember ? [['relationships', <><UiIcon name="users" /> Relationships</>]] : []),
+                // Inventory — a real inventory-control system of record (derived
+                // on-hand over an immutable movement ledger). Family/Governor only
+                // (operations tooling); spread so the entry is absent from the DOM
+                // for everyone else, like Center / CRM.
+                ...(isFamilyMember ? [['inventory', <><UiIcon name="tools" /> Inventory</>]] : []),
+                // Forecast — the financial-engineering / forward-projection layer.
+                // Family/Governor only (it models the family's real money); spread
+                // so the entry is absent from the DOM for everyone else (no-leak),
+                // and the component carries a locked fallback for any deep-link.
+                ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
+                // Access & Usage — WHO has access + counts/activity + build-
+                // freshness (rollout management). Family/Governor only (steward
+                // governance over real members); spread so the entry is absent
+                // from the DOM for everyone else (no-leak), like Center / CRM.
+                ...(isFamilyMember ? [['access', <><UiIcon name="monitor" /> Access</>]] : []),
                 // Admin surfaced at the top so users can SEE a steward space
                 // exists (visible-but-locked, like 🔒 Observation). ACCESS is
                 // gated at the render below — the entry being visible is the goal.
@@ -4914,7 +5398,29 @@ html{scroll-padding-bottom:280px}
                   <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 );
               })}
-          </TabScroll>
+            </TabScroll>
+            {/* HEADER HIDEAWAY toggle — pinned to the right of the tab row so it
+                is ALWAYS visible (it never scrolls with the tabs and it is the
+                one control that survives a collapse). One tap hides the whole top
+                chrome (date/time, build line, account/subscribe row, voice + font
+                controls, theme swatches, Sample banner) for max dashboard room;
+                one tap brings it all back. The chevron points UP to "tuck away"
+                and DOWN to "bring back." Preference persists per device. The
+                color is a chrome token (#5A5751 -> 5.9:1 on the bar, remapped to
+                #888888 on midnight) and the icon inherits it via currentColor, so
+                it stays WCAG-legible in every theme. */}
+            <button
+              type="button"
+              onClick={toggleHeaderChrome}
+              aria-expanded={!headerCollapsed}
+              aria-label={headerCollapsed ? 'Show the full header (date, account, voice, font, theme controls)' : 'Hide the top bar — keep only the tabs for more room'}
+              title={headerCollapsed ? 'Show the full header' : 'Hide the top bar (keep tabs)'}
+              className="shrink-0 self-stretch px-2.5 sm:px-3 flex items-center justify-center border-l border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              <UiIcon name={headerCollapsed ? 'chevronDown' : 'chevronUp'} className="text-base" />
+              <span className="sr-only">{headerCollapsed ? 'Show header' : 'Hide header'}</span>
+            </button>
+          </div>
         </nav>
         {view === 'books' && (
           <div className="border-t border-[#E8E4DC] bg-white">
@@ -4934,7 +5440,7 @@ html{scroll-padding-bottom:280px}
                 (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
                 caps the row via zoom while body text scales. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -4952,7 +5458,13 @@ html{scroll-padding-bottom:280px}
         {view === 'overview' && <BigPictureDashboard data={data} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')}>
-          <>
+          {/* Router-level backstop (2026-06-25): every Books sub-tab degrades to a
+              recoverable inline card instead of white-screening the whole app if it
+              throws on an unexpected data shape. Keyed by booksView so switching tabs
+              remounts a fresh boundary (a crash in one tab doesn't stick to the next).
+              Transactions keeps its own inner boundary too — defense in depth, and it
+              also catches that lazy chunk's load failures. */}
+          <SectionBoundary key={booksView} name="Financial">
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
             {booksView === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
@@ -4968,7 +5480,7 @@ html{scroll-padding-bottom:280px}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
             {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} />}
-          </>
+          </SectionBoundary>
           </PrivateGate>
         )}
         {view === 'inbound' && <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />}
@@ -5023,7 +5535,12 @@ html{scroll-padding-bottom:280px}
         {/* The Word — Migdal: PUBLIC library for everyone; the component itself
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
         {view === 'church' && churchView === 'pulpit' && <Pulpit />}
-        {view === 'church' && churchView === 'scripture' && <ScriptureLibrary />}
+        {view === 'church' && churchView === 'scripture' && <ScriptureLibrary email={authSession?.user?.email} canStudy={isStudyCircle} />}
+        {/* Harvest Ledger: no video lost — every ingested recording fully mined
+            (one-source-many-harvests). Staff-gated; RLS read = choir (0050). */}
+        {view === 'church' && churchView === 'harvest' && (isChurchStaff
+          ? <HarvestLedger />
+          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Harvest Ledger is for church staff. Sign in with a church staff account to view it.</div>)}
         {view === 'church' && churchView === 'videowall' && (isChurchStaff
           ? <ChurchVideoWall />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Video Wall capital project holds church financial data. Sign in with a church staff account to view it.</div>)}
@@ -5247,6 +5764,40 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // World Issues & Discernment — a Word-first, SELF-PACED media-literacy +
+          // biblical-discernment track on the same shared engine (meta.unit renders
+          // it as "Issue(s)", no cohort clock). Each issue's modules carry a
+          // structured `issue` (lib/discernment-track.js) that ChurchLearn renders
+          // as the five labeled stages. Safeguards (claims labeled, dated sources,
+          // steelmanned sides, no one-sided persuasion against a named person,
+          // age-appropriate) are machine-checked in the lib + asserted in tests.
+          const submitWorldIssuesInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${WORLD_ISSUES_INTEREST_TAG} ${(name || 'A learner').trim()} wants more World Issues discernment lessons.` })
+            : null;
+          const worldIssuesRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], WORLD_ISSUES_INTEREST_TAG) : null;
+          const worldIssuesCourse = {
+            meta: { ...WORLD_ISSUES_META, key: 'world-issues' },
+            sessionFlow: WORLD_ISSUES_SESSION_FLOW,
+            schedule: buildWorldIssuesSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => worldIssuesProgressSummary(p),
+            exportMarkdown: () => exportWorldIssuesCurriculumMarkdown(),
+            downloadName: 'thinking-it-through-world-issues-discernment.md',
+            submitInterest: submitWorldIssuesInterest,
+            roster: worldIssuesRoster,
+            interestCopy: {
+              heading: 'Want more discernment lessons?',
+              blurb: 'Tell Darrell which world issue you’d like thought through The Way — media literacy + Scripture, evenhanded, never a verdict on a person. Read at your own pace, at any age.',
+              cta: 'I’d like more',
+              sent: '✓ Sent — Darrell will see what to think through next. We check sources and hold truth and grace.',
+            },
+            tutorCourseMeta: WORLD_ISSUES_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
@@ -5255,7 +5806,8 @@ html{scroll-padding-bottom:280px}
                   : courseKey === 'ai-legal-blueprint' ? AI_LEGAL_BLUEPRINT_HELPER_TAG
                     : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
                       : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
-                        : '[Class helper]'
+                        : courseKey === 'world-issues' ? WORLD_ISSUES_HELPER_TAG
+                          : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5287,7 +5839,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse, worldIssuesCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
@@ -5331,6 +5883,74 @@ html{scroll-padding-bottom:280px}
             />
           </SectionBoundary>
         )}
+        {/* Chef's Corner — the recipe surface. Starts with the Poe Family Vegan
+            Recipes by Chef Mario (canonical content) + every recipe the family
+            adds (persisted, instance-scoped). Own SectionBoundary so a thrown
+            error degrades just this surface. */}
+        {view === 'recipes' && (
+          <SectionBoundary name="Chef's Corner">
+            <ChefCorner
+              recipes={data.recipes || []}
+              addRecipe={addRecipe}
+              updateRecipe={updateRecipe}
+              deleteRecipe={deleteRecipe}
+              currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+              inventory={isFamilyMember ? {
+                items: data.inventoryItems || [],
+                movements: data.inventoryMovements || [],
+                counts: data.inventoryCounts || [],
+                countLines: data.inventoryCountLines || [],
+                addItem: addInventoryItem,
+                updateItem: updateInventoryItem,
+                recordMovements: recordInventoryMovements,
+                addCount: addInventoryCount,
+                updateCount: updateInventoryCount,
+                addCountLine: addInventoryCountLine,
+                updateCountLine: updateInventoryCountLine,
+                canManage: true,
+              } : null}
+            />
+          </SectionBoundary>
+        )}
+        {/* Games — the family games hub. Own SectionBoundary so a thrown error
+            degrades just this surface. Local-first persistence via gameSaves. */}
+        {view === 'games' && (
+          <SectionBoundary name="Games">
+            <Games
+              saves={data.gameSaves || []}
+              addSave={addGameSave}
+              updateSave={updateGameSave}
+              deleteSave={deleteGameSave}
+            />
+          </SectionBoundary>
+        )}
+        {/* Voice — "listen to anything" in a chosen voice; consent-gated personal
+            (cloned) voices as a subscriber feature. Own SectionBoundary so a thrown
+            error degrades just this surface. Personal-voice timbre is honest:
+            labeled stand-in until the local sovereign voice studio is live. */}
+        {view === 'voice' && (
+          <SectionBoundary name="Voice">
+            <VoiceStudio
+              personaKey={authSession ? personaOf(authSession.user?.email) : null}
+              isOwner={authSession ? personaOf(authSession.user?.email) === 'darrell' : false}
+            />
+          </SectionBoundary>
+        )}
+        {/* Library — the books<->app flywheel surface. Reader is open to any
+            signed-in user; the build Studio is family/Governor-gated inside the
+            component. Its own SectionBoundary keeps a thrown error scoped. */}
+        {view === 'library' && (
+          <SectionBoundary name="Library">
+            <Library
+              email={authSession?.user?.email || ''}
+              isFamilyMember={isFamilyMember}
+              sermons={[]}
+              setView={setView}
+              setChurchView={setChurchView}
+              setBooksView={setBooksView}
+            />
+          </SectionBoundary>
+        )}
         {/* Darrell's Study — private, circle-only (Darrell/Christina/BG). Gated
             again here (defense in depth) so a deep-link can't reach it; data is
             device-local + sovereign (study-space.js). */}
@@ -5358,7 +5978,7 @@ html{scroll-padding-bottom:280px}
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'practice' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.practice)
-          ? <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={data.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} />
+          ? <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={data.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} email={authSession?.user?.email || ''} isStaff={isFamilyMember} />
           : <UpgradePrompt viewLabel="Practice Operations" requiredTier={VIEW_TIER_REQUIREMENTS.practice} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'opportunities' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.opportunities)
@@ -5406,6 +6026,63 @@ html{scroll-padding-bottom:280px}
             </div>
           ))}
 
+        {/* Relationships — the relationship-based permission model + the
+            landlord<->tenant / guardian<->child workflows. Family/Governor only
+            (it SETS access); the component carries a locked fallback for any
+            deep-link, and its own SectionBoundary so a thrown error degrades just
+            this surface. */}
+        {view === 'relationships' && (
+          <SectionBoundary name="Relationships">
+            <Relationships isGovernor={isFamilyMember} currentUserId={authSession?.user?.id || null} />
+          </SectionBoundary>
+        )}
+
+        {/* Inventory — the systems-of-record demonstration: on-hand DERIVED from
+            an immutable movement ledger, versioned items, corporate controls.
+            Family/Governor only (operations tooling); own SectionBoundary so a
+            thrown error degrades just this surface (no white-screen). */}
+        {view === 'inventory' && (isFamilyMember
+          ? (
+            <SectionBoundary name="Inventory">
+              <Inventory
+                items={data.inventoryItems || []}
+                movements={data.inventoryMovements || []}
+                recordEvents={data.recordEvents || []}
+                addItem={addInventoryItem}
+                updateItem={updateInventoryItem}
+                recordMovements={recordInventoryMovements}
+                currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+              />
+            </SectionBoundary>
+          )
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">Inventory is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The inventory system of record is steward-only. Sign in with a family/governor account to manage items and stock.</p>
+            </div>
+          ))}
+
+        {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
+
+        {/* Access & Usage — access governance + aggregate usage + build-freshness.
+            Family/Governor only (real members, real build-freshness); own
+            SectionBoundary so a thrown error degrades just this surface. The
+            member_presence read is owner/admin-gated at the DB too (defense in
+            depth). Locked fallback for any deep-link by a non-steward. */}
+        {view === 'access' && (isFamilyMember
+          ? (
+            <SectionBoundary name="Access">
+              <AccessUsageMetrics />
+            </SectionBoundary>
+          ) : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="monitor" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">Access &amp; Usage is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Who-has-access and rollout metrics are governor-only. Sign in with a steward account to view them.</p>
+            </div>
+          ))}
+
         {view === 'admin' && ((isFamilyMember || !isPublicHost())
           ? <Admin />
           : (
@@ -5430,7 +6107,7 @@ html{scroll-padding-bottom:280px}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
         </Suspense>
       </main>
-      <TTSControl />
+      <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} />
       <InstallPrompt />
       <UpdatePrompt />
       <NetworkStatus />
@@ -5909,6 +6586,10 @@ const FEEDBACK_AREAS = [
   { group: 'Notes', items: [
     ['notes', '🕊 Notes · thinking space (capture → prayer / voice / incident / inquiry)'],
     ['create', '🎨 Create · creation workspace (document → image export)'],
+    ['voice', '🔊 Voice · listen to anything (choose a voice · consent-gated enrollment)'],
+    ['library', '📖 Library · books from the corpus + in-app reader (companion deep-links)'],
+    ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
+    ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "📓 Darrell's Study · reflections / processing / cultural research (device-local)"],
@@ -5923,6 +6604,25 @@ const FEEDBACK_AREAS = [
   { group: 'CRM (🔒 steward · acquisition backbone)', items: [
     ['crm', '👥 CRM · the one shared pipeline every funnel rides (TLC · GTM · Boxcar · Real Estate)'],
   ]},
+  { group: 'Relationships (steward · permission model)', items: [
+    ['relationships', 'Relationships · who can do what by relationship (guardian/child · family · landlord/tenant)'],
+    ['relationships-guardian', '└ Guardian & Child · set a child\'s allowed capabilities + the approval queue'],
+    ['relationships-landlord', '└ Landlord & Tenant · rent roll · maintenance · rent records (no money moves) · notices · messages'],
+  ]},
+  { group: 'Forecast (🔒 steward · financial engineering)', items: [
+    ['forecast', '📈 Forecast · forward cash-flow projection from real data (per business / family / consolidated)'],
+    ['forecast-scenarios', '└ Scenarios · best/base/worst · add property / tier / capital purchase (editable assumptions)'],
+    ['forecast-track', '└ Track · projected-vs-actual over time (forecast accuracy)'],
+  ]},
+  { group: 'Access & Usage (steward · access governance)', items: [
+    ['access', 'Access & Usage · who has access (role · scope) + counts/activity + build-freshness (rollout management)'],
+  ]},
+  { group: "Chef's Corner — Kitchen Inventory (steward · homed in Chef's Corner)", items: [
+    ['kitchen', "Kitchen Inventory · Chef Mario's inventory, in Chef's Corner (count by weight/unit · par alerts · value)"],
+    ['kitchen-stock', '└ Stock · items by category / storage area · on-hand + value (derived)'],
+    ['kitchen-counts', '└ Counts · physical count → variance + shrink → reconcile the ledger'],
+    ['kitchen-costing', '└ Recipe Costing · plate cost from item costs · coverage · food-cost % + margin'],
+  ]},
   { group: 'Church', items: [
     ['church', 'Church · service times / media / prayer / ministry'],
     ['church-conference', '└ Conference · COLG National Assembly (schedule · meals · sessions)'],
@@ -5931,6 +6631,7 @@ const FEEDBACK_AREAS = [
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-program', 'Church · 📖 Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
+    ['church-harvest', 'Church · 🌾 Harvest Ledger (staff: no video lost — every recording fully mined)'],
     ['church-videowall', 'Church · 📺 Video Wall (🔒 sanctuary LED capital project — budget · donations · spec)'],
     ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
     ['church-pulpit', "Church · 📖 The Word — Migdal (Bishop's study — historical sermons + corpus-grounded prep)"],

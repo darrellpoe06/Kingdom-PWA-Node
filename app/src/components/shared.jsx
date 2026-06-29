@@ -251,6 +251,45 @@ function TabScroll({ children, chrome = false, className = '', rowClassName = ''
   );
 }
 
+// NavControls — the in-app BACK / FORWARD pair, behaving like a browser.
+//
+// Pinned at the left of the main nav row (never scrolls with the tabs). Wired to
+// useBrowserHistoryNav (lib/nav-history.js): Back = previous in-app view, Forward
+// re-advances. Disabled when there's nowhere to go (no dead-ends). Kept here with
+// the other stateless chrome so the one back/forward affordance is reused, not
+// re-styled per surface. `chrome` opts the cluster into .ts-chrome-region so it
+// stays fixed-size while body text scales (text-size scope split), matching the
+// tab row it sits beside. Disabled buttons use the WCAG 1.4.3 inactive-control
+// exemption; the enabled state holds AA on the cream header (#5A5751 on #FAF8F4).
+function NavControls({ canGoBack, canGoForward, goBack, goForward, chrome = false }) {
+  const base = 'px-2 py-2.5 text-base leading-none transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-30 disabled:cursor-default';
+  const live = 'text-[#5A5751] hover:text-[#1A1815] cursor-pointer';
+  return (
+    <div className={`${chrome ? 'ts-chrome-region ' : ''}flex items-stretch shrink-0 border-r border-[#E8E4DC] pr-1 mr-1`} role="group" aria-label="Page navigation">
+      <button
+        type="button"
+        onClick={goBack}
+        disabled={!canGoBack}
+        aria-label="Back to previous page"
+        title="Back"
+        className={`${base} ${live}`}
+      >
+        &#8592;
+      </button>
+      <button
+        type="button"
+        onClick={goForward}
+        disabled={!canGoForward}
+        aria-label="Forward to next page"
+        title="Forward"
+        className={`${base} ${live}`}
+      >
+        &#8594;
+      </button>
+    </div>
+  );
+}
+
 function SectionTitle({ children, eyebrow }) {
   return (
     <div className="mb-5 pb-3 border-b-2 border-[#1A1815] section-title-wrapper">
@@ -269,4 +308,4 @@ function MetricCell({ label, value, sub, accent, small, trace }) {
 }
 
 // Named exports — main file imports these explicitly.
-export { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle, MetricCell, TabScroll };
+export { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle, MetricCell, TabScroll, NavControls };

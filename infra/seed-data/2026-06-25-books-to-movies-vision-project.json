@@ -1,0 +1,41 @@
+{
+  "$schema": "https://kingdom-pwa.dev/schemas/seed-projects/v1.json",
+  "seed_id": "2026-06-25-books-to-movies-vision-project",
+  "generated_at": "2026-06-25T00:00:00Z",
+  "generated_by": "research-review session (books -> movies AI-film flywheel)",
+  "instance_slug": "poe-family",
+  "intent": "Capture the books->movies AI-film flywheel as a VISION/ROADMAP project card in the Projects hub so it lives as the thing-to-build-toward. This is roadmap, not a build: the card sits in the Research stage (status 'planning') and points at the research-review doc. UI consumers (mobile project-creation flow) read this file to let Darrell add the card with a tap.",
+  "poe_binding": "Sovereign-first, MODULAR + SCALABLE (built as a feature module on the hybrid-modular shell per DR-0078: four reusable seams -- media-production pipeline / in-app exclusive distribution / entitlement gating / voice+likeness-consent -- so the same module grows narrated->full AI video by adapter swap behind stable seams, WITHOUT a rewrite), vendor-gated, five integrity guardrails binding (AI-label, likeness+voice consent, no deception, child-appropriate, mission-aligned). Phase 1 doable now on the 2x RTX 4070; true AI video gated on the bigger CUDA box + open-model maturity. Honest about hardware: no over-claim of photoreal film on 12GB cards. Framed Opportunities/Constraints/How/Why-best in the roadmap doc.",
+  "projects": [
+    {
+      "slug": "books-to-movies-ai-film-flywheel-2026-06-25",
+      "title": "Books -> Movies (AI-film flywheel)",
+      "status": "planning",
+      "domain": "tech",
+      "hours_per_week": 0,
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": null,
+      "description_md": "VISION / ROADMAP (Research stage; no heavy build yet). Books become MOVIES -- AI-produced, promoted IN-APP exclusively for subscribers, grounded in the information of Yahweh (the Word + truth) plus Darrell's and the community's real content feeds.\n\nMODULAR + SCALABLE BY MANDATE (Darrell: modules exist so scalability is built in). Built as a feature module on the hybrid-modular shell (DR-0078 / MODULE-ARCHITECTURE-ADR) with four reusable seams: (A) media-production pipeline behind a provider seam with swappable adapters NarrationStills->TalkingHead->VideoGen->VendorBurst (mirrors the tts.js seam); (B) in-app exclusive distribution (player reusing Presenter/Lightbox primitives + SectionBoundary, mounted via surfaces.js registry); (C) entitlement/subscription gating (rides core role-gating + voice-registry ENTITLEMENT as a declarative requires:{tier,entitlement} field); (D) voice+likeness-consent layer (extends voice-registry with a face-consent kind; a shared consent primitive any module checks). The module talks to the harvest corpus + voice registry via core sync + typed events, never importing their internals. THE SCALE PATH: grow narrated/illustrated NOW -> full AI video LATER by swapping a richer adapter behind the stable seam + a flag -- WITHOUT a rewrite. Scale-out (mesh nodes via per-module lazy chunks) and scale-up (richer adapters) both built in.\n\nFRAMED (research-review standard) as OPPORTUNITIES (exclusive subscriber content = retention+revenue; the Word in the most engaging medium = Father's Business reach; flywheel compounding; differentiation; sovereign/owned-IP; authentic Darrell+community source), CONSTRAINTS (AI-video maturity; GPU/compute cost; model licensing/sovereignty; production time; likeness/voice consent + AI-labeling; content-truth fidelity; cost-efficiency/unit economics; child-appropriateness), HOW (phased path through the constraints on the modular seams), WHY-BEST (vs vendor big-bang / wait / SaaS / monolithic).\n\nFlywheel extension: same corpus, new medium. book/teaching/Scripture (lane local_7bcac1a3) -> screenplay/scene-treatment (sovereign Ollama) -> narration in CONSENTED voices (tts.js seam; voice lane local_da7f0d36) -> AI 'moving picture' (LABELED AI; theological review) -> subscriber-exclusive in-app release -> feedback refines the next retelling. Re-uses the no-video-lost harvest ledger discipline (a film is another derived artifact with provenance, never painted).\n\nHonest hardware truth: photoreal multi-minute film is NOT feasible on the church 2x RTX 4070 (12GB) today (full-quality open video models are 24GB->datacenter; quantized local gen yields ~4-5s clips). So crawl in a sovereign-feasible medium NOW (narrated illustrated/motion + consented voices) and walk/run into true AI video as the planned bigger CUDA box (5090-class, 32GB) lands and open models (Wan 2.2/2.7, HunyuanVideo 1.5, LTX-2.3 -- all Apache-2.0) mature. Vendor APIs (Veo/Sora/Kling/Wan) kept as a GATED, opt-in burst lane for non-sovereign promo only -- never the canonical generator of Word-grounded content.\n\nBINDING integrity guardrails (from first frame): (1) AI-generated film ALWAYS labeled 'AI-generated'; (2) likeness + voice CONSENT required -- no realistic depiction of a real person's face/voice without explicit, written, scoped, revocable consent (extends the voice-consent rule to faces; Darrell's own = consented; likeness consent is SEPARATE from voice consent and not assumed); (3) no deceptive realism -- never depict a real person saying/doing what they didn't, never present generated footage as documentary fact; (4) child-appropriate by default; (5) mission-aligned -- every film passes the theological review pipeline + the Test (souls + the Word, not spectacle).\n\nPhasing: P0 capture the vision (this card; now). P1 CRAWL -- narrated illustrated/motion shorts + consented voices on the 4070 (doable now; gated on an in-app exclusive player + the subscription/90-day-free billing engine, neither built yet). P2 WALK -- short AI video clips woven in (gated on the 5090-class box). P3 RUN -- richer AI film (gated on compute + model maturity). Re-review trigger: bigger CUDA box stands up AND a sovereign video-gen clip clears a real quality bar on a real device (verify-don't-claim).\n\nFull roadmap + cited tech survey + dependencies: docs/99-session-notes/2026-06-25-books-to-movies-ai-film-flywheel-research-review.md . Senior foundation: docs/00-foundations/_root/AI-MEDIA-PRODUCTION-PLATFORM-VISION.md (this is its first concrete book->film extension).",
+      "linked_docs": [
+        "docs/99-session-notes/2026-06-25-books-to-movies-ai-film-flywheel-research-review.md",
+        "docs/00-foundations/_root/AI-MEDIA-PRODUCTION-PLATFORM-VISION.md",
+        "docs/99-session-notes/2026-06-24-voicebox-sovereign-voice-layer-research-review.md"
+      ],
+      "cycle_item": {
+        "priority_score": 4.0,
+        "priority_factors": {
+          "urgency_score": 3,
+          "urgency_basis": "long-arc vision; roadmap captured now, build gated on hardware/model maturity + the in-app player + billing engine",
+          "dollar_friction": 1.0,
+          "dollar_basis": "no cost to capture the vision; Phase 2/3 ride the planned GPU-box capex already in the AI-MEDIA vision",
+          "formula": "urgency * 0.6 + dollar_friction * 10 * 0.4",
+          "stage": "research",
+          "gated_on": ["in-app subscriber-exclusive film player", "subscription/90-day-free billing engine", "likeness-consent registry", "bigger CUDA box (5090-class)", "open video-model maturity"]
+        },
+        "disposition": "deferred-next-cycle",
+        "disposition_notes": "Vision ratified + captured as the book->film extension of AI-MEDIA-PRODUCTION-PLATFORM-VISION. Sovereign-first, vendor-gated, five guardrails binding. Phase 1 doable now on the 2x RTX 4070; no heavy build tonight -- this is the thing-to-build-toward."
+      }
+    }
+  ]
+}

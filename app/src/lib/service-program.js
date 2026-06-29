@@ -81,6 +81,15 @@ export function toProgramShape(row) {
     targetMinutes: row.target_minutes ?? null,
     status: row.status ?? 'draft',
     notes: row.notes ?? null,
+    // ACTUAL side (0045) — what really happened + the blueprint lineage. Null
+    // until the service is reconciled (see lib/service-actuals.js).
+    actualStartTime: row.actual_start_time ?? null,
+    actualTotalMinutes: Number.isFinite(row.actual_total_minutes) ? row.actual_total_minutes : null,
+    actualNotes: row.actual_notes ?? null,
+    harvestSource: row.harvest_source ?? null,
+    reconciledAt: row.reconciled_at ?? null,
+    reconciledBy: row.reconciled_by ?? null,
+    blueprintSourceId: row.blueprint_source_id ?? null,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
   };

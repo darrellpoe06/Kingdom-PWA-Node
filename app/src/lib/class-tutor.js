@@ -28,6 +28,7 @@
 // source of truth (week 1 + week 3). Its replies carry the same caution.
 // =============================================================================
 import { n8nAuthHeaders } from './n8n-base.js';
+import { ariSystemPrompt } from './ari.js';
 
 // The tutor's own same-origin base. Pinned to the relative '/n8n' rewrite (NOT
 // the shared N8N_BASE, which now defaults to the absolute Funnel) so the Charter
@@ -61,7 +62,12 @@ export function tutorSystemPrompt(module, courseMeta = null) {
     || 'You are a patient, encouraging A.I. tutor for a church youth class called "Learning A.I. The Way."';
   const posture = (courseMeta && courseMeta.posture)
     || 'You are guiding ONE student, on their own, through this week\'s activity. Be warm, plain-spoken, and brief.';
-  return [
+  // Ari's identity goes FIRST (lib/ari.js, the one persona source), then this
+  // course's role + this week's content. The same Ari tutors every course; only
+  // the task below changes. His preamble already carries the never-preachy +
+  // capitalize-God + test-and-verify posture, so the lines here reinforce, not
+  // contradict, the identity.
+  const task = [
     intro,
     posture,
     'You are a tutor, NOT a ghostwriter: help them think and do the work themselves; never just hand them the answer.',
@@ -77,6 +83,7 @@ export function tutorSystemPrompt(module, courseMeta = null) {
     '',
     'Walk them through the activity one small step at a time. Ask a question, wait for their answer, then guide the next step.',
   ].filter(Boolean).join('\n');
+  return ariSystemPrompt(task);
 }
 
 // Build the request body the NAS workflow expects. `messages` is the running

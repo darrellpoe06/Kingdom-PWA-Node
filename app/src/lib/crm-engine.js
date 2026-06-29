@@ -42,7 +42,7 @@
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// ONE-CRM — the binding principle (DR-0080, declared by Darrell "always"). There
+// ONE-CRM — the binding principle (DR-0081, declared by Darrell "always"). There
 // is ONE shared sovereign CRM backbone; EVERY acquisition funnel + EVERY
 // business/tenant (current and future) rides THIS engine via per-business
 // CONFIG, never a per-business fork / second CRM / new leads table. A new funnel
@@ -50,7 +50,7 @@
 // a pre-existing lead table federates read-side via an adapter. Enforced in CI by
 // scripts/crm-single-engine-guard.mjs (proven-to-catch). Do not start a second CRM.
 // -----------------------------------------------------------------------------
-export const SINGLE_CRM_PRINCIPLE = 'ONE-CRM'; // DR-0080 — every funnel rides this one engine via config
+export const SINGLE_CRM_PRINCIPLE = 'ONE-CRM'; // DR-0081 — every funnel rides this one engine via config
 
 // -----------------------------------------------------------------------------
 // Businesses — the verticals/tenants the one engine serves. Each is a per-
@@ -743,7 +743,7 @@ export function flagPotentialPhi(text) {
 }
 
 export const GUARDRAILS = {
-  'one-crm':            { label: 'One shared CRM (no forks)', detail: 'Every funnel + business/tenant rides this one engine via config (DR-0080 / ONE-CRM). A new funnel is a pipeline config, never a second CRM. CI-enforced.' },
+  'one-crm':            { label: 'One shared CRM (no forks)', detail: 'Every funnel + business/tenant rides this one engine via config (DR-0081 / ONE-CRM). A new funnel is a pipeline config, never a second CRM. CI-enforced.' },
   'pii-minimal':        { label: 'PII minimal', detail: 'Contact-level data only. No clinical, PHI, or payment data on a lead — ever.' },
   'consent-required':   { label: 'Consent / served-not-surveilled', detail: 'Outreach requires recorded consent and the right channel. Honor opt-out immediately.' },
   'healthcare-ethics':  { label: 'Healthcare-marketing ethics', detail: 'No false/guaranteed outcomes. Scope of practice. Psychoeducation, not treatment.' },

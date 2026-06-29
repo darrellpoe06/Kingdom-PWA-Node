@@ -21,7 +21,7 @@ import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
 import { normalizeTitle } from './choir-songbook.js';
 import { parseServiceTitle } from './choir-sync.js';
-import { parseRepertoireJson, buildArchiveSongsFromChannel, selectNewArchiveSongs } from './choir-archive.js';
+import { parseRepertoireJson, buildArchiveSongsFromChannel, selectNewArchiveSongs, attributeToCorpus } from './choir-archive.js';
 
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -127,9 +127,25 @@ async function archiveWriteContext(displayName) {
   return { tenantId, userId: session.user.id };
 }
 
+// The service videos we ALREADY have (choir_sermons) — the corpus the historical
+// repertoire is harvested from. Read-only; degrades to [] so a corpus read never
+// blocks an import. Used to REUSE each service's existing video link + date
+// instead of re-fetching the channel (one source, two harvests).
+async function fetchServiceCorpus(ctx) {
+  const { data, error } = await supabase.from('choir_sermons')
+    .select('video_id, youtube_url, service_date, service_type').eq('instance_id', ctx.tenantId);
+  if (error) { console.warn('[choir-songbook] service corpus fetch failed:', error); return []; }
+  return (data || []).map((r) => ({
+    videoId: r.video_id, youtubeUrl: r.youtube_url, serviceDate: r.service_date, serviceType: r.service_type,
+  }));
+}
+
 // Map a choir-archive row (parseRepertoireJson / buildArchiveSongsFromChannel)
-// to a choir_songs insert row.
-function archiveRowToInsert(ctx, r) {
+// to a choir_songs insert row. Exported (pure) so the persist guard can assert
+// every column it writes actually exists in the migrations — the deterministic
+// catch for the "archive insert silently fails on a missing column" class that
+// keeps the Songbook empty even after a successful scan/import.
+export function archiveRowToInsert(ctx, r) {
   return {
     instance_id: ctx.tenantId,
     created_by: ctx.userId,
@@ -157,7 +173,11 @@ async function insertArchiveRows(ctx, rows) {
   return { imported: fresh.length, scanned: rows.length };
 }
 
-// Import the pipeline's repertoire.json (paste/upload) into the Songbook.
+// Import the pipeline's repertoire.json (paste/upload) into the Songbook. Each
+// song is attributed to the service it was sung in — REUSING the existing service
+// video we already hold (choir_sermons) for its link + date — so the imported
+// song lands as a rendition of that real, historical service (one source, two
+// harvests; reuse, don't re-fetch).
 export async function importRepertoireJson(jsonText, displayName) {
   let parsed;
   try { parsed = parseRepertoireJson(jsonText); }
@@ -165,8 +185,10 @@ export async function importRepertoireJson(jsonText, displayName) {
   if (!parsed.rows.length) return { skipped: 'empty', unclear: parsed.unclear };
   const ctx = await archiveWriteContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
-  const res = await insertArchiveRows(ctx, parsed.rows);
-  return res.skipped ? res : { ...res, unclear: parsed.unclear };
+  const corpus = await fetchServiceCorpus(ctx);
+  const { rows, scope } = attributeToCorpus(parsed.rows, corpus);
+  const res = await insertArchiveRows(ctx, rows);
+  return res.skipped ? res : { ...res, unclear: parsed.unclear, linked: scope.matched, unlinked: scope.unmatched };
 }
 
 // Scan the church YouTube channel's recent uploads and seed any songs listed in
@@ -198,8 +220,10 @@ export async function scanArchiveForSongs(displayName) {
         serviceType: parsed.serviceType || 'sunday',
       };
     });
-    const rows = buildArchiveSongsFromChannel(items);
-    if (!rows.length) return { imported: 0, scanned: items.length, songsFound: 0 };
+    const built = buildArchiveSongsFromChannel(items);
+    if (!built.length) return { imported: 0, scanned: items.length, songsFound: 0 };
+    // Reuse the services we already hold for each song's link + date.
+    const { rows } = attributeToCorpus(built, await fetchServiceCorpus(ctx));
     const res = await insertArchiveRows(ctx, rows);
     return res.skipped ? res : { ...res, songsFound: rows.length };
   } catch (e) {

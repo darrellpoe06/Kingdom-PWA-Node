@@ -143,6 +143,74 @@ export function buildArchiveSongsFromChannel(items) {
   return rows;
 }
 
+// --- Harvest the HISTORICAL repertoire from the services we ALREADY have ------
+// One source, two harvests (Darrell 2026-06-25): the SAME service videos already
+// ingested for sermons (choir_sermons) contain the choir songs. So we don't pull
+// a new video list — we attribute the extracted songs to the existing services
+// and REUSE their video link + date. Each linked song becomes a rendition tied to
+// that real service (Song -> Renditions = the ways we've sung it, by date).
+
+// Attribute extracted song rows to the existing service corpus (choir_sermons
+// shapes: { videoId, youtubeUrl, serviceDate, serviceType }). A song matches its
+// service by video_id first, else by the service date it was sung on; on a match
+// it INHERITS the service's video link + date/type (reuse, don't re-fetch),
+// keeping its own timestamp into that video. Faithful: a song that matches no
+// known service is kept but flagged unlinked (it's still real repertoire; it
+// just isn't tied to a service video we hold yet). Returns { rows, scope }.
+export function attributeToCorpus(rows, services) {
+  const byVideo = new Map();
+  const byDate = new Map();
+  for (const s of services || []) {
+    if (s && s.videoId) byVideo.set(s.videoId, s);
+    if (s && s.serviceDate && !byDate.has(s.serviceDate)) byDate.set(s.serviceDate, s);
+  }
+  const out = [];
+  let matched = 0;
+  for (const r of rows || []) {
+    const svc = (r.videoId && byVideo.get(r.videoId)) || (r.serviceDate && byDate.get(r.serviceDate)) || null;
+    if (svc) {
+      matched += 1;
+      const videoId = r.videoId || svc.videoId || null;
+      out.push({
+        ...r,
+        videoId,
+        youtubeUrl: r.youtubeUrl || youtubeWatch(svc.videoId, svc.youtubeUrl),
+        serviceDate: r.serviceDate || svc.serviceDate || null,
+        serviceType: r.serviceType || svc.serviceType || 'sunday',
+        fromService: true,
+      });
+    } else {
+      out.push({ ...r, fromService: false });
+    }
+  }
+  return {
+    rows: out,
+    scope: {
+      services: (services || []).length,
+      matched,
+      unmatched: out.length - matched,
+      unmatchedTitles: out.filter((r) => !r.fromService).map((r) => r.title),
+    },
+  };
+}
+
+// How far the historical sweep has gotten: of the service videos we already hold
+// (the corpus), how many have at least one harvested choir song. Real denominators
+// only (no fabrication) for the honest "songs harvested from X of N services"
+// readout. `services` = choir_sermons shapes; `songs` = current choir_songs shapes.
+export function repertoireCoverage(services, songs) {
+  const totalServices = (services || []).length;
+  const videoIds = new Set((services || []).map((s) => s && s.videoId).filter(Boolean));
+  const dates = new Set((services || []).map((s) => s && s.serviceDate).filter(Boolean));
+  const covered = new Set();
+  for (const song of songs || []) {
+    if (song && song.videoId && videoIds.has(song.videoId)) covered.add(`v:${song.videoId}`);
+    else if (song && song.serviceDate && dates.has(song.serviceDate)) covered.add(`d:${song.serviceDate}`);
+  }
+  const coveredServices = Math.min(covered.size, totalServices);
+  return { totalServices, coveredServices, pendingServices: Math.max(0, totalServices - coveredServices) };
+}
+
 // Drop archive rows that already exist (dedup by video_id + normalized title),
 // so re-running the seed is idempotent. `existing` = current choir_songs shapes.
 export function selectNewArchiveSongs(rows, existing) {

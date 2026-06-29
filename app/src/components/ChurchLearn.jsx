@@ -47,6 +47,7 @@ import {
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
 } from '../lib/church-classes.js';
 import { askTutor } from '../lib/class-tutor.js';
+import { ARI } from '../lib/ari.js';
 import {
   LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
   AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile,
@@ -55,8 +56,8 @@ import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
 import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import Presenter from './Presenter.jsx';
+import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable } from '../lib/presentable.js';
-import TextSizeControl from './TextSizeControl.jsx';
 
 const fmtDate = formatClassDate;
 
@@ -665,7 +666,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   return (
     <div className="mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">
-        🧭 Your guide for this {unitNoun}
+        🧭 {ARI.name} — your guide for this {unitNoun}
       </div>
 
       {/* The lesson-flow STANDARD — one clean, paced stage at a time */}
@@ -686,7 +687,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                   {m.content}
                   {m.role === 'assistant' && (
                     <span className="block text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] mt-1">
-                      Local tutor · test what it tells you
+                      {ARI.name} · the local tutor · test what it tells you
                     </span>
                   )}
                 </span>
@@ -701,7 +702,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
           </p>
         )}
 
-        <label htmlFor={`tutor-${module.id}`} className="sr-only">Ask the tutor about this {unitNoun}</label>
+        <label htmlFor={`tutor-${module.id}`} className="sr-only">Ask {ARI.name} about this {unitNoun}</label>
         <div className="flex gap-2 items-end">
           <textarea
             id={`tutor-${module.id}`}
@@ -709,7 +710,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }}
-            placeholder={`Ask the tutor anything about this ${unitNoun}…`}
+            placeholder={`Ask ${ARI.name} anything about this ${unitNoun}…`}
             className="flex-1 text-sm p-2 border border-[#E8E4DC] bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
           />
           <button
@@ -722,7 +723,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
           </button>
         </div>
         <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-          The tutor runs on the church’s own A.I. (sovereign, not sold). It can be wrong — verify what matters.
+          {ARI.honesty}
         </p>
       </div>
     </div>
@@ -1118,6 +1119,11 @@ function CourseView({
                 <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
               </p>
 
+              {/* World-Issues / Discernment modules carry a structured `issue`:
+                  render the dedicated five-stage walk-through. Other courses have
+                  no `issue`, so this is inert for them. */}
+              {m.issue && <DiscernmentStages issue={m.issue} />}
+
               {/* Actions: start the week (tutor + launch), and mark done */}
               <div className="flex flex-wrap gap-2 mt-3 items-center">
                 <button
@@ -1358,10 +1364,6 @@ export default function ChurchLearn({
         <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           {active.meta.title}
         </h2>
-
-        {/* Large-print for the lessons (WCAG 1.4.4). A learner of any age who needs
-            bigger text sets it here; it applies app-wide and is saved per device. */}
-        <TextSizeControl variant="panel" className="mb-4" />
 
         {/* Course picker — only shown when there's more than one course */}
         {courses.length > 1 && (

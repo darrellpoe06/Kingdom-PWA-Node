@@ -124,6 +124,18 @@ export async function fetchFamilyPhotos({ limit = 12 } = {}) {
 //   GET /n8n/webhook/album-photos?album=<name>&limit=N
 //   Authorization: Bearer <poetech-chat-bridge-token>
 //   -> { photos: [{ id, thumb, date, text }] }
+//
+// TWO trust boundaries — do not conflate them (2026-06-24 design, Darrell):
+//   1. The Authorization bearer above (poetech-chat-bridge-token) is the
+//      CLIENT gate to the webhook. It is per-device, stored in localStorage,
+//      and is the ONLY secret this client touches.
+//   2. The NAS workflow then reads Synology Photos as a DEDICATED, read-only
+//      SERVICE ACCOUNT (poetech-photos) scoped to ONLY the one shared album —
+//      NOT the main dpoe account. That credential lives server-side in the
+//      NAS secret store (n8n encrypted credentials), NEVER in this client,
+//      NEVER in the repo, NEVER logged. The client below never sees it.
+//   Full spec + DSM setup:
+//   docs/99-session-notes/2026-06-24-big-picture-nas-photos-service-account-spec.md
 // =============================================================================
 
 // The owner's chosen album/folder name that feeds the Big Picture page. Stored

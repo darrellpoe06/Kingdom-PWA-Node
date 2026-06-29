@@ -3,6 +3,7 @@
 // PROJECT_DOMAINS + PROJECT_STATUSES constants. Inline edit per row
 // shipped r20; this is the structural extraction.
 import React, { useState, useMemo } from 'react';
+import { useHistoryValue } from '../lib/nav-history.js';
 import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import { ConcernsBoard } from './ConcernsBoard.jsx';
@@ -160,6 +161,10 @@ const SCOPE_TEMPLATES = [
 
 function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null }) {
   const [subView, setSubView] = useState('list');
+  // Back returns from a Projects sub-tab (Discussions/Concerns/Scopes/etc.) to
+  // the timeline list, then on up the app history — the device Back button no
+  // longer jumps straight out of Projects. (lib/nav-history.js; base = 'list'.)
+  useHistoryValue(subView, setSubView, { base: 'list', key: 'projects-sub' });
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
   const tabs = [['list','Projects · Timeline'],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
