@@ -127,7 +127,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AccessUsageMetrics, ChefCorner,
+  Inventory, Forecast, AccessUsageMetrics, ChefCorner, Games,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1774,7 +1774,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','admin','center','crm','inventory','forecast'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','admin','center','crm','inventory','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -3775,6 +3775,18 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, recipes: (d.recipes || []).filter(x => x.id !== id) }));
   };
 
+  // ---- Games hub saves — local-first (the app data store is localStorage-backed
+  // and instance-scoped). A game survives a reload and a not-signed-in child can
+  // still play. addGameSave RETURNS the new local id so the hub can open it.
+  const addGameSave = (item) => {
+    const localId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const seeded = { ...item, id: localId };
+    setData(d => ({ ...d, gameSaves: [...(d.gameSaves || []), seeded] }));
+    return localId;
+  };
+  const updateGameSave = (id, updates) => setData(d => ({ ...d, gameSaves: (d.gameSaves || []).map(g => (g.id === id ? { ...g, ...updates } : g)) }));
+  const deleteGameSave = (id) => setData(d => ({ ...d, gameSaves: (d.gameSaves || []).filter(g => g.id !== id) }));
+
   const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
   const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
   // r25 — 1099 contractor CRUD per EDITABLE-EVERYWHERE.md.
@@ -5307,6 +5319,11 @@ html{scroll-padding-bottom:280px}
                 // Vegan Recipes by Chef Mario). Open to every signed-in user;
                 // persistence is instance-scoped (family-private).
                 ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
+                // Games — the family games hub ("our games"). Open to everyone
+                // (the children most of all); the first game walks an African
+                // American life journey, measured by Yahweh. Persistence is
+                // instance-scoped and local-first.
+                ['games', <><UiIcon name="dice" /> Games</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -5862,6 +5879,18 @@ html{scroll-padding-bottom:280px}
                 updateCountLine: updateInventoryCountLine,
                 canManage: true,
               } : null}
+            />
+          </SectionBoundary>
+        )}
+        {/* Games — the family games hub. Own SectionBoundary so a thrown error
+            degrades just this surface. Local-first persistence via gameSaves. */}
+        {view === 'games' && (
+          <SectionBoundary name="Games">
+            <Games
+              saves={data.gameSaves || []}
+              addSave={addGameSave}
+              updateSave={updateGameSave}
+              deleteSave={deleteGameSave}
             />
           </SectionBoundary>
         )}
@@ -6519,6 +6548,7 @@ const FEEDBACK_AREAS = [
     ['voice', '🔊 Voice · listen to anything (choose a voice · consent-gated enrollment)'],
     ['library', '📖 Library · books from the corpus + in-app reader (companion deep-links)'],
     ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
+    ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "📓 Darrell's Study · reflections / processing / cultural research (device-local)"],
