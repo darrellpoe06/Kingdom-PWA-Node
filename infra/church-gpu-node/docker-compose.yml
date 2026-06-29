@@ -1,0 +1,144 @@
+# =============================================================================
+# Church GPU node -- the three SOVEREIGN serving endpoints on a church RTX 4070
+# =============================================================================
+# ONE stack, headless, restart-on-boot, no-login. Stands up the GPU unlock:
+#
+#   ollama        :11434  -> sovereign local LLMs (qwen2.5:14b fits 12 GB)
+#   voice-studio  :8770   -> XTTS-v2 voice clone (POST /speak) -> "Darrell hears Darrell"
+#   whisper-gpu   :8771   -> faster-whisper transcription (harvest no-caption fallback)
+#
+# WHY a 4070-only stack (separate from infra/ai-orchestrator/node1, which also
+# runs n8n + the registry): the church box's job is to SERVE these three endpoints
+# on the LAN. The app/NAS point at them (see the runbook for wiring). If you also
+# want n8n + Uptime Kuma resident on this box, run the node1 compose instead/as well.
+#
+# HOST PREREQ
+#   - Windows church box: Docker Desktop with the WSL2 backend + a recent NVIDIA
+#     driver. WSL2 exposes the 4070 to the gpu reservations below -- no manual
+#     NVIDIA Container Toolkit step on Windows.
+#   - Linux box: Docker Engine + nvidia-container-toolkit installed and configured.
+#
+# SOVEREIGNTY: bind to the LAN / Tailscale only. Do NOT publish these ports to the
+# public internet. No bearer here -- access control is the network (LAN/tailnet).
+#
+# SERVICE-TIME PREEMPTION (DR-0012): a 4070 is 12 GB. Heavy LLM inference + OBS
+# NVENC contend for the same VRAM. Do NOT run model inference during Sunday /
+# Wednesday live services on a box that is also encoding the stream:
+#   docker compose -f infra/church-gpu-node/docker-compose.yml stop ollama
+# Restart after service. Creative/live work has absolute priority over LLM jobs.
+#
+# Deploy:
+#   1. Copy this folder to the box; cp .env.example .env and edit DATA_ROOT.
+#   2. docker compose up -d --build
+#   3. After ollama is up, pull a model (one time):
+#        docker exec church-ollama ollama pull qwen2.5:14b-instruct-q4_K_M
+#
+# Verify:
+#   curl http://localhost:11434/                 # "Ollama is running"
+#   curl http://localhost:8770/health            # {"ok": true}
+#   curl http://localhost:8771/health            # {"ok": true, "device": "cuda", ...}
+# =============================================================================
+
+services:
+  # --- Ollama (GPU) -- sovereign local LLMs ----------------------------------
+  # One 14B fits 12 GB at Q4 without CPU spillover (DR-0012). qwen2.5:14b is the
+  # daily reasoner the n8n talk-about / class-tutor workflows call. Never pull 32B+
+  # on a 4070. Model is pulled post-up (see Deploy), persisted on the bind mount.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: church-ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    environment:
+      - TZ=America/Chicago
+      # Evict the model quickly so the GPU is free for creative/live work between
+      # calls (DR-0012 absolute-priority preemption). Raise for a busier box.
+      - OLLAMA_KEEP_ALIVE=5m
+      - OLLAMA_MAX_LOADED_MODELS=1
+    volumes:
+      - ${DATA_ROOT:-./data}/ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama ls >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # --- voice-studio (XTTS-v2, GPU) -- the sovereign voice clone --------------
+  # Same /speak contract the app already targets (VITE_VOICE_SERVICE_URL). Few-shot:
+  # conditions on the recorded sample at inference, no per-user training. Lazy model
+  # load so /health answers before the model is warm.
+  voice-studio:
+    build:
+      context: ../voice-studio
+      dockerfile: Dockerfile
+    image: poetech/voice-studio:cuda
+    container_name: church-voice-studio
+    restart: always
+    ports:
+      - "8770:8770"
+    environment:
+      - VOICE_DEVICE=cuda
+      - PORT=8770
+      # Optional: pin a different model. Default is XTTS-v2 (see server.py).
+      - VOICE_MODEL=${VOICE_MODEL:-tts_models/multilingual/multi-dataset/xtts_v2}
+    volumes:
+      # Persist the downloaded model weights so a restart does not re-download.
+      - ${DATA_ROOT:-./data}/voice-models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8770/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s   # first start pulls the XTTS weights
+
+  # --- whisper-gpu (faster-whisper, GPU) -- harvest no-caption fallback ------
+  # Mount the media folder the harvest pipeline reads so { "path": ... } calls work
+  # without uploading. Multipart upload also works for one-off clips.
+  whisper-gpu:
+    build:
+      context: ./whisper-gpu
+      dockerfile: Dockerfile
+    image: poetech/whisper-gpu:cuda
+    container_name: church-whisper-gpu
+    restart: always
+    ports:
+      - "8771:8771"
+    environment:
+      - WHISPER_DEVICE=cuda
+      - WHISPER_MODEL=${WHISPER_MODEL:-large-v3-turbo}
+      - WHISPER_COMPUTE=float16
+      - WHISPER_WORK_ROOT=/work
+      - PORT=8771
+    volumes:
+      - ${DATA_ROOT:-./data}/whisper-models:/models
+      # Read-only mount of the media to transcribe (adjust HOST path in .env).
+      - ${MEDIA_ROOT:-./media}:/work:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8771/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
