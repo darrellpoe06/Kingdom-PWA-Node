@@ -6,7 +6,6 @@ import { describe, it, expect } from 'vitest';
 import {
   RELATIONSHIP_TYPES,
   RELATIONSHIPS,
-  relationshipByType,
   CAPABILITIES,
   CHILD_CAPABILITY_POLICY,
   CHILD_CAPABILITIES,
