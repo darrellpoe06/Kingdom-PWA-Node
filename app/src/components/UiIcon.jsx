@@ -158,6 +158,14 @@ const ICONS = {
       <path d="M7.5 14.5l3.5-4 3 2.5 4.5-6" />
     </>
   ),
+  // chevron up — "tuck the header away" affordance (header hideaway toggle)
+  chevronUp: (
+    <path d="M6 14.5l6-6 6 6" />
+  ),
+  // chevron down — "bring the header back" affordance (header hideaway toggle)
+  chevronDown: (
+    <path d="M6 9.5l6 6 6-6" />
+  ),
   // chef's toque — Chef's Corner / recipes (was a food emoji)
   chefHat: (
     <>

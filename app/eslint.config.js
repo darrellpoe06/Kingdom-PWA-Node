@@ -37,6 +37,7 @@ export default [
         __GOVERNANCE_QUEUE__: 'readonly',
         __DR_LEDGER__: 'readonly',
         __QUALITY_PROOF__: 'readonly',
+        __INTERCONNECT_LOOPS__: 'readonly',
         __CONFLICT_LOOP__: 'readonly',
         __UIUX_REVIEWS__: 'readonly',
       },
