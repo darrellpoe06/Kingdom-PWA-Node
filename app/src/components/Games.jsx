@@ -25,7 +25,6 @@ import { createGame, computeTotals } from '../lib/games/engine.js';
 const T_INK = 'text-[#1A1815]';
 const T_MUTE = 'text-[#5A5751]';
 const T_ACCENT = 'text-[#B85838]';
-const T_GREEN = 'text-[#5A6E3D]';
 const BG_CARD = 'bg-white';
 const BG_CREAM = 'bg-[#FAF8F4]';
 const BG_INK = 'bg-[#1A1815]';

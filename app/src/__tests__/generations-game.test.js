@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { GENERATIONS } from '../lib/games/generations.js';
 import { hasVerse, resolveScripture } from '../lib/games/scripture-link.js';
 import {
-  createGame, choosePath, takeTurn, resolveChoice, computeTotals,
+  createGame, choosePath, takeTurn, resolveChoice,
 } from '../lib/games/engine.js';
 
 // Collect every { ref } carried anywhere in the game (paths, spaces, choices,
