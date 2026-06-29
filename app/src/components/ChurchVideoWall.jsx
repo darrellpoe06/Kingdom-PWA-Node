@@ -2,9 +2,12 @@
 // ChurchVideoWall — the Sanctuary LED Video Wall as a real CAPITAL PROJECT
 // =============================================================================
 // First tracked facilities/CapEx project for The Church of the Living God — The
-// Love Corner. The wall: LED Nation USA, P2.97mm fine-pitch panels, ~9 ft H x
-// 11-12 ft W, hardware delivered + staged behind the stage curtain awaiting
-// install. Built from the verified email thread; nothing here is invented.
+// Love Corner. The wall: LED Nation USA, Mirackle P1.99mm fine-pitch panels,
+// 8 wide x 6 high = 48 cabinets (640x480 mm each), ~16.8 ft W x 9.45 ft H (16:9),
+// NovaStar VX1000 processor, dual RTX 4070 sources — being stacked + wired on
+// site 2026-06-29. (Earlier copy listed P2.97mm from a superseded estimate; the
+// real product is P1.99 — confirmed on site + the matching 640x480 datasheet.)
+// The engineering facts come from vendor datasheets (cited in video-wall-spec.js).
 //
 // PRIVACY (binding, and the repo is PUBLIC): NO dollar figures, invoice numbers,
 // or donation amounts appear in this file or the bundle. The money is fetched
@@ -21,8 +24,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import {
   getVideoWallAccess, subscribeProjects, subscribeBudgetLines,
-  pixelMath, budgetTotals, donationProgress,
+  budgetTotals, donationProgress,
 } from '../lib/video-wall-sync.js';
+import {
+  CABINET, VX1000_LOAD,
+  cabinetGrid, nativeResolution, powerPlan, dataMap,
+  INSTALL_SEQUENCE, SAFETY,
+} from '../lib/video-wall-spec.js';
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -33,11 +41,11 @@ const serif = { fontFamily: '"Fraunces", serif' };
 const SPEC = {
   vendor: 'LED Nation USA',
   vendorUrl: 'https://lednationusa.com',
-  pitchMm: 2.97,
-  panelSpec: 'Mirackle P2.97mm fine-pitch indoor LED',
-  heightFt: 9,
-  widthFtMin: 11,
-  widthFtMax: 12,
+  pitchMm: 1.99,
+  panelSpec: 'Mirackle P1.99mm fine-pitch indoor LED',
+  heightFt: 9.45,
+  widthFtMin: 16.8,
+  widthFtMax: 16.8,
 };
 
 // Status timeline — dates/labels are non-financial narrative (public-safe).
@@ -48,6 +56,7 @@ const TIMELINE = [
   { when: 'Jun 2026', title: 'Purchased', body: 'The full P2.97mm wall ordered from LED Nation USA; invoice forwarded 2026-06-08. Figures in the gated budget below.', tone: 'good' },
   { when: 'Jun 2026', title: 'Delivered + staged', body: 'Hardware delivered and staged BEHIND THE STAGE CURTAIN.', tone: 'good' },
   { when: 'Jun 22, 2026', title: 'Installation started', body: 'On-site assembly began: ground-support / box-truss towers erected to mount and stack the wall; modular LED cabinet panels laid out for assembly; crew on site sizing the stage. In progress.', tone: 'good' },
+  { when: 'Jun 29, 2026', title: 'Stacking + wiring', body: 'Confirmed-spec install + power + data runbook produced on site: 8 x 6 = 48 cabinets (P1.99mm, 640x480mm), 4,800 W peak across 6 power chains, 6 of 10 VX1000 data ports. Cabinets stacking; data + power daisy-chains being dressed.', tone: 'good' },
   { when: 'Pending', title: 'Signal chain + commissioning', body: 'Source machines &rarr; processor/scaler &rarr; sending/receiving cards over Cat6, then calibration and sign-off. Follows the physical build.', tone: 'attention' },
 ];
 
@@ -156,7 +165,10 @@ export default function ChurchVideoWall() {
     [lines, project],
   );
 
-  const px = useMemo(() => pixelMath(SPEC), []);
+  const grid = useMemo(() => cabinetGrid(), []);
+  const native = useMemo(() => nativeResolution(CABINET, grid), [grid]);
+  const power = useMemo(() => powerPlan(CABINET, grid), [grid]);
+  const data = useMemo(() => dataMap(CABINET, grid), [grid]);
   const totals = useMemo(() => budgetTotals(projectLines), [projectLines]);
   const donation = useMemo(() => donationProgress(project || {}), [project]);
 
@@ -196,40 +208,105 @@ export default function ChurchVideoWall() {
         )}
       </div>
 
-      {/* SPEC — public-safe engineering content */}
+      {/* SPEC — public-safe engineering content (vendor-confirmed) */}
       <div className={card}>
         <div className={labelCls}>Specification</div>
         <dl className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
           <div><dt className="text-[11px] text-[#5A5751]">Panels</dt><dd className="text-[#1A1815]" style={serif}>{SPEC.panelSpec}</dd></div>
           <div><dt className="text-[11px] text-[#5A5751]">Pixel pitch</dt><dd className="text-[#1A1815]" style={serif}>P{SPEC.pitchMm}mm (fine-pitch)</dd></div>
-          <div><dt className="text-[11px] text-[#5A5751]">Wall size</dt><dd className="text-[#1A1815]" style={serif}>~{SPEC.heightFt} ft H &times; {SPEC.widthFtMin}&ndash;{SPEC.widthFtMax} ft W</dd></div>
-          <div className="col-span-2 sm:col-span-3">
+          <div><dt className="text-[11px] text-[#5A5751]">Wall size</dt><dd className="text-[#1A1815]" style={serif}>{grid.actualWidthFt} ft W &times; {grid.actualHeightFt} ft H ({grid.aspectLabel})</dd></div>
+          <div><dt className="text-[11px] text-[#5A5751]">Cabinets</dt><dd className="text-[#1A1815]" style={serif}>{grid.wide} &times; {grid.high} = {grid.total} ({CABINET.widthMm}&times;{CABINET.heightMm}mm)</dd></div>
+          <div><dt className="text-[11px] text-[#5A5751]">Processor</dt><dd className="text-[#1A1815]" style={serif}>{VX1000_LOAD.model}</dd></div>
+          <div>
             <dt className="text-[11px] text-[#5A5751]">Vendor</dt>
             <dd><a href={SPEC.vendorUrl} target="_blank" rel="noreferrer" className="text-[#B85838] underline hover:text-[#1A1815]" style={serif}>{SPEC.vendor}</a></dd>
           </div>
         </dl>
+        <p className="mt-3 text-[11px] text-[#5A5751] italic">
+          Pitch corrected to P{SPEC.pitchMm}mm (an earlier estimate listed P2.97mm). Confirm against the cabinet label + the LED Nation invoice line item.
+        </p>
       </div>
 
-      {/* PIXEL-PITCH MATH — derived, every assumption labeled */}
-      {px && (
-        <div className={card}>
-          <div className={labelCls}>Resolution (derived)</div>
-          <div className="mt-2 text-sm text-[#1A1815]" style={serif}>
-            ~{px.heightPx.toLocaleString()} px tall &times; {px.widthPxMin.toLocaleString()}&ndash;{px.widthPxMax.toLocaleString()} px wide
-            <span className="text-[#5A5751]"> &nbsp;(≈ {px.megapixelsMin}&ndash;{px.megapixelsMax} MP)</span>
-          </div>
-          <div className="mt-1 text-[12px] text-[#5A5751]">
-            {px.fits4kSingleOutput
-              ? 'Within a single 4K output (~8.3 MP) — the dual-4070 machines give headroom + redundancy, not a resolution requirement.'
-              : 'Exceeds a single 4K output — plan multi-output / processor tiling across the dual-4070 machines.'}
-          </div>
-          <ul className="mt-2 space-y-1">
-            {px.assumptions.map((a, i) => (
-              <li key={i} className="text-[11px] text-[#5A5751] flex gap-1.5"><span className="text-[#B85838]">&middot;</span><span>{a}</span></li>
-            ))}
-          </ul>
+      {/* NATIVE RESOLUTION — derived from the cabinet grid, never claimed exact */}
+      <div className={card}>
+        <div className={labelCls}>Native resolution (derived)</div>
+        <div className="mt-2 text-sm text-[#1A1815]" style={serif}>
+          ~{native.widthPx.toLocaleString()} &times; {native.heightPx.toLocaleString()} px ({native.aspectLabel})
+          <span className="text-[#5A5751]"> &nbsp;(≈ {native.megapixels} MP)</span>
         </div>
-      )}
+        <div className="mt-1 text-[12px] text-[#5A5751]">
+          Within the {VX1000_LOAD.model}&rsquo;s {VX1000_LOAD.maxLoadMegapixels} MP load. A single 4K output covers it — the dual-4070 machines give headroom + redundancy, not a resolution requirement.
+        </div>
+        <ul className="mt-2 space-y-1">
+          {native.assumptions.map((a, i) => (
+            <li key={i} className="text-[11px] text-[#5A5751] flex gap-1.5"><span className="text-[#B85838]">&middot;</span><span>{a}</span></li>
+          ))}
+        </ul>
+      </div>
+
+      {/* POWER PLAN — sized to PEAK, the 80% rule applied */}
+      <div className={card}>
+        <div className={labelCls}>Power plan (sized to peak)</div>
+        <div className="mt-2 text-sm text-[#1A1815]" style={serif}>
+          {power.totalPeakW.toLocaleString()} W peak total <span className="text-[#5A5751]">({power.totalPeakAmps120} A @ 120 V)</span> &middot; {power.totalAvgW.toLocaleString()} W average
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-3 text-[12px]">
+          <div className="border border-[#E8E4DC] p-2">
+            <div className="text-[11px] text-[#5A5751]">120 V / 15 A circuit</div>
+            <div className="text-[#1A1815]" style={serif}>max {power.circuit15A.maxCabinets} cabinets</div>
+          </div>
+          <div className="border border-[#E8E4DC] p-2">
+            <div className="text-[11px] text-[#5A5751]">120 V / 20 A circuit</div>
+            <div className="text-[#1A1815]" style={serif}>max {power.circuit20A.maxCabinets} cabinets</div>
+          </div>
+        </div>
+        <p className="mt-2 text-[13px] text-[#1A1815]">
+          <b>&ldquo;8 cabinets to one cord&rdquo; is safe:</b> {power.chain.cabinetsPerChain} &times; {CABINET.peakW} W = {power.chain.chainPeakW} W = {power.chain.chainPeakAmps} A &mdash; under the 15 A breaker&rsquo;s 80% cap and the connector rating.
+        </p>
+        <p className="mt-1 text-[12px] text-[#5A5751]">
+          Plan: chain one row of {grid.wide} per cord &rarr; {power.circuitsIfOneChainPer15A} chains. Simplest = one 15 A circuit per row ({power.circuitsIfOneChainPer15A}&times; 15 A); or pack 2 rows per 20 A circuit ({power.circuitsOn20A}&times; 20 A). Power daisy-chains cabinet&rarr;cabinet up to the safe max, then one feed per chain.
+        </p>
+      </div>
+
+      {/* DATA MAP — NovaStar VX1000 port math */}
+      <div className={card}>
+        <div className={labelCls}>Data map &middot; {VX1000_LOAD.model}</div>
+        <ul className="mt-2 space-y-1.5 text-[13px] text-[#1A1815]">
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{data.cabinetsPerPort} cabinets per port (each ~{data.pxPerCabinet.toLocaleString()} px; port cap {data.portCap.toLocaleString()} px).</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>One port per row of {grid.wide} = {data.rowPx.toLocaleString()} px/port (fits, ~{Math.round((data.rowPortMargin / data.portCap) * 100)}% headroom).</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{data.portsNeeded} of {data.portsAvailable} ports</b> used &middot; {data.totalPx.toLocaleString()} px total, within the {VX1000_LOAD.maxLoadMegapixels} MP load.</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>Path: VX1000 port &rarr; Cat6 &rarr; cabinet data-IN &rarr; daisy-chain to the next.</span></li>
+        </ul>
+      </div>
+
+      {/* INSTALL SEQUENCE — the build order */}
+      <div className={card}>
+        <div className={labelCls}>Install sequence</div>
+        <ol className="mt-2 space-y-2.5">
+          {INSTALL_SEQUENCE.map((s) => (
+            <li key={s.step} className="flex gap-3">
+              <div className="shrink-0 w-6 h-6 rounded-full bg-[#1A1815] text-white text-[11px] flex items-center justify-center" style={serif}>{s.step}</div>
+              <div>
+                <div className="text-[13px] font-semibold text-[#1A1815]" style={serif}>{s.title}</div>
+                <div className="text-[12px] text-[#5A5751]">{s.body}</div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* SAFETY — load + fire, stated once, real */}
+      <div className={card}>
+        <div className={labelCls}>Safety &middot; power &amp; load</div>
+        <ul className="mt-2 space-y-1.5">
+          {SAFETY.map((s, i) => (
+            <li key={i} className="text-[13px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&#9888;</span><span>{s}</span></li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[11px] text-[#5A5751] italic">
+          Full on-site runbook: docs/99-session-notes/2026-06-29-colg-video-wall-install-power-data-runbook.md
+        </p>
+      </div>
 
       {/* BUDGET — GATED. Money is fetched (owner/admin) or hidden. */}
       <div className={card}>

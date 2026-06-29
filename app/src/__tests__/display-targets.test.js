@@ -4,7 +4,7 @@
 // PROVEN-TO-CATCH (DR-0076 anti-theater): the load-bearing facts these guard are
 //   (1) the wall is HDMI/DVI-fed from the VX1000, NOT NDI-direct (the signal-path
 //       correction) — paint over it and a case fails;
-//   (2) the native-res estimate is honest (~1925x1444, 4:3, within VX1000 capacity)
+//   (2) the native-res estimate is honest (~2573x1447, 16:9, within VX1000 capacity)
 //       and NEVER marked exact (it comes from NovaLCT);
 //   (3) an image cue maps to a full-bleed image payload end-to-end (set list -> cue ->
 //       imageProgram), so high-res media lands on the wall.
@@ -17,12 +17,12 @@ import { imageProgram, parseOutputParams } from '../lib/ndi-output.js';
 import { imageItem, buildCues, cueToProgram, masterProgramToSetList } from '../lib/worship-presenter.js';
 
 describe('nativeResEstimate — honest, never claimed exact', () => {
-  it('derives ~1925x1444, 4:3, ~2.78 Mpx for the 9x12ft 1.9mm wall', () => {
-    const r = nativeResEstimate({ widthFt: 12, heightFt: 9, pitchMm: 1.9 });
-    expect(r.widthPx).toBe(1925);
-    expect(r.heightPx).toBe(1444);
-    expect(r.aspectLabel).toBe('4:3');
-    expect(r.megapixels).toBeCloseTo(2.78, 1);
+  it('derives ~2573x1447, 16:9, ~3.72 Mpx for the 16.8x9.45ft 1.99mm wall', () => {
+    const r = nativeResEstimate({ widthFt: 16.8, heightFt: 9.45, pitchMm: 1.99 });
+    expect(r.widthPx).toBe(2573);
+    expect(r.heightPx).toBe(1447);
+    expect(r.aspectLabel).toBe('16:9');
+    expect(r.megapixels).toBeCloseTo(3.72, 1);
     expect(r.exact).toBe(false);                 // exact comes from NovaLCT, never painted
     expect(r.assumptions.join(' ')).toMatch(/NovaLCT|module/i);
   });

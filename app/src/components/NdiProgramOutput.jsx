@@ -105,7 +105,7 @@ export default function NdiProgramOutput() {
   }
 
   // --- full-bleed IMAGE (sermon graphic / worship background) ----------------------
-  // Edge-to-edge at native quality for the 1.9 mm wall (NovaStar VX1000, ~1920x1440).
+  // Edge-to-edge at native quality for the 1.99 mm wall (NovaStar VX1000, ~2560x1440).
   // fit='contain' shows the whole image (no crop); 'cover' fills (may crop). Authoring
   // rule: feed a high-res source — never upscale a small asset onto the wall.
   if (p.kind === 'image' && p.src) {
