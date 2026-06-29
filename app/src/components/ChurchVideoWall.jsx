@@ -31,6 +31,7 @@ import {
   cabinetGrid, nativeResolution, powerPlan, dataMap,
   INSTALL_SEQUENCE, SAFETY,
 } from '../lib/video-wall-spec.js';
+import { ATEM, SIGNAL_CHAIN, AV_DEVICES, SOURCE_BRIDGES } from '../lib/church-av-devices.js';
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -277,6 +278,45 @@ export default function ChurchVideoWall() {
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{data.portsNeeded} of {data.portsAvailable} ports</b> used &middot; {data.totalPx.toLocaleString()} px total, within the {VX1000_LOAD.maxLoadMegapixels} MP load.</span></li>
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>Path: VX1000 port &rarr; Cat6 &rarr; cabinet data-IN &rarr; daisy-chain to the next.</span></li>
         </ul>
+      </div>
+
+      {/* SIGNAL CHAIN + AV DEVICE INVENTORY — the VX1000 is NOT the switcher */}
+      <div className={card}>
+        <div className={labelCls}>Signal chain &middot; cameras &rarr; switcher &rarr; wall</div>
+        <ol className="mt-2 space-y-2">
+          {SIGNAL_CHAIN.hops.map((h, i) => (
+            <li key={i} className="flex gap-2.5">
+              <div className="shrink-0 w-5 h-5 rounded-full bg-[#B85838] text-white text-[10px] flex items-center justify-center" style={serif}>{i + 1}</div>
+              <span className="text-[13px] text-[#1A1815]">{h}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-3 text-[12px] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">
+          <b>Cameras:</b> {SIGNAL_CHAIN.cameraControlNote}
+        </p>
+
+        <div className="mt-4 text-[11px] uppercase tracking-wider text-[#5A5751]">Device inventory</div>
+        <div className="mt-2 space-y-2">
+          {AV_DEVICES.map((d) => (
+            <div key={d.id} className="border border-[#E8E4DC] p-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[13px] font-semibold text-[#1A1815]" style={serif}>{d.model}</span>
+                <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">{d.category}</span>
+              </div>
+              <div className="text-[12px] text-[#5A5751]">{d.role}</div>
+              <div className="text-[12px] text-[#1A1815]">{d.specLine}</div>
+              {d.controlNote && <div className="mt-0.5 text-[11px] text-[#5A5751] italic">{d.controlNote}</div>}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 text-[11px] uppercase tracking-wider text-[#5A5751]">Source bridges (non-SDI sources)</div>
+        <ul className="mt-1.5 space-y-1">
+          {SOURCE_BRIDGES.map((b, i) => (
+            <li key={i} className="text-[12px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{b.device}</b> &mdash; {b.forSource}. {b.note}</span></li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[11px] text-[#5A5751] italic">Source: {ATEM.source}.</p>
       </div>
 
       {/* INSTALL SEQUENCE — the build order */}

@@ -111,12 +111,15 @@ export const SANCTUARY_WALL = {
   // grid = 2560x1440 (QHD, 16:9); snap to the confirmed native map at install.
   designCanvas: { width: 2560, height: 1440, aspectLabel: '16:9' },
   withinProcessorCapacity: WALL_NATIVE ? WALL_NATIVE.megapixels <= VX1000.capacity.maxLoadMegapixels : null,
-  // HOW it is fed — NOT NDI-direct:
+  // HOW it is fed — the VX1000 receives the ATEM PROGRAM (it is NOT a switcher),
+  // NOT NDI-direct. Cameras + the Presenter graphics are SOURCES into the ATEM;
+  // the ATEM switches them to one program -> VX1000 -> wall. See church-av-devices.
   feed: {
-    path: 'Presenter PC --HDMI/DVI--> NovaStar VX1000 --> wall',
-    recommendedInput: 'DVI / "HDMI 4.1" (higher bandwidth) for ~2560x1440@60; HDMI 1.4 tops ~1080p60/4K30.',
+    path: 'cameras + Presenter graphics --> ATEM Production Studio 4K (switch/mix) --> ATEM program out --SDI/HDMI--> NovaStar VX1000 --> wall',
+    recommendedInput: 'Feed the VX1000 from the ATEM program out over SDI (or HDMI); the VX1000 maps it to the LED grid. (The VX1000 is a wall processor, not a switcher.)',
+    switcher: 'ATEM Production Studio 4K',
     ndiDirect: false,
-    ndiNote: 'To put an NDI source on the wall, decode it first (NDI->HDMI converter) into a VX1000 input. The VX1000 itself has no NDI input.',
+    ndiNote: 'To put an NDI source on the wall, bridge it first (NDI->SDI/HDMI) into the ATEM (or the VX1000). The VX1000 itself has no NDI input.',
   },
 };
 
@@ -136,10 +139,10 @@ export const DISPLAY_TARGETS = [SANCTUARY_WALL, SIDE_SCREENS];
 // the WALL lane (HDMI/DVI from the VX1000) and the NDI PRODUCTION-LAN lane (IP routing).
 export const SIGNAL_PATH = {
   wallLane: {
-    title: 'Wall lane (HDMI/DVI — NOT NDI)',
+    title: 'Wall lane (ATEM program -> VX1000 -> wall; NOT NDI-direct)',
     hops: [
-      'Presenter PC renders the program at the wall native res (~2560x1440, 16:9).',
-      'Presenter PC outputs HDMI/DVI into a NovaStar VX1000 input (use DVI / "HDMI 4.1" for 1440@60).',
+      'All cameras + the Presenter graphics (rendered at ~2560x1440, 16:9) feed the ATEM Production Studio 4K as sources (20x 6G-SDI + 1 HDMI; frame sync per input switches ANY source). See lib/church-av-devices.js.',
+      'The ATEM switches/mixes them to ONE program; ATEM program out --SDI/HDMI--> a NovaStar VX1000 input. The VX1000 is a wall PROCESSOR, not a switcher — it receives only the finished program.',
       'VX1000 scales/maps to the LED module grid and drives the 16.8x9.45 ft 1.99 mm wall (1-frame latency, genlock).',
     ],
   },

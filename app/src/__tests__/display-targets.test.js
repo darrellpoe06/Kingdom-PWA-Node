@@ -31,11 +31,12 @@ describe('nativeResEstimate — honest, never claimed exact', () => {
   });
 });
 
-describe('the wall is HDMI/DVI from the VX1000 — NOT NDI-direct', () => {
-  it('VX1000 has no NDI input; the wall feed is not NDI-direct', () => {
+describe('the wall is fed the ATEM program into the VX1000 — NOT NDI-direct', () => {
+  it('VX1000 has no NDI input; the wall feed is the ATEM program, not NDI-direct', () => {
     expect(VX1000.hasNdiInput).toBe(false);
     expect(SANCTUARY_WALL.feed.ndiDirect).toBe(false);
-    expect(SANCTUARY_WALL.feed.path).toMatch(/HDMI\/DVI.*VX1000/);
+    expect(SANCTUARY_WALL.feed.path).toMatch(/ATEM.*VX1000/);
+    expect(SANCTUARY_WALL.feed.switcher).toBe('ATEM Production Studio 4K');
     expect(SANCTUARY_WALL.processor).toBe('NovaStar VX1000');
   });
   it('the wall fits within the VX1000 load capacity (6.5 Mpx)', () => {
@@ -45,8 +46,8 @@ describe('the wall is HDMI/DVI from the VX1000 — NOT NDI-direct', () => {
   it('side screens CAN be NDI-fed (the #322 path), unlike the wall', () => {
     expect(SIDE_SCREENS.feed.ndiDirect).toBe(true);
   });
-  it('signal path documents both lanes: wall (HDMI) + NDI production-LAN', () => {
-    expect(SIGNAL_PATH.wallLane.hops.join(' ')).toMatch(/HDMI\/DVI/);
+  it('signal path documents both lanes: wall (ATEM -> VX1000) + NDI production-LAN', () => {
+    expect(SIGNAL_PATH.wallLane.hops.join(' ')).toMatch(/ATEM.*VX1000/);
     expect(SIGNAL_PATH.ndiLane.hops.join(' ')).toMatch(/NDI does NOT feed the VX1000/);
     expect(DISPLAY_TARGETS).toContain(SANCTUARY_WALL);
   });

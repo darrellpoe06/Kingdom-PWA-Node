@@ -90,7 +90,38 @@ Chain **one row of 8 cabinets per cord** → **6 chains** (the wall is 6 rows hi
 
 ---
 
-## 5. SAFETY (real — load + fire, not moralizing)
+## 5. CAMERA / SIGNAL-CHAIN INTEGRATION
+
+**The NovaStar is NOT a switcher.** It's the LED wall *processor*. The switcher is the **Blackmagic ATEM Production Studio 4K**. The chain:
+
+```
+all cameras + sources  ->  ATEM Production Studio 4K (switch/mix to ONE program)
+                       ->  ATEM program out  ->  NovaStar VX1000 input  ->  LED wall
+```
+
+The VX1000 only ever receives the **single finished program** from the ATEM.
+
+### The ATEM (the switcher)
+- **20× 6G-SDI + 1× HDMI** inputs (21 video inputs).
+- **A frame synchronizer on EVERY input** → it switches **ANY** source: Blackmagic or not, **non-genlock cameras**, or computer/graphics outputs. *(The "only Blackmagic cameras" belief is **incorrect for switching**.)*
+
+### What IS Blackmagic-specific
+- **Remote camera control (iris / focus / color) + tally**, carried over the **SDI return**. Needs a **Blackmagic camera**.
+- **Non-BMD cameras switch fine** — they just don't get that remote control + tally.
+- **HDMI cameras** come in through a **bidirectional SDI/HDMI micro converter**, which **also carries the control back**.
+
+### Getting non-SDI sources in ("other devices")
+| Source | Bridge | Camera control? |
+|---|---|---|
+| HDMI camera / computer | Bidirectional **SDI/HDMI micro converter** → ATEM SDI | Yes (converter carries it back) |
+| IP camera | **NDI → SDI converter** → ATEM SDI | No |
+| USB / NDI / capture | **OBS on a church tower** (software switcher) → OBS out → VX1000 | No |
+
+> OBS already lives on the production box (the **towers are livestream-primary**), so it's the ready software-switcher path for sources the ATEM can't take directly.
+
+---
+
+## 6. SAFETY (real — load + fire, not moralizing)
 
 - **Size for PEAK, not average.** The **100 W** maximum per cabinet sets the circuit math — not the 50 W average.
 - **Never exceed 80% of a breaker** (1440 W on 15 A, 1920 W on 20 A). The tables above already apply it.
@@ -100,7 +131,7 @@ Chain **one row of 8 cabinets per cord** → **6 chains** (the wall is 6 rows hi
 
 ---
 
-## 6. Quick reference card (tape it to the processor)
+## 7. Quick reference card (tape it to the processor)
 
 ```
 WALL:   8 wide x 6 high = 48 cabinets | 16.80 x 9.45 ft | 16:9 | ~2560x1440
@@ -111,6 +142,10 @@ POWER:  4800W peak total | 8 cab/cord = 800W = 6.7A = SAFE
         Stagger power-on (inrush). Ground everything. Electrician signs the feed.
 DATA:   8 cabinets/port (650k cap) | one port per row | 6 of 10 ports used
         VX1000 -> Cat6 -> cabinet data-IN -> daisy-chain
+CHAIN:  cameras -> ATEM Production Studio 4K (switch) -> program out -> VX1000 -> wall
+        NovaStar is NOT a switcher. ATEM switches ANY camera (frame sync/input).
+        BMD camera needed ONLY for remote control (iris/focus/color) + tally.
+        HDMI cam -> bidirectional SDI/HDMI converter | IP cam -> NDI->SDI | else OBS on tower
 ```
 
 ---
@@ -122,9 +157,11 @@ DATA:   8 cabinets/port (650k cap) | one port per row | 6 of 10 ports used
 - **Processor (6.5 Mpx load, 650,000 px/port, 10 ports):**
   NovaStar VX1000 All-in-One Controller Specifications V1.6.0 — https://oss.novastar.tech/uploads/2024/07/VX1000-All-in-One-Controller-Specifications-V1.6.0.pdf
 - **Signal path / VX1000 I/O:** `app/src/lib/display-targets.js`; session note `2026-06-24-sanctuary-wall-novastar-vx1000-signal-path.md`.
+- **Switcher / camera chain (ATEM Production Studio 4K — 20× SDI + 1 HDMI, frame sync per input; camera control over SDI return is Blackmagic-specific):** Blackmagic Design ATEM specs — https://www.blackmagicdesign.com . In code: `app/src/lib/church-av-devices.js`.
 - **80% continuous-load rule, inrush, grounding:** standard NEC practice for continuous AV loads; a licensed electrician confirms the building feed for a permanent install.
 
 ### CONFIRM / open items
 - **Pitch reconciliation:** the in-app card listed **P2.97 mm** from an early estimate; on-site + the matching 640×480 product point to **P1.99 mm**. Confirm against the cabinet label and the LED Nation invoice line item; the app spec has been updated to P1.99 and flagged.
 - **Power + data connector type and amp rating:** assumed PowerCon TRUE1 (16 A) + RJ45/etherCON Cat6 — **confirm on the actual cabinet** before trusting the per-cord max.
 - **Exact pixel map (2560×1440):** derived from a 320×240 module map — confirm from NovaLCT / the packing list; the true count is the authority.
+- **ATEM program → VX1000 input:** confirm whether the ATEM program feeds the VX1000 over **SDI or HDMI**, and which VX1000 input is used. Camera **control + tally** works only on **Blackmagic cameras** (or HDMI cameras via the bidirectional converter) — note which cameras on hand are BMD vs. switch-only.
