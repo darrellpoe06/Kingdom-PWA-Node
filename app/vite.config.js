@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { buildQualityManifest } from '../scripts/quality-manifest.mjs';
+import { buildInterconnectManifest } from '../scripts/interconnect-manifest.mjs';
 import { buildConflictManifest } from '../scripts/orchestration/conflict-analytics.mjs';
 
 // DR-0061 (surfaces are live views of real flow): the Build board's automation
@@ -223,6 +224,14 @@ let conflictLoop;
 try { conflictLoop = buildConflictManifest(); }
 catch (e) { conflictLoop = { ok: false, error: (e && e.message) || 'manifest unavailable', eventCount: 0, hotFiles: [], contendedAreas: [], rate: { buckets: [], trend: 'baseline' }, decomposition: [], problems: [] }; }
 
+// Interconnection loops (Darrell, 2026-06-29: "make sure all the loops of
+// interconnected modules are actually moving LIVE data"). File-verified at build:
+// which module-to-module loops are wired live, which are honestly still building.
+// Degrades to an honest empty manifest rather than crashing the build.
+let interconnectLoops;
+try { interconnectLoops = buildInterconnectManifest(); }
+catch (e) { interconnectLoops = { ok: false, error: (e && e.message) || 'manifest unavailable', loops: [], summary: {} }; }
+
 // base set so built assets resolve under the Synology Web Station alias portal
 // at /poetech-app/ on the shared QuickConnect URL.
 //
@@ -316,6 +325,7 @@ export default defineConfig({
     __GOVERNANCE_QUEUE__: JSON.stringify(governanceQueue),
     __DR_LEDGER__: JSON.stringify(decisionLedger),
     __QUALITY_PROOF__: JSON.stringify(qualityProof),
+    __INTERCONNECT_LOOPS__: JSON.stringify(interconnectLoops),
     __CONFLICT_LOOP__: JSON.stringify(conflictLoop),
     __UIUX_REVIEWS__: JSON.stringify(uiuxReviews),
   },

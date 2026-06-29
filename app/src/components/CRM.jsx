@@ -25,7 +25,7 @@ import {
   stagesFor, STAGE_META, sourceLabel, SOURCES, CONTACT_METHODS,
   newLead, moveStage, nextStage, pipelineStats, isSeedLead,
   canOutreach, consentReason, nextFollowUp, advanceSequence,
-  leadFromInquiry, GUARDRAILS,
+  leadFromInquiry, leadFromPracticeAcquisition, GUARDRAILS,
 } from '../lib/crm-engine.js';
 import { crmLeadsSync, addActivity } from '../lib/crm-sync.js';
 
@@ -35,7 +35,7 @@ function stageColor(group) {
   return group === 'won' ? 'text-[#5A6E3D]' : group === 'lost' ? 'text-[#5A5751]' : 'text-[#B85838]';
 }
 
-function CRM({ inquiries = [], currentUserId = null }) {
+function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
   const [business, setBusiness] = useState('tlc');
   const [pipeline, setPipeline] = useState('tlc-client-intake');
   const [showCapture, setShowCapture] = useState(false);
@@ -61,14 +61,18 @@ function CRM({ inquiries = [], currentUserId = null }) {
     if (ps.length && !ps.some((p) => p.id === pipeline)) setPipeline(ps[0].id);
   }, [business]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The unified lead list: federate existing TLC inquiries + net-new crm_leads +
-  // session-local adds. Deduped by id (remote wins).
+  // The unified lead list: federate existing TLC inquiries + the practice/
+  // revenue-team leads (practice_leads) + net-new crm_leads + session-local adds.
+  // This is the "one CRM every funnel rides" federation — practice_leads is a real
+  // synced slice that the board was previously blind to (it kept a separate store
+  // in ClientGrowth). Deduped by id (remote wins).
   const allLeads = useMemo(() => {
-    const federated = (inquiries || []).map((i) => leadFromInquiry(i)).filter(Boolean);
+    const fedInquiries = (inquiries || []).map((i) => leadFromInquiry(i)).filter(Boolean);
+    const fedPractice = (practiceLeads || []).map((p) => leadFromPracticeAcquisition(p)).filter(Boolean);
     const byId = new Map();
-    for (const l of [...federated, ...localLeads, ...remoteLeads]) byId.set(l.id, l);
+    for (const l of [...fedInquiries, ...fedPractice, ...localLeads, ...remoteLeads]) byId.set(l.id, l);
     return [...byId.values()];
-  }, [inquiries, remoteLeads, localLeads]);
+  }, [inquiries, practiceLeads, remoteLeads, localLeads]);
 
   const pipeLeads = useMemo(() => allLeads.filter((l) => l.pipeline === pipeline), [allLeads, pipeline]);
   const stats = useMemo(() => pipelineStats(allLeads, { pipeline }), [allLeads, pipeline]);
