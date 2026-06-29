@@ -61,11 +61,10 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
     if (ps.length && !ps.some((p) => p.id === pipeline)) setPipeline(ps[0].id);
   }, [business]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The unified lead list: federate existing TLC inquiries + the practice/
-  // revenue-team leads (practice_leads) + net-new crm_leads + session-local adds.
-  // This is the "one CRM every funnel rides" federation — practice_leads is a real
-  // synced slice that the board was previously blind to (it kept a separate store
-  // in ClientGrowth). Deduped by id (remote wins).
+  // The unified lead list — the one pane over every funnel. Federate the existing
+  // specialized tables read-side (TLC `inquiries` + the live client-acquisition
+  // `practice_leads`, mapped via the engine adapters) alongside net-new
+  // `crm_leads` + session-local adds. Deduped by id (later sources win).
   const allLeads = useMemo(() => {
     const fedInquiries = (inquiries || []).map((i) => leadFromInquiry(i)).filter(Boolean);
     const fedPractice = (practiceLeads || []).map((p) => leadFromPracticeAcquisition(p)).filter(Boolean);
@@ -151,7 +150,7 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
           </button>
         </div>
         <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
-          Real data only: {(inquiries || []).length} TLC inquiries federated + {remoteLeads.length} synced leads. Seed/demo leads are badged and excluded from the math.
+          Real data only: {(inquiries || []).length} TLC inquiries + {(practiceLeads || []).length} client-acquisition leads federated + {remoteLeads.length} synced leads. Seed/demo leads are badged and excluded from the math.
         </p>
         {showGuardrails && (
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">

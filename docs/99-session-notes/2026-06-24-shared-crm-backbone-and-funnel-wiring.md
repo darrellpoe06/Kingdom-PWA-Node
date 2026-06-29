@@ -1,5 +1,21 @@
 # Shared CRM Backbone — one sovereign engine every funnel rides
 
+## BINDING PRINCIPLE — ONE-CRM (DR-0080, "always")
+
+> ONE shared sovereign CRM backbone. EVERY acquisition funnel and EVERY
+> business/tenant — current and future — rides it via per-business CONFIG, never
+> a per-business fork.
+
+A new funnel/business is a **config** (a `PIPELINE` in `crm-engine.js` + the
+`crm_capture_lead` seam + an adapter for any pre-existing table), **not** a new
+CRM / leads table / parallel engine. Guardrails live once in the engine.
+**Enforced in CI** by `scripts/crm-single-engine-guard.mjs` (proven-to-catch):
+a forked CRM/lead table fails the build. This is the CRM-specific application of
+reuse-not-forks (DR-0078/0079) + the connections principle (the capture seam is
+the wired other end every funnel connects to). Registered: PRINCIPLES.md
+`ONE-CRM`; in code: `crm-engine.js` `SINGLE_CRM_PRINCIPLE`.
+
+
 **Date:** 2026-06-24
 **Branch:** `feat/crm-backbone`
 **Status:** built + green (1792 tests, build, lint, guards). Held for orchestrator-sequenced convergence with the TLC lane (see "Don't fork" below).
@@ -50,14 +66,15 @@ Nav wired in `poe-financial-mvp-v28.jsx` (lazy import, VALID list, family-gated 
 
 ## Don't fork — convergence with the TLC client-acquisition lane
 
-The TLC lane (`feat/practice-client-acquisition`) has, in flight, `practice_leads` (migration `0045`) + `lib/client-acquisition.js` (the 4-stage revenue-team workflow + the same guardrail linters). `crm_leads` is the **generalized superset** of `practice_leads` (adds `business` + `pipeline`; same consent/source/stage/nurture/history/no-PHI shape). To honor "one CRM, don't fork":
+`practice_leads` (migration `0045`) + `lib/client-acquisition.js` (the 4-stage revenue-team workflow + the same guardrail linters) are **already merged on main** (PR #334) and live. So convergence is concrete, and the design here treats it the way it already treats TLC `inquiries`: **federation, not a competing table.**
 
-**Recommended sequence (orchestrator decision):**
-1. Merge `feat/crm-backbone` (this) as the canonical store + engine.
-2. Retarget the TLC lane: its leads land in `crm_leads` via `leadFromPracticeAcquisition()`; its workflow (`client-acquisition.js`) stays, but imports the guardrail linters from `crm-engine.js` (re-homed here as the single source of truth) and drops the duplicate `practice_leads` migration (`0045`).
-3. GTM lane (`docs/gtm-strategy`) targets `gtm-subscriber` via `leadFromSubscriber()` / the capture RPC — no new lead table.
+- The CRM board **federates `practice_leads` read-side** via `leadFromPracticeAcquisition()` (exactly as it federates `inquiries` via `leadFromInquiry()`). The already-live client-acquisition leads show up on the one unified pane immediately — no migration, no data move, no fork in the user-facing sense.
+- `crm_leads` (0046) owns the **net-new pipelines** the existing tables don't cover: TLC therapist-recruiting + training-enrollment, GTM subscriber, Boxcar booking, real-estate leads.
+- The guardrail linters are re-homed in `crm-engine.js` as the single source of truth; `client-acquisition.js` still carries its own identical copy. Short-term that's two identical copies (same behavior); the cleanup is for `client-acquisition.js` to import them from `crm-engine.js`.
 
-This branch is labeled `hold` so that convergence is sequenced deliberately rather than racing two lead tables onto main.
+**Optional deeper convergence (orchestrator decision, not required for this PR):** collapse `practice_leads` into `crm_leads` so TLC client-acquisition writes the one table directly (its surface keeps working through `leadFromPracticeAcquisition` either way). Left as a follow-up because `practice_leads` is live with data; federation already gives the single pane today.
+
+This branch is labeled `hold` so the convergence decision is made deliberately by the orchestrator, not raced in.
 
 ## Follow-ups
 
