@@ -52,6 +52,7 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     expect(text).not.toContain('Supervised hours ledger');
     expect(text).not.toContain('Certificate catalog');
     expect(text).not.toContain('Required trainings');
+    expect(text).not.toContain('CEU renewal tracker');
   });
 
   it('a staff viewer on Training & Hours sees the supervised-hours ledger toward the IL pathway', async () => {
@@ -66,6 +67,44 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     expect(text).toContain('Required trainings');
     // A real "Log hours" control exists.
     expect([...container.querySelectorAll('button')].some((b) => /Log hours/.test(b.textContent))).toBe(true);
+  });
+
+  it('a staff viewer on Training & Hours sees the CEU renewal tracker — distinct from the supervised-hours ledger, driven by the Illinois ruleset', async () => {
+    await mount({ isStaff: true });
+    const tab = [...container.querySelectorAll('button')].find((b) => /Training & Hours/.test(b.textContent));
+    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    const text = container.textContent;
+    // The post-license CE tracker renders, separate from the supervised-hours ledger.
+    expect(text).toContain('CEU renewal tracker');
+    expect(text).toContain('Supervised hours ledger'); // both coexist
+    // Reads the Illinois ruleset: total hours, renewal countdown, mandated topics.
+    expect(text).toMatch(/Illinois/);
+    expect(text).toContain('of 30');                      // 30 CE hours required
+    expect(text).toContain('Days to renew');
+    expect(text).toContain('Social Work Practice Ethics'); // a mandated topic
+    expect(text).toContain('Cultural Competence');
+    // The approved-provider rule is surfaced once, as a neutral data field.
+    expect(text).toMatch(/159\.xxxxxx/);
+    // SME-confirm honesty is visible (not yet ratified by Christina).
+    expect(text).toMatch(/SME/);
+    // A real "Log CE activity" control exists.
+    expect([...container.querySelectorAll('button')].some((b) => /Log CE activity/.test(b.textContent))).toBe(true);
+  });
+
+  it('the CEU tracker honors the first-renewal exemption when renewal # is set to 1st', async () => {
+    await mount({ isStaff: true });
+    const tab = [...container.querySelectorAll('button')].find((b) => /Training & Hours/.test(b.textContent));
+    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    // Find the "Renewal #" select and choose 1st (newly licensed).
+    const selects = [...container.querySelectorAll('select')];
+    const renewalSelect = selects.find((s) => [...s.options].some((o) => /newly licensed/i.test(o.textContent)));
+    expect(renewalSelect).toBeTruthy();
+    await act(async () => {
+      renewalSelect.value = '1';
+      renewalSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    const text = container.textContent;
+    expect(text).toMatch(/No CE required for the first renewal/i);
   });
 
   it('staff can switch to Therapists and see the clinician track + hours ledger', async () => {

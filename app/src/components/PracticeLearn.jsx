@@ -44,6 +44,10 @@ import {
   DEFAULT_REQUIRED_TRAININGS, requiredTrainingStatus, requiredTrainingSummary,
   isTrackPublishable, ceCreditsToConfirm,
 } from '../lib/practice-academy.js';
+import {
+  DEFAULT_STATE, listStates, getRuleset, rulesetCredentials,
+  ceTopicOptions, makeCeEntry, ceProgress, GENERAL_TOPIC,
+} from '../lib/ceu-tracker.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -57,6 +61,8 @@ const LS = {
   catalog: 'poe.practiceAcademy.catalog.v2',
   reqs: 'poe.practiceAcademy.reqs.v1',
   hours: 'poe.practiceAcademy.hours.v1',
+  ceu: 'poe.practiceAcademy.ceu.v1',          // logged continuing-education activities
+  ceuCfg: 'poe.practiceAcademy.ceuCfg.v1',     // { state, credential, renewalNumber }
 };
 function loadLS(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function saveLS(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* no storage */ } }
@@ -78,6 +84,8 @@ function PracticeLearn({ email = '', isStaff = false }) {
   const [catalog, setCatalog] = useState(() => loadLS(LS.catalog, DEFAULT_CERT_CATALOG));
   const [reqCompletions, setReqCompletions] = useState(() => loadLS(LS.reqs, {}));
   const [hours, setHours] = useState(() => loadLS(LS.hours, []));
+  const [ceus, setCeus] = useState(() => loadLS(LS.ceu, []));
+  const [ceuCfg, setCeuCfg] = useState(() => loadLS(LS.ceuCfg, { state: DEFAULT_STATE, credential: 'LCSW', renewalNumber: 2 }));
   const [openModuleId, setOpenModuleId] = useState(null);
 
   useEffect(() => { saveLS(LS.audience, audience); }, [audience]);
@@ -88,6 +96,8 @@ function PracticeLearn({ email = '', isStaff = false }) {
   useEffect(() => { saveLS(LS.catalog, catalog); }, [catalog]);
   useEffect(() => { saveLS(LS.reqs, reqCompletions); }, [reqCompletions]);
   useEffect(() => { saveLS(LS.hours, hours); }, [hours]);
+  useEffect(() => { saveLS(LS.ceu, ceus); }, [ceus]);
+  useEffect(() => { saveLS(LS.ceuCfg, ceuCfg); }, [ceuCfg]);
 
   useEffect(() => {
     if (!canSeeAudience(audience, { isStaff })) setAudience(defaultAudience({ isStaff }));
@@ -121,6 +131,10 @@ function PracticeLearn({ email = '', isStaff = false }) {
 
   const logHours = (entry) => setHours((prev) => [makeHourEntry({ ...entry, learnerEmail: email, createdAt: nowISO() }), ...prev]);
   const removeHours = (id) => setHours((prev) => prev.filter((h) => h.id !== id));
+
+  const myCeus = useMemo(() => ceus.filter((c) => !c.learnerEmail || c.learnerEmail === email), [ceus, email]);
+  const logCeu = (entry) => setCeus((prev) => [makeCeEntry({ ...entry, learnerEmail: email, createdAt: nowISO() }), ...prev]);
+  const removeCeu = (id) => setCeus((prev) => prev.filter((c) => c.id !== id));
 
   const showHoursLedger = isStaff && (audience === 'therapist' || audience === 'training');
 
@@ -233,6 +247,10 @@ function PracticeLearn({ email = '', isStaff = false }) {
 
       {/* Training-hours ledger (staff, clinician + training audiences) */}
       {showHoursLedger && <HoursLedger entries={myHours} onLog={logHours} onRemove={removeHours} />}
+
+      {/* CEU renewal tracker — post-license continuing education (distinct from the
+          pre-licensure supervised-hours ledger above) */}
+      {showHoursLedger && <CeuTracker entries={myCeus} cfg={ceuCfg} setCfg={setCeuCfg} onLog={logCeu} onRemove={removeCeu} />}
 
       {/* Certificate catalog + required trainings (staff) */}
       {isStaff && (audience === 'therapist' || audience === 'training') && (
@@ -580,6 +598,173 @@ function HoursLedger({ entries, onLog, onRemove }) {
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// CeuTracker — POST-LICENSE continuing-education (CE/CEU) renewal tracker. Distinct
+// from the supervised-hours ledger above (that is pre-licensure). Reads the active
+// STATE ruleset (Illinois default), logs CE activities, and shows progress toward the
+// cycle requirement: total hours + each mandated topic + the renewal countdown.
+// Multi-state by architecture — switching the state picker swaps the entire ruleset.
+// -----------------------------------------------------------------------------
+function CeuTracker({ entries, cfg, setCfg, onLog, onRemove }) {
+  const [show, setShow] = useState(false);
+  const ruleset = useMemo(() => getRuleset(cfg.state), [cfg.state]);
+  const creds = useMemo(() => rulesetCredentials(ruleset), [ruleset]);
+  const topicOpts = useMemo(() => ceTopicOptions(ruleset, cfg.credential), [ruleset, cfg.credential]);
+  const prog = useMemo(
+    () => ceProgress(entries, ruleset, { credential: cfg.credential, renewalNumber: cfg.renewalNumber, now: nowISO() }),
+    [entries, ruleset, cfg.credential, cfg.renewalNumber],
+  );
+  const states = listStates();
+
+  const [form, setForm] = useState({ date: todayISO(), hours: '', topic: GENERAL_TOPIC, title: '', provider: '', approvalNumber: '' });
+  const topicLabel = (key) => (topicOpts.find((t) => t.key === key) || {}).label || key;
+
+  const submit = () => {
+    const h = Number(form.hours);
+    if (!form.date || !(h > 0)) { alert('A completion date and a positive number of hours are required.'); return; }
+    onLog({ ...form, hours: h, credential: cfg.credential });
+    setForm({ date: todayISO(), hours: '', topic: GENERAL_TOPIC, title: '', provider: '', approvalNumber: '' });
+    setShow(false);
+  };
+
+  return (
+    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <SectionTitle eyebrow={`Continuing education · renewal · ${ruleset.stateName}`}>CEU renewal tracker</SectionTitle>
+        <button type="button" onClick={() => setShow(!show)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">{show ? '× Cancel' : '+ Log CE activity'}</button>
+      </div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-3 max-w-prose" style={SERIF}>
+        Post-license CE toward your renewal — separate from the pre-licensure supervised hours above. Pick your state and credential; the requirement comes from that state’s law.
+      </p>
+
+      {/* State / credential / renewal-number selectors — these swap the active ruleset */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+        <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">State law
+          <select value={cfg.state} onChange={(e) => setCfg({ ...cfg, state: e.target.value, credential: rulesetCredentials(getRuleset(e.target.value)).includes(cfg.credential) ? cfg.credential : rulesetCredentials(getRuleset(e.target.value))[0] })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case">
+            {states.map((s) => <option key={s.state} value={s.state}>{s.stateName} ({s.state})</option>)}
+          </select>
+        </label>
+        <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Credential
+          <select value={cfg.credential} onChange={(e) => setCfg({ ...cfg, credential: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case">
+            {creds.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Renewal #
+          <select value={cfg.renewalNumber} onChange={(e) => setCfg({ ...cfg, renewalNumber: Number(e.target.value) })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case">
+            <option value={1}>1st (newly licensed)</option>
+            <option value={2}>2nd</option>
+            <option value={3}>3rd</option>
+            <option value={4}>4th</option>
+            <option value={5}>5th+</option>
+          </select>
+        </label>
+      </div>
+
+      {/* First-renewal exemption banner */}
+      {prog.exempt ? (
+        <div className="border border-[#5A6E3D] bg-[#5A6E3D]/[0.06] p-3 mb-2">
+          <p className="text-xs text-[#1A1815]" style={SERIF}>
+            <strong className="text-[#5A6E3D]">No CE required for the first renewal.</strong> {ruleset.firstRenewalNote}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Total progress + renewal countdown */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-2">
+            <MetricCell label="CE hours" value={`${prog.totalLogged}`} sub={`of ${prog.totalRequired}`} small accent="green" />
+            <MetricCell label="Remaining" value={`${prog.totalRemaining}`} small accent="rust" />
+            <MetricCell label="Topics met" value={`${prog.perTopic.filter((t) => t.met).length}/${prog.perTopic.length}`} small />
+            <MetricCell label="Days to renew" value={prog.daysUntilRenewal == null ? '—' : `${prog.daysUntilRenewal}`} small />
+          </div>
+          <div className="h-2 bg-[#E8E4DC] mb-1"><div className="h-full bg-[#5A6E3D]" style={{ width: `${prog.totalPct}%` }} /></div>
+          <p className="text-[0.6875rem] text-[#5A5751]" style={SERIF}>
+            {prog.totalPct}% of {prog.totalRequired} CE hours this cycle{prog.renewalDate ? ` · renews ${fmtDate(prog.renewalDate)}` : ''}
+            {prog.complete ? ' · ✓ requirement met' : ''}.
+          </p>
+
+          {/* Per-mandated-topic progress */}
+          {prog.perTopic.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Mandated topics</div>
+              {prog.perTopic.map((t) => (
+                <div key={t.key} className="border border-[#E8E4DC] p-2.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>
+                      <span aria-hidden="true" className={t.met ? 'text-[#5A6E3D]' : 'text-[#B85838]'}>{t.met ? '✓ ' : '○ '}</span>{t.label}
+                    </span>
+                    <span className={`text-[0.625rem] uppercase tracking-wider ${t.met ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{t.logged} / {t.required} h</span>
+                  </div>
+                  {t.note && <div className="text-[0.625rem] text-[#5A5751] mt-0.5" style={SERIF}>{t.note}</div>}
+                  <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={MONO}>
+                    {t.source ? `Source: ${t.source}` : ''}{t.smeConfirm ? ' · SME-confirm pending' : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Approved-provider rule — stated once, neutrally, as a data field */}
+      {ruleset.approvedProviderRule && ruleset.approvedProviderRule.required && (
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={SERIF}>
+          {ruleset.approvedProviderRule.note} <span style={MONO} className="not-italic">[{ruleset.approvedProviderRule.numberFormat}]</span>
+        </p>
+      )}
+
+      {/* Log form */}
+      {show && (
+        <div className="border border-[#B85838] p-3 mt-3 space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Completion date
+              <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
+            </label>
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">CE hours
+              <input type="number" min="0" step="0.25" value={form.hours} onChange={(e) => setForm({ ...form, hours: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
+            </label>
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Topic / category
+              <select value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case">
+                {topicOpts.map((t) => <option key={t.key} value={t.key}>{t.label}{t.hours ? ` (need ${t.hours}h)` : ''}</option>)}
+              </select>
+            </label>
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Activity title
+              <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="course / activity name" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
+            </label>
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">CE provider <span className="normal-case">(sponsor)</span>
+              <input value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} placeholder="e.g., NASW-IL" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
+            </label>
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Approval # <span className="normal-case">(metadata)</span>
+              <input value={form.approvalNumber} onChange={(e) => setForm({ ...form, approvalNumber: e.target.value })} placeholder={ruleset.approvedProviderRule ? ruleset.approvedProviderRule.numberFormat : 'provider #'} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
+            </label>
+          </div>
+          <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-white py-2 text-[0.625rem] uppercase tracking-wider hover:bg-[#5A6E3D] min-h-[36px]">Log this CE activity</button>
+        </div>
+      )}
+
+      {/* Entries */}
+      {entries.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {[...entries].sort((a, b) => String(b.date).localeCompare(String(a.date))).map((e) => (
+            <li key={e.id} className="flex items-baseline justify-between gap-2 border border-[#E8E4DC] p-2.5">
+              <div className="min-w-0">
+                <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{e.hours}h</span>
+                <span className="text-xs text-[#5A5751]"> · {topicLabel(e.topic)}</span>
+                {e.title && <span className="text-[0.625rem] text-[#5A5751]"> · {e.title}</span>}
+                <div className="text-[0.625rem] text-[#5A5751]" style={MONO}>{fmtDate(e.date)}{e.provider ? ` · ${e.provider}` : ''}{e.approvalNumber ? ` · #${e.approvalNumber}` : ''}</div>
+              </div>
+              <button type="button" onClick={() => onRemove(e.id)} aria-label="Remove CE entry" className="text-[#5A5751] hover:text-[#B85838] shrink-0 min-h-[28px] min-w-[28px]">×</button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="text-[0.5625rem] text-[#5A5751] mt-3" style={MONO}>
+        {ruleset.stateName} figures as of {prog.asOf}{prog.confirmed ? '' : ' · pending SME (Christina, LCSW) confirmation'}. This is a tracking aid, not legal advice — verify against {ruleset.agency || 'your licensing board'}.
+      </p>
     </section>
   );
 }
