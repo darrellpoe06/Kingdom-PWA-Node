@@ -65,6 +65,11 @@ import {
   WORLD_ISSUES_INTEREST_TAG, WORLD_ISSUES_HELPER_TAG, WORLD_ISSUES_TUTOR_META,
   buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown,
 } from './lib/world-issues-class.js';
+import {
+  DATASYSTEMS_META, DATASYSTEMS_SESSION_FLOW,
+  DATASYSTEMS_INTEREST_TAG, DATASYSTEMS_HELPER_TAG, DATASYSTEMS_TUTOR_META,
+  buildDatasystemsSchedule, datasystemsProgressSummary, exportDatasystemsCurriculumMarkdown,
+} from './lib/datasystems-course.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -5798,6 +5803,41 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // PoeTech Data Systems & Infrastructure — a SELF-PACED staff/volunteer
+          // onboarding + operating course on the same shared engine (meta.unit
+          // renders rows as "Module(s)", no cohort clock). It teaches the whole
+          // system (data layer, the loops, modules + harvest, CRM, Ari), the church
+          // tech stack (NAS, 2x RTX 4070 GPU node, LED wall + NovaStar VX1000, the
+          // service day), the operating skills, and an onboarding path — verified
+          // facts, SME items flagged. LIVING: shares material with the in-app "?"
+          // help (datasystems-course.js imports the same HELP registry).
+          const submitDatasystemsInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${DATASYSTEMS_INTEREST_TAG} ${(name || 'A team member').trim()} wants to learn the PoeTech data systems and infrastructure.` })
+            : null;
+          const datasystemsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], DATASYSTEMS_INTEREST_TAG) : null;
+          const datasystemsCourse = {
+            meta: { ...DATASYSTEMS_META, key: 'datasystems' },
+            sessionFlow: DATASYSTEMS_SESSION_FLOW,
+            schedule: buildDatasystemsSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => datasystemsProgressSummary(p),
+            exportMarkdown: () => exportDatasystemsCurriculumMarkdown(),
+            downloadName: 'poetech-data-systems-and-infrastructure.md',
+            submitInterest: submitDatasystemsInterest,
+            roster: datasystemsRoster,
+            interestCopy: {
+              heading: 'Want to learn the systems?',
+              blurb: 'Tell Darrell you want to come up to speed on the PoeTech data systems and the church tech stack — how it works, the equipment, and the skills — and he’ll get you started. Self-paced, plain language, at any experience level.',
+              cta: 'I want to learn',
+              sent: '✓ Sent — Darrell will get you onboarded. We steward the systems so the Body is equipped.',
+            },
+            tutorCourseMeta: DATASYSTEMS_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
@@ -5807,7 +5847,8 @@ html{scroll-padding-bottom:280px}
                     : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
                       : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
                         : courseKey === 'world-issues' ? WORLD_ISSUES_HELPER_TAG
-                          : '[Class helper]'
+                          : courseKey === 'datasystems' ? DATASYSTEMS_HELPER_TAG
+                            : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5839,7 +5880,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse, worldIssuesCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
