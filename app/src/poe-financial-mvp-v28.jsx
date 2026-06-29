@@ -133,7 +133,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AccessUsageMetrics, ChefCorner, Games,
+  Inventory, Forecast, AccessUsageMetrics, ChefCorner, Games, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1780,7 +1780,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','admin','center','crm','inventory','forecast'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','admin','center','crm','relationships','inventory','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -5366,6 +5366,11 @@ html{scroll-padding-bottom:280px}
                 // Family/Governor only (steward tooling across all businesses);
                 // spread so the entry is absent from the DOM for everyone else.
                 ...(isFamilyMember ? [['crm', <><UiIcon name="users" /> CRM</>]] : []),
+                // Relationships — the relationship-based permission model: who can
+                // do what based on the relationship (guardian<->child, family,
+                // landlord<->tenant). Family/Governor only (it SETS access); spread
+                // so the entry is absent from the DOM for everyone else (no-leak).
+                ...(isFamilyMember ? [['relationships', <><UiIcon name="users" /> Relationships</>]] : []),
                 // Inventory — a real inventory-control system of record (derived
                 // on-hand over an immutable movement ledger). Family/Governor only
                 // (operations tooling); spread so the entry is absent from the DOM
@@ -6021,6 +6026,17 @@ html{scroll-padding-bottom:280px}
             </div>
           ))}
 
+        {/* Relationships — the relationship-based permission model + the
+            landlord<->tenant / guardian<->child workflows. Family/Governor only
+            (it SETS access); the component carries a locked fallback for any
+            deep-link, and its own SectionBoundary so a thrown error degrades just
+            this surface. */}
+        {view === 'relationships' && (
+          <SectionBoundary name="Relationships">
+            <Relationships isGovernor={isFamilyMember} currentUserId={authSession?.user?.id || null} />
+          </SectionBoundary>
+        )}
+
         {/* Inventory — the systems-of-record demonstration: on-hand DERIVED from
             an immutable movement ledger, versioned items, corporate controls.
             Family/Governor only (operations tooling); own SectionBoundary so a
@@ -6587,6 +6603,11 @@ const FEEDBACK_AREAS = [
   ]},
   { group: 'CRM (🔒 steward · acquisition backbone)', items: [
     ['crm', '👥 CRM · the one shared pipeline every funnel rides (TLC · GTM · Boxcar · Real Estate)'],
+  ]},
+  { group: 'Relationships (steward · permission model)', items: [
+    ['relationships', 'Relationships · who can do what by relationship (guardian/child · family · landlord/tenant)'],
+    ['relationships-guardian', '└ Guardian & Child · set a child\'s allowed capabilities + the approval queue'],
+    ['relationships-landlord', '└ Landlord & Tenant · rent roll · maintenance · rent records (no money moves) · notices · messages'],
   ]},
   { group: 'Forecast (🔒 steward · financial engineering)', items: [
     ['forecast', '📈 Forecast · forward cash-flow projection from real data (per business / family / consolidated)'],

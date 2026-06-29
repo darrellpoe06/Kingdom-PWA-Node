@@ -287,6 +287,18 @@ export const HELP = {
     why: 'Relationships are the real asset of any business. One honest backbone — that asks consent and never auto-blasts — protects them while it grows them.',
     section: 'business',
   },
+  relationships: {
+    title: 'Relationships',
+    tag: 'Who can do what — by the relationship between two people.',
+    what: 'Relationships is where access stops being "is someone signed in" and becomes what the relationship grants. It models three relationships — guardian and child, family, and landlord and tenant — with an explicit can/can\'t matrix, and it is where you set the parts that are yours to set.',
+    how: [
+      'Open Matrix to see, live from the model, exactly what each role can and cannot do.',
+      'In Guardian & Child, set what a child can do — child-safe by default, with outbound and sensitive actions locked or ask-first.',
+      'In Landlord & Tenant, run the rent roll, maintenance, rent records (no money moves), notices, and messages — each side scoped to its own.',
+    ],
+    why: 'A child should do age-appropriate things and not spend money; a tenant should see their unit and not your portfolio. Making the relationship the unit of permission keeps that true by design, not by hope.',
+    section: 'business',
+  },
   inventory: {
     title: 'Inventory',
     tag: 'A real inventory system of record (derived on-hand).',

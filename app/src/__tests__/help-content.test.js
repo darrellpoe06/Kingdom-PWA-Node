@@ -21,7 +21,7 @@ import { ARI } from '../lib/ari.js';
 const TOP_LEVEL_VIEWS = [
   'overview', 'books', 'inbound', 'rentals', 'projects', 'practice',
   'opportunities', 'about', 'notes', 'create', 'voice', 'library', 'recipes',
-  'study', 'church', 'markets', 'center', 'crm', 'inventory', 'forecast', 'admin',
+  'study', 'church', 'markets', 'center', 'crm', 'relationships', 'inventory', 'forecast', 'admin',
 ];
 const CHURCH_SUBS = [
   'home', 'engagement', 'choir', 'program', 'learn', 'conference', 'events',
