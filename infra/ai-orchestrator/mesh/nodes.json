@@ -1,0 +1,54 @@
+{
+  "_comment": "Sovereign-mesh node/capability registry. DECLARATIVE source of truth for capability-routed federation (research-review docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md). The job router selects the node whose declared `caps` is a superset of a job's `requires`, health-green, cheapest/closest first. DECLARED, NOT GUESSED (DR-0061 reality-trace) and DETERMINISTIC (no LLM in the dispatch decision; the LLM is only the worker on the chosen node). Generalizes the vendor-axis picker in scripts/wake-router.mjs + DR-0073 to a node axis. SHIPS INERT: editing this file does not arm anything; routing still passes through the per-node Cage brakes (infra/ai-orchestrator/portable/orchestrator/lib/brakes.sh) and the mesh kill-switch. Values marked SME-CONFIRM are flagged for Darrell/BG (church hardware, GPU-endpoint IP, church NAS access) per the research-review section 6 — DO NOT fabricate; an SME-CONFIRM cap is treated as OFFLINE by the router until a real value lands.",
+  "schema_version": 1,
+  "private_routing": "local-only-always",
+  "mode_default": "vendor-first",
+  "mesh_kill_switch": { "host": "192.168.1.26", "note": "registry-side mesh-wide kill-switch; UNREACHABLE = treated as ENGAGED (fail closed)" },
+  "nodes": [
+    {
+      "id": "home-ds1621xs",
+      "site": "home",
+      "role": "serve + storage + cpu + registry",
+      "tailscale": "192.168.1.26",
+      "online": true,
+      "caps": ["serve", "storage", "cpu", "postgres", "registry", "ollama-cpu"],
+      "endpoints": {
+        "app": "https://poetech.tail5a2f35.ts.net:8443/poetech-app/",
+        "ollama": "http://192.168.1.26:11434",
+        "n8n": "http://192.168.1.26:5678",
+        "registry": "192.168.1.26:5432"
+      },
+      "notes": "Verified: Xeon D-1527 4c/8t CPU-only, 32 GB ECC, dual 10 GbE. Runs Caddy poetech-web, n8n, Ollama (CPU), self-hosted Supabase compose. The single authoritative registry/ledger lives here."
+    },
+    {
+      "id": "church-cuda",
+      "site": "church",
+      "role": "gpu worker (voice clone / whisper transcription / local 14B LLM)",
+      "tailscale": "SME-CONFIRM",
+      "online": false,
+      "caps": ["gpu", "whisper", "ollama-14b", "voice-clone"],
+      "endpoints": {
+        "ollama": "http://SME-CONFIRM:11434",
+        "whisper": "http://SME-CONFIRM:8080"
+      },
+      "notes": "SME-CONFIRM: the 2x RTX 4070 live in companion CUDA/Windows box(es) on the church LAN, NOT in the Synology NAS. Needs Tailscale IP(s) + Ubuntu/CUDA/Docker/Ollama + the whisper endpoint (infra/church-gpu-node/whisper-gpu/) joined to the tailnet. NOT on the mesh as of 2026-06-10 probe. Passive endpoint; brakes live on the caller."
+    },
+    {
+      "id": "church-rs",
+      "site": "church",
+      "role": "serve + storage (media corpus)",
+      "tailscale": "SME-CONFIRM",
+      "online": false,
+      "caps": ["serve", "storage", "media-corpus"],
+      "endpoints": {},
+      "notes": "SME-CONFIRM: tlcrackstation (Synology RackStation). On the tailnet but fully firewalled (22/5000/5001/5678/11434/443 filtered, 2026-06-10). Holds the ~100 TB recording corpus (node-local by nature, referenced by ID). Access = a credential/his-hand step (Darrell/BG)."
+    }
+  ],
+  "job_classes": [
+    { "id": "voice-clone",          "requires": ["voice-clone"], "private": true,  "fallback_vendor": false, "note": "private family voice -> church GPU only; if offline, WAITS (never a cloud vendor)" },
+    { "id": "harvest-transcription","requires": ["whisper"],     "private": true,  "fallback_vendor": false, "note": "church recordings -> church GPU; private; brakes on the caller queue" },
+    { "id": "local-llm-14b",        "requires": ["ollama-14b"],  "private": false, "fallback_vendor": true,  "note": "non-private heavy gen -> church GPU; vendor fallback only when armed+budgeted+GPU-offline" },
+    { "id": "storage-cpu",          "requires": ["cpu"],         "private": false, "fallback_vendor": false, "note": "reconciliation / CPU jobs / deploy-sync -> home DS1621xs" },
+    { "id": "registry-write",       "requires": ["registry"],   "private": true,  "fallback_vendor": false, "note": "audit ledger / pgvector -> home NAS single instance (no split-brain)" }
+  ]
+}

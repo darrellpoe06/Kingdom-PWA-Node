@@ -1,0 +1,79 @@
+-- 2026-06-29 — Sovereign Mesh (two-NAS): in-app infrastructure documentation
+-- Materializes the DECIDED architecture for running the PoeTech PWA on BOTH NAS units
+-- (home DS1621xs + church site) as in-app docs: one infrastructure project + 7 discussion
+-- entries (institutional-memory / Events-as-data model). Renders at:
+--   Projects -> (domain: Infrastructure) -> "Sovereign Mesh" -> Discussions driving this
+--   Projects -> Discussions (filtered to the project)
+--
+-- SOURCE OF TRUTH for the prose: infra/seed-data/2026-06-29-sovereign-mesh-two-nas.json
+-- SURVEY: docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md
+-- ROUTER REGISTRY: infra/ai-orchestrator/mesh/nodes.json
+--
+-- APPLY: run ONCE in Supabase Studio (SQL editor) against the family (poe-family) cloud instance.
+--   Idempotent: resolves the instance by slug='poe-family' (the proven pattern from
+--   seed-2026-05-25-projects.sql); ON CONFLICT (instance_id, slug) WHERE slug IS NOT NULL DO NOTHING.
+--   created_by is left NULL (system-seeded doc). If projects.created_by / discussions.created_by
+--   is NOT NULL in your schema, set a poe-family owner uuid and swap the NULLs.
+--   NOT yet applied to cloud as of this commit (this local session cannot reach the cloud Studio).
+
+DO $$
+DECLARE
+  v_instance uuid;
+BEGIN
+  SELECT id INTO v_instance FROM instances WHERE slug = 'poe-family';
+  IF v_instance IS NULL THEN
+    RAISE EXCEPTION 'No instance with slug=poe-family; the family instance must be seeded first.';
+  END IF;
+
+  -- 1) Umbrella infrastructure project --------------------------------------
+  INSERT INTO projects (id, instance_id, created_by, slug, title, status, domain, description, created_at, updated_at)
+  VALUES (
+    gen_random_uuid(), v_instance, NULL,
+    'sovereign-mesh-2026-06',
+    'Sovereign Mesh',
+    'active', 'infrastructure',
+    'Run the PoeTech PWA on BOTH NAS units at once (home DS1621xs + church site) so any project can use whatever hardware it needs: redundancy (either node serves), capability-routed federation (GPU jobs -> church GPU box, storage/CPU -> home NAS), brakes on every node, and shared state without split-brain. Survey: docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md. Router registry: infra/ai-orchestrator/mesh/nodes.json.',
+    now(), now()
+  )
+  ON CONFLICT (instance_id, slug) WHERE slug IS NOT NULL DO NOTHING;
+
+  -- 2) Seven best-way discussion entries ------------------------------------
+  INSERT INTO discussions
+    (id, instance_id, created_by, slug, kind, title, body, project_slugs, visibility, status, links, meta, author_persona, created_at, updated_at)
+  VALUES
+    (gen_random_uuid(), v_instance, NULL, 'sm-replication-same-deploy-both-nodes', 'decision',
+     'Replication = both nodes run the same deploy-pwa.sh from one origin/main',
+     'BEST WAY: GitHub origin/main is the ONE source of truth; redundancy = run the EXISTING infra/nas-caddy/deploy-pwa.sh (git pull --ff-only -> npm ci -> vite build -> publish to Caddy -> reload) on BOTH nodes. Each node ends with an independent, self-contained copy of the running app; either site serves the family if the other is down. WE CHOSE run-the-proven-script-twice, NOT a new deploy mechanism and NOT a cloud-runner push, BECAUSE the replication primitive already exists and works on the home NAS - the second node simply instantiates it.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'sm-single-source-config-sha-probe', 'decision',
+     'Single-source config = committed code + per-node .env.local + a SHA-parity probe',
+     'BEST WAY: the build is byte-identical from git; the ONLY per-node difference is .env.local (Supabase/n8n/bearer/GPU endpoint), deliberately NOT in git and never overwritten by deploy. Keys are pinned in app/.env.example (the contract). Drift is caught by a machine check (DR-0076): each node writes git rev-parse HEAD to _deployed_sha.txt, and a parity probe compares both nodes to origin/main - mismatch = drift, named and visible. WE CHOSE code-single-source + node-local-secrets + a SHA gate, NOT a shared mutable config and NOT trust-me-they-match, BECAUSE config can silently diverge and a green machine check beats a claim.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{"dr_ref":"DR-0076"}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'sm-capability-routed-federation', 'decision',
+     'Federation = declared-capability routing (GPU -> church box, CPU/storage -> home NAS)',
+     'BEST WAY: a committed registry infra/ai-orchestrator/mesh/nodes.json declares each node caps once; the router selects the node whose caps superset a job requires, health-green, cheapest/closest first. GPU jobs (voice clone, harvest transcription, local 14B LLM) -> the church GPU box; storage/CPU/registry jobs -> home DS1621xs. No matching healthy node -> the job HOLDS (logged), never runs on the wrong hardware. Generalizes the vendor-axis picker in scripts/wake-router.mjs + DR-0073 to a node axis; selection is DETERMINISTIC (no LLM in dispatch). WE CHOSE declared-capability + deterministic routing, NOT guess-and-probe and NOT an LLM dispatcher, BECAUSE a CPU node grinding a GPU job for 20 minutes is the exact waste DR-0073 forbids and routing must be predictable.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{"dr_ref":"DR-0073"}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'sm-brakes-every-node-fail-closed', 'decision',
+     'Brakes on every node, plus a fail-closed mesh kill-switch',
+     'BEST WAY: the Cage is filesystem-state, so each node carries its own brakes (brakes.sh: KILL_SWITCH present + ARM absent on ship; lock; budget) and is armed SEPARATELY by Darrell (Tier C, his hand, never while traveling). Add ONE mesh-wide kill-switch on the registry that every node checks too; the composite gate is inert if local OR mesh switch is engaged OR the mesh switch is unreachable (UNREACHABLE = ENGAGED, fail closed). Both nodes write to the one append-only hash-chained audit ledger on the home NAS. WE CHOSE per-node-authoritative brakes + a fail-closed mesh switch, NOT a single network-dependent gate, BECAUSE a partition must never ENABLE automation - on doubt the safe default is stopped (2026-06-06 runaway rule).',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'sm-single-writer-no-two-masters', 'decision',
+     'Data = single-writer per datum; never two masters (no split-brain)',
+     'BEST WAY: keep ONE authoritative relational DB - cloud Supabase today; the home-NAS self-hosted Supabase compose (already in-repo at infra/supabase/) is the scaffolded sovereign successor. The second node READS it over Tailscale (and may cache for offline reads), but WRITES always go to the one primary. The registry/ledger is likewise a single home-NAS instance both nodes write to. Heavy media (~100 TB church recordings) is node-local by nature, referenced by ID. The anti-pattern, named and refused: two writable Supabase instances synced (multi-master = the split-brain you asked to avoid). WE CHOSE single-writer + read-replication, NOT dual-master sync, BECAUSE replication is for read-availability and backup - never a second master; move WHICH box is the writer, never the NUMBER of writers.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'sm-reality-trace-church-gpu-premise', 'directive',
+     'Reality-trace / SME: church NAS has 2x 4070 is imprecise; the GPUs live in CUDA boxes',
+     'PREMISE SURFACED (DR-0061): a Synology NAS cannot hold desktop RTX 4070s - they live in companion CUDA/Windows box(es) on the church LAN. So church-NAS-as-GPU-node reads as the church SITE has a NAS (storage) + a CUDA box (GPU); the router targets the GPU ENDPOINT IP, not the NAS IP. REALITY (2026-06-10 probe): the church NAS (tlcrackstation) is on the tailnet but fully firewalled, and the GPU boxes are NOT on the mesh yet - the home NAS is the only live (CPU-only) inference host. SME GATES (Darrell/BG, his/their hand, never the pipeline holding creds): confirm church hardware/topology, the GPU-endpoint Tailscale IP, and open read-only access to the church NAS. These are Step 0; the mesh cannot federate to an unreachable node. WE CHOSE name-the-gap-first, NOT assume-the-mesh-is-live, BECAUSE the plan stands the mesh up - it does not pretend it already runs.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{"dr_ref":"DR-0061"}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'sm-end-to-end-umbrella', 'directive',
+     'End-to-end (umbrella): replicate -> federate by capability -> brake every node -> one writer',
+     'BEST WAY (the umbrella): one source of truth (origin/main) replicated to both nodes via the proven deploy script; jobs federated to the node with the right declared hardware (GPU church / CPU+storage home), deterministically and health-aware; the Cage brakes on every node plus a fail-closed mesh kill-switch, each node armed separately and shipped inert; a single authoritative writer for relational state (no split-brain) with the sovereign self-host as the sequenced successor. MVP-pragmatic (reuses deploy-pwa.sh, the Cage, Tailscale, DSM Task Scheduler, the in-repo Supabase compose), sovereign-mesh-compatible (no cloud in the control loop), cost-positive (right-sizes each job; the budget brake is also the cost ceiling). WE CHOSE reuse-and-sequence, NOT a rearchitecture, BECAUSE everything load-bearing already exists - the work is wiring the second node, the capability registry, and the drift/brake guards.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{"dr_ref":"DR-0076"}'::jsonb, '{}'::jsonb, 'darrell', now(), now())
+  ON CONFLICT (instance_id, slug) WHERE slug IS NOT NULL DO NOTHING;
+END $$;
