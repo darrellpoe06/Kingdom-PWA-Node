@@ -35,8 +35,10 @@ import {
   normalizeManifest, normalizeReviews, freshnessVerdict, ciVerdict,
   rowStatus, contrastStatus, reviewStatus,
 } from '../lib/quality-proof.js';
+import { normalizeInterconnect, loopRowStatus, interconnectHeadline } from '../lib/interconnect-loops.js';
 
 const MANIFEST = normalizeManifest(typeof __QUALITY_PROOF__ !== 'undefined' ? __QUALITY_PROOF__ : null);
+const INTERCONNECT = normalizeInterconnect(typeof __INTERCONNECT_LOOPS__ !== 'undefined' ? __INTERCONNECT_LOOPS__ : null);
 const REVIEWS = normalizeReviews(typeof __UIUX_REVIEWS__ !== 'undefined' ? __UIUX_REVIEWS__ : null);
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 
@@ -161,6 +163,35 @@ export default function QualityProof() {
           <p className="text-[0.6875rem] text-[#5A5751] mt-1 italic">Contrast not measured in this build.</p>
         )}
       </div>
+
+      {/* ----- INTERCONNECTION LOOPS ----- */}
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#1A1815] font-semibold border-b border-[#1A1815] pb-1 mb-2 mt-5">Interconnection loops — modules moving live data</div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        {interconnectHeadline(INTERCONNECT.summary)} Each loop names a real source and the destination that reads it; the wiring is file-verified at build. A loop that lost its wiring reads <span className="text-[#DC2626]">went static</span> — it can’t silently go dead.
+      </p>
+      <ul className="border border-[#E8E4DC] mb-3">
+        {INTERCONNECT.loops.map((l) => {
+          const rs = loopRowStatus(l);
+          const detail = l.broken
+            ? `Wiring missing: ${l.missing.join('; ')}`
+            : l.status === 'building'
+              ? (l.awaiting || l.proves)
+              : l.proves;
+          return (
+            <li key={l.id} className="px-2 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{l.name}</span>
+                <KpiDot status={rs.status} label={rs.label} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" />
+              </div>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                {l.from} → {l.to}
+              </div>
+              {detail && <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{detail}</p>}
+            </li>
+          );
+        })}
+        {INTERCONNECT.loops.length === 0 && <li className="px-2 py-2 text-[0.6875rem] text-[#5A5751] italic">Interconnect manifest unavailable — showing nothing rather than guessing.</li>}
+      </ul>
 
       {/* ----- UI/UX REVIEWS ----- */}
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#1A1815] font-semibold border-b border-[#1A1815] pb-1 mb-2 mt-5">UI/UX Reviews</div>

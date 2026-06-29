@@ -19,8 +19,13 @@
 // Accessibility mirrors Pulpit/Choir/Study: white / #FAF8F4 cards, #1A1815 body,
 // #5A5751 secondary, #5A6E3D scripture green, visible #B85838 focus outline (AA).
 // =============================================================================
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { SectionTitle } from './shared.jsx';
+// Live church corpus for the Scripture "appearances" cross-module link: where a
+// verse already shows up in the church's REAL sermons + songs. Subscribed here
+// (the real source) instead of receiving empty props — the monolith holds no
+// sermon/song state, so passing data.* would have starved the engine with [].
+import { subscribeSermons, subscribeSongs } from '../lib/choir-sync.js';
 import {
   THEMES, SURFACES, OTHER_VERSIONS, VERSE_ROLES, COPYRIGHT_NOTE,
   kjvText, readOnline, searchVerses,
@@ -457,6 +462,21 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
   const [consented, setConsented] = useState(false);
   const [interests, setInterests] = useState([]);
 
+  // Live church corpus (real choir_sermons / choir_songs rows). A caller MAY still
+  // inject rows via props (DI / tests); when it doesn't, we read the live source so
+  // the "appearances" web is fed real data instead of always-empty arrays.
+  const [liveSermons, setLiveSermons] = useState([]);
+  const [liveSongs, setLiveSongs] = useState([]);
+  useEffect(() => {
+    const offSermons = subscribeSermons((rows) => setLiveSermons(rows || []));
+    const offSongs = subscribeSongs((rows) => setLiveSongs(rows || []));
+    return () => { if (typeof offSermons === 'function') offSermons(); if (typeof offSongs === 'function') offSongs(); };
+  }, []);
+  const liveAppearances = useMemo(() => ({
+    sermons: sermons.length ? sermons : liveSermons,
+    songs: songs.length ? songs : liveSongs,
+  }), [sermons, songs, liveSermons, liveSongs]);
+
   const profile = useMemo(() => ({ consented, interests, youtube: [] }), [consented, interests]);
   const orderedThemes = useMemo(() => rankByInterest(THEMES, profile), [profile]);
   const results = useMemo(() => (query.trim() ? searchVerses(query) : null), [query]);
@@ -498,7 +518,7 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
           Scripture connections — cross-references + word study (sovereign · public domain)
         </summary>
         <div className="px-3 pb-3">
-          <ScriptureConnections email={email} canStudy={canStudy} sermons={sermons} lessons={lessons} songs={songs} />
+          <ScriptureConnections email={email} canStudy={canStudy} sermons={liveAppearances.sermons} lessons={lessons} songs={liveAppearances.songs} />
         </div>
       </details>
 
