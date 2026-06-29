@@ -17,8 +17,52 @@
 3. **Serving is sovereign-leaning and cost-sustainable.** The app is served without a per-branch vendor cap throttling the build lane, and the heavy AI paths run on owned hardware (SOVEREIGN-FIRST) with vendor reserved-but-optional (DR-0013).
 4. **The architecture is the small-shell + feature-modules target (DR-0078/0079), not a 9k-line monolith** — so the build lane stops colliding and new verticals land "in days" (DR-0030).
 5. **It measurably improves quality of life (QUALITY-OF-LIFE-AS-NORTH-STAR) and passes the gates** — the Tier-C bar (`RELEASE-TIERS.md`) plus the deterministic CI gates, every one proven-to-catch (DR-0076). QoL — not engagement — is the merge question.
+6. **Every repetitive/predictable path runs on deterministic code, not an LLM (see §0.5, BINDING).** The AI is reserved for novel reasoning, generation, judgment, explanation, and hard cases. A surface that calls an LLM where a deterministic path exists is *not* done.
 
-A vertical (Books, Church, Chef's Corner, Voice, CRM, Conference) is "done" when it satisfies 1–2 and 5 on its own surface. The *platform* is "done" when 3–4 also hold and the autonomy layer (DR-0037/0056/0057) runs behind its three brakes.
+A vertical (Books, Church, Chef's Corner, Voice, CRM, Conference) is "done" when it satisfies 1–2, 5, and 6 on its own surface. The *platform* is "done" when 3–4 also hold and the autonomy layer (DR-0037/0056/0057) runs behind its three brakes.
+
+---
+
+## 0.5 BINDING REQUIREMENT — Deterministic-First, AI-Only-When-Necessary
+
+**Declared by Darrell, 2026-06-29. Binding architectural requirement + standing design-review check.**
+
+> "Only want the AI to run for necessary items; build the repetitive workflows in for load reduction so the AI can keep up with the demand of new systems."
+
+**The rule.** Repetitive and predictable work is built as **plain deterministic code / scheduled jobs — NO LLM call.** The AI/LLM is reserved for **novel reasoning, generation, judgment, explanation, and genuinely hard cases.** The default is deterministic; an LLM is invoked **only when no deterministic path works.**
+
+**Deterministic by default (build it in — never an LLM):** scheduled pulls and syncs · format conversions · rule-based transforms · threshold / health / status checks · known field mappings · routine loops · validation against a fixed schema · idempotent reconciliation · anything whose output is a pure function of its input.
+
+**AI-needed (the reserved budget):** novel reasoning over unseen input · open-ended generation (drafts, teaching, summaries that aren't templated) · judgment calls and disambiguation · explaining the unfamiliar · classification where rules genuinely don't generalize · the hard tail a deterministic path can't cover.
+
+**Why (the rationale — load reduction).** Every deterministic path that does *not* call an LLM is freed AI capacity. As new systems are added, demand on the AI grows; pushing the repetitive mass onto deterministic code is what lets the AI **keep up with the demand of new systems** instead of drowning in routine. This pairs with cost-discipline, the SOVEREIGN-FIRST tier ladder (DR-0056: cheapest-capable tier first; deterministic is *below* the cheapest model), and the three-brakes law (P10–P12) — deterministic work needs no budget/lock/kill-switch because it never enters the autonomy loop.
+
+**Standing design-review check (every new workflow/loop must answer, in the PR/DR):**
+1. Is this output a pure function of its input, or rule-expressible? → **build deterministic, no LLM.**
+2. If it calls an LLM: *what specifically can't a deterministic path do here?* (State it. "It's easier" is not an answer.)
+3. Is there a deterministic pre-filter that handles the common case so the LLM only sees the hard tail?
+4. If sovereign/scheduled: does the deterministic core run without the LLM being reachable at all (honest-offline)?
+
+A workflow that calls an LLM without answering #2 does not pass review. This is the verification-doctrine posture (DR-0076) applied to *compute allocation*: the burden of proof is on invoking the AI, not on avoiding it. (Recorded for the ledger as **DR-0080**; future workflows cite it.)
+
+### 0.5.1 Classification pass — every loop/workflow labeled
+
+The standing inventory. Each row is **DETERMINISTIC** (build in, no AI) or **AI-NEEDED** (reserved). This pass is re-run as new workflows are designed; the default verdict for a new row is DETERMINISTIC until #2 above is answered.
+
+| Loop / workflow | Verdict | Why |
+|---|---|---|
+| Supabase table syncs (`createTableSync`, ~35 tables) | **DETERMINISTIC** | pure upload/patch/subscribe; no reasoning |
+| Migration apply (`db-migrate.yml`) + the planned applied-ledger | **DETERMINISTIC** | idempotent SQL in filename order |
+| CI gates (lint, vitest, build, module-boundary, contrast/legibility/consistency/tab guards, wf36) | **DETERMINISTIC** | rule/threshold checks; this is the model |
+| Derived on-hand / balances / costing / forecast math (`inventory.js`, `account-balances.js`, `recipe-costing.js`, `financial-scenarios.js`) | **DETERMINISTIC** | pure functions over the ledger |
+| Par-based purchase-order drafts (`purchasing.js`) | **DETERMINISTIC** | `order_qty = par − on-hand`; arithmetic, not judgment |
+| Scheduled pulls (financial-doc email import wf18, video-harvest fan-out) | **DETERMINISTIC** transport; **AI-NEEDED** only at the extract/classify step | route/parse deterministically; LLM only where content is genuinely unstructured |
+| Health / freshness / coverage loops (`loop-health.js`, daily-review scan) | **DETERMINISTIC** | threshold + status; no LLM |
+| Reading-voice playback, format/unit conversions (`recipe-units.js`, TTS routing) | **DETERMINISTIC** | fixed factors / device API |
+| Known-mapping transforms (speaker canonicalization, taxonomy mapping) | **DETERMINISTIC** | lookup table + trigger |
+| Class tutor / ChurchLearn chat, broadcast editorial drafts, novel summarization | **AI-NEEDED** | open-ended generation over unseen input |
+| Transcription (Whisper), real voice-clone (XTTS) | **AI-NEEDED** (model, not LLM-reasoning) | perceptual task; still off the vendor-LLM budget — runs sovereign |
+| Discernment/world-issues reasoning, judgment/disambiguation, hard-tail classification | **AI-NEEDED** | rules don't generalize; the reserved budget |
 
 ---
 
@@ -98,6 +142,7 @@ The framing of "static-vs-shared-persistence" understated reality. Ground truth:
 | **Test-until-tight / QCHP (C7)** | Keep ratchets trending debt to zero; every "looked-fine-but-wasn't" incident becomes a new proven-to-catch gate | Verification-doctrine discipline; already the team's default. |
 | **Autonomy layer (C5)** | Arm DR-0037/0056/0057 engines *only* with budget + concurrency-lock + kill-switch, attended | **Darrell governs**; arming is reserved to him, never while traveling. |
 | **SME/human inputs** | Chef Mario (kitchen), keyboardist/choir SMEs, Christina (TLC/money review), specialist (dyslexia module) | Domain SMEs + the family-voice review loop; these set content correctness the agent cannot self-certify. |
+| **Deterministic-first (§0.5, DR-0080)** | Run the classification pass on every loop; build the repetitive mass as plain code/scheduled jobs; reserve the LLM for the AI-needed tail; add the design-review check to the PR/DR template | Plain JS + scheduling discipline; the judgment to tell rule-expressible from genuinely-novel. Agent-drivable; **the load-reduction multiplier that lets new systems scale.** |
 
 ---
 
@@ -105,10 +150,13 @@ The framing of "static-vs-shared-persistence" understated reality. Ground truth:
 
 Phases are **dependency-ordered, not calendar-promised** (PROJECTIONS-NOT-PROMISES). Each phase names what lands, what gates it, and what is gated on Darrell's-hand infra. The ordering principle: **finish a flagship end-to-end loop first, then make persistence app-wide, then fix serving, then complete the verticals, then earn sovereign autonomy.**
 
+**Deterministic-first (§0.5, DR-0080) is a cross-cutting requirement, not a phase** — it applies to every workflow built in every phase. The classification pass is run as each phase's workflows are designed; the design-review check (§0.5) gates each PR/DR. It is *load-bearing for sequencing*: pushing the repetitive mass onto deterministic code in early phases is what frees the AI capacity later phases (5–6, the autonomy layer) depend on.
+
 ### Phase 1 — Flagship end-to-end loop (agent-drivable, now → ~2 wks)
 **Goal:** one vertical proven *fully* complete against the §0 definition, as the template.
-- **Land Kitchen Purchasing P4** — commit `purchasing.js` + `0054`, wire the approve-to-purchase gate, tests, apply migration. Then P5 close-out per PRD.
-- **Acceptance:** Chef's Corner satisfies live-data (DR-0061) + persistence + QoL + green gates end to end. This becomes the **reference implementation** every other vertical is measured against.
+- **Land Kitchen Purchasing P4** — commit `purchasing.js` + `0054`, wire the approve-to-purchase gate, tests, apply migration. Then P5 close-out per PRD. *(Note: `purchasing.js` is the deterministic-first exemplar — the reorder draft is pure arithmetic, no LLM; §0.5.)*
+- **Run the §0.5 classification pass on this vertical's loops** and add the deterministic-first design-review check to the PR/DR template — so the flagship also establishes the *compute-allocation* pattern, not just the data pattern.
+- **Acceptance:** Chef's Corner satisfies live-data (DR-0061) + persistence + QoL + deterministic-first (§0.5) + green gates end to end. This becomes the **reference implementation** every other vertical is measured against.
 - **Gated on:** nothing external. *(Resolve the ~45-worktree / uncommitted-purchasing state first to avoid a git race.)*
 
 ### Phase 2 — Persistence app-wide (agent-drivable, ~2–3 wks, parallel to P1)
@@ -149,7 +197,7 @@ Phases are **dependency-ordered, not calendar-promised** (PROJECTIONS-NOT-PROMIS
 
 ## 5. Cross-references (don't re-derive — read these)
 - `BUILD-ROADMAP.md` — the active R1–R21 worklist this synthesizes.
-- DR-0013 (four-phase sovereignty), DR-0078 (hybrid-modular), DR-0079 (unified surfaces), DR-0061 (live-views), DR-0060 (tenancy-guard), DR-0076 (verification doctrine), DR-0030 (industry-module template), DR-0037/0056/0057/0058 (autonomy engines), DR-0075 (perpetual improvement), DR-0014 (hardware budget).
+- DR-0013 (four-phase sovereignty), DR-0078 (hybrid-modular), DR-0079 (unified surfaces), DR-0061 (live-views), DR-0060 (tenancy-guard), DR-0076 (verification doctrine), DR-0030 (industry-module template), DR-0037/0056/0057/0058 (autonomy engines), DR-0075 (perpetual improvement), DR-0014 (hardware budget), **DR-0080 (deterministic-first, AI-only-when-necessary — §0.5)**.
 - `RELEASE-TIERS.md`, `QUALITY-OF-LIFE-AS-NORTH-STAR.md`, `LESSONS-LEARNED.md` (P10–P21), `HYBRID-MODULAR-IMPLEMENTATION-PLAN.md`.
 - Cutover runbook: `docs/99-session-notes/2026-06-16-cutover-plan-vercel-to-cloudflare-pages.md`.
 - Kitchen PRD (phased-build model): `docs/kitchen-inventory/PRD.md`.
