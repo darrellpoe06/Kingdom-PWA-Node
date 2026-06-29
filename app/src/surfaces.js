@@ -51,6 +51,7 @@ export const SURFACES = [
   { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
   { id: 'inventory',    label: 'Inventory',        nav: 'top', view: 'inventory',    sub: null,          gate: 'family/governor',                            load: () => import('./components/Inventory.jsx') },
   { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
+  { id: 'access',       label: 'Access',           nav: 'top', view: 'access',       sub: null,          gate: 'family/governor',                            load: () => import('./components/AccessUsageMetrics.jsx') },
   { id: 'recipes',      label: "Chef's Corner",    nav: 'top', view: 'recipes',      sub: null,          load: () => import('./components/ChefCorner.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
@@ -103,6 +104,7 @@ export const CommandServeCenter = surfaceById['center'].component;
 export const CRM              = surfaceById['crm'].component;
 export const Inventory        = surfaceById['inventory'].component;
 export const Forecast         = surfaceById['forecast'].component;
+export const AccessUsageMetrics = surfaceById['access'].component;
 export const ChefCorner       = surfaceById['recipes'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
