@@ -1,5 +1,5 @@
 # =============================================================================
-# whisper-gpu -- faster-whisper CUDA transcription endpoint (church RTX 4070)
+# whisper-gpu -- faster-whisper CUDA transcription endpoint (church compute tower)
 # =============================================================================
 # The harvest no-caption FALLBACK, served on the GPU. faster-whisper on CUDA needs
 # cuBLAS + cuDNN present in the image, so we base on the NVIDIA cudnn-runtime image

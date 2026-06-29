@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # =============================================================================
-# whisper-gpu -- faster-whisper transcription endpoint on the church RTX 4070
+# whisper-gpu -- faster-whisper transcription endpoint on a church compute tower
 # =============================================================================
 # The HARVEST no-caption FALLBACK: most service videos already carry captions, so
 # the harvest pipeline reads those for free. This endpoint is for the RARE video
@@ -9,7 +9,7 @@
 #
 # Same engine as the existing CPU pipeline (infra/nas-sme-pipeline/transcribe.py);
 # this is the GPU-served, on-demand HTTP form. faster-whisper large-v3-turbo on a
-# 4070 finishes a 13-min clip in well under a minute (vs >10 min CPU).
+# modern NVIDIA card finishes a 13-min clip in well under a minute (vs >10 min CPU).
 #
 # Contract (model-agnostic, mirrors the rest of the GPU node):
 #   GET  /health                      -> { ok: true, device, model }

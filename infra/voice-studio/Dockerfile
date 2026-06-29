@@ -1,10 +1,11 @@
 # =============================================================================
-# voice-studio (XTTS-v2) -- container image for the church RTX 4070 GPU node
+# voice-studio (XTTS-v2) -- container image for a church compute tower (GPU)
 # =============================================================================
 # Wraps server.py (the SOVEREIGN /speak endpoint the app already targets via
 # VITE_VOICE_SERVICE_URL). Few-shot XTTS-v2 on CUDA: ~3-4 GB VRAM at inference,
-# fits a 4070's 12 GB easily. Nothing leaves the network -- expose on LAN /
-# Tailscale only (DATA-AS-EMPOWERMENT).
+# so it fits any modern 8 GB+ NVIDIA card comfortably (needs a CUDA GPU -- CPU is
+# impractical). Nothing leaves the network -- expose on LAN / Tailscale only
+# (DATA-AS-EMPOWERMENT).
 #
 # Build (driven by ../church-gpu-node/docker-compose.yml, not by hand):
 #   docker compose -f infra/church-gpu-node/docker-compose.yml build voice-studio

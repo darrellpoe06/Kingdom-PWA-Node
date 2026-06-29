@@ -1,37 +1,45 @@
 # =============================================================================
-# Church GPU node -- the three SOVEREIGN serving endpoints on a church RTX 4070
+# Church compute node -- three SOVEREIGN serving endpoints on a church tower
 # =============================================================================
-# ONE stack, headless, restart-on-boot, no-login. Stands up the GPU unlock:
+# ONE stack, headless, restart-on-boot, no-login. Stands up the compute unlock:
 #
-#   ollama        :11434  -> sovereign local LLMs (qwen2.5:14b fits 12 GB)
+#   ollama        :11434  -> sovereign local LLMs (model sized to the tower's VRAM)
 #   voice-studio  :8770   -> XTTS-v2 voice clone (POST /speak) -> "Darrell hears Darrell"
 #   whisper-gpu   :8771   -> faster-whisper transcription (harvest no-caption fallback)
 #
-# WHY a 4070-only stack (separate from infra/ai-orchestrator/node1, which also
-# runs n8n + the registry): the church box's job is to SERVE these three endpoints
-# on the LAN. The app/NAS point at them (see the runbook for wiring). If you also
-# want n8n + Uptime Kuma resident on this box, run the node1 compose instead/as well.
+# HARDWARE: runs on one of the TWO church tower computers beside the NovaStar. Exact
+# GPU/CPU/RAM are TBD (NOT assumed to be any specific card). The GPU reservations
+# below are honored when an NVIDIA GPU + Docker GPU support are present, and harmlessly
+# ignored on a CPU-only tower. Pick the Ollama model to FIT the tower's real VRAM --
+# see the runbook section 3 table. Run this on the tower assigned the AI-worker role.
+#
+# WHY a serving-only stack (separate from infra/ai-orchestrator/node1, which also
+# runs n8n + the registry): this tower's job is to SERVE these three endpoints on
+# the LAN. The app/NAS point at them (see the runbook for wiring). If you also want
+# n8n + Uptime Kuma resident on this tower, run the node1 compose instead/as well.
 #
 # HOST PREREQ
-#   - Windows church box: Docker Desktop with the WSL2 backend + a recent NVIDIA
-#     driver. WSL2 exposes the 4070 to the gpu reservations below -- no manual
-#     NVIDIA Container Toolkit step on Windows.
-#   - Linux box: Docker Engine + nvidia-container-toolkit installed and configured.
+#   - Windows tower: Docker Desktop with the WSL2 backend + a recent NVIDIA driver.
+#     WSL2 exposes the GPU to the gpu reservations below -- no manual NVIDIA
+#     Container Toolkit step on Windows.
+#   - Linux tower: Docker Engine + nvidia-container-toolkit installed and configured.
 #
 # SOVEREIGNTY: bind to the LAN / Tailscale only. Do NOT publish these ports to the
 # public internet. No bearer here -- access control is the network (LAN/tailnet).
 #
-# SERVICE-TIME PREEMPTION (DR-0012): a 4070 is 12 GB. Heavy LLM inference + OBS
-# NVENC contend for the same VRAM. Do NOT run model inference during Sunday /
-# Wednesday live services on a box that is also encoding the stream:
+# ROLE SEPARATION + SERVICE-TIME PREEMPTION (DR-0012 generalized): the live-media
+# tower that feeds the NovaStar -> wall must NOT run AI inference during a service --
+# they contend for GPU/CPU and a wall stutter is unacceptable. Keep AI on the worker
+# tower; if a tower must dual-purpose, window its AI work to off-service hours. To
+# stop AI grind on a wall-feeding tower before a service:
 #   docker compose -f infra/church-gpu-node/docker-compose.yml stop ollama
-# Restart after service. Creative/live work has absolute priority over LLM jobs.
+# Restart after service. Live/creative work has absolute priority over AI jobs.
 #
 # Deploy:
 #   1. Copy this folder to the box; cp .env.example .env and edit DATA_ROOT.
 #   2. docker compose up -d --build
-#   3. After ollama is up, pull a model (one time):
-#        docker exec church-ollama ollama pull qwen2.5:14b-instruct-q4_K_M
+#   3. After ollama is up, pull the model that FITS the tower's VRAM (runbook S3):
+#        docker exec church-ollama ollama pull <model-for-this-tower>   # e.g. qwen2.5:14b-instruct-q4_K_M on ~12 GB
 #
 # Verify:
 #   curl http://localhost:11434/                 # "Ollama is running"
@@ -40,10 +48,11 @@
 # =============================================================================
 
 services:
-  # --- Ollama (GPU) -- sovereign local LLMs ----------------------------------
-  # One 14B fits 12 GB at Q4 without CPU spillover (DR-0012). qwen2.5:14b is the
-  # daily reasoner the n8n talk-about / class-tutor workflows call. Never pull 32B+
-  # on a 4070. Model is pulled post-up (see Deploy), persisted on the bind mount.
+  # --- Ollama -- sovereign local LLMs ----------------------------------------
+  # Pick the model to FIT the tower's real VRAM (runbook section 3): ~8 GB -> 7-8B,
+  # ~12 GB -> a 14B at Q4 (qwen2.5:14b-instruct-q4_K_M), 16-24 GB -> up to 32B/MoE.
+  # This is the reasoner the n8n talk-about / class-tutor workflows call. Model is
+  # pulled post-up (see Deploy), persisted on the bind mount.
   ollama:
     image: ollama/ollama:latest
     container_name: church-ollama
