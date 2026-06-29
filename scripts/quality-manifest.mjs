@@ -47,6 +47,7 @@ const APP_TESTS = 'app/src/__tests__';
 // Each has a guard script AND a vitest that proves the guard catches the break.
 const GATE_REGISTRY = [
   { id: 'contrast',     name: 'Per-theme WCAG 2.1 AA contrast', catches: 'Unreadable text on any theme; a comment claiming AA while the real ratio fails.', script: 'scripts/contrast-guard.mjs',        test: `${APP_TESTS}/contrast-guard.test.js` },
+  { id: 'legibility',   name: 'Per-page legibility (dark-on-dark)', catches: 'A NEW page shipping dark-on-dark text via an un-themeable inline color (the recipe-on-black bug). Per-page, recursive, baseline-ratcheted.', script: 'scripts/legibility-guard.mjs',     test: `${APP_TESTS}/legibility-guard.test.js` },
   { id: 'tenancy',      name: 'Tenancy / data-isolation guard',  catches: 'A query that could read across instances (one family seeing another). DR-0060.', script: 'scripts/tenancy-guard.mjs',         test: `${APP_TESTS}/tenancy-guard.test.js` },
   { id: 'grant',        name: 'DB authenticated-grant guard',     catches: 'A new table missing its authenticated GRANT (the 42501 that 403d Choir saves).', script: 'scripts/grant-guard.mjs',           test: `${APP_TESTS}/grant-guard.test.js` },
   { id: 'conf-rls',     name: 'Conference RLS no-leak',           catches: 'Conference rows readable outside their instance (cross-tenant event leak).',   script: 'scripts/conference-rls-guard.mjs', test: `${APP_TESTS}/conference-rls-noleak.test.js` },

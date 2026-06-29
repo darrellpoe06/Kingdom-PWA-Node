@@ -19,8 +19,13 @@
 // Accessibility mirrors Pulpit/Choir/Study: white / #FAF8F4 cards, #1A1815 body,
 // #5A5751 secondary, #5A6E3D scripture green, visible #B85838 focus outline (AA).
 // =============================================================================
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { SectionTitle } from './shared.jsx';
+// Live church corpus for the Scripture "appearances" cross-module link: where a
+// verse already shows up in the church's REAL sermons + songs. Subscribed here
+// (the real source) instead of receiving empty props — the monolith holds no
+// sermon/song state, so passing data.* would have starved the engine with [].
+import { subscribeSermons, subscribeSongs } from '../lib/choir-sync.js';
 import {
   THEMES, SURFACES, OTHER_VERSIONS, VERSE_ROLES, COPYRIGHT_NOTE,
   kjvText, readOnline, searchVerses,
@@ -33,6 +38,9 @@ import {
   buildStudyEntry, checkSeparation, clarifiedRefs, INTEGRITY_BANNER,
 } from '../lib/study-edition.js';
 import { provenanceLine } from '../lib/bible-editions.js';
+import ScriptureConnections from './ScriptureConnections.jsx';
+import { studySeedFromVerse } from '../lib/studyable.js';
+import { loadStudy, saveStudy, addSeedToStudy } from '../lib/study-space.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -84,14 +92,39 @@ function OtherTranslations({ refStr }) {
   );
 }
 
+// Save one curated verse into the personal Study as a seed (the content flywheel).
+// Renders only for Study-circle users (canStudy) — gate-respecting, never widens the
+// private Study. Idempotent: re-saving the same verse refreshes, never duplicates.
+function AddVerseToStudy({ verse, email }) {
+  const [saved, setSaved] = useState(null);
+  const save = () => {
+    const seed = studySeedFromVerse(verse);
+    const study = loadStudy(email);
+    const { study: next, added } = addSeedToStudy(study, seed, Date.now(), study.entries.length);
+    saveStudy(email, next);
+    setSaved({ added });
+  };
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <button type="button" onClick={save}
+        title="Save this verse into your personal Study to keep studying and build on it"
+        className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">+ Study</button>
+      {saved && <span className="text-[10px] text-[#5A6E3D]" style={serif}>{saved.added ? '✓ Saved' : '✓ Refreshed'}</span>}
+    </span>
+  );
+}
+
 // --- One verse ---------------------------------------------------------------
-function VerseCard({ refStr, kjv, gloss, role, backs }) {
+function VerseCard({ refStr, kjv, gloss, role, backs, canStudy = false, email = null, themeId = null, themeTitle = null }) {
   const roleLabel = (VERSE_ROLES[role] || {}).label || role;
   return (
     <div className="bg-white border border-[#E8E4DC] p-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="text-[11px] uppercase tracking-wider text-[#5A6E3D] font-semibold" style={mono}>{refStr}</div>
-        {role && <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${ROLE_CLS[role] || ROLE_CLS.truth}`}>{roleLabel}</span>}
+        <div className="flex items-center gap-2">
+          {canStudy && <AddVerseToStudy verse={{ ref: refStr, kjv, gloss, role, themeId, themeTitle }} email={email} />}
+          {role && <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${ROLE_CLS[role] || ROLE_CLS.truth}`}>{roleLabel}</span>}
+        </div>
       </div>
       <p className="text-sm text-[#1A1815] mt-1 leading-relaxed" style={serif}>
         <span className="sr-only">King James Version. </span>
@@ -174,7 +207,7 @@ function ThemeTest({ test }) {
 }
 
 // --- One theme ---------------------------------------------------------------
-function ThemeSection({ theme, tier, level }) {
+function ThemeSection({ theme, tier, level, canStudy = false, email = null }) {
   const [localTier, setLocalTier] = useState(null); // per-theme override of global tier
   const effectiveTier = localTier || tier;
   const depth = resolveDepth(theme, effectiveTier);
@@ -252,7 +285,8 @@ function ThemeSection({ theme, tier, level }) {
       {/* The verses */}
       <div className="space-y-2">
         {theme.verses.map((v) => (
-          <VerseCard key={v.ref} refStr={v.ref} kjv={kjvText(v.ref)} gloss={v.gloss} role={v.role} backs={v.backs || theme.surfaces} />
+          <VerseCard key={v.ref} refStr={v.ref} kjv={kjvText(v.ref)} gloss={v.gloss} role={v.role} backs={v.backs || theme.surfaces}
+            canStudy={canStudy} email={email} themeId={theme.id} themeTitle={theme.title} />
         ))}
       </div>
 
@@ -420,13 +454,28 @@ function StudyEdition() {
   );
 }
 
-export default function ScriptureLibrary() {
+export default function ScriptureLibrary({ email = null, canStudy = false, sermons = [], lessons = [], songs = [] }) {
   const [query, setQuery] = useState('');
   const [activeTheme, setActiveTheme] = useState('all');
   const [tier, setTier] = useState('standard');
   const [level, setLevel] = useState('standard');
   const [consented, setConsented] = useState(false);
   const [interests, setInterests] = useState([]);
+
+  // Live church corpus (real choir_sermons / choir_songs rows). A caller MAY still
+  // inject rows via props (DI / tests); when it doesn't, we read the live source so
+  // the "appearances" web is fed real data instead of always-empty arrays.
+  const [liveSermons, setLiveSermons] = useState([]);
+  const [liveSongs, setLiveSongs] = useState([]);
+  useEffect(() => {
+    const offSermons = subscribeSermons((rows) => setLiveSermons(rows || []));
+    const offSongs = subscribeSongs((rows) => setLiveSongs(rows || []));
+    return () => { if (typeof offSermons === 'function') offSermons(); if (typeof offSongs === 'function') offSongs(); };
+  }, []);
+  const liveAppearances = useMemo(() => ({
+    sermons: sermons.length ? sermons : liveSermons,
+    songs: songs.length ? songs : liveSongs,
+  }), [sermons, songs, liveSermons, liveSongs]);
 
   const profile = useMemo(() => ({ consented, interests, youtube: [] }), [consented, interests]);
   const orderedThemes = useMemo(() => rankByInterest(THEMES, profile), [profile]);
@@ -460,6 +509,18 @@ export default function ScriptureLibrary() {
 
       {/* Study Edition — the sovereign two-layer reader (text + clarification, distinct) */}
       <StudyEdition />
+
+      {/* Connections — the Logos-style navigable web (cross-refs, word study, harvest).
+          Open-by-default closed; sermons/lessons/songs flow in for the "appearances"
+          tie when the caller has them (DI; honestly empty otherwise). */}
+      <details className="mb-3 border border-[#5A6E3D] bg-white">
+        <summary className="cursor-pointer px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Scripture connections — cross-references + word study (sovereign · public domain)
+        </summary>
+        <div className="px-3 pb-3">
+          <ScriptureConnections email={email} canStudy={canStudy} sermons={liveAppearances.sermons} lessons={lessons} songs={liveAppearances.songs} />
+        </div>
+      </details>
 
       <p className="text-[11px] text-[#5A5751] mb-3" style={serif}>{COPYRIGHT_NOTE}</p>
 
@@ -523,7 +584,8 @@ export default function ScriptureLibrary() {
           {results.length ? (
             <div className="space-y-2">
               {results.map((v) => (
-                <VerseCard key={`${v.themeId}-${v.ref}`} refStr={v.ref} kjv={v.kjv} role={v.role} gloss={`${v.gloss} · ${v.themeTitle}`} backs={v.backs} />
+                <VerseCard key={`${v.themeId}-${v.ref}`} refStr={v.ref} kjv={v.kjv} role={v.role} gloss={`${v.gloss} · ${v.themeTitle}`} backs={v.backs}
+                  canStudy={canStudy} email={email} themeId={v.themeId} themeTitle={v.themeTitle} />
               ))}
             </div>
           ) : (
@@ -544,7 +606,7 @@ export default function ScriptureLibrary() {
             ))}
           </div>
 
-          {shownThemes.map((t) => <ThemeSection key={t.id} theme={t} tier={tier} level={level} />)}
+          {shownThemes.map((t) => <ThemeSection key={t.id} theme={t} tier={tier} level={level} canStudy={canStudy} email={email} />)}
         </>
       )}
 

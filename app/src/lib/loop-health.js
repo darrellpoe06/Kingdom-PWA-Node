@@ -66,6 +66,14 @@ export const LOOPS = [
     // flows in via env.triviaDate. Do NOT gate this on the user.
     awaitingSource: 'Sourced from Bishop Gwin’s Wednesday 1PM YouTube message (he poses the trivia questions at the end). Extraction not wired yet — pull the questions from each Wednesday video.',
     lastUpdate: (_d, env) => toMs(env?.triviaDate) },
+  { key: 'feedback-concerns', label: 'Feedback → Concerns & Solutions', staleDays: 30,
+    // The interconnection loop (feedback + curated concern rows → Concerns board →
+    // proof rail) self-reports here. Reads the freshest REAL timestamp across the
+    // persisted concern rows (updated/created) — never painted. With no concern row
+    // yet it reads 'awaiting' (the loop is wired and self-heals on the first
+    // capture), not a dead 'never'.
+    awaitingSource: 'No concern row captured yet — the board auto-feeds from real feedback + curated concerns the moment one lands.',
+    lastUpdate: (d) => { const ts = (d?.concerns || []).flatMap((c) => [toMs(c?.updatedAt), toMs(c?.createdAt)]).filter((x) => x != null); return ts.length ? Math.max(...ts) : null; } },
 ];
 
 // Assess every loop against `now`. status: 'fresh' | 'stale' | 'never' | 'awaiting'.

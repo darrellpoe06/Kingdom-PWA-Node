@@ -44,9 +44,17 @@ export const SURFACES = [
   { id: 'opportunities',label: 'Opportunities',    nav: 'top', view: 'opportunities',sub: null,          gate: 'tier: VIEW_TIER_REQUIREMENTS.opportunities', load: pick(() => import('./components/DevOps.jsx'), 'Opportunities') },
   { id: 'notes',        label: 'Notes',            nav: 'top', view: 'notes',        sub: null,          load: pick(() => import('./components/ThinkingSpace.jsx'), 'ThinkingSpace') },
   { id: 'create',       label: 'Create',           nav: 'top', view: 'create',       sub: null,          load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'voice',        label: 'Voice',            nav: 'top', view: 'voice',        sub: null,          load: () => import('./components/VoiceStudio.jsx') },
+  { id: 'library',      label: 'Library',          nav: 'top', view: 'library',      sub: null,          gate: 'reader: any signed-in; Studio (build): family/governor', load: () => import('./components/Library.jsx') },
   { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
   { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
   { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
+  { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
+  { id: 'inventory',    label: 'Inventory',        nav: 'top', view: 'inventory',    sub: null,          gate: 'family/governor',                            load: () => import('./components/Inventory.jsx') },
+  { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
+  { id: 'access',       label: 'Access',           nav: 'top', view: 'access',       sub: null,          gate: 'family/governor',                            load: () => import('./components/AccessUsageMetrics.jsx') },
+  { id: 'recipes',      label: "Chef's Corner",    nav: 'top', view: 'recipes',      sub: null,          load: () => import('./components/ChefCorner.jsx') },
+  { id: 'games',        label: 'Games',            nav: 'top', view: 'games',        sub: null,          load: () => import('./components/Games.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
   // NOTE: church 'home' (the inline `Church` composer) is NOT in this registry
@@ -91,9 +99,17 @@ export const Practice         = surfaceById['practice'].component;
 export const Opportunities    = surfaceById['opportunities'].component;
 export const ThinkingSpace    = surfaceById['notes'].component;
 export const CreationWorkspace = surfaceById['create'].component;
+export const VoiceStudio      = surfaceById['voice'].component;
+export const Library          = surfaceById['library'].component;
 export const Study            = surfaceById['study'].component;
 export const CommandServeCenter = surfaceById['center'].component;
 export const CRM              = surfaceById['crm'].component;
+export const Relationships    = surfaceById['relationships'].component;
+export const Inventory        = surfaceById['inventory'].component;
+export const Forecast         = surfaceById['forecast'].component;
+export const AccessUsageMetrics = surfaceById['access'].component;
+export const ChefCorner       = surfaceById['recipes'].component;
+export const Games            = surfaceById['games'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
 export const ServiceProgram   = surfaceById['program'].component;
