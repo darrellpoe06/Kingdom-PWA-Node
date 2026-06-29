@@ -1,0 +1,202 @@
+{
+  "$schema": "https://kingdom-pwa.dev/schemas/seed-projects/v1.json",
+  "seed_id": "2026-06-29-colg-church-infrastructure-program",
+  "generated_at": "2026-06-29T00:00:00Z",
+  "generated_by": "grounded church-infrastructure documentation audit (Claude Code session)",
+  "instance_slug": "colg",
+  "intent": "Materialize the church HARDWARE/COMPUTE infrastructure work as ONE in-app program with seven milestone records, so the work Darrell has been doing on the COLG sanctuary (LED wall, the two CUDA towers, idle-GPU scheduling, device inventory, the two-NAS mesh, a staff Learn course) is documented AND visible inside the app's Projects surface, each milestone linking to its design doc. Uses the projects + discussions model (the same pattern as 2026-06-23-colg-local-infrastructure-docs), so each milestone RENDERS at Projects -> (domain: Church) -> 'Church Infrastructure Program' -> Discussions driving this. This program is the HARDWARE sibling of 'Church Local Infrastructure' (colg-local-infra-2026-06), which is the content/study-to-course pipeline that RUNS ON this hardware.",
+  "poe_binding": "Role-scoped, NOT public seed: instance_slug='colg', discussions RLS scopes every row to the COLG instance + owner/admin/member (no anon policy). No fabricated specs - items Darrell has not yet supplied are flagged sme_pending and carry NO invented value (DR-0076 verification doctrine; SEED-DATA-AS-ASPIRATION does not license fabricated hardware facts). Docs that exist only in the local working tree (not yet on main) are listed under pending_docs with a reason, never asserted as landed.",
+  "apply": "Idempotent. Apply ONCE in Supabase Studio (SQL editor) against the COLG cloud instance: run infra/seed-data/2026-06-29-colg-church-infrastructure-program.sql. Resolves the instance by slug='colg' (the proven pattern from migration 0013); ON CONFLICT (instance_id, slug) DO NOTHING. created_by is left NULL (system-seeded). NOT yet applied to cloud as of this commit (this session cannot reach the cloud Studio).",
+  "projects": [
+    {
+      "slug": "colg-church-infra-program-2026-06",
+      "title": "Church Infrastructure Program",
+      "status": "active",
+      "domain": "church",
+      "owner": "darrell",
+      "start_offset_days": 0,
+      "end_offset_days": null,
+      "description_md": "COLG sovereign hardware + compute infrastructure program. Umbrella for the physical/compute build at the church: the sanctuary LED video wall, the two CUDA towers next to the NovaStar (livestream-primary, AI on idle only), idle-GPU opportunistic scheduling behind the Cage brakes, the unified church device asset register, the two-NAS mesh (church + home) with a capability-routed job router and local-coder workers, and a staff/volunteer Learn course on the data systems. Hardware sibling of 'Church Local Infrastructure' (colg-local-infra-2026-06), which is the content/study-to-course pipeline that runs ON this hardware. Survey of the umbrella: docs/99-session-notes/2026-06-09-research-review-colg-9k-church-build.md.",
+      "linked_docs": [
+        "docs/99-session-notes/2026-06-09-research-review-colg-9k-church-build.md",
+        "infra/seed-data/2026-06-23-colg-local-infrastructure-docs.json"
+      ],
+      "pending_docs": [],
+      "sibling_project_slugs": [
+        "colg-local-infra-2026-06",
+        "content-engine-2026-06"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "item_no": 1,
+      "slug": "dc-colg-infra-led-video-wall",
+      "kind": "decision",
+      "title": "LED video wall capital project + install/power/data runbook",
+      "verify_status": "PARTIAL",
+      "project_slugs": ["colg-church-infra-program-2026-06"],
+      "visibility": "shared",
+      "status": "open",
+      "body": "The sanctuary altar LED video wall is a capital project with an on-site install/power/data runbook. Signal path is HDMI/DVI into a NovaStar VX1000 processor (not NDI-direct). The capital-FINANCE side (pledged/received) is tracked separately in the gated church_capital_projects table (migration 0030, owner/admin RLS); this record is the BUILD/install side. WE CHOSE a NovaStar-processor HDMI/DVI path, NOT NDI-direct to the wall, BECAUSE the wall hardware ingests a processor feed. STATUS: install-started + signal-path are documented on main; the comprehensive install/power/data runbook is in the local working tree and pending commit (see pending_docs).",
+      "linked_docs": [
+        "docs/99-session-notes/2026-06-23-colg-video-wall-install-start-event.md",
+        "docs/99-session-notes/2026-06-24-sanctuary-wall-novastar-vx1000-signal-path.md"
+      ],
+      "pending_docs": [
+        {
+          "path": "docs/99-session-notes/2026-06-29-colg-video-wall-install-power-data-runbook.md",
+          "reason": "Comprehensive install/power/data runbook exists in Darrell's local working tree but is not yet committed to main."
+        }
+      ],
+      "sme_pending": [
+        {
+          "field": "final wall pitch / cabinet count / circuit-level power math",
+          "reason": "Authoritative figures live in the pending-commit install runbook; treat as TO CONFIRM until it lands."
+        }
+      ]
+    },
+    {
+      "item_no": 2,
+      "slug": "dc-colg-infra-cuda-towers",
+      "kind": "decision",
+      "title": "Two CUDA towers next to the NovaStar (livestream-primary, AI-idle-only)",
+      "verify_status": "PARTIAL",
+      "project_slugs": ["colg-church-infra-program-2026-06"],
+      "visibility": "shared",
+      "status": "open",
+      "body": "Two CUDA towers sit next to the NovaStar: each carries 1x RTX 4070 (~12 GB VRAM) and is the SAME box that runs OBS / ProPresenter for the live stream. POSTURE (binding): livestream-primary, AI on idle only - AI inference is preempted during Sunday / Wednesday services so NVENC and the LLM never contend for the 12 GB. WE CHOSE reuse-the-stream-boxes-on-idle, NOT a dedicated always-on AI box, BECAUSE it is sovereign and free of new hardware while the stream stays first-class. SME-PENDING: detailed per-box specs (CPU / RAM / PSU / storage / exact GPU SKU) are not yet supplied by Darrell and are NOT fabricated here.",
+      "linked_docs": [
+        "docs/99-session-notes/2026-06-09-research-review-colg-9k-church-build.md"
+      ],
+      "pending_docs": [
+        {
+          "path": "docs/99-session-notes/2026-06-29-church-4070-gpu-node-setup-runbook.md",
+          "reason": "On-site 4070 setup runbook is in the local working tree, pending commit."
+        },
+        {
+          "path": "infra/church-gpu-node/README.md",
+          "reason": "GPU-node serving stack (whisper-gpu + endpoints) is in the local working tree, pending commit."
+        },
+        {
+          "path": "infra/seed-data/2026-06-29-colg-gpu-node-endpoints.json",
+          "reason": "Recorded endpoint inventory is in the local working tree, pending commit."
+        }
+      ],
+      "sme_pending": [
+        {
+          "field": "per-box specs (CPU / RAM / PSU / storage / exact GPU SKU)",
+          "reason": "Darrell (SME) to supply on-site; only 2x RTX 4070 ~12 GB and the OBS/ProPresenter role are verified."
+        }
+      ]
+    },
+    {
+      "item_no": 3,
+      "slug": "dc-colg-infra-idle-gpu-scheduling",
+      "kind": "decision",
+      "title": "Idle-GPU opportunistic scheduling (service-window lock, live-detection, checkpoint/resume, Cage brakes)",
+      "verify_status": "PARTIAL",
+      "project_slugs": ["colg-church-infra-program-2026-06"],
+      "visibility": "shared",
+      "status": "open",
+      "body": "AI work runs on the towers ONLY when they are idle of livestream duty. MECHANICS: a service-window lock (stop Ollama during Sunday / Wednesday services), live-detection, and checkpoint/resume so a preempted job resumes rather than restarts. BRAKES (binding): every loop ships with all three Cage brakes - budget ceiling, single-flight concurrency lock, kill-switch - reusing the Cage primitives already in the repo, BEFORE its scheduler entry is enabled (the 2026-06-06 runaway lesson; three-brakes rule). WE CHOSE preempt-on-service + checkpoint/resume behind the Cage, NOT best-effort always-on inference, BECAUSE the live stream is first-class and unattended automation never ships without the three brakes.",
+      "linked_docs": [
+        "docs/99-session-notes/2026-06-29-research-review-sustainable-headless-nas-loops.md"
+      ],
+      "pending_docs": [
+        {
+          "path": "docs/99-session-notes/2026-06-29-church-4070-gpu-node-setup-runbook.md",
+          "reason": "Service-time-preemption detail (DR-0012) lives in the pending-commit 4070 runbook."
+        }
+      ],
+      "sme_pending": []
+    },
+    {
+      "item_no": 4,
+      "slug": "dc-colg-infra-device-asset-register",
+      "kind": "directive",
+      "title": "Church device inventory / asset register",
+      "verify_status": "CONFIRMED",
+      "project_slugs": ["colg-church-infra-program-2026-06"],
+      "visibility": "shared",
+      "status": "open",
+      "body": "ONE unified register of every church device: the two CUDA towers, the church NAS, the NovaStar VX1000, the LED wall, network gear, cameras, and the sound board. Built this pass because the facts existed but were scattered with no single register. GROUNDING RULE: records only what is grounded in a repo doc or verified inventory; uninventoried items are marked SME-PENDING with no fabricated value (DR-0076). CONFIRMED today: 2x RTX 4070 towers, NovaStar VX1000, NAS ~100 TB capacity. SME-PENDING: per-box specs, network gear, cameras, sound board make/model. Register kept perpetually current.",
+      "linked_docs": [
+        "docs/99-session-notes/2026-06-29-colg-church-device-asset-register.md"
+      ],
+      "pending_docs": [],
+      "sme_pending": [
+        {
+          "field": "network gear / cameras / sound board / per-box specs",
+          "reason": "Not yet inventoried on-site; the register lists each as SME-PENDING rather than guessing."
+        }
+      ]
+    },
+    {
+      "item_no": 5,
+      "slug": "dc-colg-infra-two-nas-mesh",
+      "kind": "decision",
+      "title": "Two-NAS mesh (church + home): replication + capability-routed job router + local-coder workers",
+      "verify_status": "PARTIAL",
+      "project_slugs": ["colg-church-infra-program-2026-06"],
+      "visibility": "shared",
+      "status": "open",
+      "body": "The church NAS and the home NAS form ONE sovereign mesh over a single Tailscale tailnet: replication for coherence, a capability-routed job router (pick a worker by declared capability behind the brakes - GPU jobs to church-cuda, etc.), and local-coder workers (Aider + Ollama on the towers) as a future capability. A committed node manifest (infra/ai-orchestrator/mesh/nodes.json) declares each node once. WE CHOSE capability-routed federation over a single tailnet, NOT a flat cron fan-out and NOT cloud orchestration, BECAUSE it is sovereign, low-latency on-LAN, and routes each job to the node that can actually run it. STATUS: NAS-loop hardening is on main; the mesh research review + node manifest are in the local working tree, pending commit.",
+      "linked_docs": [
+        "docs/99-session-notes/2026-06-29-research-review-sustainable-headless-nas-loops.md"
+      ],
+      "pending_docs": [
+        {
+          "path": "docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md",
+          "reason": "Primary mesh/replication/federation research review is in the local working tree, pending commit."
+        },
+        {
+          "path": "infra/ai-orchestrator/mesh/nodes.json",
+          "reason": "Node manifest skeleton is in the local working tree, pending commit."
+        }
+      ],
+      "sme_pending": [
+        {
+          "field": "local-coder worker runbook (Aider + Ollama on the towers)",
+          "reason": "Forward-looking capability; no operational runbook authored yet."
+        }
+      ]
+    },
+    {
+      "item_no": 6,
+      "slug": "dc-colg-infra-staff-learn-course",
+      "kind": "directive",
+      "title": "Staff/volunteer Learn course: PoeTech Data Systems & Infrastructure",
+      "verify_status": "SME-PENDING",
+      "project_slugs": ["colg-church-infra-program-2026-06"],
+      "visibility": "shared",
+      "status": "open",
+      "body": "PLACEHOLDER (clearly labeled, not fabricated): a staff/volunteer Learn course teaching the COLG data systems and infrastructure - what the towers/NAS/wall do, how to operate the stream and the app cockpit, who to call. The Learn framework exists (age-adaptive lessons, quizzes, retention testing) and CAN host this course, but the course itself is NOT yet authored. NO lesson content is invented here. SME-PENDING: course outline + curriculum from Darrell / the operating staff. This record reserves the milestone and points at the Learn framework; it ships no fabricated curriculum.",
+      "linked_docs": [],
+      "pending_docs": [],
+      "sme_pending": [
+        {
+          "field": "course outline + curriculum",
+          "reason": "Course not yet authored; curriculum + SME (Darrell / operating staff) pending. No lesson content fabricated."
+        }
+      ]
+    },
+    {
+      "item_no": 7,
+      "slug": "dc-colg-infra-program-record",
+      "kind": "decision",
+      "title": "Church infrastructure program record (this program)",
+      "verify_status": "CONFIRMED",
+      "project_slugs": ["colg-church-infra-program-2026-06"],
+      "visibility": "shared",
+      "status": "open",
+      "body": "This program record itself: 'Church Infrastructure Program' is the single in-app frame that holds items 1-6 as milestones, role-scoped to the COLG instance (no public seed). It is the HARDWARE/compute sibling of 'Church Local Infrastructure' (colg-local-infra-2026-06, the content/study-to-course pipeline) and the 'Content Engine' (content-engine-2026-06). Together they cover: the boxes (this program), the pipeline that runs on them, and the content the pipeline produces. WE CHOSE a dedicated hardware program cross-linked to the existing content program, NOT folding hardware into the content project, BECAUSE the two are distinct workstreams with distinct owners and milestones even though they share the same physical infrastructure.",
+      "linked_docs": [
+        "docs/99-session-notes/2026-06-09-research-review-colg-9k-church-build.md",
+        "infra/seed-data/2026-06-23-colg-local-infrastructure-docs.json"
+      ],
+      "pending_docs": [],
+      "sme_pending": []
+    }
+  ]
+}
