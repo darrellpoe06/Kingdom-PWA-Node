@@ -29,9 +29,10 @@
       "caps": ["gpu", "whisper", "ollama-14b", "voice-clone"],
       "endpoints": {
         "ollama": "http://SME-CONFIRM:11434",
-        "whisper": "http://SME-CONFIRM:8080"
+        "voice_studio": "http://SME-CONFIRM:8770",
+        "whisper": "http://SME-CONFIRM:8771"
       },
-      "notes": "SME-CONFIRM: the 2x RTX 4070 live in companion CUDA/Windows box(es) on the church LAN, NOT in the Synology NAS. Needs Tailscale IP(s) + Ubuntu/CUDA/Docker/Ollama + the whisper endpoint (infra/church-gpu-node/whisper-gpu/) joined to the tailnet. NOT on the mesh as of 2026-06-10 probe. Passive endpoint; brakes live on the caller."
+      "notes": "SME-CONFIRM the IP only — ports/endpoints match the real church GPU stack (infra/church-gpu-node/docker-compose.yml, PR #405 / [[project_church_gpu_node]]): Ollama :11434 (qwen2.5:14b-instruct-q4_K_M), voice-studio XTTS :8770 (POST /speak, wired via VITE_VOICE_SERVICE_URL), whisper-gpu :8771 (faster-whisper large-v3-turbo). The 2x RTX 4070 live in the OBS/ProPresenter boxes on the church LAN, NOT in the Synology NAS. NOT on the mesh as of the 2026-06-10 probe. Passive endpoints; brakes live on the caller. DR-0012 service-time preemption: stop Ollama during Sunday/Wednesday live."
     },
     {
       "id": "church-rs",
