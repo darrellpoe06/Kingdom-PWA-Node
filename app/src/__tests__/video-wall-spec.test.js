@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  CABINET, VX1000_LOAD, WALL_STATED,
+  CABINET, VX1000_LOAD,
   cabinetGrid, nativeResolution, circuitCapacity, powerChain, powerPlan, dataMap,
   INSTALL_SEQUENCE, SAFETY,
 } from '../lib/video-wall-spec.js';

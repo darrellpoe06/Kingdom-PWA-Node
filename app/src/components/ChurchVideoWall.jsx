@@ -35,7 +35,7 @@ import { ATEM, SIGNAL_CHAIN, AV_DEVICES, SOURCE_BRIDGES } from '../lib/church-av
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
-const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
 const serif = { fontFamily: '"Fraunces", serif' };
 
 // --- Public-safe spec (NON-financial; verified from the email thread) ---------
@@ -108,7 +108,7 @@ function StatusBadge({ status }) {
     live: ['Live', 'good'], 'on-hold': ['On hold', 'problem'],
   };
   const [label, tone] = map[status] || [status, 'idle'];
-  return <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider"><KpiDot status={tone} /> {label}</span>;
+  return <span className="inline-flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-wider"><KpiDot status={tone} /> {label}</span>;
 }
 
 const money = (n) => n == null ? null : n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -127,14 +127,14 @@ function BudgetLine({ line }) {
         </span>
       </div>
       {line.sourceLabel && (
-        <div className="mt-1 text-[11px] text-[#5A5751]">
+        <div className="mt-1 text-[0.6875rem] text-[#5A5751]">
           Source:{' '}
           {line.sourceUrl
             ? <a href={line.sourceUrl} target="_blank" rel="noreferrer" className="text-[#B85838] underline hover:text-[#1A1815]">{line.sourceLabel}</a>
             : <span>{line.sourceLabel}</span>}
         </div>
       )}
-      {line.note && <div className="mt-0.5 text-[11px] text-[#5A5751] italic">{line.note}</div>}
+      {line.note && <div className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">{line.note}</div>}
     </div>
   );
 }
@@ -184,14 +184,14 @@ export default function ChurchVideoWall() {
         <div className="mt-1 text-sm text-[#1A1815]" style={serif}>
           The Church of the Living God <span className="text-[#B85838]">&mdash; The Love Corner</span>
         </div>
-        <p className="mt-0.5 text-[11px] text-[#5A5751] italic">
+        <p className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">
           The legal name and the community&rsquo;s name, side by side &mdash; the biblical name-pair pattern (Abram &rarr; Abraham, Simon &rarr; Peter, Saul &rarr; Paul).
         </p>
         <div className="mt-3"><StatusBadge status={status} /></div>
         <p className="mt-3 text-sm text-[#5A5751]">
           {project?.summary || 'Fine-pitch indoor LED video wall for the main sanctuary — replaces projection so the congregation reads Scripture, lyrics, and the broadcast feed at full brightness in a lit room.'}
         </p>
-        <p className="mt-2 text-[12px] text-[#1A1815]">
+        <p className="mt-2 text-[0.75rem] text-[#1A1815]">
           {project?.installNote || 'Installation in progress — on-site assembly began 2026-06-22 (ground-support towers up, panels staged for assembly). Signal chain + commissioning to follow.'}
         </p>
       </div>
@@ -204,7 +204,7 @@ export default function ChurchVideoWall() {
           <img src={project.heroImageUrl} alt="Sanctuary stage / video wall" className="mt-2 w-full max-h-72 object-cover border border-[#E8E4DC]" />
         ) : (
           <div className="mt-2 flex items-center justify-center h-40 sm:h-56 border border-dashed border-[#C9C2B6] bg-[#FAF8F4] text-center px-4">
-            <span className="text-[12px] text-[#5A5751]">Stage visuals from the church YouTube will be added here once the video link is confirmed.</span>
+            <span className="text-[0.75rem] text-[#5A5751]">Stage visuals from the church YouTube will be added here once the video link is confirmed.</span>
           </div>
         )}
       </div>
@@ -213,17 +213,17 @@ export default function ChurchVideoWall() {
       <div className={card}>
         <div className={labelCls}>Specification</div>
         <dl className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-          <div><dt className="text-[11px] text-[#5A5751]">Panels</dt><dd className="text-[#1A1815]" style={serif}>{SPEC.panelSpec}</dd></div>
-          <div><dt className="text-[11px] text-[#5A5751]">Pixel pitch</dt><dd className="text-[#1A1815]" style={serif}>P{SPEC.pitchMm}mm (fine-pitch)</dd></div>
-          <div><dt className="text-[11px] text-[#5A5751]">Wall size</dt><dd className="text-[#1A1815]" style={serif}>{grid.actualWidthFt} ft W &times; {grid.actualHeightFt} ft H ({grid.aspectLabel})</dd></div>
-          <div><dt className="text-[11px] text-[#5A5751]">Cabinets</dt><dd className="text-[#1A1815]" style={serif}>{grid.wide} &times; {grid.high} = {grid.total} ({CABINET.widthMm}&times;{CABINET.heightMm}mm)</dd></div>
-          <div><dt className="text-[11px] text-[#5A5751]">Processor</dt><dd className="text-[#1A1815]" style={serif}>{VX1000_LOAD.model}</dd></div>
+          <div><dt className="text-[0.6875rem] text-[#5A5751]">Panels</dt><dd className="text-[#1A1815]" style={serif}>{SPEC.panelSpec}</dd></div>
+          <div><dt className="text-[0.6875rem] text-[#5A5751]">Pixel pitch</dt><dd className="text-[#1A1815]" style={serif}>P{SPEC.pitchMm}mm (fine-pitch)</dd></div>
+          <div><dt className="text-[0.6875rem] text-[#5A5751]">Wall size</dt><dd className="text-[#1A1815]" style={serif}>{grid.actualWidthFt} ft W &times; {grid.actualHeightFt} ft H ({grid.aspectLabel})</dd></div>
+          <div><dt className="text-[0.6875rem] text-[#5A5751]">Cabinets</dt><dd className="text-[#1A1815]" style={serif}>{grid.wide} &times; {grid.high} = {grid.total} ({CABINET.widthMm}&times;{CABINET.heightMm}mm)</dd></div>
+          <div><dt className="text-[0.6875rem] text-[#5A5751]">Processor</dt><dd className="text-[#1A1815]" style={serif}>{VX1000_LOAD.model}</dd></div>
           <div>
-            <dt className="text-[11px] text-[#5A5751]">Vendor</dt>
+            <dt className="text-[0.6875rem] text-[#5A5751]">Vendor</dt>
             <dd><a href={SPEC.vendorUrl} target="_blank" rel="noreferrer" className="text-[#B85838] underline hover:text-[#1A1815]" style={serif}>{SPEC.vendor}</a></dd>
           </div>
         </dl>
-        <p className="mt-3 text-[11px] text-[#5A5751] italic">
+        <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">
           Pitch corrected to P{SPEC.pitchMm}mm (an earlier estimate listed P2.97mm). Confirm against the cabinet label + the LED Nation invoice line item.
         </p>
       </div>
@@ -235,12 +235,12 @@ export default function ChurchVideoWall() {
           ~{native.widthPx.toLocaleString()} &times; {native.heightPx.toLocaleString()} px ({native.aspectLabel})
           <span className="text-[#5A5751]"> &nbsp;(≈ {native.megapixels} MP)</span>
         </div>
-        <div className="mt-1 text-[12px] text-[#5A5751]">
+        <div className="mt-1 text-[0.75rem] text-[#5A5751]">
           Within the {VX1000_LOAD.model}&rsquo;s {VX1000_LOAD.maxLoadMegapixels} MP load. A single 4K output covers it — the dual-4070 machines give headroom + redundancy, not a resolution requirement.
         </div>
         <ul className="mt-2 space-y-1">
           {native.assumptions.map((a, i) => (
-            <li key={i} className="text-[11px] text-[#5A5751] flex gap-1.5"><span className="text-[#B85838]">&middot;</span><span>{a}</span></li>
+            <li key={i} className="text-[0.6875rem] text-[#5A5751] flex gap-1.5"><span className="text-[#B85838]">&middot;</span><span>{a}</span></li>
           ))}
         </ul>
       </div>
@@ -251,20 +251,20 @@ export default function ChurchVideoWall() {
         <div className="mt-2 text-sm text-[#1A1815]" style={serif}>
           {power.totalPeakW.toLocaleString()} W peak total <span className="text-[#5A5751]">({power.totalPeakAmps120} A @ 120 V)</span> &middot; {power.totalAvgW.toLocaleString()} W average
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-3 text-[12px]">
+        <div className="mt-2 grid grid-cols-2 gap-3 text-[0.75rem]">
           <div className="border border-[#E8E4DC] p-2">
-            <div className="text-[11px] text-[#5A5751]">120 V / 15 A circuit</div>
+            <div className="text-[0.6875rem] text-[#5A5751]">120 V / 15 A circuit</div>
             <div className="text-[#1A1815]" style={serif}>max {power.circuit15A.maxCabinets} cabinets</div>
           </div>
           <div className="border border-[#E8E4DC] p-2">
-            <div className="text-[11px] text-[#5A5751]">120 V / 20 A circuit</div>
+            <div className="text-[0.6875rem] text-[#5A5751]">120 V / 20 A circuit</div>
             <div className="text-[#1A1815]" style={serif}>max {power.circuit20A.maxCabinets} cabinets</div>
           </div>
         </div>
-        <p className="mt-2 text-[13px] text-[#1A1815]">
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">
           <b>&ldquo;8 cabinets to one cord&rdquo; is safe:</b> {power.chain.cabinetsPerChain} &times; {CABINET.peakW} W = {power.chain.chainPeakW} W = {power.chain.chainPeakAmps} A &mdash; under the 15 A breaker&rsquo;s 80% cap and the connector rating.
         </p>
-        <p className="mt-1 text-[12px] text-[#5A5751]">
+        <p className="mt-1 text-[0.75rem] text-[#5A5751]">
           Plan: chain one row of {grid.wide} per cord &rarr; {power.circuitsIfOneChainPer15A} chains. Simplest = one 15 A circuit per row ({power.circuitsIfOneChainPer15A}&times; 15 A); or pack 2 rows per 20 A circuit ({power.circuitsOn20A}&times; 20 A). Power daisy-chains cabinet&rarr;cabinet up to the safe max, then one feed per chain.
         </p>
       </div>
@@ -272,7 +272,7 @@ export default function ChurchVideoWall() {
       {/* DATA MAP — NovaStar VX1000 port math */}
       <div className={card}>
         <div className={labelCls}>Data map &middot; {VX1000_LOAD.model}</div>
-        <ul className="mt-2 space-y-1.5 text-[13px] text-[#1A1815]">
+        <ul className="mt-2 space-y-1.5 text-[0.8125rem] text-[#1A1815]">
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{data.cabinetsPerPort} cabinets per port (each ~{data.pxPerCabinet.toLocaleString()} px; port cap {data.portCap.toLocaleString()} px).</span></li>
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>One port per row of {grid.wide} = {data.rowPx.toLocaleString()} px/port (fits, ~{Math.round((data.rowPortMargin / data.portCap) * 100)}% headroom).</span></li>
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{data.portsNeeded} of {data.portsAvailable} ports</b> used &middot; {data.totalPx.toLocaleString()} px total, within the {VX1000_LOAD.maxLoadMegapixels} MP load.</span></li>
@@ -286,37 +286,37 @@ export default function ChurchVideoWall() {
         <ol className="mt-2 space-y-2">
           {SIGNAL_CHAIN.hops.map((h, i) => (
             <li key={i} className="flex gap-2.5">
-              <div className="shrink-0 w-5 h-5 rounded-full bg-[#B85838] text-white text-[10px] flex items-center justify-center" style={serif}>{i + 1}</div>
-              <span className="text-[13px] text-[#1A1815]">{h}</span>
+              <div className="shrink-0 w-5 h-5 rounded-full bg-[#B85838] text-white text-[0.625rem] flex items-center justify-center" style={serif}>{i + 1}</div>
+              <span className="text-[0.8125rem] text-[#1A1815]">{h}</span>
             </li>
           ))}
         </ol>
-        <p className="mt-3 text-[12px] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">
+        <p className="mt-3 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">
           <b>Cameras:</b> {SIGNAL_CHAIN.cameraControlNote}
         </p>
 
-        <div className="mt-4 text-[11px] uppercase tracking-wider text-[#5A5751]">Device inventory</div>
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Device inventory</div>
         <div className="mt-2 space-y-2">
           {AV_DEVICES.map((d) => (
             <div key={d.id} className="border border-[#E8E4DC] p-2.5">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[13px] font-semibold text-[#1A1815]" style={serif}>{d.model}</span>
-                <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">{d.category}</span>
+                <span className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{d.model}</span>
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{d.category}</span>
               </div>
-              <div className="text-[12px] text-[#5A5751]">{d.role}</div>
-              <div className="text-[12px] text-[#1A1815]">{d.specLine}</div>
-              {d.controlNote && <div className="mt-0.5 text-[11px] text-[#5A5751] italic">{d.controlNote}</div>}
+              <div className="text-[0.75rem] text-[#5A5751]">{d.role}</div>
+              <div className="text-[0.75rem] text-[#1A1815]">{d.specLine}</div>
+              {d.controlNote && <div className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">{d.controlNote}</div>}
             </div>
           ))}
         </div>
 
-        <div className="mt-3 text-[11px] uppercase tracking-wider text-[#5A5751]">Source bridges (non-SDI sources)</div>
+        <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Source bridges (non-SDI sources)</div>
         <ul className="mt-1.5 space-y-1">
           {SOURCE_BRIDGES.map((b, i) => (
-            <li key={i} className="text-[12px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{b.device}</b> &mdash; {b.forSource}. {b.note}</span></li>
+            <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{b.device}</b> &mdash; {b.forSource}. {b.note}</span></li>
           ))}
         </ul>
-        <p className="mt-3 text-[11px] text-[#5A5751] italic">Source: {ATEM.source}.</p>
+        <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Source: {ATEM.source}.</p>
       </div>
 
       {/* INSTALL SEQUENCE — the build order */}
@@ -325,10 +325,10 @@ export default function ChurchVideoWall() {
         <ol className="mt-2 space-y-2.5">
           {INSTALL_SEQUENCE.map((s) => (
             <li key={s.step} className="flex gap-3">
-              <div className="shrink-0 w-6 h-6 rounded-full bg-[#1A1815] text-white text-[11px] flex items-center justify-center" style={serif}>{s.step}</div>
+              <div className="shrink-0 w-6 h-6 rounded-full bg-[#1A1815] text-white text-[0.6875rem] flex items-center justify-center" style={serif}>{s.step}</div>
               <div>
-                <div className="text-[13px] font-semibold text-[#1A1815]" style={serif}>{s.title}</div>
-                <div className="text-[12px] text-[#5A5751]">{s.body}</div>
+                <div className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{s.title}</div>
+                <div className="text-[0.75rem] text-[#5A5751]">{s.body}</div>
               </div>
             </li>
           ))}
@@ -340,10 +340,10 @@ export default function ChurchVideoWall() {
         <div className={labelCls}>Safety &middot; power &amp; load</div>
         <ul className="mt-2 space-y-1.5">
           {SAFETY.map((s, i) => (
-            <li key={i} className="text-[13px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&#9888;</span><span>{s}</span></li>
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&#9888;</span><span>{s}</span></li>
           ))}
         </ul>
-        <p className="mt-2 text-[11px] text-[#5A5751] italic">
+        <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">
           Full on-site runbook: docs/99-session-notes/2026-06-29-colg-video-wall-install-power-data-runbook.md
         </p>
       </div>
@@ -357,15 +357,15 @@ export default function ChurchVideoWall() {
           )}
         </div>
         {!access.canSee ? (
-          <p className="mt-2 text-[12px] text-[#5A5751]">Budget figures are church financial data — sign in with a church owner/admin account to view them.</p>
+          <p className="mt-2 text-[0.75rem] text-[#5A5751]">Budget figures are church financial data — sign in with a church owner/admin account to view them.</p>
         ) : projects == null ? (
-          <p className="mt-2 text-[12px] text-[#5A5751]">Loading…</p>
+          <p className="mt-2 text-[0.75rem] text-[#5A5751]">Loading…</p>
         ) : projectLines.length === 0 ? (
-          <p className="mt-2 text-[12px] text-[#5A5751]">No budget lines yet. After migration 0027 applies, run the gitignored seed (infra/supabase/seeds/colg-video-wall.sql) once in Studio to load the grounded figures — they stay server-side, never in the public bundle.</p>
+          <p className="mt-2 text-[0.75rem] text-[#5A5751]">No budget lines yet. After migration 0027 applies, run the gitignored seed (infra/supabase/seeds/colg-video-wall.sql) once in Studio to load the grounded figures — they stay server-side, never in the public bundle.</p>
         ) : (
           <div className="mt-2">
             {projectLines.map((l) => <BudgetLine key={l.id} line={l} />)}
-            <div className="mt-2 text-[11px] text-[#5A5751]">
+            <div className="mt-2 text-[0.6875rem] text-[#5A5751]">
               Current cost reflects only active lines; superseded history is struck through.
               {totals.hasUnquoted && ` ${totals.unquotedCount} accessory line(s) not yet quoted.`}
             </div>
@@ -377,9 +377,9 @@ export default function ChurchVideoWall() {
       <div className={card}>
         <div className={labelCls}>Donations &middot; 🔒 staff only</div>
         {!access.canSee ? (
-          <p className="mt-2 text-[12px] text-[#5A5751]">Donation totals are gated to church owner/admin accounts.</p>
+          <p className="mt-2 text-[0.75rem] text-[#5A5751]">Donation totals are gated to church owner/admin accounts.</p>
         ) : !donation.known ? (
-          <p className="mt-2 text-[12px] text-[#5A5751]">
+          <p className="mt-2 text-[0.75rem] text-[#5A5751]">
             {project?.donationNote || 'Funded by community "Video Wall Donation" envelopes (BG).'} Pledged and received totals are entered by staff once counted — no figure is shown until it’s real.
           </p>
         ) : (
@@ -391,7 +391,7 @@ export default function ChurchVideoWall() {
             <div className="mt-1.5 h-2 bg-[#E8E4DC]" role="progressbar" aria-valuenow={donation.pct ?? 0} aria-valuemin={0} aria-valuemax={100} aria-label="Donations received vs pledged">
               <div className="h-2 bg-[#B85838]" style={{ width: `${donation.pct ?? 0}%` }} />
             </div>
-            {donation.remaining != null && <div className="mt-1 text-[11px] text-[#5A5751]">{money(donation.remaining)} remaining</div>}
+            {donation.remaining != null && <div className="mt-1 text-[0.6875rem] text-[#5A5751]">{money(donation.remaining)} remaining</div>}
           </div>
         )}
       </div>
@@ -404,8 +404,8 @@ export default function ChurchVideoWall() {
             <li key={i} className="flex gap-3">
               <div className="pt-1"><KpiDot status={t.tone} /></div>
               <div>
-                <div className="text-sm text-[#1A1815]" style={serif}><span className="text-[11px] uppercase tracking-wider text-[#5A5751] mr-2">{t.when}</span>{t.title}</div>
-                <div className="text-[12px] text-[#5A5751]">{t.body}</div>
+                <div className="text-sm text-[#1A1815]" style={serif}><span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mr-2">{t.when}</span>{t.title}</div>
+                <div className="text-[0.75rem] text-[#5A5751]">{t.body}</div>
               </div>
             </li>
           ))}
@@ -415,21 +415,21 @@ export default function ChurchVideoWall() {
       {/* ON-SITE INSTALL — the install-milestone EVENT record (public-safe facts) */}
       <div className={card}>
         <div className={labelCls}>On site &middot; install in progress &middot; {INSTALL.observedOn}</div>
-        <p className="mt-2 text-[12px] text-[#5A5751]">
+        <p className="mt-2 text-[0.75rem] text-[#5A5751]">
           The physical front end of the sovereign media / broadcast buildout. Components observed on site as assembly began:
         </p>
         <ul className="mt-2 space-y-1.5">
           {INSTALL.components.map((c, i) => (
-            <li key={i} className="text-[13px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{c}</span></li>
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{c}</span></li>
           ))}
         </ul>
-        <div className="mt-3 text-[11px] uppercase tracking-wider text-[#5A5751]">Existing AV environment it joins</div>
+        <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Existing AV environment it joins</div>
         <ul className="mt-1.5 space-y-1.5">
           {INSTALL.environment.map((c, i) => (
-            <li key={i} className="text-[13px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{c}</span></li>
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{c}</span></li>
           ))}
         </ul>
-        <p className="mt-3 text-[11px] text-[#5A5751] italic">Source: {INSTALL.source}.</p>
+        <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Source: {INSTALL.source}.</p>
       </div>
 
       {/* OPPORTUNITIES */}
@@ -437,7 +437,7 @@ export default function ChurchVideoWall() {
         <div className={labelCls}>Opportunities</div>
         <ul className="mt-2 space-y-1.5">
           {OPPORTUNITIES.map((o, i) => (
-            <li key={i} className="text-[13px] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&rarr;</span><span>{o}</span></li>
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&rarr;</span><span>{o}</span></li>
           ))}
         </ul>
       </div>
@@ -448,8 +448,8 @@ export default function ChurchVideoWall() {
         <div className="mt-2 space-y-2.5">
           {CONSTRAINTS.map((c, i) => (
             <div key={i}>
-              <div className="text-[13px] font-semibold text-[#1A1815]" style={serif}>{c.h}</div>
-              <div className="text-[12px] text-[#5A5751]">{c.b}</div>
+              <div className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{c.h}</div>
+              <div className="text-[0.75rem] text-[#5A5751]">{c.b}</div>
             </div>
           ))}
         </div>
@@ -458,7 +458,7 @@ export default function ChurchVideoWall() {
       {/* CONNECTIONS — ties to the broadcast course + The Word feed */}
       <div className={card}>
         <div className={labelCls}>Connected to</div>
-        <ul className="mt-2 space-y-1.5 text-[13px] text-[#1A1815]">
+        <ul className="mt-2 space-y-1.5 text-[0.8125rem] text-[#1A1815]">
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>Media-team broadcast course</b> &mdash; trainees learn the real signal chain that drives this wall.</span></li>
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>The Word &mdash; Migdal</b> &mdash; BG&rsquo;s study notes and the passage present from the app to the wall during service.</span></li>
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>Sovereign media pipeline (NDI / CUDA)</b> &mdash; this wall is the physical front end the NDI + CUDA encode/playback chain drives.</span></li>
