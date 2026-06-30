@@ -25,6 +25,9 @@
 // library's makeCourse shape). Safe in Node (the CLI script) + browser + tests.
 // =============================================================================
 import { makeCourse, TRAINING_FIELDS, fieldSlug } from './tlc-training-library.js';
+import { SOURCE_THEOLOGY_NOTE } from './tlc-course-strands.js';
+
+export { SOURCE_THEOLOGY_NOTE };
 
 // The longest run of consecutive transcript words allowed to appear verbatim in a
 // draft body before it's flagged as a copyright violation. Short phrases (titles,
@@ -81,13 +84,16 @@ function seedPhrase(sentence, maxWords = 10) {
   return phrase;
 }
 
-// The attribution line every distilled course carries.
+// The attribution line every distilled course carries. It credits the human source
+// (honesty / integrity / copyright) AND names Yahweh as the Source the teacher
+// conduits — the teacher is never elevated above His Word, and the teaching is tested
+// against Scripture (so the truth stands on Him, not the person).
 export function attributionLine(source) {
   const s = source || {};
   const who = s.teacher || s.channel || 'the source teacher';
   const via = s.channel && s.teacher ? ` (${s.channel})` : '';
   const url = s.url ? ` — ${s.url}` : '';
-  return `Source teaching by ${who}${via}${url}. Distilled into original material; reviewed and approved by Christina (LCSW) before use.`;
+  return `Source teaching by ${who}${via}${url} — a faithful conduit who sources Yahweh well, credited but not elevated above His Word. All true knowledge is from Yahweh; this teaching is tested against Scripture. Synthesized into original material (not a reproduction); reviewed and approved by Christina (LCSW) before use.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -141,10 +147,15 @@ export function distillTranscript(transcript, { idPrefix = 'tl-yt', pointsPerMod
 // ---------------------------------------------------------------------------
 export function draftCourseFromSource({
   url = '', channel = '', teacher = '', field = TRAINING_FIELDS[0],
-  title = '', transcript = '', trainingHours = 0, now = null,
+  title = '', transcript = '', trainingHours = 0, reach = null, now = null,
 } = {}) {
   const safeField = TRAINING_FIELDS.includes(field) ? field : TRAINING_FIELDS[0];
   const source = { teacher: teacher || null, channel: channel || null, url: url || null, distilledAt: now };
+  // Reach is recorded as an ASSET (recognized teacher → credibility), honestly: a
+  // qualitative recognition when an exact count isn't verified — never a fabricated number.
+  const sourceReach = reach
+    ? { recognition: reach.recognition || (reach.views ? `Reported ${reach.views}` : 'Recognized public teacher.'), exactCount: reach.exactCount ?? reach.views ?? null, smeConfirm: reach.smeConfirm || 'Exact reach recorded only if verified; otherwise qualitative — not fabricated.' }
+    : null;
   const baseTitle = title || (teacher ? `${teacher} — ${safeField}` : `${safeField} (source-distilled)`);
   const idBase = `tl-yt-${fieldSlug(safeField)}-${fieldSlug(teacher || channel || 'source')}`;
 
@@ -158,6 +169,7 @@ export function draftCourseFromSource({
       summary: `Draft awaiting source captions. ${attributionLine(source)}`,
       origin: 'youtube-distilled',
       source,
+      sourceReach,
       validated: false,
       trainingHours: Math.max(0, Number(trainingHours) || 0),
       smeConfirm: 'Awaiting the YouTube auto-caption fetch; once captions are present the draft outline + assessment are generated, then Christina reviews.',
@@ -179,6 +191,7 @@ export function draftCourseFromSource({
     summary: `${attributionLine(source)}${quoteLine}`,
     origin: 'youtube-distilled',
     source,
+    sourceReach,
     validated: false,
     // Hours hint, or a modest estimate from the draft size — flagged for SME.
     trainingHours: Math.max(0, Number(trainingHours) || Math.min(4, Math.max(1, distilled.modules.length))),

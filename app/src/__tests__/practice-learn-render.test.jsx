@@ -144,4 +144,22 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     const buttons = [...container.querySelectorAll('button')].map((b) => b.textContent);
     expect(buttons.some((t) => /Agree \(approve\)/.test(t))).toBe(false);
   });
+
+  it('staff see the four-strand spine (Yahweh-centred) and the multi-track / UIUC panel', async () => {
+    await mount({ isStaff: true });
+    const tab = [...container.querySelectorAll('button')].find((b) => /Training & Hours/.test(b.textContent));
+    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    const text = container.textContent;
+    // Four-strand spine, with Yahweh's perspective & Will at the centre.
+    expect(text).toContain('four-strand spine');
+    expect(text).toMatch(/Yahweh’s perspective/);
+    // The audiences/tracks panel with grounded hours + SME-confirm honesty.
+    expect(text).toContain('Who this serves');
+    expect(text).toMatch(/MSW student/);
+    expect(text).toMatch(/supervised clinical/i);
+    expect(text).toMatch(/SME-confirm pending/);
+    // UIUC pipeline + the Christiana connection.
+    expect(text).toMatch(/UIUC student pipeline/);
+    expect(text).toContain('Christiana Poe');
+  });
 });
