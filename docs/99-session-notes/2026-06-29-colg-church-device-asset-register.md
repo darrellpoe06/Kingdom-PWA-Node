@@ -12,9 +12,13 @@ repo document or a verified inventory. Anything not yet inventoried is marked
 fabricated value. Church-NAS holdings stay "pending inventory" until read-only
 access exists. See VERIFICATION DOCTRINE (DR-0076): no claim without evidence.
 
-This register is the in-app source for the "Church device inventory / asset
-register" milestone of the Church Infrastructure Program
-(`infra/seed-data/2026-06-29-colg-church-infrastructure-program.json`).
+The PRIMARY in-app register is the **Church > Devices** surface built in PR #413
+(`app/src/components/DeviceInventory.jsx` over the `church_devices` table,
+migration `0056`, staff-scoped RLS; `app/src/lib/church-devices.js` holds the
+taxonomy + grounded seed feeding the capability router). This document is the
+human-readable narrative companion to that surface, and the in-app source for the
+"Church device inventory / asset register" milestone of the Church Infrastructure
+Program (`infra/seed-data/2026-06-29-colg-church-infrastructure-program.json`).
 
 ---
 
@@ -37,13 +41,13 @@ specs TBD; detailed per-box specs are SME-PENDING from Darrell.
 
 | Asset | Role | Known spec | Source | Status |
 |---|---|---|---|---|
-| LED video wall | Sanctuary altar wall | pitch + cabinet grid + power per the install runbook | `2026-06-29-colg-video-wall-install-power-data-runbook.md` (pending commit); `2026-06-23-colg-video-wall-install-start-event.md` (on main) | PARTIAL (runbook pending commit) |
+| LED video wall | Sanctuary altar wall | P1.99mm, 16:9, ~2560x1440; cabinet grid + circuit-level power per the confirmed-spec runbook; spec source `app/src/lib/video-wall-spec.js` (23 tests) | `2026-06-29-colg-video-wall-install-power-data-runbook.md` (on main, PR #407); `2026-06-23-colg-video-wall-install-start-event.md` (on main) | CONFIRMED |
 | NovaStar VX1000 | LED wall video processor | 6.5 Mpx load capacity; ~650k px/port; 10 ports (wall uses a subset) | `2026-06-24-sanctuary-wall-novastar-vx1000-signal-path.md` (on main) | CONFIRMED |
 | Side screens | Auxiliary sanctuary displays | count / size not yet inventoried | -- | SME-PENDING |
 
-Exact wall pitch, cabinet count, and circuit-level power math live in the install
-runbook, which is in Darrell's working tree but not yet committed to main; cabinet
-figures are therefore marked TO CONFIRM until that runbook lands.
+Exact wall pitch, cabinet count, and circuit-level power math are confirmed from
+datasheets in `app/src/lib/video-wall-spec.js` and the on-main install runbook
+(PR #407).
 
 ## Network
 
