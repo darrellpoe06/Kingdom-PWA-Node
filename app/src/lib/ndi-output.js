@@ -105,7 +105,7 @@ export function slideProgram({ eyebrow = '', title = '', body = '', ref = '' } =
 }
 
 // A full-bleed IMAGE — sermon graphic, worship background, announcement art. On the
-// 1.9 mm sanctuary wall (NovaStar VX1000, ~1920x1440 native, see lib/display-targets)
+// 1.99 mm sanctuary wall (NovaStar VX1000, ~2560x1440 native, see lib/display-targets)
 // every pixel shows, so the renderer displays the image at native quality and the
 // authoring rule is: feed a HIGH-RES source (>= the wall native res); never upscale a
 // small asset. `fit` is 'contain' (whole image, letterboxed — default, no crop) or
