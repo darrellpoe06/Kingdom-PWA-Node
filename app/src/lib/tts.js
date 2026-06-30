@@ -408,7 +408,22 @@ export function useTextToSpeech() {
     refresh();
     if ('onvoiceschanged' in synth) synth.onvoiceschanged = refresh;
     synth.addEventListener && synth.addEventListener('voiceschanged', refresh);
+    // Some mobile engines (Android Chrome, iOS Safari) populate getVoices() a beat
+    // AFTER load WITHOUT firing voiceschanged — so a one-shot read leaves the list
+    // empty and a male/female pick can't resolve (falls back to the default voice).
+    // Poll briefly until voices appear so the assignment + picker have the FULL list.
+    let tries = 0;
+    let poll = null;
+    if (typeof setInterval === 'function' && !(synth.getVoices() || []).length) {
+      poll = setInterval(() => {
+        tries += 1;
+        const v = synth.getVoices() || [];
+        if (v.length) { setVoices(v); if (poll) { clearInterval(poll); poll = null; } }
+        else if (tries >= 12 && poll) { clearInterval(poll); poll = null; }
+      }, 250);
+    }
     return () => {
+      if (poll) clearInterval(poll);
       synth.removeEventListener && synth.removeEventListener('voiceschanged', refresh);
       if (synth.onvoiceschanged === refresh) synth.onvoiceschanged = null;
     };

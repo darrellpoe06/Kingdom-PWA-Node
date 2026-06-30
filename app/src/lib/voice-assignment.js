@@ -25,8 +25,14 @@ import { KIND } from './voice-registry.js';
 // Known male/female first names across the common TTS engines. Lowercased; matched
 // on word boundaries so "male" inside "female" never misfires (and we test the
 // explicit female/male token first regardless).
-const MALE_NAMES = /\b(david|mark|guy|davis|alex|daniel|fred|tom|thomas|aaron|arthur|george|james|oliver|gordon|reed|rocko|eddy|albert|bruce|junior|diego|jorge|carlos|paul|richard|liam|nathan|ryan|brian|eric|rishi|ravi|prabhat|hemant|lee|oliver|william|henry|jacques|thomas|matteo|luca)\b/;
-const FEMALE_NAMES = /\b(zira|jenny|aria|michelle|samantha|victoria|karen|moira|tessa|fiona|susan|allison|ava|serena|kate|catherine|nora|veena|heera|sandy|shelley|linda|hazel|amelie|anna|joana|luciana|paulina|monica|marie|amira|nicky|emily|olivia|sophia|emma|mia|raveena|kalpana|swara|isha|neerja|elsa|paloma|alice|kanya|yuna|sora)\b/;
+const MALE_NAMES = /\b(david|mark|guy|davis|alex|daniel|fred|tom|thomas|aaron|arthur|george|james|oliver|gordon|reed|rocko|eddy|albert|bruce|junior|diego|jorge|carlos|paul|richard|liam|nathan|ryan|brian|eric|rishi|ravi|prabhat|hemant|lee|william|henry|jacques|matteo|luca|maged|yuri|xander|bahh|ralph|junior|grandpa|rocko|sora|otoya|kyoko|nathan|christopher|charles|edward|frank|harry|jack|john|joseph|kevin|michael|peter|robert|steven|tony|walter)\b/;
+const FEMALE_NAMES = /\b(zira|jenny|aria|michelle|samantha|victoria|karen|moira|tessa|fiona|susan|allison|ava|serena|kate|catherine|nora|veena|heera|sandy|shelley|linda|hazel|amelie|anna|joana|luciana|paulina|monica|marie|amira|nicky|emily|olivia|sophia|emma|mia|raveena|kalpana|swara|isha|neerja|elsa|paloma|alice|kanya|yuna|martha|zoe|grandma|princess|bells|trinoids|whisper|laura|maria|helena|sara|clara|julia|marta|carmen|rachel|samira|kathy|barbara|deborah|donna|jennifer|lisa|mary|nancy|patricia|sandra|sarah|stephanie)\b/;
+
+// Some engines encode gender only in the voiceURI (Android/Chrome OS voices, and
+// downloaded variants), e.g. "...#male_1-local", "en-us-x-iom-network", "...-female".
+// Matched after the explicit word-token check (which catches "Google UK English Male").
+const MALE_URI_HINT = /(?:[#._-]|\b)(?:male|man)(?:[#._-]|\b)|x-[a-z]{2,4}-male/;
+const FEMALE_URI_HINT = /(?:[#._-]|\b)(?:female|woman|fem)(?:[#._-]|\b)|x-[a-z]{2,4}-female/;
 
 /**
  * Classify a SpeechSynthesisVoice (or any { name, voiceURI }) as 'male' | 'female' |
@@ -34,10 +40,15 @@ const FEMALE_NAMES = /\b(zira|jenny|aria|michelle|samantha|victoria|karen|moira|
  */
 export function classifyVoiceGender(voice) {
   const s = `${(voice && voice.name) || ''} ${(voice && voice.voiceURI) || ''}`.toLowerCase();
+  // Explicit word tokens win (catches "Google UK English Male", "... female").
   if (/\b(female|woman|women|girl)\b/.test(s)) return 'female';
   if (/\b(male|man|men|boy|guy)\b/.test(s)) return 'male';
+  // Then a known first-name table…
   if (FEMALE_NAMES.test(s)) return 'female';
   if (MALE_NAMES.test(s)) return 'male';
+  // …then a gender hint encoded in the voiceURI (Android/ChromeOS variants).
+  if (FEMALE_URI_HINT.test(s)) return 'female';
+  if (MALE_URI_HINT.test(s)) return 'male';
   return 'unknown';
 }
 
@@ -124,6 +135,45 @@ export function buildStandInAssignments(catalog, available) {
 export function standInVoiceURI(assignments, catalogId) {
   const v = assignments && catalogId != null ? assignments[catalogId] : null;
   return v && v.voiceURI ? v.voiceURI : undefined;
+}
+
+/**
+ * The voiceURI to actually SPEAK a catalog option in, honoring a user PIN first.
+ * A pinned voiceURI (persona-voice-prefs) wins WHEN it still exists on this device's
+ * available voices (a pin from another device is ignored, not mis-applied); otherwise
+ * the auto gender-mapping. This is the single resolver every play path uses, so a
+ * pinned male voice is applied on EVERY read-aloud, not just the preview. Returns a
+ * voiceURI string or undefined (let the engine use its default).
+ *
+ * @param {string} catalogId
+ * @param {object} opts { assignments, overrides (map), available (getVoices()) }
+ */
+export function resolveVoiceURIForId(catalogId, { assignments, overrides, available } = {}) {
+  const pin = overrides && catalogId != null && typeof overrides[catalogId] === 'string'
+    ? overrides[catalogId] : null;
+  if (pin && Array.isArray(available) && available.some((v) => v && v.voiceURI === pin)) {
+    return pin; // honored only when the pinned voice exists on THIS device
+  }
+  return standInVoiceURI(assignments, catalogId);
+}
+
+/**
+ * The device voices offered in the per-persona "pick a voice" dropdown: English
+ * first, de-duped, each tagged with its detected gender so a man can pick a male one.
+ * Returns [{ uri, name, gender, lang }].
+ */
+export function deviceVoiceOptions(available) {
+  return dedupeByUri(englishFirst(available)).map((v) => ({
+    uri: v.voiceURI,
+    name: v.name,
+    gender: classifyVoiceGender(v),
+    lang: v.lang || '',
+  }));
+}
+
+/** True when the device exposes at least one voice classified as the wanted gender. */
+export function hasVoiceOfGender(available, gender) {
+  return dedupeByUri(englishFirst(available)).some((v) => classifyVoiceGender(v) === gender);
 }
 
 /**

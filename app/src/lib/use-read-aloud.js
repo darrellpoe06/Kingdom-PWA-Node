@@ -20,7 +20,8 @@ import {
   useReadingVoice, isPersonVoiceId, personKeyOf, isSystemVoiceId, SYSTEM_VOICE_ID, personVoiceId,
 } from './reading-voice.js';
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
-import { buildStandInAssignments, standInVoiceURI } from './voice-assignment.js';
+import { buildStandInAssignments, resolveVoiceURIForId } from './voice-assignment.js';
+import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech } from './voice-service.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
@@ -56,16 +57,20 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
   // different — instead of every pick falling through to one default voice.
   const assignments = useMemo(() => buildStandInAssignments(fullCatalog, tts.voices), [fullCatalog, tts.voices]);
 
-  // The actual device voiceURI to speak a given global selection in: the mapped
-  // stand-in for System/person, or the specific browser voice/accent picked.
+  // The actual device voiceURI to speak a given global selection in: a user PIN
+  // (persona-voice-prefs) wins, else the auto gender-mapping. Read fresh from storage
+  // so a pin set in the Voice tab applies here immediately, on every read-aloud — the
+  // fix for "the chosen voice won't work afterward" + "Darrell still sounds female".
   const resolveSpeakURI = useCallback((id) => {
-    if (isSystemVoiceId(id)) return standInVoiceURI(assignments, SYSTEM_VOICE.id);
+    const overrides = loadPersonaVoiceMap();
+    const available = tts.voices;
+    if (isSystemVoiceId(id)) return resolveVoiceURIForId(SYSTEM_VOICE.id, { assignments, overrides, available });
     if (isPersonVoiceId(id)) {
       const c = fullCatalog.find((x) => x.personKey === personKeyOf(id));
-      return c ? standInVoiceURI(assignments, c.id) : undefined;
+      return c ? resolveVoiceURIForId(c.id, { assignments, overrides, available }) : undefined;
     }
     return id; // a specific browser voice / accent
-  }, [assignments, fullCatalog]);
+  }, [assignments, fullCatalog, tts.voices]);
 
   // The merged catalog every picker renders: System (free) + personal (cloned) +
   // browser voices/accents. Each item is { id, label, group, ai, entitled, usable }.

@@ -521,8 +521,8 @@
   },
   "components/VoiceStudio.jsx": {
     "emoji": 3,
-    "fixedPx": 27,
-    "widthCap": 3
+    "fixedPx": 29,
+    "widthCap": 5
   },
   "components/WorkflowStatus.jsx": {
     "emoji": 3,
