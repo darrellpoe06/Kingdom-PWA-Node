@@ -78,6 +78,25 @@ describe('assessLoops — fresh / stale / never', () => {
   });
 });
 
+describe('upload-import loop — run-state observability (DR-0083)', () => {
+  it('reads awaiting (not never) with no run yet — it has a declared emitter', () => {
+    const up = assessLoops({}, NOW).find((l) => l.key === 'upload-import');
+    expect(up.status).toBe('awaiting');
+    expect(up.lastRun).toBe(null);
+  });
+  it('self-heals to fresh and attaches the real run record when an import emits', () => {
+    const runs = [{ key: 'upload-import', at: iso(NOW - 1 * 86400000), status: 'success', processed: 47, detail: 'Main Checking · CSV/Excel' }];
+    const up = assessLoops({}, NOW, { loopRuns: runs }).find((l) => l.key === 'upload-import');
+    expect(up.status).toBe('fresh');
+    expect(up.lastRun).toMatchObject({ status: 'success', processed: 47 });
+  });
+  it('goes stale once the last run is past the window', () => {
+    const runs = [{ key: 'upload-import', at: iso(NOW - 60 * 86400000), status: 'success', processed: 5 }];
+    const up = assessLoops({}, NOW, { loopRuns: runs }).find((l) => l.key === 'upload-import');
+    expect(up.status).toBe('stale');
+  });
+});
+
 describe('stagnantLoops — what the Governor reviews', () => {
   it('returns only the non-fresh loops', () => {
     const data = { meta: { lastUpdated: iso(NOW - 1 * 86400000) } }; // financial fresh

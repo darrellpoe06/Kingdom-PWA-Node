@@ -14,6 +14,8 @@
 // orchestrator can run it headless.
 // =============================================================================
 
+import { latestRun } from './loop-runs.js';
+
 export function toMs(v) {
   if (v == null || v === '') return null;
   const t = Date.parse(v);
@@ -74,6 +76,13 @@ export const LOOPS = [
     // capture), not a dead 'never'.
     awaitingSource: 'No concern row captured yet — the board auto-feeds from real feedback + curated concerns the moment one lands.',
     lastUpdate: (d) => { const ts = (d?.concerns || []).flatMap((c) => [toMs(c?.updatedAt), toMs(c?.createdAt)]).filter((x) => x != null); return ts.length ? Math.max(...ts) : null; } },
+  { key: 'upload-import', label: 'Statement import (CSV / Excel → ledger)', staleDays: 45, runKey: 'upload-import',
+    // The verified-upload DOING loop (Books → Tx → Import CSV/Excel) EMITS a run
+    // record (lib/loop-runs) on every import — ran-when / rows / status. This reads
+    // its last run. Deterministic + in-app, NO n8n (DR-0083). Reads 'awaiting' until
+    // the first real import runs, then self-heals to fresh.
+    awaitingSource: 'No import run yet — emits a run when you import a CSV/Excel statement in Books → Tx.',
+    lastUpdate: (_d, env) => { const r = latestRun(env?.loopRuns, 'upload-import'); return r ? toMs(r.at) : null; } },
 ];
 
 // Assess every loop against `now`. status: 'fresh' | 'stale' | 'never' | 'awaiting'.
@@ -86,7 +95,10 @@ export function assessLoops(data, nowMs, env = {}) {
     let status;
     if (last == null) status = loop.awaitingSource ? 'awaiting' : 'never';
     else status = ds > loop.staleDays ? 'stale' : 'fresh';
-    return { key: loop.key, label: loop.label, staleDays: loop.staleDays, lastUpdate: last, daysSince: ds, status, awaitingSource: loop.awaitingSource || null };
+    // Loops that emit run-state (DR-0083) carry their latest run record for the
+    // watching layer to show — ran-when / processed / status — never painted.
+    const lastRun = loop.runKey ? latestRun(env?.loopRuns, loop.runKey) : null;
+    return { key: loop.key, label: loop.label, staleDays: loop.staleDays, lastUpdate: last, daysSince: ds, status, awaitingSource: loop.awaitingSource || null, lastRun };
   });
 }
 
