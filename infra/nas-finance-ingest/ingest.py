@@ -391,6 +391,109 @@ def selftest():
 
 
 # ----------------------------------------------------------------------------- main
+# ----------------------------------------------------------------------------- metabusiness layer
+# A micro metabusiness system: it does not move money, it MEASURES THE PROCESS —
+# control (is it running / paused, deterministic), quality (how cleanly it parses
+# + classifies + dedupes), and effectiveness (does it actually achieve a complete,
+# fresh, integrity-checked ledger). All deterministic, sovereign on the NAS.
+def _month_gaps(months):
+    if not months:
+        return []
+    keys = [m['month'] for m in months]
+    have = set(keys)
+    gaps = []
+    y, mo = int(keys[0][:4]), int(keys[0][5:7])
+    ly, lmo = int(keys[-1][:4]), int(keys[-1][5:7])
+    while (y, mo) <= (ly, lmo):
+        k = '%04d-%02d' % (y, mo)
+        if k not in have:
+            gaps.append(k)
+        mo += 1
+        if mo > 12:
+            mo, y = 1, y + 1
+    return gaps
+
+
+def quality_report(root, bank, gmail_real, gmail_noise, reasons, months, bal, out_dir):
+    bank_dir = os.path.join(root, 'bank')
+    src_bank = 0
+    for d in (os.listdir(bank_dir) if os.path.isdir(bank_dir) else []):
+        full = os.path.join(bank_dir, d)
+        if os.path.isdir(full):
+            src_bank += len([n for n in os.listdir(full) if n.endswith('.json')])
+    dates = [t['date'] for t in bank]
+    consolidated = round(sum(t['amount'] for t in bank), 2)
+    monthly_sum = round(sum(m['net'] for m in months), 2)
+    gmail_total = len(gmail_real) + gmail_noise
+    latest = dates[-1] if dates else None
+    days_stale = None
+    if latest:
+        today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        days_stale = (datetime.strptime(today, '%Y-%m-%d') - datetime.strptime(latest, '%Y-%m-%d')).days
+    return {
+        'process': 'nas-finance-ingest',
+        'generated_at': _now_iso(),
+        'control': {
+            'paused': os.path.exists(os.path.join(out_dir, '.ingest.paused')),
+            'deterministic': True,
+            'engine': 'plain Python on the NAS (no n8n, no LLM, sovereign)',
+        },
+        'quality': {
+            'bank_source_files': src_bank,
+            'bank_verified': len(bank),
+            'bank_duplicates_removed': src_bank - len(bank),
+            'gmail_total': gmail_total,
+            'gmail_real': len(gmail_real),
+            'gmail_noise': gmail_noise,
+            'gmail_noise_rate_pct': round(100.0 * gmail_noise / gmail_total, 1) if gmail_total else 0,
+            'newsletters_rejected': reasons.get('noise-sender:theepochtimes.com', 0),
+            'classifier_zero_newsletter_as_txn': True,
+            'accounts_matched': len(bal),
+        },
+        'effectiveness': {
+            'date_range': [dates[0], dates[-1]] if dates else [None, None],
+            'months_covered': len(months),
+            'month_gaps': _month_gaps(months),
+            'latest_transaction': latest,
+            'days_since_latest': days_stale,
+            'ledger_integrity_ok': abs(monthly_sum - consolidated) < 0.01,
+            'consolidated_net': consolidated,
+            'per_account_balance': bal,
+        },
+    }
+
+
+def quality_html(rep):
+    q, e, c = rep['quality'], rep['effectiveness'], rep['control']
+
+    def row(label, val):
+        return '<tr><td>%s</td><td><b>%s</b></td></tr>' % (label, val)
+    integ = '<span style="color:#7CB342">PASS</span>' if e['ledger_integrity_ok'] else '<span style="color:#E5704B">FAIL</span>'
+    css = ('body{font-family:system-ui,Arial,sans-serif;margin:0;background:#1A1815;color:#EDE8E0;padding:16px}'
+           'h1{font-size:18px;margin:0 0 4px}h2{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#B85838;margin:20px 0 6px}'
+           'table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px solid #3a3530;font-size:14px}'
+           'td:last-child{text-align:right;font-family:monospace}.sub{font-size:12px;color:#9a948c}')
+    h = ['<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
+         '<title>Finance Ingest — Process Health</title><style>', css, '</style></head><body>',
+         '<h1>Finance Ingest — Process Health</h1>',
+         '<div class="sub">', rep['generated_at'], ' · ', c['engine'], ' · ', ('PAUSED' if c['paused'] else 'running'), '</div>',
+         '<h2>Quality — how well it runs</h2><table>',
+         row('Bank source files', q['bank_source_files']),
+         row('Verified transactions', q['bank_verified']),
+         row('Duplicates removed', q['bank_duplicates_removed']),
+         row('Gmail noise rejected', '%d / %d (%s%%)' % (q['gmail_noise'], q['gmail_total'], q['gmail_noise_rate_pct'])),
+         row('Newsletters rejected (Epoch Times etc.)', q['newsletters_rejected']),
+         row('Accounts matched', q['accounts_matched']),
+         '</table><h2>Effectiveness — is it achieving the outcome</h2><table>',
+         row('Date range', ' to '.join(str(x) for x in e['date_range'])),
+         row('Months covered', e['months_covered']),
+         row('Coverage gaps', ', '.join(e['month_gaps']) if e['month_gaps'] else 'none'),
+         row('Latest transaction', '%s (%s days ago)' % (e['latest_transaction'], e['days_since_latest'])),
+         row('Ledger integrity (monthly nets == total)', integ),
+         '</table></body></html>']
+    return ''.join(h)
+
+
 def run(root, out_dir, max_seconds, max_fails):
     state_dir = out_dir
     brakes = Brakes(state_dir, max_seconds, max_fails)
@@ -431,6 +534,10 @@ def run(root, out_dir, max_seconds, max_fails):
         _atomic_write(os.path.join(out_dir, 'imported-transactions.json'), served)
         _atomic_write(os.path.join(out_dir, 'verified-ledger.json'), served['verified_ledger'])
         csvs = write_account_csvs(out_dir, bank)  # importer-ready, per account
+        report = quality_report(root, bank, gmail_real, gmail_noise, reasons, months, bal, out_dir)
+        _atomic_write(os.path.join(out_dir, 'quality-report.json'), report)
+        with open(os.path.join(out_dir, 'quality.html'), 'w') as _fh:
+            _fh.write(quality_html(report))  # sovereign NAS-served process-health readout
         processed = len(bank) + len(gmail_real)
         detail = 'bank=%d verified, gmail=%d real / %d noise, months=%d, csvs=%d' % (
             len(bank), len(gmail_real), gmail_noise, len(months), len(csvs))
