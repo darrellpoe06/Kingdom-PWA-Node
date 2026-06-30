@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-29
 **Author:** Claude (advisory; Darrell governs — GOVERNANCE-EXECUTION-ADVISORY)
-**Grounds:** DR-0078 (hybrid-modular), DR-0076 (verification doctrine — every number here is measured, not asserted), DR-0075 (perpetual improvement), `feedback-research-first`, `project-modular-rebuild`
+**Grounds:** DR-0078 (hybrid-modular), DR-0076 (verification doctrine — every number here is measured, not asserted), DR-0075 (perpetual improvement), DR-0001 (idle-GPU yield), AI-FOUNDATION-INTERNAL-OPERATIONS + DATA-AS-EMPOWERMENT (sovereignty), `feedback-research-first`, `project-modular-rebuild`, `project-sovereign-mesh-two-nas`, `project-church-device-inventory-gpu-scheduler`
 **Status:** the FREEZE (the forcing function) ships with this note. The extraction schedule is a plan for Darrell's go.
 
 ---
@@ -11,8 +11,107 @@
 
 Darrell has asked for ~a month to move PoeTech off the monolith into modules, and it keeps not
 happening — new work keeps landing in the monolith. That is **true, and the data proves it**, not
-a feeling. Below is the honest WHY, the HOW (a forcing function that has been missing), and a real
-TIMELINE. No hand-waving.
+a feeling. Below is the honest WHY, the HOW (a forcing function that has been missing), a real
+TIMELINE — and, first, the **strategic frame** that explains why this particular refactor is not
+just hygiene but the precondition for everything else. No hand-waving.
+
+---
+
+## PART 0 — The strategic frame: two levers, and why they are coupled
+
+Darrell named two **different** levers, and both gate the **quality of the opportunities and
+constraints** we operate under. They are usually discussed separately. The first-class finding of
+this report is that **they are coupled — and the order matters.**
+
+### The two levers
+
+1. **Compute substrate** — *where the work runs.* **Today: home-laptop-bound.** This very session,
+   and the agentic build work generally, runs on Darrell's laptop, mediated by a vendor. One machine;
+   if it sleeps, travels, or the vendor purges context, the work halts. **Target: a sovereign CUDA
+   mesh + NAS** — owned hardware that runs the work without a vendor in the loop. The owned-compute
+   pieces already exist or are in-flight, grounded:
+   - **On main:** the idle-GPU scheduler (`app/src/lib/gpu-scheduler.js`, `infra/gpu-scheduler/`,
+     `DR-0001-gpu-scheduling-three-layers-of-yield.md`); the braked headless NAS loop runner
+     (`scripts/lib/nas-loops.mjs`, `infra/nas-loops/`) that keeps deterministic work moving when the
+     vendor AI is offline; the church compute-tower compose (`infra/church-gpu-node/`); the
+     capability router (`scripts/wake-router.mjs`).
+   - **In-flight:** the two-NAS sovereign mesh (`infra/ai-orchestrator/mesh/nodes.json`, lane
+     `local_fb38b3d3`, PR #408) — replication + capability-routed federation across home + church;
+     the on-church-network agent runner (PR #419). *(Church tower GPU/CPU specs are still SME/TBD —
+     stated honestly, not assumed.)*
+2. **App architecture** — *what the work runs on.* **Today: monolith** (`poe-financial-mvp-v28.jsx`,
+   9,572 lines). **Target: modules** (DR-0078 hybrid-modular; this report).
+
+### The coupling (the first-class finding)
+
+**Modules are what make the sovereign CUDA mesh useful.** You cannot farm parallel build work to
+multiple local-coder tower-workers when the app is one monolithic file — *they collide on the same
+lines.* This is not a hypothetical: PART 1 below measures it. Every recorded monolith conflict was
+the **import block (C1)** and the **render switch (C2)** — the exact two regions any two concurrent
+build agents would both have to edit to add or change a surface. Two tower-workers told to "each
+build a feature" against the monolith would step on each other on line 1.
+
+Once the app is modularized, **each module is an ownable unit of work** — a worker on the mesh takes
+a module, builds it in isolation, and integrates through the surface registry + the Events spine
+(which already enforce *no cross-module edits*). That is the difference between "N machines, one
+contended file" and **real sovereign parallel building.**
+
+> **So the ARCHITECTURE lever UNLOCKS the COMPUTE lever.** The mesh's value is bounded by whether
+> the work can be partitioned. The monolith is the partition's enemy. Modularization is the
+> precondition that turns owned hardware from "a place to run one agent" into "a fleet that builds
+> in parallel."
+
+### The quadrant
+
+|  | **Laptop-only compute** | **Sovereign mesh + NAS** |
+|---|---|---|
+| **Monolith** | **WORST.** Single point of failure on *both* axes: one file everyone collides on, one vendor-mediated machine that sleeps/purges. Low ceiling, no resilience, not owned. *(Where we are today.)* | **Trapped potential.** Owned, resilient hardware — but the work can't be parallelized onto it (collision on the one file), so the towers sit idle on build work. The compute investment doesn't pay off. |
+| **Modules** | **Parallel-capable, nowhere to run it.** Code can be farmed out, but the ceiling is one machine's throughput, still vendor-mediated. | **BEST.** Parallel (each module owned by a worker), resilient (no single machine or vendor is a SPOF; the NAS loop runner + mesh replication already prove braked continuation), and owned end-to-end. |
+
+The diagonal is the lesson: **moving only one lever leaves value trapped.** Mesh-without-modules
+buys idle towers; modules-without-mesh buys a partitionable app with nowhere sovereign to run it.
+Both levers, in the right order, reach the best quadrant.
+
+### OPPORTUNITIES & CONSTRAINTS
+
+**Opportunities (unlocked when both levers move, in order):**
+- **Parallel sovereign building** — N tower-workers each own a module and build concurrently with
+  no line-collision; throughput scales with owned hardware, not vendor quota.
+- **Resilience / no SPOF** — vendor laptop offline ≠ work stops. The braked NAS loop runner
+  (`nas-loops.mjs`) already keeps deterministic work moving headless; mesh replication keeps the PWA
+  live on two NAS at once. Neither the vendor nor any single machine is load-bearing.
+- **Ownership & sovereignty** — compute on owned hardware (church towers, two NAS), single-writer
+  data, no vendor lock; aligns with AI-FOUNDATION-INTERNAL-OPERATIONS + DATA-AS-EMPOWERMENT.
+- **Idle-GPU yield** — the scheduler (DR-0001) farms idle church GPU to build/inference work. That
+  yield is only realizable if there are *independent units* (modules) to farm; a monolith gives the
+  scheduler nothing it can safely parallelize.
+
+**Constraints (real, named — DR-0076):**
+- **Compute lever today is laptop-bound and vendor-mediated** — a genuine single point of failure;
+  context purges and machine sleep halt work.
+- **Architecture lever today is a monolith** — the measured C1/C2 choke-points mean concurrent work
+  collides; the app *cannot* be safely parallelized as-is.
+- **The mesh is in-flight, not landed** (PR #408), and church tower specs are SME/TBD — the owned
+  substrate is partly aspirational today; do not plan as if it is fully online.
+- **The bootstrap irony** — *because* the app is still a monolith, the extraction itself must run on
+  a **serialized** lane (one monolith-touching PR at a time). The cutover is the work that removes
+  its own constraint; until it is done, even the cutover can't be parallelized.
+- **The freeze is the precondition's precondition** — if the monolith keeps re-growing while we
+  modularize, the architecture lever never completes. The CI line-budget guard (PART 2, Rule 1) is
+  what protects the precondition long enough to finish it.
+
+### Sequencing implication
+
+**Modules FIRST — with the forcing function (the CI freeze-guard) holding the line — because
+modularity is the precondition that makes the owned compute actually pay off.** Standing up the
+two-NAS mesh (`local_fb38b3d3`) and the idle-GPU scheduler (`local_5a07180f`) *before* the app can be
+partitioned would buy resilient hardware that build work can't yet use in parallel — the bottom-right
+"trapped potential" cell.
+
+This is **not** "compute vs. architecture" as rivals competing for the same hours. **Plan them
+together:** as each module lands (Waves A–D below), it becomes an ownable unit the mesh can host, so
+the two levers advance in lockstep — architecture opening the door, compute walking through it. The
+freeze guard is what keeps the door from swinging shut behind us.
 
 ---
 
@@ -194,6 +293,14 @@ merges, the monolith cannot grow. Even if extraction is slow, the month-long ble
 **over** the day this lands. The schedule below is for *draining* the file; the *freeze* needs no
 schedule — it is binary and immediate.
 
+**Read this timeline as the architecture lever (PART 0).** Each module that lands is also an
+*ownable unit the sovereign mesh can host* — so the right-hand "what" column is simultaneously the
+schedule on which the compute lever becomes useful. As Waves A–D complete, stand the two-NAS mesh
+(`local_fb38b3d3`, PR #408) and idle-GPU scheduler (`local_5a07180f`) up *alongside* them, assigning
+freshly-extracted modules to tower-workers. Modules first, compute in lockstep behind — not as a
+later, separate project. By the time the shell is a thin composition root (Wave D), the app is
+partitioned enough that real parallel sovereign building is on the table.
+
 **Assumptions (stated, per DR-0076):**
 - One monolith-touching PR in flight at a time (serialized lane) — this is the pace-limiting
   constraint, by design (safety on the hottest file).
@@ -233,3 +340,8 @@ stay core; no extracted module forks them — the boundary guard already enforce
   interconnect gate. **A PR that grows the monolith is now RED.**
 
 The plan was never the problem. The brake was missing. It is on now.
+
+And the brake is doing more than protecting a refactor: it protects the **precondition** for the
+sovereign compute story. Modules are how the owned mesh stops being idle hardware and becomes a
+fleet that builds in parallel. Architecture first, compute in lockstep — both levers, in order, to
+the best quadrant.
