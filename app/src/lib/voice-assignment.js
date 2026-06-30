@@ -19,8 +19,10 @@
 // … Male/Female), so gender is inferred from the explicit "male"/"female" token when
 // present and a cross-platform name table otherwise; unknown-gender voices are still
 // used to keep options DISTINCT.
-import { pickDefaultVoice } from './tts.js';
+import { pickDefaultVoice, PHONE_DEFAULT_VOICE } from './tts.js';
 import { KIND } from './voice-registry.js';
+
+export { PHONE_DEFAULT_VOICE };
 
 // Known male/female first names across the common TTS engines. Lowercased; matched
 // on word boundaries so "male" inside "female" never misfires (and we test the
@@ -151,6 +153,9 @@ export function standInVoiceURI(assignments, catalogId) {
 export function resolveVoiceURIForId(catalogId, { assignments, overrides, available } = {}) {
   const pin = overrides && catalogId != null && typeof overrides[catalogId] === 'string'
     ? overrides[catalogId] : null;
+  // "Phone's default voice" is an explicit choice (use the OS default — the Android
+  // male path); it has no entry in getVoices(), so honor it directly.
+  if (pin === PHONE_DEFAULT_VOICE) return PHONE_DEFAULT_VOICE;
   if (pin && Array.isArray(available) && available.some((v) => v && v.voiceURI === pin)) {
     return pin; // honored only when the pinned voice exists on THIS device
   }
@@ -163,12 +168,17 @@ export function resolveVoiceURIForId(catalogId, { assignments, overrides, availa
  * Returns [{ uri, name, gender, lang }].
  */
 export function deviceVoiceOptions(available) {
-  return dedupeByUri(englishFirst(available)).map((v) => ({
+  // First option: use the phone/OS default voice (set in Android Settings → Text-to-
+  // speech). This is the only way to get a MALE voice on a browser whose web voice
+  // list is female-only, so it leads the list.
+  const phoneDefault = { uri: PHONE_DEFAULT_VOICE, name: 'Phone’s default voice', gender: 'unknown', lang: '' };
+  const rest = dedupeByUri(englishFirst(available)).map((v) => ({
     uri: v.voiceURI,
     name: v.name,
     gender: classifyVoiceGender(v),
     lang: v.lang || '',
   }));
+  return [phoneDefault, ...rest];
 }
 
 /** True when the device exposes at least one voice classified as the wanted gender. */

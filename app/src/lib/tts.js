@@ -45,6 +45,15 @@ export const MAX_RATE = 3.0;
 export const DEFAULT_RATE = 1.0;
 export const DEFAULT_PITCH = 1.0;
 
+// Sentinel voiceURI meaning "DON'T pick a specific voice — use the phone/OS default
+// TTS voice." On Android the web Speech API often exposes only a limited (female)
+// voice set, but the system default (which the user CAN set to male in Android
+// Settings → Text-to-speech) comes through when we leave utterance.voice unset. So
+// this option exists to STOP us overriding the OS default. (speechSynthesis has no
+// real voice with this URI, so it resolves to the OS default either way; the named
+// constant makes the intent explicit instead of relying on "unfindable → default".)
+export const PHONE_DEFAULT_VOICE = '__phone_default__';
+
 // How long to wait for speech to ACTUALLY start before treating the tap as a
 // silent miss. Mobile browsers (iOS Safari, Chrome/Android) can accept a speak()
 // and then never start it — the synth was suspended, voices weren't ready, or the
@@ -457,9 +466,13 @@ export function useTextToSpeech() {
     const eng = engineRef.current;
     if (!eng) return;
     if (voiceURI !== undefined) {
-      const v = voiceURI
-        ? ((window.speechSynthesis.getVoices() || []).find((x) => x.voiceURI === voiceURI) || null)
-        : null;
+      // null / '' / the phone-default sentinel → leave utterance.voice unset so the
+      // browser uses the OS default voice (the Android male path). Otherwise resolve
+      // the specific device voice by URI.
+      const useDefault = !voiceURI || voiceURI === PHONE_DEFAULT_VOICE;
+      const v = useDefault
+        ? null
+        : ((window.speechSynthesis.getVoices() || []).find((x) => x.voiceURI === voiceURI) || null);
       eng.setVoice(v); // transient — does not touch saved prefs
     }
     eng.load(text);

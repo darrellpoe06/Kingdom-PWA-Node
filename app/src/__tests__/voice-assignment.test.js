@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   classifyVoiceGender, buildStandInAssignments, standInVoiceURI, voiceForLocale,
-  resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender,
+  resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender, PHONE_DEFAULT_VOICE,
 } from '../lib/voice-assignment.js';
 
 // A merged-catalog shape (what mergeVoiceCatalog returns): System + 3 people.
@@ -128,14 +128,32 @@ describe('resolveVoiceURIForId — a user PIN wins, applied on every read', () =
   });
 });
 
+describe('Phone-default voice (the Android male path)', () => {
+  const FEMALE_ONLY = [
+    { name: 'Google US English', voiceURI: 'en-us-x-iol-local', lang: 'en-US' }, // female-ish, unknown by name
+    { name: 'English United Kingdom', voiceURI: 'en-gb-x-rjs-local', lang: 'en-GB' },
+  ];
+  it('offers "Phone’s default voice" FIRST so a female-only browser can still go male via OS settings', () => {
+    const opts = deviceVoiceOptions(FEMALE_ONLY);
+    expect(opts[0].uri).toBe(PHONE_DEFAULT_VOICE);
+    expect(opts[0].name).toMatch(/default/i);
+    expect(opts.length).toBe(3); // phone-default + the 2 device voices
+  });
+  it('honors a phone-default PIN directly (no getVoices entry needed) — flows to "use OS default"', () => {
+    const overrides = { 'voice-dp': PHONE_DEFAULT_VOICE };
+    const got = resolveVoiceURIForId('voice-dp', { assignments: {}, overrides, available: FEMALE_ONLY });
+    expect(got).toBe(PHONE_DEFAULT_VOICE);
+  });
+});
+
 describe('deviceVoiceOptions + hasVoiceOfGender — the picker + honest male-availability', () => {
   const WIN = [
     { name: 'Microsoft David', voiceURI: 'david', lang: 'en-US' },
     { name: 'Microsoft Zira', voiceURI: 'zira', lang: 'en-US' },
   ];
-  it('lists device voices tagged with gender for the dropdown', () => {
+  it('lists device voices tagged with gender for the dropdown (after the phone-default option)', () => {
     const opts = deviceVoiceOptions(WIN);
-    expect(opts.map((o) => o.uri)).toEqual(['david', 'zira']);
+    expect(opts.map((o) => o.uri)).toEqual([PHONE_DEFAULT_VOICE, 'david', 'zira']);
     expect(opts.find((o) => o.uri === 'david').gender).toBe('male');
     expect(opts.find((o) => o.uri === 'zira').gender).toBe('female');
   });

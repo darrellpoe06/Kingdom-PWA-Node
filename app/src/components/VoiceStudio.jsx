@@ -371,12 +371,12 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                       >
                         {deviceOptions.map((o) => (
                           <option key={o.uri} value={o.uri}>
-                            {o.name}{o.gender !== 'unknown' ? ` · ${o.gender}` : ''}
+                            {o.name}{o.gender !== 'unknown' ? ` · ${o.gender}` : ''}{o.lang ? ` (${o.lang})` : ''}
                           </option>
                         ))}
                       </select>
                       {v.kind === KIND.PERSONAL && v.gender === 'male' && !hasVoiceOfGender(tts.voices, 'male') && (
-                        <p className="text-[10px] text-[#B85838] mt-0.5 max-w-[14rem]">This browser exposes no male voice to web pages — pick the closest; the real male voice needs the voice-clone endpoint.</p>
+                        <p className="text-[10px] text-[#B85838] mt-0.5 max-w-[15rem]">This browser only exposes female voices to web pages. To get a male voice on Android: pick <strong>“Phone’s default voice”</strong> above, then set a male voice in <strong>Android Settings → Text-to-speech</strong>. (Your real voice needs the voice-clone endpoint.)</p>
                       )}
                     </div>
                   )}
