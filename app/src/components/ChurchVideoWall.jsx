@@ -35,6 +35,10 @@ import {
   ATEM, SIGNAL_CHAIN, AV_DEVICES, SOURCE_BRIDGES,
   CABLING_PLANES, WALL_PLACEMENT, WALL_FEED_ARCHITECTURE,
 } from '../lib/church-av-devices.js';
+import {
+  VIDEO_IN, CONTROL, LED_DATA, POWER, MAP,
+  ledLineMath, TEACHING_CARD, FINISH_CHECKLIST, CHAIN_DIAGRAM,
+} from '../lib/led-wall-signal-chain.js';
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -142,10 +146,22 @@ function BudgetLine({ line }) {
   );
 }
 
+const CHECKLIST_KEY = 'colg-led-wall-finish-checklist-v1';
+
 export default function ChurchVideoWall() {
   const [access, setAccess] = useState({ signedIn: false, canSee: false, canEdit: false });
   const [projects, setProjects] = useState(null);   // null = loading
   const [lines, setLines] = useState(null);
+  // Finish-checklist progress — local to this device (a personal work aid, not a
+  // shared system-state claim). Persisted to localStorage so it survives reloads.
+  const [checked, setChecked] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(CHECKLIST_KEY)) || {}; } catch { return {}; }
+  });
+  const toggleCheck = (id) => setChecked((prev) => {
+    const next = { ...prev, [id]: !prev[id] };
+    try { localStorage.setItem(CHECKLIST_KEY, JSON.stringify(next)); } catch { /* private mode */ }
+    return next;
+  });
 
   useEffect(() => {
     let alive = true;
@@ -173,6 +189,17 @@ export default function ChurchVideoWall() {
   const native = useMemo(() => nativeResolution(CABINET, grid), [grid]);
   const power = useMemo(() => powerPlan(CABINET, grid), [grid]);
   const data = useMemo(() => dataMap(CABINET, grid), [grid]);
+  const ledMath = useMemo(() => ledLineMath(), []);
+  const checklistGroups = useMemo(() => {
+    const order = [];
+    const byGroup = {};
+    for (const item of FINISH_CHECKLIST) {
+      if (!byGroup[item.group]) { byGroup[item.group] = []; order.push(item.group); }
+      byGroup[item.group].push(item);
+    }
+    return order.map((g) => ({ group: g, items: byGroup[g] }));
+  }, []);
+  const doneCount = FINISH_CHECKLIST.filter((c) => checked[c.id]).length;
   const totals = useMemo(() => budgetTotals(projectLines), [projectLines]);
   const donation = useMemo(() => donationProgress(project || {}), [project]);
 
@@ -276,10 +303,10 @@ export default function ChurchVideoWall() {
       <div className={card}>
         <div className={labelCls}>Data map &middot; {VX1000_LOAD.model}</div>
         <ul className="mt-2 space-y-1.5 text-[0.8125rem] text-[#1A1815]">
-          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{data.cabinetsPerPort} cabinets per port (each ~{data.pxPerCabinet.toLocaleString()} px; port cap {data.portCap.toLocaleString()} px).</span></li>
-          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>One port per row of {grid.wide} = {data.rowPx.toLocaleString()} px/port (fits, ~{Math.round((data.rowPortMargin / data.portCap) * 100)}% headroom).</span></li>
-          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{data.portsNeeded} of {data.portsAvailable} ports</b> used &middot; {data.totalPx.toLocaleString()} px total, within the {VX1000_LOAD.maxLoadMegapixels} MP load.</span></li>
-          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>Path: VX1000 port &rarr; Cat6 &rarr; cabinet data-IN &rarr; daisy-chain to the next.</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>Capacity: up to {data.cabinetsPerPort} cabinets per port (each ~{data.pxPerCabinet.toLocaleString()} px; port cap {data.portCap.toLocaleString()} px).</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>Confirmed wiring: one LED line per COLUMN</b> &rarr; {ledMath.lines} lines, each {ledMath.cabinetsPerLine} cabinets daisy-chained &asymp; {ledMath.pxPerLine.toLocaleString()} px/line (under the {LED_DATA.portLimitPx.toLocaleString()} limit).</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{ledMath.portsUsed} of {LED_DATA.totalPorts} ports</b> used, {ledMath.sparePorts} spare &middot; within the {VX1000_LOAD.maxLoadMegapixels} MP load. See the confirmed signal chain below.</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>Path: VX1000 port &rarr; top cabinet of a column &rarr; daisy-chain DOWN its {ledMath.cabinetsPerLine} cabinets. DIRECT, no switch.</span></li>
         </ul>
       </div>
 
@@ -339,6 +366,131 @@ export default function ChurchVideoWall() {
         <p className="mt-1 text-[0.75rem] text-[#5A5751]"><b>Wall feed:</b> {WALL_FEED_ARCHITECTURE.recommended.name} ({WALL_FEED_ARCHITECTURE.buyList})</p>
 
         <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Source: {ATEM.source}.</p>
+      </div>
+
+      {/* ===== CONFIRMED LED-WALL SIGNAL CHAIN — documentation he returns to ===== */}
+      <div className={card}>
+        <div className={labelCls}>LED wall signal chain &middot; confirmed (documentation)</div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">
+          Wall = <b>{LED_DATA.lines} columns &times; {LED_DATA.cabinetsPerLine} rows = 48 cabinets</b>; native ~2,710 &times; 1,508 px (~4.1M), ~85k px/cabinet.
+          <span className="text-[#5A5751]"> Exact map confirmed from NovaLCT.</span>
+        </p>
+
+        {/* Simple in-app diagram of the video path + the direct LED lines */}
+        <svg viewBox="0 0 840 120" role="img" aria-label="Signal chain: program source through KEQINX, receiver and NovaStar to the LED wall" className="mt-3 w-full">
+          <title>Program source &rarr; KEQINX &rarr; receiver &rarr; NovaStar &rarr; LED wall</title>
+          <defs>
+            <marker id="vwArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#5A5751" /></marker>
+            <marker id="vwArrowLed" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#B85838" /></marker>
+          </defs>
+          {CHAIN_DIAGRAM.nodes.map((n, i) => {
+            const x = 10 + i * 170;
+            return (
+              <g key={n.id}>
+                <rect x={x} y={40} width={140} height={56} rx={4} fill="#FAF8F4" stroke="#1A1815" />
+                <text x={x + 70} y={66} textAnchor="middle" fontSize="13" fontWeight="700" fill="#1A1815">{n.label}</text>
+                <text x={x + 70} y={83} textAnchor="middle" fontSize="9.5" fill="#5A5751">{n.sub}</text>
+              </g>
+            );
+          })}
+          {[0, 1, 2, 3].map((i) => {
+            const x1 = 10 + i * 170 + 140;
+            const x2 = 10 + (i + 1) * 170;
+            const led = i === 3;
+            const label = led ? CHAIN_DIAGRAM.ledEdge.label : CHAIN_DIAGRAM.videoEdges[i].label;
+            return (
+              <g key={i}>
+                <line x1={x1} y1={68} x2={x2 - 2} y2={68} stroke={led ? '#B85838' : '#5A5751'} strokeWidth={led ? 2.5 : 1.5} markerEnd={`url(#${led ? 'vwArrowLed' : 'vwArrow'})`} />
+                <text x={(x1 + x2) / 2} y={30} textAnchor="middle" fontSize="9.5" fill={led ? '#B85838' : '#5A5751'}>{label}</text>
+              </g>
+            );
+          })}
+        </svg>
+        <p className="text-[0.6875rem] text-[#5A5751] italic">{CHAIN_DIAGRAM.controlNote}</p>
+
+        {/* VIDEO IN */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Video in (owned gear &mdash; replaces the NDI decoder)</div>
+        <ol className="mt-1.5 space-y-1">
+          {VIDEO_IN.path.map((h, i) => (
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">{i + 1}.</span><span>{h}</span></li>
+          ))}
+        </ol>
+        <p className="mt-1 text-[0.75rem] text-[#5A5751]">{VIDEO_IN.otherOutputs} <span className="italic">{VIDEO_IN.ownedGear}</span></p>
+
+        {/* CONTROL + LED DATA + POWER + MAP */}
+        <div className="mt-3 grid sm:grid-cols-2 gap-3">
+          <div className="border border-[#E8E4DC] p-2.5">
+            <div className="text-[0.75rem] font-semibold text-[#1A1815]" style={serif}>Control (network)</div>
+            <div className="text-[0.75rem] text-[#5A5751]">{CONTROL.path}</div>
+          </div>
+          <div className="border border-[#E8E4DC] p-2.5">
+            <div className="text-[0.75rem] font-semibold text-[#1A1815]" style={serif}>LED data (DIRECT)</div>
+            <div className="text-[0.75rem] text-[#1A1815]"><b>{ledMath.lines} lines</b>, one per column &middot; {ledMath.cabinetsPerLine} cabinets each &asymp; {ledMath.pxPerLine.toLocaleString()} px/line (&lt; {LED_DATA.portLimitPx.toLocaleString()}) &middot; {ledMath.portsUsed} of {LED_DATA.totalPorts} ports, {ledMath.sparePorts} spare.</div>
+            <div className="mt-1 text-[0.75rem] text-[#B85838]"><b>&#9888; {LED_DATA.rule}</b></div>
+          </div>
+          <div className="border border-[#E8E4DC] p-2.5">
+            <div className="text-[0.75rem] font-semibold text-[#1A1815]" style={serif}>Power</div>
+            <div className="text-[0.75rem] text-[#5A5751]">{POWER.note}</div>
+          </div>
+          <div className="border border-[#E8E4DC] p-2.5">
+            <div className="text-[0.75rem] font-semibold text-[#1A1815]" style={serif}>Mapping</div>
+            <div className="text-[0.75rem] text-[#5A5751]">{MAP.note}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== TEACHING CARD — staff & volunteers ===== */}
+      <div className={card}>
+        <div className={labelCls}>Teaching card &middot; staff &amp; volunteers</div>
+        <div className="mt-1 text-[0.875rem] font-semibold text-[#1A1815]" style={serif}>{TEACHING_CARD.title}</div>
+        <p className="mt-1 text-[0.8125rem] text-[#5A5751]">{TEACHING_CARD.intro}</p>
+        <div className="mt-2 space-y-2">
+          {TEACHING_CARD.planes.map((p, i) => (
+            <div key={i}>
+              <div className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{p.name}</div>
+              <div className="text-[0.75rem] text-[#5A5751]">{p.plain}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[0.8125rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>{TEACHING_CARD.oneLiner}</b></p>
+      </div>
+
+      {/* ===== FINISH CHECKLIST — work it down to done ===== */}
+      <div className={card}>
+        <div className="flex items-center justify-between">
+          <div className={labelCls}>Finish checklist &middot; drive it to done</div>
+          <div className="text-[0.75rem] font-semibold text-[#1A1815]">{doneCount} / {FINISH_CHECKLIST.length}</div>
+        </div>
+        <div className="mt-2 h-1.5 bg-[#E8E4DC]" role="progressbar" aria-valuenow={doneCount} aria-valuemin={0} aria-valuemax={FINISH_CHECKLIST.length} aria-label="Finish checklist progress">
+          <div className="h-1.5 bg-[#B85838]" style={{ width: `${Math.round((doneCount / FINISH_CHECKLIST.length) * 100)}%` }} />
+        </div>
+        <div className="mt-3 space-y-3">
+          {checklistGroups.map(({ group, items }) => (
+            <div key={group}>
+              <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">{group}</div>
+              <ul className="mt-1 space-y-1.5">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <label className="flex gap-2.5 cursor-pointer items-start">
+                      <input
+                        type="checkbox"
+                        checked={!!checked[item.id]}
+                        onChange={() => toggleCheck(item.id)}
+                        className="mt-0.5 shrink-0 accent-[#B85838]"
+                        aria-label={item.label}
+                      />
+                      <span>
+                        <span className={`text-[0.8125rem] ${checked[item.id] ? 'text-[#5A5751] line-through' : 'text-[#1A1815]'}`} style={serif}>{item.label}</span>
+                        <span className="block text-[0.6875rem] text-[#5A5751]">{item.detail}</span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Progress is saved on this device. Work the cabling (8 LED lines + 1 control + 1 video-in), power, mapping, then test-light.</p>
       </div>
 
       {/* INSTALL SEQUENCE — the build order */}
