@@ -153,6 +153,7 @@ import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups } from './lib/financial-engineering.js';
+import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
 
 // =============================================================================
@@ -3903,7 +3904,8 @@ export default function PoeFinancialSystem() {
   };
   // v28+ Session A: Transactions CRUD
   const addTransaction = (item) => {
-    const seeded = { ...item, id: `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 };
+    // Keep a caller-provided STABLE id (verified-sync's `vl-<fitid>`) so it persists as the cloud slug -> idempotent; manual/CSV adds pass none.
+    const seeded = { ...item, id: item.id || `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 };
     setData(d => ({ ...d, transactions: [...(d.transactions || []), seeded] }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       transactionsSync.upload(seeded).then((res) => {
@@ -3911,6 +3913,13 @@ export default function PoeFinancialSystem() {
       }).catch(e => console.warn('[transactions-sync] upload failed', e));
     }
   };
+  // Verified-ledger sync (DR-0083) — INACTIVE unless VITE_VERIFIED_LEDGER_URL is set (armed). Pulls the sovereign NAS verified ledger into the durable cloud ledger on sign-in: idempotent (FITID), fail-safe (unreachable=no-op), authenticated write (correct instance/RLS). The balance always derives from the durable ledger, never a live fetch.
+  useEffect(() => {
+    const url = import.meta.env.VITE_VERIFIED_LEDGER_URL;
+    if (!url || !authSession || !isFamilyMember || !data.numericSyncVerifiedAt || isAnyDemoMode) return;
+    runVerifiedLedgerSync({ url, accounts: data.accounts || [], transactions: data.transactions || [], addTransaction }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per sign-in, not per-txn (would re-loop)
+  }, [authSession, isFamilyMember, data.numericSyncVerifiedAt]);
   const updateTransaction = (id, updates) => {
     // Books living record: capture the BEFORE snapshot so the edit becomes an
     // immutable, attributed version in record_events (lib/record-history.js) —

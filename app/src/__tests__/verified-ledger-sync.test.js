@@ -6,7 +6,7 @@
 // the combined export left unmatched (no double-count), and the verified-only
 // filter. The money loop's "no double-count, no loss" guarantee lives here.
 import { describe, it, expect } from 'vitest';
-import { accountDigits, matchAccount, mapVerifiedLedger, fetchAndMapVerifiedLedger } from '../lib/verified-ledger-sync.js';
+import { accountDigits, matchAccount, mapVerifiedLedger, fetchAndMapVerifiedLedger, runVerifiedLedgerSync } from '../lib/verified-ledger-sync.js';
 
 const ACCOUNTS = [
   { id: 'a-8168', fragment: '...8168' },
@@ -85,5 +85,34 @@ describe('fetchAndMapVerifiedLedger — robust, never throws', () => {
     const out = await fetchAndMapVerifiedLedger('http://nas/x.json', ACCOUNTS, [], async () => ({ ok: false, status: 502 }));
     expect(out.ok).toBe(false);
     expect(out.added).toBe(0);
+  });
+});
+
+describe('runVerifiedLedgerSync — the in-app orchestration', () => {
+  const fakeFetch = async () => ({ ok: true, json: async () => ({ transactions: [row('F1', 'chase8168', -80), row('F2', 'chase3322', 20)] }) });
+  it('INACTIVE by default: no url -> no-op, no writes', async () => {
+    const added = [];
+    const out = await runVerifiedLedgerSync({ url: '', accounts: ACCOUNTS, transactions: [], addTransaction: (t) => added.push(t) });
+    expect(out.ran).toBe(false);
+    expect(added).toHaveLength(0);
+  });
+  it('when armed: persists each new row via addTransaction', async () => {
+    const added = [];
+    const out = await runVerifiedLedgerSync({ url: 'http://nas/v.json', accounts: ACCOUNTS, transactions: [], addTransaction: (t) => added.push(t), fetchImpl: fakeFetch });
+    expect(out.ran).toBe(true);
+    expect(out.added).toBe(2);
+    expect(added.map((t) => t.fitid)).toEqual(['F1', 'F2']);
+  });
+  it('idempotent: a second run with those FITIDs already present adds nothing', async () => {
+    const existing = [{ id: 'vl-F1', fitid: 'F1' }, { id: 'vl-F2', fitid: 'F2' }];
+    const added = [];
+    const out = await runVerifiedLedgerSync({ url: 'http://nas/v.json', accounts: ACCOUNTS, transactions: existing, addTransaction: (t) => added.push(t), fetchImpl: fakeFetch });
+    expect(out.added).toBe(0);
+  });
+  it('fail-safe: a throwing addTransaction does not abort the whole sync', async () => {
+    let calls = 0;
+    const out = await runVerifiedLedgerSync({ url: 'http://nas/v.json', accounts: ACCOUNTS, transactions: [], addTransaction: () => { calls += 1; if (calls === 1) throw new Error('boom'); }, fetchImpl: fakeFetch });
+    expect(out.ran).toBe(true);
+    expect(out.added).toBe(1); // second row still added despite first throwing
   });
 });
