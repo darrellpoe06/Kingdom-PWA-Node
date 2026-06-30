@@ -5,9 +5,9 @@
     "midnight"
   ],
   "summary": {
-    "pages": 122,
+    "pages": 123,
     "passing": 107,
-    "trackedDebtPages": 15,
+    "trackedDebtPages": 16,
     "regressionPages": 0,
     "regressions": 0,
     "debtViolations": 113
@@ -68,16 +68,16 @@
       ]
     },
     {
-      "page": "poe-financial-mvp-v28.jsx",
+      "page": "components/Imported.jsx",
       "status": "TRACKED-DEBT",
-      "violations": 4,
+      "violations": 3,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
       ]
     },
     {
-      "page": "components/Imported.jsx",
+      "page": "poe-financial-mvp-v28.jsx",
       "status": "TRACKED-DEBT",
       "violations": 3,
       "regressions": 0,
@@ -125,6 +125,15 @@
       "page": "components/Rentals.jsx",
       "status": "TRACKED-DEBT",
       "violations": 2,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/BooksAccounts.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 1,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"

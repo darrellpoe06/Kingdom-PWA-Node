@@ -3,6 +3,9 @@
   "note": "Frozen UI/UX legibility debt (per-page WCAG-AA dark-on-dark). The gate hard-fails only on a NEW violation not listed here. Shrink this list as pages are fixed (re-freeze: node scripts/legibility-guard.mjs --generate).",
   "frozenAt": null,
   "pages": {
+    "components/BooksAccounts.jsx": [
+      "inline-dark-text|#1f6feb|midnight/card"
+    ],
     "components/Bookstore.jsx": [
       "inline-dark-text|#216e39|midnight/card",
       "inline-dark-text|#216e39|midnight/card"
@@ -142,7 +145,6 @@
     ],
     "poe-financial-mvp-v28.jsx": [
       "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1f6feb|midnight/card",
       "inline-dark-text|#5a5751|midnight/card",
       "inline-dark-text|#b85838|midnight/card"
     ]
