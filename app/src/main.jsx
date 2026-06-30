@@ -4,9 +4,16 @@ import { storage } from './shims/storage.js';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
+import { wireChunkHeal } from './lib/chunk-reload-heal.js';
 import { initTextSize } from './lib/text-size.js';
 
 window.storage = storage;
+
+// Self-heal a stale-deploy lazy-chunk 404 (e.g. opening the Voice tab after a newer
+// deploy replaced its chunk hash): on a failed dynamic import, recover once to the
+// current shell instead of stranding the tab. No-op unless a chunk actually fails.
+// Wired before the dynamic imports below so the listener is live when they run.
+wireChunkHeal(window);
 
 // Large-print accessibility (WCAG 1.4.4): apply the per-device text-size choice
 // BEFORE React paints, so there is no flash of default text that then jumps.
