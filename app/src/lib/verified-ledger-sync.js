@@ -124,3 +124,22 @@ export async function fetchAndMapVerifiedLedger(url, accounts, existingTxns, fet
     return { ...empty, error: String((e && e.message) || e) };
   }
 }
+
+// runVerifiedLedgerSync — the orchestration the in-app effect calls. INACTIVE by
+// default: with no `url` it is a no-op (the three-brakes "off until armed" — the
+// effect only ever has a url when VITE_VERIFIED_LEDGER_URL is explicitly set).
+// Fetches + maps + persists each NEW row via the app's own addTransaction
+// (authenticated path -> correct instance_id + RLS, no service key). Fail-safe
+// per row (one bad row can't abort) and the whole thing can never throw into the
+// app. Idempotent (FITID dedupe) so re-runs add nothing.
+export async function runVerifiedLedgerSync({ url, accounts, transactions, addTransaction, fetchImpl } = {}) {
+  if (!url) return { ran: false, reason: 'disabled', added: 0 };
+  if (typeof addTransaction !== 'function') return { ran: false, reason: 'no-writer', added: 0 };
+  const res = await fetchAndMapVerifiedLedger(url, accounts || [], transactions || [], fetchImpl);
+  if (!res.ok) return { ran: false, reason: res.error || 'fetch-failed', added: 0 };
+  let added = 0;
+  for (const t of res.toAdd) {
+    try { addTransaction(t); added += 1; } catch (e) { /* fail-safe per row */ }
+  }
+  return { ran: true, added, skippedDup: res.skippedDup, unmatched: res.unmatched };
+}
