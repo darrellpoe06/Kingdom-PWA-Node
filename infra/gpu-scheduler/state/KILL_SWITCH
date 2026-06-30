@@ -1,0 +1,7 @@
+ENGAGED. This file's PRESENCE is the kill-switch: while it exists the idle-GPU
+scheduler runs NOTHING (it short-circuits to "inert" before any planning).
+
+This ships engaged on purpose. The scheduler is inert scaffolding — it is never
+armed unattended. Removing this file is ONE of the deliberate, attended steps
+Darrell takes to arm the scheduler (see infra/gpu-scheduler/README.md). On any
+overrun, repeated failure, or panic, recreate this file to stop everything.

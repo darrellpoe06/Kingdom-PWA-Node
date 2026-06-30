@@ -2,7 +2,7 @@
   "poe-financial-mvp-v28.jsx": {
     "emoji": 81,
     "fixedPx": 276,
-    "widthCap": 17
+    "widthCap": 18
   },
   "components/About.jsx": {
     "emoji": 15,
@@ -169,6 +169,11 @@
     "fixedPx": 48,
     "widthCap": 0
   },
+  "components/DeviceInventory.jsx": {
+    "emoji": 0,
+    "fixedPx": 24,
+    "widthCap": 0
+  },
   "components/DevOps.jsx": {
     "emoji": 6,
     "fixedPx": 43,
@@ -214,6 +219,16 @@
     "fixedPx": 9,
     "widthCap": 3
   },
+  "components/GamePlayer.jsx": {
+    "emoji": 0,
+    "fixedPx": 0,
+    "widthCap": 1
+  },
+  "components/Games.jsx": {
+    "emoji": 0,
+    "fixedPx": 0,
+    "widthCap": 2
+  },
   "components/GovernanceQueue.jsx": {
     "emoji": 2,
     "fixedPx": 16,
@@ -223,6 +238,16 @@
     "emoji": 1,
     "fixedPx": 22,
     "widthCap": 0
+  },
+  "components/HelpButton.jsx": {
+    "emoji": 0,
+    "fixedPx": 0,
+    "widthCap": 1
+  },
+  "components/HelpWalkthrough.jsx": {
+    "emoji": 0,
+    "fixedPx": 0,
+    "widthCap": 2
   },
   "components/Imported.jsx": {
     "emoji": 1,
@@ -240,6 +265,11 @@
     "widthCap": 0
   },
   "components/Inventory.jsx": {
+    "emoji": 0,
+    "fixedPx": 0,
+    "widthCap": 3
+  },
+  "components/KitchenInventory.jsx": {
     "emoji": 0,
     "fixedPx": 0,
     "widthCap": 3
@@ -332,7 +362,7 @@
   "components/PracticeLearn.jsx": {
     "emoji": 1,
     "fixedPx": 50,
-    "widthCap": 4
+    "widthCap": 5
   },
   "components/ProjectMgmtPulse.jsx": {
     "emoji": 2,
@@ -373,6 +403,11 @@
     "emoji": 2,
     "fixedPx": 7,
     "widthCap": 1
+  },
+  "components/Relationships.jsx": {
+    "emoji": 0,
+    "fixedPx": 0,
+    "widthCap": 2
   },
   "components/Rentals.jsx": {
     "emoji": 28,

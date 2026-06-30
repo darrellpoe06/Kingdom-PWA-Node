@@ -1,0 +1,22 @@
+{
+  "_comment": "The approved job queue for the idle-GPU scheduler. THE bounded gate: a job runs only when approved===true AND status==='queued' AND a capable idle node exists AND every brake is go. The examples below are INERT illustrations (the queue ships effectively empty: one is unapproved, one is already done). Real jobs are added by Darrell, with approved:true set deliberately.",
+  "v": 1,
+  "items": [
+    {
+      "id": "example-transcribe-001",
+      "type": "transcription",
+      "units": 45,
+      "approved": false,
+      "status": "queued",
+      "note": "EXAMPLE — unapproved, so it never runs. A real harvest-transcription job would set approved:true once Darrell reviews it."
+    },
+    {
+      "id": "example-voice-clone-001",
+      "type": "voice-clone",
+      "units": 1,
+      "approved": true,
+      "status": "done",
+      "note": "EXAMPLE — already done, so it never re-runs (idempotent). Shows the status guard."
+    }
+  ]
+}

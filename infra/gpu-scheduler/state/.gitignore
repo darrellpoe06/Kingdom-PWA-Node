@@ -1,0 +1,8 @@
+# Runtime state — never committed. KILL_SWITCH (the engaged brake) IS tracked.
+events.jsonl
+run.lock/
+jobs-today.json
+ARMED
+GPU_SCHED_ARMED
+!KILL_SWITCH
+!.gitignore

@@ -136,7 +136,7 @@ import {
   About, Contractors1099, Cart, Practice, CRM, Markets, Rentals, Opportunities,
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
-  Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
+  Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AccessUsageMetrics, ChefCorner, Games, Relationships,
 } from './surfaces.js';
@@ -5445,7 +5445,7 @@ html{scroll-padding-bottom:280px}
                 (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
                 caps the row via zoom while body text scales. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -5549,6 +5549,13 @@ html{scroll-padding-bottom:280px}
         {view === 'church' && churchView === 'videowall' && (isChurchStaff
           ? <ChurchVideoWall />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Video Wall capital project holds church financial data. Sign in with a church staff account to view it.</div>)}
+        {/* Device Inventory: the asset register for church infrastructure +
+            the idle-GPU compute pool (capability index). Staff-gated; RLS
+            scopes church_devices (0056). The capability fields feed the
+            deterministic, brake-gated gpu-scheduler (ships inert). */}
+        {view === 'church' && churchView === 'devices' && (isChurchStaff
+          ? <DeviceInventory />
+          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Device Inventory is church infrastructure data. Sign in with a church staff account to view it.</div>)}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Observation board is for church staff only. Sign in with a church staff account to view it.</div>)}
@@ -6674,6 +6681,7 @@ const FEEDBACK_AREAS = [
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-harvest', 'Church · 🌾 Harvest Ledger (staff: no video lost — every recording fully mined)'],
     ['church-videowall', 'Church · 📺 Video Wall (🔒 sanctuary LED capital project — budget · donations · spec)'],
+    ['church-devices', 'Church · Device Inventory (staff: asset register — NAS · GPU nodes · VX1000 · LED wall · network · cameras · sound + idle-GPU compute pool)'],
     ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
     ['church-pulpit', "Church · 📖 The Word — Migdal (Bishop's study — historical sermons + corpus-grounded prep)"],
     ['church-scripture', 'Church · Scripture (themed, depth-adaptive KJV library — His perspective + His love, for the soul)'],
