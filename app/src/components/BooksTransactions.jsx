@@ -15,6 +15,7 @@ import { fmt } from '../lib/format.js';
 import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
+import { isSpreadsheetFile, statementFileToCsv } from '../lib/statement-import.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -583,6 +584,17 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   };
   const onCsvFile = (file) => {
     if (!file) return;
+    // Excel (.xlsx/.xls) is parsed to CSV text first (lazy SheetJS), then flows
+    // through the SAME proven CSV mapper + importCsv -> addTransaction -> ledger
+    // path that drives the derived balance. Reading an .xlsx as plain text used
+    // to yield binary garbage -> zero rows (the bug that broke the upload).
+    if (isSpreadsheetFile(file)) {
+      setCsvError('Reading spreadsheet…');
+      statementFileToCsv(file)
+        .then((csv) => { setCsvRaw(csv); setCsvError(''); })
+        .catch((err) => setCsvError(`Could not read the spreadsheet: ${err.message || 'unknown error'}`));
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => { setCsvRaw(String(e.target.result || '')); setCsvError(''); };
     reader.onerror = () => setCsvError('Could not read file.');
@@ -956,8 +968,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               </div>
 
               <div>
-                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">2. Pick CSV file</label>
-                <input type="file" accept=".csv,text/csv" onChange={e => onCsvFile(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:hover:bg-[#B85838] file:cursor-pointer" />
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">2. Pick a CSV or Excel file (.csv, .xlsx, .xls)</label>
+                <input type="file" accept=".csv,text/csv,.xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onChange={e => onCsvFile(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:hover:bg-[#B85838] file:cursor-pointer" />
               </div>
 
               <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ fontFamily: '"Fraunces", serif' }}>
