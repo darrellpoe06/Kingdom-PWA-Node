@@ -7,6 +7,7 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import { ConcernsBoard } from './ConcernsBoard.jsx';
+import ProjectBoards from './ProjectBoards.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
 import LoopHealth from './LoopHealth.jsx';
@@ -167,7 +168,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   useHistoryValue(subView, setSubView, { base: 'list', key: 'projects-sub' });
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
-  const tabs = [['list','Projects · Timeline'],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
+  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
   // Loop Health (DR-0061/0075) — the app reviews its own loops; stagnant ones
   // ask the Governor to keep or retire them. Governor-gated like the rest.
@@ -201,6 +202,9 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
               dedicated Inventory sub-tab is where the editing/adding lives. */}
           <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} compact />
         </>
+      )}
+      {subView === 'boards' && (
+        <ProjectBoards isGovernor={isGovernor} currentUserPersona={currentUserPersona} projects={projects} />
       )}
       {subView === 'discussions' && (
         <Discussions discussions={discussions} projects={projects} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion} currentUserId={currentUserId} currentUserPersona={currentUserPersona} isGovernor={isGovernor} />
