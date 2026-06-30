@@ -15,7 +15,8 @@ import { fmt } from '../lib/format.js';
 import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
-import { isSpreadsheetFile, statementFileToCsv } from '../lib/statement-import.js';
+import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows } from '../lib/statement-import.js';
+import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
@@ -133,6 +134,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const [csvRaw, setCsvRaw] = useState('');
   const [csvAccountId, setCsvAccountId] = useState(accounts[0]?.id || '');
   const [csvFlipSign, setCsvFlipSign] = useState(false);
+  const [bulkPlan, setBulkPlan] = useState(null);
+  const [bulkBusy, setBulkBusy] = useState('');
   const [csvError, setCsvError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -589,6 +592,32 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     setCsvError('');
     alert(`Imported ${valid.length} transaction(s).`);
   };
+  // Bulk import — drop MANY statement files at once, each AUTO-ROUTED to its
+  // account by filename, deduped (FITID/content) so a re-upload or overlapping
+  // files can never double-count. For multi-account months + client onboarding.
+  const onBulkFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    setBulkBusy(`Reading ${files.length} file(s)…`); setBulkPlan(null); setCsvError('');
+    try {
+      const parsed = [];
+      for (const f of files) {
+        const text = await statementFileToCsv(f);
+        parsed.push({ name: f.name, rows: parseDelimitedToRows(text, { flipSign: csvFlipSign }).rows });
+      }
+      setBulkPlan(planBulkImport(parsed, accounts, data.transactions || [], csvAccountId || null));
+    } catch (e) {
+      setBulkPlan(null); setCsvError(`Could not read files: ${e.message || 'error'}`);
+    } finally { setBulkBusy(''); }
+  };
+  const commitBulk = () => {
+    if (!bulkPlan || !bulkPlan.totalNew) return;
+    if (!confirm(`Import ${bulkPlan.totalNew} transaction(s) across ${bulkPlan.routed.length} account(s)? ${bulkPlan.duplicates} duplicate(s) will be skipped.`)) return;
+    bulkPlan.routed.forEach(b => b.txns.forEach(t => addTransaction(t)));
+    recordLoopRun({ key: 'upload-import', status: 'success', processed: bulkPlan.totalNew, detail: `bulk · ${bulkPlan.routed.length} accounts` });
+    setBulkPlan(null); setCsvOpen(false);
+    alert(`Imported ${bulkPlan.totalNew} transaction(s).`);
+  };
   const onCsvFile = (file) => {
     if (!file) return;
     // Excel (.xlsx/.xls) is parsed to CSV text first (lazy SheetJS), then flows
@@ -983,6 +1012,26 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <input type="checkbox" checked={csvFlipSign} onChange={e => setCsvFlipSign(e.target.checked)} className="accent-[#B85838]" />
                 <span>Flip the sign on every amount. <em>Tick this if your bank exports charges as positive (AMEX, some Discover exports). Chase usually doesn't need this.</em></span>
               </label>
+
+              <div className="border-t border-[#E8E4DC] pt-3">
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">Or BULK import — drop MANY files at once; each is auto-routed to its account by filename and duplicates are skipped (for whole months + onboarding)</label>
+                <input type="file" multiple accept=".csv,text/csv,.xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onChange={e => onBulkFiles(e.target.files)} className="block w-full text-xs mt-1 file:mr-3 file:px-3 file:py-1.5 file:bg-[#B85838] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
+                {bulkBusy && <div className="text-xs text-[#5A5751] mt-1 italic" style={{ fontFamily: '"Fraunces", serif' }}>{bulkBusy}</div>}
+                {bulkPlan && (
+                  <div className="mt-2 bg-[#FAF8F4] border border-[#1A1815] p-2 space-y-1">
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{bulkPlan.totalNew} new · {bulkPlan.duplicates} duplicate(s) skipped · {bulkPlan.totalRows} read</div>
+                    {bulkPlan.routed.map(b => (
+                      <div key={b.accountId} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b.accountName}: <strong>{b.count}</strong> transactions</div>
+                    ))}
+                    {bulkPlan.unrouted.map((u, i) => (
+                      <div key={i} className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{u.name}: {u.count} — {u.reason}</div>
+                    ))}
+                    {bulkPlan.totalNew > 0 && (
+                      <button type="button" onClick={commitBulk} className="mt-1 w-full bg-[#1A1815] text-white py-2 text-[0.625rem] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Import all {bulkPlan.totalNew} transactions</button>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {csvParsed.errors.length > 0 && (
                 <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>

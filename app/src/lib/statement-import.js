@@ -59,3 +59,69 @@ export async function statementFileToCsv(file) {
   if (isSpreadsheetFile(file)) return spreadsheetFileToCsv(file);
   return await file.text();
 }
+
+// -----------------------------------------------------------------------------
+// parseDelimitedToRows — CSV text -> normalized transaction rows. The column
+// mapping + date normalization the Books importer uses, exported here so the
+// bulk importer (many files at once) can reuse the SAME proven mapping per file.
+// Returns { rows: [{date, description, amount, category, ok}], headers, errors }.
+// -----------------------------------------------------------------------------
+export function parseCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i += 1; } else inQ = false;
+      } else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ',') { out.push(cur); cur = ''; } else cur += ch;
+  }
+  out.push(cur);
+  return out.map((s) => s.trim());
+}
+
+export function normalizeDate(s) {
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) { let [, mo, da, yr] = m; if (yr.length === 2) yr = (parseInt(yr, 10) > 50 ? '19' : '20') + yr; return `${yr}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`; }
+  m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
+  if (m) { let [, mo, da, yr] = m; if (yr.length === 2) yr = (parseInt(yr, 10) > 50 ? '19' : '20') + yr; return `${yr}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`; }
+  return s;
+}
+
+export function parseDelimitedToRows(text, { flipSign = false } = {}) {
+  if (!text || !text.trim()) return { rows: [], headers: [], errors: ['File is empty.'] };
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return { rows: [], headers: [], errors: ['File is empty.'] };
+  const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
+  const findCol = (...names) => { for (const n of names) { const i = headers.indexOf(n); if (i !== -1) return i; } return -1; };
+  const idx = {
+    date: findCol('transaction date', 'date', 'posted date', 'post date'),
+    desc: findCol('description', 'details', 'memo', 'name', 'payee'),
+    amount: findCol('amount', 'debit', 'transaction amount'),
+    credit: findCol('credit'),
+    category: findCol('category', 'type'),
+  };
+  const errors = [];
+  if (idx.date === -1) errors.push('No Date column found.');
+  if (idx.desc === -1) errors.push('No Description column found.');
+  if (idx.amount === -1 && idx.credit === -1) errors.push('No Amount column found.');
+  if (errors.length) return { rows: [], headers, errors };
+  const rows = lines.slice(1).map((line) => {
+    const cells = parseCsvLine(line);
+    const date = normalizeDate(cells[idx.date] || '');
+    const desc = cells[idx.desc] || '';
+    let amt = 0;
+    if (idx.amount !== -1 && cells[idx.amount]) amt = parseFloat(cells[idx.amount].replace(/[$,]/g, '')) || 0;
+    else if (idx.credit !== -1 && cells[idx.credit]) amt = parseFloat(cells[idx.credit].replace(/[$,]/g, '')) || 0;
+    if (flipSign) amt = -amt;
+    const category = idx.category !== -1 ? (cells[idx.category] || 'other').toLowerCase() : 'other';
+    const ok = !!date && !!desc && /^\d{4}-\d{2}-\d{2}$/.test(date);
+    return { date, description: desc, amount: amt, category, ok };
+  }).filter((r) => r.ok);
+  return { rows, headers, errors: [] };
+}
