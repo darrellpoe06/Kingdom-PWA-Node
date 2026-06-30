@@ -73,35 +73,99 @@ export function monthsBetween(from, to) {
 }
 
 // -----------------------------------------------------------------------------
-// liveCashOnHand — TODAY'S spendable cash, derived from the real ledger.
-//
-// Mirrors the Books → Tx derivation exactly: per cash account,
+// deriveAccountBalances — the "Right now" balance for EVERY account (all types),
+// derived from the real ledger:
 //   balance = (openingBalance ?? balance) + sum of that account's CLEARED tx,
-// where "cleared" = transaction date on or before `currentDate`. This is the
-// single source of truth for "how much cash do we actually have right now," and
-// it moves automatically as real transactions post. Returns the total plus a
-// per-account breakdown (so per-entity views can sum their own accounts).
+// where "cleared" = transaction date on or before `asOf`. openingBalance falls
+// back to the stored `balance` for accounts that predate the field (and for
+// user-created accounts with no ledger yet → now = balance).
+//
+// This is THE single source of truth for displayed balances across the whole
+// app — Big Picture, Accounts, Entities, Transactions, and the forecast all read
+// from here, so a transaction entered OR imported moves every balance in
+// lockstep (no static seed, no painted number — DR-0076). Returns a plain map
+// { [accountId]: balance } (credit/loan included; callers filter by type).
 // -----------------------------------------------------------------------------
-export function liveCashOnHand(data, currentDate = new Date()) {
-  const accounts = (data?.accounts || []).filter(
-    (a) => CASH_TYPES.includes(a.type) && !a.inLegal,
-  );
+export function deriveAccountBalances(data, asOf = new Date()) {
   const clearedByAccount = {};
   for (const t of data?.transactions || []) {
     if (!t || !t.accountId) continue;
     const d = new Date(t.date);
-    if (isNaN(d.getTime()) || d > currentDate) continue; // only settled history
+    if (isNaN(d.getTime()) || d > asOf) continue; // only settled history
     clearedByAccount[t.accountId] = (clearedByAccount[t.accountId] || 0) + (Number(t.amount) || 0);
   }
+  const out = {};
+  for (const a of data?.accounts || []) {
+    const opening = a.openingBalance != null ? a.openingBalance : (a.balance || 0);
+    out[a.id] = round2(opening + (clearedByAccount[a.id] || 0));
+  }
+  return out;
+}
+
+// -----------------------------------------------------------------------------
+// liveCashOnHand — TODAY'S spendable cash, derived from the real ledger. Cash =
+// spendable balances only (excludes credit/loan debts + inLegal accounts).
+// Reads deriveAccountBalances so it can never drift from the rest of the app.
+// Returns the total plus a per-account breakdown (so per-entity views can sum
+// their own accounts).
+// -----------------------------------------------------------------------------
+export function liveCashOnHand(data, currentDate = new Date()) {
+  const balances = deriveAccountBalances(data, currentDate);
+  const accounts = (data?.accounts || []).filter(
+    (a) => CASH_TYPES.includes(a.type) && !a.inLegal,
+  );
   let total = 0;
   const byAccount = [];
   for (const a of accounts) {
-    const opening = a.openingBalance != null ? a.openingBalance : (a.balance || 0);
-    const balance = round2(opening + (clearedByAccount[a.id] || 0));
+    const balance = balances[a.id] != null ? balances[a.id] : 0;
     byAccount.push({ id: a.id, entityId: a.entityId, name: a.name, balance });
     total += balance;
   }
   return { total: round2(total), byAccount };
+}
+
+// -----------------------------------------------------------------------------
+// deriveEntityRollups — per-entity account/cash/credit/inflow/debt rollup, with
+// every account decorated with its DERIVED balance (deriveAccountBalances). This
+// is the shared source the Accounts, Entities, and Big Picture surfaces all read,
+// so they move with the ledger in lockstep (extracted from the monolith — was
+// inline static `a.balance`; DR-0076 no-painted-number). Entities sort personal
+// first, then business, preserving insertion order within each type.
+// -----------------------------------------------------------------------------
+export function deriveEntityRollups(data, visibleEntities, asOf = new Date()) {
+  const balances = deriveAccountBalances(data, asOf);
+  const entities = visibleEntities || data?.entities || [];
+  const accounts = data?.accounts || [];
+  const debts = data?.debts || [];
+  const salaries = data?.inflows?.salaries || [];
+  const rentals = data?.inflows?.rentals || [];
+  const isCash = (a) => CASH_TYPES.includes(a.type);
+  const isCredit = (a) => a.type === 'credit' || a.type === 'loan';
+  const sorted = [...entities].sort((a, b) => (a.type === b.type ? 0 : a.type === 'personal' ? -1 : 1));
+  return sorted.map((entity) => {
+    const entAccounts = accounts
+      .filter((a) => a.entityId === entity.id)
+      .map((a) => ({ ...a, derivedBalance: balances[a.id] != null ? balances[a.id] : (a.balance || 0) }));
+    const sumBal = (pred) => round2(
+      entAccounts.filter((a) => pred(a) && !a.inLegal).reduce((s, a) => s + a.derivedBalance, 0),
+    );
+    const inflow = round2(
+      salaries.filter((s) => s.entityId === entity.id).reduce((s, x) => s + (Number(x.actual) || 0), 0)
+      + rentals.filter((r) => r.entityId === entity.id).reduce((s, x) => s + (Number(x.actual) || 0), 0),
+    );
+    const entDebts = debts.filter((d) => d.entityId === entity.id);
+    const debtBalance = round2(entDebts.reduce((s, d) => s + (Number(d.balance) || 0), 0));
+    return {
+      entity,
+      accounts: entAccounts,
+      balance: sumBal(() => true), // legacy total (all non-legal types)
+      cashBalance: sumBal(isCash),
+      creditBalance: sumBal(isCredit),
+      inflow,
+      debts: entDebts,
+      debtBalance,
+    };
+  });
 }
 
 // -----------------------------------------------------------------------------

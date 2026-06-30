@@ -70,7 +70,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
   // 2026-05-24: liquid = cash types AND not in legal. Credit cards and loans
   // no longer surface on this tab; their totals live on the Debts page.
   const liquidAccounts = allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal);
-  const liquidTotal = liquidAccounts.reduce((s, a) => s + (a.balance || 0), 0);
+  const liquidTotal = liquidAccounts.reduce((s, a) => s + (a.derivedBalance ?? a.balance ?? 0), 0);
 
   // Phase 2B — bank-derived totals for the same liquid set. Sums LEDGERBAL
   // for each linked account, plus the manual balance for accounts that
@@ -84,7 +84,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
       bankLinkedCount += 1;
       bankDerivedLiquid += bal.ledger_balance;
     } else {
-      bankDerivedLiquid += (a.balance || 0);
+      bankDerivedLiquid += (a.derivedBalance ?? a.balance ?? 0);
     }
   }
   const bankDerivedDelta = +(bankDerivedLiquid - liquidTotal).toFixed(2);
@@ -299,12 +299,13 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
       {entityRollups.map(r => {
         // Bank accounts only (cash types), and only those NOT in legal status.
         const bankAccounts = r.accounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal);
-        const bankTotal = bankAccounts.reduce((s, a) => s + (a.balance || 0), 0);
+        const bankTotal = bankAccounts.reduce((s, a) => s + (a.derivedBalance ?? a.balance ?? 0), 0);
         const renderRow = (a, i, arr) => {
           // Phase 2B — bank-side balance for this account, if we can match it.
           const bal = balanceFor(a);
           const hasBankBal = bal && typeof bal.ledger_balance === 'number';
-          const delta = hasBankBal ? +(bal.ledger_balance - (a.balance || 0)).toFixed(2) : null;
+          const acctBal = (a.derivedBalance ?? a.balance ?? 0);
+          const delta = hasBankBal ? +(bal.ledger_balance - acctBal).toFixed(2) : null;
           const deltaClass = delta === null ? '' :
             Math.abs(delta) < 0.5 ? 'text-[#5A6E3D]' :
             delta < 0 ? 'text-[#B85838]' : 'text-[#D97706]';
@@ -325,7 +326,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
                 )}
               </div>
               <div className="text-right">
-                <div className={`${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div>
+                <div className={`${acctBal < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(acctBal)}</div>
                 {hasBankBal && (
                   <div className="text-[10px] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }} title={bal.balance_as_of ? `Bank ledger balance as of ${bal.balance_as_of}` : 'Bank ledger balance'}>
                     <span className="text-[#5A5751] uppercase tracking-wider mr-1">bank:</span>
