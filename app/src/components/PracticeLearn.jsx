@@ -39,6 +39,7 @@ import {
   ACADEMY_AUDIENCES, visibleAudiences, canSeeAudience, defaultAudience, getAudience,
   audienceTracks, outcomesFor, trackCompletion, moduleComplete,
   DEFAULT_CERT_CATALOG, catalogForAudience, creditLabel, issueCertificate, certExpired,
+  makeCertTemplate,
   HOUR_ACTIVITY_TYPES, DEFAULT_ACTIVITY_TYPE, activityType, CLINICAL_COMPETENCIES,
   IL_LCSW_REQUIREMENT, makeHourEntry, requirementProgress, hoursByCompetency, sumHours,
   DEFAULT_REQUIRED_TRAININGS, requiredTrainingStatus, requiredTrainingSummary,
@@ -48,6 +49,15 @@ import {
   DEFAULT_STATE, listStates, getRuleset, rulesetCredentials,
   ceTopicOptions, makeCeEntry, ceProgress, GENERAL_TOPIC,
 } from '../lib/ceu-tracker.js';
+import {
+  allCourses, libraryByField, libraryTotals, LIBRARY_HOURS_NOTE, LIBRARY_VALIDATION_NOTE,
+  courseModuleAssessment, courseComplete, gradeCourseTest, growthDelta,
+  courseHourEntry, courseTrainingHours,
+} from '../lib/tlc-training-library.js';
+import { buildTrainingPlan, planToRequirementNote } from '../lib/tlc-training-plan.js';
+import {
+  DECISIONS, applyApproval, courseApprovalStatus, approvalSummary,
+} from '../lib/tlc-course-approval.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -63,6 +73,9 @@ const LS = {
   hours: 'poe.practiceAcademy.hours.v1',
   ceu: 'poe.practiceAcademy.ceu.v1',          // logged continuing-education activities
   ceuCfg: 'poe.practiceAcademy.ceuCfg.v1',     // { state, credential, renewalNumber }
+  libTests: 'poe.practiceAcademy.libTests.v1', // course pre/post-test results { [courseId]: { pre, post } }
+  libApproval: 'poe.practiceAcademy.libApproval.v1', // Christina's per-course agree/disagree
+  libLogged: 'poe.practiceAcademy.libLogged.v1',     // course ids whose training hours were logged
 };
 function loadLS(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } }
 function saveLS(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* no storage */ } }
@@ -86,6 +99,9 @@ function PracticeLearn({ email = '', isStaff = false }) {
   const [hours, setHours] = useState(() => loadLS(LS.hours, []));
   const [ceus, setCeus] = useState(() => loadLS(LS.ceu, []));
   const [ceuCfg, setCeuCfg] = useState(() => loadLS(LS.ceuCfg, { state: DEFAULT_STATE, credential: 'LCSW', renewalNumber: 2 }));
+  const [libTests, setLibTests] = useState(() => loadLS(LS.libTests, {}));
+  const [libApproval, setLibApproval] = useState(() => loadLS(LS.libApproval, {}));
+  const [libLogged, setLibLogged] = useState(() => loadLS(LS.libLogged, []));
   const [openModuleId, setOpenModuleId] = useState(null);
 
   useEffect(() => { saveLS(LS.audience, audience); }, [audience]);
@@ -98,6 +114,9 @@ function PracticeLearn({ email = '', isStaff = false }) {
   useEffect(() => { saveLS(LS.hours, hours); }, [hours]);
   useEffect(() => { saveLS(LS.ceu, ceus); }, [ceus]);
   useEffect(() => { saveLS(LS.ceuCfg, ceuCfg); }, [ceuCfg]);
+  useEffect(() => { saveLS(LS.libTests, libTests); }, [libTests]);
+  useEffect(() => { saveLS(LS.libApproval, libApproval); }, [libApproval]);
+  useEffect(() => { saveLS(LS.libLogged, libLogged); }, [libLogged]);
 
   useEffect(() => {
     if (!canSeeAudience(audience, { isStaff })) setAudience(defaultAudience({ isStaff }));
@@ -138,18 +157,49 @@ function PracticeLearn({ email = '', isStaff = false }) {
 
   const showHoursLedger = isStaff && (audience === 'therapist' || audience === 'training');
 
+  // -- Course library (the built-out training courses across the ten fields) ----
+  const libCourses = useMemo(() => allCourses(), []);
+  const showLibrary = audience === 'therapist' || audience === 'training';
+  const libGroups = useMemo(() => libraryByField(libCourses), [libCourses]);
+  const libTotals = useMemo(() => libraryTotals(libCourses), [libCourses]);
+  const libApprovalTally = useMemo(() => approvalSummary(libCourses, libApproval), [libCourses, libApproval]);
+  const trainingPlan = useMemo(
+    () => buildTrainingPlan(libCourses, { hoursPerMonth: 24, months: 36, startISO: nowISO() }),
+    [libCourses],
+  );
+
+  const decideCourse = (courseId, decision) =>
+    setLibApproval((prev) => applyApproval(prev, courseId, { decision, by: email || 'Christina (LCSW)', at: nowISO() }));
+  const recordCourseTest = (courseId, which, result) =>
+    setLibTests((prev) => ({ ...prev, [courseId]: { ...(prev[courseId] || {}), [which]: { passed: result.passed, pct: result.pct, at: nowISO() } } }));
+
+  // Completing a course logs its TRAINING hours into the supervised-hours ledger (a
+  // 'training' activity tagged with the course's field) AND issues a certificate that
+  // affirms the hours — real records, logged once (libLogged guards a double-log).
+  const completeCourse = (course) => {
+    if (libLogged.includes(course.id)) return;
+    logHours(courseHourEntry(course, { learnerEmail: email, date: todayISO() }));
+    const tpl = makeCertTemplate({
+      id: `cert-${course.id}`, audienceKey: 'training', title: `${course.title} — Certificate of Completion`,
+      trackKey: course.id, trainingHours: courseTrainingHours(course), competency: course.field, expiresMonths: null,
+    });
+    const cert = issueCertificate(tpl, { learnerName: email ? email.split('@')[0] : 'Learner', learnerEmail: email, trackTitle: course.title, now: nowISO() });
+    setCerts((prev) => (prev.some((c) => c.id === cert.id) ? prev : [cert, ...prev]));
+    setLibLogged((prev) => (prev.includes(course.id) ? prev : [...prev, course.id]));
+  };
+
   return (
     <div className="space-y-5">
       {/* Header + audience switcher */}
       <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions · Learn</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions · Learn</div>
         <h2 className="text-2xl mb-1" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>A Learn space that builds real skill</h2>
         <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={SERIF}>
           Learning that actually helps — psychoeducation and coping skills for clients and families, clinical growth for therapists, and a real record of the work. Built on the same paced, age-adaptive, read-aloud-ready Learn engine the rest of the app uses.
         </p>
 
         <div className="mt-4">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1.5">Who is learning</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1.5">Who is learning</div>
           <div role="group" aria-label="Learn audience" className="flex flex-wrap gap-1.5">
             {vis.map((a) => (
               <button
@@ -157,20 +207,20 @@ function PracticeLearn({ email = '', isStaff = false }) {
                 type="button"
                 aria-pressed={audience === a.key}
                 onClick={() => { setAudience(a.key); setOpenModuleId(null); }}
-                className={`px-3 py-2 min-h-[40px] text-[11px] uppercase tracking-wider whitespace-nowrap border focus:outline focus:outline-2 focus:outline-[#B85838] ${audience === a.key ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#B85838]'}`}
+                className={`px-3 py-2 min-h-[40px] text-[0.6875rem] uppercase tracking-wider whitespace-nowrap border focus:outline focus:outline-2 focus:outline-[#B85838] ${audience === a.key ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#B85838]'}`}
               >
                 <span aria-hidden="true">{a.icon}</span> {a.label}
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-[#5A5751] italic mt-2" style={SERIF}>{aud.blurb}</p>
+          <p className="text-[0.6875rem] text-[#5A5751] italic mt-2" style={SERIF}>{aud.blurb}</p>
           {audience === 'client' && (
-            <p className="text-[11px] text-[#B85838] mt-1.5 font-medium">
+            <p className="text-[0.6875rem] text-[#B85838] mt-1.5 font-medium">
               ⚠ Educational support only — psychoeducation, not treatment or diagnosis. In an emergency, contact crisis / emergency services (e.g., 988 in the US).
             </p>
           )}
           {isStaff && (
-            <p className="text-[10px] text-[#5A5751] mt-1.5" style={SERIF}>
+            <p className="text-[0.625rem] text-[#5A5751] mt-1.5" style={SERIF}>
               You can switch audiences to preview / run any track. A real client or therapist sign-in pins the audience from membership (Phase 2, roles layer).
             </p>
           )}
@@ -179,32 +229,32 @@ function PracticeLearn({ email = '', isStaff = false }) {
 
       {/* OUTCOMES — what you'll gain. Leads the experience. */}
       <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">What you’ll gain</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">What you’ll gain</div>
         <p className="text-sm text-[#1A1815] mb-3 max-w-prose" style={SERIF}><strong>Understand:</strong> {outcomes.understand}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Skills you’ll build</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Skills you’ll build</div>
             <ul className="list-disc pl-5 space-y-0.5">
               {outcomes.skills.map((s, i) => <li key={i} className="text-xs text-[#1A1815]" style={SERIF}>{s}</li>)}
             </ul>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Coping skills</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Coping skills</div>
             <ul className="list-disc pl-5 space-y-0.5">
               {outcomes.coping.map((s, i) => <li key={i} className="text-xs text-[#1A1815]" style={SERIF}>{s}</li>)}
             </ul>
           </div>
         </div>
-        <p className="text-[11px] text-[#5A5751] italic mt-3" style={SERIF}><strong className="text-[#5A6E3D] not-italic">How you’ll improve:</strong> {outcomes.improve}</p>
+        <p className="text-[0.6875rem] text-[#5A5751] italic mt-3" style={SERIF}><strong className="text-[#5A6E3D] not-italic">How you’ll improve:</strong> {outcomes.improve}</p>
       </section>
 
       {/* Reading support (the shared accessibility primitives) */}
       <section className="bg-white border border-[#E8E4DC] p-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Reading support</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Reading support</div>
         <div className="flex flex-wrap items-center gap-4">
           <TextSizeControl variant="panel" />
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Reading level</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Reading level</div>
             <div role="group" aria-label="Reading level" className="flex flex-wrap gap-1.5">
               {LEARN_LEVELS.map((l) => (
                 <button
@@ -213,7 +263,7 @@ function PracticeLearn({ email = '', isStaff = false }) {
                   aria-pressed={level === l.id}
                   title={l.hint}
                   onClick={() => setLevel(l.id)}
-                  className={`px-2.5 py-1.5 min-h-[34px] text-[10px] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-[#B85838] ${level === l.id ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#5A6E3D]'}`}
+                  className={`px-2.5 py-1.5 min-h-[34px] text-[0.625rem] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-[#B85838] ${level === l.id ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#5A6E3D]'}`}
                 >
                   {l.label}
                 </button>
@@ -221,7 +271,7 @@ function PracticeLearn({ email = '', isStaff = false }) {
             </div>
           </div>
         </div>
-        <p className="text-[10px] text-[#5A5751] italic mt-2" style={SERIF}>Large-print scaling, plain-language levels, and read-aloud so the full meaning lands for every reader.</p>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={SERIF}>Large-print scaling, plain-language levels, and read-aloud so the full meaning lands for every reader.</p>
       </section>
 
       {/* Tracks + lessons for this audience */}
@@ -241,6 +291,32 @@ function PracticeLearn({ email = '', isStaff = false }) {
           alreadyEarned={(certId) => certs.some((c) => c.certId === certId)}
         />
       ))}
+
+      {/* The built-out clinician COURSE LIBRARY across the ten training fields */}
+      {showLibrary && (
+        <CourseLibrary
+          groups={libGroups}
+          totals={libTotals}
+          approvalTally={libApprovalTally}
+          approval={libApproval}
+          isStaff={isStaff}
+          level={level}
+          progress={progress}
+          quizState={quizState}
+          libTests={libTests}
+          libLogged={libLogged}
+          openModuleId={openModuleId}
+          setOpenModuleId={setOpenModuleId}
+          onRecordQuiz={recordQuiz}
+          onMarkRead={markRead}
+          onDecide={decideCourse}
+          onRecordTest={recordCourseTest}
+          onComplete={completeCourse}
+        />
+      )}
+
+      {/* The 24-hours/month, multi-year training MAP across the ten fields */}
+      {showLibrary && <TrainingPlanPanel plan={trainingPlan} />}
 
       {/* Certificates earned (this device) */}
       <EarnedCertificates certs={certs} onRemove={(id) => setCerts((prev) => prev.filter((c) => c.id !== id))} />
@@ -280,12 +356,12 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
     <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
         <h3 className="text-lg" style={{ ...SERIF, fontWeight: 600 }}>{track.title}</h3>
-        <span className={`text-[10px] uppercase tracking-wider ${published ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
+        <span className={`text-[0.625rem] uppercase tracking-wider ${published ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
           {published ? '✓ validated' : 'needs SME validation'}
         </span>
       </div>
       <p className="text-xs text-[#5A5751] mb-2 max-w-prose" style={SERIF}>{track.purpose}</p>
-      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-3">
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-3">
         {track.modules.length} lessons · {completion.done}/{completion.total} done · {completion.progressPct}%{ce > 0 ? ` · ~${ce} training hours` : ''}
       </div>
       <div className="h-1.5 bg-[#E8E4DC] mb-3"><div className="h-full bg-[#5A6E3D]" style={{ width: `${completion.progressPct}%` }} /></div>
@@ -321,21 +397,21 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
       {/* Certificate offer on completion — affirms the growth */}
       {certTemplates.length > 0 && (
         <div className="mt-4 border-t border-[#E8E4DC] pt-3">
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Certificate for this track</div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Certificate for this track</div>
           {certTemplates.map((tpl) => {
             const earned = alreadyEarned(tpl.id);
             return (
               <div key={tpl.id} className="flex items-center justify-between gap-2 flex-wrap border border-[#E8E4DC] p-2.5 mb-1.5">
                 <div className="min-w-0">
                   <div className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{tpl.title}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{creditLabel(tpl)}</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{creditLabel(tpl)}</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => onEarn(tpl)}
                   disabled={!completion.complete || earned}
                   title={!completion.complete ? 'Finish every lesson (and its check) to earn this' : earned ? 'Already earned' : 'Earn this certificate'}
-                  className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
                 >
                   {earned ? '✓ Earned' : completion.complete ? 'Earn certificate' : 'Complete to earn'}
                 </button>
@@ -398,7 +474,7 @@ function QuizBlock({ module, saved, onRecord, onMarkRead }) {
         <button
           type="button"
           onClick={() => onMarkRead(module.id)}
-          className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
         >
           Mark as read
         </button>
@@ -414,7 +490,7 @@ function QuizBlock({ module, saved, onRecord, onMarkRead }) {
 
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Quick check</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Quick check</div>
       <ol className="space-y-3">
         {questions.map((q, qi) => (
           <li key={qi}>
@@ -434,12 +510,12 @@ function QuizBlock({ module, saved, onRecord, onMarkRead }) {
                       className="w-4 h-4"
                     />
                     <span className="text-[#1A1815]">{opt}</span>
-                    {showCorrect && <span className="ml-auto text-[#5A6E3D] text-[10px] uppercase">✓ correct</span>}
+                    {showCorrect && <span className="ml-auto text-[#5A6E3D] text-[0.625rem] uppercase">✓ correct</span>}
                   </label>
                 );
               })}
             </div>
-            {graded && q.explain && <p className="text-[11px] text-[#5A5751] italic mt-1" style={SERIF}>{q.explain}</p>}
+            {graded && q.explain && <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={SERIF}>{q.explain}</p>}
           </li>
         ))}
       </ol>
@@ -448,7 +524,7 @@ function QuizBlock({ module, saved, onRecord, onMarkRead }) {
           type="button"
           onClick={submit}
           disabled={Object.keys(answers).length < questions.length}
-          className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
+          className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
         >
           Check my answers
         </button>
@@ -480,11 +556,11 @@ function EarnedCertificates({ certs, onRemove }) {
             <div key={c.id} className="bg-white border-2 border-[#5A6E3D] p-4">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{c.title}</span>
-                <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D]">Completed</span>
+                <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]">Completed</span>
               </div>
-              <div className="text-[11px] text-[#5A5751] mt-0.5" style={SERIF}>{c.trackTitle} · {c.learnerName}{c.competency ? ` · ${c.competency}` : ''}</div>
-              <div className="text-[11px] text-[#1A1815] mt-1" style={SERIF}><strong>{c.label}</strong></div>
-              <div className="flex items-center gap-3 mt-2 text-[10px] text-[#5A5751]" style={MONO}>
+              <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={SERIF}>{c.trackTitle} · {c.learnerName}{c.competency ? ` · ${c.competency}` : ''}</div>
+              <div className="text-[0.6875rem] text-[#1A1815] mt-1" style={SERIF}><strong>{c.label}</strong></div>
+              <div className="flex items-center gap-3 mt-2 text-[0.625rem] text-[#5A5751]" style={MONO}>
                 <span>Issued {fmtDate(c.issuedAt)}</span>
                 {c.expiresAt && <span className={expired ? 'text-[#B85838] font-semibold' : ''}>{expired ? 'EXPIRED ' : 'Expires '}{fmtDate(c.expiresAt)}</span>}
                 <span>Verify {c.verifyCode}</span>
@@ -523,7 +599,7 @@ function HoursLedger({ entries, onLog, onRemove }) {
     <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <SectionTitle eyebrow="Training hours · IL MSW → LCSW">Supervised hours ledger</SectionTitle>
-        <button type="button" onClick={() => setShow(!show)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">{show ? '× Cancel' : '+ Log hours'}</button>
+        <button type="button" onClick={() => setShow(!show)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">{show ? '× Cancel' : '+ Log hours'}</button>
       </div>
 
       {/* Progress toward the requirement */}
@@ -535,41 +611,41 @@ function HoursLedger({ entries, onLog, onRemove }) {
       </div>
       <div className="h-2 bg-[#E8E4DC] mb-1"><div className="h-full bg-[#5A6E3D]" style={{ width: `${prog.pct}%` }} /></div>
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
-        <p className="text-[11px] text-[#5A5751]" style={SERIF}>
+        <p className="text-[0.6875rem] text-[#5A5751]" style={SERIF}>
           {prog.pct}% toward the Illinois supervised-clinical standard{prog.supervisors.length ? ` · supervisor(s) of record: ${prog.supervisors.join(', ')}` : ''}.
         </p>
       </div>
-      <p className="text-[10px] text-[#5A5751] italic mt-1" style={SERIF}>{IL_LCSW_REQUIREMENT.note}</p>
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={SERIF}>{IL_LCSW_REQUIREMENT.note}</p>
 
       {/* Log form */}
       {show && (
         <div className="border border-[#B85838] p-3 mt-3 space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Date
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date
               <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
             </label>
-            <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Hours
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Hours
               <input type="number" min="0" step="0.25" value={form.hours} onChange={(e) => setForm({ ...form, hours: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
             </label>
-            <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Activity
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Activity
               <select value={form.activity} onChange={(e) => setForm({ ...form, activity: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case">
                 {HOUR_ACTIVITY_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
               </select>
             </label>
-            <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Competency
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Competency
               <select value={form.competency} onChange={(e) => setForm({ ...form, competency: e.target.value })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case">
                 <option value="">—</option>
                 {CLINICAL_COMPETENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </label>
-            <label className="text-[10px] uppercase tracking-wider text-[#5A5751] sm:col-span-2">Supervisor of record
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] sm:col-span-2">Supervisor of record
               <input value={form.supervisor} onChange={(e) => setForm({ ...form, supervisor: e.target.value })} placeholder="e.g., Christina Poe, LCSW" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
             </label>
-            <label className="text-[10px] uppercase tracking-wider text-[#5A5751] sm:col-span-2">Note
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] sm:col-span-2">Note
               <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="brief, no client-identifying detail" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
             </label>
           </div>
-          <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-white py-2 text-[10px] uppercase tracking-wider hover:bg-[#5A6E3D] min-h-[36px]">Log these hours</button>
+          <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-white py-2 text-[0.625rem] uppercase tracking-wider hover:bg-[#5A6E3D] min-h-[36px]">Log these hours</button>
         </div>
       )}
 
@@ -577,7 +653,7 @@ function HoursLedger({ entries, onLog, onRemove }) {
       {Object.keys(byComp).length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {Object.entries(byComp).map(([k, v]) => (
-            <span key={k} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] bg-[#FAF8F4]">{k}: {v}h</span>
+            <span key={k} className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] bg-[#FAF8F4]">{k}: {v}h</span>
           ))}
         </div>
       )}
@@ -590,8 +666,8 @@ function HoursLedger({ entries, onLog, onRemove }) {
               <div className="min-w-0">
                 <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{e.hours}h</span>
                 <span className="text-xs text-[#5A5751]"> · {(activityType(e.activity) || {}).label || e.activity}</span>
-                {e.competency && <span className="text-[10px] text-[#5A5751]"> · {e.competency}</span>}
-                <div className="text-[10px] text-[#5A5751]" style={MONO}>{fmtDate(e.date)}{e.supervisor ? ` · ${e.supervisor}` : ''}{e.note ? ` · ${e.note}` : ''}</div>
+                {e.competency && <span className="text-[0.625rem] text-[#5A5751]"> · {e.competency}</span>}
+                <div className="text-[0.625rem] text-[#5A5751]" style={MONO}>{fmtDate(e.date)}{e.supervisor ? ` · ${e.supervisor}` : ''}{e.note ? ` · ${e.note}` : ''}</div>
               </div>
               <button type="button" onClick={() => onRemove(e.id)} aria-label="Remove entry" className="text-[#5A5751] hover:text-[#B85838] shrink-0 min-h-[28px] min-w-[28px]">×</button>
             </li>
@@ -787,19 +863,19 @@ function CertCatalogPanel({ catalog, setCatalog }) {
           <div key={c.id} className="border border-[#E8E4DC] p-3">
             <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
               <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{c.title}</span>
-              <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">{creditLabel(c)}</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{creditLabel(c)}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Training hours
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Training hours
                 <input type="number" min="0" step="0.5" value={c.trainingHours} onChange={(e) => update(c.id, { trainingHours: Number(e.target.value) || 0 })} className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
               </label>
-              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Expires (months)
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Expires (months)
                 <input type="number" min="0" value={c.expiresMonths || ''} onChange={(e) => update(c.id, { expiresMonths: e.target.value ? Number(e.target.value) : null })} placeholder="none" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" />
               </label>
-              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">CE provider <span className="text-[#5A5751] normal-case">(optional)</span>
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">CE provider <span className="text-[#5A5751] normal-case">(optional)</span>
                 <input value={c.ceProvider || ''} onChange={(e) => update(c.id, { ceProvider: e.target.value || null })} placeholder="e.g., ASWB ACE" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
               </label>
-              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">CE number <span className="text-[#5A5751] normal-case">(optional)</span>
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">CE number <span className="text-[#5A5751] normal-case">(optional)</span>
                 <input value={c.ceNumber || ''} onChange={(e) => update(c.id, { ceNumber: e.target.value || null })} placeholder="provider #" className="block w-full mt-0.5 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] normal-case" />
               </label>
             </div>
@@ -841,17 +917,17 @@ function RequiredTrainings({ reqs, completions, setCompletions }) {
             <div key={req.id} className="border border-[#E8E4DC] p-3">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{req.title}</span>
-                <span className={`text-[10px] uppercase tracking-wider ${meta.color}`}>{meta.label}</span>
+                <span className={`text-[0.625rem] uppercase tracking-wider ${meta.color}`}>{meta.label}</span>
               </div>
-              <div className="text-[11px] text-[#5A5751] mt-0.5" style={SERIF}>
+              <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={SERIF}>
                 Every {req.cadenceMonths} months · {req.note}
               </div>
-              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-[#5A5751]" style={MONO}>
+              <div className="flex items-center gap-3 mt-1.5 text-[0.625rem] text-[#5A5751]" style={MONO}>
                 {completions[req.id] ? <span>Last {fmtDate(completions[req.id])}{st.dueAt ? ` · due ${fmtDate(st.dueAt)}` : ''}</span> : <span>Never logged</span>}
                 <button
                   type="button"
                   onClick={() => setCompletions((prev) => ({ ...prev, [req.id]: now }))}
-                  className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
                 >
                   Log completed today
                 </button>
@@ -860,6 +936,327 @@ function RequiredTrainings({ reqs, completions, setCompletions }) {
           );
         })}
       </div>
+    </section>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// CourseLibrary — the built-out training-course library across the ten clinical
+// fields. Staff (Christina) review each finished course and Agree / Disagree; a
+// learner sees the courses, takes them on the shared engine, takes a pre/post test
+// (growth measure), and on completion logs the training hours + earns a certificate.
+// -----------------------------------------------------------------------------
+function CourseLibrary({
+  groups, totals, approvalTally, approval, isStaff, level, progress, quizState, libTests,
+  libLogged, openModuleId, setOpenModuleId, onRecordQuiz, onMarkRead, onDecide, onRecordTest, onComplete,
+}) {
+  return (
+    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <SectionTitle eyebrow="Training · the ten clinical fields">Course library</SectionTitle>
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{totals.courseCount} courses · {totals.totalHours} training hours</span>
+      </div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2 max-w-prose" style={SERIF}>{LIBRARY_VALIDATION_NOTE}</p>
+
+      {/* Review status — Christina's gate, at a glance */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-2">
+        <MetricCell label="Approved" value={`${approvalTally.approved}`} small accent="green" />
+        <MetricCell label="Awaiting review" value={`${approvalTally.pending}`} small accent="rust" />
+        <MetricCell label="Sent back" value={`${approvalTally.rejected}`} small />
+        <MetricCell label="Fields covered" value={`${totals.fieldsCovered}/${totals.fields}`} small />
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] italic mb-3" style={SERIF}>{LIBRARY_HOURS_NOTE}</p>
+
+      {groups.filter((g) => g.courses.length > 0).map((g) => (
+        <div key={g.slug} className="mb-4">
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1.5 border-b border-[#E8E4DC] pb-1">
+            {g.field} <span className="text-[#5A5751] normal-case tracking-normal">· {g.courses.length} course{g.courses.length === 1 ? '' : 's'} · {g.courses.reduce((t, c) => t + courseTrainingHours(c), 0)}h</span>
+          </div>
+          <div className="space-y-2">
+            {g.courses.map((course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                decision={courseApprovalStatus(approval, course.id)}
+                isStaff={isStaff}
+                level={level}
+                progress={progress}
+                quizState={quizState}
+                libTests={libTests}
+                logged={libLogged.includes(course.id)}
+                openModuleId={openModuleId}
+                setOpenModuleId={setOpenModuleId}
+                onRecordQuiz={onRecordQuiz}
+                onMarkRead={onMarkRead}
+                onDecide={onDecide}
+                onRecordTest={onRecordTest}
+                onComplete={onComplete}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// CourseCard — one finished course: header (field / hours / origin / review state),
+// the staff Agree/Disagree gate, and an expandable body with the pre-test, the
+// modules (shared lesson runner), the post-test gate, and completion → hours + cert.
+// -----------------------------------------------------------------------------
+function CourseCard({
+  course, decision, isStaff, level, progress, quizState, libTests, logged,
+  openModuleId, setOpenModuleId, onRecordQuiz, onMarkRead, onDecide, onRecordTest, onComplete,
+}) {
+  const [open, setOpen] = useState(false);
+  const modAssess = useMemo(() => courseModuleAssessment(course, progress, quizState), [course, progress, quizState]);
+  const complete = useMemo(() => courseComplete(course, progress, quizState, libTests), [course, progress, quizState, libTests]);
+  const growth = growthDelta(libTests, course.id);
+  const DEC = {
+    [DECISIONS.APPROVED]: { label: 'Approved', color: 'text-[#5A6E3D]' },
+    [DECISIONS.REJECTED]: { label: 'Sent back', color: 'text-[#B85838]' },
+    [DECISIONS.PENDING]: { label: 'Awaiting review', color: 'text-[#5A5751]' },
+  };
+  const dec = DEC[decision] || DEC[DECISIONS.PENDING];
+
+  return (
+    <div className="border border-[#E8E4DC]">
+      <div className="w-full flex items-start justify-between gap-2 p-3">
+        <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex-1 text-left min-w-0 focus:outline focus:outline-2 focus:outline-[#B85838]">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span aria-hidden="true" className={complete ? 'text-[#5A6E3D]' : 'text-[#E8E4DC]'}>{complete ? '✓' : '○'}</span>
+            <span style={{ ...SERIF, fontWeight: 600 }}>{course.title}</span>
+            {course.origin === 'youtube-distilled' && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1">Source-distilled · draft</span>}
+          </div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
+            {courseTrainingHours(course)} training hours · {course.modules.length} lesson{course.modules.length === 1 ? '' : 's'} · <span className={dec.color}>{dec.label}</span>
+          </div>
+        </button>
+        <span className="text-[#5A5751] shrink-0">{open ? '−' : '+'}</span>
+      </div>
+
+      {/* Staff (Christina) Agree / Disagree gate — her clinical judgment publishes it */}
+      {isStaff && (
+        <div className="flex items-center gap-2 px-3 pb-3 flex-wrap">
+          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">SME review:</span>
+          <button
+            type="button"
+            onClick={() => onDecide(course.id, DECISIONS.APPROVED)}
+            aria-pressed={decision === DECISIONS.APPROVED}
+            className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${decision === DECISIONS.APPROVED ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A6E3D] border-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white'}`}
+          >
+            Agree (approve)
+          </button>
+          <button
+            type="button"
+            onClick={() => onDecide(course.id, DECISIONS.REJECTED)}
+            aria-pressed={decision === DECISIONS.REJECTED}
+            className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${decision === DECISIONS.REJECTED ? 'bg-[#B85838] text-white border-[#B85838]' : 'bg-white text-[#B85838] border-[#B85838] hover:bg-[#B85838] hover:text-white'}`}
+          >
+            Disagree (send back)
+          </button>
+        </div>
+      )}
+
+      {open && (
+        <div className="px-3 pb-3 border-t border-[#E8E4DC] pt-3 space-y-3">
+          <p className="text-sm text-[#1A1815]" style={SERIF}>{course.summary}</p>
+          {course.smeConfirm && (
+            <p className="text-[0.6875rem] text-[#B85838]" style={SERIF}><strong>SME confirm:</strong> {course.smeConfirm}</p>
+          )}
+          {course.sources && course.sources.length > 0 && (
+            <p className="text-[0.625rem] text-[#5A5751]" style={MONO}>
+              Grounded in: {course.sources.map((s, i) => <span key={i}>{i ? ' · ' : ''}{s.label}</span>)}
+            </p>
+          )}
+
+          {/* Pre-test (baseline) — optional growth measure */}
+          {course.preTest && course.preTest.questions && course.preTest.questions.length > 0 && (
+            <CourseTest course={course} which="pre" saved={libTests[course.id] && libTests[course.id].pre} onRecord={onRecordTest} label="Baseline check (before you start)" />
+          )}
+
+          {/* The lessons — shared engine runner, one per module */}
+          <div className="space-y-2">
+            {course.modules.map((module) => {
+              const done = moduleComplete(module, progress, quizState);
+              const mOpen = openModuleId === module.id;
+              return (
+                <div key={module.id} className="border border-[#E8E4DC]">
+                  <button
+                    type="button"
+                    onClick={() => setOpenModuleId(mOpen ? null : module.id)}
+                    aria-expanded={mOpen}
+                    className="w-full flex items-center justify-between gap-2 p-2.5 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  >
+                    <span className="flex items-baseline gap-2 min-w-0">
+                      <span aria-hidden="true" className={done ? 'text-[#5A6E3D]' : 'text-[#E8E4DC]'}>{done ? '✓' : '○'}</span>
+                      <span className="truncate text-sm" style={{ ...SERIF, fontWeight: 600 }}>{module.title}</span>
+                    </span>
+                    <span className="text-[#5A5751] shrink-0">{mOpen ? '−' : '+'}</span>
+                  </button>
+                  {mOpen && (
+                    <div className="p-2.5 pt-0 border-t border-[#E8E4DC]">
+                      <LessonRunner module={module} level={level} quizState={quizState} onRecordQuiz={onRecordQuiz} onMarkRead={onMarkRead} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Post-test (graded gate) */}
+          {course.postTest && course.postTest.questions && course.postTest.questions.length > 0 && (
+            <CourseTest course={course} which="post" saved={libTests[course.id] && libTests[course.id].post} onRecord={onRecordTest} label="Post-test (pass to complete)" />
+          )}
+
+          {/* Growth readout — real, only when both tests are taken */}
+          {growth && (
+            <p className="text-[0.6875rem] text-[#5A6E3D]" style={SERIF}>
+              Growth: {growth.pre}% → {growth.post}% ({growth.delta >= 0 ? '+' : ''}{growth.delta} points).
+            </p>
+          )}
+
+          {/* Completion → log training hours + certificate */}
+          <div className="flex items-center justify-between gap-2 flex-wrap border-t border-[#E8E4DC] pt-2">
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+              {modAssess.done}/{modAssess.total} lessons · {modAssess.progressPct}%
+            </span>
+            <button
+              type="button"
+              onClick={() => onComplete(course)}
+              disabled={!complete || logged}
+              title={!complete ? 'Finish every lesson (and the post-test) to complete' : logged ? 'Hours already logged' : 'Log training hours + earn certificate'}
+              className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              {logged ? `✓ ${courseTrainingHours(course)}h logged` : complete ? `Complete · log ${courseTrainingHours(course)}h + certificate` : 'Complete to log hours'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// CourseTest — a pre- or post-test for a course. Grades via the shared engine at the
+// course's pass threshold; records the result so growth (pre → post) is measurable.
+// -----------------------------------------------------------------------------
+function CourseTest({ course, which, saved, onRecord, label }) {
+  const test = which === 'pre' ? course.preTest : course.postTest;
+  const questions = (test && Array.isArray(test.questions)) ? test.questions : [];
+  const [answers, setAnswers] = useState({});
+  const [graded, setGraded] = useState(null);
+  if (questions.length === 0) return null;
+
+  const submit = () => {
+    const result = gradeCourseTest(course, which, answers);
+    setGraded(result);
+    onRecord(course.id, which, result);
+  };
+
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">{label}</div>
+      <ol className="space-y-3">
+        {questions.map((q, qi) => (
+          <li key={qi}>
+            <p className="text-sm text-[#1A1815] mb-1.5" style={SERIF}>{qi + 1}. {q.q}</p>
+            <div className="space-y-1">
+              {q.options.map((opt, oi) => {
+                const sel = answers[qi] === oi;
+                const showCorrect = graded && which === 'post' && oi === q.answer;
+                const showWrong = graded && which === 'post' && sel && oi !== q.answer;
+                return (
+                  <label key={oi} className={`flex items-center gap-2 text-xs p-2 border cursor-pointer ${showCorrect ? 'border-[#5A6E3D] bg-[#5A6E3D]/[0.07]' : showWrong ? 'border-[#B85838] bg-[#B85838]/[0.06]' : sel ? 'border-[#1A1815]' : 'border-[#E8E4DC] bg-white'}`} style={SERIF}>
+                    <input type="radio" name={`${which}-${course.id}-${qi}`} checked={sel} onChange={() => setAnswers((p) => ({ ...p, [qi]: oi }))} className="w-4 h-4" />
+                    <span className="text-[#1A1815]">{opt}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="flex items-center gap-3 mt-3">
+        <button
+          type="button"
+          onClick={submit}
+          disabled={Object.keys(answers).length < questions.length}
+          className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
+        >
+          {which === 'pre' ? 'Record baseline' : 'Submit post-test'}
+        </button>
+        {graded && (
+          <span className={`text-xs font-semibold ${which === 'pre' ? 'text-[#5A5751]' : graded.passed ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`} style={SERIF}>
+            {which === 'pre' ? `Baseline ${graded.pct}%` : graded.passed ? `✓ Passed — ${graded.pct}%` : `${graded.pct}% — review and retake`}
+          </span>
+        )}
+        {!graded && saved && <span className="text-xs text-[#5A5751]" style={SERIF}>Recorded: {saved.pct}%</span>}
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// TrainingPlanPanel — the 24-hours/month, multi-year MAP across the ten fields.
+// Honest about the runway: real library hours, months fully covered, and the gap to
+// author next (the YouTube-distill + Christina-authored path fills it).
+// -----------------------------------------------------------------------------
+function TrainingPlanPanel({ plan }) {
+  const [showAll, setShowAll] = useState(false);
+  const s = plan.summary;
+  const preview = showAll ? plan.plan : plan.plan.slice(0, 6);
+  return (
+    <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <SectionTitle eyebrow={`${plan.hoursPerMonth} hours / month · ${plan.months} months`}>Multi-year training plan</SectionTitle>
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{s.runwayMonths} month runway today</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-2">
+        <MetricCell label="Library hours" value={`${s.libraryHours}`} small accent="green" />
+        <MetricCell label="Months covered" value={`${s.monthsFullyCovered}`} small />
+        <MetricCell label="Multi-year target" value={`${s.targetHours}`} sub="hours" small />
+        <MetricCell label="To author next" value={`${s.shortfallTotal}`} sub="hours" small accent="rust" />
+      </div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-3 max-w-prose" style={SERIF}>{planToRequirementNote(plan)}</p>
+
+      {/* Per-field spread */}
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1.5">By field</div>
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {s.byField.map((f) => (
+          <span key={f.field} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${f.available > 0 ? 'border-[#E8E4DC] text-[#5A5751] bg-[#FAF8F4]' : 'border-[#B85838] text-[#B85838]'}`}>
+            {f.field}: {f.hours}h
+          </span>
+        ))}
+      </div>
+
+      {/* Month-by-month map (non-repeating, field-rotating) */}
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1.5">Month-by-month</div>
+      <ol className="space-y-1.5">
+        {preview.map((m) => (
+          <li key={m.index} className="border border-[#E8E4DC] p-2.5">
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <span className="text-xs" style={{ ...SERIF, fontWeight: 600 }}>{m.label}</span>
+              <span className={`text-[0.625rem] uppercase tracking-wider ${m.full ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
+                {m.hours}/{plan.hoursPerMonth}h{m.shortfallHours > 0 ? ` · ${m.shortfallHours}h to author` : ''}
+              </span>
+            </div>
+            {m.courses.length > 0 ? (
+              <div className="text-[0.625rem] text-[#5A5751] mt-0.5" style={SERIF}>
+                {m.courses.map((c) => `${c.title} (${courseTrainingHours(c)}h · ${c.field})`).join(' · ')}
+              </div>
+            ) : (
+              <div className="text-[0.625rem] text-[#B85838] mt-0.5" style={SERIF}>Open — to be filled by new authored / distilled courses.</div>
+            )}
+          </li>
+        ))}
+      </ol>
+      {plan.plan.length > 6 && (
+        <button type="button" onClick={() => setShowAll(!showAll)} className="mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">
+          {showAll ? '− Show fewer' : `+ Show all ${plan.months} months`}
+        </button>
+      )}
     </section>
   );
 }
