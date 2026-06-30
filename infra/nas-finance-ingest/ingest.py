@@ -335,6 +335,38 @@ def _atomic_write(path, obj):
     os.replace(tmp, path)
 
 
+def _csv_cell(s):
+    """Minimal RFC-4180 cell quoting for the importer's CSV."""
+    s = str(s if s is not None else '')
+    if any(c in s for c in (',', '"', '\n', '\r')):
+        return '"' + s.replace('"', '""') + '"'
+    return s
+
+
+def write_account_csvs(out_dir, txns):
+    """Write one importer-ready CSV per account (Date,Description,Amount) so the
+    verified ledger imports straight through the proven in-app CSV importer
+    (PR #439) into the durable, cloud-synced ledger that drives the balance —
+    no live NAS fetch, no fragility (DR-0083). Returns the list of files."""
+    by_acct = {}
+    for t in txns:
+        by_acct.setdefault(t['account'], []).append(t)
+    written = []
+    for acct, rows in sorted(by_acct.items()):
+        rows = sorted(rows, key=lambda r: (r['date'], r['fitid']))
+        lines = ['Date,Description,Amount']
+        for r in rows:
+            lines.append('%s,%s,%s' % (
+                _csv_cell(r['date']), _csv_cell(r['description']), _csv_cell(r['amount'])))
+        path = os.path.join(out_dir, 'ledger-%s.csv' % acct)
+        tmp = path + '.tmp'
+        with open(tmp, 'w') as fh:
+            fh.write('\n'.join(lines) + '\n')
+        os.replace(tmp, path)
+        written.append(os.path.basename(path) + ' (%d)' % len(rows))
+    return written
+
+
 # ----------------------------------------------------------------------------- selftest
 def selftest():
     cases = [
@@ -398,13 +430,15 @@ def run(root, out_dir, max_seconds, max_fails):
         }
         _atomic_write(os.path.join(out_dir, 'imported-transactions.json'), served)
         _atomic_write(os.path.join(out_dir, 'verified-ledger.json'), served['verified_ledger'])
+        csvs = write_account_csvs(out_dir, bank)  # importer-ready, per account
         processed = len(bank) + len(gmail_real)
-        detail = 'bank=%d verified, gmail=%d real / %d noise, months=%d' % (
-            len(bank), len(gmail_real), gmail_noise, len(months))
+        detail = 'bank=%d verified, gmail=%d real / %d noise, months=%d, csvs=%d' % (
+            len(bank), len(gmail_real), gmail_noise, len(months), len(csvs))
         status = 'success'
         print('OK:', detail)
         print('   range:', served['verified_ledger']['date_range'],
               'net:', served['verified_ledger']['consolidated_net'])
+        print('   csvs:', ', '.join(csvs))
         return 0
     except Exception as exc:  # noqa: BLE001 — record + re-raise via brakes
         detail = 'ingest failed: ' + repr(exc)[:160]
