@@ -1,0 +1,64 @@
+# =============================================================================
+# church-runner -- the on-church-network agent runner (LAN-visibility probe tier)
+# =============================================================================
+# Homes on the CHURCH-side NAS (24/6.5, not livestream-bound). Gives an agent
+# driving from Darrell's home laptop -- blind to the church LAN -- a way to LOOK
+# at the wire directly: discover NDI sources, list UniFi clients, ping the ATEM +
+# the left Lenovo Legion (NDI->HDMI bridge) + the right OBS box, check NDI
+# discovery + (host-run) Windows Firewall state. Read-only. Behind the Cage.
+# Design: docs/99-session-notes/2026-06-29-on-church-network-agent-runner-design.md
+#
+# SHIPS INERT (CLAUDE.md three-brakes rule): state/KILL_SWITCH is present
+# (engaged) and no PROBE_ARMED flag exists, so run.sh logs "inert" and exits
+# without probing. Bringing it up does NOT arm anything. Arm only with someone
+# watching, never while Darrell is traveling.
+#
+# NETWORKING: network_mode host so the probe can see the LAN (NDI/mDNS discovery
+# and ARP-level reachability do not survive a bridge NAT). Synology DSM supports
+# host mode. HONEST LIMIT: the `firewall-state` (netsh) and `tailscale-status`
+# probes need HOST binaries that are not in this container -- run those via the
+# DSM-native path in the README (sh run.sh scheduled by Task Scheduler on the NAS
+# or on a church tower). The container covers ping / curl / nc / NDI-HTTP probes.
+#
+# SCHEDULING: deterministic, plain-code. Either (a) DSM Task Scheduler fires
+# `sh /app/run.sh` on a cadence (recommended), or (b) a thin external ticker runs
+# `docker compose run --rm probe`. There is intentionally no internal cron loop in
+# the container -- the scheduler is the only clock, so a run can never spin.
+# =============================================================================
+
+services:
+  probe:
+    image: node:20-alpine
+    container_name: church-runner-probe
+    restart: "no"            # single-shot; the scheduler is the clock (no self-loop)
+    init: true
+    network_mode: host       # LAN visibility (NDI/mDNS/ARP) -- DSM supports this
+    cpus: "0.5"
+    mem_limit: 256m
+    mem_reservation: 64m
+    working_dir: /app
+    # busybox ping/nc are present in alpine; add curl for the HTTP-GET probes.
+    entrypoint: ["sh", "-c", "apk add --no-cache curl >/dev/null 2>&1 || true; exec sh /app/run.sh"]
+    environment:
+      - TZ=${TZ:-America/Chicago}
+      - STATE_DIR=/app/state
+      - EVENTS_DIR=/app/events
+      - TARGETS_FILE=/app/lan-targets.json
+      # --- Cage brakes (ship INERT) ------------------------------------------
+      # Step budget: 0 = unset = a missing brake = inert. Set to the device count
+      # (the registry has 8) once armed. The $ budget is for the dispatch tier
+      # only (not used by the read-only probe) and stays 0 here.
+      - PROBE_MAX_STEPS=${PROBE_MAX_STEPS:-0}
+      - PROBE_TIMEOUT_SEC=${PROBE_TIMEOUT_SEC:-3}
+      - BUDGET_PER_TASK_USD=${BUDGET_PER_TASK_USD:-0}
+      - BUDGET_DAILY_USD=${BUDGET_DAILY_USD:-0}
+    volumes:
+      - ./run.sh:/app/run.sh:ro
+      - ./brakes.sh:/app/brakes.sh:ro
+      - ./probe.mjs:/app/probe.mjs:ro
+      - ./lan-targets.json:/app/lan-targets.json:ro
+      # probe.mjs imports ../../scripts/lib/church-lan-probe.mjs; from /app that
+      # resolves to /scripts/lib/... -- mount it there so the path holds.
+      - ../../scripts/lib/church-lan-probe.mjs:/scripts/lib/church-lan-probe.mjs:ro
+      - ./state:/app/state              # writable: brakes, lock, snapshot
+      - ./events:/app/events            # writable: append-only JSONL reel

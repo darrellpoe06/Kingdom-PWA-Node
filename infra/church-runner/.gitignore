@@ -1,0 +1,8 @@
+# Per-site config + runtime state -- never committed.
+.env
+state/PROBE_ARMED
+state/DISPATCH_ARMED
+state/church-runner.lock/
+state/spend-*.txt
+state/lan-snapshot.json
+events/events.jsonl

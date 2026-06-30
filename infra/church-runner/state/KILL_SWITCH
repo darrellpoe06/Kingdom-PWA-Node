@@ -1,0 +1,13 @@
+ENGAGED. This file ships present so the church-runner is INERT by default
+(CLAUDE.md "Autonomous Automation Requires Three Brakes"). While it exists,
+run.sh logs "inert" and exits without probing -- even the read-only LAN look
+does not run.
+
+To enable the read-only probe (Tier C, Darrell's hand, with someone watching):
+  1. rm state/KILL_SWITCH
+  2. touch state/PROBE_ARMED
+  3. set PROBE_MAX_STEPS in .env to the device count (8)
+To disable again: touch state/KILL_SWITCH  (and/or rm state/PROBE_ARMED)
+
+The dispatch tier (sending work to a GPU tower) needs a SEPARATE arm
+(state/DISPATCH_ARMED + a $ budget) and is intentionally not wired in run.sh.

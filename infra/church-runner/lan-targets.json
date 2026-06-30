@@ -1,0 +1,73 @@
+{
+  "_comment": "Church-LAN probe target registry for the on-church-network agent runner. DECLARATIVE, read-only. The runner (homed on the church-side NAS) probes ONLY these devices, ONLY with the read-only `probe` kind named here (scripts/lib/church-lan-probe.mjs :: PROBE_KINDS). It can LOOK but never TOUCH. Any `ip` left as SME-CONFIRM is reported `unknown` in the snapshot and is NEVER fabricated -- fill it in once the real address is captured into the COLG device asset register (docs/99-session-notes/2026-06-29-colg-church-device-asset-register.md). Design note: docs/99-session-notes/2026-06-29-on-church-network-agent-runner-design.md. SHIPS INERT: nothing here arms anything; the runner stays behind the Cage brakes (infra/church-runner/brakes.sh) and ships with the kill-switch engaged.",
+  "schema_version": 1,
+  "site": "church",
+  "targets": [
+    {
+      "id": "church-rs",
+      "label": "Church NAS (tlcrackstation) -- the runner host",
+      "role": "runner-host / media corpus",
+      "ip": "SME-CONFIRM",
+      "probe": "tcp-check",
+      "port": 5000,
+      "note": "Synology RackStation the runner is homed on (24/6.5, not livestream-bound). SME-CONFIRM model + LAN IP. The probe self-checks it is reachable on its own LAN segment."
+    },
+    {
+      "id": "tailnet",
+      "label": "Tailnet peer reachability (church <-> home)",
+      "role": "overlay network",
+      "ip": "SME-CONFIRM",
+      "probe": "tailscale-status",
+      "note": "Host-local read of `tailscale status` -- confirms which church + home peers are online so Darrell can drive from anywhere. No IP needed."
+    },
+    {
+      "id": "unifi-controller",
+      "label": "UniFi network controller",
+      "role": "network / switching / PoE",
+      "ip": "SME-CONFIRM",
+      "probe": "unifi-clients",
+      "note": "Read-only client/port list (who is on the wire, IPs, PoE state). SME-CONFIRM controller URL + a read-only API key (key supplied at runtime from .env, never in git). UniFi controller mentioned awaiting-input in infra/ai-orchestrator/README.md."
+    },
+    {
+      "id": "atem-switcher",
+      "label": "Blackmagic ATEM switcher",
+      "role": "video switcher",
+      "ip": "SME-CONFIRM",
+      "probe": "ping",
+      "note": "Reachability + RTT. SME-CONFIRM presence + IP (no ATEM documented in repo yet -- presence unconfirmed)."
+    },
+    {
+      "id": "legion-left",
+      "label": "Lenovo Legion (left) -- NDI -> HDMI bridge box",
+      "role": "ndi-bridge / gpu worker",
+      "ip": "SME-CONFIRM",
+      "probe": "ping",
+      "note": "The left tower bridges NDI -> HDMI into the wall path. Also a CUDA GPU worker (church-cuda / church-tower) the runner can dispatch AI-idle-only work to. SME-CONFIRM IP."
+    },
+    {
+      "id": "obs-right",
+      "label": "OBS box (right) -- streaming PC / gpu worker",
+      "role": "streaming / gpu worker",
+      "ip": "SME-CONFIRM",
+      "probe": "ping",
+      "note": "The right tower runs OBS/streaming and is the second CUDA GPU worker. SME-CONFIRM IP. Livestream-first; AI dispatch is idle-only and stands down Sundays (DR-0012)."
+    },
+    {
+      "id": "ndi-discovery",
+      "label": "NDI discovery (sources on the wire)",
+      "role": "ndi",
+      "ip": "SME-CONFIRM",
+      "probe": "ndi-discovery",
+      "port": 5959,
+      "note": "Lists NDI sources visible on the LAN -- the direct answer to 'what NDI is actually on the wire'. SME-CONFIRM the NDI Discovery Server host (or use mDNS browse). Pairs with lib/ndi-output.js + the program-output bridge."
+    },
+    {
+      "id": "novastar-vx1000",
+      "label": "NovaStar VX1000 LED-wall processor",
+      "role": "led-wall processor",
+      "ip": "SME-CONFIRM",
+      "probe": "ping",
+      "note": "Reachability only (the VX1000 is HDMI/DVI-fed, not NDI-native; signal path in 2026-06-24-sanctuary-wall-novastar-vx1000-signal-path.md). SME-CONFIRM whether its management NIC is on the LAN + IP."
+    }
+  ]
+}

@@ -36,15 +36,16 @@
     {
       "id": "church-rs",
       "site": "church",
-      "role": "serve + storage (media corpus)",
+      "role": "serve + storage (media corpus) + on-church-network runner host",
       "tailscale": "SME-CONFIRM",
       "online": false,
-      "caps": ["serve", "storage", "media-corpus"],
+      "caps": ["serve", "storage", "media-corpus", "lan-probe"],
       "endpoints": {},
-      "notes": "SME-CONFIRM: tlcrackstation (Synology RackStation). On the tailnet but fully firewalled (22/5000/5001/5678/11434/443 filtered, 2026-06-10). Holds the ~100 TB recording corpus (node-local by nature, referenced by ID). Access = a credential/his-hand step (Darrell/BG)."
+      "notes": "SME-CONFIRM: tlcrackstation (Synology RackStation). On the tailnet but fully firewalled (22/5000/5001/5678/11434/443 filtered, 2026-06-10). Holds the ~100 TB recording corpus (node-local by nature, referenced by ID). Access = a credential/his-hand step (Darrell/BG). ALSO the home for the on-church-network agent runner (infra/church-runner/) -- 24/6.5, not livestream-bound -- whose lan-probe cap gives the read-only church-LAN visibility the home laptop lacks. The runner ships INERT behind its own Cage brakes; the lan-probe cap is treated OFFLINE until the church NAS is reachable + armed (design: docs/99-session-notes/2026-06-29-on-church-network-agent-runner-design.md)."
     }
   ],
   "job_classes": [
+    { "id": "lan-diagnostics",      "requires": ["lan-probe"],   "private": true,  "fallback_vendor": false, "note": "read-only church-LAN visibility (NDI discovery / UniFi clients / ATEM + Legion + OBS + NovaStar reachability / firewall + tailnet state) -> the on-church-network runner on church-rs. PRIVATE + sovereign: there is no cloud fallback for looking at the church wire; if the runner is offline the answer is 'unknown', never guessed. Deterministic, no LLM. Runner self-brakes (infra/church-runner/)." },
     { "id": "voice-clone",          "requires": ["voice-clone"], "private": true,  "fallback_vendor": false, "note": "private family voice -> church GPU only; if offline, WAITS (never a cloud vendor)" },
     { "id": "harvest-transcription","requires": ["whisper"],     "private": true,  "fallback_vendor": false, "note": "church recordings -> church GPU; private; brakes on the caller queue" },
     { "id": "local-llm-14b",        "requires": ["ollama-14b"],  "private": false, "fallback_vendor": true,  "note": "non-private heavy gen -> church GPU; vendor fallback only when armed+budgeted+GPU-offline" },
