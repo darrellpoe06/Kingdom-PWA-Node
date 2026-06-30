@@ -19,6 +19,14 @@
 
 If any of 1–5 differs, the math below shifts — flag it and re-derive.
 
+> ### ✅ CONFIRMED CHAIN (2026-06-30) — also rendered in-app (Projects tab → LED wall)
+> - **LED DATA wiring:** **8 LED lines, one per COLUMN** → top cabinet of each column → daisy-chain **down its 6**. ~**510k px/line** (6 × ~85k), under the ~650k limit; **8 of 10 ports, 2 spare**. DIRECT shielded Cat6, **no switch, ever**.
+> - **VIDEO IN (owned gear, replaces the NDI decoder):** program source (ATEM / presentation tower) HDMI → **KEQINX 1×8 HDMI-over-Cat6 splitter** → CAT OUT 1 → Cat6 (**≤ 70 m**) → **receiver at the wall** → HDMI → NovaStar HDMI in. CAT OUT 2–8 feed the stage TV / confidence monitors / lobby from the same source.
+> - **CONTROL:** NovaStar control port → Cat6 → server-room switch (network).
+> - **MAP:** arrange the 8 × 6 cabinets in **NovaStar Vision Management** over the control connection.
+> - Native ~**2710 × 1508** (~4.1M px), ~85k px/cabinet (the wall-spec module carries the ~2560×1440 module-map estimate; NovaLCT confirms the exact count).
+> The in-app version (documentation + staff teaching card + finish-checklist + diagram) lives on the **LED-wall capital-project record**.
+
 ---
 
 ## 1. THE WALL (confirmed spec)
