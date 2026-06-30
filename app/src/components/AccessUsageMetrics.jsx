@@ -27,6 +27,9 @@ import {
   summarize, countByRole, groupByScope, newVsReturning, activityRollup,
   buildFreshness, membersWithoutPresence, pendingInvites, roleLabel, relativeTime,
 } from '../lib/access-metrics.js';
+import {
+  fetchSignupMetrics, summaryTiles, signupRowView, sortSignups,
+} from '../lib/signup-metrics.js';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const sectionH = 'text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
@@ -48,6 +51,120 @@ function RolePill({ role }) {
     <span className="inline-block text-[0.5625rem] uppercase tracking-wider font-semibold text-[#1A1815] border border-[#E3DDD2] bg-[#FAF8F4] px-1.5 py-0.5">
       {roleLabel(role)}
     </span>
+  );
+}
+
+// ── Platform Signups ───────────────────────────────────────────────────────
+// The cross-instance window the RLS-scoped roster above CANNOT show: who has
+// created an account on poetech.us, across the self-serve `u-*` instances the
+// steward is not a member of. Backed by the SECURITY DEFINER admin_signup_metrics
+// RPC (DB-gated to the poe-family governor circle). Loads + degrades on its OWN
+// (a missing RPC or an unauthorized caller never blanks the rest of the surface).
+function CategoryPill({ label }) {
+  return (
+    <span className="inline-block text-[0.5625rem] uppercase tracking-wider font-semibold text-[#5A5751] border border-[#E3DDD2] bg-[#FAF8F4] px-1.5 py-0.5">
+      {label}
+    </span>
+  );
+}
+
+function PlatformSignups() {
+  const [res, setRes] = useState({ status: 'loading', data: null });
+  const [mask, setMask] = useState(false);
+  const load = useCallback(async () => {
+    setRes((r) => ({ status: 'loading', data: r.data }));
+    setRes(await fetchSignupMetrics());
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  // Signed-out is handled by the parent (it returns early); a non-governor sees
+  // an honest one-liner, never the data. Both are real states, not painted.
+  if (res.status === 'unauthorized') {
+    return (
+      <div className="mb-4">
+        <div className={sectionH + ' mb-2'}>Platform signups</div>
+        <p className={note + ' italic'}>Platform-wide signups are visible to family governors only.</p>
+      </div>
+    );
+  }
+  if (res.status === 'signed-out') return null;
+
+  const data = res.data;
+  const summary = data && data.summary;
+  const rows = sortSignups((data && data.signups) || []);
+  const nowMs = Date.now();
+  const tiles = summaryTiles(summary);
+
+  return (
+    <div className="mb-5">
+      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+        <div className={sectionH}>Platform signups — who created an account</div>
+        <div className="flex items-center gap-3">
+          {rows.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setMask((m) => !m)}
+              className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline-offset-2 hover:underline"
+            >
+              {mask ? 'Show emails' : 'Mask emails'}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={load}
+            className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline-offset-2 hover:underline"
+          >
+            {res.status === 'loading' ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {res.status === 'loading' && !data ? (
+        <p className={note}>Loading platform signups…</p>
+      ) : res.status === 'unavailable' ? (
+        <p className={note + ' italic'}>
+          Couldn't load platform signups right now — the admin_signup_metrics function may not be on
+          the cloud database yet (the migration applies it). The rest of this surface is unaffected.
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+            {tiles.map((t) => <Tile key={t.label} label={t.label} value={t.value} sub={t.sub} />)}
+          </div>
+          {rows.length === 0 ? (
+            <p className={note + ' italic'}>No accounts yet — when someone signs up on poetech.us they'll appear here.</p>
+          ) : (
+            <div className="border border-[#E8E4DC]">
+              {rows.map((row) => {
+                const r = signupRowView(row, nowMs, mask);
+                return (
+                  <div key={r.userId || r.email} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+                    <div className="min-w-0">
+                      <div className="text-[0.8125rem] text-[#1A1815] truncate">
+                        {r.name || r.email}
+                        {r.name ? <span className="text-[#5A5751]"> · {r.email}</span> : null}
+                      </div>
+                      <div className="text-[0.625rem] text-[#5A5751]">
+                        joined {r.joined} · {r.returned ? `active, last seen ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last seen ${r.lastSeen}`)}
+                      </div>
+                    </div>
+                    <CategoryPill label={r.categoryLabel} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {data && data.signups_truncated ? (
+            <p className={note + ' italic mt-1'}>Showing the newest {data.signups_shown}. Older accounts are counted in the totals above but not listed.</p>
+          ) : null}
+          <p className="text-[0.5625rem] text-[#5A5751] italic mt-2 leading-relaxed">
+            Each public signup lands in their OWN private space — they cannot see family, business, or
+            church data, and this view shows only their account (email, when they joined, when they last
+            signed in), never anything inside their space.
+          </p>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -126,6 +243,9 @@ export default function AccessUsageMetrics() {
           </button>
         </div>
       </div>
+
+      {/* ── PLATFORM SIGNUPS (cross-instance; the RLS-blind view above can't show this) ── */}
+      <PlatformSignups />
 
       {/* ── WHO HAS ACCESS ─────────────────────────────────────────────── */}
       <div className={sectionH + ' mb-2'}>Who has access</div>
