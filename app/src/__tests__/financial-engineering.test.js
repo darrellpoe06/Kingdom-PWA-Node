@@ -8,6 +8,8 @@ import {
   freqToMonths,
   monthsBetween,
   monthLabelFrom,
+  deriveAccountBalances,
+  deriveEntityRollups,
   liveCashOnHand,
   deriveMonthlyFlows,
   deriveEntityFlows,
@@ -91,6 +93,57 @@ describe('liveCashOnHand', () => {
   it('clears future transactions once the as-of date reaches them', () => {
     const { byAccount } = liveCashOnHand(fixture(), new Date(2027, 0, 31));
     expect(byAccount.find((a) => a.id === 'a1').balance).toBe(11299); // +9999 now cleared
+  });
+});
+
+describe('deriveAccountBalances — the single source of truth for displayed balances', () => {
+  it('derives every account (all types) from opening + cleared transactions', () => {
+    const b = deriveAccountBalances(fixture(), CD);
+    expect(b.a1).toBe(1300);   // 1000 + 500 - 200 (future t3 excluded)
+    expect(b.a2).toBe(2000);   // no tx
+    expect(b.a3).toBe(-3000);  // credit included in the map (callers filter by type)
+    expect(b.a4).toBe(0);
+  });
+  it('falls back to the stored balance when openingBalance is absent', () => {
+    const data = { accounts: [{ id: 'x', type: 'checking', balance: 750 }], transactions: [] };
+    expect(deriveAccountBalances(data).x).toBe(750);
+  });
+  it('THE LOOP: a newly added transaction moves the derived balance (no static seed)', () => {
+    const data = fixture();
+    const before = deriveAccountBalances(data, CD).a1;
+    data.transactions.push({ id: 't-new', date: '2026-01-15', accountId: 'a1', amount: -125.50 });
+    const after = deriveAccountBalances(data, CD).a1;
+    expect(after).toBe(before - 125.50); // 1300 -> 1174.50
+  });
+});
+
+describe('deriveEntityRollups — Accounts/Entities/Big Picture share one derived source', () => {
+  const entities = [
+    { id: 'e-poeprops', type: 'business' },
+    { id: 'e-personal', type: 'personal' },
+  ];
+  it('sorts personal first, then business', () => {
+    const rollups = deriveEntityRollups(fixture(), entities, CD);
+    expect(rollups.map((r) => r.entity.id)).toEqual(['e-personal', 'e-poeprops']);
+  });
+  it('cash/credit/legacy totals are DERIVED (opening + cleared), not the static seed', () => {
+    const rollups = deriveEntityRollups(fixture(), entities, CD);
+    const personal = rollups.find((r) => r.entity.id === 'e-personal');
+    expect(personal.cashBalance).toBe(1300);   // a1 only (a4 inLegal excluded), derived
+    expect(personal.creditBalance).toBe(-3000); // a3
+    expect(personal.balance).toBe(-1700);       // 1300 + (-3000), non-legal total
+  });
+  it('decorates each account with its derivedBalance for the display sites to read', () => {
+    const rollups = deriveEntityRollups(fixture(), entities, CD);
+    const personal = rollups.find((r) => r.entity.id === 'e-personal');
+    expect(personal.accounts.find((a) => a.id === 'a1').derivedBalance).toBe(1300);
+  });
+  it('THE LOOP: adding a transaction moves the entity rollup, no manual balance edit', () => {
+    const data = fixture();
+    const before = deriveEntityRollups(data, entities, CD).find((r) => r.entity.id === 'e-personal').cashBalance;
+    data.transactions.push({ id: 't-new', date: '2026-01-15', accountId: 'a1', amount: 1000 });
+    const after = deriveEntityRollups(data, entities, CD).find((r) => r.entity.id === 'e-personal').cashBalance;
+    expect(after).toBe(before + 1000);
   });
 });
 

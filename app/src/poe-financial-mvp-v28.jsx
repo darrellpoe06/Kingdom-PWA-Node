@@ -152,6 +152,7 @@ import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
+import { deriveAccountBalances, deriveEntityRollups } from './lib/financial-engineering.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
 
 // =============================================================================
@@ -4265,6 +4266,11 @@ export default function PoeFinancialSystem() {
     } catch (_) { /* same */ }
   };
 
+  // Single source of truth for displayed balances: the DERIVED "right now"
+  // balance per account (openingBalance + cleared tx). Every cash/credit figure
+  // below reads this, so an entered or imported transaction moves all of them
+  // (Big Picture, Accounts, Entities) in lockstep with Tx + Forecast (DR-0076).
+  const derivedBalances = useMemo(() => deriveAccountBalances(data, currentDate), [data, currentDate]);
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
     // v28+ Real Estate restructure: only income-producing properties feed rental math.
@@ -4290,9 +4296,9 @@ export default function PoeFinancialSystem() {
     // financial picture" — disputed, frozen, under probate, etc. They surface
     // in the Legal tab instead.
     const CASH_TYPES = ['checking','savings','cash','investment'];
-    const allAccountsCash = (data.accounts || []).filter(a => CASH_TYPES.includes(a.type) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
+    const allAccountsCash = (data.accounts || []).filter(a => CASH_TYPES.includes(a.type) && !a.inLegal).reduce((s, a) => s + (derivedBalances[a.id] ?? a.balance ?? 0), 0);
     return { salaryActual, rentalActual, rentalExpected, rentGap, collectionRate, totalInflow, totalOutflow, netCashFlow, totalConsumerDebt, totalRentalDebt, totalRentalPI, totalPersonalRealEstateDebt, totalPersonalRealEstatePI, totalOpportunity, totalOppHours, allAccountsCash };
-  }, [data]);
+  }, [data, derivedBalances]);
 
   // Reserves math extracted into computeReserves (app/src/lib/financial-calcs.js)
   // so Pass 2 of the financial audit can unit-test it directly. See FLAG-10
@@ -4304,8 +4310,8 @@ export default function PoeFinancialSystem() {
   // is worse than none). Recomputes whenever a balance changes or a bank sync
   // lands; sums every savings account, excluding any in a legal hold.
   const bufferCurrentReal = useMemo(
-    () => (data.accounts || []).filter(a => a.type === 'savings' && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0),
-    [data.accounts]
+    () => (data.accounts || []).filter(a => a.type === 'savings' && !a.inLegal).reduce((s, a) => s + (derivedBalances[a.id] ?? a.balance ?? 0), 0),
+    [data.accounts, derivedBalances]
   );
 
   // Pressure -> real money toward debt. The discretionary lever is a % of the
@@ -4342,30 +4348,13 @@ export default function PoeFinancialSystem() {
   }, [data.entities, currentProfile]);
   const visibleEntityIds = useMemo(() => new Set(visibleEntities.map(e => e.id)), [visibleEntities]);
 
-  const entityRollups = useMemo(() => {
-    // 2026-05-24 — sort entities so personal types render first, then business
-    // types. Keeps the Accounts tab's "your money first" ordering aligned with
-    // the entity grouping. Within each type, preserve insertion order.
-    // Multi-user Layer A — only roll up entities visible to current profile.
-    const sortedEntities = [...visibleEntities].sort((a, b) => {
-      if (a.type === b.type) return 0;
-      return a.type === 'personal' ? -1 : 1;
-    });
-    return sortedEntities.map(entity => {
-      const accounts = data.accounts.filter(a => a.entityId === entity.id);
-      const isCash = (a) => ['checking','savings','cash','investment'].includes(a.type);
-      const isCredit = (a) => a.type === 'credit' || a.type === 'loan';
-      // inLegal accounts are out of the financial picture (per Darrell 2026-05-24).
-      // They still belong to the entity but don't contribute to cash/credit totals.
-      const cashBalance = accounts.filter(a => isCash(a) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
-      const creditBalance = accounts.filter(a => isCredit(a) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
-      const balance = accounts.filter(a => !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0); // legacy total
-      const inflow = [...data.inflows.salaries.filter(s => s.entityId === entity.id).map(s => s.actual), ...data.inflows.rentals.filter(r => r.entityId === entity.id).map(r => r.actual)].reduce((s, x) => s + x, 0);
-      const debts = data.debts.filter(d => d.entityId === entity.id);
-      const debtBalance = debts.reduce((s, d) => s + d.balance, 0);
-      return { entity, accounts, balance, cashBalance, creditBalance, inflow, debts, debtBalance };
-    });
-  }, [data, visibleEntities]);
+  // Per-entity rollup extracted to lib/financial-engineering (deriveEntityRollups):
+  // personal-first sort, visible-entity scope, and every account decorated with
+  // its DERIVED balance so Accounts/Entities/Big Picture move with the ledger.
+  const entityRollups = useMemo(
+    () => deriveEntityRollups(data, visibleEntities, currentDate),
+    [data, visibleEntities, currentDate],
+  );
 
   const flaggedRentals = data.inflows.rentals.filter((r) => r.status === 'late' && (r.rent || 0) > 0);
   const flaggedOpportunities = data.opportunities.filter((o) => o.flag);
@@ -7164,15 +7153,16 @@ function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, s
         let manualCash = 0;
         for (const a of allUserAccounts) {
           if (!['checking','savings','cash','investment'].includes(a.type) || a.inLegal) continue;
-          manualCash += (a.balance || 0);
+          const manualBal = (a.derivedBalance ?? a.balance ?? 0);
+          manualCash += manualBal;
           const last4 = (a.fragment || '').match(/(\d{4})/)?.[1];
-          if (!last4) { bankCash += (a.balance || 0); continue; }
+          if (!last4) { bankCash += manualBal; continue; }
           const balKey = Object.keys(ingestData.bank_balances).find(k => k.includes(last4));
           if (balKey && typeof ingestData.bank_balances[balKey].ledger_balance === 'number') {
             linkedCount += 1;
             bankCash += ingestData.bank_balances[balKey].ledger_balance;
           } else {
-            bankCash += (a.balance || 0);
+            bankCash += manualBal;
           }
         }
         const sc = (ingestData.counts && ingestData.counts.status_counts) || {};
