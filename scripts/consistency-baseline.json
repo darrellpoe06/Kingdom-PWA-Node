@@ -1,7 +1,7 @@
 {
   "poe-financial-mvp-v28.jsx": {
-    "emoji": 74,
-    "fixedPx": 228,
+    "emoji": 71,
+    "fixedPx": 190,
     "widthCap": 16
   },
   "components/About.jsx": {
@@ -28,6 +28,11 @@
     "emoji": 0,
     "fixedPx": 2,
     "widthCap": 1
+  },
+  "components/BooksAccounts.jsx": {
+    "emoji": 3,
+    "fixedPx": 38,
+    "widthCap": 0
   },
   "components/BooksEntities.jsx": {
     "emoji": 0,
@@ -366,8 +371,8 @@
   },
   "components/PracticeLearn.jsx": {
     "emoji": 1,
-    "fixedPx": 50,
-    "widthCap": 5
+    "fixedPx": 0,
+    "widthCap": 7
   },
   "components/ProjectMgmtPulse.jsx": {
     "emoji": 2,
