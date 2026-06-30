@@ -18,6 +18,7 @@ import { versionTimeline } from '../lib/record-history.js';
 import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows } from '../lib/statement-import.js';
 import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
+import { filterTransactions, sortTransactions, categorySummary } from '../lib/transaction-analysis.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -71,8 +72,22 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   // 'all' (default) shows everything; 'unexplained' is the most-useful
   // surface for the workflow-16 reconcile data (1900+ unexplained rows).
   const [statusFilter, setStatusFilter] = useState('all');
+  // Sort + filter the History feed so Darrell + Christina can work the data
+  // after a bulk upload: sort by any column, narrow by account / date / text.
+  const [sortKey, setSortKey] = useState('date');
+  const [sortDir, setSortDir] = useState('desc');
+  const [acctFilter, setAcctFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [txSearch, setTxSearch] = useState('');
+  // Click a column header: same key flips direction, new key starts descending.
+  const toggleSort = (key) => {
+    if (key === sortKey) { setSortDir(d => (d === 'asc' ? 'desc' : 'asc')); }
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+  const sortArrow = (key) => (sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '');
   // Reset pagination whenever any filter changes so user lands on page 1.
-  useEffect(() => { setPage(0); }, [txView, entityFilter, statusFilter]);
+  useEffect(() => { setPage(0); }, [txView, entityFilter, statusFilter, acctFilter, dateFrom, dateTo, txSearch, sortKey, sortDir]);
 
   // Phase 2A — merge ingested bank/Gmail transactions from n8n workflow 18
   // alongside the manual entries. Sovereign-loop: data flows from
@@ -805,7 +820,16 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     );
   };
 
-  const list = txView === 'upcoming' ? upcoming : history;
+  // Human account name for sorting + the filter dropdown.
+  const acctName = (id) => (accounts.find(a => a.id === id) || {}).name || id || '—';
+  // History → filter (account / date range / text) then sort by the active column.
+  const historyView = sortTransactions(
+    filterTransactions(history, { accountId: acctFilter, dateFrom, dateTo, search: txSearch }),
+    sortKey, sortDir, acctName,
+  );
+  const list = txView === 'upcoming' ? upcoming : historyView;
+  // Evaluate view runs the same filtered set through the income-vs-outflow math.
+  const evalSummary = categorySummary(historyView);
 
   return (
     <div className="space-y-6">
@@ -856,7 +880,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         {/* Tx sub-tabs route through the shared <TabScroll> primitive so they
             scroll/swipe exactly like the main nav. */}
         <TabScroll className="border-b border-[#E8E4DC] mb-3">
-            {[['upcoming', `Upcoming · ${upcoming.length}`], ['history', `History · ${history.length}`]].map(([id, label]) => (
+            {[['upcoming', `Upcoming · ${upcoming.length}`], ['history', `History · ${history.length}`], ['evaluate', 'Evaluate']].map(([id, label]) => (
               <button key={id} onClick={() => setTxView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${txView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
             ))}
         </TabScroll>
@@ -871,6 +895,37 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
           </div>
         </div>
+
+        {/* Work-the-data filter bar — account / date range / text. Drives both
+            History (the table) and Evaluate (the income-vs-outflow math) since
+            both read the same filtered set. Hidden on Upcoming. */}
+        {txView !== 'upcoming' && (
+          <div className="mb-3 flex items-end gap-2 flex-wrap text-xs bg-white border border-[#E8E4DC] p-2.5">
+            <label className="flex flex-col gap-1">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</span>
+              <select value={acctFilter} onChange={e => setAcctFilter(e.target.value)} className="p-1.5 border border-[#E8E4DC] bg-[#FAF8F4] text-xs">
+                <option value="all">All accounts</option>
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">From</span>
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="p-1.5 border border-[#E8E4DC] bg-[#FAF8F4] text-xs" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">To</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="p-1.5 border border-[#E8E4DC] bg-[#FAF8F4] text-xs" />
+            </label>
+            <label className="flex flex-col gap-1 flex-1 min-w-[8rem]">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Search payee · category</span>
+              <input type="text" value={txSearch} onChange={e => setTxSearch(e.target.value)} placeholder="e.g. Zelle, groceries" className="p-1.5 border border-[#E8E4DC] bg-[#FAF8F4] text-xs" />
+            </label>
+            {(acctFilter !== 'all' || dateFrom || dateTo || txSearch) && (
+              <button type="button" onClick={() => { setAcctFilter('all'); setDateFrom(''); setDateTo(''); setTxSearch(''); }} className="p-1.5 border border-[#E8E4DC] text-[#B85838] hover:text-[#1A1815] uppercase tracking-wider text-[0.5625rem]">Clear</button>
+            )}
+            <span className="text-[0.5625rem] text-[#5A5751] self-center ml-auto">{historyView.length} of {history.length}</span>
+          </div>
+        )}
 
         {/* Phase 2C — reconcile-status pills. Only show when there are
             ingest rows in the merged feed; otherwise this is just clutter. */}
@@ -934,12 +989,71 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           </div>
         )}
 
-        {list.length === 0 ? (
+        {txView === 'evaluate' ? (
+          /* EVALUATE — the real picture: derived balance per account + income
+             vs outflow by category, over the current filter. Pure math from
+             transaction-analysis.js; reconciles to the sum of amounts. */
+          <div className="space-y-4">
+            <section className="bg-white border-2 border-[#1A1815] p-4">
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-3">Derived balance per account · cleared ledger</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+                {accounts.filter(a => acctFilter === 'all' || a.id === acctFilter).map(a => {
+                  const bal = liveBalance(a);
+                  return (
+                    <div key={a.id} className="bg-white p-3">
+                      <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] truncate">{a.name}{a.fragment ? ' ' + a.fragment : ''}</div>
+                      <div className={`text-lg ${bal < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(bal)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+            <section className="bg-white border border-[#1A1815] p-4">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap mb-3">
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Income vs outflow · by category</div>
+                <div className="text-[0.625rem] text-[#5A5751]">{evalSummary.count} transactions</div>
+              </div>
+              <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-3">
+                <div className="bg-white p-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Income</div><div className="text-base text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(evalSummary.totalIncome)}</div></div>
+                <div className="bg-white p-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Outflow</div><div className="text-base text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(evalSummary.totalOutflow)}</div></div>
+                <div className="bg-white p-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Net</div><div className={`text-base ${evalSummary.totalNet < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(evalSummary.totalNet)}</div></div>
+              </div>
+              {evalSummary.categories.length === 0 ? (
+                <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No transactions in this filter yet.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#1A1815]">
+                      <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Category</th>
+                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">In</th>
+                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Out</th>
+                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net</th>
+                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">#</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {evalSummary.categories.map(c => (
+                      <tr key={c.category} className="border-b border-[#E8E4DC]">
+                        <td className="p-2 capitalize" style={{ fontFamily: '"Fraunces", serif' }}>{c.category}</td>
+                        <td className="p-2 text-right text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.income ? fmt(c.income) : '—'}</td>
+                        <td className="p-2 text-right text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.outflow ? fmt(c.outflow) : '—'}</td>
+                        <td className={`p-2 text-right ${c.net < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(c.net)}</td>
+                        <td className="p-2 text-right text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+          </div>
+        ) : list.length === 0 ? (
           <div className="bg-white border border-[#E8E4DC] p-6 text-center">
             <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               {txView === 'upcoming'
                 ? 'Nothing upcoming. Future-dated transactions and the next instance of each enabled recurring obligation will appear here.'
-                : 'No history yet. Use + Add transaction above, or add recurring obligations in the Calendar tab.'}
+                : (acctFilter !== 'all' || dateFrom || dateTo || txSearch)
+                  ? 'No transactions match this filter. Adjust the account, dates, or search above — or Clear to see everything.'
+                  : 'No history yet. Use + Add transaction above, or add recurring obligations in the Calendar tab.'}
             </p>
           </div>
         ) : (() => {
@@ -952,12 +1066,28 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               <section className="bg-white border border-[#1A1815] p-3 sm:p-5 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1A1815]">
-                      <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
-                      <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
-                    </tr>
+                    {txView === 'history' ? (
+                      /* Clickable sort headers — same key flips direction. */
+                      <tr className="border-b border-[#1A1815]">
+                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
+                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                          <button type="button" onClick={() => toggleSort('payee')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Description{sortArrow('payee')}</button>
+                          <span className="text-[#B8B2A8]"> · </span>
+                          <button type="button" onClick={() => toggleSort('account')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Account{sortArrow('account')}</button>
+                          <span className="text-[#B8B2A8]"> · </span>
+                          <button type="button" onClick={() => toggleSort('category')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Category{sortArrow('category')}</button>
+                        </th>
+                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
+                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
+                      </tr>
+                    ) : (
+                      <tr className="border-b border-[#1A1815]">
+                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
+                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
+                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
+                      </tr>
+                    )}
                   </thead>
                   <tbody>{pageItems.map(renderRow)}</tbody>
                 </table>
