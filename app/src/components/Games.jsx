@@ -21,6 +21,7 @@ import TextSizeControl from './TextSizeControl.jsx';
 import GamePlayer from './GamePlayer.jsx';
 import { listGames, getGame } from '../lib/games/registry.js';
 import { createGame, computeTotals } from '../lib/games/engine.js';
+import { codeFromSeed, buildBoardUrl } from '../lib/games/room-code.js';
 
 const T_INK = 'text-[#1A1815]';
 const T_MUTE = 'text-[#5A5751]';
@@ -80,6 +81,14 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
   }
 
   function resumeGame(saveId) { setActiveSaveId(saveId); setTab('play'); }
+
+  // Open a "Game Night" room on THIS screen (a TV / the church LED wall): mint a
+  // code, hand it to the board route, which shows the QR phones scan to join. A
+  // standalone boot (main.jsx ?room=), so nothing loads the monolith.
+  function startGameNight() {
+    const code = codeFromSeed(freshSeed());
+    window.location.href = buildBoardUrl(code);
+  }
 
   function handleChange(newState) {
     if (!activeSave || !updateSave) return;
@@ -161,6 +170,21 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
                       <UiIcon name="dice" /> Begin the journey
                     </button>
                   )}
+                </div>
+
+                {/* Game Night: shared big screen + phones as controllers */}
+                <div className={`mt-4 pt-4 border-t ${BORDER}`}>
+                  <div className="flex items-center gap-2">
+                    <UiIcon name="monitor" className={T_ACCENT} />
+                    <h4 className={`text-sm font-semibold ${T_INK}`}>Game Night &mdash; play together on the big screen</h4>
+                  </div>
+                  <p className={`text-sm ${T_MUTE} mt-1`}>
+                    Put this on a TV or the church wall. Everyone joins from their phone by scanning a QR code &mdash;
+                    the screen is the board; your phone is your seat. Built for family and community game nights.
+                  </p>
+                  <button onClick={startGameNight} className={`mt-3 ${BG_CARD} border ${BORDER} ${T_INK} rounded-lg px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2`}>
+                    <UiIcon name="users" /> Start a Game Night on this screen
+                  </button>
                 </div>
               </div>
             );

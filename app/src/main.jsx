@@ -35,12 +35,17 @@ initTextSize();
 //                 gate below wires it as the primary in-app sign-in.
 //   ?request-space=1 — the public, no-login "request a space" form for COMMUNITY
 //                 use of the campuses (funerals / weddings / gatherings).
+//   ?room=CODE  — "Game Night" multiplayer: the shared-screen game room. The big
+//                 screen opens ?room=CODE&board=1 (board + host); phones scan the
+//                 QR it shows and open ?room=CODE (a player's controller). A lean
+//                 boot like the others — the full PWA never loads here.
 const __params = new URLSearchParams(window.location.search);
 const __standalone = __params.get('join') === '1' || __params.get('invites') === '1'
   || __params.get('register') === '1' || __params.get('audience') === '1'
   || __params.get('output') === '1'
   || __params.get('teach') === '1' || __params.get('login') === '1'
   || __params.get('request-space') === '1'
+  || !!__params.get('room')
   || __params.get('oauth_popup') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
 if (__params.get('oauth_popup') === '1') {
@@ -108,6 +113,14 @@ if (__params.get('oauth_popup') === '1') {
 } else if (__params.get('request-space') === '1') {
   import('./components/VenueRequest.jsx').then(({ default: VenueRequest }) => {
     __root.render(<React.StrictMode><ErrorBoundary><VenueRequest /></ErrorBoundary></React.StrictMode>);
+  });
+} else if (__params.get('room')) {
+  // "Game Night" multiplayer room. GameRoom reads ?room / ?board off the URL and
+  // renders the big-screen board (host) or a phone controller. Lazy-imported so
+  // the entry chunk stays lean; supabase loads here for the realtime channel, but
+  // the heavy monolith never does.
+  import('./components/games/GameRoom.jsx').then(({ default: GameRoom }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><GameRoom /></ErrorBoundary></React.StrictMode>);
   });
 } else {
   // Conference funnel: a registrant who chose "create an account" via Google was
