@@ -23,6 +23,28 @@ import {
   daysLate, orderConcerns, composeConcerns,
 } from '../lib/concerns.js';
 
+// Auto-triage severity chip styling — reuses the board's themeable palette (no
+// new color, so the per-theme contrast guard keeps holding). Critical is a
+// filled chip so the worst feedback is unmistakable at a glance.
+const SEV_STYLE = {
+  critical: 'bg-[#B85838] text-white',
+  high:     'text-[#B85838] border border-[#B85838]',
+  normal:   'text-[#2A5A8E] border border-[#2A5A8E]',
+  low:      'text-[#5A6E3D] border border-[#5A6E3D]',
+  noise:    'text-[#5A5751] border border-[#5A5751]',
+};
+
+function SeverityBadge({ evaluation }) {
+  if (!evaluation) return null;
+  const cls = SEV_STYLE[evaluation.severity] || SEV_STYLE.normal;
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider ${cls}`}
+      title={`Auto-triaged: ${evaluation.categoryLabel} · ${evaluation.severityLabel}`}>
+      {evaluation.severityLabel} · {evaluation.categoryLabel}
+    </span>
+  );
+}
+
 // One row. Curated rows (not read-only) expand to a manage panel for the
 // family/Governor; feedback rows are read-through with a thumbnail.
 function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
@@ -53,6 +75,7 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
             </span>
             {late > 0 && <span className="font-semibold text-[#B85838]">⚠ {late} {late === 1 ? 'day' : 'days'} late</span>}
             {c.source === 'feedback' && <span className="text-[#7A5A8E]">↩ feedback</span>}
+            {c.evaluation && <SeverityBadge evaluation={c.evaluation} />}
           </span>
         </div>
         <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5" aria-hidden="true">
@@ -71,10 +94,23 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
               loading="lazy"
             />
           )}
+          {/* Auto-triage — every feedback item is evaluated on arrival (category,
+              severity, routed area, a concrete next step) so it lands actionable
+              instead of "awaiting evaluation". The human solution is set below. */}
+          {c.evaluation && (
+            <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 space-y-1">
+              <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
+                Auto-triage: <span className="text-[#1A1815]">{c.evaluation.categoryLabel}</span> · {c.evaluation.severityLabel} · routes to {c.evaluation.routeArea}
+              </p>
+              <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[0.625rem] mr-1">Suggested next step</span>{c.evaluation.suggestedAction}
+              </p>
+            </div>
+          )}
           {/* Solution */}
           {c.solution
             ? <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}><span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[10px] mr-1">Solution</span>{c.solution}</p>
-            : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{c.source === 'feedback' ? 'Submitted feedback — awaiting evaluation. No solution set yet.' : 'No solution captured yet.'}</p>}
+            : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{c.source === 'feedback' ? 'Auto-triaged above. A human solution/target hasn’t been set yet.' : 'No solution captured yet.'}</p>}
           {c.whenNote && c.status !== 'done' && !c.targetDate && (
             <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>When: {c.whenNote}</p>
           )}

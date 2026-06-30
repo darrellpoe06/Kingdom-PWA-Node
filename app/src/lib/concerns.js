@@ -22,6 +22,8 @@
 // remap applies — never a raw inline color on the rendered chip.
 // =============================================================================
 
+import { evaluateFeedback, feedbackText } from './feedback-triage.js';
+
 // status: 'open' | 'in-progress' | 'done'
 export const CONCERN_STATUS = {
   'open':        { label: 'Open',        color: '#2A5A8E', text: 'text-[#2A5A8E]', bg: 'bg-[#2A5A8E]', border: 'border-[#2A5A8E]', symbol: '○', blurb: 'Named, not yet started' },
@@ -50,8 +52,8 @@ export const SEED_CONCERNS = [
   {
     id: 'seed-feedback-auto-eval',
     concern: 'In-app feedback is never auto-evaluated — a submitted note just sits until someone reads it by hand.',
-    solution: 'Feedback → AI-reviewed follow-up: route each item to the right person with a follow-up sequence that improves over time (the loop this very board closes the first half of — feedback now returns in-app automatically).',
-    status: 'in-progress', targetDate: '2026-07-01', area: 'Feedback', created: '2026-06-18',
+    solution: 'Shipped: every feedback item is now AUTO-EVALUATED on arrival (lib/feedback-triage, deterministic + offline) — categorized, given a severity, routed to an area, and paired with a concrete suggested next step — and rendered right here on the board. No item sits "awaiting evaluation"; a human still sets the real solution/target on top of the triaged starting point. (A model-graded follow-up sequence can layer on later behind the three brakes.)',
+    status: 'done', targetDate: '2026-06-30', area: 'Feedback', created: '2026-06-18',
   },
   {
     id: 'seed-family-voice-no-wake',
@@ -305,30 +307,38 @@ export function orderConcerns(list, dir = 'asc') {
 // shape) into read-through concern cards. The feedback table stays the source
 // of truth; these are NOT persisted into `concerns`. The first screenshot rides
 // along as a thumbnail so an image submitted with feedback shows on the board.
-// A feedback item carries no target/solution, so it renders as an OPEN concern
-// awaiting triage — exactly what an un-evaluated piece of feedback is.
+//
+// Every card is AUTO-EVALUATED here (lib/feedback-triage) — category, severity,
+// routed area, and a concrete suggested next step — so a submitted note lands
+// actionable instead of "awaiting evaluation" (closes seed-feedback-auto-eval).
+// A human still sets the real solution/target on the board; this is the triaged
+// starting point. Severity is shown as a badge (critical feedback is visually
+// flagged) without disturbing the curated board's nearest-target-first order.
 // -----------------------------------------------------------------------------
 export function feedbackToConcernCards(feedback = []) {
   return (feedback || [])
-    .filter((f) => f && (f.text || f.feedback_text))
-    .map((f) => {
+    .map((f) => (f ? { f, body: feedbackText(f) } : null))
+    .filter((x) => x && x.body)
+    .map(({ f, body }) => {
       const when = f.createdAt || f.submittedAt || f.submitted_at || null;
       const shots = Array.isArray(f.screenshots) && f.screenshots.length
         ? f.screenshots
         : (f.screenshot ? [f.screenshot] : []);
       // A triaged-as-resolved feedback row reads as done; everything else is an
-      // open concern awaiting evaluation.
+      // open concern, now carrying its auto-evaluation.
       const status = f.triageStatus === 'resolved' || f.triageStatus === 'done' ? 'done' : 'open';
+      const evaluation = evaluateFeedback(f);
       return {
         id: `fb-${f.id}`,
-        concern: f.text || f.feedback_text,
+        concern: body,
         solution: null,
         status,
         targetDate: null,
-        whenNote: 'awaiting evaluation',
-        area: f.currentView || f.which_tab || f.area || 'Feedback',
+        whenNote: `auto-triaged · ${evaluation.severityLabel}`,
+        area: evaluation.routeArea,
         source: 'feedback',
         readOnly: true,
+        evaluation,
         thumbnail: shots[0] || null,
         screenshotCount: shots.length,
         author: f.displayName || null,

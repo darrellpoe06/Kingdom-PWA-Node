@@ -43,7 +43,10 @@ describe('SEED_CONCERNS — honest, real, dated', () => {
     expect(byId['seed-cloud-nas-split'].status).toBe('open');
     expect(byId['seed-vercel-cap'].status).toBe('open');
     expect(byId['seed-review-sequences'].status).toBe('open');
-    expect(byId['seed-feedback-auto-eval'].targetDate).toBe('2026-07-01');
+    // Auto-evaluation shipped 2026-06-30 — the loop now closes, so the concern
+    // is honestly marked done (was in-progress / target 2026-07-01).
+    expect(byId['seed-feedback-auto-eval'].status).toBe('done');
+    expect(byId['seed-feedback-auto-eval'].targetDate).toBe('2026-06-30');
   });
   it('carries the 2026-06-23 feedback-derived concerns, each honestly anchored', () => {
     const fb = SEED_CONCERNS.filter((c) => c.id.startsWith('seed-fb-'));
@@ -109,6 +112,26 @@ describe('feedbackToConcernCards — read-through auto feed', () => {
       source: 'feedback', readOnly: true, area: 'books',
       thumbnail: 'data:image/jpeg;base64,xxx', author: 'Christina',
     });
+  });
+  it('AUTO-EVALUATES every card: attaches evaluation + a triaged disposition (never "awaiting evaluation")', () => {
+    const [card] = feedbackToConcernCards([
+      { id: 'd', text: 'I tapped Add under Choir schedule and the entry disappeared', currentView: 'Choir' },
+    ]);
+    expect(card.evaluation).toBeTruthy();
+    expect(card.evaluation.category).toBe('data-loss');
+    expect(card.evaluation.severity).toBe('critical');
+    expect(card.evaluation.suggestedAction.length).toBeGreaterThan(0);
+    expect(card.whenNote).not.toMatch(/awaiting evaluation/i);
+    expect(card.whenNote).toMatch(/auto-triaged/i);
+  });
+  it('recognizes a LOCAL modal-shaped feedback item (whatsNot) and auto-triages it', () => {
+    const [card] = feedbackToConcernCards([
+      { id: 'm', whatsNot: 'the markets ticker shows stale numbers', currentView: 'Markets' },
+    ]);
+    expect(card).toBeTruthy();
+    expect(card.concern).toBe('the markets ticker shows stale numbers');
+    expect(card.evaluation).toBeTruthy();
+    expect(card.evaluation.category).toBeTruthy();
   });
   it('treats a resolved-triage feedback row as done', () => {
     const [card] = feedbackToConcernCards([{ id: 'x', feedback_text: 'fixed thing', triageStatus: 'resolved' }]);
