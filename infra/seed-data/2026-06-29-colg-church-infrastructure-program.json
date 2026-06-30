@@ -65,28 +65,18 @@
       "project_slugs": ["colg-church-infra-program-2026-06"],
       "visibility": "shared",
       "status": "open",
-      "body": "Two CUDA towers sit next to the NovaStar: each carries 1x RTX 4070 (~12 GB VRAM) and is the SAME box that runs OBS / ProPresenter for the live stream. POSTURE (binding): livestream-primary, AI on idle only - AI inference is preempted during Sunday / Wednesday services so NVENC and the LLM never contend for the 12 GB. WE CHOSE reuse-the-stream-boxes-on-idle, NOT a dedicated always-on AI box, BECAUSE it is sovereign and free of new hardware while the stream stays first-class. SME-PENDING: detailed per-box specs (CPU / RAM / PSU / storage / exact GPU SKU) are not yet supplied by Darrell and are NOT fabricated here.",
+      "body": "Two CUDA towers sit next to the NovaStar: each is the SAME box that runs OBS / ProPresenter for the live stream. POSTURE (binding): livestream-primary, AI on idle only - AI inference is preempted during Sunday / Wednesday services so NVENC and the LLM never contend for VRAM. WE CHOSE reuse-the-stream-boxes-on-idle, NOT a dedicated always-on AI box, BECAUSE it is sovereign and free of new hardware while the stream stays first-class. Setup runbook + serving stack are on main (PR #405/#409); the in-app endpoint records seed is infra/seed-data/2026-06-29-colg-compute-towers-endpoints.json. SME-PENDING: the actual per-box GPU/CPU/RAM specs were re-scoped to TBD (NOT assumed 4070) and are not yet supplied by Darrell - not fabricated here.",
       "linked_docs": [
-        "docs/99-session-notes/2026-06-09-research-review-colg-9k-church-build.md"
+        "docs/99-session-notes/2026-06-09-research-review-colg-9k-church-build.md",
+        "docs/99-session-notes/2026-06-29-church-compute-towers-setup-runbook.md",
+        "infra/church-gpu-node/README.md",
+        "infra/seed-data/2026-06-29-colg-compute-towers-endpoints.json"
       ],
-      "pending_docs": [
-        {
-          "path": "docs/99-session-notes/2026-06-29-church-4070-gpu-node-setup-runbook.md",
-          "reason": "On-site 4070 setup runbook is in the local working tree, pending commit."
-        },
-        {
-          "path": "infra/church-gpu-node/README.md",
-          "reason": "GPU-node serving stack (whisper-gpu + endpoints) is in the local working tree, pending commit."
-        },
-        {
-          "path": "infra/seed-data/2026-06-29-colg-gpu-node-endpoints.json",
-          "reason": "Recorded endpoint inventory is in the local working tree, pending commit."
-        }
-      ],
+      "pending_docs": [],
       "sme_pending": [
         {
-          "field": "per-box specs (CPU / RAM / PSU / storage / exact GPU SKU)",
-          "reason": "Darrell (SME) to supply on-site; only 2x RTX 4070 ~12 GB and the OBS/ProPresenter role are verified."
+          "field": "per-box specs (GPU SKU / CPU / RAM / PSU / storage)",
+          "reason": "Re-scoped to two towers with specs TBD (PR #409); Darrell (SME) to supply on-site. Only the OBS/ProPresenter role is verified."
         }
       ]
     },
@@ -101,14 +91,10 @@
       "status": "open",
       "body": "AI work runs on the towers ONLY when they are idle of livestream duty. MECHANICS: a service-window lock (stop Ollama during Sunday / Wednesday services), live-detection, and checkpoint/resume so a preempted job resumes rather than restarts. BRAKES (binding): every loop ships with all three Cage brakes - budget ceiling, single-flight concurrency lock, kill-switch - reusing the Cage primitives already in the repo, BEFORE its scheduler entry is enabled (the 2026-06-06 runaway lesson; three-brakes rule). WE CHOSE preempt-on-service + checkpoint/resume behind the Cage, NOT best-effort always-on inference, BECAUSE the live stream is first-class and unattended automation never ships without the three brakes.",
       "linked_docs": [
-        "docs/99-session-notes/2026-06-29-research-review-sustainable-headless-nas-loops.md"
+        "docs/99-session-notes/2026-06-29-research-review-sustainable-headless-nas-loops.md",
+        "docs/99-session-notes/2026-06-29-church-compute-towers-setup-runbook.md"
       ],
-      "pending_docs": [
-        {
-          "path": "docs/99-session-notes/2026-06-29-church-4070-gpu-node-setup-runbook.md",
-          "reason": "Service-time-preemption detail (DR-0012) lives in the pending-commit 4070 runbook."
-        }
-      ],
+      "pending_docs": [],
       "sme_pending": []
     },
     {
@@ -141,20 +127,14 @@
       "project_slugs": ["colg-church-infra-program-2026-06"],
       "visibility": "shared",
       "status": "open",
-      "body": "The church NAS and the home NAS form ONE sovereign mesh over a single Tailscale tailnet: replication for coherence, a capability-routed job router (pick a worker by declared capability behind the brakes - GPU jobs to church-cuda, etc.), and local-coder workers (Aider + Ollama on the towers) as a future capability. A committed node manifest (infra/ai-orchestrator/mesh/nodes.json) declares each node once. WE CHOSE capability-routed federation over a single tailnet, NOT a flat cron fan-out and NOT cloud orchestration, BECAUSE it is sovereign, low-latency on-LAN, and routes each job to the node that can actually run it. STATUS: NAS-loop hardening is on main; the mesh research review + node manifest are in the local working tree, pending commit.",
+      "body": "The church NAS and the home NAS form ONE sovereign mesh over a single Tailscale tailnet: replication for coherence, a capability-routed job router (pick a worker by declared capability behind the brakes - GPU jobs to church-cuda, etc.), and local-coder workers (Aider + Ollama on the towers) as a future capability. A committed node manifest (infra/ai-orchestrator/mesh/nodes.json) declares each node once. WE CHOSE capability-routed federation over a single tailnet, NOT a flat cron fan-out and NOT cloud orchestration, BECAUSE it is sovereign, low-latency on-LAN, and routes each job to the node that can actually run it. STATUS: the mesh research review + node manifest are on main (PR #406); the in-app mesh records seed is infra/seed-data/2026-06-29-sovereign-mesh-two-nas.json (project sovereign-mesh-2026-06, poe-family scope since it spans home + church).",
       "linked_docs": [
-        "docs/99-session-notes/2026-06-29-research-review-sustainable-headless-nas-loops.md"
+        "docs/99-session-notes/2026-06-29-research-review-sustainable-headless-nas-loops.md",
+        "docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md",
+        "infra/ai-orchestrator/mesh/nodes.json",
+        "infra/seed-data/2026-06-29-sovereign-mesh-two-nas.json"
       ],
-      "pending_docs": [
-        {
-          "path": "docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md",
-          "reason": "Primary mesh/replication/federation research review is in the local working tree, pending commit."
-        },
-        {
-          "path": "infra/ai-orchestrator/mesh/nodes.json",
-          "reason": "Node manifest skeleton is in the local working tree, pending commit."
-        }
-      ],
+      "pending_docs": [],
       "sme_pending": [
         {
           "field": "local-coder worker runbook (Aider + Ollama on the towers)",
@@ -167,19 +147,16 @@
       "slug": "dc-colg-infra-staff-learn-course",
       "kind": "directive",
       "title": "Staff/volunteer Learn course: PoeTech Data Systems & Infrastructure",
-      "verify_status": "SME-PENDING",
+      "verify_status": "CONFIRMED",
       "project_slugs": ["colg-church-infra-program-2026-06"],
       "visibility": "shared",
       "status": "open",
-      "body": "PLACEHOLDER (clearly labeled, not fabricated): a staff/volunteer Learn course teaching the COLG data systems and infrastructure - what the towers/NAS/wall do, how to operate the stream and the app cockpit, who to call. The Learn framework exists (age-adaptive lessons, quizzes, retention testing) and CAN host this course, but the course itself is NOT yet authored. NO lesson content is invented here. SME-PENDING: course outline + curriculum from Darrell / the operating staff. This record reserves the milestone and points at the Learn framework; it ships no fabricated curriculum.",
-      "linked_docs": [],
+      "body": "The staff/volunteer Learn course 'PoeTech Data Systems & Infrastructure' is authored and on main (PR #410): a Word-first, self-paced onboarding + operating course in Church > Learn, riding the SAME shared Learn engine as the other courses (meta.unit='Module', no cohort clock) and sourced from the live in-app HELP registry so it stays in sync with the app. It teaches what the towers / NAS / wall do and how to operate the stream + the app cockpit. WE CHOSE a self-paced course on the shared Learn engine, NOT a bespoke training app, BECAUSE it reuses the proven lesson/quiz/retention machinery and stays maintainable. Module: app/src/lib/datasystems-course.js.",
+      "linked_docs": [
+        "app/src/lib/datasystems-course.js"
+      ],
       "pending_docs": [],
-      "sme_pending": [
-        {
-          "field": "course outline + curriculum",
-          "reason": "Course not yet authored; curriculum + SME (Darrell / operating staff) pending. No lesson content fabricated."
-        }
-      ]
+      "sme_pending": []
     },
     {
       "item_no": 7,
