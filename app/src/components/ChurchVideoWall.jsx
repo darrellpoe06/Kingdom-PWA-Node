@@ -31,7 +31,10 @@ import {
   cabinetGrid, nativeResolution, powerPlan, dataMap,
   INSTALL_SEQUENCE, SAFETY,
 } from '../lib/video-wall-spec.js';
-import { ATEM, SIGNAL_CHAIN, AV_DEVICES, SOURCE_BRIDGES } from '../lib/church-av-devices.js';
+import {
+  ATEM, SIGNAL_CHAIN, AV_DEVICES, SOURCE_BRIDGES,
+  CABLING_PLANES, WALL_PLACEMENT, WALL_FEED_ARCHITECTURE,
+} from '../lib/church-av-devices.js';
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -280,9 +283,9 @@ export default function ChurchVideoWall() {
         </ul>
       </div>
 
-      {/* SIGNAL CHAIN + AV DEVICE INVENTORY — the VX1000 is NOT the switcher */}
+      {/* SIGNAL CHAIN + AV DEVICE INVENTORY — two switchers, two jobs */}
       <div className={card}>
-        <div className={labelCls}>Signal chain &middot; cameras &rarr; switcher &rarr; wall</div>
+        <div className={labelCls}>Signal chain &middot; cameras &rarr; ATEM &rarr; NovaStar &rarr; wall</div>
         <ol className="mt-2 space-y-2">
           {SIGNAL_CHAIN.hops.map((h, i) => (
             <li key={i} className="flex gap-2.5">
@@ -292,6 +295,9 @@ export default function ChurchVideoWall() {
           ))}
         </ol>
         <p className="mt-3 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">
+          <b>Two switchers:</b> {SIGNAL_CHAIN.roleSplit}
+        </p>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">
           <b>Cameras:</b> {SIGNAL_CHAIN.cameraControlNote}
         </p>
 
@@ -316,6 +322,22 @@ export default function ChurchVideoWall() {
             <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{b.device}</b> &mdash; {b.forSource}. {b.note}</span></li>
           ))}
         </ul>
+
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Cabling &amp; placement</div>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">
+          <b>&#9888; Critical:</b> {CABLING_PLANES.noSwitchRule}
+        </p>
+        <ul className="mt-2 space-y-1">
+          {CABLING_PLANES.jobs.map((j, i) => (
+            <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-2">
+              <span className="text-[#B85838]">&middot;</span>
+              <span><b>{j.name}:</b> {j.carries} {j.note}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815]"><b>Placement (decided):</b> {WALL_PLACEMENT.decision} Video to the wall via the recommended {WALL_PLACEMENT.videoTransport.optionA.name}.</p>
+        <p className="mt-1 text-[0.75rem] text-[#5A5751]"><b>Wall feed:</b> {WALL_FEED_ARCHITECTURE.recommended.name} ({WALL_FEED_ARCHITECTURE.buyList})</p>
+
         <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Source: {ATEM.source}.</p>
       </div>
 

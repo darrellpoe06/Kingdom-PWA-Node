@@ -111,12 +111,14 @@ export const SANCTUARY_WALL = {
   // grid = 2560x1440 (QHD, 16:9); snap to the confirmed native map at install.
   designCanvas: { width: 2560, height: 1440, aspectLabel: '16:9' },
   withinProcessorCapacity: WALL_NATIVE ? WALL_NATIVE.megapixels <= VX1000.capacity.maxLoadMegapixels : null,
-  // HOW it is fed — the VX1000 receives the ATEM PROGRAM (it is NOT a switcher),
-  // NOT NDI-direct. Cameras + the Presenter graphics are SOURCES into the ATEM;
-  // the ATEM switches them to one program -> VX1000 -> wall. See church-av-devices.
+  // HOW it is fed — the VX1000 receives the ATEM PROGRAM (the ATEM is the PRODUCTION
+  // switcher), NOT NDI-direct. Cameras + the Presenter graphics are SOURCES into the
+  // ATEM; the ATEM cuts them to one program -> VX1000 -> wall. The VX1000 itself is a
+  // SOURCE-level switcher (selects/layers whole inputs, holds a backup), not the
+  // production switcher. See church-av-devices.js.
   feed: {
-    path: 'cameras + Presenter graphics --> ATEM Production Studio 4K (switch/mix) --> ATEM program out --SDI/HDMI--> NovaStar VX1000 --> wall',
-    recommendedInput: 'Feed the VX1000 from the ATEM program out over SDI (or HDMI); the VX1000 maps it to the LED grid. (The VX1000 is a wall processor, not a switcher.)',
+    path: 'cameras + Presenter graphics --> ATEM Production Studio 4K (production switch) --> ATEM program out --SDI/HDMI--> NovaStar VX1000 (source switch/place on wall) --> wall',
+    recommendedInput: 'Feed the VX1000 from the ATEM program out over SDI (or HDMI); the VX1000 maps it to the LED grid. (The VX1000 is a source-level switcher + wall processor — it selects/layers whole inputs; the ATEM does the multi-camera production switching. See lib/church-av-devices.js.)',
     switcher: 'ATEM Production Studio 4K',
     ndiDirect: false,
     ndiNote: 'To put an NDI source on the wall, bridge it first (NDI->SDI/HDMI) into the ATEM (or the VX1000). The VX1000 itself has no NDI input.',
@@ -142,7 +144,7 @@ export const SIGNAL_PATH = {
     title: 'Wall lane (ATEM program -> VX1000 -> wall; NOT NDI-direct)',
     hops: [
       'All cameras + the Presenter graphics (rendered at ~2560x1440, 16:9) feed the ATEM Production Studio 4K as sources (20x 6G-SDI + 1 HDMI; frame sync per input switches ANY source). See lib/church-av-devices.js.',
-      'The ATEM switches/mixes them to ONE program; ATEM program out --SDI/HDMI--> a NovaStar VX1000 input. The VX1000 is a wall PROCESSOR, not a switcher — it receives only the finished program.',
+      'The ATEM does the multi-camera PRODUCTION switching to ONE program; ATEM program out --SDI/HDMI--> a NovaStar VX1000 input. The VX1000 is a SOURCE-level switcher + wall processor (selects/layers whole inputs, holds a backup) — it does not cut cameras; the ATEM does.',
       'VX1000 scales/maps to the LED module grid and drives the 16.8x9.45 ft 1.99 mm wall (1-frame latency, genlock).',
     ],
   },
