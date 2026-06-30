@@ -1,7 +1,6 @@
 {
   "file": "app/src/poe-financial-mvp-v28.jsx",
-  "budget": 9572,
-  "frozen": "2026-06-29",
-  "baseline_reason": "Initial freeze baseline = origin/main's actual monolith line count at freeze time. Main grew 9564 -> 9572 (+8) from a concurrent inline-feature merge (#415-era) between drafting and landing this freeze — the very growth this guard exists to stop, caught in real time. Setting the baseline to main's reality via the documented hand-edit path; from here it ratchets DOWN only.",
+  "budget": 9545,
+  "frozen": "(stamp the date in the PR)",
   "note": "Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN. Re-freeze with `node scripts/monolith-budget-guard.mjs --generate` after an extraction shrinks it. To RAISE this number, edit by hand with a stated reason in the PR — --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md."
 }

@@ -217,23 +217,26 @@ phased road to direct-to-purchasing (§9) · **[R]** = further roadmap.
   *AC:* closing a service shows on-hand for every item with no manual count;
   usage-per-service = the depletion movements in `[opened_at, closed_at)`; the
   snapshot is reproducible from the ledger (derived, not painted).
-- **[P4] Par-based purchasing drafts.** From live on-hand + par + usage trend, a
-  reorder engine computes **order quantity to hit par** and groups lines into
-  **purchase-order drafts per vendor** (cheapest / preferred vendor from price
-  history) — the "what to order" list.
+- **[1 — SHIPPED] Par-based purchasing drafts.** From live on-hand + par, the
+  reorder engine (`lib/purchasing.js`) computes **order quantity to hit par** and
+  groups lines into **purchase-order drafts per vendor** — the "what to order"
+  list, derived live. Surfaced as the **Purchasing** sub-tab of Kitchen Inventory
+  (Chef's Corner → Kitchen Inventory → Purchasing).
   *AC:* an item below par appears on a draft PO with qty = `par − on-hand`
-  (+ optional usage buffer); drafts group by vendor; line totals use the latest
-  vendor price; **nothing is ordered**.
-- **[P4] Approve-to-purchase gate (binding).** A draft PO is **previewed and must
-  be approved by a human** before it is placed; placing the order is the owner's
-  action.
-  *AC:* a PO moves `draft → approved → placed → received`; the system never
-  transitions to placed / paid on its own (binding constraint, §1 + §6).
+  (+ optional usage buffer); drafts group by vendor; line totals use the item's
+  unit cost; **nothing is ordered**. (Unit-tested.)
+- **[1 — SHIPPED] Approve-to-purchase gate (binding).** A draft is **previewed and
+  must be approved by a human**; placing the order is the owner's action; receiving
+  posts `in` movements that raise on-hand (the loop closes).
+  *AC:* a PO moves `draft → approved → placed → received`; `canAdvance` is
+  forward-only; the system never transitions to placed / paid on its own
+  (binding constraint, §1 + §6). (Unit-tested.)
+- **[P4-next] Vendor price history.** `vendor_prices` for cheapest-vendor hints +
+  price trend (today the draft uses the item's current unit cost + preferred
+  `vendor`).
 - **[P5] Vendor ordering connection.** Optionally transmit an **approved** PO to a
-  vendor (email / API / EDI), still human-approved, still no auto-pay; a received
-  delivery reconciles back into stock as receive movements (the loop closes).
-  *AC:* only an approved PO can be sent; sending is an explicit human action;
-  receiving posts receive movements that update on-hand.
+  vendor (email / API / EDI), still human-approved, still no auto-pay.
+  *AC:* only an approved PO can be sent; sending is an explicit human action.
 - **[P3→P4] Usage → costing → food-cost loop.** Usage (depletion) valued at unit
   cost feeds consumption cost; tied to **recipe costing** (what's actually being
   cooked / sold) and **food-cost %**, so purchasing is informed by real
@@ -457,7 +460,7 @@ binding **approve-to-purchase** gate holds from P4 on.
 | **1–2** | Catalog · counts · costing | categories, storage areas, items, par; counts by weight/unit; derived on-hand + value; reconcile; recipe costing; homed in Chef's Corner | `inventory_items` + `inventory_movements` (0052) + `inventory_counts/_lines` (0053) + `recipe-costing.js`; on-hand = `Σ signedQty` | **Shipped** (#382, #386) |
 | **P2** | **Perpetual / real-time inventory** | quick-input of Receive / Usage / Waste / Prep so on-hand is live between counts | extend movement **vocabulary** (`waste`, `prep`); fast input surfaces; on-hand engine unchanged | Next |
 | **P3** | **End-of-service close** | "close the night" → per-service inventory snapshot + usage-per-service | `service_periods` + `service_close_snapshots`; usage = depletion in `[open, close)`; snapshot cached but ledger-derivable | After P2 |
-| **P4** | **Par-based purchasing drafts + approve gate** | reorder engine → PO drafts per vendor; preview → **human approves** → placed | `vendors`, `vendor_prices`, `purchase_orders` (status gate), `purchase_order_lines`; pure reorder lib emits drafts only | After P3 |
+| **P4** | **Par-based purchasing drafts + approve gate** | reorder engine → PO drafts per vendor; preview → **human approves** → placed → received-to-stock | `purchase_orders` (status gate) + `purchase_order_lines` + item `vendor` (0054); pure reorder lib (`purchasing.js`) emits drafts only | **Shipped** (this PR) — Chef's Corner → Kitchen Inventory → Purchasing |
 | **P5** | **Vendor ordering connection** | transmit an **approved** PO; receive reconciles to stock | send action on an approved PO (email/API/EDI); receive posts `receive` movements | After P4 |
 
 **Which phase delivers Chef Mario's ask:**
