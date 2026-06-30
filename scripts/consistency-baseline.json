@@ -1,7 +1,7 @@
 {
   "poe-financial-mvp-v28.jsx": {
-    "emoji": 80,
-    "fixedPx": 273,
+    "emoji": 79,
+    "fixedPx": 262,
     "widthCap": 16
   },
   "components/About.jsx": {
@@ -373,6 +373,11 @@
     "emoji": 22,
     "fixedPx": 118,
     "widthCap": 3
+  },
+  "components/PromoBanners.jsx": {
+    "emoji": 1,
+    "fixedPx": 11,
+    "widthCap": 0
   },
   "components/Pulpit.jsx": {
     "emoji": 1,
