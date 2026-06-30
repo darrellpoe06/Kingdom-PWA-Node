@@ -23,7 +23,10 @@ import {
   aiVoiceLabel, enrollmentStatus, loadVoiceChoice, saveVoiceChoice, KIND, CONSENT,
 } from '../lib/voice-registry.js';
 import { loadVoiceProfiles, enrollMyVoice, revokeMyVoice } from '../lib/voice-sync.js';
-import { buildStandInAssignments, standInVoiceURI } from '../lib/voice-assignment.js';
+import {
+  buildStandInAssignments, resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender,
+} from '../lib/voice-assignment.js';
+import { loadPersonaVoiceMap, savePersonaVoice } from '../lib/persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech } from '../lib/voice-service.js';
 import { useReadingVoice, personVoiceId, SYSTEM_VOICE_ID } from '../lib/reading-voice.js';
 import {
@@ -84,9 +87,17 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   // a man reads in a male voice, a woman in a female voice, different people sound
   // different — instead of everything falling through to the one default voice.
   const assignments = useMemo(() => buildStandInAssignments(voices, tts.voices), [voices, tts.voices]);
-  const voiceLabelFor = (v) => {
-    const dev = v && assignments[v.id];
-    return dev && dev.name ? dev.name : null;
+
+  // Per-persona device-voice PIN (persona-voice-prefs). When the auto gender-mapping
+  // picks the wrong voice on a given phone, the user pins the right one here and it
+  // persists + applies on every read-aloud. `overrides` is state so the dropdown +
+  // playback update the instant a pin changes.
+  const [overrides, setOverrides] = useState(() => loadPersonaVoiceMap());
+  const deviceOptions = useMemo(() => deviceVoiceOptions(tts.voices), [tts.voices]);
+  // The voiceURI each option ACTUALLY speaks in right now (pin first, else auto).
+  const resolvedURIFor = (v) => resolveVoiceURIForId(v.id, { assignments, overrides, available: tts.voices });
+  const pinDeviceVoice = (catalogId, voiceURI) => {
+    setOverrides(savePersonaVoice(catalogId, voiceURI || ''));
   };
 
   // Highlight-as-it-reads: the engine segments deterministically, so we segment the
@@ -142,7 +153,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       if (!refBlob) {
         setNotice('Record a voice sample first — then this reads in that voice.');
         if (!tts.supported) return;
-        tts.speak(clean, standInVoiceURI(assignments, voice.id)); // gendered stand-in until a sample exists
+        tts.speak(clean, resolvedURIFor(voice)); // pinned/gendered stand-in until a sample exists
         return;
       }
       const referenceDataUri = await blobToDataUri(refBlob);
@@ -155,7 +166,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
           audioRef.current = a;
           setCloudPlaying(true);
           a.onended = () => { setCloudPlaying(false); try { URL.revokeObjectURL(url); } catch (_) {} };
-          a.onerror = () => { setCloudPlaying(false); tts.speak(clean, standInVoiceURI(assignments, voice.id)); }; // never silent
+          a.onerror = () => { setCloudPlaying(false); tts.speak(clean, resolvedURIFor(voice)); }; // never silent
           await a.play();
           return;
         } catch (_) { setCloudPlaying(false); /* fall through to browser */ }
@@ -168,7 +179,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
     // speaks in its assigned device voice (gender-correct + distinct) — never the one
     // shared default that made every pick sound like the same person.
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
-    tts.speak(clean, standInVoiceURI(assignments, voice.id));
+    tts.speak(clean, resolvedURIFor(voice));
   };
 
   const readNow = () => playWith(selected, text);
@@ -343,11 +354,30 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                     {prov.standIn ? ' · plays a stand-in until the voice studio is live' : ''}
                     {prov.real && v.kind === KIND.PERSONAL ? ' · cloned voice live' : ''}
                   </div>
-                  {/* Transparency: the actual device voice this option speaks in, so
-                      the listener can SEE (and hear) that each pick is different. */}
-                  {selectable && voiceLabelFor(v) && (
-                    <div className="text-[10px] text-[#5A5751] mt-0.5">
-                      {prov.standIn ? 'Stand-in voice: ' : 'Voice: '}<span className="text-[#1A1815]">{voiceLabelFor(v)}</span>
+                  {/* Pick the ACTUAL device voice this option speaks in — the same
+                      voices other apps use (speechSynthesis.getVoices()). The choice
+                      persists and applies to every read-aloud. This is the fix for
+                      "still sounds female for Darrell": pin a male voice here. */}
+                  {selectable && deviceOptions.length > 0 && (
+                    <div className="mt-1.5">
+                      <label htmlFor={`dv-${v.id}`} className="text-[10px] text-[#5A5751] block mb-0.5">
+                        {prov.standIn ? 'Stand-in device voice' : 'Device voice'}
+                      </label>
+                      <select
+                        id={`dv-${v.id}`}
+                        value={resolvedURIFor(v) || ''}
+                        onChange={(e) => pinDeviceVoice(v.id, e.target.value)}
+                        className="text-[11px] border border-[#E8E4DC] bg-white text-[#1A1815] px-2 py-1 rounded-md max-w-[12rem] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+                      >
+                        {deviceOptions.map((o) => (
+                          <option key={o.uri} value={o.uri}>
+                            {o.name}{o.gender !== 'unknown' ? ` · ${o.gender}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {v.kind === KIND.PERSONAL && v.gender === 'male' && !hasVoiceOfGender(tts.voices, 'male') && (
+                        <p className="text-[10px] text-[#B85838] mt-0.5 max-w-[14rem]">This browser exposes no male voice to web pages — pick the closest; the real male voice needs the voice-clone endpoint.</p>
+                      )}
                     </div>
                   )}
                 </div>

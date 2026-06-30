@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   classifyVoiceGender, buildStandInAssignments, standInVoiceURI, voiceForLocale,
+  resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender,
 } from '../lib/voice-assignment.js';
 
 // A merged-catalog shape (what mergeVoiceCatalog returns): System + 3 people.
@@ -89,6 +90,59 @@ describe('buildStandInAssignments — gender correctness outranks distinctness',
     expect(classifyVoiceGender(a['voice-dp'])).toBe('male');
     expect(classifyVoiceGender(a['voice-bg'])).toBe('male'); // reused David, NOT Zira
     expect(classifyVoiceGender(a['voice-cp'])).toBe('female');
+  });
+});
+
+describe('classifyVoiceGender — voiceURI gender hints (Android/ChromeOS variants)', () => {
+  it('reads a gender hint from the voiceURI when the name has none', () => {
+    expect(classifyVoiceGender({ name: 'English United States', voiceURI: 'en-us-x-iom-male-local' })).toBe('male');
+    expect(classifyVoiceGender({ name: 'English United States', voiceURI: 'en-us-x-tpf-female-local' })).toBe('female');
+    expect(classifyVoiceGender({ name: 'Voice 3', voiceURI: 'com.acme.tts#male_2' })).toBe('male');
+  });
+  it('does not false-positive a plain locale URI', () => {
+    expect(classifyVoiceGender({ name: 'Google US English', voiceURI: 'en-US-Standard' })).toBe('unknown');
+  });
+});
+
+describe('resolveVoiceURIForId — a user PIN wins, applied on every read', () => {
+  const WIN = [
+    { name: 'Microsoft David', voiceURI: 'david', lang: 'en-US' },
+    { name: 'Microsoft Mark', voiceURI: 'mark', lang: 'en-US' },
+    { name: 'Microsoft Zira', voiceURI: 'zira', lang: 'en-US' },
+  ];
+  const a = buildStandInAssignments(CATALOG, WIN);
+
+  it('honors a pin when that voice exists on the device', () => {
+    const overrides = { 'voice-dp': 'mark' };
+    expect(resolveVoiceURIForId('voice-dp', { assignments: a, overrides, available: WIN })).toBe('mark');
+  });
+  it('IGNORES a pin whose voice is not on this device (no mis-apply across devices)', () => {
+    const overrides = { 'voice-dp': 'some-other-phone-voice' };
+    // falls back to the auto MALE assignment, never the stale pin
+    const got = resolveVoiceURIForId('voice-dp', { assignments: a, overrides, available: WIN });
+    expect(got).not.toBe('some-other-phone-voice');
+    expect(['david', 'mark']).toContain(got); // a male voice
+  });
+  it('falls back to auto when there is no pin', () => {
+    expect(resolveVoiceURIForId('voice-cp', { assignments: a, overrides: {}, available: WIN })).toBe('zira');
+  });
+});
+
+describe('deviceVoiceOptions + hasVoiceOfGender — the picker + honest male-availability', () => {
+  const WIN = [
+    { name: 'Microsoft David', voiceURI: 'david', lang: 'en-US' },
+    { name: 'Microsoft Zira', voiceURI: 'zira', lang: 'en-US' },
+  ];
+  it('lists device voices tagged with gender for the dropdown', () => {
+    const opts = deviceVoiceOptions(WIN);
+    expect(opts.map((o) => o.uri)).toEqual(['david', 'zira']);
+    expect(opts.find((o) => o.uri === 'david').gender).toBe('male');
+    expect(opts.find((o) => o.uri === 'zira').gender).toBe('female');
+  });
+  it('reports whether a male/female voice exists (drives the honest caveat)', () => {
+    expect(hasVoiceOfGender(WIN, 'male')).toBe(true);
+    expect(hasVoiceOfGender([{ name: 'Samantha', voiceURI: 's', lang: 'en-US' }], 'male')).toBe(false);
+    expect(hasVoiceOfGender([], 'male')).toBe(false);
   });
 });
 
