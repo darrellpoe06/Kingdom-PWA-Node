@@ -192,6 +192,11 @@ export default function ChefCorner({
             updateCount={inventory.updateCount}
             addCountLine={inventory.addCountLine}
             updateCountLine={inventory.updateCountLine}
+            purchaseOrders={inventory.purchaseOrders || []}
+            purchaseOrderLines={inventory.purchaseOrderLines || []}
+            addPurchaseOrder={inventory.addPurchaseOrder}
+            updatePurchaseOrder={inventory.updatePurchaseOrder}
+            addPurchaseOrderLine={inventory.addPurchaseOrderLine}
             currentUserPersona={currentUserPersona}
           />
         </Suspense>

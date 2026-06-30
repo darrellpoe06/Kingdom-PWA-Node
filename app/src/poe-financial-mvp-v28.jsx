@@ -100,8 +100,11 @@ import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { inventoryItemsSync, mergeRemoteInventoryItems, INVENTORY_ITEM_COLUMN_OF } from './lib/inventory-items-sync.js';
 import { inventoryMovementsSync, mergeRemoteMovements } from './lib/inventory-movements-sync.js';
 import { recordEventsSync, mergeRemoteRecordEvents } from './lib/record-events-sync.js';
-import { kitchenCountsSync, mergeRemoteCounts, COUNT_COLUMN_OF } from './lib/kitchen-counts-sync.js';
-import { kitchenCountLinesSync, mergeRemoteCountLines, COUNT_LINE_COLUMN_OF } from './lib/kitchen-count-lines-sync.js';
+import { kitchenCountsSync, mergeRemoteCounts } from './lib/kitchen-counts-sync.js';
+import { kitchenCountLinesSync, mergeRemoteCountLines } from './lib/kitchen-count-lines-sync.js';
+import { purchaseOrdersSync, mergeRemotePurchaseOrders } from './lib/purchase-orders-sync.js';
+import { purchaseOrderLinesSync, mergeRemotePurchaseOrderLines } from './lib/purchase-order-lines-sync.js';
+import { createKitchenDispatchers } from './lib/kitchen-dispatchers.js';
 import { makeHistoryEvent } from './lib/record-history.js';
 import { compressImageFile } from './lib/image.js';
 import { FreshnessDot } from './components/FreshnessDot.jsx';
@@ -3049,6 +3052,10 @@ export default function PoeFinancialSystem() {
         // session state synced the same proven way.
         { sync: kitchenCountsSync,     key: 'inventoryCounts',     localList: (latest.inventoryCounts || []).filter(notDemoRow).filter(notSeedRow),     merge: mergeRemoteCounts },
         { sync: kitchenCountLinesSync, key: 'inventoryCountLines', localList: (latest.inventoryCountLines || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteCountLines },
+        // Purchasing (0054) — par-based reorder drafts the chef approves. The
+        // header + line snapshots pool to the family instance the same proven way.
+        { sync: purchaseOrdersSync,     key: 'purchaseOrders',     localList: (latest.purchaseOrders || []).filter(notDemoRow).filter(notSeedRow),     merge: mergeRemotePurchaseOrders },
+        { sync: purchaseOrderLinesSync, key: 'purchaseOrderLines', localList: (latest.purchaseOrderLines || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemotePurchaseOrderLines },
       ];
       for (const t of tables) {
         if (cancelled) return;
@@ -3686,58 +3693,19 @@ export default function PoeFinancialSystem() {
     return stamped.map(m => m.id);
   };
 
-  // ---- Kitchen inventory COUNT sessions (0053) — the chef vertical on the 0052
-  // base. A count + its lines are working session state (same optimistic-local-
-  // then-cloud pattern as addRecipe); CLOSING a count is not a special dispatch —
-  // the KitchenInventory surface reconciles it by posting adjust MOVEMENTS through
-  // recordInventoryMovements above, then flips the count's status to 'closed'.
-  const addInventoryCount = (count) => {
-    const nowIso = new Date().toISOString();
-    const localId = `count-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const seeded = { ...count, id: localId, startedAt: count?.startedAt || nowIso, createdBy: authSession?.user?.id || null };
-    setData(d => ({ ...d, inventoryCounts: [...(d.inventoryCounts || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      kitchenCountsSync.upload(seeded)
-        .then(res => { if (res && res.uploaded && res.remoteId) setData(d => ({ ...d, inventoryCounts: (d.inventoryCounts || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) })); })
-        .catch(e => console.warn('[kitchen-counts-sync] add upload failed', e));
-    }
-    return localId;
-  };
-  const updateInventoryCount = (id, updates) => setData(d => {
-    const stamped = { ...updates, updatedAt: new Date().toISOString() };
-    const next = (d.inventoryCounts || []).map(x => (x.id === id ? { ...x, ...stamped } : x));
-    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
-      const updated = next.find(x => x.id === id);
-      if (updated && updated.remoteUuid) {
-        const patch = {};
-        for (const [localKey, column] of Object.entries(COUNT_COLUMN_OF)) { if (updates[localKey] !== undefined) patch[column] = updates[localKey]; }
-        if (Object.keys(patch).length > 0) kitchenCountsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[kitchen-counts-sync] update failed', e));
-      }
-    }
-    return { ...d, inventoryCounts: next };
-  });
-  const addInventoryCountLine = (line) => {
-    const localId = `cl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const seeded = { ...line, id: localId, countedAt: line?.countedAt || new Date().toISOString(), createdBy: authSession?.user?.id || null };
-    setData(d => ({ ...d, inventoryCountLines: [...(d.inventoryCountLines || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      kitchenCountLinesSync.upload(seeded)
-        .then(res => { if (res && res.uploaded && res.remoteId) setData(d => ({ ...d, inventoryCountLines: (d.inventoryCountLines || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) })); })
-        .catch(e => console.warn('[kitchen-count-lines-sync] add upload failed', e));
-    }
-    return localId;
-  };
-  const updateInventoryCountLine = (id, updates) => setData(d => {
-    const next = (d.inventoryCountLines || []).map(x => (x.id === id ? { ...x, ...updates } : x));
-    if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
-      const updated = next.find(x => x.id === id);
-      if (updated && updated.remoteUuid) {
-        const patch = {};
-        for (const [localKey, column] of Object.entries(COUNT_LINE_COLUMN_OF)) { if (updates[localKey] !== undefined) patch[column] = updates[localKey]; }
-        if (Object.keys(patch).length > 0) kitchenCountLinesSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[kitchen-count-lines-sync] update failed', e));
-      }
-    }
-    return { ...d, inventoryCountLines: next };
+  // ---- Kitchen vertical dispatchers (counts 0053 + purchasing 0054) — EXTRACTED
+  // to lib/kitchen-dispatchers.js so the shell stays frozen (DR-0078 cutover;
+  // monolith-budget-guard). Same optimistic-local-then-cloud writers as before.
+  // Counts close by posting adjust MOVEMENTS via recordInventoryMovements (above);
+  // APPROVE-TO-PURCHASE lives in the surface (drafts derived live; the owner
+  // approves/places — nothing here places an order or moves money).
+  const {
+    addInventoryCount, updateInventoryCount, addInventoryCountLine, updateInventoryCountLine,
+    addPurchaseOrder, updatePurchaseOrder, addPurchaseOrderLine,
+  } = createKitchenDispatchers({
+    setData,
+    userId: () => authSession?.user?.id || null,
+    syncReady: () => !!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode),
   });
 
   // ---- Chef's Corner recipes (0052) — same optimistic-local-then-cloud pattern
@@ -5957,6 +5925,11 @@ html{scroll-padding-bottom:280px}
                 updateCount: updateInventoryCount,
                 addCountLine: addInventoryCountLine,
                 updateCountLine: updateInventoryCountLine,
+                purchaseOrders: data.purchaseOrders || [],
+                purchaseOrderLines: data.purchaseOrderLines || [],
+                addPurchaseOrder,
+                updatePurchaseOrder,
+                addPurchaseOrderLine,
                 canManage: true,
               } : null}
             />
