@@ -68,9 +68,22 @@ describe('YouTube ingest — distill into ORIGINAL, attributed draft material', 
     expect(course.summary).toMatch(/awaiting/i);
   });
 
-  it('attributionLine names the teacher and the review gate', () => {
+  it('attributionLine credits the teacher AND frames them as a conduit who sources Yahweh', () => {
     const line = attributionLine({ teacher: 'Dr. Q', channel: '@q', url: 'http://x' });
-    expect(line).toMatch(/Dr\. Q/);
-    expect(line).toMatch(/Christina/);
+    expect(line).toMatch(/Dr\. Q/);                       // credited (honesty/copyright)
+    expect(line).toMatch(/conduit/i);                     // not elevated above the Word
+    expect(line).toMatch(/all true knowledge is from Yahweh/i);
+    expect(line).toMatch(/tested against Scripture/i);
+    expect(line).toMatch(/Christina/);                    // SME gate
+  });
+
+  it('records source REACH as an asset when provided (honest, no fabricated count)', () => {
+    const course = draftCourseFromSource({
+      url: 'u', teacher: 'Big Name', field: 'Individual therapy', transcript: TRANSCRIPT,
+      reach: { recognition: 'Millions of views (reported).', exactCount: null }, now: 'NOW',
+    });
+    expect(course.sourceReach).toBeTruthy();
+    expect(course.sourceReach.recognition).toMatch(/million/i);
+    expect(course.sourceReach.exactCount).toBe(null);
   });
 });
