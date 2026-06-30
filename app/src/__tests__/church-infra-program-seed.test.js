@@ -103,12 +103,13 @@ describe('church infra program seed — no fabricated specs (DR-0076)', () => {
     }
   });
 
-  it('the staff Learn course (item 6) is flagged SME-pending with no fabricated doc', () => {
+  it('the staff Learn course (item 6) links the REAL authored course module (PR #410), no fabrication', () => {
     const course = seed.items.find((i) => i.item_no === 6);
     expect(course).toBeTruthy();
-    expect(course.verify_status).toBe('SME-PENDING');
-    expect(course.sme_pending.length).toBeGreaterThan(0);
-    expect(course.linked_docs).toHaveLength(0); // no invented curriculum doc
+    expect(course.verify_status).toBe('CONFIRMED');
+    // The course is authored and on main; it links the real module and invents nothing.
+    expect(course.linked_docs).toContain('app/src/lib/datasystems-course.js');
+    expect(course.sme_pending).toHaveLength(0);
   });
 });
 

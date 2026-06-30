@@ -22,15 +22,16 @@ register" milestone of the Church Infrastructure Program
 
 | Asset | Role | Known spec | Source | Status |
 |---|---|---|---|---|
-| CUDA tower A | Livestream-primary (OBS / ProPresenter); AI on idle only | 1x RTX 4070 (~12 GB VRAM) | `infra/seed-data/2026-06-29-colg-gpu-node-endpoints.json`; `2026-06-29-church-4070-gpu-node-setup-runbook.md` (pending commit) | PARTIAL |
-| CUDA tower B | Livestream-primary (OBS / ProPresenter); AI on idle only | 1x RTX 4070 (~12 GB VRAM) | same | PARTIAL |
-| Per-box detail | CPU / RAM / PSU / storage / exact GPU SKU | not yet inventoried | -- | SME-PENDING |
+| CUDA tower A | Livestream-primary (OBS / ProPresenter); AI on idle only | GPU/CPU/RAM specs TBD (re-scoped from the earlier 4070 assumption, PR #409) | `infra/seed-data/2026-06-29-colg-compute-towers-endpoints.json` (on main); `2026-06-29-church-compute-towers-setup-runbook.md` (on main) | PARTIAL |
+| CUDA tower B | Livestream-primary (OBS / ProPresenter); AI on idle only | GPU/CPU/RAM specs TBD (re-scoped, PR #409) | same | PARTIAL |
+| Per-box detail | GPU SKU / CPU / RAM / PSU / storage | not yet inventoried | -- | SME-PENDING |
 | Church NAS | Recordings store + replication peer | ~100 TB capacity after 5x12 TB add (~48 TB usable at SHR/RAID-5; ~36 TB at RAID-6); whole-archive best-versions ~1-2.5 TB | `infra/seed-data/2026-06-23-colg-local-infrastructure-docs.*` (on main) | CONFIRMED (capacity) / contents PENDING INVENTORY |
 
 Note: "two CUDA towers next to the NovaStar, livestream-primary, AI-idle-only" is
 the recorded posture (service-time preemption — stop AI inference during Sunday /
-Wednesday services so NVENC and the LLM never contend for the 12 GB). Detailed
-per-box specs are SME-PENDING from Darrell.
+Wednesday services so NVENC and the LLM never contend for VRAM). The towers were
+re-scoped (PR #409) away from the earlier "RTX 4070" assumption to two towers with
+specs TBD; detailed per-box specs are SME-PENDING from Darrell.
 
 ## Display / video wall
 
