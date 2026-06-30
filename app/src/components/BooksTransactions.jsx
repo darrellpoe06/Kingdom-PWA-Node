@@ -16,6 +16,7 @@ import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
 import { isSpreadsheetFile, statementFileToCsv } from '../lib/statement-import.js';
+import { recordLoopRun } from '../lib/loop-runs.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -577,6 +578,12 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
       });
     });
+    // Emit the run-state outcome for the Loops watching layer (DR-0083) —
+    // ran-when / rows / status, read-only + non-blocking so observing can never
+    // break the import. The balance already moved off the addTransaction calls;
+    // this only RECORDS that it happened.
+    const acctName = (accounts.find(a => a.id === csvAccountId) || {}).name || 'account';
+    recordLoopRun({ key: 'upload-import', status: 'success', processed: valid.length, detail: `${acctName} · CSV/Excel` });
     setCsvOpen(false);
     setCsvRaw('');
     setCsvError('');

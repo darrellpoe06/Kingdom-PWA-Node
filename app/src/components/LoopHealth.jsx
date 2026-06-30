@@ -9,7 +9,18 @@
 // "never updated" (a retire candidate), which is the truth, not a guess.
 import React from 'react';
 import { assessLoops } from '../lib/loop-health.js';
+import { readLoopRuns } from '../lib/loop-runs.js';
 import { KpiDot } from './KpiDot.jsx';
+
+// A loop that emits run-state (DR-0083) shows its last actual run — ran-when /
+// rows processed / status — straight from the real run record, never painted.
+const fmtRun = (l) => {
+  const r = l && l.lastRun;
+  if (!r) return null;
+  const when = String(r.at || '').slice(0, 16).replace('T', ' ');
+  const rows = `${r.processed || 0} row${(r.processed || 0) === 1 ? '' : 's'}`;
+  return `last run ${when} · ${rows} · ${r.status || 'success'}`;
+};
 
 // Loop status -> shared KPI state (lib/kpi-status.js): fresh = good, stale =
 // attention, never-updated = problem. Used for both the per-loop badge and the
@@ -33,7 +44,10 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
   // financialDocAt = the latest financial document that actually arrived from the
   // sourced email/bank stream (ingestData) — so the financial loop reads "updating"
   // when a Chase/etc. document comes in, not on a hand-set date.
-  const loops = assessLoops(data, Date.now(), { snapshotMarker, financialDocAt });
+  // loopRuns = the run-state records loops emit (lib/loop-runs, localStorage).
+  // Read-only here — the watching layer can never write back into a loop.
+  const loopRuns = readLoopRuns();
+  const loops = assessLoops(data, Date.now(), { snapshotMarker, financialDocAt, loopRuns });
   const attention = loops.filter((l) => l.status !== 'fresh');
   const fresh = loops.filter((l) => l.status === 'fresh');
 
@@ -83,6 +97,11 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
                 <div className="text-[11px] text-[#5A5751] mt-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                   {fmtAgo(l)} · window {l.staleDays}d
                 </div>
+                {fmtRun(l) && (
+                  <div className="text-[0.6875rem] text-[#15803D] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    {fmtRun(l)}
+                  </div>
+                )}
                 {decided ? (
                   <div className="text-[11px] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                     {decided.decision === 'keep' ? `Kept — re-review ${(''+decided.reReview).slice(0, 10)}` : 'Marked to retire'}
@@ -106,7 +125,7 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
           <ul className="space-y-0.5">
             {fresh.map((l) => (
               <li key={l.key} className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                <span className="text-[#15803D]">●</span> {l.label} — {fmtAgo(l)}
+                <span className="text-[#15803D]">●</span> {l.label} — {fmtRun(l) || fmtAgo(l)}
               </li>
             ))}
           </ul>
