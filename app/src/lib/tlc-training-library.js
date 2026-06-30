@@ -90,6 +90,13 @@ export function makeCourse(partial = {}) {
     preTest: p.preTest || null,                     // { questions:[...] } baseline (optional)
     postTest: p.postTest || null,                   // { questions:[...] } graded gate (optional)
     modules: Array.isArray(p.modules) ? p.modules : [],
+    // The FOUR-STRAND braid (lib/tlc-course-strands.js): Yahweh's perspective/Will
+    // at the centre + clinical + neuroscience + societal. Authored inline on a course,
+    // or resolved from the central strand map by courseStrands(). Null here until set.
+    strands: p.strands || null,
+    // Reach metadata for a source-distilled course (recognition = asset). Honest:
+    // a qualitative reach when an exact count isn't verified — never a fabricated number.
+    sourceReach: p.sourceReach || null,
   };
 }
 
@@ -379,6 +386,63 @@ const COURSES = [
     ],
     postTest: { questions: [
       { q: 'The therapist’s role with a destructive loop is to…', options: ['Let it run', 'Make it visible, slow it down, coach the antidote', 'Take a side'], answer: 1, explain: 'Surface and coach repair.' },
+    ] },
+  }),
+  makeCourse({
+    field: 'Couples & family',
+    title: 'Desire, Connection & Covenant — Rebuilding Intimacy in Marriage',
+    summary: 'Built on the candid public marriage conversation Devale & Khadeen Ellis had (as engaged on Rivah TV). The human voices source a truth that is ultimately from Yahweh; we credit them and test the lesson against His Word. Synthesized into original teaching — not a reproduction of the video. Teaches the clinical reality of DESIRE DISCREPANCY (not a gender stereotype), the science of how desire and connection actually work, and marriage through Yahweh’s design.',
+    trainingHours: 3.5,
+    origin: 'youtube-distilled',
+    source: { teacher: 'Devale & Khadeen Ellis (public conversation)', channel: 'Rivah TV', url: 'https://youtu.be/UNTcnf7cRNY', conduitNote: 'A faithful human source pointing to a truth from Yahweh; credited, not elevated above the Word.' },
+    sourceReach: { recognition: 'Widely-viewed public conversation by recognized public figures (reported in the millions of views).', exactCount: null, smeConfirm: 'Exact view count is recorded qualitatively, not fabricated — confirm if a figure is wanted.' },
+    sources: [APA_EBP, ACA],
+    smeConfirm: 'Christina (LCSW) approves BOTH the clinical soundness AND the faith framing; doctrine confirmed by Darrell / Christina / Bishop (non-denominational, Word-first). Handles real public figures’ intimate disclosures respectfully — educational lesson, never sensational.',
+    preTest: { questions: [
+      { q: 'When partners want sex at different frequencies, the clinically accurate name is…', options: ['One partner is broken', 'Desire discrepancy — common and multi-causal', 'A gender failing'], answer: 1, explain: 'Desire discrepancy is common, multi-causal, and not about blame.' },
+      { q: 'Yahweh’s design for marriage centers on…', options: ['Performance and image', 'Covenant oneness and sacrificial love', 'Keeping score'], answer: 1, explain: 'Covenant oneness + sacrificial love (Gen 2:24; Eph 5).' },
+    ] },
+    strands: {
+      yahweh: {
+        principle: 'Marriage is Yahweh’s covenant of oneness — two becoming one flesh — sustained by sacrificial, patient love and faithfulness. Intimacy is part of His good design for that union, not a bargaining chip; spouses are told to not deprive one another but to give to each other. The method that heals every strand below is the love He commanded: lay-your-life-down love that seeks the other’s good first.',
+        anchors: ['Genesis 2:24', 'Ephesians 5:25-33', '1 Corinthians 13:4-7', '1 Corinthians 7:3-5', 'John 13:34-35'],
+        smeDoctrine: 'Doctrine confirmed by Darrell / Christina / Bishop (non-denominational, Word-first). Scripture cited by reference; wording to be set from the chosen translation on review.',
+      },
+      clinical: 'Assess desire discrepancy without blame; build expectation-setting and candid communication; repair the disconnect that distance creates; and balance the domestic load so resentment and burnout do not quietly erode intimacy.',
+      science: 'Responsive vs spontaneous desire (Basson); the dual-control model of arousal (Janssen & Bancroft); dopamine, novelty, and habituation in long-term pairs; attachment theory (Bowlby) and Emotionally Focused Therapy (Johnson); oxytocin in bonding; and neuroplasticity — repeated warm, attuned interactions literally re-wire a couple’s connection (Hebbian "cells that fire together wire together").',
+        societal: 'Social-media marriage is curated; candid "real deal" conversation is the corrective. These dynamics show up across cultures and are discussed here with dignity — especially the strength and candor in Black marriage conversations — without trading in stereotypes about either spouse.',
+    },
+    modules: [
+      mod('tl-couple-desire-m1', 'The covenant frame — what marriage is FOR',
+        'Before technique, the direction: Yahweh designed marriage as a covenant of oneness, and that frame reorders everything else.',
+        'Start with Yahweh’s perspective, because it sets the destination the clinical work serves. Scripture frames marriage as covenant — two becoming one flesh (Genesis 2:24) — held together by sacrificial love (Ephesians 5) and the patient, unself-seeking love of 1 Corinthians 13. Against that, the curated marriage of social media sells an image; the Ellis conversation is valuable precisely because it is candid instead of idealized. A clinician working with a faith-rooted couple can name the gap honestly: the goal is not a highlight reel but a real, durable oneness in which both people are safe, known, and cherished. Holding the covenant frame keeps the later work — desire, communication, the domestic load — pointed toward connection rather than scorekeeping. (Faith framing reviewed by Christina / Bishop.)',
+        { questions: [
+          { q: 'The covenant frame keeps the clinical work pointed toward…', options: ['A social-media image', 'Durable oneness and mutual cherishing', 'Winning the argument'], answer: 1, explain: 'Covenant oneness is the direction the skills serve.' },
+          { q: 'The Ellis conversation is clinically useful because it is…', options: ['Idealized', 'Candid rather than curated', 'A diagnosis'], answer: 1, explain: 'Candor is the corrective to curated marriage.' },
+        ] }),
+      mod('tl-couple-desire-m2', 'Desire discrepancy — the clinical reality under the hot-take',
+        'The viral framing said women "push monogamy but treat intimacy as a chore." That is a stereotype, not a finding — the real, teachable truth is desire discrepancy.',
+        'The public conversation floated a gendered generalization — that women want exclusivity but experience intimacy as a chore. We do NOT teach that as fact; it blames a gender for a human pattern. The documented clinical reality underneath is DESIRE DISCREPANCY: partners commonly want sexual frequency at different levels, and it is multi-causal — stress, exhaustion, the mental and domestic load, health, history, resentment, and simple difference in wiring. The science reframes it further: Basson showed much desire is RESPONSIVE (it follows closeness and arousal) rather than SPONTANEOUS (arising unbidden), and the dual-control model describes a balance of accelerators and brakes that differs person to person. So a partner who is not spontaneously initiating is not "withholding a chore" — their brakes may be fully pressed by load and stress while connection (the accelerator) is thin. The clinical move is to depathologize, map each partner’s real accelerators and brakes, and rebuild closeness so responsive desire has something to respond to — never to assign blame by gender.',
+        { questions: [
+          { q: 'The gendered "intimacy as a chore" claim should be…', options: ['Taught as fact', 'Replaced with the real concept: desire discrepancy', 'Used to blame men'], answer: 1, explain: 'Teach desire discrepancy, multi-causal, not gender-blame.' },
+          { q: 'Responsive desire means desire often…', options: ['Arises only spontaneously', 'Follows closeness and arousal', 'Never returns'], answer: 1, explain: 'Basson: responsive desire follows connection.' },
+          { q: 'A partner not initiating is best understood as…', options: ['Withholding on purpose', 'Possibly having the "brakes" pressed by load/stress', 'Broken'], answer: 1, explain: 'Dual-control: brakes vs accelerators, not blame.' },
+        ] }),
+      mod('tl-couple-desire-m3', 'Rebuilding connection — communication, repair, and the shared load',
+        'Desire and closeness are rebuilt the same way the brain learns anything — through repeated, attuned, safe interaction; and through fairly carrying the load so resentment does not.',
+        'Rebuilding is concrete and hopeful. Attachment science (Bowlby; Sue Johnson’s Emotionally Focused Therapy) shows couples reconnect by turning toward each other’s bids and repairing the moments of disconnection rather than avoiding them. Neuroplasticity is the engine: warm, attuned interactions repeated over time literally strengthen the couple’s pathways for trust and closeness — the brain wires what it practices, so small consistent moves outperform grand gestures. Clinically, that means coaching candid expectation-setting ("here is what intimacy and partnership mean to me"), teaching repair after rupture, protecting novelty and play (which feed the dopamine/closeness loop), and — crucially — balancing the domestic and mental load, because chronic imbalance breeds the resentment and exhaustion that press the brakes on desire. All of it is the love Yahweh commanded made practical: spouses giving to one another (1 Corinthians 7:3-5), seeking the other’s good first (John 13:34-35). The clinical and scientific rigor serve that direction; they do not replace it.',
+        { questions: [
+          { q: 'Neuroplasticity tells couples that connection is rebuilt by…', options: ['One grand gesture', 'Repeated, attuned, safe interactions over time', 'Waiting it out'], answer: 1, explain: 'The brain wires what it repeatedly practices.' },
+          { q: 'Balancing the domestic/mental load matters because imbalance breeds…', options: ['Closeness', 'Resentment and exhaustion that suppress desire', 'Nothing'], answer: 1, explain: 'Chronic imbalance presses the brakes on desire.' },
+          { q: 'The clinical + scientific work ultimately serves…', options: ['Replacing the faith frame', 'Living out the sacrificial love Yahweh designed', 'Scorekeeping'], answer: 1, explain: 'The strands serve Yahweh’s design; they do not replace it.' },
+        ] }),
+    ],
+    postTest: { questions: [
+      { q: 'The clinically accurate replacement for the gendered "chore" claim is…', options: ['Desire discrepancy — common, multi-causal, no gender-blame', 'Women are the problem', 'Men are the problem'], answer: 0, explain: 'Desire discrepancy is the teachable truth.' },
+      { q: 'Responsive desire (Basson) means…', options: ['Desire follows closeness/arousal for many people', 'Desire is always spontaneous', 'Desire cannot change'], answer: 0, explain: 'Responsive desire follows connection.' },
+      { q: 'Couples rebuild connection neurologically through…', options: ['Repeated attuned interaction (neuroplasticity)', 'A single apology', 'Avoiding conflict'], answer: 0, explain: 'The brain wires what it practices.' },
+      { q: 'In the four-strand frame, the clinical/scientific/societal strands…', options: ['Replace Yahweh’s perspective', 'Show how Yahweh’s design is lived out', 'Are unrelated to faith'], answer: 1, explain: 'They serve the centre; they do not replace it.' },
+      { q: 'The source conversation is handled by…', options: ['Reproducing the video', 'Crediting it, synthesizing original teaching, and testing it against the Word', 'Ignoring attribution'], answer: 1, explain: 'Credit the conduit; test against Scripture; transform, don’t reproduce.' },
     ] },
   }),
 

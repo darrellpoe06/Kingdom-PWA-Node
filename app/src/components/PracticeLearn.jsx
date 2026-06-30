@@ -58,6 +58,12 @@ import { buildTrainingPlan, planToRequirementNote } from '../lib/tlc-training-pl
 import {
   DECISIONS, applyApproval, courseApprovalStatus, approvalSummary,
 } from '../lib/tlc-course-approval.js';
+import {
+  courseStrands, STRAND_SPINE_NOTE, SOURCE_THEOLOGY_NOTE,
+} from '../lib/tlc-course-strands.js';
+import {
+  tracksSummary, allTracksConfirmed, UIUC_PIPELINE,
+} from '../lib/tlc-training-tracks.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -317,6 +323,9 @@ function PracticeLearn({ email = '', isStaff = false }) {
 
       {/* The 24-hours/month, multi-year training MAP across the ten fields */}
       {showLibrary && <TrainingPlanPanel plan={trainingPlan} />}
+
+      {/* Who this serves — audiences/tracks with grounded IL/CSWE hour requirements */}
+      {showLibrary && <TracksPanel libraryHours={libTotals.totalHours} />}
 
       {/* Certificates earned (this device) */}
       <EarnedCertificates certs={certs} onRemove={(id) => setCerts((prev) => prev.filter((c) => c.id !== id))} />
@@ -958,6 +967,12 @@ function CourseLibrary({
       </div>
       <p className="text-[0.6875rem] text-[#5A5751] mb-2 max-w-prose" style={SERIF}>{LIBRARY_VALIDATION_NOTE}</p>
 
+      {/* The four-strand design spine — Yahweh's perspective & Will at the centre */}
+      <div className="border border-[#5A6E3D] bg-[#5A6E3D]/[0.05] p-3 mb-3">
+        <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">The four-strand spine</div>
+        <p className="text-[0.6875rem] text-[#1A1815] max-w-prose" style={SERIF}>{STRAND_SPINE_NOTE}</p>
+      </div>
+
       {/* Review status — Christina's gate, at a glance */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-2">
         <MetricCell label="Approved" value={`${approvalTally.approved}`} small accent="green" />
@@ -1070,6 +1085,16 @@ function CourseCard({
               Grounded in: {course.sources.map((s, i) => <span key={i}>{i ? ' · ' : ''}{s.label}</span>)}
             </p>
           )}
+
+          {/* Source reach (recognition = asset) — credited as a conduit, tested against the Word */}
+          {course.sourceReach && (
+            <p className="text-[0.625rem] text-[#5A5751]" style={SERIF}>
+              <strong>Source reach:</strong> {course.sourceReach.recognition} <span className="italic">Credited as a conduit; all true knowledge is from Yahweh and the teaching is tested against His Word.</span>
+            </p>
+          )}
+
+          {/* The four-strand braid — Yahweh's perspective & Will at the centre */}
+          <StrandBraid strands={courseStrands(course)} />
 
           {/* Pre-test (baseline) — optional growth measure */}
           {course.preTest && course.preTest.questions && course.preTest.questions.length > 0 && (
@@ -1257,6 +1282,99 @@ function TrainingPlanPanel({ plan }) {
           {showAll ? '− Show fewer' : `+ Show all ${plan.months} months`}
         </button>
       )}
+    </section>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// StrandBraid — the four-strand spine for one course: Yahweh's perspective & Will at
+// the centre, with the clinical, scientific, and societal strands shown as how His
+// design is lived out (not a replacement for it).
+// -----------------------------------------------------------------------------
+function StrandBraid({ strands }) {
+  if (!strands || !strands.yahweh) return null;
+  return (
+    <div className="border border-[#5A6E3D] bg-[#5A6E3D]/[0.04] p-3">
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">How this course braids four strands</div>
+      <div className="border-l-2 border-[#B85838] pl-2 mb-2">
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Yahweh’s perspective &amp; Will · the centre</div>
+        <p className="text-xs text-[#1A1815]" style={SERIF}>{strands.yahweh.principle}</p>
+        {strands.yahweh.anchors.length > 0 && (
+          <p className="text-[0.5625rem] text-[#5A5751]" style={MONO}>Anchors: {strands.yahweh.anchors.join(' · ')}</p>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Clinical skill</div>
+          <p className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{strands.clinical}</p>
+        </div>
+        <div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Neuroplasticity &amp; science</div>
+          <p className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{strands.science}</p>
+        </div>
+        <div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Societal &amp; understanding</div>
+          <p className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{strands.societal}</p>
+        </div>
+      </div>
+      <p className="text-[0.5625rem] text-[#5A5751] italic mt-1.5" style={SERIF}>
+        The clinical, scientific, and societal strands show how Yahweh’s design is lived out — they do not replace it. Faith framing reviewed by Christina (LCSW) / Bishop.
+      </p>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// TracksPanel — the audiences/tracks the one backbone serves, each with its GROUNDED
+// Illinois / CSWE hour requirement over the 24-month minimum, plus the UIUC pipeline
+// positioning. Honest: figures are SME-confirm-pending; sources are cited.
+// -----------------------------------------------------------------------------
+function TracksPanel({ libraryHours }) {
+  const rows = useMemo(() => tracksSummary({ libraryHours, hoursPerMonth: 24 }), [libraryHours]);
+  const confirmed = allTracksConfirmed();
+  return (
+    <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+      <SectionTitle eyebrow="One backbone · many audiences">Who this serves — tracks &amp; hours</SectionTitle>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-3 max-w-prose" style={SERIF}>
+        The course library, certificate catalog, and hours ledger serve several audiences, each on its own track. Hour requirements below are grounded in the cited standards and are {confirmed ? 'confirmed' : 'pending Christina (LCSW) confirmation'} — never guessed.
+      </p>
+
+      <div className="space-y-2">
+        {rows.map(({ track, structure }) => (
+          <div key={track.key} className="border border-[#E8E4DC] p-3">
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{track.label}</span>
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{track.audience}</span>
+            </div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1">
+              {track.requirement.hours != null
+                ? `${track.requirement.hours} ${track.requirement.kind === 'ce' ? 'CE hours' : 'hours'} · ${structure.months}-month window`
+                : `Onboarding + ongoing training · ${structure.months}-month window`}
+              {' · '}
+              <span className={structure.curriculumRole === 'supplies' ? 'text-[#5A6E3D]' : 'text-[#B85838]'}>
+                {structure.curriculumRole === 'supplies' ? 'library supplies these hours' : 'library complements (didactic)'}
+              </span>
+            </div>
+            <p className="text-[0.625rem] text-[#5A5751] mt-1" style={SERIF}>{track.requirement.note}</p>
+            <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={MONO}>
+              {track.requirement.source ? `Source: ${track.requirement.source.label}` : 'Internal TLC track'}
+              {track.requirement.confirmed ? '' : ' · SME-confirm pending'}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* UIUC student pipeline — business positioning */}
+      <div className="border border-[#1A1815] bg-[#FAF8F4] p-3 mt-3">
+        <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">UIUC student pipeline</div>
+        <p className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{UIUC_PIPELINE.opportunity}</p>
+        <p className="text-[0.6875rem] text-[#1A1815] mt-1" style={SERIF}>
+          <strong>{UIUC_PIPELINE.connection.name}:</strong> {UIUC_PIPELINE.connection.relationship} {UIUC_PIPELINE.connection.role}
+        </p>
+        <p className="text-[0.5625rem] text-[#5A5751] italic mt-1" style={SERIF}>{UIUC_PIPELINE.connection.note}</p>
+      </div>
+
+      <p className="text-[0.5625rem] text-[#5A5751] mt-2" style={SERIF}>{SOURCE_THEOLOGY_NOTE}</p>
     </section>
   );
 }
