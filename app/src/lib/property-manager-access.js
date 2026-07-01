@@ -67,3 +67,101 @@ export function buildPmAccessPreview(selectedRentals = []) {
           `unit(s) and nothing else. Finances and all other data stay private.`,
   };
 }
+
+// ---------------------------------------------------------------------
+// GENERAL role framework (configured roles — property, project, learner, ...).
+// One primitive; a role differs only by its SCOPE + which threads it joins.
+// See infra/supabase/proposed/role-framework-and-threads.sql.
+// ---------------------------------------------------------------------
+
+// Per-role config: the human label, what a scope item is called, the SEE list,
+// and the participate-in-threads note. Add a role = add a row here (config).
+export const ROLE_FRAMEWORK = {
+  'property-manager': {
+    label: 'Property Manager (1099)',
+    workerClass: '1099-contractor',
+    scopeKind: 'property',
+    scopeNoun: 'property/unit',
+    surfaces: PM_SURFACES_ALLOWED,
+    threads: 'Discuss directly with the tenants on assigned units.',
+  },
+  'project-manager': {
+    label: 'Project Manager (1099)',
+    workerClass: '1099-contractor',
+    scopeKind: 'project',
+    scopeNoun: 'project/board',
+    surfaces: [
+      'Assigned projects/boards and their items (view + update status/notes)',
+      'Message threads with the owner/stakeholders for assigned projects',
+    ],
+    threads: 'Discuss directly with the owner/stakeholders on assigned projects.',
+  },
+  learner: {
+    label: 'Next-Gen Steward (learner)',
+    workerClass: 'learner',
+    scopeKind: 'property', // or 'project'; guardian curates
+    scopeNoun: 'guardian-curated item',
+    surfaces: [
+      'A curated, read-only view of what the family manages and plans (guardian chooses)',
+      'Guided explanations that teach the how-and-why of management (read-oriented)',
+    ],
+    threads: 'Read-only; no direct messaging (learning view).',
+    readOnly: true,
+  },
+};
+
+// What EVERY configured worker/learner role can never reach — the hard boundary.
+export const ROLE_DENIED_ALWAYS = [
+  'Finances & Books (accounts, transactions, debts, budgets)',
+  'Anything outside their assigned scope',
+  'Any other worker’s scope, any other owner’s / other org’s data (no-leak)',
+  'Personal / family data not explicitly in their scope',
+];
+
+// Owner-facing pre-grant preview for ANY role. `selectedScopeItems` = the
+// entities (units, boards, ...) the owner picked, each {id, label, status?}.
+export function buildWorkerAccessPreview(roleKey, selectedScopeItems = []) {
+  const cfg = ROLE_FRAMEWORK[roleKey] || ROLE_FRAMEWORK['property-manager'];
+  const items = (Array.isArray(selectedScopeItems) ? selectedScopeItems : [])
+    .map((it) => ({ id: it.id ?? it.rental_id ?? it.board_slug ?? null, label: it.label || it.display_name || it.board_title || String(it.id ?? ''), status: it.status ?? null }))
+    .filter((it) => it.id);
+  return {
+    roleKey,
+    roleLabel: cfg.label,
+    scopeKind: cfg.scopeKind,
+    assignedCount: items.length,
+    readOnly: !!cfg.readOnly,
+    willSee: { items, surfaces: cfg.surfaces, threads: cfg.threads },
+    willNotSee: ROLE_DENIED_ALWAYS,
+    grantIsOwnerAction: true,
+    note:
+      items.length === 0
+        ? `Select at least one ${cfg.scopeNoun} to assign before inviting.`
+        : `${cfg.label} will be able to work ${items.length} assigned ${cfg.scopeNoun}(s) ` +
+          `and nothing else. Finances and everything outside scope stay private.`,
+  };
+}
+
+// INVITEE WELCOME (self-explaining, two-tier). Shown to the 1099 worker on
+// first sign-in so they land in a clear scoped workspace, not a blank app.
+export function buildInviteeWelcome(roleKey, assignedItems = []) {
+  const cfg = ROLE_FRAMEWORK[roleKey] || ROLE_FRAMEWORK['property-manager'];
+  const items = (Array.isArray(assignedItems) ? assignedItems : []).map(
+    (it) => it.label || it.display_name || it.board_title || String(it.id ?? '')
+  );
+  return {
+    title: `Welcome — you're set up as a ${cfg.label}`,
+    // Tier 1: the one-line plain statement.
+    summary:
+      `You have access to ${items.length} assigned ${cfg.scopeNoun}(s). ` +
+      `You can ${cfg.readOnly ? 'view' : 'view and update'} them and ` +
+      `${cfg.readOnly ? 'read' : 'message directly in'} their threads.`,
+    // Tier 2: the "learn more" expansion.
+    youCan: cfg.surfaces,
+    youCannot: ROLE_DENIED_ALWAYS,
+    assigned: items,
+    footer:
+      'Your access is scoped by the owner and can change. Reach out if you need a ' +
+      'property or project you don’t see.',
+  };
+}

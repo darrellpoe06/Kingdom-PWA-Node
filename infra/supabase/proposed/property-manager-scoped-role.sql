@@ -1,6 +1,14 @@
 -- =====================================================================
 -- PROPOSED (GATED — NOT auto-applied). See infra/supabase/proposed/README.md
 --
+-- >>> SUPERSEDED 2026-07-01 by role-framework-and-threads.sql <<<
+-- This file is kept for reference. Property Manager is now ONE configured
+-- variant of the general 1099-contractor role framework (scope_kind='property').
+-- APPLY role-framework-and-threads.sql instead; it is self-contained and
+-- includes the property scope, views, threads, and pm_assigned_to_rental()
+-- as a wrapper over the general subject_assigned_to() predicate.
+-- DO NOT apply this file alongside the framework file (duplicate objects).
+--
 -- property-manager-scoped-role.sql
 -- Scoped, least-privilege access for an EXTERNAL 1099 Property Manager.
 --
