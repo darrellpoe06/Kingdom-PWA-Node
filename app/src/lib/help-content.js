@@ -202,6 +202,20 @@ export const HELP = {
     when: 'Reach for it before any big money decision, and monthly to check projected against actual.',
     section: 'money',
   },
+  budget: {
+    title: 'Goals & guidance',
+    tag: 'Set a target; get the plan and the proactive warnings.',
+    what: 'The goal-driven budget engine. Set a goal — "save $6,000 by December" or "pay off the card" — and it plans from your real income and upcoming bills: what to set aside each month, whether you are on or off track, and when the goal lands. It also watches your categorized spending and warns before an overspend, telling you the reason ("hold this — insurance is due", "you are covered here").',
+    how: [
+      'Add a goal with a target amount and a date (pay-off goals track the live debt balance).',
+      'Read the monthly set-aside and the on/off-track status — competing goals share your free cash, so the plan is honest.',
+      'Scan Proactive guidance for act-now and heads-up signals, each with its reason.',
+      'Check Category vs plan for anything running hot this month, and Down the pipeline for bills to save ahead for.',
+    ],
+    why: 'A budget you look at once a month is a scorecard; a budget that warns you before the overspend is a coach. This is planning guidance on your own numbers — not investment advice, and no money moves here.',
+    when: 'Set goals once, then glance at the guidance whenever a spend decision comes up.',
+    section: 'money',
+  },
   markets: {
     title: 'Markets',
     tag: 'A simple watchlist for the symbols you follow.',

@@ -31,6 +31,7 @@ import {
   scenarioAddProperty, scenarioAddSubscriptionTier, scenarioCapitalPurchase,
 } from '../lib/financial-scenarios.js';
 import { forecastSync } from '../lib/forecast-sync.js';
+import BudgetPlanner from './BudgetPlanner.jsx';
 
 // Shared tokens — identical to the other family surfaces (already contrast-gated).
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -431,7 +432,7 @@ export default function Forecast({ data, currentDate, isOwner = false }) {
         </div>
 
         <div className="flex gap-1">
-          {[['outlook', 'Outlook'], ['scenarios', 'Scenarios'], ['track', 'Track']].map(([id, lbl]) => (
+          {[['outlook', 'Outlook'], ['goals', 'Goals'], ['scenarios', 'Scenarios'], ['track', 'Track']].map(([id, lbl]) => (
             <button
               key={id}
               onClick={() => setTab(id)}
@@ -450,6 +451,7 @@ export default function Forecast({ data, currentDate, isOwner = false }) {
             onRecord={onRecord} recording={recording}
           />
         )}
+        {tab === 'goals' && <BudgetPlanner data={data} currentDate={cd} scope={scope} months={months} />}
         {tab === 'scenarios' && <Scenarios data={data} currentDate={cd} scope={scope} months={months} />}
         {tab === 'track' && <Track data={data} currentDate={cd} snapshots={snapshots} scopeOptions={scopeOptions} />}
       </div>
