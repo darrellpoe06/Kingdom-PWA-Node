@@ -32,7 +32,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   sortByDate, effectiveRange, periodRange, filterByRange, groupByMonth, totals,
-  monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances,
+  monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel,
 } from '../lib/imported-view.js';
 
 function formatAmount(n) {
@@ -237,22 +237,26 @@ export default function Imported({ data = {} }) {
       ) : (
         <>
           {/* Account overview (unchanged): totals + honest rolling-30-day in/out. */}
+          {/* Tiles reflect the SELECTED WINDOW (grouped.windowTotals), not a fixed
+              30-day snapshot — so In/Out/Net move as you change month/period. The
+              old fixed "· 30d" tiles read the same static number on every month. */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             <div className="border border-[#E8E4DC] bg-white p-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Transactions</div>
-              <div className="text-lg font-medium">{view.total.toLocaleString()}</div>
+              <div className="text-lg font-medium">{grouped.matched.toLocaleString()}</div>
+              <div className="text-[0.5625rem] text-[#5A5751]">of {view.total.toLocaleString()} total</div>
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Accounts</div>
-              <div className="text-lg font-medium">{view.accountCount.toLocaleString()}</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]">In · {periodLabel(activePeriod)}</div>
+              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.in)}</div>
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]">In · 30d</div>
-              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(view.recentIn)}</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838]">Out · {periodLabel(activePeriod)}</div>
+              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.out)}</div>
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838]">Out · 30d</div>
-              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(view.recentOut)}</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net · {periodLabel(activePeriod)}</div>
+              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace', color: grouped.windowTotals.net < 0 ? '#B85838' : '#166534' }}>{fmtMoney(grouped.windowTotals.net)}</div>
             </div>
           </div>
 
