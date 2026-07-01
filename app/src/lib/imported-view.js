@@ -76,6 +76,12 @@ export function periodRange(preset, nowMs) {
     }
     case 'month':
       return { sinceMs: new Date(now.getFullYear(), now.getMonth(), 1).getTime(), untilMs: null };
+    case 'lastMonth': {
+      // The whole previous calendar month — the standard "Last Month" segment.
+      const startLast = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+      const endLast = new Date(now.getFullYear(), now.getMonth(), 1).getTime() - 1;
+      return { sinceMs: startLast, untilMs: endLast };
+    }
     case '30d':
       return { sinceMs: startToday - 30 * DAY_MS, untilMs: null };
     case '90d':
@@ -136,4 +142,58 @@ export function groupByMonth(txns) {
   const groups = [...map.values()];
   for (const g of groups) g.totals = totals(g.rows);
   return groups;
+}
+
+// ---- Quick month jump ('YYYY-MM') — the Mint/YNAB month-stepper --------------
+
+// The 'YYYY-MM' key for a timestamp (local month).
+export function monthKeyOf(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// True if a period value is a specific-month key (vs a named preset).
+export function isMonthKey(v) {
+  return typeof v === 'string' && /^\d{4}-\d{2}$/.test(v);
+}
+
+// The {sinceMs, untilMs} window for one calendar month key.
+export function monthRange(key) {
+  const [y, m] = key.split('-').map(Number);
+  return {
+    sinceMs: new Date(y, m - 1, 1).getTime(),
+    untilMs: new Date(y, m, 1).getTime() - 1,
+  };
+}
+
+// Human label for a month key, e.g. '2026-06' -> 'June 2026'.
+export function monthLabelOf(key) {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+// Step a month key by delta months (‹ prev / next ›).
+export function shiftMonthKey(key, delta) {
+  const [y, m] = key.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// Running balance after each row — the bank-statement Balance column. Walks the
+// account's rows oldest-first from a known opening balance so the NEWEST row
+// shows the account's current balance (opening + every posted amount) and each
+// earlier row shows the balance as of that transaction. Returns a Map by row id.
+// Pass the account's FULL row set (not just the visible window) so balances stay
+// correct even when the view is narrowed to a period. Truthful-or-absent: the
+// caller only renders the column when it has a real opening balance to anchor to.
+export function runningBalances(rows, openingBalance = 0) {
+  const asc = sortByDate(rows, 'asc');
+  const map = new Map();
+  let bal = openingBalance;
+  for (const r of asc) {
+    const a = typeof r.amount === 'number' ? r.amount : Number(r.amount);
+    bal += Number.isFinite(a) ? a : 0;
+    map.set(r.id, bal);
+  }
+  return map;
 }
