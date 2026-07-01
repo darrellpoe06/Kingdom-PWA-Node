@@ -117,9 +117,19 @@ CREATE POLICY rental_tenancies_delete ON rental_tenancies FOR DELETE TO authenti
   USING (user_role_in_instance(instance_id) IN ('owner','admin'));
 
 -- ---------------------------------------------------------------------------
--- 2. maintenance_requests — tenant submits, landlord triages.
+-- 2. tenant_maintenance_requests — tenant submits, landlord triages.
+--    RENAMED (2026-07-01) from `maintenance_requests` to unwedge the db-migrate
+--    lane. The name collided with the PRE-EXISTING rentals table
+--    `maintenance_requests` (schema-v2.2-rentals.sql, columns rental_id/renter_id).
+--    `CREATE TABLE IF NOT EXISTS maintenance_requests` no-op'd against that table,
+--    then `CREATE INDEX ... (tenancy_id)` ERRORed ("column tenancy_id does not
+--    exist"), and ON_ERROR_STOP aborted every migration behind it. These are two
+--    genuinely different data models (relationship-permissions tenancy vs. the
+--    rentals record); the recorded call (memory: signup-privacy-and-visibility)
+--    is to give THIS one its own name, not to rewrite the rentals model. Forward,
+--    additive, no data dropped. Governed by DR-0084.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS maintenance_requests (
+CREATE TABLE IF NOT EXISTS tenant_maintenance_requests (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   instance_id     uuid NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
   tenancy_id      uuid NOT NULL REFERENCES rental_tenancies(id) ON DELETE CASCADE,
@@ -135,32 +145,32 @@ CREATE TABLE IF NOT EXISTS maintenance_requests (
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz
 );
-CREATE INDEX IF NOT EXISTS maintenance_requests_instance_idx ON maintenance_requests(instance_id);
-CREATE INDEX IF NOT EXISTS maintenance_requests_tenancy_idx ON maintenance_requests(tenancy_id);
+CREATE INDEX IF NOT EXISTS tenant_maintenance_requests_instance_idx ON tenant_maintenance_requests(instance_id);
+CREATE INDEX IF NOT EXISTS tenant_maintenance_requests_tenancy_idx ON tenant_maintenance_requests(tenancy_id);
 
-DROP TRIGGER IF EXISTS maintenance_requests_touch_updated ON maintenance_requests;
-CREATE TRIGGER maintenance_requests_touch_updated
-  BEFORE UPDATE ON maintenance_requests
+DROP TRIGGER IF EXISTS tenant_maintenance_requests_touch_updated ON tenant_maintenance_requests;
+CREATE TRIGGER tenant_maintenance_requests_touch_updated
+  BEFORE UPDATE ON tenant_maintenance_requests
   FOR EACH ROW EXECUTE FUNCTION public.engagement_touch_updated_at();
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON maintenance_requests TO authenticated;
-ALTER TABLE maintenance_requests ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS maintenance_requests_read   ON maintenance_requests;
-DROP POLICY IF EXISTS maintenance_requests_insert ON maintenance_requests;
-DROP POLICY IF EXISTS maintenance_requests_update ON maintenance_requests;
-DROP POLICY IF EXISTS maintenance_requests_delete ON maintenance_requests;
-CREATE POLICY maintenance_requests_read ON maintenance_requests FOR SELECT TO authenticated
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenant_maintenance_requests TO authenticated;
+ALTER TABLE tenant_maintenance_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_maintenance_requests_read   ON tenant_maintenance_requests;
+DROP POLICY IF EXISTS tenant_maintenance_requests_insert ON tenant_maintenance_requests;
+DROP POLICY IF EXISTS tenant_maintenance_requests_update ON tenant_maintenance_requests;
+DROP POLICY IF EXISTS tenant_maintenance_requests_delete ON tenant_maintenance_requests;
+CREATE POLICY tenant_maintenance_requests_read ON tenant_maintenance_requests FOR SELECT TO authenticated
   USING (user_role_in_instance(instance_id) IN ('owner','admin','member')
          OR user_is_tenant(tenancy_id));
-CREATE POLICY maintenance_requests_insert ON maintenance_requests FOR INSERT TO authenticated
+CREATE POLICY tenant_maintenance_requests_insert ON tenant_maintenance_requests FOR INSERT TO authenticated
   WITH CHECK (user_role_in_instance(instance_id) IN ('owner','admin','member')
               OR user_is_tenant(tenancy_id));
-CREATE POLICY maintenance_requests_update ON maintenance_requests FOR UPDATE TO authenticated
+CREATE POLICY tenant_maintenance_requests_update ON tenant_maintenance_requests FOR UPDATE TO authenticated
   USING      (user_role_in_instance(instance_id) IN ('owner','admin','member')
               OR user_is_tenant(tenancy_id))
   WITH CHECK (user_role_in_instance(instance_id) IN ('owner','admin','member')
               OR user_is_tenant(tenancy_id));
-CREATE POLICY maintenance_requests_delete ON maintenance_requests FOR DELETE TO authenticated
+CREATE POLICY tenant_maintenance_requests_delete ON tenant_maintenance_requests FOR DELETE TO authenticated
   USING (user_role_in_instance(instance_id) IN ('owner','admin'));
 
 -- ---------------------------------------------------------------------------
@@ -372,7 +382,7 @@ DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE rental_tenancies; EXCEPTION WHEN duplicate_object THEN NULL; END;
-    BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE maintenance_requests; EXCEPTION WHEN duplicate_object THEN NULL; END;
+    BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE tenant_maintenance_requests; EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE rent_records; EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE tenant_notices; EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE tenant_messages; EXCEPTION WHEN duplicate_object THEN NULL; END;
