@@ -1,42 +1,59 @@
 // @vitest-environment node
 //
-// applyClientFilters — client-side equivalent of wf18's server-side filter, used
-// when the Imported tab reads the deterministic full Python snapshot. Proven-to-
-// catch: each clause narrows correctly, counts are preserved (cards show totals),
-// and a non-transactions payload passes through untouched.
+// buildImportedView — the deterministic core of Books → Imported after it was
+// repointed off n8n to read the synced DB ledger (data.transactions/accounts).
+// Proven-to-catch: account-name resolution, each filter clause, the 30-day
+// in/out math, and graceful empty input. No network, no n8n.
 import { describe, it, expect } from 'vitest';
-import { applyClientFilters } from '../components/Imported.jsx';
+import { buildImportedView } from '../components/Imported.jsx';
 
-const SNAP = {
-  counts: { total_bank: 3, total_gmail: 0 },
+const NOW = Date.parse('2026-06-30T00:00:00Z');
+const DATA = {
+  accounts: [
+    { id: 'a1', name: 'Chase 7206' },
+    { id: 'a2', name: 'Chase 3322' },
+  ],
   transactions: [
-    { id: '1', institution: 'Chase 7206', status: 'unexplained', posted: '2026-05-01', amount: -10 },
-    { id: '2', institution: 'Chase 3322', status: 'verified', posted: '2026-05-20', amount: 50 },
-    { id: '3', institution: 'Chase 7206', status: 'unexplained', posted: '2026-04-10', amount: -5 },
+    { id: 't1', accountId: 'a1', date: '2026-06-20', amount: -50, description: 'County Market', category: 'groceries' },
+    { id: 't2', accountId: 'a1', date: '2026-06-10', amount: 500, description: 'Payroll', category: 'income' },
+    { id: 't3', accountId: 'a2', date: '2026-05-01', amount: -1200, description: 'Rent', category: 'housing' },
   ],
 };
 
-describe('applyClientFilters', () => {
+describe('buildImportedView', () => {
+  it('resolves account names + maps rows', () => {
+    const v = buildImportedView(DATA, {}, NOW);
+    expect(v.total).toBe(3);
+    expect(v.rows.find(r => r.id === 't1').institution).toBe('Chase 7206');
+    expect(v.institutions).toEqual(['Chase 3322', 'Chase 7206']);
+    expect(v.accountCount).toBe(2);
+  });
   it('filters by institution', () => {
-    expect(applyClientFilters(SNAP, { institution: 'Chase 7206' }).transactions.map(t => t.id)).toEqual(['1', '3']);
+    expect(buildImportedView(DATA, { institution: 'Chase 7206' }, NOW).filtered.map(r => r.id)).toEqual(['t1', 't2']);
   });
-  it('filters by status (all = pass-through)', () => {
-    expect(applyClientFilters(SNAP, { status: 'verified' }).transactions.map(t => t.id)).toEqual(['2']);
-    expect(applyClientFilters(SNAP, { status: 'all' }).transactions).toHaveLength(3);
+  it('filters by since (inclusive)', () => {
+    expect(buildImportedView(DATA, { since: '2026-06-01' }, NOW).filtered.map(r => r.id).sort()).toEqual(['t1', 't2']);
   });
-  it('filters by since (inclusive, lexical ISO)', () => {
-    expect(applyClientFilters(SNAP, { since: '2026-05-01' }).transactions.map(t => t.id)).toEqual(['1', '2']);
+  it('searches payee + category', () => {
+    expect(buildImportedView(DATA, { search: 'rent' }, NOW).filtered.map(r => r.id)).toEqual(['t3']);
+    expect(buildImportedView(DATA, { search: 'GROCER' }, NOW).filtered.map(r => r.id)).toEqual(['t1']);
   });
-  it('combines clauses (AND)', () => {
-    expect(applyClientFilters(SNAP, { institution: 'Chase 7206', since: '2026-05-01' }).transactions.map(t => t.id)).toEqual(['1']);
+  it('computes 30-day in/out from posted rows (t3 is >30d out, excluded)', () => {
+    const v = buildImportedView(DATA, {}, NOW);
+    expect(v.recentIn).toBe(500);
+    expect(v.recentOut).toBe(50);
+    expect(v.recentCount).toBe(2);
   });
-  it('preserves the full counts (cards show totals, table narrows)', () => {
-    const out = applyClientFilters(SNAP, { institution: 'Chase 3322' });
-    expect(out.counts.total_bank).toBe(3);
-    expect(out.transactions).toHaveLength(1);
+  it('reports the date span', () => {
+    const v = buildImportedView(DATA, {}, NOW);
+    expect(v.firstDate).toBe('2026-05-01');
+    expect(v.lastDate).toBe('2026-06-20');
   });
-  it('passes through a payload with no transactions array', () => {
-    expect(applyClientFilters({ foo: 1 }, { institution: 'x' })).toEqual({ foo: 1 });
-    expect(applyClientFilters(null, {})).toBe(null);
+  it('handles empty / missing data gracefully', () => {
+    const v = buildImportedView({}, {}, NOW);
+    expect(v.total).toBe(0);
+    expect(v.filtered).toEqual([]);
+    expect(v.institutions).toEqual([]);
+    expect(v.recentIn).toBe(0);
   });
 });
