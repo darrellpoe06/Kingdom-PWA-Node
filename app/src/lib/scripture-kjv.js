@@ -15,6 +15,22 @@
 // =============================================================================
 
 export const KJV = {
+  // --- Appended 2026-07-01 for the "Eternal Algorithms" study (Conditional Truth) ---
+  // Fetched verbatim from bible-api.com (translation=kjv, "Public Domain"), NOT typed
+  // from memory (DR-0076). Whitespace normalized only. These anchor the study's game
+  // deck (belief-vs-action) so every card resolves to real KJV text via scripture-link.
+  "John 14:15": "If ye love me, keep my commandments.",
+  "James 1:22": "But be ye doers of the word, and not hearers only, deceiving your own selves.",
+  "Luke 6:46": "And why call ye me, Lord, Lord, and do not the things which I say?",
+  "Deuteronomy 30:19": "I call heaven and earth to record this day against you, that I have set before you life and death, blessing and cursing: therefore choose life, that both thou and thy seed may live:",
+  "2 Corinthians 13:5": "Examine yourselves, whether ye be in the faith; prove your own selves. Know ye not your own selves, how that Jesus Christ is in you, except ye be reprobates?",
+  "John 18:37": "Pilate therefore said unto him, Art thou a king then? Jesus answered, Thou sayest that I am a king. To this end was I born, and for this cause came I into the world, that I should bear witness unto the truth. Every one that is of the truth heareth my voice.",
+  "John 18:38": "Pilate saith unto him, What is truth? And when he had said this, he went out again unto the Jews, and saith unto them, I find in him no fault at all.",
+  "Psalm 103:13-14": "Like as a father pitieth his children, so the LORD pitieth them that fear him. For he knoweth our frame; he remembereth that we are dust.",
+  "Deuteronomy 11:26-28": "Behold, I set before you this day a blessing and a curse; A blessing, if ye obey the commandments of the LORD your God, which I command you this day: And a curse, if ye will not obey the commandments of the LORD your God, but turn aside out of the way which I command you this day, to go after other gods, which ye have not known.",
+  "James 1:23-24": "For if any be a hearer of the word, and not a doer, he is like unto a man beholding his natural face in a glass: For he beholdeth himself, and goeth his way, and straightway forgetteth what manner of man he was.",
+  "2 Corinthians 5:10": "For we must all appear before the judgment seat of Christ; that every one may receive the things done in his body, according to that he hath done, whether it be good or bad.",
+  // --- end appended set ---
   "1 Corinthians 13:4-7": "Charity suffereth long, and is kind; charity envieth not; charity vaunteth not itself, is not puffed up, Doth not behave itself unseemly, seeketh not her own, is not easily provoked, thinketh no evil; Rejoiceth not in iniquity, but rejoiceth in the truth; Beareth all things, believeth all things, hopeth all things, endureth all things.",
   "1 Corinthians 2:16": "For who hath known the mind of the Lord, that he may instruct him? But we have the mind of Christ.",
   "1 Corinthians 4:2": "Moreover it is required in stewards, that a man be found faithful.",

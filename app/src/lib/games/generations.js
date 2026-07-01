@@ -327,3 +327,16 @@ export const GENERATIONS = {
 };
 
 export default GENERATIONS;
+
+// Return a Generations definition variant that also carries a `study` deck — the
+// belief-vs-action cards an "Eternal Algorithms" study produces (see
+// lib/eternal-algorithms-studies.js studyToGameCards). Pure: the base GENERATIONS
+// is untouched; the engine treats a deck as just a keyed card array, so injected
+// study cards draw and score exactly like life cards. This is the seam that lets
+// a study's self-examination continue in a full Generations Game Night. An empty
+// or missing card list returns the base def unchanged.
+export function withStudyDeck(def, studyCards) {
+  const base = def || GENERATIONS;
+  if (!Array.isArray(studyCards) || studyCards.length === 0) return base;
+  return { ...base, decks: { ...base.decks, study: studyCards } };
+}
