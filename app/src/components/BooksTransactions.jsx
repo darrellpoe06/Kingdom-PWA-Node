@@ -19,6 +19,7 @@ import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows } from '../
 import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
+import { categorize } from '../lib/categorize.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -181,21 +182,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   // the entry immediately with the suggested category. The next ingest
   // refresh dedupes — the manual entry and the bank row merge with a
   // green "bank-confirmed" badge.
-  const suggestCategory = (description) => {
-    const d = (description || '').toLowerCase();
-    if (/payroll|deposit.*salary|direct deposit/.test(d)) return 'salary';
-    if (/zelle|venmo|cashapp|cash app/.test(d)) return 'transfer';
-    if (/uber|lyft|gas|shell|chevron|bp |arco|exxon|mobil/.test(d)) return 'fuel';
-    if (/whole foods|jewel|aldi|grocery|trader joe|kroger|walmart|target/.test(d)) return 'groceries';
-    if (/restaurant|cafe|coffee|starbucks|chipotle|mcdonald|dunkin/.test(d)) return 'dining';
-    if (/comed|nicor|water|gas company|electric|utility/.test(d)) return 'utilities';
-    if (/netflix|spotify|hulu|disney|apple\.com\/bill|prime|youtube/.test(d)) return 'subscription';
-    if (/state farm|geico|progressive|allstate|insurance/.test(d)) return 'insurance';
-    if (/medical|pharmacy|cvs|walgreens|hospital|clinic/.test(d)) return 'medical';
-    if (/auto|car wash|jiffy|mechanic/.test(d)) return 'vehicle';
-    if (/mortgage|rent payment/.test(d)) return 'debt-payment';
-    return 'other';
-  };
+  // Delegates to the ONE deterministic rule layer (lib/categorize.js). The old
+  // inline matcher tagged "WF HOME MTG AUTO PAY" as Vehicle by matching the
+  // substring "auto"; the rule layer is token/payee-based, mortgage-first, and
+  // honors learned per-payee corrections (data.categoryRules).
+  const suggestCategory = (description) => categorize(description, { learned: data?.categoryRules }).category;
   // Phase 2F (2026-05-28) — mark a bank-ingest row as noise. Posts the
   // institution + fitid to n8n workflow 19, which writes 'noise-skip' into
   // the reconcile state file. Workflow 18's next 5-min refresh sees the
