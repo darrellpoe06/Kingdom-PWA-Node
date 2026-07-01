@@ -165,8 +165,20 @@ describe('VX1000_SOFTWARE — the NovaStar program stack + which machine', () =>
   it('lists NovaLCT (config), V-Can (live), VICP (optional) with the download link', () => {
     const names = VX1000_SOFTWARE.programs.map((p) => p.name);
     expect(names).toEqual(['NovaLCT', 'V-Can', 'VICP']);
-    expect(VX1000_SOFTWARE.downloadUrl).toMatch(/novastar\.tech\/downloads/);
     expect(VX1000_SOFTWARE.programs.find((p) => p.name === 'VICP').optional).toBe(true);
+  });
+  it('the download link is the CORRECTED working NovaStar page (not the dead /downloads/ root)', () => {
+    expect(VX1000_SOFTWARE.downloadUrl).toBe('https://www.novastar.tech/download/download.html?catid=7');
+    expect(VX1000_SOFTWARE.downloadUrl).not.toMatch(/downloads\/$/); // the old dead-end root
+    expect(VX1000_SOFTWARE.downloadNav).toMatch(/Software.*NovaLCT/i);
+    expect(VX1000_SOFTWARE.novalctVersion).toMatch(/V5\.9\.1/);
+    expect(VX1000_SOFTWARE.downloadSearchUrl).toMatch(/novastar\.tech\/downloads\/search/);
+  });
+  it('every download link is OFFICIAL novastar.tech only (no third-party installers)', () => {
+    for (const url of [VX1000_SOFTWARE.downloadUrl, VX1000_SOFTWARE.downloadSearchUrl]) {
+      expect(url, url).toMatch(/^https:\/\/www\.novastar\.tech\//);
+    }
+    expect(VX1000_SOFTWARE.officialOnly).toMatch(/third-party/i);
   });
   it('NovaLCT does the mapping + RCFG import; V-Can does live switching', () => {
     const lct = VX1000_SOFTWARE.programs.find((p) => p.name === 'NovaLCT');

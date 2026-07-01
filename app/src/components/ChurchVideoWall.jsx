@@ -529,8 +529,13 @@ export default function ChurchVideoWall() {
       <div className={card}>
         <div className={labelCls}>VX1000 software &middot; {VX1000_SOFTWARE.controller}</div>
         <p className="mt-2 text-[0.8125rem] text-[#1A1815]">
-          Download all NovaStar software: <a href={VX1000_SOFTWARE.downloadUrl} target="_blank" rel="noreferrer" className="text-[#B85838] underline hover:text-[#1A1815]">{VX1000_SOFTWARE.downloadUrl}</a>
+          Download (official NovaStar): <a href={VX1000_SOFTWARE.downloadUrl} target="_blank" rel="noreferrer" className="text-[#B85838] underline hover:text-[#1A1815]">{VX1000_SOFTWARE.downloadUrl}</a>
         </p>
+        <p className="mt-0.5 text-[0.75rem] text-[#5A5751]">{VX1000_SOFTWARE.downloadNav}</p>
+        <p className="mt-0.5 text-[0.75rem] text-[#5A5751]">
+          {VX1000_SOFTWARE.downloadSearchNav} <a href={VX1000_SOFTWARE.downloadSearchUrl} target="_blank" rel="noreferrer" className="text-[#B85838] underline hover:text-[#1A1815]">{VX1000_SOFTWARE.downloadSearchUrl}</a>
+        </p>
+        <p className="mt-0.5 text-[0.6875rem] text-[#B85838] italic">{VX1000_SOFTWARE.officialOnly}</p>
 
         <div className="mt-3 space-y-2">
           {VX1000_SOFTWARE.programs.map((p) => (
@@ -564,7 +569,10 @@ export default function ChurchVideoWall() {
         {/* Copy-ready block — select all + copy on mobile */}
         <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Copy this</div>
         <pre className="mt-1.5 whitespace-pre-wrap text-[0.75rem] text-[#1A1815] bg-[#FAF8F4] border border-[#E8E4DC] p-2.5 font-sans">{
-`VX1000 software (download: ${VX1000_SOFTWARE.downloadUrl})
+`VX1000 software (official NovaStar)
+Download: ${VX1000_SOFTWARE.downloadUrl}
+  ${VX1000_SOFTWARE.downloadNav}
+  Search fallback: ${VX1000_SOFTWARE.downloadSearchUrl} (search "NovaLCT")
 ${VX1000_SOFTWARE.programs.map((p) => `- ${p.name}${p.optional ? ' (optional)' : ''}: ${p.role} — ${p.does} [${p.machine}]`).join('\n')}
 
 On-site first setup:

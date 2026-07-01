@@ -196,7 +196,15 @@ export const CHAIN_DIAGRAM = {
 // Copy-friendly on the in-app card so Darrell can follow it from his phone.
 export const VX1000_SOFTWARE = {
   controller: 'NovaStar VX1000',
-  downloadUrl: 'https://www.novastar.tech/downloads/',
+  // CORRECTED 2026-07-01 (the old /downloads/ page was a dead end). This is the
+  // working NovaStar downloads page; NovaLCT is under the "Software" category tab,
+  // latest V5.9.1, Windows. Official NovaStar only — never a third-party installer.
+  downloadUrl: 'https://www.novastar.tech/download/download.html?catid=7',
+  downloadNav: 'On that page, open the "Software" category tab -> NovaLCT (latest V5.9.1, Windows).',
+  downloadSearchUrl: 'https://www.novastar.tech/downloads/search.html',
+  downloadSearchNav: 'Or search "NovaLCT" here.',
+  novalctVersion: 'V5.9.1 (Windows)',
+  officialOnly: 'Download from novastar.tech ONLY — do not use third-party installer sites (security).',
   programs: [
     {
       name: 'NovaLCT',
