@@ -40,6 +40,9 @@ import {
   ledLineMath, TEACHING_CARD, FINISH_CHECKLIST, CHAIN_DIAGRAM,
   FIRST_LIGHT, VENDOR_MESSAGE,
 } from '../lib/led-wall-signal-chain.js';
+import {
+  SESSION_GOAL, PHASES, LANES, isPriority, sessionProgress,
+} from '../lib/onsite-session.js';
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -148,6 +151,7 @@ function BudgetLine({ line }) {
 }
 
 const CHECKLIST_KEY = 'colg-led-wall-finish-checklist-v1';
+const ONSITE_KEY = 'colg-onsite-session-v1';
 
 export default function ChurchVideoWall() {
   const [access, setAccess] = useState({ signedIn: false, canSee: false, canEdit: false });
@@ -161,6 +165,15 @@ export default function ChurchVideoWall() {
   const toggleCheck = (id) => setChecked((prev) => {
     const next = { ...prev, [id]: !prev[id] };
     try { localStorage.setItem(CHECKLIST_KEY, JSON.stringify(next)); } catch { /* private mode */ }
+    return next;
+  });
+  // On-site turnkey session — step-by-step done-map, same per-device persistence.
+  const [onsiteChecked, setOnsiteChecked] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(ONSITE_KEY)) || {}; } catch { return {}; }
+  });
+  const toggleOnsite = (id) => setOnsiteChecked((prev) => {
+    const next = { ...prev, [id]: !prev[id] };
+    try { localStorage.setItem(ONSITE_KEY, JSON.stringify(next)); } catch { /* private mode */ }
     return next;
   });
 
@@ -191,6 +204,7 @@ export default function ChurchVideoWall() {
   const power = useMemo(() => powerPlan(CABINET, grid), [grid]);
   const data = useMemo(() => dataMap(CABINET, grid), [grid]);
   const ledMath = useMemo(() => ledLineMath(), []);
+  const onsiteProgress = useMemo(() => sessionProgress(onsiteChecked), [onsiteChecked]);
   const checklistGroups = useMemo(() => {
     const order = [];
     const byGroup = {};
@@ -225,6 +239,61 @@ export default function ChurchVideoWall() {
         <p className="mt-2 text-[0.75rem] text-[#1A1815]">
           {project?.installNote || 'Installation in progress — on-site assembly began 2026-06-22 (ground-support towers up, panels staged for assembly). Signal chain + commissioning to follow.'}
         </p>
+      </div>
+
+      {/* ===== ON-SITE SESSION — turnkey, sequenced, execute-not-figure-out ===== */}
+      <div className={card}>
+        <div className="flex items-center justify-between">
+          <div className={labelCls}>On-site session &middot; turnkey sequence</div>
+          <div className="text-[0.75rem] font-semibold text-[#1A1815]">{onsiteProgress.done} / {onsiteProgress.total}</div>
+        </div>
+        <p className="mt-1 text-[0.8125rem] text-[#1A1815]">{SESSION_GOAL}</p>
+        {/* Priority path: get-it-working-first (wall lit + tower on network as build node) */}
+        <div className="mt-2 border-l-2 border-[#B85838] pl-2.5">
+          <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Priority path (if time is short): wall lit + tower on the network as build node</div>
+          <div className="mt-1 h-1.5 bg-[#E8E4DC]" role="progressbar" aria-valuenow={onsiteProgress.priorityDone} aria-valuemin={0} aria-valuemax={onsiteProgress.priorityTotal} aria-label="Priority path progress">
+            <div className="h-1.5 bg-[#B85838]" style={{ width: `${Math.round((onsiteProgress.priorityDone / onsiteProgress.priorityTotal) * 100)}%` }} />
+          </div>
+          <div className="mt-0.5 text-[0.6875rem] text-[#5A5751]">{onsiteProgress.priorityDone} / {onsiteProgress.priorityTotal} priority steps</div>
+        </div>
+
+        <div className="mt-3 space-y-3">
+          {PHASES.map((phase) => (
+            <div key={phase.id}>
+              <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">{phase.title}</div>
+              <ul className="mt-1 space-y-1.5">
+                {phase.steps.map((s) => (
+                  <li key={s.id}>
+                    <label className="flex gap-2.5 cursor-pointer items-start">
+                      <input
+                        type="checkbox"
+                        checked={!!onsiteChecked[s.id]}
+                        onChange={() => toggleOnsite(s.id)}
+                        className="mt-0.5 shrink-0 accent-[#B85838]"
+                        aria-label={s.action}
+                      />
+                      <span>
+                        <span className={`text-[0.8125rem] ${onsiteChecked[s.id] ? 'text-[#5A5751] line-through' : 'text-[#1A1815]'}`} style={serif}>
+                          {isPriority(s.id) && <span className="text-[#B85838] font-semibold">[priority] </span>}{s.action}
+                        </span>
+                        <span className="block text-[0.6875rem] text-[#5A5751]"><b>Proof:</b> {s.proof}</span>
+                        {s.sme && <span className="block text-[0.6875rem] text-[#B85838] italic">SME-pending: {s.sme}</span>}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">One technique — coordinated lanes</div>
+        <ul className="mt-1 space-y-1">
+          {LANES.map((l) => (
+            <li key={l.lane} className="text-[0.6875rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{l.role}</b> ({l.lane}) &mdash; after: {l.dependsOn}. Adds: {l.adds}</span></li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">Progress saved on this device. Full runbook: docs/99-session-notes/2026-07-01-colg-onsite-session-turnkey-runbook.md</p>
       </div>
 
       {/* STAGE-VISUAL IMAGE SLOT — filled from the church YouTube once Darrell
