@@ -11,6 +11,16 @@
       "max_calls_per_day": 200,
       "timeout_seconds": 60,
       "description": "The 'is the system up' probe (wf20 class). GETs each HEALTH_TARGETS endpoint (n8n /healthz + Ollama by default); exits 0 only when all are healthy. No LLM. Migrated first per the 2026-06-29 research-review."
+    },
+    {
+      "name": "surface-audit",
+      "kind": "deterministic",
+      "script": "surface-audit.sh",
+      "enabled": true,
+      "schedule": "every 30 minutes",
+      "max_calls_per_day": 96,
+      "timeout_seconds": 120,
+      "description": "The PROACTIVE surface audit (DR-0086). Runs the human-needs rubric (scripts/surface-audit-rubric.json) against every served surface, writes app/src/lib/audit-findings.json (read through onto the in-app Concerns & Solutions board) + the event reel. Observe-only (no commit/merge), no LLM -- catches the endless-scroll/static-tile/unreachable/dead-end class before Darrell has to name it. Ships inert (needs LOOPS_ARMED)."
     }
   ]
 }

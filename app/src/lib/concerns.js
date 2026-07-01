@@ -23,6 +23,13 @@
 // =============================================================================
 
 import { evaluateFeedback, feedbackText } from './feedback-triage.js';
+// Auto-audit findings (DR-0086) — the proactive surface audit writes this artifact
+// (scripts/surface-audit.mjs); each finding is a pre-mapped read-through concern
+// card so the board shows what the audit caught BEFORE anyone has to name it.
+// A finding that disappears from the artifact has passed re-audit (auto-resolved),
+// so its card simply stops appearing. Import is static so the cards ride the
+// bundle exactly like SEED_CONCERNS; the file is regenerated, never hand-edited.
+import auditArtifact from './audit-findings.json';
 
 // status: 'open' | 'in-progress' | 'done'
 export const CONCERN_STATUS = {
@@ -349,9 +356,25 @@ export function feedbackToConcernCards(feedback = []) {
     });
 }
 
-// Compose the full board list from the three inputs. DB concerns + seeds are the
-// editable/baseline curated set; feedback cards are appended read-through.
-export function composeConcerns({ dbConcerns = [], seeds = SEED_CONCERNS, feedback = [] } = {}) {
+// -----------------------------------------------------------------------------
+// auditToConcernCards — the proactive surface audit (DR-0086) as a read-through
+// feed. The audit writes audit-findings.json with pre-mapped concern cards; we
+// surface them here so a defect the audit caught lands on the board WITHOUT
+// anyone naming it (Darrell is the Governor, not the QA). Read-only: the findings
+// artifact is the source of truth (a re-audit that no longer finds it drops the
+// card = auto-resolved). Defensive: never throws if the artifact is empty/absent.
+// -----------------------------------------------------------------------------
+export function auditToConcernCards(artifact = auditArtifact) {
+  const cards = (artifact && Array.isArray(artifact.concerns)) ? artifact.concerns : [];
+  return cards
+    .filter((c) => c && c.id && c.concern)
+    .map((c) => ({ ...c, source: 'audit', readOnly: true }));
+}
+
+// Compose the full board list from the inputs. DB concerns + seeds are the
+// editable/baseline curated set; feedback + auto-audit cards are appended
+// read-through (feedback = human voice; audit = the machine's proactive voice).
+export function composeConcerns({ dbConcerns = [], seeds = SEED_CONCERNS, feedback = [], audit = auditArtifact } = {}) {
   // DB rows win over a seed with the same id (a Governor can supersede a baseline
   // entry by adding a real row); de-dupe by id, DB first.
   const byId = new Map();
@@ -359,5 +382,6 @@ export function composeConcerns({ dbConcerns = [], seeds = SEED_CONCERNS, feedba
   for (const s of seeds) if (s && s.id && !byId.has(s.id)) byId.set(s.id, { ...s, source: 'seed' });
   const curated = [...byId.values()];
   const fb = feedbackToConcernCards(feedback);
-  return [...curated, ...fb];
+  const au = auditToConcernCards(audit);
+  return [...curated, ...fb, ...au];
 }

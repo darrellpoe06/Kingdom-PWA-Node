@@ -58,6 +58,7 @@ const GATE_REGISTRY = [
   { id: 'portable-fresh',name:'Portable-bundle freshness gate',  catches: 'The client-handoff orchestrator bundle silently drifting from canon.',          script: 'scripts/portable-manifest.mjs',     test: `${APP_TESTS}/portable-bundle-fresh.test.js` },
   { id: 'entity-poll',  name: 'Entity-pollution guard',          catches: 'Seed / demo entities bleeding into a real signed-in world.',                    script: null,                                test: `${APP_TESTS}/entity-pollution.test.js` },
   { id: 'sync-safety',  name: 'Sync data-safety guard',          catches: 'A sync that replaces instead of merges and could drop a users real rows.',      script: null,                                test: `${APP_TESTS}/sync-data-safety.test.js` },
+  { id: 'surface-audit',name: 'Proactive surface audit (DR-0086)',catches: 'A served surface shipping a static tile, an endless-scroll list, a dead-end / coming-soon, or an unreachable registered surface -- the class Darrell had to name on 2026-07-01. Files findings to the Concerns board.', script: 'scripts/surface-audit.mjs',         test: `${APP_TESTS}/surface-audit.test.js` },
 ];
 
 // Closed-loop tests: a real outcome flows through the app and a test asserts it
