@@ -37,6 +37,26 @@ force-pushes, never creates/deletes branches, never applies migrations itself
 money, never messages minors, never touches RLS, never handles the DB/Vercel
 keys. Its scope is the constants at the top of `loop.py`; it cannot widen them.
 
+## The shared brain — read the settled record in, write decisions out (DR-0086)
+
+Every cycle is a good citizen of PoeTech's institutional memory (Darrell's
+"shared brain" principle — AI and humans share one weakness, memory):
+
+- **READ (start):** the driver reads the canonical settled record from its git
+  mirror + the governance store — decisions `INDEX` (latest DR), `PRINCIPLES`,
+  repo `MEMORY.md`, `LESSONS-LEARNED`, an optional Concerns export, and an
+  optional governance **directives** file — and logs a grounding line. So it
+  never re-litigates settled things or loses context across cycles/compaction.
+- **Governance lever:** drop `/volume1/PoeTech/governance/driver-directives.json`
+  with `{"pause_merges": true}` and the driver stops its write-actions (dispatch
+  + update-branch) while still reading and recording. A human pause switch that
+  lives in the shared brain — no code or SSH internals needed. Remove/flip to
+  resume. (This is distinct from `STOP`, which halts the whole loop.)
+- **WRITE (end):** every material decision — with its **WHY** — plus the outcome
+  is appended to `/volume1/PoeTech/governance/shared-brain/driver-events.jsonl`
+  (sovereign, append-only, human- and agent-readable). The per-cycle `reel.jsonl`
+  keeps the full trace; the governance log stays high-signal (material only).
+
 ## The three brakes (CLAUDE.md "Autonomous Automation Requires Three Brakes")
 
 - **Budget** — per-day caps on the only two write actions (`MAX_DISPATCHES_PER_DAY`,
@@ -67,6 +87,9 @@ keys. Its scope is the constants at the top of `loop.py`; it cannot widen them.
     askpass.sh            git auth helper (cats the token; 0700)
 /volume1/PoeTech/secrets/github-token.txt   GitHub token (repo+workflow), 0600
 /etc/systemd/system/poetech-build-loop.{service,timer}   the scheduler
+/volume1/PoeTech/governance/
+  shared-brain/driver-events.jsonl   decisions+outcomes OUT (canonical; DR-0086)
+  driver-directives.json             optional human lever ({"pause_merges":true})
 ```
 
 Cadence: `OnBootSec=3min`, then `OnUnitActiveSec=15min`, `Persistent=true`.
