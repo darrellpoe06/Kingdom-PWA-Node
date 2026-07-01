@@ -73,8 +73,59 @@ export const POWER = {
   note: 'NovaStar + cabinets on rated circuits; STAGGER power-on (inrush). See the power/circuit math (lib/video-wall-spec.js).',
 };
 export const MAP = {
-  note: 'Arrange the 8 x 6 cabinets in NovaStar Vision Management (over the control connection) so the image tiles correctly. Wrong order/orientation = the section tiles in the wrong place.',
-  software: 'NovaStar Vision Management (+ NovaLCT for receiving-card config).',
+  note: 'Arrange the 8 x 6 cabinets in NovaLCT (over the control connection) so the image tiles correctly. Wrong order/orientation = the section tiles in the wrong place.',
+  software: 'NovaLCT (receiving-card config + screen connection). Confirm the exact tool/version with the vendor — a COEX-class unit would use VMP instead.',
+};
+
+// =============================================================================
+// FIRST LIGHT — fresh-out-of-box: a proof-of-life test tonight, then the one-time
+// NovaLCT map. A brand-new VX1000 has NO screen config, so a source lights the
+// tiles but does NOT show a coherent picture until it is mapped once.
+// =============================================================================
+export const FIRST_LIGHT = {
+  usbMyth: 'The VX1000 Pro is a processor/controller, NOT a media player — its USB port is for setup/firmware (NovaLCT), not for playing video files. To show a video you feed it an HDMI source (a laptop in VLC full-screen is easiest).',
+  // Tonight: confirm power + data + source are alive. Not a clean picture.
+  proofOfLife: [
+    'Play the video on a laptop in VLC, full-screen + loop (or a phone via a USB-C -> HDMI adapter).',
+    'HDMI from that source into a VX1000 Pro HDMI input.',
+    'On the VX1000 front panel, select that HDMI input.',
+    'Expect the wall to LIGHT — likely scrambled / repeated across cabinets / partial, because it is not mapped yet. That is normal and is a WIN: it proves power + LED data + source are all live.',
+    'Nudge brightness down on the panel if it is blinding. Snap a photo.',
+  ],
+  proofOfLifeNote: 'Fresh out of the box there is no coherent picture without the map — do not chase one tonight.',
+  // Requirements for the real map (a daylight job).
+  mappingRequires: [
+    'A Windows laptop with NovaLCT (free from NovaStar).',
+    'USB or Cat6 from the laptop to the VX1000 control port.',
+    'The cabinet config: either the receiving cards are PRE-LOADED (turnkey walls often are — then only Screen Connection is left), OR a config file (.rcfgx) from LED Nation, OR Smart Settings with Mirackle module parameters.',
+  ],
+  // The one-time NovaLCT sequence (order matters). Menu labels vary by version;
+  // the vendor .rcfgx is the reliable path — flagged, not fabricated.
+  novalctSteps: [
+    { step: 1, title: 'Connect', body: 'Laptop -> VX1000 control port (USB/Cat6). Open NovaLCT; confirm it detects the controller (comm port green). Set the input to HDMI.' },
+    { step: 2, title: 'Advanced login', body: 'User -> Advanced Synchronous System User Login (password is version-specific — commonly "admin" or "666"; confirm).' },
+    { step: 3, title: 'Receiving-card config', body: 'Screen Configuration -> Receiving Card: Load the vendor .rcfgx -> Send to Receiving Card (all) -> Save to receiving cards (persists on power-cycle). If no file, run Smart Settings with Mirackle module parameters.' },
+    { step: 4, title: 'Screen Connection (the map)', body: 'Screen Configuration -> Screen Connection: set columns = 8, rows = 6; for each output port (1-8) click the cabinets in the ORDER the cable physically runs (one port per column, entered from the end nearest the processor). Match the wiring exactly. Send to hardware.' },
+    { step: 5, title: 'Save / solidify', body: 'Save the system configuration so the map persists on the receiving cards + controller after power-off.' },
+    { step: 6, title: 'Brightness + source', body: 'Set brightness/gamma to ~50-70%. Feed the HDMI source (laptop VLC full-screen) -> the wall now shows the mapped, coherent image.' },
+    { step: 7, title: 'Verify tiling', body: 'Walk the face: no cabinet out of order/rotated. If a section is wrong, fix that cabinet in Screen Connection and re-send.' },
+  ],
+  recommendation: 'Do the proof-of-life test tonight (lit tiles = success), then MAP it tomorrow with a Windows laptop + NovaLCT in the light. Do not build the map at the end of a long install day.',
+};
+
+// A ready-to-send message to LED Nation — unblocks tomorrow's map. Keep the wall
+// facts accurate; ask the two things that decide how fast the map goes.
+export const VENDOR_MESSAGE = {
+  to: 'LED Nation USA',
+  subject: 'COLG P1.99 wall — receiving-card config + screen file before we map',
+  body: [
+    'Hi — we have finished assembling and cabling the Mirackle P1.99 wall (8 columns x 6 rows, 48 cabinets) and it is powering up on the VX1000 Pro.',
+    'Before we map it, two questions:',
+    '1) Are the receiving cards already PRE-LOADED with the cabinet/module configuration, or do we need to run Smart Settings?',
+    '2) Please send the NovaLCT screen configuration file (.rcfgx / saved project) for this wall, plus the receiving-card model + module parameters.',
+    'Also: if you pre-mapped it, what is the output-port -> cabinet layout, and which software/version should we use (NovaLCT)?',
+    'Thanks!',
+  ],
 };
 
 // --- Derivation (proven-to-catch): the LED-line math from the grid ------------
@@ -115,7 +166,7 @@ export const FINISH_CHECKLIST = [
   { id: 'control-line', group: 'Cabling — control', label: 'Run 1 control line', detail: 'NovaStar control port -> Cat6 -> server-room network switch.' },
   { id: 'video-in', group: 'Cabling — video in', label: 'Run 1 video-in line', detail: 'Program source HDMI -> KEQINX 1x8 (HDMI IN) -> CAT OUT 1 -> Cat6 (<=70 m) -> receiver -> HDMI -> NovaStar HDMI in. (CAT OUT 2-8 feed the other screens.)' },
   { id: 'power', group: 'Power', label: 'Power the NovaStar + cabinets on rated circuits', detail: 'Stagger power-on (inrush). See the power/circuit math.' },
-  { id: 'mapping', group: 'Mapping', label: 'Map the 8 x 6 cabinets in NovaStar Vision Management', detail: 'Over the control connection; arrange columns/rows + orientation so the image tiles correctly.' },
+  { id: 'mapping', group: 'Mapping', label: 'Map the 8 x 6 cabinets in NovaLCT', detail: 'Over the control connection; receiving-card config (vendor .rcfgx or Smart Settings) -> Screen Connection (assign port->column order) -> Save. See "First light" for the full NovaLCT sequence.' },
   { id: 'test-light', group: 'Test', label: 'Test-light with any HDMI source', detail: 'Feed any HDMI source into the NovaStar; confirm the wall lights and the image tiles correctly across all 48 cabinets.' },
 ];
 

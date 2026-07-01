@@ -23,9 +23,15 @@ If any of 1–5 differs, the math below shifts — flag it and re-derive.
 > - **LED DATA wiring:** **8 LED lines, one per COLUMN** → top cabinet of each column → daisy-chain **down its 6**. ~**510k px/line** (6 × ~85k), under the ~650k limit; **8 of 10 ports, 2 spare**. DIRECT shielded Cat6, **no switch, ever**.
 > - **VIDEO IN (owned gear, replaces the NDI decoder):** program source (ATEM / presentation tower) HDMI → **KEQINX 1×8 HDMI-over-Cat6 splitter** → CAT OUT 1 → Cat6 (**≤ 70 m**) → **receiver at the wall** → HDMI → NovaStar HDMI in. CAT OUT 2–8 feed the stage TV / confidence monitors / lobby from the same source.
 > - **CONTROL:** NovaStar control port → Cat6 → server-room switch (network).
-> - **MAP:** arrange the 8 × 6 cabinets in **NovaStar Vision Management** over the control connection.
+> - **MAP:** arrange the 8 × 6 cabinets in **NovaLCT** over the control connection.
 > - Native ~**2710 × 1508** (~4.1M px), ~85k px/cabinet (the wall-spec module carries the ~2560×1440 module-map estimate; NovaLCT confirms the exact count).
 > The in-app version (documentation + staff teaching card + finish-checklist + diagram) lives on the **LED-wall capital-project record**.
+
+> ### 🔦 FIRST LIGHT (fresh out of the box)
+> **The VX1000 Pro is a controller, NOT a media player — a USB stick of videos will not play in it.** Feed it an HDMI source (a laptop in VLC full-screen is easiest). And a brand-new controller has **no screen map**, so a source lights the tiles but won't show a coherent picture until it's mapped once in **NovaLCT**.
+> - **Tonight (proof of life, 5 min):** HDMI source → a VX1000 HDMI input → select that input on the panel. Expect the wall to **light up scrambled / repeated / partial — that's normal and a WIN** (power + LED data + source all live). Don't chase a clean picture tonight.
+> - **Tomorrow (map it once):** Windows laptop + **NovaLCT** + USB/Cat6 to the control port. Sequence: **Connect → Receiving-card config (vendor `.rcfgx` or Smart Settings) → Screen Connection (columns = 8, rows = 6; assign each output port to its column in cable order) → Save to hardware → set brightness → feed the HDMI source.** Menu labels/advanced password vary by NovaLCT version — the vendor `.rcfgx` is the reliable path.
+> - **Unblock it:** ask LED Nation tonight (1) whether the **receiving cards are pre-loaded** and (2) for the **screen config `.rcfgx`**. The in-app card carries a copy-ready message.
 
 ---
 

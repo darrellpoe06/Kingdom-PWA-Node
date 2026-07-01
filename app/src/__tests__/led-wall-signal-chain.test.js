@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   WALL_GRID, VIDEO_IN, CONTROL, LED_DATA, POWER, MAP,
   ledLineMath, TEACHING_CARD, FINISH_CHECKLIST, CHAIN_DIAGRAM,
+  FIRST_LIGHT, VENDOR_MESSAGE,
 } from '../lib/led-wall-signal-chain.js';
 
 describe('WALL_GRID — 8 columns x 6 rows = 48', () => {
@@ -118,6 +119,44 @@ describe('CHAIN_DIAGRAM — renderable node/edge data', () => {
   });
   it('POWER + MAP carry their finish notes', () => {
     expect(POWER.note).toMatch(/STAGGER power-on/i);
-    expect(MAP.note).toMatch(/Vision Management/);
+    expect(MAP.note).toMatch(/NovaLCT/);
+  });
+});
+
+describe('FIRST_LIGHT — proof-of-life tonight, NovaLCT map tomorrow', () => {
+  it('corrects the USB-media myth (VX1000 is not a media player)', () => {
+    expect(FIRST_LIGHT.usbMyth).toMatch(/NOT a media player/i);
+    expect(FIRST_LIGHT.usbMyth).toMatch(/HDMI source/i);
+  });
+  it('the proof-of-life expects lit-but-scrambled tiles as a WIN', () => {
+    const p = FIRST_LIGHT.proofOfLife.join(' ');
+    expect(p).toMatch(/scrambled|repeated|partial/i);
+    expect(p).toMatch(/VLC|full-screen/i);
+    expect(p).toMatch(/HDMI/);
+  });
+  it('the NovaLCT sequence runs connect -> receiving card -> screen connection -> save -> source', () => {
+    const titles = FIRST_LIGHT.novalctSteps.map((s) => s.title).join(' ').toLowerCase();
+    expect(titles).toMatch(/connect/);
+    expect(titles).toMatch(/receiving-card/);
+    expect(titles).toMatch(/screen connection/);
+    const bodies = FIRST_LIGHT.novalctSteps.map((s) => s.body).join(' ');
+    expect(bodies).toMatch(/columns = 8, rows = 6/);
+    expect(bodies).toMatch(/\.rcfgx/);
+  });
+  it('lists what the map requires (laptop + NovaLCT + the cabinet config)', () => {
+    const req = FIRST_LIGHT.mappingRequires.join(' ');
+    expect(req).toMatch(/NovaLCT/);
+    expect(req).toMatch(/control port/i);
+    expect(req).toMatch(/PRE-LOADED|\.rcfgx|Smart Settings/);
+  });
+});
+
+describe('VENDOR_MESSAGE — ready-to-send LED Nation ask', () => {
+  it('asks about pre-loaded receiving cards + the config file', () => {
+    const body = VENDOR_MESSAGE.body.join(' ');
+    expect(VENDOR_MESSAGE.to).toMatch(/LED Nation/i);
+    expect(body).toMatch(/PRE-LOADED/);
+    expect(body).toMatch(/\.rcfgx|screen configuration file/i);
+    expect(body).toMatch(/8 columns x 6 rows/);
   });
 });
