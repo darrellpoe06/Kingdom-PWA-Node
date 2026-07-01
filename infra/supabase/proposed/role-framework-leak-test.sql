@@ -95,6 +95,16 @@ INSERT INTO role_assignments (instance_id, role_key, subject_kind, subject_user_
   (:iA,'learner','member',:uChild,'property',:rA1,:uOwnerA,:uOwnerA)
 ON CONFLICT DO NOTHING;
 
+-- ---- LIVE per-unit backbone (0055/0062): a tenancy on rA1 + a service request.
+--      Proves the tenancy_id -> rental_ref resolver scopes the external PM to
+--      the ACTUAL live tables the owner uses (not just the gated threads).
+--      (rental_tenancies extra columns may vary; adjust the seed to your schema.)
+INSERT INTO rental_tenancies (id, instance_id, rental_ref, status)
+  VALUES ('dddd0000-0000-0000-0000-0000000ten01', :iA, :rA1, 'active') ON CONFLICT (id) DO NOTHING;
+INSERT INTO tenant_maintenance_requests (instance_id, tenancy_id, created_by_role, title)
+  VALUES (:iA, 'dddd0000-0000-0000-0000-0000000ten01', 'tenant', 'Porch light out (assigned unit)')
+ON CONFLICT DO NOTHING;
+
 -- ---- threads: T1 property(rA1) with tenant participant; T2 project(proj-x) ----
 INSERT INTO threads (id, instance_id, scope_kind, scope_ref, subject, kind, created_by_member) VALUES
   (:tT1,:iA,'property',:rA1,'Leak under sink','service-request',:uOwnerA),
@@ -139,7 +149,10 @@ DO $$ DECLARE n int; BEGIN
   SELECT count(*) INTO n FROM accounts;      IF n<>0 THEN RAISE EXCEPTION 'PMprop FAIL: saw % accounts', n; END IF;
   SELECT count(*) INTO n FROM board_tasks;   IF n<>0 THEN RAISE EXCEPTION 'PMprop FAIL: saw % board_tasks', n; END IF;
   SELECT count(*) INTO n FROM rentals;       IF n<>0 THEN RAISE EXCEPTION 'PMprop FAIL: read base rentals', n; END IF;
-  RAISE NOTICE 'PM-property: scoped OK.';
+  -- LIVE tables via the tenancy resolver: sees her assigned unit's request only.
+  SELECT count(*) INTO n FROM tenant_maintenance_requests;
+  IF n<>1 THEN RAISE EXCEPTION 'PMprop FAIL: tenancy-resolved requests should be 1, saw %', n; END IF;
+  RAISE NOTICE 'PM-property: scoped OK (incl live tenancy tables).';
 END $$; RESET ROLE;
 
 -- =====================================================================
@@ -158,6 +171,8 @@ DO $$ DECLARE n int; BEGIN
     RAISE EXCEPTION 'PMproj FAIL: saw a PROPERTY thread (tier bug)'; END IF;
   SELECT count(*) INTO n FROM pm_property_view; IF n<>0 THEN RAISE EXCEPTION 'PMproj FAIL: saw property units', n; END IF;
   SELECT count(*) INTO n FROM accounts;         IF n<>0 THEN RAISE EXCEPTION 'PMproj FAIL: saw accounts', n; END IF;
+  SELECT count(*) INTO n FROM tenant_maintenance_requests; -- property tenancy, not his scope
+  IF n<>0 THEN RAISE EXCEPTION 'PMproj FAIL: saw % property tenancy requests', n; END IF;
   RAISE NOTICE 'PM-project: scoped OK.';
 END $$; RESET ROLE;
 

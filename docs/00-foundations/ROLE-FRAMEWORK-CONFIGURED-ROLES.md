@@ -83,6 +83,17 @@ Each check's documented mutation makes it fail (a tier bug, a membership leak, a
 
 ---
 
+## 6a. Reconciliation with the LIVE per-unit surface (rentals-mgmt lane, 2026-07-01)
+
+The rentals-mgmt lane (`local_9aedb5b8`) landed the real per-unit surface on `main` (migrations 0055 + 0062). Reality-trace correction (DR-0061/P15) — the surface the owner **actually** uses, and how the framework bridges it:
+
+- **Live tables key on `tenancy_id`, not `rental_id`.** `tenant_messages` and `tenant_maintenance_requests` (0055) reference `rental_tenancies(id)`; `rental_tenancies.rental_ref` is the **unit door id** (text). The framework adds `subject_assigned_to_tenancy(tenancy_id)` = `subject_assigned_to('property', rental_ref)` and PM policies on those two live tables (§4c). So the external PM works the **actual** tables, scoped to assigned units. `rental_ref` alignment (== the door id both sides use) is flagged for the lane to confirm.
+- **`property_notes` (0062) is deliberately NOT PM-readable** — it is the landlord's own private per-unit memory (may hold sensitive owner notes), never tenant-visible. The PM gets tenant-facing exchanges, not the owner's memory. (Agreed with the lane.)
+- **Member → external transition.** Today the live PM is a *trusted instance member* (0062 widened the role vocab to `'manager'` for attribution; access still rides member RLS). **Applying this framework is what actually isolates the external 1099 PM** — it flips the PM from broad member access to fail-closed external scoping. Until applied, the PM stays a trusted member.
+- **Messaging convergence is future, not forked.** The live `tenant_messages` store has no `delivery_status` column; its draft→preview→approve outbound guardrail is enforced in the app (`UnitManagement.jsx`) — which matches this framework's `pending-approval` intent. The DB-level outbound guardrail lives in the framework's `thread_messages` (§2); the live store **converges onto `threads` later** (lane's call), not speculatively forked.
+
+---
+
 ## 7. What needs the owner's GO / lane handoffs
 
 **GO (nothing applied/granted):** promote + apply `role-framework-and-threads.sql` to **staging**; run the leak test (must pass, mutations must fail); create real accounts + grant scopes (owner action); re-run against prod with real sessions.

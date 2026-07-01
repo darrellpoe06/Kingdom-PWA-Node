@@ -182,6 +182,46 @@ CREATE POLICY board_tasks_worker_update ON board_tasks FOR UPDATE
   WITH CHECK (subject_assigned_to('project', board_slug));
 -- (No finance/other-board access: any board not assigned -> predicate false.)
 
+-- 4c. LIVE per-unit management surface (0055 + 0062, applied on main).
+--     RECONCILED with the rentals-mgmt lane (local_9aedb5b8): the surface the
+--     owner actually uses is tenant_messages / tenant_maintenance_requests,
+--     which key on tenancy_id (NOT the v2.2 maintenance_requests in §4a).
+--     Resolve tenancy_id -> the unit door (rental_ref) so the external PM sees
+--     ONLY assigned units. RENTAL_REF ALIGNMENT: property scope_ref == the unit
+--     door id the live tables use (rentals[].id, stored as rental_ref); the
+--     owner assigns using that same ref (the UI passes the door id both use).
+CREATE OR REPLACE FUNCTION public.subject_assigned_to_tenancy(p_tenancy_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, auth
+AS $$
+  SELECT public.subject_assigned_to('property', rt.rental_ref)
+  FROM rental_tenancies rt WHERE rt.id = p_tenancy_id
+$$;
+GRANT EXECUTE ON FUNCTION public.subject_assigned_to_tenancy(uuid) TO authenticated, anon;
+
+-- Tenant service requests: PM reads + works requests for assigned units only.
+CREATE POLICY tenant_maint_worker_read ON tenant_maintenance_requests FOR SELECT
+  USING (subject_assigned_to_tenancy(tenancy_id));
+CREATE POLICY tenant_maint_worker_insert ON tenant_maintenance_requests FOR INSERT
+  WITH CHECK (subject_assigned_to_tenancy(tenancy_id) AND created_by_role = 'manager');
+CREATE POLICY tenant_maint_worker_update ON tenant_maintenance_requests FOR UPDATE
+  USING (subject_assigned_to_tenancy(tenancy_id))
+  WITH CHECK (subject_assigned_to_tenancy(tenancy_id));
+
+-- Tenant<->PM messages: PM reads the thread + posts AS 'manager' for assigned units.
+CREATE POLICY tenant_msg_worker_read ON tenant_messages FOR SELECT
+  USING (subject_assigned_to_tenancy(tenancy_id));
+CREATE POLICY tenant_msg_worker_insert ON tenant_messages FOR INSERT
+  WITH CHECK (subject_assigned_to_tenancy(tenancy_id) AND from_role = 'manager');
+-- NOTE: tenant_messages has NO delivery_status column; outbound-to-non-user
+-- approval is enforced in the app (UnitManagement.jsx draft->preview->approve).
+-- The DB-level outbound guardrail lives in thread_messages (§5); the live store
+-- converges onto threads later (rentals-lane handoff), not forked speculatively.
+--
+-- property_notes (0062) is DELIBERATELY NOT PM-readable: it is the landlord's
+-- OWN private per-unit memory (may hold sensitive owner notes), never even
+-- tenant-visible. The PM gets tenant-facing exchanges, not the owner's memory.
+-- (Confirmed with the rentals-mgmt lane, 2026-07-01.)
+
 -- ---------------------------------------------------------------------
 -- 5. THREADS — conversations with TIERED visibility (the core of this change).
 --    Owner/admin: ALL in-org.  Worker: threads for scopes assigned to them.
