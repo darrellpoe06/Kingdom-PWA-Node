@@ -33,12 +33,22 @@ import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
   subscribeSermons, subscribeSermonDocuments, subscribeSpeakers, saveSermon, deleteSermon, reuseSermon,
-  saveSermonDocument, importSermonsFromChannel, openSermonDocument, fetchPublicSermons,
+  saveSermonDocument, importSermonsFromChannel, openSermonDocument, fetchPublicSermons, dedupeSermons,
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import Presenter from './Presenter.jsx';
+import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
 import { useReadingResume } from '../lib/reading-position.js';
+
+// Self-explaining copy for the message library (LIGHT inline; the deep version
+// lives in Help under topic 'church:theword').
+const THEWORD_ABOUT = {
+  what: 'Every past message — Sundays and Wednesday Bible Study — as one searchable archive, newest first.',
+  where: 'Your church database (the choir_sermons ledger), streamed live; the public view shows only published messages, never in-progress drafts.',
+  how: 'Each message is filed under the month it was preached; jump to any month or date, search by title, scripture, or speaker, and watch the service inline.',
+  helpTopic: 'church:pulpit',
+};
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) => {
@@ -168,7 +178,6 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
 // -----------------------------------------------------------------------------
 function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey }) {
   const [form, setForm] = useState(null); // {initial}|null
-  const [q, setQ] = useState('');
   const [importMsg, setImportMsg] = useState('');
   const runImport = async () => {
     setImportMsg('Importing…');
@@ -177,11 +186,12 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
     else if (r?.skipped === 'no-key') setImportMsg('Add VITE_YOUTUBE_API_KEY (Vercel env) to enable channel import.');
     else setImportMsg(`Import skipped (${r?.skipped || 'error'}).`);
   };
-  const list = Array.isArray(sermons) ? sermons : [];
+  // Display-dedupe (migration 0061 mirror): collapse the harvest's duplicate
+  // drafts on their stable key so the library never shows clones, even before the
+  // DB migration has run against the cloud.
+  const list = dedupeSermons(Array.isArray(sermons) ? sermons : []).kept;
   const drafts = list.filter((s) => s.status === 'draft');
-  const history = list.filter((s) => s.status !== 'draft')
-    .filter((s) => !q || `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''}`.toLowerCase().includes(q.toLowerCase()))
-    .sort(byDateDesc);
+  const history = list.filter((s) => s.status !== 'draft');
   const roster = speakerRoster(list);
   // The Word is the second consumer of the shared reading-position primitive:
   // return to the message library right where you were scrolled, not the top.
@@ -225,18 +235,20 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-2">
-        <label className="sr-only" htmlFor="pm-q">Search messages</label>
-        <input id="pm-q" className={FIELD} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search messages by title, scripture, speaker…" />
-      </div>
       {history.length ? (
-        <>
-          <p className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] mb-1">{history.length} message{history.length === 1 ? '' : 's'}</p>
-          <div className="bg-white border border-[#1A1815]">
-            {history.map((s) => <MessageRow key={s.id} sermon={s} canEdit={canEdit} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />)}
-          </div>
-        </>
-      ) : <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{q ? 'No messages match.' : 'No messages yet.'}</p>}
+        <RecordsLog
+          items={history}
+          getDate={(s) => s.serviceDate}
+          getText={(s) => `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''}`}
+          countNoun="message"
+          about={THEWORD_ABOUT}
+          facets={[
+            { key: 'speaker', label: 'speakers', getValue: (s) => s.speaker },
+            { key: 'type', label: 'services', getValue: (s) => (s.serviceType === 'wednesday' ? 'Wednesday' : 'Sunday') },
+          ]}
+          renderRow={(s) => <MessageRow sermon={s} canEdit={canEdit} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />}
+        />
+      ) : <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No messages yet.</p>}
     </div>
   );
 }
