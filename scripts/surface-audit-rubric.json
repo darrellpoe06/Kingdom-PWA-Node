@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "_comment": "HUMAN-NEEDS RUBRIC for the proactive surface audit (DR-0086). This is the inspectable, extensible spec the deterministic audit runs against EVERY served surface (surfaces.js registry) every NAS-loop cycle. It encodes the human-obvious questions Darrell should never have to ask (endless-scroll list, static tiles, unreachable admin, dead-end 'coming soon') as machine checks, so they are caught before he sees them. Darrell is the GOVERNOR, not the QA. Add a rubric item here and the engine (scripts/lib/surface-audit-core.mjs) enforces it; the audit CLI (scripts/surface-audit.mjs) files each finding to the in-app Concerns & Solutions board and the event reel. DETERMINISTIC + $0 + NO LLM: every check is a regex over real source or a cross-check of the real registry against the real render. A model is reserved ONLY for judgment items (kind:'judgment', not run by the deterministic loop). Proven-to-catch per DR-0076: each item ships with a synthetic-fixture test that shows it CATCHES the break before it can go green.",
+
+  "dimensions": {
+    "dynamic-not-static": "Numbers and lists are derived from real data, not painted. A hardcoded tile on a trust surface is worse than none.",
+    "intuitive-ux": "Consumer-familiar: newest-first where expected, period/sort/filter controls, paginated (no endless scroll), grouped, mobile-tidy.",
+    "reachability": "Every built surface is reachable IN-APP. No admin/console-only dead surfaces.",
+    "freshness": "Latest data shows as latest; pipelines populated. No '0 of N' where it should be full; the served build is the merged build.",
+    "no-dead-ends": "No white-screens, no 'coming soon' gate without a named, dated reason (active-by-default; DR-0075 requires why + re-review date).",
+    "works-when-used": "The surface actually works when used like a human would — no fake green."
+  },
+
+  "items": [
+    {
+      "id": "placeholder-content",
+      "label": "Placeholder / coming-soon content on a shipped surface",
+      "dimension": "no-dead-ends",
+      "severity": "high",
+      "kind": "source-pattern",
+      "expect": "absent",
+      "flags": "i",
+      "patterns": [
+        "coming soon",
+        "lorem ipsum",
+        "placeholder text",
+        "not implemented",
+        "under construction",
+        "\\bTBD\\b content",
+        "content goes here"
+      ],
+      "fix": "Replace the placeholder with a real-data surface, OR gate it with a named, dated reason (DR-0075: why + re-review date). A visible surface must invite a real next action, not a dead end.",
+      "excludeSurfaces": []
+    },
+    {
+      "id": "todo-marker",
+      "label": "TODO / FIXME left in a shipped surface",
+      "dimension": "no-dead-ends",
+      "severity": "low",
+      "kind": "source-pattern",
+      "expect": "absent",
+      "flags": "",
+      "patterns": [
+        "TODO(?!:? *implement the audit)",
+        "FIXME",
+        "\\bHACK\\b",
+        "XXX:"
+      ],
+      "fix": "Resolve the TODO/FIXME or convert it to a tracked concern with a re-review date (DR-0075). Unresolved markers on a user-facing surface are silent stalls.",
+      "excludeSurfaces": []
+    },
+    {
+      "id": "hardcoded-currency-tile",
+      "label": "Hardcoded currency figure rendered on a surface (suspected static tile)",
+      "dimension": "dynamic-not-static",
+      "severity": "medium",
+      "kind": "source-pattern",
+      "expect": "absent",
+      "flags": "",
+      "patterns": [
+        ">\\s*\\$\\s?\\d[\\d,]{2,}(?:\\.\\d+)?\\s*<",
+        ">\\s*\\$\\s?\\d+(?:\\.\\d+)?[KMB]\\s*<"
+      ],
+      "fix": "HEURISTIC — verify by hand. A dollar figure baked into JSX text (not {derived}) is a painted number. Trace it to a real row/sum (e.g. lib/account-balances.js) or remove it. A static financial tile erodes trust (Reality-Trace P15).",
+      "excludeSurfaces": ["about", "cart", "opportunities", "practice"]
+    },
+    {
+      "id": "hardcoded-percent-tile",
+      "label": "Hardcoded percentage rendered on a surface (suspected static progress/stat)",
+      "dimension": "dynamic-not-static",
+      "severity": "medium",
+      "kind": "source-pattern",
+      "expect": "absent",
+      "flags": "",
+      "patterns": [
+        ">\\s*\\d{1,3}%\\s+(?:complete|done|full|filled|of goal|to goal|progress)\\b",
+        "aria-valuenow=[\"']\\d{1,3}[\"']"
+      ],
+      "fix": "HEURISTIC — verify by hand. A percent baked into JSX progress copy (a '60% complete' bar) that is not {derived} is a painted number and cannot flag its own miss (the 2026-06-13 Build-board lesson). Derive it from real state or remove it. (Layout widths like style={{width:'100%'}} are intentionally NOT matched — that is CSS, not a data tile.)",
+      "excludeSurfaces": ["about"]
+    },
+    {
+      "id": "list-pagination",
+      "label": "Long-list surface without pagination or windowing (endless-scroll risk)",
+      "dimension": "intuitive-ux",
+      "severity": "medium",
+      "kind": "source-pattern",
+      "expect": "present",
+      "flags": "",
+      "patterns": [
+        "pageSize",
+        "\\bsetPage\\b",
+        "\\[page,",
+        "\\.slice\\(",
+        "visibleCount",
+        "loadMore",
+        "react-window",
+        "virtuoso",
+        "useVirtual"
+      ],
+      "includeSurfaces": ["transactions", "harvest", "crm", "inventory", "scripture", "library"],
+      "excludeSurfaces": [],
+      "fix": "This surface can render a long list. Add pagination or windowing (like BooksTransactions' pageSize=25 + page controls) so it never becomes an endless scroll — consumer-familiar and mobile-tidy. If the list is provably bounded-small, add the surface to this check's excludeSurfaces with a note."
+    },
+    {
+      "id": "surface-unreachable",
+      "label": "Registered top-level surface with no render branch in the shell (unreachable in-app)",
+      "dimension": "reachability",
+      "severity": "critical",
+      "kind": "reachability",
+      "scope": "top",
+      "fix": "The surface is in the surfaces.js registry but the shell has no `view === '<id>'` render branch, so a user can never reach it in-app (the 'admin not reachable' class). Wire a nav entry + render branch, or remove the dead registration.",
+      "excludeSurfaces": []
+    }
+  ],
+
+  "liveProbes": {
+    "_comment": "OPTIONAL online freshness checks (deterministic HTTP; run only with --online). Each probe GETs a URL and asserts an expectation. Ships EMPTY so the audit is inert online until a real endpoint is configured (no invented endpoints — Verification Doctrine). Add e.g. {\"id\":\"served-app\",\"dimension\":\"freshness\",\"severity\":\"critical\",\"url\":\"https://poetech.us/\",\"expectStatusMax\":399,\"fix\":\"...\"} or a harvest-count probe {\"id\":\"harvest-transcripts\",\"expectBodyMatches\":\"\\\"count\\\":[1-9]\",\"fix\":\"transcripts pipeline at 0 — check wf/import\"}.",
+    "probes": []
+  }
+}
