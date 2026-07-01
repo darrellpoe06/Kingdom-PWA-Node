@@ -1,6 +1,6 @@
 -- 2026-06-29 — Sovereign Mesh (two-NAS): in-app infrastructure documentation
 -- Materializes the DECIDED architecture for running the PoeTech PWA on BOTH NAS units
--- (home DS1621xs + church site) as in-app docs: one infrastructure project + 8 discussion
+-- (home DS1621xs + church site) as in-app docs: one infrastructure project + 10 discussion
 -- entries (institutional-memory / Events-as-data model). Renders at:
 --   Projects -> (domain: Infrastructure) -> "Sovereign Mesh" -> Discussions driving this
 --   Projects -> Discussions (filtered to the project)
@@ -37,7 +37,7 @@ BEGIN
   )
   ON CONFLICT (instance_id, slug) WHERE slug IS NOT NULL DO NOTHING;
 
-  -- 2) Eight best-way discussion entries ------------------------------------
+  -- 2) Ten best-way discussion entries --------------------------------------
   INSERT INTO discussions
     (id, instance_id, created_by, slug, kind, title, body, project_slugs, visibility, status, links, meta, author_persona, created_at, updated_at)
   VALUES
@@ -67,14 +67,24 @@ BEGIN
      '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
 
     (gen_random_uuid(), v_instance, NULL, 'sm-single-writer-no-two-masters', 'decision',
-     'Data = single-writer per datum; never two masters (no split-brain)',
-     'BEST WAY: keep ONE authoritative relational DB - cloud Supabase today; the home-NAS self-hosted Supabase compose (already in-repo at infra/supabase/) is the scaffolded sovereign successor. The second node READS it over Tailscale (and may cache for offline reads), but WRITES always go to the one primary. The registry/ledger is likewise a single home-NAS instance both nodes write to. Heavy media (~100 TB church recordings) is node-local by nature, referenced by ID. The anti-pattern, named and refused: two writable Supabase instances synced (multi-master = the split-brain you asked to avoid). WE CHOSE single-writer + read-replication, NOT dual-master sync, BECAUSE replication is for read-availability and backup - never a second master; move WHICH box is the writer, never the NUMBER of writers.',
-     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+     'Data = single-writer per datum; never two masters (DR-0080 hybrid edge-shield)',
+     'BEST WAY (locked as DR-0080, the DB instantiation of this single-writer invariant): HYBRID - Supabase cloud = the PUBLIC edge/shield (all internet exposure + auth); the home NAS = the PRIVATE sovereign canonical, Tailscale/LAN only, NEVER a public port. The NAS participates as a SUBSCRIBER that DIALS OUT (zero inbound exposure). Sync is ONE-WAY PER TIER so no datum has two writers: Tier-P (public/operational) -> Supabase writes, replicate downstream cloud->NAS via Postgres logical replication (Supabase publishes, NAS subscribes, read-only mirror); Tier-S (sovereign-sensitive: family financial/legal, TLC/PHI per DR-0003) -> NAS writes, stays on the NAS over tailnet, NEVER pushed to cloud. Church NAS = encrypted SEALED-BLOB backup replica (stores, never reads). Migration is a config swap, not a rewrite (coded to the Supabase SDK contract). Phased + reversible + dependency-gated on Darrell per-phase go; nothing arms unattended. WE CHOSE single-writer + one-way-per-tier + never-expose-the-NAS, NOT dual-master sync, BECAUSE replication is for read-availability and backup - never a second master; the edge absorbs the attack surface so a home outage never takes down poetech.us.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{"dr_ref":"DR-0080"}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
 
     (gen_random_uuid(), v_instance, NULL, 'sm-reality-trace-church-gpu-premise', 'directive',
      'Reality-trace / SME: church NAS has 2x 4070 is imprecise; the GPUs live in CUDA boxes',
      'PREMISE SURFACED (DR-0061): a Synology NAS cannot hold desktop RTX 4070s - they live in companion CUDA/Windows box(es) on the church LAN. So church-NAS-as-GPU-node reads as the church SITE has a NAS (storage) + a CUDA box (GPU); the router targets the GPU ENDPOINT IP, not the NAS IP. REALITY (2026-06-10 probe): the church NAS (tlcrackstation) is on the tailnet but fully firewalled, and the GPU boxes are NOT on the mesh yet - the home NAS is the only live (CPU-only) inference host. SME GATES (Darrell/BG, his/their hand, never the pipeline holding creds): confirm church hardware/topology, the GPU-endpoint Tailscale IP, and open read-only access to the church NAS. These are Step 0; the mesh cannot federate to an unreachable node. WE CHOSE name-the-gap-first, NOT assume-the-mesh-is-live, BECAUSE the plan stands the mesh up - it does not pretend it already runs.',
      '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{"dr_ref":"DR-0061"}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'sm-both-sites-go-2026-07-01', 'directive',
+     'GO (2026-07-01): both sites fully capable - best conditions at either location',
+     'DECISION (Darrell 2026-07-01): the two-site mesh is a GO. Both may be best so I have the best conditions on both sites. Replicate the build + capability-routed jobs across BOTH sites (home DS1621xs + church towers) so whichever site has the right hardware/uptime handles the work, and he has best conditions at either location. One release lane holds (DR-0054, merge=deploy); both nodes build+serve from one origin/main. Folds three lanes into ONE coherent system: the hybrid-shield DB (DR-0080), the always-on build driver (scripts/orchestrator-v0/v05.mjs), and the church build-node buildout (infra/church-gpu-node/). Full plan: docs/99-session-notes/2026-07-01-sovereign-mesh-both-sites-go-turnkey.md. WE CHOSE both-sites-capable, NOT one-primary-one-cold-spare, BECAUSE redundancy AND best-hardware-per-job come from the same move - replicate the build, route the compute.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
+
+    (gen_random_uuid(), v_instance, NULL, 'sm-coherent-build-system', 'decision',
+     'The build driver + two build nodes + router = ONE system (verified lanes, merge = deploy)',
+     'BEST WAY: the always-on build driver runs resident on the home NAS (scripts/orchestrator-v0/v05.mjs; DR-0056/DR-0077) and is the orchestrator - it dispatches each lane by capability through nodes.json (routine/bounded build + transcription + voice -> church coder towers IN PARALLEL; heavy/novel reasoning -> vendor Claude; private -> local-only), each lane self-verifies with npm run verify (lint + the full deterministic gate suite, NO vendor AI) before it may report done, and the driver integrates green lanes into main IN ORDER -> merge = deploy (DR-0054) -> both nodes braked poll-deploy rebuild and serve. HONEST STATE: the driver ships INERT (v0 advisory / v0.5 bounded-on-demand, human-triggered; the scheduler + Tier-C enforcement is v1, NOT built). NO FAKE GREEN (DR-0076): a lane is not done without a real verify pass, both nodes are not in sync without a matching deployed-SHA, and every driver run is on the audit ledger. Brakes on each node; arming the scheduler is Tier C, his hand, never while traveling. WE CHOSE one-driver-many-verified-lanes-one-release-lane, NOT hand-cranked worktrees and NOT unattended autonomy, BECAUSE speed comes from parallel verified lanes integrated in order, and safety comes from the brakes + the verify gate that a green check actually means.',
+     '["sovereign-mesh-2026-06"]'::jsonb, 'shared', 'open', '{"dr_ref":"DR-0077"}'::jsonb, '{}'::jsonb, 'darrell', now(), now()),
 
     (gen_random_uuid(), v_instance, NULL, 'sm-end-to-end-umbrella', 'directive',
      'End-to-end (umbrella): replicate -> federate by capability -> brake every node -> one writer',

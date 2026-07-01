@@ -1,24 +1,35 @@
 {
-  "_comment": "Sovereign-mesh node/capability registry. DECLARATIVE source of truth for capability-routed federation (research-review docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md). The job router selects the node whose declared `caps` is a superset of a job's `requires`, health-green, cheapest/closest first. DECLARED, NOT GUESSED (DR-0061 reality-trace) and DETERMINISTIC (no LLM in the dispatch decision; the LLM is only the worker on the chosen node). Generalizes the vendor-axis picker in scripts/wake-router.mjs + DR-0073 to a node axis. The two church CUDA towers are NETWORKED LOCAL-CODER WORKERS (Aider + Ollama + qwen2.5-coder:14b), not just inference endpoints: tiered dispatch sends heavy/novel reasoning to vendor Claude and routine/bounded build + transcription + voice to the local towers IN PARALLEL (two towers + home NAS). Honest limit (DR-0076): local coders are weaker on hard reasoning -> well-scoped tasks only; vendor reserved for the hard problems. SHIPS INERT: editing this file does not arm anything; routing still passes through the per-node Cage brakes (infra/ai-orchestrator/portable/orchestrator/lib/brakes.sh) and the mesh kill-switch. Values marked SME-CONFIRM are flagged for Darrell/BG (church hardware, GPU-endpoint IP, church NAS access) per the research-review section 6 — DO NOT fabricate; an SME-CONFIRM cap is treated as OFFLINE by the router until a real value lands.",
+  "_comment": "Sovereign-mesh node/capability registry. DECLARATIVE source of truth for capability-routed federation (research-review docs/99-session-notes/2026-06-29-research-review-sovereign-mesh-two-nas-replication-federation.md). The job router selects the node whose declared `caps` is a superset of a job's `requires`, health-green, cheapest/closest first. DECLARED, NOT GUESSED (DR-0061 reality-trace) and DETERMINISTIC (no LLM in the dispatch decision; the LLM is only the worker on the chosen node). Generalizes the vendor-axis picker in scripts/wake-router.mjs + DR-0073 to a node axis. The two church CUDA towers are NETWORKED LOCAL-CODER WORKERS (Aider + Ollama + qwen2.5-coder:14b), not just inference endpoints: tiered dispatch sends heavy/novel reasoning to vendor Claude and routine/bounded build + transcription + voice to the local towers IN PARALLEL (two towers + home NAS). Honest limit (DR-0076): local coders are weaker on hard reasoning -> well-scoped tasks only; vendor reserved for the hard problems. SHIPS INERT: editing this file does not arm anything; routing still passes through the per-node Cage brakes (infra/ai-orchestrator/portable/orchestrator/lib/brakes.sh) and the mesh kill-switch. Values marked SME-CONFIRM are flagged for Darrell/BG (church hardware, GPU-endpoint IP, church NAS access) per the research-review section 6 — DO NOT fabricate; an SME-CONFIRM cap is treated as OFFLINE by the router until a real value lands. DB LAYER (see db_topology below): DR-0080 — Supabase cloud is the PUBLIC edge/shield; the home NAS is the PRIVATE sovereign canonical (subscriber that dials out, never a public port); one-way sync per tier (single-writer per datum); church NAS = encrypted sealed-blob backup. The always-on build driver (scripts/orchestrator-v0/v05.mjs) is resident on home-ds1621xs and dispatches build lanes through this registry (2026-07-01-sovereign-mesh-both-sites-go-turnkey.md).",
   "schema_version": 1,
   "private_routing": "local-only-always",
   "mode_default": "vendor-first",
   "mesh_kill_switch": { "host": "192.168.1.26", "note": "registry-side mesh-wide kill-switch; UNREACHABLE = treated as ENGAGED (fail closed)" },
+  "db_topology": {
+    "_ref": "DR-0080 (hybrid Supabase edge-shield + NAS sovereign canonical) — the DB instantiation of this mesh's single-writer-per-datum invariant. One-way sync per tier; no datum has two writers; dependency-gated on Darrell's per-phase go, nothing arms unattended.",
+    "public_edge": { "id": "supabase-cloud", "role": "PUBLIC edge/shield: all internet exposure + auth (GoTrue); Tier-P write-primary. NOT a mesh node — the buffer in front of the mesh. A home outage never takes down poetech.us." },
+    "canonical": { "node": "home-ds1621xs", "role": "PRIVATE sovereign canonical: Tier-P read-only mirror (subscriber that DIALS OUT to Supabase — zero inbound; DB port 127.0.0.1-bound) + Tier-S write-primary. Tailnet/LAN only, never a public port." },
+    "backup_replica": { "node": "church-rs", "role": "encrypted SEALED-BLOB offsite backup — stores, never reads (DR-0003)." },
+    "tiers": {
+      "P": "public/operational tables -> Supabase writes; replicate downstream cloud->NAS via Postgres logical replication (Supabase PUBLISHES, NAS SUBSCRIBES).",
+      "S": "sovereign-sensitive (family financial/legal, TLC/PHI, DR-0003) -> NAS writes; stays on the NAS; served over tailnet; NEVER pushed to cloud."
+    }
+  },
   "nodes": [
     {
       "id": "home-ds1621xs",
       "site": "home",
-      "role": "serve + storage + cpu + registry",
+      "role": "serve + storage + cpu + registry + db-canonical + build-driver host",
       "tailscale": "192.168.1.26",
       "online": true,
-      "caps": ["serve", "storage", "cpu", "postgres", "registry", "ollama-cpu"],
+      "caps": ["serve", "storage", "cpu", "postgres", "registry", "ollama-cpu", "db-canonical", "db-subscriber", "tier-s-write-primary", "build-driver"],
       "endpoints": {
         "app": "https://poetech.tail5a2f35.ts.net:8443/poetech-app/",
         "ollama": "http://192.168.1.26:11434",
         "n8n": "http://192.168.1.26:5678",
-        "registry": "192.168.1.26:5432"
+        "registry": "192.168.1.26:5432",
+        "db_canonical": "127.0.0.1:5432 (tailnet/LAN admin only — never a public port; DR-0080)"
       },
-      "notes": "Verified: Xeon D-1527 4c/8t CPU-only, 32 GB ECC, dual 10 GbE. Runs Caddy poetech-web, n8n, Ollama (CPU), self-hosted Supabase compose. The single authoritative registry/ledger lives here."
+      "notes": "Verified: Xeon D-1527 4c/8t CPU-only, 32 GB ECC, dual 10 GbE. Runs Caddy poetech-web, n8n, self-hosted Supabase compose (infra/supabase/). DB canonical per DR-0080: Tier-P read-only mirror (subscriber that DIALS OUT to Supabase, zero inbound) + Tier-S write-primary; served over tailnet only. Hosts the always-on build driver (scripts/orchestrator-v0/v05.mjs — ships INERT, human-triggered; scheduler=v1 not built) and the single authoritative registry/ledger. DB Phase-0 (DR-0080): relocate Ollama to the church towers to free NAS headroom -> then this box's ollama-cpu cap goes offline by design."
     },
     {
       "id": "church-tower-1",
@@ -33,7 +44,7 @@
         "whisper": "http://SME-CONFIRM:8771",
         "coder": "http://SME-CONFIRM:11434"
       },
-      "notes": "Tower 1 of 2 (1x RTX 4070, an OBS/ProPresenter box on the church LAN — NOT the Synology NAS). Networked LOCAL-CODER WORKER: Aider + Ollama + qwen2.5-coder:14b (the Cage OLLAMA_CODER_MODEL, ~9 GB Q5, fits one 4070 per DR-0012), addressable across Tailscale. Also serves the inference endpoints (real ports per PR #405 / [[project_church_gpu_node]]). SME-CONFIRM the IP only. One large model resident at a time per 12 GB box (DR-0012) -> coder and whisper/voice contend; schedule, do not co-pin. Passive/allowlisted; brakes live on the caller. DR-0012 service-time preemption during Sunday/Wednesday live."
+      "notes": "Tower 1 of 2 (an OBS/ProPresenter box on the church LAN — NOT the Synology NAS; assign the AI-WORKER role, kept off the live-media tower). Exact GPU/VRAM per on-site inventory (runbook 2026-06-29-church-compute-towers-setup-runbook.md section 2, [NEEDS SPEC]); Darrell states RTX 4070-class. Networked LOCAL-CODER WORKER: Aider + Ollama + qwen2.5-coder:14b (the Cage OLLAMA_CODER_MODEL) sized to the tower's real VRAM (~12 GB -> 14B Q5). Also serves the inference endpoints (real ports per PR #405 / [[project_church_gpu_node]]). SME-CONFIRM the IP only. One large model resident at a time (OLLAMA_MAX_LOADED_MODELS=1) -> coder and whisper/voice CONTEND; schedule, do not co-pin. Passive/allowlisted; brakes live on the caller. DR-0012 service-time preemption during Sunday/Wednesday live."
     },
     {
       "id": "church-tower-2",
@@ -53,12 +64,12 @@
     {
       "id": "church-rs",
       "site": "church",
-      "role": "serve + storage (media corpus)",
+      "role": "serve + storage (media corpus) + encrypted sealed-blob DB backup replica",
       "tailscale": "SME-CONFIRM",
       "online": false,
-      "caps": ["serve", "storage", "media-corpus"],
+      "caps": ["serve", "storage", "media-corpus", "db-sealed-blob-backup"],
       "endpoints": {},
-      "notes": "SME-CONFIRM: tlcrackstation (Synology RackStation). On the tailnet but fully firewalled (22/5000/5001/5678/11434/443 filtered, 2026-06-10). Holds the ~100 TB recording corpus (node-local by nature, referenced by ID). Access = a credential/his-hand step (Darrell/BG)."
+      "notes": "SME-CONFIRM: tlcrackstation (Synology RackStation). On the tailnet but fully firewalled (22/5000/5001/5678/11434/443 filtered, 2026-06-10). Holds the ~100 TB recording corpus (node-local, referenced by ID). Per DR-0080/DR-0003: the encrypted SEALED-BLOB offsite DB backup replica — STORES, NEVER READS (not a live replica, not a second writer). Access = a credential/his-hand step (Darrell/BG)."
     }
   ],
   "job_classes": [

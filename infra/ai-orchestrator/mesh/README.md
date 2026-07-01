@@ -44,6 +44,25 @@ addressable across Tailscale. Two towers = **two routine build/transcription/voi
 One large model is resident at a time per 12 GB box (DR-0012), so coder vs whisper/voice **contend** —
 schedule, don't co-pin; and DR-0012 service-time preemption stops heavy model work during live service.
 
+## DB layer — DR-0080 (hybrid edge-shield + sovereign canonical)
+
+The `db_topology` block in `nodes.json` encodes **DR-0080**, the DB instantiation of this mesh's
+single-writer-per-datum invariant:
+
+- **Supabase cloud = the PUBLIC edge/shield** — all internet exposure + auth (GoTrue). Not a mesh
+  node; the buffer in front of it. A home outage never takes down poetech.us.
+- **Home NAS = the PRIVATE sovereign canonical** — reachable only over Tailscale/LAN, **never a
+  public port**. It participates as a **subscriber that dials OUT** (zero inbound exposure).
+- **One-way sync per tier** (no datum has two writers): **Tier-P** (public/operational) → Supabase
+  writes, replicate downstream cloud→NAS via Postgres logical replication; **Tier-S** (family
+  financial/legal, TLC/PHI, DR-0003) → NAS writes, stays home, never pushed to cloud.
+- **Church NAS = encrypted sealed-blob backup** — stores, never reads.
+
+Execution is dependency-gated on Darrell's per-phase go (DR-0080 P0→P4); nothing arms unattended.
+The **always-on build driver** (`scripts/orchestrator-v0/v05.mjs`) is resident on `home-ds1621xs`
+and dispatches build lanes through this registry — see
+`docs/99-session-notes/2026-07-01-sovereign-mesh-both-sites-go-turnkey.md`.
+
 ## Reality note (2026-06-29)
 
 The home node is verified and live (CPU-only). The two church towers and the church RackStation are
