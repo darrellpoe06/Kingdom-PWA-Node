@@ -105,6 +105,7 @@ export function deriveAppDecisions({ discussions = [], concerns = [], seeds = SE
       rationale: c.solution || '(no resolution note recorded)',
       date: isoDay(c.targetDate || c.created),
       owner: '',
+      concernId: c.id, // back-reference so the loop is observable both ways
       source: `concern resolution · ${c.area || 'general'}`,
     });
   }

@@ -57,6 +57,7 @@ export function coverageConcerns(transactions = []) {
     concern: `Banking import looks incomplete for ${label}: ${detail} transaction(s) vs a typical ${cov.median}/month. Rows may have been silently dropped — the "April showed 2 of 296" class of gap.`,
     solution: `Re-run the bank import for ${thin.join(', ')} and reconcile the row count against the statement; verify the sync page-cap isn't truncating a month.`,
     status: 'open',
+    severity: 'high', // missing money rows distort every downstream number
     area: 'Banking import',
     whenNote: 'auto-detected · data-completeness check (monthCoverage)',
     source: 'coverage',
@@ -88,6 +89,7 @@ export function doorCollapseConcerns(rentals = []) {
       concern: `${name} is stored as ONE door carrying units:${n}, not ${n} separate unit-doors — the other ${n - 1} unit${n - 1 === 1 ? '' : 's'} have no records of their own (tenant, maintenance, notes, photos). This is the 805 N Prospect collapse shape.`,
       solution: `Restore each unit as its own door under the "${name}" building (Real Estate → the door's "restore units" control), so every unit keeps its own everything and the door count reads ${n}, not 1.`,
       status: 'open',
+      severity: 'high', // per-unit records are lost until the doors are restored
       area: 'Real Estate',
       whenNote: 'auto-detected · door-count integrity (groupDoorsByBuilding)',
       source: 'reconciliation',
@@ -124,6 +126,7 @@ export function shapeMismatchConcerns({ debts = [] } = {}) {
         concern: `"${d.name || 'A debt'}" is labeled a vehicle/auto loan but carries a ${bal >= MORTGAGE_SCALE ? `$${bal.toLocaleString()} (mortgage-scale)` : 'mortgage-named'} balance — the "mortgage-as-Vehicle" mislabel. It will roll up under the wrong category and distort the debt picture.`,
         solution: `Re-classify "${d.name || 'this debt'}" to its true type (mortgage vs vehicle) so the snowball and the forecast count it correctly. Characterize the record before editing.`,
         status: 'open',
+        severity: 'normal', // a mislabel, not data loss — real, but lower than the two above
         area: 'Debts',
         whenNote: 'auto-detected · debt category/shape check',
         source: 'reconciliation',

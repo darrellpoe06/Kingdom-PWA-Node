@@ -30,6 +30,7 @@ describe('coverageConcerns — thin-import month (April gap class)', () => {
     expect(cards[0].area).toBe('Banking import');
     expect(cards[0].concern).toContain('2026-04');
     expect(cards[0].detectedBy).toBe('monthCoverage');
+    expect(cards[0].severity).toBe('high'); // missing money rows self-rank high
   });
 
   it('stays SILENT on an evenly-covered ledger', () => {

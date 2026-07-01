@@ -23,6 +23,7 @@ import {
   daysLate, orderConcerns, composeConcerns,
 } from '../lib/concerns.js';
 import { deriveDataConcerns } from '../lib/derive-concerns.js';
+import { rankConcerns, signalSummary, signalReason, concernSeverity } from '../lib/concern-signals.js';
 
 // Auto-triage severity chip styling — reuses the board's themeable palette (no
 // new color, so the per-theme contrast guard keeps holding). Critical is a
@@ -48,11 +49,15 @@ function SeverityBadge({ evaluation }) {
 
 // One row. Curated rows (not read-only) expand to a manage panel for the
 // family/Governor; feedback rows are read-through with a thumbnail.
-function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
+function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete, showDecisionLink = false }) {
   const [open, setOpen] = useState(false);
   const sm = statusMeta(c.status);
   const late = daysLate(c);
   const editable = canEdit && !c.readOnly;
+  // A resolved concern IS a decision (deriveAppDecisions turns every 'done'
+  // concern into a resolution record whose rationale is its solution) — surface
+  // the closed loop so a steward can see the concern → decision link in one place.
+  const recordedAsDecision = showDecisionLink && c.status === 'done' && !!c.solution;
 
   return (
     <div className={isLast ? '' : 'border-b border-[#E8E4DC]'}>
@@ -78,6 +83,9 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
             {c.source === 'feedback' && <span className="text-[#7A5A8E]">↩ feedback</span>}
             {(c.source === 'coverage' || c.source === 'reconciliation') && (
               <span className="text-[#5A6E3D] uppercase" title={c.detectedBy ? `Auto-detected by ${c.detectedBy}` : 'Auto-detected by a process'}>process-found</span>
+            )}
+            {c.severity && !c.evaluation && (
+              <span className={`inline-flex items-center px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider ${SEV_STYLE[c.severity] || SEV_STYLE.normal}`}>{c.severity}</span>
             )}
             {c.evaluation && <SeverityBadge evaluation={c.evaluation} />}
           </span>
@@ -117,6 +125,11 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
             : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{c.source === 'feedback' ? 'Auto-triaged above. A human solution/target hasn’t been set yet.' : 'No solution captured yet.'}</p>}
           {c.whenNote && c.status !== 'done' && !c.targetDate && (
             <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>When: {c.whenNote}</p>
+          )}
+          {recordedAsDecision && (
+            <p className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              Recorded in Decisions — its resolution is the rationale
+            </p>
           )}
           {(c.author || c.deviceLabel) && (
             <p className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -191,6 +204,11 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
   // The full board list: curated (DB concerns supersede same-id seeds) + the
   // dated baseline + feedback read-through + the process-derived cards.
   const all = useMemo(() => composeConcerns({ dbConcerns: concerns, feedback, derived }), [concerns, feedback, derived]);
+
+  // Self-organizing: rank every signal worst-first so the few that need a human
+  // NOW lead, and the rest stay one tap away — no death-scroll (lib/concern-signals).
+  const summary = useMemo(() => signalSummary(all), [all]);
+  const topSignals = useMemo(() => rankConcerns(all, { limit: 5 }), [all]);
 
   // Past Due — anything past its committed target but unresolved. Leads the
   // tabs when something slipped, so a missed date is the first thing seen.
@@ -288,6 +306,45 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
         )}
       </section>
 
+      {/* Needs attention now — the self-organizing lead. The board ranks every
+          signal (overdue, then severity, then how open) so a human sees the few
+          that matter first instead of scrolling the whole list. Each row jumps to
+          its status tab. Hidden when nothing is active (an empty board is calm). */}
+      {topSignals.length > 0 && (
+        <section className="bg-white border border-[#B85838] p-3 sm:p-4">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Needs attention now</div>
+            <div className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{summary.needsAttention} flagged · {summary.total} signals</div>
+          </div>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+            Ranked worst-first — overdue, then severity — so the few that matter lead, not a scroll.
+          </p>
+          <ul className="mt-2 border-t border-[#E8E4DC]">
+            {topSignals.map((c) => {
+              const sev = concernSeverity(c);
+              const sm = statusMeta(c.status);
+              return (
+                <li key={c.id} className="border-b border-[#E8E4DC]">
+                  <button
+                    type="button"
+                    onClick={() => setTab(c.status)}
+                    aria-label={`${c.concern} — ${signalReason(c)}. Jump to ${sm.label}.`}
+                    className="w-full text-left py-2 flex items-baseline gap-2 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  >
+                    <span className={`inline-flex items-center px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider shrink-0 ${SEV_STYLE[sev] || SEV_STYLE.normal}`}>{sev}</span>
+                    <span className="flex-1 min-w-0 text-xs text-[#1A1815] truncate" style={{ fontFamily: '"Fraunces", serif' }}>{c.concern}</span>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{signalReason(c)}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            {summary.feedback} feedback · {summary.process} process · {summary.audit} audit · {summary.curated} curated
+          </div>
+        </section>
+      )}
+
       {/* Status sub-tabs — Past Due leads when anything slipped */}
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Concern status">
         {TABS.map((k) => {
@@ -316,7 +373,7 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
           <div className="bg-white border border-[#1A1815]">
             {items.map((c, i) => (
               <ConcernRow key={c.id} c={c} isLast={i === items.length - 1}
-                canEdit={canEdit} onUpdate={updateConcern} onDelete={deleteConcern} />
+                canEdit={canEdit} onUpdate={updateConcern} onDelete={deleteConcern} showDecisionLink={isGovernor} />
             ))}
           </div>
         )}
