@@ -58,6 +58,39 @@ function round2(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
 }
 
+// monthCoverage — DATA-COMPLETENESS self-check for the ledger. The "April showed
+// 2 of 296" bug (a sync cap silently dropping rows) is invisible until a human
+// eyeballs the months. This encodes the reflex: over the span first..last, count
+// per month (gaps filled as 0 so a MISSING month is caught too) and flag any
+// month whose count is anomalously low vs the median populated month. Pure +
+// deterministic so the proactive audit can run it and a thin month self-flags.
+export function monthCoverage(txns, { minFraction = 0.2, minMonths = 3 } = {}) {
+  const byMonth = {};
+  for (const t of txns || []) {
+    if (!t || !t.date) continue;
+    const m = String(t.date).slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(m)) continue;
+    byMonth[m] = (byMonth[m] || 0) + 1;
+  }
+  const keys = Object.keys(byMonth).sort();
+  if (keys.length === 0) return { months: [], thin: [], median: 0 };
+  // Fill every month in the span so a completely-missing month reads as 0.
+  const span = [];
+  let [y, mo] = keys[0].split('-').map(Number);
+  const [ey, em] = keys[keys.length - 1].split('-').map(Number);
+  while (y < ey || (y === ey && mo <= em)) {
+    span.push(`${y}-${String(mo).padStart(2, '0')}`);
+    mo += 1; if (mo > 12) { mo = 1; y += 1; }
+    if (span.length > 600) break; // safety
+  }
+  const populated = span.map(m => byMonth[m] || 0).filter(c => c > 0).sort((a, b) => a - b);
+  const median = populated.length ? populated[Math.floor(populated.length / 2)] : 0;
+  const floor = Math.max(1, Math.round(median * minFraction));
+  const months = span.map(m => ({ month: m, count: byMonth[m] || 0, thin: (byMonth[m] || 0) < floor }));
+  const thin = span.length >= minMonths ? months.filter(x => x.thin).map(x => x.month) : [];
+  return { months, thin, median, floor };
+}
+
 // reviewStatus — the deterministic "verify/categorize" scoreboard. A transaction
 // is CATEGORIZED (the new "verified") once it carries a real category; anything
 // still 'other' or blank is NEEDS-REVIEW (the old "unexplained"). Pure count over

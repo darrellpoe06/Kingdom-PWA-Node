@@ -22,7 +22,7 @@
 // =============================================================================
 
 export const SEVERITY_RANK = { critical: 0, high: 1, medium: 2, low: 3 };
-export const SUPPORTED_KINDS = ['source-pattern', 'reachability', 'judgment'];
+export const SUPPORTED_KINDS = ['source-pattern', 'reachability', 'judgment', 'data-coverage'];
 
 // --- Rubric validation -------------------------------------------------------
 // A rubric is { version, dimensions, items:[...], liveProbes? }. Each item is

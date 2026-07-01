@@ -174,16 +174,34 @@ export function createTableSync(spec) {
       console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
       return null;
     }
-    const { data, error } = await supabase
-      .from(remoteTable)
-      .select('*')
-      .eq('instance_id', tenantId)
-      .order('created_at', { ascending: true });
-    if (error) {
-      console.warn(`[table-sync:${remoteTable}] fetch failed:`, error);
-      return null;
+    // PAGINATE. Supabase/PostgREST caps a single response at 1,000 rows, so a
+    // plain .select() silently truncates any table over 1,000 rows — which
+    // quietly dropped ~half the transaction ledger on the device (complete in
+    // the DB, thin on screen: e.g. April showing 2 of 296, later accounts never
+    // syncing at all). Loop .range() until a short page. Order by created_at
+    // THEN id so the sort is a stable TOTAL order — without the id tiebreaker,
+    // rows that share a created_at (bulk inserts land in the same millisecond)
+    // could be skipped or duplicated across page boundaries.
+    const PAGE = 1000;
+    const rows = [];
+    for (let from = 0; from < 200000; from += PAGE) {
+      const { data, error } = await supabase
+        .from(remoteTable)
+        .select('*')
+        .eq('instance_id', tenantId)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.warn(`[table-sync:${remoteTable}] fetch failed at offset ${from}:`, error);
+        // Keep what already paged in rather than dropping the whole ledger.
+        return from === 0 ? null : rows.map(fromRow);
+      }
+      const batch = data || [];
+      rows.push(...batch);
+      if (batch.length < PAGE) break;
     }
-    return (data || []).map(fromRow);
+    return rows.map(fromRow);
   }
 
   function subscribe(onRemote) {

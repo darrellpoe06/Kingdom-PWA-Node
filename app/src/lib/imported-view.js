@@ -172,6 +172,23 @@ export function monthLabelOf(key) {
   return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
+// Short human label for the active period — used by the summary tiles so they
+// name the window they sum (e.g. "In · April 2026" / "In · 30 days") instead of
+// a fixed "· 30d" that never changed as the month picker moved.
+export function periodLabel(period) {
+  if (isMonthKey(period)) return monthLabelOf(period);
+  switch (period) {
+    case 'week': return 'this week';
+    case 'month': return 'this month';
+    case 'lastMonth': return 'last month';
+    case '30d': return '30 days';
+    case '90d': return '90 days';
+    case 'custom': return 'range';
+    case 'all':
+    default: return 'all time';
+  }
+}
+
 // Step a month key by delta months (‹ prev / next ›).
 export function shiftMonthKey(key, delta) {
   const [y, m] = key.split('-').map(Number);

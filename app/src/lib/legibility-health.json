@@ -10,7 +10,7 @@
     "trackedDebtPages": 16,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 119
+    "debtViolations": 121
   },
   "pages": [
     {
@@ -32,16 +32,16 @@
       ]
     },
     {
-      "page": "components/Forecast.jsx",
+      "page": "components/Imported.jsx",
       "status": "TRACKED-DEBT",
-      "violations": 9,
+      "violations": 11,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
       ]
     },
     {
-      "page": "components/Imported.jsx",
+      "page": "components/Forecast.jsx",
       "status": "TRACKED-DEBT",
       "violations": 9,
       "regressions": 0,

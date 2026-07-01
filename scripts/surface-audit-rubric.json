@@ -112,6 +112,18 @@
       "scope": "top",
       "fix": "The surface is in the surfaces.js registry but the shell has no `view === '<id>'` render branch, so a user can never reach it in-app (the 'admin not reachable' class). Wire a nav entry + render branch, or remove the dead registration.",
       "excludeSurfaces": []
+    },
+    {
+      "id": "ledger-month-coverage",
+      "label": "A month in the ledger is anomalously thin or missing vs its neighbors (data-completeness)",
+      "dimension": "freshness",
+      "severity": "high",
+      "kind": "data-coverage",
+      "_comment": "From the 2026-07-01 incident: a sync 1,000-row cap silently truncated the ledger so April rendered 2 of 296 transactions. This item registers the deterministic check monthCoverage() in app/src/lib/transaction-analysis.js — over the span first..last month (gaps filled as 0 so a MISSING month is caught), flag any month whose count is < 20% of the median populated month. Run over the live ledger (a data pass over data.transactions), not source; the deterministic source loop skips this kind like it skips 'judgment'. Proven-to-catch by month-coverage.test.js.",
+      "check": "monthCoverage",
+      "checkModule": "app/src/lib/transaction-analysis.js",
+      "minFraction": 0.2,
+      "fix": "A near-empty or missing month means rows are not reaching the surface (sync cap, parser gap, or un-ingested source file). Trace ingested-vs-source per month and backfill so every month in the span is complete; the ledger is the money loop's ground truth."
     }
   ],
 
