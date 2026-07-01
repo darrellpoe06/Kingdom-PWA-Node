@@ -154,7 +154,7 @@ import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoo
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups } from './lib/financial-engineering.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
-import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
+import { N8N_BASE } from './lib/n8n-base.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -2423,48 +2423,18 @@ export default function PoeFinancialSystem() {
   //   transactions: [...], gmail_events: [...], bank_balances: {...},
   //   counts: {...}, served_at, meta: { loaded, error }
   // }
-  const [ingestData, setIngestData] = useState({
+  // ingestData — the wf18/n8n "imported overlay" is RETIRED (2026-07-01). The
+  // verified bank ledger now lives in data.transactions (synced from the DB via
+  // transactionsSync), so the separate n8n fetch is superseded and removed: no
+  // network call, no "could not reach workflow 18", no Funnel dependency. This
+  // stays an empty, already-loaded overlay purely for backward-compatible props;
+  // consumers (Books → Tx, Accounts, Big Picture, Imported) read data.transactions.
+  const [ingestData] = useState({
     transactions: [], gmail_events: [], bank_balances: {},
     counts: { total_bank: 0, total_gmail: 0, status_counts: {}, institutions: [] },
     served_at: null,
-    meta: { loaded: false, error: null }
+    meta: { loaded: true, error: null }
   });
-  useEffect(() => {
-    if (!importedAllowed) { setIngestData(d => ({ ...d, meta: { loaded: true, error: null } })); return; } // Only the family on their own device (not demo / picker / profileless public) calls the wf18 PII webhook.
-    const base = N8N_BASE;
-    if (!base) {
-      setIngestData(d => ({ ...d, meta: { loaded: true, error: 'VITE_N8N_WEBHOOK_BASE not set — ingest overlay disabled' } }));
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const url = `${base.replace(/\/+$/, '')}/webhook/imported-transactions?limit=5000`;
-        // L16: reached only past the importedAllowed guard above, so the bearer
-        // is attached here and never sent on a demo / profileless load.
-        const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) }, mode: 'cors' });
-        if (!r.ok) throw new Error(`Workflow 18 returned ${r.status}`);
-        const json = await r.json();
-        if (cancelled) return;
-        setIngestData({
-          transactions: json.transactions || [],
-          gmail_events: json.gmail_events || [],
-          bank_balances: json.bank_balances || {},
-          counts: json.counts || { total_bank: 0, total_gmail: 0, status_counts: {}, institutions: [] },
-          served_at: json.served_at || null,
-          meta: { loaded: true, error: null }
-        });
-      } catch (e) {
-        if (cancelled) return;
-        setIngestData(d => ({ ...d, meta: { loaded: true, error: `Could not reach workflow 18: ${e.message}` } }));
-      }
-    };
-    load();
-    const id = setInterval(load, 300_000);
-    return () => { cancelled = true; clearInterval(id); };
-    // Re-run when the gate opens (sign-in completes hydration) — with [] deps
-    // this captured importedAllowed=false at mount and never fetched.
-  }, [importedAllowed]);
 
   // 2026-06-11 — the public-host gate is about ANONYMOUS visitors (the
   // 2026-06-03 leak was real ops data rendering to whoever opened poetech.us).
@@ -5422,7 +5392,7 @@ html{scroll-padding-bottom:280px}
                 whole app (the new failure mode lazy-loading introduces over the old inline). */}
             {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} /></SectionBoundary>}
             {booksView === 'imported' && (importedAllowed
-              ? <Imported />
+              ? <Imported data={data} />
               : <ImportedDemoGuard setBooksView={setBooksView} />)}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} />}

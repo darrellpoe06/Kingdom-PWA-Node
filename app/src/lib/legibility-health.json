@@ -10,7 +10,7 @@
     "trackedDebtPages": 16,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 113
+    "debtViolations": 111
   },
   "pages": [
     {
@@ -62,15 +62,6 @@
       "page": "components/Pulpit.jsx",
       "status": "TRACKED-DEBT",
       "violations": 5,
-      "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "components/Imported.jsx",
-      "status": "TRACKED-DEBT",
-      "violations": 3,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
@@ -141,6 +132,15 @@
     },
     {
       "page": "components/ChefCorner.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 1,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Imported.jsx",
       "status": "TRACKED-DEBT",
       "violations": 1,
       "regressions": 0,
