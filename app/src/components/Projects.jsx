@@ -228,7 +228,13 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
       {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} onNavigate={onNavigate} />}
-      {subView === 'governance' && isGovernor && <GovernanceQueue appDecisions={deriveAppDecisions({ discussions, concerns })} />}
+      {subView === 'governance' && isGovernor && (
+        <GovernanceQueue
+          appDecisions={deriveAppDecisions({ discussions, concerns })}
+          familyInstanceId={(concerns.find((c) => c && c.tenantId)?.tenantId) || null}
+          signedIn={!!currentUserId}
+        />
+      )}
       {subView === 'loops' && isGovernor && (
         <div className="space-y-6">
           <LoopHealth data={loopData} decisions={loopDecisions} onDecision={onLoopDecision} financialDocAt={financialDocAt} />
