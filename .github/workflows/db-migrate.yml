@@ -35,6 +35,16 @@ on:
       - '.github/workflows/db-migrate.yml'
   workflow_dispatch:
 
+# Single-instance lock. Two db-migrate runs applying DDL to the SAME cloud DB at
+# once deadlock on shared catalogs (esp. ALTER PUBLICATION supabase_realtime) —
+# observed 2026-07-01 when a manual dispatch overlapped the push trigger and two
+# migrations hit "deadlock detected". A queued run waits for the in-flight one to
+# finish (cancel-in-progress: false — never abandon a half-run migration pass).
+# This is the three-brakes concurrency-lock principle applied to the deploy lane.
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
 jobs:
   apply:
     runs-on: ubuntu-latest
