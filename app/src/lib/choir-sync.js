@@ -340,6 +340,36 @@ export function selectNewSermonImports(items, existingVideoIds) {
   return out;
 }
 
+// Stable dedupe key for a sermon/message row — mirrors migration 0061's guard.
+// A row with a source video is keyed by that video; a video-less row (the study
+// drafts the harvest generates) is keyed by its content: title + date + service.
+// Accepts either camelCase (app shape) or snake_case (DB row).
+export function sermonDedupeKey(s) {
+  const vid = s.videoId ?? s.video_id;
+  if (vid) return `v:${vid}`;
+  const title = String(s.title || '').trim().toLowerCase();
+  const date = s.serviceDate ?? s.service_date ?? '';
+  const type = s.serviceType ?? s.service_type ?? '';
+  const slot = s.serviceSlot ?? s.service_slot ?? '';
+  return `t:${title}|${date}|${type}|${slot}`;
+}
+
+// Collapse duplicate sermons, keeping the FIRST occurrence of each stable key.
+// Belt-and-suspenders for the UI: the served library shows deduped rows the
+// moment this ships, even before migration 0061 has run against the cloud DB.
+// Returns { kept, dropped }.
+export function dedupeSermons(rows) {
+  const seen = new Set();
+  const kept = [];
+  const dropped = [];
+  for (const r of (Array.isArray(rows) ? rows : [])) {
+    const k = sermonDedupeKey(r);
+    if (seen.has(k)) dropped.push(r);
+    else { seen.add(k); kept.push(r); }
+  }
+  return { kept, dropped };
+}
+
 // --- Access ------------------------------------------------------------------
 
 export async function getChoirAccess(displayName) {

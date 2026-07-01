@@ -26,9 +26,18 @@
 // =============================================================================
 import React, { useEffect, useState, useCallback } from 'react';
 import { SectionTitle } from './shared.jsx';
+import RecordsLog from './RecordsLog.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import { getChoirAccess } from '../lib/choir-sync.js';
 import { HARVEST_TYPES, harvestMapFor, harvestType, TRANSCRIPT_DERIVED_KEYS } from '../lib/video-harvest.js';
+
+// Self-explaining copy (LIGHT inline; deep version in Help under 'church:harvest').
+const HARVEST_ABOUT = {
+  what: 'The coverage ledger — every ingested service recording and what it has (and has not yet) been mined into, so no Sunday or Wednesday is wasted.',
+  where: 'The video_harvests ledger joined over your real corpus (choir_sermons + choir_songs); every ✦ is a harvest verified against actual app data, never painted.',
+  how: 'Recordings are filed by service date, newest first; orphans (nothing pulled yet) surface so you can confirm coverage. Jump to any month to audit a period.',
+  helpTopic: 'church:harvest',
+};
 
 // Which harvests are mined from the service transcript (now auto-sourced from the
 // video's YouTube captions, no GPU) vs. derived from the row the instant it lands.
@@ -281,11 +290,18 @@ export default function HarvestLedger() {
 
           {busy && <div className="text-[11px] text-[#B85838] mb-2" aria-live="polite">Saving…</div>}
 
-          <div>
-            {l.rows.map((v) => (
-              <VideoRow key={v.videoId} video={v} canEdit={!!access.canEdit} onRecord={onRecord} onNa={onNa} />
-            ))}
-          </div>
+          <RecordsLog
+            items={l.rows}
+            getDate={(v) => v.serviceDate}
+            getText={(v) => `${v.title || ''} ${v.serviceType || ''}`}
+            countNoun="recording"
+            about={HARVEST_ABOUT}
+            facets={[
+              { key: 'flag', label: 'coverage', getValue: (v) => (v.flag === 'orphan' ? 'orphans' : v.flag === 'partial' ? 'partial' : 'covered') },
+              { key: 'type', label: 'services', getValue: (v) => (v.serviceType === 'wednesday' ? 'Wednesday' : 'Sunday') },
+            ]}
+            renderRow={(v) => <VideoRow video={v} canEdit={!!access.canEdit} onRecord={onRecord} onNa={onNa} />}
+          />
           <p className="mt-3 text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
             ✦ marks a harvest verified against real app data. The <span className="font-semibold not-italic">now</span> harvests — message, Scripture cited, worship songs, and the service event — are mined in-app the moment a recording is ingested. The <span className="font-semibold not-italic">caption</span> harvests — transcript, lessons, discernment, testimony, trivia — are mined from the service transcript, sourced automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is only the fallback for a video that has no captions at all.
           </p>
