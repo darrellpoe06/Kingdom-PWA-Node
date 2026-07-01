@@ -176,6 +176,15 @@ const ICONS = {
       <line x1="14.5" y1="15.5" x2="14.5" y2="18.5" />
     </>
   ),
+  // heart — a message a member loved (in-app reaction, The Word library). Outline
+  // by default; heartFilled is the same shape filled with currentColor for the
+  // active/hearted state. Replaces the ♥/♡ device glyphs (consistency guard).
+  heart: (
+    <path d="M12 20.3l-1.2-1.1C6.3 15.1 3.5 12.6 3.5 9.5 3.5 7.1 5.4 5.2 7.8 5.2c1.4 0 2.8.7 3.6 1.8l.6.8.6-.8c.8-1.1 2.2-1.8 3.6-1.8 2.4 0 4.3 1.9 4.3 4.3 0 3.1-2.8 5.6-7.3 9.7L12 20.3Z" />
+  ),
+  heartFilled: (
+    <path d="M12 20.3l-1.2-1.1C6.3 15.1 3.5 12.6 3.5 9.5 3.5 7.1 5.4 5.2 7.8 5.2c1.4 0 2.8.7 3.6 1.8l.6.8.6-.8c.8-1.1 2.2-1.8 3.6-1.8 2.4 0 4.3 1.9 4.3 4.3 0 3.1-2.8 5.6-7.3 9.7L12 20.3Z" fill="currentColor" stroke="none" />
+  ),
 };
 
 export const UI_ICON_NAMES = Object.keys(ICONS);
