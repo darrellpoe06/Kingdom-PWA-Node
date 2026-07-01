@@ -4,7 +4,7 @@
 // Declared by Darrell (2026-06-30): "the app manages building the app." All work
 // is tracked and DRIVEN forward from inside PoeTech — boards with items, STATUS
 // labels, OWNERS, dates, and PROGRESS that rolls up per board. Live on the
-// shared-persistence backbone (0057 board_tasks), synced, RLS-safe. NOT static.
+// shared-persistence backbone (0058 board_tasks), synced, RLS-safe. NOT static.
 //
 // SELF-CONTAINED (DR-0078): the monolith is frozen, so this NEW surface owns its
 // own data lifecycle — it subscribes to board_tasks directly (board-tasks-sync)

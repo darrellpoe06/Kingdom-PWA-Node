@@ -5,7 +5,7 @@
 // board system inside PoeTech, where all the work is tracked and DRIVEN forward
 // from inside the app. Boards with items, STATUS labels, OWNERS, dates, and
 // PROGRESS that rolls up per board — live on the shared-persistence backbone,
-// synced, RLS-safe (0057 board_tasks). NOT static like the old BuildBoard.
+// synced, RLS-safe (0058 board_tasks). NOT static like the old BuildBoard.
 //
 // THE MODEL — one data model, two views (coordinates with the Projects hub):
 //   * A BOARD is identified by `boardSlug` (+ a display `boardTitle`). It maps to
@@ -161,7 +161,7 @@ export function tasksForBoard(tasks, boardSlug) {
 // -----------------------------------------------------------------------------
 // slug helpers. New tasks get a non-UUID local id ('bt-...') so the sync
 // substrate's unionPreservingLocal keeps them until their INSERT lands. Seed
-// items carry a STABLE slug so re-seeding is idempotent (the 0057 unique index on
+// items carry a STABLE slug so re-seeding is idempotent (the 0058 unique index on
 // (instance, slug) makes a re-upload a no-op instead of a duplicate).
 // -----------------------------------------------------------------------------
 export function newTaskSlug(boardSlug) {

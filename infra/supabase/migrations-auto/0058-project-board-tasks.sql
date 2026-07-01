@@ -1,6 +1,8 @@
 -- =============================================================================
--- 0057 — project board tasks: the Monday.com-style working board items
+-- 0058 — project board tasks: the Monday.com-style working board items
 -- =============================================================================
+-- (Numbered 0058 to avoid colliding with the family-messaging 0057 on another
+-- branch — claim-your-number per HYBRID-MODULAR-IMPLEMENTATION-PLAN Stage 4.)
 -- Declared by Darrell (2026-06-30): the Projects tab must become a REAL, working
 -- board system INSIDE PoeTech — where all the work is tracked and DRIVEN forward
 -- from inside the app (the app manages building the app). Boards with items,

@@ -1,5 +1,5 @@
 // =============================================================================
-// board-tasks-sync — cross-device sync for the Project Boards items (0057)
+// board-tasks-sync — cross-device sync for the Project Boards items (0058)
 // =============================================================================
 // The ProjectBoards module owns its own data lifecycle (the monolith is frozen —
 // DR-0078 — so a NEW surface must not thread state through the shell). This
@@ -11,7 +11,7 @@
 // Local shape (camelCase, what the board UI holds):
 //   { id, slug, boardSlug, boardTitle, title, status, owner, group,
 //     startDate, dueDate, sortRank, notes, links, remoteUuid }
-// Remote shape (0057 board_tasks row): snake_case columns below.
+// Remote shape (0058 board_tasks row): snake_case columns below.
 // =============================================================================
 import { createTableSync, unionPreservingLocal } from './table-sync.js';
 
