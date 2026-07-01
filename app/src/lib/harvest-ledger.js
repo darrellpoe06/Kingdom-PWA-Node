@@ -43,6 +43,22 @@ export function toLinkedSongShape(row) {
   return { ...toSongShape(row), sourceVideoId: row.source_video_id ?? null };
 }
 
+// Fold video_transcripts rows into the { [videoId]: { text } } shape buildLedger
+// consumes. Only rows with real text count — an empty/no-caption row (recorded so
+// the loader stops retrying it) is NOT a transcript and must not light the
+// transcript harvests. This is the un-freeze: with a transcript present, the
+// fromTranscript harvests (lessons/discernment/testimony/trivia + the full
+// Scripture sweep) derive LIVE in the app (video-harvest.js deriveSignals), no
+// GPU, no Whisper, no n8n.
+export function transcriptsByVideo(rows) {
+  const out = {};
+  for (const r of rows || []) {
+    const text = r && typeof r.text === 'string' ? r.text : '';
+    if (r && r.video_id && text.trim()) out[r.video_id] = { text };
+  }
+  return out;
+}
+
 // --- Combined fetch ----------------------------------------------------------
 
 // Pull the three sources and assemble the coverage ledger. Each fetch degrades to
@@ -50,24 +66,35 @@ export function toLinkedSongShape(row) {
 // rest. Returns the full harvestLedgerSummary plus the raw harvest rows (so the
 // surface can edit a row by id).
 export async function fetchLedger() {
-  const [sermonsRes, harvestsRes, songsRes] = await Promise.all([
+  const [sermonsRes, harvestsRes, songsRes, transcriptsRes] = await Promise.all([
     supabase.from('choir_sermons').select('*'),
     supabase.from('video_harvests').select('*'),
     supabase.from('choir_songs').select('*'),
+    // The transcript source (0058). Select only what buildLedger needs. Degrades
+    // to [] if the table isn't migrated yet (older cloud) — the ledger then shows
+    // the fromRow harvests exactly as before (the ~22% floor), never throwing.
+    supabase.from('video_transcripts').select('video_id,text'),
   ]);
   if (sermonsRes.error) console.warn('[harvest-ledger] sermons fetch failed:', sermonsRes.error);
   if (harvestsRes.error) console.warn('[harvest-ledger] harvests fetch failed:', harvestsRes.error);
   if (songsRes.error) console.warn('[harvest-ledger] songs fetch failed:', songsRes.error);
+  if (transcriptsRes.error) console.warn('[harvest-ledger] transcripts fetch failed:', transcriptsRes.error);
 
   const sermons = (sermonsRes.data || []).map(toSermonShape);
   const harvestRows = (harvestsRes.data || []).map(toHarvestShape);
   const songs = (songsRes.data || []).map(toLinkedSongShape);
+  const transcripts = transcriptsByVideo(transcriptsRes.data);
 
-  const summary = buildLedger({ sermons, harvests: harvestRows, songs });
+  // Passing transcripts is what un-freezes the % past 22%: buildLedger ->
+  // deriveSignals lights the fromTranscript harvests for every video that has one.
+  const summary = buildLedger({ sermons, harvests: harvestRows, songs, transcripts });
   // Index raw harvest rows by video so the surface can resolve an existing row id.
   const rawByVideo = {};
   for (const h of harvestRows) rawByVideo[h.videoId] = h;
-  return { ...summary, rawByVideo };
+  // Corpus-wide transcript coverage — the observable stall signal (how many
+  // videos still owe a transcript). Never a silent hang: the surface shows it.
+  const transcribedVideos = Object.keys(transcripts).length;
+  return { ...summary, rawByVideo, transcribedVideos };
 }
 
 // Subscribe to the ledger: initial load + a live recompute whenever any of the
@@ -82,7 +109,7 @@ export function subscribeLedger(onChange) {
     const session = await currentSession();
     if (!session || cancelled) return;
     refresh();
-    for (const table of ['video_harvests', 'choir_sermons', 'choir_songs']) {
+    for (const table of ['video_harvests', 'choir_sermons', 'choir_songs', 'video_transcripts']) {
       const ch = supabase
         .channel(`harvest-ledger-${table}`)
         .on('postgres_changes', { event: '*', schema: 'public', table }, refresh)
