@@ -125,6 +125,51 @@ export function liveCashOnHand(data, currentDate = new Date()) {
 }
 
 // -----------------------------------------------------------------------------
+// deriveDebts — the Debts/snowball tab as a LIVE VIEW of real state (DR-0061),
+// not a hand-maintained list. Pulls what is actually owed from two real sources:
+//   1. credit/loan ACCOUNTS whose derived balance is negative (money owed), e.g.
+//      the Chase Line of Credit — balance is the amount owed (positive here).
+//   2. RENTAL mortgages (data.inflows.rentals[].mortgage) — balance/rate/P&I.
+// It does NOT write into data.debts, so it never double-counts: a credit account
+// already reduces net worth as a negative account balance; this view just shows
+// the debt side for payoff planning. `needsTerms` flags a debt missing rate or a
+// minimum payment, so the UI can show the real balance but decline to fake a
+// payoff date. Deterministic; no n8n.
+// -----------------------------------------------------------------------------
+export function deriveDebts(data, asOf = new Date()) {
+  const balances = deriveAccountBalances(data, asOf);
+  const out = [];
+  for (const a of (data?.accounts || [])) {
+    if (a.type !== 'credit' && a.type !== 'loan') continue;
+    const bal = balances[a.id] != null ? balances[a.id] : (a.balance || 0);
+    const owed = bal < 0 ? -bal : 0; // only the owed (negative) side is debt
+    if (owed <= 0.01) continue;
+    const rate = Number(a.rate) || 0;
+    const minPayment = Number(a.minPayment) || 0;
+    out.push({
+      id: `debt-acct-${a.id}`, name: (a.name || 'Credit account') + (a.fragment ? ' ' + a.fragment : ''),
+      balance: round2(owed), rate, minPayment, entityId: a.entityId ?? null,
+      debtType: a.type, source: 'account', leaveAlone: false,
+      needsTerms: !(rate > 0 && minPayment > 0),
+    });
+  }
+  for (const r of (data?.inflows?.rentals || [])) {
+    const m = r && r.mortgage;
+    const bal = m ? Number(m.balance) || 0 : 0;
+    if (bal <= 0.01) continue;
+    const rate = Number(m.rate) || 0;
+    const minPayment = Number(m.monthlyPI) || 0;
+    out.push({
+      id: `debt-rental-${r.id}`, name: (r.name || r.address || 'Rental') + ' mortgage',
+      balance: round2(bal), rate, minPayment, entityId: r.entityId ?? null,
+      debtType: 'mortgage', source: 'rental', leaveAlone: false,
+      needsTerms: !(rate > 0 && minPayment > 0),
+    });
+  }
+  return out;
+}
+
+// -----------------------------------------------------------------------------
 // deriveEntityRollups — per-entity account/cash/credit/inflow/debt rollup, with
 // every account decorated with its DERIVED balance (deriveAccountBalances). This
 // is the shared source the Accounts, Entities, and Big Picture surfaces all read,

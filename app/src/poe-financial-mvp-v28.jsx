@@ -152,7 +152,7 @@ import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
-import { deriveAccountBalances, deriveEntityRollups } from './lib/financial-engineering.js';
+import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { N8N_BASE } from './lib/n8n-base.js';
 
@@ -4302,9 +4302,13 @@ export default function PoeFinancialSystem() {
     [pressure, totals, data.pressureMappings, data.outflows, reserves],
   );
 
-  const projection = useMemo(() => projectDebt(data.debts, pressureCalc.extraAvailable, currentDate, 240), [data.debts, pressureCalc.extraAvailable, currentDate]);
-  const debtSnowball = useMemo(() => projectDebtSnowball(data.debts, debtSnowballExtra, debtSnowballSort, currentDate, 360), [data.debts, debtSnowballExtra, debtSnowballSort, currentDate]);
-  const debtMinOnly = useMemo(() => projectDebtMinimumOnly(data.debts, currentDate, 600), [data.debts, currentDate]);
+  // Debts is a LIVE VIEW of real state (deriveDebts): credit/loan accounts (the
+  // Line of Credit) + rental mortgages, not the empty hand-kept data.debts that
+  // made the tab show a hollow "$0 / debt-free". Deterministic; no n8n.
+  const derivedDebts = useMemo(() => deriveDebts(data, currentDate), [data, currentDate]);
+  const projection = useMemo(() => projectDebt(derivedDebts, pressureCalc.extraAvailable, currentDate, 240), [derivedDebts, pressureCalc.extraAvailable, currentDate]);
+  const debtSnowball = useMemo(() => projectDebtSnowball(derivedDebts, debtSnowballExtra, debtSnowballSort, currentDate, 360), [derivedDebts, debtSnowballExtra, debtSnowballSort, currentDate]);
+  const debtMinOnly = useMemo(() => projectDebtMinimumOnly(derivedDebts, currentDate, 600), [derivedDebts, currentDate]);
   const rentalSnowball = useMemo(() => projectRentalSnowball(data.inflows.rentals.filter(r => (r.rent || 0) > 0), snowballExtra, snowballSort, currentDate, 240), [data.inflows.rentals, snowballExtra, snowballSort, currentDate]);
   const sevenYearTarget = useMemo(() => findExtraForTarget(data.inflows.rentals.filter(r => (r.rent || 0) > 0), 7, currentDate), [data.inflows.rentals, currentDate]);
 
@@ -5385,7 +5389,7 @@ html{scroll-padding-bottom:280px}
           <SectionBoundary key={booksView} name="Financial">
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
-            {booksView === 'debts' && <Debts debts={data.debts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
+            {booksView === 'debts' && <Debts debts={derivedDebts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
             {/* BooksTransactions now lazy-loads its own chunk (Stage 1 extraction). The
                 SectionBoundary makes the unbreakable-pass hold for the migrated surface:
                 a thrown error OR a chunk-load failure degrades JUST this panel, never the

@@ -70,6 +70,13 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   const orderedByPayoff = debtsWithCleared.filter(d => d.clearedAtMonth).sort((a, b) => a.clearedAtMonth - b.clearedAtMonth);
   const totalDebt = debts.filter(d => !d.leaveAlone).reduce((s, d) => s + d.balance, 0);
   const totalMinPayment = debts.filter(d => !d.leaveAlone).reduce((s, d) => s + d.minPayment, 0);
+  // Only project a payoff date when EVERY active debt has terms (rate + minimum
+  // payment). The Line of Credit has none yet, so we show the real Total Debt
+  // but decline a fake "debt-free" date until terms are added — never a painted
+  // number (DR-0061). No debts loaded -> nothing to project either.
+  const activeDebts = debts.filter(d => !d.leaveAlone);
+  const missingTerms = activeDebts.filter(d => d.needsTerms || !(d.minPayment > 0));
+  const canProject = activeDebts.length > 0 && missingTerms.length === 0;
   const interestSaved = debtMinOnly.totalInterest - debtSnowball.totalInterest;
   const stuckCount = debtMinOnly.stuckDebts.length;
 
@@ -124,7 +131,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
           <MetricCell label="Total debt" value={fmtCompact(totalDebt)} sub={`${debts.filter(d => !d.leaveAlone).length} accounts`} small accent="rust" />
           <MetricCell label="Min payments" value={fmt(totalMinPayment)} sub="/mo" small />
-          <MetricCell label="Debt-free" value={debtSnowball.allClearedDate} sub={`${debtSnowball.allClearedYears.toFixed(1)}yr`} small accent="green" />
+          <MetricCell label="Debt-free" value={canProject ? debtSnowball.allClearedDate : (activeDebts.length ? 'Add terms' : '—')} sub={canProject ? `${debtSnowball.allClearedYears.toFixed(1)}yr` : (activeDebts.length ? `${missingTerms.length} need rate/min` : 'no debts loaded')} small accent="green" />
           <MetricCell label="Interest paid" value={fmt(debtSnowball.totalInterest)} sub="over journey" small accent="rust" />
         </div>
       </section>
@@ -247,7 +254,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
             </details>
           </div>
           <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            <MetricCell label="All paid in" value={yearsAndMonths(debtSnowball.allClearedMonth)} sub={debtSnowball.allClearedDate} small />
+            <MetricCell label="All paid in" value={canProject ? yearsAndMonths(debtSnowball.allClearedMonth) : 'Add terms'} sub={canProject ? debtSnowball.allClearedDate : `${missingTerms.length} debt(s) need rate + minimum`} small />
             <MetricCell label="Interest paid" value={fmt(debtSnowball.totalInterest)} small accent="rust" />
             <MetricCell label="Final freed" value={fmt(debtSnowball.finalFreedCashFlow)} sub="/mo" small accent="green" />
           </div>

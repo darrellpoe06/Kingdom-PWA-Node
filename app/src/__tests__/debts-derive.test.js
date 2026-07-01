@@ -1,0 +1,70 @@
+// @vitest-environment node
+//
+// deriveDebts + reviewStatus — the money-loop pieces that make Debts a live view
+// of real debt (credit/loan accounts + rental mortgages) and score the
+// categorize/verify step. Proven-to-catch: owed side only, needsTerms flag,
+// rental mortgages pulled, zero-balance skipped, no double-count of cash.
+import { describe, it, expect } from 'vitest';
+import { deriveDebts } from '../lib/financial-engineering.js';
+import { reviewStatus } from '../lib/transaction-analysis.js';
+
+const ASOF = new Date('2026-06-30T00:00:00Z');
+
+describe('deriveDebts', () => {
+  it('pulls a credit account with money owed (derived < 0) as a debt', () => {
+    const data = {
+      accounts: [{ id: 'a-loc', name: 'Line of Credit', fragment: '1818', type: 'credit', balance: -8705.41, entityId: 'e1' }],
+      transactions: [],
+    };
+    const debts = deriveDebts(data, ASOF);
+    expect(debts).toHaveLength(1);
+    expect(debts[0].balance).toBeCloseTo(8705.41, 2); // owed shown positive
+    expect(debts[0].needsTerms).toBe(true); // no rate / minPayment
+    expect(debts[0].source).toBe('account');
+  });
+  it('uses the DERIVED balance (opening + cleared txns), not the stored literal', () => {
+    const data = {
+      accounts: [{ id: 'a-loc', name: 'LOC', type: 'credit', balance: -8705.41, entityId: 'e1' }],
+      transactions: [{ accountId: 'a-loc', date: '2026-01-01', amount: -1242.94 }],
+    };
+    expect(deriveDebts(data, ASOF)[0].balance).toBeCloseTo(9948.35, 2);
+  });
+  it('does not treat a credit account in credit (positive balance) as debt', () => {
+    const data = { accounts: [{ id: 'a', type: 'credit', balance: 50, entityId: 'e1' }], transactions: [] };
+    expect(deriveDebts(data, ASOF)).toHaveLength(0);
+  });
+  it('ignores cash accounts entirely (no double-count)', () => {
+    const data = { accounts: [{ id: 'a', type: 'checking', balance: -20, entityId: 'e1' }], transactions: [] };
+    expect(deriveDebts(data, ASOF)).toHaveLength(0);
+  });
+  it('pulls rental mortgages with a real balance + carries their terms', () => {
+    const data = {
+      accounts: [],
+      inflows: { rentals: [
+        { id: 'r1', name: '1003 Koehn', entityId: 'e2', mortgage: { balance: 120000, rate: 6.5, monthlyPI: 900 } },
+        { id: 'r2', name: 'No-mortgage', entityId: 'e2', mortgage: { balance: 0, rate: 0, monthlyPI: 0 } },
+      ] },
+    };
+    const debts = deriveDebts(data, ASOF);
+    expect(debts).toHaveLength(1);
+    expect(debts[0].name).toBe('1003 Koehn mortgage');
+    expect(debts[0].balance).toBe(120000);
+    expect(debts[0].needsTerms).toBe(false); // has rate + P&I
+    expect(debts[0].source).toBe('rental');
+  });
+});
+
+describe('reviewStatus', () => {
+  it('counts categorized (verified) vs needs-review (other/blank)', () => {
+    const s = reviewStatus([
+      { category: 'groceries' }, { category: 'dining' }, { category: 'other' }, { category: null }, {},
+    ]);
+    expect(s.categorized).toBe(2);
+    expect(s.needsReview).toBe(3);
+    expect(s.total).toBe(5);
+    expect(s.pctCategorized).toBe(40);
+  });
+  it('is safe on empty input', () => {
+    expect(reviewStatus([])).toEqual({ categorized: 0, needsReview: 0, total: 0, pctCategorized: 0 });
+  });
+});
