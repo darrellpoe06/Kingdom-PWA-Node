@@ -40,15 +40,11 @@ import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
 import { useReadingResume } from '../lib/reading-position.js';
+import { aboutFor } from '../lib/surface-help.js';
 
-// Self-explaining copy for the message library (LIGHT inline; the deep version
-// lives in Help under topic 'church:theword').
-const THEWORD_ABOUT = {
-  what: 'Every past message — Sundays and Wednesday Bible Study — as one searchable archive, newest first.',
-  where: 'Your church database (the choir_sermons ledger), streamed live; the public view shows only published messages, never in-progress drafts.',
-  how: 'Each message is filed under the month it was preached; jump to any month or date, search by title, scripture, or speaker, and watch the service inline.',
-  helpTopic: 'church:pulpit',
-};
+// LIGHT inline self-explanation — declared centrally in surface-help.js so the
+// Help-freshness gate can verify the deep Help entry stays current with it.
+const THEWORD_ABOUT = aboutFor('church:pulpit');
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) => {

@@ -30,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 import {
   runAudit, findingToConcern, diffFindings, summarize, SEVERITY_RANK,
 } from './lib/surface-audit-core.mjs';
+import { findingsFromFreshness } from './help-freshness.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const APP_SRC = join(ROOT, 'app', 'src');
@@ -144,6 +145,19 @@ async function main() {
 
   const result = runAudit({ surfaces, sources, shellSource, rubric });
   let findings = result.findings;
+
+  // Help-freshness: file STALE / MISSING self-explaining Help entries as concerns
+  // too, so the Help tab is kept current on the NAS loop — not only in CI. A stale
+  // Help entry is clutter creeping back onto the surface (Darrell 2026-07-01).
+  try {
+    const hf = findingsFromFreshness().map((f) => ({
+      ...f,
+      surfaceLabel: f.surfaceLabel || f.surface,
+      line: null, file: 'app/src/lib/help-content.js',
+      evidence: f.detail, severityRank: SEVERITY_RANK[f.severity],
+    }));
+    findings = findings.concat(hf);
+  } catch { /* freshness is additive observability; never block the core audit */ }
 
   if (hasFlag('online')) {
     const live = await runLiveProbes(rubric);

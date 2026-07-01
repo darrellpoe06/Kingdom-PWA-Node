@@ -8,7 +8,8 @@
     "reachability": "Every built surface is reachable IN-APP. No admin/console-only dead surfaces.",
     "freshness": "Latest data shows as latest; pipelines populated. No '0 of N' where it should be full; the served build is the merged build.",
     "no-dead-ends": "No white-screens, no 'coming soon' gate without a named, dated reason (active-by-default; DR-0075 requires why + re-review date).",
-    "works-when-used": "The surface actually works when used like a human would — no fake green."
+    "works-when-used": "The surface actually works when used like a human would — no fake green.",
+    "self-explaining": "Every data-driven surface carries a LIGHT inline what/where/how, and its DEEP Help entry is kept CURRENT (surface-help.js + help-freshness). A stale Help entry is clutter creeping back onto the surface. Enforced by scripts/help-freshness.mjs (filed here as findings; the CI gate is help-freshness.test.js)."
   },
 
   "items": [
