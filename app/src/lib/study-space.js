@@ -338,6 +338,35 @@ export function seedIfEmpty(study, nowMs = 0) {
   return { ...emptyStudy(), ...(study || {}), entries };
 }
 
+// Normalized title key — the stable identity of a seed theme across sessions.
+// (Seed entries carry no source, so seedKey() can't key them; they are 1:1 with
+// their human title, which is what a reader recognizes.) Lowercased + collapsed
+// whitespace so casing / spacing drift never causes a false "missing".
+function seedTitleKey(titleOrEntry = {}) {
+  const t = typeof titleOrEntry === 'string' ? titleOrEntry : (titleOrEntry.title || '');
+  return String(t).trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+// Bring any NEWLY-added SEED_THEMES into a study that was already seeded on an
+// earlier visit. Without this, seedIfEmpty() (empty-only) means a teaching added
+// after a reader's first open would never appear for them — the new study would
+// be invisible to exactly Darrell, Christina, and BG, who already have the first
+// batch on their devices. Pure + idempotent + additive:
+//   * a theme already present (by title) is left ALONE — the owner may have
+//     edited it, pinned it, or written its plain layer; we never overwrite that;
+//   * a theme not yet present is appended, marked {seed:true} for provenance;
+//   * running twice adds nothing (the second pass finds every title present).
+// A truly-empty study is handled by seedIfEmpty (label + all seeds); calling this
+// after it is a no-op there, and the safety net for every non-empty store.
+export function mergeMissingSeeds(study, nowMs = 0) {
+  const base = study && Array.isArray(study.entries) ? study : emptyStudy();
+  const have = new Set(base.entries.map((e) => seedTitleKey(e)));
+  const missing = SEED_THEMES.filter((t) => !have.has(seedTitleKey(t)));
+  if (missing.length === 0) return base;
+  const added = missing.map((t, i) => normalizeEntry({ ...t, seed: true }, nowMs, base.entries.length + i));
+  return { ...base, entries: [...base.entries, ...added] };
+}
+
 // Today's themes (2026-06-16), authored as titled reflections with a deep source
 // layer and a plain wider-audience layer. Scripture follows the repo standard
 // (ESV primary; KJV public-domain where noted). God references capitalized per
@@ -399,5 +428,21 @@ export const SEED_THEMES = [
     deep: `Knowledge can be true at the source and corrupted in transit. The Worldview's answer is a pipeline whose every stage refuses to invent: "the Lord gives wisdom; from His mouth come knowledge and understanding" (Prov 2:6, ESV) is the source; the Spirit "will not speak on His own authority, but whatever He hears He will speak" (John 16:13) is the faithful carrier; "we impart this in words not taught by human wisdom but taught by the Spirit" (1 Cor 2:13) is the faithful delivery. The architecture mirrors it: no claim without provenance, no improvised theology, fetch the actual translation rather than producing from memory, mark what is unverified. The 4th-dimensional point is that the engineering discipline (the Verification Doctrine, DR-0076) and the spiritual discipline are the SAME discipline — "trust nothing unverified" is how the Spirit Himself handles knowledge, only speaking what He has heard. A system grounded in truth is not a constraint imposed on a faith story; it is the faith story applied to information.`,
     plain: `Good information can get twisted on the way to you. The fix is a chain where nobody at any step makes things up: it starts with God as the source, the Holy Spirit carries it faithfully ("only says what He hears"), and it's delivered without spin. That's the same rule we build the app on — don't claim what you can't show, check before you trust. The honesty in the engineering and the honesty in the faith are the same honesty.`,
     tags: ['verification', 'knowledge', 'truth', 'pipeline'],
+  },
+  {
+    kind: 'reflection',
+    title: 'Conditional truth — if / then, and the gap between belief and action',
+    scripture: 'James 1:22-24; Luke 6:46; Matthew 7:24-27; 2 Corinthians 13:5; Ezekiel 36:26; 1 Corinthians 15:50; Philippians 2:6-8; Colossians 2:14',
+    deep: `Yahweh's words are truth in a way you either DO or you don't — they are conditional, if / then. "But be doers of the word, and not hearers only, deceiving yourselves" (James 1:22, ESV). Jesus asks it plainly: "Why do you call me 'Lord, Lord,' and not do what I tell you?" (Luke 6:46, ESV). On the Mount He drew the line as two builders: "Everyone then who hears these words of mine and does them will be like a wise man who built his house on the rock," while the one who hears and does not do them builds on sand and the house falls (Matt 7:24-27, ESV). So the test of agreement is never the mouth; it is the hands. Once you truly understand His perspective and agree with it, you simply DO what He says — because you agree. If you don't do what He says, you don't actually agree yet, even if your words say you do. That is the whole hinge: agreement that is real moves; agreement that stays a sentence was never agreement.
+
+The aim of this study is to watch the human mind tell itself what it believes while its actions quietly prove it believes something different — and to register and recognize that gap honestly instead of hiding it. "Examine yourselves, to see whether you are in the faith. Test yourselves" (2 Cor 13:5, ESV). James names the failure mode: the hearer-only is like a man who looks at his face in a mirror and "goes away and at once forgets what he was like" (James 1:23-24, ESV). Self-examination is looking without forgetting.
+
+Mercy is built into this. The human brain is not fully developed until about twenty-six; there is real grace for the gap between what we profess and what we do while we are still in the flesh — a fallen flesh. We receive a NEW SPIRIT now — "a new heart I will give you, and a new spirit I will put within you" (Ezek 36:26, ESV) — but not new flesh yet. "Flesh and blood cannot inherit the kingdom of God" (1 Cor 15:50, ESV); we will not carry these bodies into the fourth dimension, so we will not have the same struggle there. The new flesh comes only AFTER the judgments — at the end of each life, and at the end of all time.
+
+And the debt underneath all of it is one we cannot repay — collectively, eternally. Only Jesus, the worthy one, could pay it. Heaven was searched and "no one was found worthy" (Rev 5:4, ESV) until the Lamb who was slain. He "did not count equality with God a thing to be grasped, but emptied himself" (Phil 2:6-7, ESV) — He stepped off His throne, walked down, and did what we could not do, "canceling the record of debt that stood against us with its legal demands... nailing it to the cross" (Col 2:14, ESV).
+
+Salute, love, respect, study. Examine yourself honestly — not to condemn, but to close the distance between what you say you believe and what your life actually does.`,
+    plain: `God's words are the kind of truth you either do or you don't — they're if / then. If you really understand and agree with Him, you'll simply do what He says, because you agree. If you don't do it, you don't actually agree yet — even if you said you did. So this study watches one honest thing: the way your mind tells you what you believe while your actions sometimes show you believe something else. Notice the gap; don't hide it. There's grace for it, too — we're still in the flesh (the brain isn't even fully grown until about 26), and we've been given a new spirit now but not a new body yet; that comes later, after. And the debt we could never pay, Jesus paid: the only worthy One stepped down off His throne and did what we couldn't. Salute, love, respect, study — and examine yourself honestly.`,
+    tags: ['conditional-truth', 'belief-vs-action', 'self-examination', 'flesh-and-spirit', 'the-debt', 'if-then'],
   },
 ];

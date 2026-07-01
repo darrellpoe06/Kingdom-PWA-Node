@@ -31,7 +31,7 @@ import { studyPresentable } from '../lib/presentable.js';
 import { unfinalizedThoughts } from '../lib/thought-finalizer.js';
 import {
   KINDS, KIND_ORDER, DEFAULT_LABEL,
-  loadStudy, saveStudy, seedIfEmpty,
+  loadStudy, saveStudy, seedIfEmpty, mergeMissingSeeds,
   normalizeEntry, upsertEntry, removeEntry, togglePin,
   sortEntries, filterEntries, countsByKind, distillState, captureExchange,
   deriveFrom,
@@ -236,7 +236,11 @@ export default function Study({ email }) {
   // Load (and first-time seed) the device-local store for this identity. Reloads
   // when the signed-in email changes so one device never shows another's space.
   useEffect(() => {
-    const loaded = seedIfEmpty(loadStudy(email), nowMs());
+    // seedIfEmpty handles a brand-new store (label + all seeds); mergeMissingSeeds
+    // brings any teaching added AFTER a reader's first visit into their existing
+    // store — without it, a new seed would be invisible to exactly the circle who
+    // already opened the Study. Additive + idempotent; never overwrites edits.
+    const loaded = mergeMissingSeeds(seedIfEmpty(loadStudy(email), nowMs()), nowMs());
     setStudy(loaded);
     loadedFor.current = email || null;
     // Persist the seed on first open so it survives reload.
