@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS role_assignments (
   subject_external_id uuid REFERENCES external_users(id) ON DELETE CASCADE,
   subject_user_id     uuid REFERENCES auth.users(id),
   scope_kind          text NOT NULL,                 -- 'property','project','board','instance'
-  scope_ref           text NOT NULL,                 -- rental_id::text | board_slug | ...
+  scope_ref           text NOT NULL,                 -- rentals.slug | board_slug | ...
   guardian_user_id    uuid REFERENCES auth.users(id),-- set for learner/minor
   granted_by          uuid NOT NULL REFERENCES auth.users(id),
   created_at          timestamptz NOT NULL DEFAULT now(),
@@ -141,37 +141,49 @@ AS $$
 $$;
 GRANT EXECUTE ON FUNCTION public.subject_assigned_to(text, text) TO authenticated, anon;
 
--- Back-compat wrapper so the rentals-lane handoff keeps working unchanged.
+-- PROPERTY scope_ref == rentals.SLUG (the app's local door id, TEXT), confirmed
+-- by the rentals-mgmt lane 2026-07-01 (rentals-sync.js:70 `slug: item.id`).
+-- rentals.id (uuid PK) is a DIFFERENT column; property_notes.rental_ref and
+-- rental_tenancies.rental_ref are both the slug, so keying on slug makes
+-- scope_ref == rental_ref with zero joins. Owner assigns using rentals.slug.
+-- CAVEAT: a user-added door that has not synced has no slug row yet -> not
+-- assignable to a cloud-only external PM until it syncs (note in the assign UI).
+
+-- Back-compat wrapper (accepts the uuid PK; resolves to the slug internally).
 CREATE OR REPLACE FUNCTION public.pm_assigned_to_rental(p_rental_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, auth
-AS $$ SELECT public.subject_assigned_to('property', p_rental_id::text) $$;
+AS $$ SELECT public.subject_assigned_to('property', (SELECT slug FROM rentals WHERE id = p_rental_id)) $$;
 GRANT EXECUTE ON FUNCTION public.pm_assigned_to_rental(uuid) TO authenticated, anon;
 
 -- ---------------------------------------------------------------------
 -- 4. PER-SCOPE least-privilege SEE surfaces (config, not bespoke).
 -- ---------------------------------------------------------------------
--- 4a. PROPERTY scope — management columns only, assigned units only.
+-- 4a. PROPERTY scope — management columns only, assigned units only. Keyed on slug.
 CREATE OR REPLACE VIEW public.pm_property_view AS
-  SELECT id, instance_id, address, unit, display_name, property_type,
+  SELECT id, slug, instance_id, address, unit, display_name, property_type,
          city, state, zip, status
-  FROM rentals WHERE subject_assigned_to('property', id::text);
+  FROM rentals WHERE subject_assigned_to('property', slug);
 GRANT SELECT ON public.pm_property_view TO authenticated;
 
 CREATE OR REPLACE VIEW public.pm_renter_view AS
   SELECT DISTINCT r.id, r.instance_id, r.display_name, r.contact_email, r.contact_phone,
-         r.emergency_contact_name, r.emergency_contact_phone, l.rental_id
-  FROM renters r JOIN leases l ON l.renter_id = r.id
-  WHERE subject_assigned_to('property', l.rental_id::text);
+         r.emergency_contact_name, r.emergency_contact_phone, rr.slug AS rental_ref
+  FROM renters r
+  JOIN leases l  ON l.renter_id = r.id
+  JOIN rentals rr ON rr.id = l.rental_id
+  WHERE subject_assigned_to('property', rr.slug);
 GRANT SELECT ON public.pm_renter_view TO authenticated;
 
+-- v2.2 maintenance_requests (legacy uuid-keyed table; the LIVE per-unit surface
+-- is tenant_maintenance_requests in §4c). Resolve rental_id -> slug via the wrapper.
 CREATE POLICY maint_req_worker_read ON maintenance_requests FOR SELECT
-  USING (subject_assigned_to('property', rental_id::text));
+  USING (pm_assigned_to_rental(rental_id));
 CREATE POLICY maint_req_worker_insert ON maintenance_requests FOR INSERT
-  WITH CHECK (subject_assigned_to('property', rental_id::text) AND created_by = auth.uid()
+  WITH CHECK (pm_assigned_to_rental(rental_id) AND created_by = auth.uid()
               AND submitted_via IN ('in-person','owner-discovery','phone','email','sms'));
 CREATE POLICY maint_req_worker_update ON maintenance_requests FOR UPDATE
-  USING (subject_assigned_to('property', rental_id::text))
-  WITH CHECK (subject_assigned_to('property', rental_id::text));
+  USING (pm_assigned_to_rental(rental_id))
+  WITH CHECK (pm_assigned_to_rental(rental_id));
 
 -- 4b. PROJECT scope — a Project Manager sees assigned boards' items only.
 --     board_tasks keys on board_slug (text) -> scope_ref = board_slug.
@@ -338,8 +350,8 @@ CREATE POLICY thread_participants_owner_worker_write ON thread_participants FOR 
 -- Curated learner property view: what's managed + status, NO financials, NO
 -- tenant PII. Teaching overlays live in the app (two-tier self-explaining).
 CREATE OR REPLACE VIEW public.learner_property_view AS
-  SELECT id, instance_id, display_name, property_type, status
-  FROM rentals WHERE subject_assigned_to('property', id::text);
+  SELECT id, slug, instance_id, display_name, property_type, status
+  FROM rentals WHERE subject_assigned_to('property', slug);
 GRANT SELECT ON public.learner_property_view TO authenticated;
 
 -- Curated learner project view: what we plan to do + progress, NO $ columns.
@@ -511,9 +523,9 @@ COMMIT;
 -- =====================================================================
 -- HANDOFF (lanes):
 --  * rentals-mgmt (local_9aedb5b8): thread the tenant<->PM conversation through
---    threads/thread_messages with scope_kind='property', scope_ref=rental_id::text.
---    pm_assigned_to_rental() still works (now a wrapper). New unit/notes tables
---    keep USING (subject_assigned_to('property', <rental_id>::text)).
+--    threads/thread_messages with scope_kind='property', scope_ref=rentals.slug
+--    (== rental_ref). pm_assigned_to_rental(uuid) still works (resolves to slug).
+--    New unit/notes tables key USING (subject_assigned_to('property', <rental_ref/slug>)).
 --  * projects/boards (local_99389e0e): Project-Manager scope is scope_kind
 --    'project', scope_ref = board_slug. board_tasks policies are in §4b.
 --  * adopter-onboarding (local_7d0b6b36): invite_worker() is the general path;

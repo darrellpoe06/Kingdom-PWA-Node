@@ -67,10 +67,14 @@ INSERT INTO role_definitions (instance_id, role_key, worker_class, label, scope_
 ON CONFLICT DO NOTHING;
 
 -- ---- rentals + a finance row + boards ----
-INSERT INTO rentals (id, instance_id, created_by, address, display_name, property_type, purchase_price, status) VALUES
-  (:rA1,:iA,:uOwnerA,'1 A St','A1 assigned','single-family',250000,'occupied'),
-  (:rA2,:iA,:uOwnerA,'2 A St','A2 unassigned','single-family',260000,'occupied'),
-  (:rB1,:iB,:uOwnerB,'9 B St','B1 other org','single-family',999999,'occupied')
+-- PROPERTY scope keys on rentals.SLUG (== rental_ref), NOT the uuid id.
+\set slugA1 '''slug-rA1'''
+\set slugA2 '''slug-rA2'''
+\set slugB1 '''slug-rB1'''
+INSERT INTO rentals (id, slug, instance_id, created_by, address, display_name, property_type, purchase_price, status) VALUES
+  (:rA1,:slugA1,:iA,:uOwnerA,'1 A St','A1 assigned','single-family',250000,'occupied'),
+  (:rA2,:slugA2,:iA,:uOwnerA,'2 A St','A2 unassigned','single-family',260000,'occupied'),
+  (:rB1,:slugB1,:iB,:uOwnerB,'9 B St','B1 other org','single-family',999999,'occupied')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO accounts (id, instance_id, created_by, name, type, balance)
   VALUES (gen_random_uuid(), :iA, :uOwnerA, 'Org A Ops','checking',50000) ON CONFLICT DO NOTHING;
@@ -88,11 +92,11 @@ ON CONFLICT (id) DO NOTHING;
 
 -- ---- assignments: PMprop -> rA1 only; PMproj -> proj-x only; learner child -> rA1 (curated) ----
 INSERT INTO role_assignments (instance_id, role_key, subject_kind, subject_external_id, scope_kind, scope_ref, granted_by) VALUES
-  (:iA,'property-manager','external',:xPMprop,'property',:rA1,:uOwnerA),
+  (:iA,'property-manager','external',:xPMprop,'property',:slugA1,:uOwnerA),
   (:iA,'project-manager','external',:xPMproj,'project','proj-x',:uOwnerA)
 ON CONFLICT DO NOTHING;
 INSERT INTO role_assignments (instance_id, role_key, subject_kind, subject_user_id, scope_kind, scope_ref, guardian_user_id, granted_by) VALUES
-  (:iA,'learner','member',:uChild,'property',:rA1,:uOwnerA,:uOwnerA)
+  (:iA,'learner','member',:uChild,'property',:slugA1,:uOwnerA,:uOwnerA)
 ON CONFLICT DO NOTHING;
 
 -- ---- LIVE per-unit backbone (0055/0062): a tenancy on rA1 + a service request.
@@ -100,14 +104,14 @@ ON CONFLICT DO NOTHING;
 --      the ACTUAL live tables the owner uses (not just the gated threads).
 --      (rental_tenancies extra columns may vary; adjust the seed to your schema.)
 INSERT INTO rental_tenancies (id, instance_id, rental_ref, status)
-  VALUES ('dddd0000-0000-0000-0000-0000000ten01', :iA, :rA1, 'active') ON CONFLICT (id) DO NOTHING;
+  VALUES ('dddd0000-0000-0000-0000-0000000ten01', :iA, :slugA1, 'active') ON CONFLICT (id) DO NOTHING;
 INSERT INTO tenant_maintenance_requests (instance_id, tenancy_id, created_by_role, title)
   VALUES (:iA, 'dddd0000-0000-0000-0000-0000000ten01', 'tenant', 'Porch light out (assigned unit)')
 ON CONFLICT DO NOTHING;
 
 -- ---- threads: T1 property(rA1) with tenant participant; T2 project(proj-x) ----
 INSERT INTO threads (id, instance_id, scope_kind, scope_ref, subject, kind, created_by_member) VALUES
-  (:tT1,:iA,'property',:rA1,'Leak under sink','service-request',:uOwnerA),
+  (:tT1,:iA,'property',:slugA1,'Leak under sink','service-request',:uOwnerA),
   (:tT2,:iA,'project','proj-x','X planning','discussion',:uOwnerA)
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO thread_participants (thread_id, instance_id, participant_kind, participant_external_id, added_by)
