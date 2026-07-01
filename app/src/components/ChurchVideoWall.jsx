@@ -38,6 +38,7 @@ import {
 import {
   VIDEO_IN, CONTROL, LED_DATA, POWER, MAP,
   ledLineMath, TEACHING_CARD, FINISH_CHECKLIST, CHAIN_DIAGRAM,
+  FIRST_LIGHT, VENDOR_MESSAGE,
 } from '../lib/led-wall-signal-chain.js';
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
@@ -453,6 +454,45 @@ export default function ChurchVideoWall() {
           ))}
         </div>
         <p className="mt-3 text-[0.8125rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>{TEACHING_CARD.oneLiner}</b></p>
+      </div>
+
+      {/* ===== FIRST LIGHT — fresh out of box: test tonight, map tomorrow ===== */}
+      <div className={card}>
+        <div className={labelCls}>First light &middot; test tonight, map tomorrow</div>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">
+          <b>&#9888; The USB stick won&rsquo;t play in the VX1000.</b> {FIRST_LIGHT.usbMyth}
+        </p>
+
+        <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Tonight &mdash; proof of life (5 min)</div>
+        <ol className="mt-1.5 space-y-1">
+          {FIRST_LIGHT.proofOfLife.map((s, i) => (
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">{i + 1}.</span><span>{s}</span></li>
+          ))}
+        </ol>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{FIRST_LIGHT.proofOfLifeNote}</p>
+
+        <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Tomorrow &mdash; map it once (NovaLCT)</div>
+        <ul className="mt-1 space-y-1">
+          {FIRST_LIGHT.mappingRequires.map((r, i) => (
+            <li key={i} className="text-[0.75rem] text-[#5A5751] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{r}</span></li>
+          ))}
+        </ul>
+        <ol className="mt-2 space-y-2">
+          {FIRST_LIGHT.novalctSteps.map((s) => (
+            <li key={s.step} className="flex gap-3">
+              <div className="shrink-0 w-6 h-6 rounded-full bg-[#1A1815] text-white text-[0.625rem] flex items-center justify-center" style={serif}>{s.step}</div>
+              <div>
+                <div className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{s.title}</div>
+                <div className="text-[0.75rem] text-[#5A5751]">{s.body}</div>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">{FIRST_LIGHT.recommendation}</p>
+
+        {/* Copy-ready vendor message — unblocks tomorrow */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Send tonight &mdash; {VENDOR_MESSAGE.to}</div>
+        <pre className="mt-1.5 whitespace-pre-wrap text-[0.75rem] text-[#1A1815] bg-[#FAF8F4] border border-[#E8E4DC] p-2.5 font-sans">{VENDOR_MESSAGE.body.join('\n')}</pre>
       </div>
 
       {/* ===== FINISH CHECKLIST — work it down to done ===== */}
