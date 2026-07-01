@@ -32,7 +32,7 @@
 // =============================================================================
 
 import {
-  monthsBetween, monthLabelFrom, liveCashOnHand, deriveMonthlyFlows,
+  monthsBetween, monthLabelFrom, deriveMonthlyFlows,
   deriveEntityFlows, deriveLumpEvents, deriveDebts, cashForScope,
 } from './financial-engineering.js';
 import { monthCoverage, reviewStatus } from './transaction-analysis.js';
