@@ -10,6 +10,7 @@ import { ConcernsBoard } from './ConcernsBoard.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
 import LoopHealth from './LoopHealth.jsx';
+import DbHealth from './DbHealth.jsx';
 import Discussions from './Discussions.jsx';
 import {
   ETERNAL_STAGES, stageOfProject, stageMeta, statusForStage, nextStage,
@@ -176,6 +177,10 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // name overloaded "review" against feedback — per the Projects coherence
   // review it now folds in here as the "what the loops are flowing" section.
   if (isGovernor) tabs.push(['loops','🩺 Loops']);
+  // DB Health (DR-0084) — the app verifies its own schema: the real db-migrate
+  // ledger (what applied / what failed / when), read from inside the app so a
+  // governor never has to open a shell or Studio to confirm a migration landed.
+  if (isGovernor) tabs.push(['db','DB Health']);
   return (
     <div className="space-y-4">
       {/* The sub-tab strip scrolls horizontally so every section stays reachable
@@ -222,6 +227,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
           <ReviewFeed />
         </div>
       )}
+      {subView === 'db' && isGovernor && <DbHealth />}
     </div>
   );
 }
