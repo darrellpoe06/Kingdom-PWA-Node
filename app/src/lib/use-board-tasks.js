@@ -17,6 +17,7 @@ import { useSyncExternalStore } from 'react';
 import { boardTasksSync, mergeRemoteBoardTasks } from './board-tasks-sync.js';
 import {
   newTaskSlug, seedTasksForBoard, nextStatus, tasksForBoard, groupLabelOf,
+  normalizeOwner, canonicalSeedOwner, taskHistory, makeHandoff, appendHistory,
 } from './board.js';
 
 const LS_KEY = 'poetech-board-tasks-v1';
@@ -37,6 +38,7 @@ const COLUMN = {
   title: 'title', status: 'status', owner: 'owner', group: 'group_label',
   startDate: 'start_date', dueDate: 'due_date', sortRank: 'sort_rank',
   notes: 'notes', boardSlug: 'board_slug', boardTitle: 'board_title',
+  links: 'links',
 };
 function toColumnPatch(patch) {
   const out = {};
@@ -65,6 +67,10 @@ function ensureSubscribed() {
   // list with any local-only rows (unionPreservingLocal), then re-renders all.
   boardTasksSync.subscribe((remote) => {
     setState((cur) => mergeRemoteBoardTasks(cur, remote));
+    // After the cloud list lands (rows now carry their remoteUuid), correct any
+    // still-backwards seed owner and persist it. Idempotent — a converged board
+    // is a no-op, so this cannot loop.
+    reconcileSeedOwners();
   });
 }
 
@@ -114,6 +120,53 @@ export function cycleStatus(task) {
   patchTask(task, { status: nextStatus(task.status) });
 }
 
+// ---- two-way handoff (the human↔AI push channel with a record) -------------
+// Reassign an item to the OTHER party with a short note, and LOG the handoff to
+// the item's history (who pushed → to whom, when, why). Owner change + note +
+// history persist together on board_tasks.links (one patch), so both sides see
+// the same record on every device. Darrell asked for this so he can push items
+// he believes are the AI's back to it — and vice versa — with a trail of intent.
+export function pushTask(task, { to, by = null, note = '' }) {
+  const target = normalizeOwner(to);
+  if (!target || normalizeOwner(task.owner) === target) return; // no-op: nowhere to push
+  const entry = makeHandoff({
+    at: new Date().toISOString(),
+    from: normalizeOwner(task.owner),
+    to: target,
+    by: by || null,
+    note,
+    kind: 'handoff',
+  });
+  patchTask(task, { owner: target, links: appendHistory(task.links, entry) });
+}
+
+// ---- least-human self-heal (DR-0076: real state, not a painted display) -----
+// A seed item that was written with the OLD backwards default (a system item
+// assigned to a human) is corrected to its canonical least-human owner, and the
+// correction is WRITTEN to the backbone + logged as a kind='default' history
+// entry — so the DB truly reflects the rule, never just the UI. A deliberate
+// handoff (any history entry) is senior: once a human has pushed an item, the
+// system never silently overrides that intent. Idempotent: after one pass the
+// owner already equals canonical, so it never fires again (no runaway).
+function reconcileSeedOwners() {
+  for (const t of state) {
+    if (!t || !t.slug || !String(t.slug).startsWith('bt-seed-')) continue;
+    const canonical = canonicalSeedOwner(t.boardSlug, t.slug);
+    if (canonical === undefined) continue;
+    if (normalizeOwner(t.owner) === canonical) continue;
+    if (taskHistory(t).length > 0) continue; // a deliberate push already moved it
+    const entry = makeHandoff({
+      at: new Date().toISOString(),
+      from: normalizeOwner(t.owner),
+      to: canonical,
+      by: 'System',
+      note: 'Re-defaulted to least-human owner (a system-doable item was assigned to a human).',
+      kind: 'default',
+    });
+    patchTask(t, { owner: canonical, links: appendHistory(t.links, entry) });
+  }
+}
+
 // Load a seed board's real items — only the ones not already present (idempotent
 // by stable slug), so a re-load fills gaps without clobbering edits.
 export async function loadSeed(boardSlug) {
@@ -130,6 +183,10 @@ export async function loadSeed(boardSlug) {
     }
   }
 }
+
+// Correct any locally-cached rows on first load too (covers the signed-out /
+// offline path where the cloud subscription is a no-op). Idempotent.
+reconcileSeedOwners();
 
 // The hook every consumer uses — returns the live task list, re-rendering on any
 // change from any consumer or the realtime stream.

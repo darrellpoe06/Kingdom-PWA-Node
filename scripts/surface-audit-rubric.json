@@ -81,6 +81,20 @@
       "excludeSurfaces": ["about"]
     },
     {
+      "id": "hardcoded-count-tile",
+      "label": "Comma-grouped number baked into JSX text (suspected static count/amount tile)",
+      "dimension": "dynamic-not-static",
+      "severity": "medium",
+      "kind": "source-pattern",
+      "expect": "absent",
+      "flags": "",
+      "patterns": [
+        ">\\s*\\d{1,3}(?:,\\d{3})+\\s*<"
+      ],
+      "fix": "HEURISTIC — verify by hand. A comma-grouped number (e.g. >12,340<) sitting in a JSX text node is almost always a PAINTED stat — a live-derived figure renders as {fmt(n)} and never carries a literal comma in source. Trace it to a real row/sum (a computed value, a DB count) or remove it. This catches the static count/amount tile the currency check misses because it has no '$' (2026-07-01 static->live sweep). If the number is genuinely a fixed label (a spec/engineering constant, not a data value), add the surface to excludeSurfaces with a note.",
+      "excludeSurfaces": ["about", "cart", "videowall", "learn"]
+    },
+    {
       "id": "list-pagination",
       "label": "Long-list surface without pagination or windowing (endless-scroll risk)",
       "dimension": "intuitive-ux",

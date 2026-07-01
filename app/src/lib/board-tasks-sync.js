@@ -14,6 +14,7 @@
 // Remote shape (0059 board_tasks row): snake_case columns below.
 // =============================================================================
 import { createTableSync, unionPreservingLocal } from './table-sync.js';
+import { normalizeOwner } from './board.js';
 
 export const boardTasksSync = createTableSync({
   localKey: 'boardTasks',
@@ -47,7 +48,7 @@ export const boardTasksSync = createTableSync({
       boardTitle: row.board_title,
       title:      row.title ?? '',
       status:     row.status ?? 'not-started',
-      owner:      row.owner ?? null,
+      owner:      normalizeOwner(row.owner),
       group:      row.group_label ?? null,
       startDate:  row.start_date ?? null,
       dueDate:    row.due_date ?? null,

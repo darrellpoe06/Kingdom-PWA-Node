@@ -16,6 +16,9 @@
 //   node scripts/surface-audit.mjs --write         # also write the findings artifact + reel
 //   node scripts/surface-audit.mjs --online        # additionally run the (optional) live probes
 //   node scripts/surface-audit.mjs --fail-on=high  # exit 1 if any finding >= this severity (gate mode)
+//   node scripts/surface-audit.mjs --fail-on-new   # exit 1 if a NEW (surface,item) finding appeared
+//                                                   # vs the committed artifact — the "new static never
+//                                                   # creeps back" CI gate (DR-0086 / 2026-07-01 sweep)
 //   node scripts/surface-audit.mjs --json          # machine output only
 //
 // The NAS loop (infra/nas-loops/loops/surface-audit.sh) invokes it with --write,
@@ -206,6 +209,26 @@ async function main() {
     if (bar == null) { console.error(`[refuse] unknown --fail-on severity '${failOn}'`); process.exit(2); }
     const worst = findings.some((f) => f.severityRank <= bar);
     if (worst) process.exit(1);
+  }
+
+  // --fail-on-new: the "new static never creeps back" merge gate (2026-07-01 sweep).
+  // The COMMITTED artifact is the baseline. A finding whose (surface,item) pair is
+  // absent from the baseline is NEW — a static tile / dead-end / unreachable surface
+  // introduced by this change. We diff on (surface,item), NOT the line-bearing key,
+  // so moving an existing tile within a file does not trip the gate (only genuinely
+  // new class×surface does). Regenerate + commit the artifact (--write) to accept a
+  // finding into the reviewed baseline. Non-breaking: with no new findings, exits 0.
+  if (hasFlag('fail-on-new')) {
+    const prevPairs = new Set(prev.map((f) => `${f.surface}::${f.item}`));
+    const introducedNew = findings.filter((f) => !prevPairs.has(`${f.surface}::${f.item}`));
+    if (introducedNew.length) {
+      console.error(`\n[fail-on-new] ${introducedNew.length} NEW finding(s) not in the committed audit-findings.json baseline:`);
+      for (const f of introducedNew) {
+        console.error(`  [${f.severity.toUpperCase()}] ${f.surfaceLabel} · ${f.title}${f.line ? ` (L${f.line})` : ''}  ${f.file || ''}`);
+      }
+      console.error(`\nEither fix the finding, or (if intentional/accepted) run:  node scripts/surface-audit.mjs --write  and commit the updated artifact so it is reviewed in the diff.`);
+      process.exit(1);
+    }
   }
 }
 

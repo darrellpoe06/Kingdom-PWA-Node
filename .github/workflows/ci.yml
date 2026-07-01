@@ -69,6 +69,14 @@ jobs:
       # vitest, run as a named step so the live-data promise is a visible check.
       - run: node ../scripts/interconnect-guard.mjs
       - run: npx vitest run
+      # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
+      # unless it's a label"). The proactive surface audit runs the dynamic-not-static
+      # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails
+      # on an unreachable surface; --fail-on-new hard-fails if a NEW (surface,item)
+      # finding appeared vs the committed audit-findings.json baseline — so a new
+      # painted tile / dead-end cannot creep back in without either a fix or a
+      # reviewed baseline update. Proven-to-catch in surface-audit.test.js.
+      - run: node ../scripts/surface-audit.mjs --fail-on=critical --fail-on-new
       # Real production bundle. Rollup hard-fails on a missing named export, so
       # this catches the cross-module-export break that lint+vitest let through.
       - run: npm run build
