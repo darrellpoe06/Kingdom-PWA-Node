@@ -13,7 +13,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { isStudyCircleEmail } from '../poe-financial-mvp-v28.jsx';
 import {
-  emptyStudy, seedIfEmpty, SEED_THEMES, normalizeEntry, distillState,
+  emptyStudy, seedIfEmpty, mergeMissingSeeds, SEED_THEMES, normalizeEntry, distillState,
   captureExchange, filterEntries, countsByKind, briefingReady,
   upsertEntry, removeEntry, togglePin, sortEntries,
   loadStudy, saveStudy, studyKey, KIND_ORDER,
@@ -40,10 +40,10 @@ describe('access — the circle is exactly three, no-leak', () => {
 });
 
 describe('seed — today\'s themes land the first time only', () => {
-  it('seeds an empty study with all seven titled reflections', () => {
+  it('seeds an empty study with all eight titled reflections', () => {
     const s = seedIfEmpty(emptyStudy(), 1_700_000_000_000);
     expect(s.entries.length).toBe(SEED_THEMES.length);
-    expect(s.entries.length).toBe(7);
+    expect(s.entries.length).toBe(8);
     for (const e of s.entries) {
       expect(e.kind).toBe('reflection');
       expect(e.seed).toBe(true);
@@ -54,9 +54,25 @@ describe('seed — today\'s themes land the first time only', () => {
   it('covers the named themes', () => {
     const s = seedIfEmpty(emptyStudy(), 1);
     const titles = s.entries.map((e) => e.title.toLowerCase()).join(' | ');
-    for (const needle of ['metanoia', 'joy', 'wilderness', 'footstool', 'godhead', 'father of lights', 'pipeline']) {
+    for (const needle of ['metanoia', 'joy', 'wilderness', 'footstool', 'godhead', 'father of lights', 'pipeline', 'conditional truth']) {
       expect(titles).toContain(needle);
     }
+  });
+  it('the conditional-truth study carries its thesis, its aim, and its anchor Scripture', () => {
+    const s = seedIfEmpty(emptyStudy(), 1);
+    const e = s.entries.find((x) => x.title.toLowerCase().includes('conditional truth'));
+    expect(e).toBeTruthy();
+    // thesis: if/then, do-it-or-you-don't
+    expect(e.deep.toLowerCase()).toContain('if / then');
+    expect(e.deep.toLowerCase()).toContain('doers of the word');
+    // the aim: belief vs action, self-examination
+    expect(e.deep.toLowerCase()).toContain('examine yourselves');
+    expect(e.plain.toLowerCase()).toContain('actions');
+    // his close, in his words
+    expect(e.deep.toLowerCase()).toContain('salute, love, respect, study');
+    // anchor Scripture is cited (verbatim ESV, fetched)
+    expect(e.scripture).toContain('James 1:22');
+    expect(e.scripture).toContain('2 Corinthians 13:5');
   });
   it('is idempotent — never re-seeds a study that already has entries', () => {
     const seeded = seedIfEmpty(emptyStudy(), 1);
@@ -65,6 +81,50 @@ describe('seed — today\'s themes land the first time only', () => {
     // a study with one user entry is NOT seeded over
     const user = { ...emptyStudy(), entries: [normalizeEntry({ kind: 'processing', title: 'mine' }, 5)] };
     expect(seedIfEmpty(user, 9).entries.length).toBe(1);
+  });
+});
+
+describe('mergeMissingSeeds — new teaching reaches an ALREADY-seeded study', () => {
+  // Proven-to-catch: simulate a reader who opened the Study before this teaching
+  // existed (has the other seven, missing the eighth). The merge MUST surface it —
+  // this is the exact failure seedIfEmpty (empty-only) cannot fix.
+  it('adds a seed the reader does not yet have, marked as a seed', () => {
+    const older = SEED_THEMES.filter((t) => !t.title.toLowerCase().includes('conditional truth'));
+    const stale = { ...emptyStudy(), entries: older.map((t, i) => normalizeEntry({ ...t, seed: true }, 1, i)) };
+    expect(stale.entries.length).toBe(SEED_THEMES.length - 1);
+    const merged = mergeMissingSeeds(stale, 2);
+    expect(merged.entries.length).toBe(SEED_THEMES.length);
+    const added = merged.entries.find((e) => e.title.toLowerCase().includes('conditional truth'));
+    expect(added).toBeTruthy();
+    expect(added.seed).toBe(true);
+    expect(added.deep).toContain('Salute, love, respect, study');
+  });
+  it('is idempotent — a second pass adds nothing', () => {
+    const seeded = seedIfEmpty(emptyStudy(), 1);
+    const once = mergeMissingSeeds(seeded, 2);
+    const twice = mergeMissingSeeds(once, 3);
+    expect(once.entries.length).toBe(SEED_THEMES.length);
+    expect(twice.entries.length).toBe(SEED_THEMES.length);
+  });
+  it('never overwrites the owner\'s edits to an existing seed', () => {
+    const seeded = seedIfEmpty(emptyStudy(), 1);
+    // owner writes a plain layer + pins one seed (their work)
+    const edited = {
+      ...seeded,
+      entries: seeded.entries.map((e) =>
+        e.title.toLowerCase().includes('metanoia') ? { ...e, plain: 'MY OWN WORDS', pinned: true } : e),
+    };
+    const merged = mergeMissingSeeds(edited, 2);
+    const mine = merged.entries.find((e) => e.title.toLowerCase().includes('metanoia'));
+    expect(mine.plain).toBe('MY OWN WORDS');
+    expect(mine.pinned).toBe(true);
+  });
+  it('does not disturb a study that already has every seed + preserves user entries', () => {
+    const seeded = seedIfEmpty(emptyStudy(), 1);
+    const withUser = { ...seeded, entries: [...seeded.entries, normalizeEntry({ kind: 'processing', title: 'mine' }, 5)] };
+    const merged = mergeMissingSeeds(withUser, 2);
+    expect(merged.entries.length).toBe(withUser.entries.length);
+    expect(merged.entries.some((e) => e.title === 'mine')).toBe(true);
   });
 });
 

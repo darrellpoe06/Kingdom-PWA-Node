@@ -336,6 +336,58 @@ BG's one-line summary worth holding onto:
 
 ---
 
+## 2026-07-01 — Conditional Truth (Darrell's teaching)
+
+*Dictated by Darrell on 2026-07-01. This is his own teaching content, captured faithfully in his voice and framing — non-denominational, Word-first, Yahweh and Jesus. Recorded here as the durable source; it also ships as a titled reflection in the in-app Study (the "Conditional truth — if / then" seed).*
+
+---
+
+### Entry: Conditional Truth — If / Then, and the Gap Between Belief and Action
+
+**The thesis — conditional truth.** Yahweh's words are truth in a way that you either **do** them or you don't. They are **conditional** — *if / then* statements. If you agree with Yahweh once you understand His perspective, you will simply **do** what He says, because you agree. And if you don't do what He says, you don't actually agree — even if you verbally say you agree. The test of agreement is never the mouth; it is the hands.
+
+**ESV — James 1:22:** *"But be doers of the word, and not hearers only, deceiving yourselves."*
+
+**ESV — Luke 6:46:** *"Why do you call me 'Lord, Lord,' and not do what I tell you?"*
+
+On the Mount, Jesus drew the same line as two builders — the difference between them is not what they *heard* but whether they *did* it:
+
+**ESV — Matthew 7:24–27:** *"Everyone then who hears these words of mine and does them will be like a wise man who built his house on the rock. And the rain fell, and the floods came, and the winds blew and beat on that house, but it did not fall, because it had been founded on the rock. And everyone who hears these words of mine and does not do them will be like a foolish man who built his house on the sand. And the rain fell, and the floods came, and the winds blew and beat against that house, and it fell, and great was the fall of it."*
+
+**The study's aim — belief vs. action.** Watch the human mind tell itself what it believes even though its actions can prove it believes something different. The whole heart of this study is to **register and recognize that gap honestly** — self-examination that looks without looking away.
+
+**ESV — 2 Corinthians 13:5:** *"Examine yourselves, to see whether you are in the faith. Test yourselves. Or do you not realize this about yourselves, that Jesus Christ is in you?—unless indeed you fail to meet the test!"*
+
+James names the failure mode exactly — the hearer-only forgets what the mirror showed him:
+
+**ESV — James 1:23–24:** *"For if anyone is a hearer of the word and not a doer, he is like a man who looks intently at his natural face in a mirror. For he looks at himself and goes away and at once forgets what he was like."*
+
+**The developmental / mercy note.** There is grace for the gap. The human brain does not fully develop until about twenty-six — so there is real mercy for the distance between what a person professes and what a person does while still in the flesh.
+
+**Flesh, spirit, and judgment.** We won't have these bodies in the fourth dimension, so we won't have the same issues there. But right now we are in the flesh — a **fallen** flesh. We receive a **new spirit** now, but not new flesh yet.
+
+**ESV — Ezekiel 36:26:** *"And I will give you a new heart, and a new spirit I will put within you. And I will remove the heart of stone from your flesh and give you a heart of flesh."*
+
+**ESV — 1 Corinthians 15:50:** *"I tell you this, brothers: flesh and blood cannot inherit the kingdom of God, nor does the perishable inherit the imperishable."*
+
+The **new flesh** comes only **after the judgments** — at the end of our lives individually, or at the end of all time.
+
+**Christ — the unpayable debt.** Sin is a debt we cannot repay, collectively and eternally. Only Jesus, the worthy one, could pay it. Heaven was searched and no one was found worthy —
+
+**ESV — Revelation 5:4:** *"and I began to weep loudly because no one was found worthy to open the scroll or to look into it."*
+
+— until the Lamb who was slain. He stepped off His throne, walked down, and did what we could not do:
+
+**ESV — Philippians 2:6–7:** *"who, though he was in the form of God, did not count equality with God a thing to be grasped, but emptied himself, by taking the form of a servant, being born in the likeness of men."*
+
+**ESV — Colossians 2:14:** *"by canceling the record of debt that stood against us with its legal demands. This he set aside, nailing it to the cross."*
+
+**The close — Darrell's posture:** *"Salute, love, respect, study."* An invitation to examine yourself honestly — not to condemn, but to close the distance between what you say you believe and what your life actually does.
+
+**Supporting references (for in-app expansion later):** John 14:15 ("If you love me, you will keep my commandments" — the if/then of love and obedience); Matthew 25:31–46 (the judgment measured by what was *done*); 2 Corinthians 5:1–4 (the earthly tent and the eternal building — the body to come); 1 Corinthians 15:51–53 (we shall be changed; the perishable puts on the imperishable); Revelation 5:9 ("Worthy are you… for you were slain, and by your blood you ransomed people for God"); Hebrews 4:12 (the word that discerns the thoughts and intentions of the heart).
+
+---
+
 ## Appendix: How to Append a New Entry
 
 When Yahweh and His Word are discussed again, add a new dated section at the bottom of this file:
