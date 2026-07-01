@@ -144,7 +144,7 @@ import {
   About, Contractors1099, Cart, Practice, CRM, Markets, Rentals, Opportunities,
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
-  Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ThinkingSpace,
+  Pulpit, ScriptureLibrary, RapStudy, CommandServeCenter, ChurchVideoWall, DeviceInventory, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AccessUsageMetrics, AdminConsole, ChefCorner, Games, Relationships,
 } from './surfaces.js';
@@ -5305,7 +5305,7 @@ html{scroll-padding-bottom:280px}
                 (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
                 caps the row via zoom while body text scales. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['rap-study', <><UiIcon name="bookOpen" /> Bible Study</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -5401,6 +5401,11 @@ html{scroll-padding-bottom:280px}
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
         {view === 'church' && churchView === 'pulpit' && <Pulpit />}
         {view === 'church' && churchView === 'scripture' && <ScriptureLibrary email={authSession?.user?.email} canStudy={isStudyCircle} />}
+        {/* RAP Bible Study: the printed handout, made interactive — five fill-in
+            reflection points + linked Scriptures; reflections are device-local
+            and private to the signed-in user. Wires to the harvest so the actual
+            recorded teaching attaches beneath the outline when its transcript lands. */}
+        {view === 'church' && churchView === 'rap-study' && <RapStudy email={authSession?.user?.email} />}
         {/* Harvest Ledger: no video lost — every ingested recording fully mined
             (one-source-many-harvests). Staff-gated; RLS read = choir (0050). */}
         {view === 'church' && churchView === 'harvest' && (isChurchStaff
@@ -6217,6 +6222,7 @@ const FEEDBACK_AREAS = [
     ['church-observe', 'Church · 🔒 Observation (staff room-photo board)'],
     ['church-pulpit', "Church · 📖 The Word — Migdal (Bishop's study — historical sermons + corpus-grounded prep)"],
     ['church-scripture', 'Church · Scripture (themed, depth-adaptive KJV library — His perspective + His love, for the soul)'],
+    ['church-rap-study', 'Church · Bible Study (the RAP handout, interactive — fill-in reflection points + linked Scriptures, harvest-wired)'],
     ['pulpit-library', '└ The Word — Migdal · Message library (watch · document · reuse)'],
     ['pulpit-prep', '└ The Word — Migdal · Prep from your corpus'],
     ['church-choir', 'Church · Choir (director hub)'],
