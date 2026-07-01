@@ -372,9 +372,12 @@ export function auditToConcernCards(artifact = auditArtifact) {
 }
 
 // Compose the full board list from the inputs. DB concerns + seeds are the
-// editable/baseline curated set; feedback + auto-audit cards are appended
-// read-through (feedback = human voice; audit = the machine's proactive voice).
-export function composeConcerns({ dbConcerns = [], seeds = SEED_CONCERNS, feedback = [], audit = auditArtifact } = {}) {
+// editable/baseline curated set; feedback + auto-audit + derived cards are
+// appended read-through (feedback = human voice; audit = the machine's proactive
+// voice; derived = the app's own processes flagging real-data gaps, coverage /
+// reconciliation / shape — see lib/derive-concerns.js). A derived card auto-
+// resolves the moment its detector stops finding the problem, exactly like audit.
+export function composeConcerns({ dbConcerns = [], seeds = SEED_CONCERNS, feedback = [], audit = auditArtifact, derived = [] } = {}) {
   // DB rows win over a seed with the same id (a Governor can supersede a baseline
   // entry by adding a real row); de-dupe by id, DB first.
   const byId = new Map();
@@ -383,5 +386,8 @@ export function composeConcerns({ dbConcerns = [], seeds = SEED_CONCERNS, feedba
   const curated = [...byId.values()];
   const fb = feedbackToConcernCards(feedback);
   const au = auditToConcernCards(audit);
-  return [...curated, ...fb, ...au];
+  // Derived cards are already board-shaped (source + readOnly set by the
+  // detector); a curated DB/seed row with the same id supersedes it.
+  const der = (Array.isArray(derived) ? derived : []).filter((c) => c && c.id && c.concern && !byId.has(c.id));
+  return [...curated, ...fb, ...au, ...der];
 }

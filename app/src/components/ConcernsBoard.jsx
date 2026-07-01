@@ -22,6 +22,7 @@ import {
   CONCERN_STATUS, CONCERN_STATUS_ORDER, statusMeta,
   daysLate, orderConcerns, composeConcerns,
 } from '../lib/concerns.js';
+import { deriveDataConcerns } from '../lib/derive-concerns.js';
 
 // Auto-triage severity chip styling — reuses the board's themeable palette (no
 // new color, so the per-theme contrast guard keeps holding). Critical is a
@@ -75,6 +76,9 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
             </span>
             {late > 0 && <span className="font-semibold text-[#B85838]">⚠ {late} {late === 1 ? 'day' : 'days'} late</span>}
             {c.source === 'feedback' && <span className="text-[#7A5A8E]">↩ feedback</span>}
+            {(c.source === 'coverage' || c.source === 'reconciliation') && (
+              <span className="text-[#5A6E3D] uppercase" title={c.detectedBy ? `Auto-detected by ${c.detectedBy}` : 'Auto-detected by a process'}>process-found</span>
+            )}
             {c.evaluation && <SeverityBadge evaluation={c.evaluation} />}
           </span>
         </div>
@@ -170,7 +174,7 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
   );
 }
 
-export function ConcernsBoard({ concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null, isGovernor = false, currentUserId = null }) {
+export function ConcernsBoard({ concerns = [], feedback = [], transactions = [], rentals = [], debts = [], addConcern = null, updateConcern = null, deleteConcern = null, isGovernor = false, currentUserId = null }) {
   const [tab, setTab] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState({ concern: '', solution: '', targetDate: '', status: 'open', area: '' });
@@ -178,9 +182,15 @@ export function ConcernsBoard({ concerns = [], feedback = [], addConcern = null,
 
   const canEdit = !!(isGovernor || currentUserId);
 
+  // The app's own processes flag real-data gaps (coverage / reconciliation /
+  // shape) deterministically from the live ledger, portfolio, and debts — so a
+  // concern like a thin-import month or a collapsed multi-unit door appears the
+  // moment the process finds it, with no one naming it (lib/derive-concerns.js).
+  const derived = useMemo(() => deriveDataConcerns({ transactions, rentals, debts }), [transactions, rentals, debts]);
+
   // The full board list: curated (DB concerns supersede same-id seeds) + the
-  // dated baseline + feedback read-through.
-  const all = useMemo(() => composeConcerns({ dbConcerns: concerns, feedback }), [concerns, feedback]);
+  // dated baseline + feedback read-through + the process-derived cards.
+  const all = useMemo(() => composeConcerns({ dbConcerns: concerns, feedback, derived }), [concerns, feedback, derived]);
 
   // Past Due — anything past its committed target but unresolved. Leads the
   // tabs when something slipped, so a missed date is the first thing seen.
@@ -227,7 +237,7 @@ export function ConcernsBoard({ concerns = [], feedback = [], addConcern = null,
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">⚠ Concerns &amp; Solutions</div>
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-          Every concern, in the open — paired with the solution we intend, a target date we hold ourselves to, and an honest status. Your feedback shows up here automatically, so nothing you raise gets lost.
+          Every concern, in the open — paired with the solution we intend, a target date we hold ourselves to, and an honest status. Your feedback shows up here automatically, and the app&apos;s own checks (a thin-import month, a collapsed multi-unit door, a mislabeled debt) file themselves here the moment a process finds them — so nothing gets lost, and no one has to type it.
         </p>
         <div className="text-[10px] uppercase tracking-wider font-semibold mt-2">
           <span className="text-[#2A5A8E]">○ {counts.open} open</span>
@@ -236,7 +246,7 @@ export function ConcernsBoard({ concerns = [], feedback = [], addConcern = null,
           {counts.overdue > 0 && <span className="text-[#B85838]"> · ⚠ {counts.overdue} past target</span>}
         </div>
         <div className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-          Two feeds: your submitted feedback (read-through, automatic) and the dated concerns the family curates. {openCount} still need attention.
+          Auto-fed: your submitted feedback + the app&apos;s own process checks (marked &ldquo;process-found&rdquo;) — both read-through, no typing. Plus the dated concerns the family curates. {openCount} still need attention.
         </div>
         {canEdit && addConcern && (
           <button type="button" onClick={() => { setShowAdd(!showAdd); setErr(''); }}

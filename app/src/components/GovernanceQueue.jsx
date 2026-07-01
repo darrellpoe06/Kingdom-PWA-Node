@@ -17,6 +17,7 @@
 // it renders only for a signed-in family/governor account (isGovernor gate at
 // the call site).
 import React from 'react';
+import { DECISION_KIND } from '../lib/decisions.js';
 
 // Guarded so tests / SSR that don't run the vite define still render.
 const QUEUE = (typeof __GOVERNANCE_QUEUE__ !== 'undefined')
@@ -60,9 +61,14 @@ const tierColor = (t) => (t === 'C' ? '#B85838' : t === 'B' ? '#8B6F47' : '#5A6E
 // Status pill color — superseded reads muted, accepted reads settled-green.
 const statusColor = (s) => (s === 'superseded' ? '#8A6D3B' : s === 'accepted' ? '#5A6E3D' : '#5A5751');
 
-export default function GovernanceQueue() {
+// appDecisions — LIVE, in-app decisions the running system recorded (board
+// hand-offs + concern resolutions), derived from the same shared records the app
+// and humans both write (lib/decisions.js). Each carries its rationale so a
+// future steward inherits the why, not just the outcome.
+export default function GovernanceQueue({ appDecisions = [] }) {
   const { items, openCount } = normalizeGovernanceQueue(QUEUE);
   const ledger = normalizeDecisionLedger(LEDGER);
+  const decisions = Array.isArray(appDecisions) ? appDecisions.filter((d) => d && d.id) : [];
   return (
     <div className="space-y-6">
       {/* ---- OPEN: decisions waiting on the governor ---- */}
@@ -100,6 +106,50 @@ export default function GovernanceQueue() {
         <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Bright lines (money, credentials, clinical data, the family&apos;s voice) are never auto-decided — they always wait here for you.
         </p>
+      </div>
+
+      {/* ---- RECORDED BY THE APP: live decisions the running system logged ---- */}
+      <div className="space-y-3">
+        <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#2A5A8E] font-semibold">Governance · Recorded by the app</div>
+          <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+            The decisions the running system logged between commits — a board hand-off (Push to Ari / Darrell, with the note) and a concern marked resolved (the how becomes the record). Each carries its <em>why</em>, so a future steward inherits the understanding, not just the outcome. Auto-derived from the same records the app and you both write — no one types these in. {decisions.length > 0 ? `${decisions.length} recorded` : 'None yet'}.
+          </p>
+        </section>
+
+        {decisions.length === 0 ? (
+          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+            <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              No in-app decisions recorded yet — push a board task to an owner, or resolve a concern, and it lands here with its rationale.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {decisions.map((d) => {
+              const km = DECISION_KIND[d.kind] || DECISION_KIND.decision;
+              return (
+                <div key={d.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: km.color }}>
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: km.color }}>{km.label}</span>
+                    {d.date && <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{d.date}</span>}
+                  </div>
+                  <h4 className="text-base mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.title}</h4>
+                  {d.decision && (
+                    <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                      <span className="uppercase tracking-wider text-[#5A6E3D] text-[0.625rem]">Decision · </span>{d.decision}
+                    </p>
+                  )}
+                  <p className="text-xs text-[#5A5751] mt-1 whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span className="uppercase tracking-wider text-[0.625rem]">Why · </span>{d.rationale}
+                  </p>
+                  <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Source · {d.source}{d.owner ? ` · ${d.owner}` : ''}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ---- DECIDED: the Decision Record ledger, rendered natively ---- */}

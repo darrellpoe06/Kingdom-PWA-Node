@@ -10,6 +10,7 @@ import { ConcernsBoard } from './ConcernsBoard.jsx';
 import ProjectBoards from './ProjectBoards.jsx';
 import AppFirmUp from './AppFirmUp.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
+import { deriveAppDecisions } from '../lib/decisions.js';
 import ReviewFeed from './ReviewFeed.jsx';
 import LoopHealth from './LoopHealth.jsx';
 import DbHealth from './DbHealth.jsx';
@@ -162,7 +163,7 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], transactions = [], debts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null }) {
   const [subView, setSubView] = useState('list');
   // Back returns from a Projects sub-tab (Discussions/Concerns/Scopes/etc.) to
   // the timeline list, then on up the app history — the device Back button no
@@ -222,12 +223,12 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
         <Discussions discussions={discussions} projects={projects} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion} currentUserId={currentUserId} currentUserPersona={currentUserPersona} isGovernor={isGovernor} />
       )}
       {subView === 'concerns' && (
-        <ConcernsBoard concerns={concerns} feedback={feedback} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern} isGovernor={isGovernor} currentUserId={currentUserId} />
+        <ConcernsBoard concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern} isGovernor={isGovernor} currentUserId={currentUserId} />
       )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
       {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} onNavigate={onNavigate} />}
-      {subView === 'governance' && isGovernor && <GovernanceQueue />}
+      {subView === 'governance' && isGovernor && <GovernanceQueue appDecisions={deriveAppDecisions({ discussions, concerns })} />}
       {subView === 'loops' && isGovernor && (
         <div className="space-y-6">
           <LoopHealth data={loopData} decisions={loopDecisions} onDecision={onLoopDecision} financialDocAt={financialDocAt} />
