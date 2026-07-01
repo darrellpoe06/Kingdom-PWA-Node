@@ -6,140 +6,44 @@
 // labels, OWNERS, dates, and PROGRESS that rolls up per board. Live on the
 // shared-persistence backbone (0058 board_tasks), synced, RLS-safe. NOT static.
 //
-// SELF-CONTAINED (DR-0078): the monolith is frozen, so this NEW surface owns its
-// own data lifecycle — it subscribes to board_tasks directly (board-tasks-sync)
-// and does its own CRUD, threading NO state through the shell. It reads the
-// `projects` the hub already passes for coordination, but its items are the
-// board_tasks rows. Signed out, it runs from localStorage and syncs on sign-in.
+// SHARED STATE (DR-0078 + 2026-07-01): the monolith is frozen, so this surface
+// owns its data lifecycle — but the App Firm-Up headline needs the SAME live
+// board_tasks so closing an item moves the completion % on its own. So the state
+// + CRUD + the single realtime subscription live in lib/use-board-tasks.js (a
+// module-level store); both this board and the headline read one source of truth.
 //
 // Every glyph here is a geometric/dingbat character (○ ◐ ▲ ✓ ▦ →), never a
 // device-font emoji, so nothing tofus cross-device (consistency-guard). Text
 // sizes are rem-based Tailwind tokens (never fixed-px) so the large-print
 // control scales them.
 // =============================================================================
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { SURFACES } from '../surfaces.js';
-import { boardTasksSync, mergeRemoteBoardTasks } from '../lib/board-tasks-sync.js';
 import {
-  BOARD_STATUS, BOARD_STATUS_ORDER, statusMeta, nextStatus,
+  useBoardTasks, addTask, patchTask, removeTask, cycleStatus, loadSeed,
+} from '../lib/use-board-tasks.js';
+import {
+  BOARD_STATUS, BOARD_STATUS_ORDER, statusMeta,
   boardProgress, groupTasks, tasksForBoard, mergedBoardList,
-  newTaskSlug, seedTasksForBoard, SEED_BOARD_BY_SLUG, groupLabelOf,
+  SEED_BOARD_BY_SLUG,
 } from '../lib/board.js';
-
-const LS_KEY = 'poetech-board-tasks-v1';
 
 // The monolith freeze constant is a real, dated figure (scripts/monolith-budget.json).
 // Shown as context on the modular-cutover board's live metric, clearly as-of.
 const MONOLITH_FROZEN_LINES = 9386;
 const MONOLITH_FROZEN_AT = '2026-06-29';
 
-// local patch -> board_tasks snake_case columns, for updateRow.
-const COLUMN = {
-  title: 'title', status: 'status', owner: 'owner', group: 'group_label',
-  startDate: 'start_date', dueDate: 'due_date', sortRank: 'sort_rank',
-  notes: 'notes', boardSlug: 'board_slug', boardTitle: 'board_title',
-};
-function toColumnPatch(patch) {
-  const out = {};
-  for (const k of Object.keys(patch)) if (COLUMN[k]) out[COLUMN[k]] = patch[k];
-  return out;
-}
-
-function loadLocal() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  } catch { return []; }
-}
-function saveLocal(tasks) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(tasks)); } catch { /* quota / private mode */ }
-}
-
 // =============================================================================
 export default function ProjectBoards({ isGovernor = false, currentUserPersona = null, projects = [] }) {
-  const [tasks, setTasks] = useState(loadLocal);
+  const tasks = useBoardTasks();
   const [selected, setSelected] = useState(null);      // boardSlug currently open (null = board list)
   const [busy, setBusy] = useState(false);
 
-  // Subscribe to the cloud board_tasks (no-op signed out). onRemote fires with
-  // the full instance list; merge with any local-only rows and persist.
-  useEffect(() => {
-    const unsub = boardTasksSync.subscribe((remote) => {
-      setTasks((cur) => {
-        const merged = mergeRemoteBoardTasks(cur, remote);
-        saveLocal(merged);
-        return merged;
-      });
-    });
-    return unsub;
-  }, []);
-
-  // Persist every local change so a signed-out device keeps its board.
-  const commit = useCallback((updater) => {
-    setTasks((cur) => {
-      const next = typeof updater === 'function' ? updater(cur) : updater;
-      saveLocal(next);
-      return next;
-    });
-  }, []);
-
-  // ---- CRUD ----------------------------------------------------------------
-  const addTask = useCallback(async ({ boardSlug, boardTitle, group, title, owner = null }) => {
-    const slug = newTaskSlug(boardSlug);
-    const existing = tasksForBoard(tasks, boardSlug);
-    const rank = existing.filter((t) => groupLabelOf(t) === (group || 'General')).length;
-    const item = {
-      id: slug, slug, boardSlug, boardTitle, title: title.trim(),
-      status: 'not-started', owner, group: group || 'General',
-      startDate: null, dueDate: null, sortRank: rank, notes: null, links: {},
-    };
-    commit((cur) => [...cur, item]);
-    const res = await boardTasksSync.upload(item);
-    if (res && res.uploaded && res.remoteId) {
-      commit((cur) => cur.map((t) => (t.slug === slug ? { ...t, remoteUuid: res.remoteId } : t)));
-    }
-  }, [tasks, commit]);
-
-  const patchTask = useCallback((task, patch) => {
-    commit((cur) => cur.map((t) => (t.slug === task.slug ? { ...t, ...patch } : t)));
-    if (task.remoteUuid) {
-      boardTasksSync.updateRow(task.remoteUuid, toColumnPatch(patch))
-        .catch((e) => console.warn('[board-tasks-sync] update failed', e));
-    }
-  }, [commit]);
-
-  const removeTask = useCallback((task) => {
-    commit((cur) => cur.filter((t) => t.slug !== task.slug));
-    if (task.remoteUuid) {
-      boardTasksSync.deleteRow(task.remoteUuid)
-        .catch((e) => console.warn('[board-tasks-sync] delete failed', e));
-    }
-  }, [commit]);
-
-  const cycleStatus = useCallback((task) => {
-    patchTask(task, { status: nextStatus(task.status) });
-  }, [patchTask]);
-
-  // Load a seed board's real items — only the ones not already present (so a
-  // re-load fills gaps without clobbering edits). Idempotent by stable slug.
-  const loadSeed = useCallback(async (boardSlug) => {
+  const doLoadSeed = async (boardSlug) => {
     setBusy(true);
-    try {
-      const present = new Set(tasksForBoard(tasks, boardSlug).map((t) => t.slug));
-      const rows = seedTasksForBoard(boardSlug).filter((r) => !present.has(r.slug));
-      if (!rows.length) return;
-      const withIds = rows.map((r) => ({ ...r, id: r.slug, links: r.links || {} }));
-      commit((cur) => [...cur, ...withIds]);
-      for (const r of withIds) {
-        const res = await boardTasksSync.upload(r);
-        if (res && res.uploaded && res.remoteId) {
-          commit((cur) => cur.map((t) => (t.slug === r.slug ? { ...t, remoteUuid: res.remoteId } : t)));
-        }
-      }
-    } finally { setBusy(false); }
-  }, [tasks, commit]);
+    try { await loadSeed(boardSlug); } finally { setBusy(false); }
+  };
 
   const boards = useMemo(() => mergedBoardList(tasks), [tasks]);
   const selectedBoard = useMemo(
@@ -184,7 +88,7 @@ export default function ProjectBoards({ isGovernor = false, currentUserPersona =
           onPatch={patchTask}
           onRemove={removeTask}
           onCycle={cycleStatus}
-          onLoadSeed={() => loadSeed(selectedBoard.slug)}
+          onLoadSeed={() => doLoadSeed(selectedBoard.slug)}
         />
       )}
     </div>

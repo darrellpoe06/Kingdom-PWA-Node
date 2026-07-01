@@ -8,6 +8,7 @@ import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import { ConcernsBoard } from './ConcernsBoard.jsx';
 import ProjectBoards from './ProjectBoards.jsx';
+import AppFirmUp from './AppFirmUp.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
 import LoopHealth from './LoopHealth.jsx';
@@ -179,6 +180,12 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   if (isGovernor) tabs.push(['loops','🩺 Loops']);
   return (
     <div className="space-y-4">
+      {/* App Firm-Up / Completion headline — the live rollup of the whole build.
+          Darrell 2026-07-01: the boards timeline IS the timeline for finishing
+          the app, so overall % + projected finish + the persistent-backend share
+          + the module-ledger line-count lead the hub. Reads the shared board
+          store, so closing an item moves this on its own. */}
+      <AppFirmUp onOpenBoards={() => setSubView('boards')} />
       {/* The sub-tab strip scrolls horizontally so every section stays reachable
           on a phone — Decisions / Loops fall off the right edge of a
           full-width <main> (#264) otherwise, and the un-scrollable overflow used
