@@ -1,0 +1,287 @@
+// =============================================================================
+// EternalAlgorithmsStudy — the PUBLIC "Eternal Algorithms" study series surface
+// =============================================================================
+// Darrell 2026-07-01: Yahweh's word is decision-logic; His if/then truths are the
+// eternal algorithms of Information, Intelligence and Decision-making we return
+// to. This is the PUBLIC series (a sibling to Church > Learn / Scripture; NOT the
+// circle-gated Study). Entry #1 = Conditional Truth. Interactive: read the
+// Scripture-anchored teaching (two-tier: plain, then go-deeper), then examine
+// yourself honestly (device-local answers), then run a belief-vs-action round
+// scored on the SAME eight Yahweh axes as the Generations game — solo, or carry
+// it into a family/team Game Night.
+//
+// WORD-FIRST + LICENSE: verse TEXT is rendered from the public-domain KJV layer
+// (scriptures.js kjvText); the ESV citation is linked, never reproduced
+// (bible-editions.js; DR-0076). Data model + game transform live in
+// lib/eternal-algorithms-studies.js (pure, tested). Accessibility mirrors the
+// Scripture/Study surfaces: white / #FAF8F4 cards, #1A1815 body, #5A5751
+// secondary, labelled inputs, visible #B85838 focus outline (AA).
+// =============================================================================
+import React, { useEffect, useMemo, useState } from 'react';
+import { SectionTitle } from './shared.jsx';
+import HelpButton from './HelpButton.jsx';
+import UiIcon from './UiIcon.jsx';
+import { kjvText, readOnline } from '../lib/scriptures.js';
+import {
+  SERIES, listStudies, getStudy, AXES,
+  studyToGameCards, scoreRound,
+  loadResponses, saveResponses,
+} from '../lib/eternal-algorithms-studies.js';
+import { withStudyDeck } from '../lib/games/generations.js';
+
+const serif = { fontFamily: '"Fraunces", serif' };
+const mono = { fontFamily: '"JetBrains Mono", monospace' };
+const CARD = 'bg-white border border-[#E8E4DC] p-3';
+const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
+const AREA = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] leading-relaxed focus:outline focus:outline-2 focus:outline-[#B85838]';
+
+// A verse rendered from the public-domain KJV layer, with the ESV citation
+// LINKED (copyright — never reproduced). If a ref is not in the verified set the
+// reference shows alone (honest "look it up"), never a fabricated quote.
+function Verse({ refStr, translationCited = 'ESV' }) {
+  const text = kjvText(refStr);
+  return (
+    <div className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-1.5 my-1.5">
+      {text
+        ? <p className="text-sm text-[#1A1815]" style={serif}>“{text}”<span className="text-[0.625rem] text-[#5A5751] ml-1 align-baseline" style={mono}>KJV</span></p>
+        : <p className="text-xs text-[#5A5751] italic" style={serif}>{refStr} — read it in your Bible.</p>}
+      <div className="flex items-center gap-2 mt-0.5">
+        <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{refStr}</span>
+        <a href={readOnline(refStr, translationCited)} target="_blank" rel="noopener noreferrer"
+          title={`Read ${refStr} in the ${translationCited} (opens BibleGateway)`}
+          className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Read {translationCited} ↗
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// One teaching section: plain layer first, the deeper layer + extra anchors one
+// click beneath (the two-tier self-explain motion).
+function Section({ section }) {
+  const [deep, setDeep] = useState(false);
+  const extra = (section.anchors || []).filter((a) => a.ref !== section.primaryRef);
+  return (
+    <div className={CARD}>
+      <h4 className="text-[#1A1815] mb-1" style={{ ...serif, fontWeight: 600 }}>{section.heading}</h4>
+      <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{section.plain}</p>
+      {section.primaryRef && <Verse refStr={section.primaryRef} translationCited={(section.anchors?.[0]?.translation) || 'ESV'} />}
+      <button type="button" onClick={() => setDeep((v) => !v)} aria-expanded={deep}
+        className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+        {deep ? '↑ Close' : '↓ Go deeper'}
+      </button>
+      {deep && (
+        <div className="mt-1.5 border-l-2 border-[#1A1815] pl-3 pr-1 py-1">
+          <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{section.deep}</p>
+          {extra.map((a) => <Verse key={a.ref} refStr={a.ref} translationCited={a.translation || 'ESV'} />)}
+          {section.citation && (
+            <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={serif}>
+              <span className="uppercase tracking-wider text-[0.5625rem] text-[#5A6E3D]">Research cited</span> — {section.citation}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One self-examination item: the Word, a stated-input choice, an honest action
+// probe (saved device-local), and the mirror (mercy + accountability) revealed
+// once the person engages.
+function SelfExamItem({ item, value, onChange }) {
+  const v = value || {};
+  const engaged = !!v.agree || String(v.probe || '').trim().length > 0;
+  const opts = [['agree', 'I agree'], ['mostly', 'Mostly'], ['not-yet', 'Not yet']];
+  return (
+    <div className={CARD}>
+      <Verse refStr={item.wordRef} />
+      <p className="text-sm text-[#1A1815] mt-1" style={serif}>{item.prompt}</p>
+      <div className="flex gap-1.5 flex-wrap my-1.5" role="group" aria-label={`Your response to ${item.wordRef}`}>
+        {opts.map(([k, label]) => (
+          <button key={k} type="button" aria-pressed={v.agree === k}
+            onClick={() => onChange({ ...v, agree: k })}
+            className={`${BTN} border ${v.agree === k ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>{label}</button>
+        ))}
+      </div>
+      <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1" htmlFor={`probe-${item.id}`}>
+        Honestly — {item.probe}
+      </label>
+      <textarea id={`probe-${item.id}`} rows="2" className={AREA} value={v.probe || ''}
+        onChange={(e) => onChange({ ...v, probe: e.target.value })}
+        placeholder="Just between you and Yahweh. This stays on your device." />
+      {engaged && (
+        <p className="text-sm text-[#5A6E3D] mt-1.5 border-l-2 border-[#5A6E3D] pl-2" style={serif}>{item.mirror}</p>
+      )}
+    </div>
+  );
+}
+
+// The belief-vs-action round: each self-exam item becomes a card; picking a
+// choice scores on the eight Yahweh axes (reusing the Generations engine), so the
+// "do the word" path is Kingdom-forward and restating-the-belief yields nothing.
+function BeliefVsActionRound({ cards }) {
+  const [picks, setPicks] = useState({});
+  const { scores, totals } = useMemo(() => scoreRound(cards, picks), [cards, picks]);
+  const answered = Object.keys(picks).length;
+  return (
+    <div className="space-y-2">
+      {cards.map((card) => (
+        <div key={card.id} className={CARD}>
+          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D]" style={serif}>{card.lens}</p>
+          <Verse refStr={card.scripture.ref} />
+          <p className="text-sm text-[#1A1815] my-1" style={serif}>{card.body}</p>
+          <div className="space-y-1.5">
+            {card.choices.map((c, i) => (
+              <button key={i} type="button" aria-pressed={picks[card.id] === i}
+                onClick={() => setPicks((p) => ({ ...p, [card.id]: i }))}
+                className={`block w-full text-left ${BTN} border ${picks[card.id] === i ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#1A1815] border-[#E8E4DC] hover:border-[#B85838]'}`}>
+                {c.redemption ? '✦ ' : ''}{c.label}
+                {picks[card.id] === i && c.body && <span className="block text-[0.6875rem] normal-case tracking-normal mt-0.5 opacity-90">{c.body}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {answered > 0 && (
+        <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-1">Where your choices lean — measured by Yahweh</p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {AXES.map((a) => (
+              <span key={a.key} className="text-[0.6875rem] text-[#1A1815]" style={serif} title={a.short}>
+                {a.label}: <strong>{scores[a.key] || 0}</strong>
+              </span>
+            ))}
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={serif}>
+            Kingdom-weighted total <strong>{totals.weighted}</strong> — faith, family and souls weigh most (Matthew 6:33). This is a mirror, not a verdict.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function EternalAlgorithmsStudy({ email, view, churchView, setView, setChurchView }) {
+  const studies = listStudies();
+  const [activeId, setActiveId] = useState(studies[0]?.id || null);
+  const study = getStudy(activeId) || studies[0];
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [responses, setResponses] = useState({});
+  const [showRound, setShowRound] = useState(false);
+
+  // Load the reader's device-local answers for this identity.
+  useEffect(() => { setResponses(loadResponses(email)); }, [email]);
+  const setItem = (itemId, val) => {
+    setResponses((prev) => {
+      const next = { ...prev, [itemId]: val };
+      saveResponses(email, next);
+      return next;
+    });
+  };
+
+  const cards = useMemo(() => studyToGameCards(study, responses), [study, responses]);
+  // Persist the generated deck so a Game Night (Generations) can pick it up, and
+  // go to the games hub. withStudyDeck proves the deck injects into a real def.
+  const toGameNight = () => {
+    try {
+      const def = withStudyDeck(null, cards); // validates the deck builds a real def
+      localStorage.setItem('poetech.gamenight.studyDeck.v1', JSON.stringify({ studyId: study.id, cards: def.decks.study || cards }));
+    } catch { /* storage optional */ }
+    if (typeof setView === 'function') setView('games');
+  };
+
+  const helpNav = { view, churchView, setView, setChurchView };
+
+  return (
+    <div className="max-w-3xl">
+      <SectionTitle eyebrow="Word-first · for honest self-examination">
+        <span className="inline-flex items-center gap-2">
+          <UiIcon name="sparkle" /> {SERIES.title}
+          <HelpButton variant="inline" topic="church:eternal-algorithms" {...helpNav} />
+        </span>
+      </SectionTitle>
+
+      {/* The series frame — reverent, humble-seeking. */}
+      <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
+        <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">{SERIES.kicker}</p>
+        <p className="text-sm leading-relaxed" style={serif}>{SERIES.banner}</p>
+        <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>{SERIES.posture}</p>
+      </div>
+
+      {/* Two-tier self-explain (inline About + Help "Learn more"). */}
+      <div className="border border-[#E8E4DC] bg-white mb-3">
+        <button type="button" onClick={() => setAboutOpen((o) => !o)} aria-expanded={aboutOpen}
+          className="w-full flex items-center gap-2 text-left px-3 py-2 text-[0.6875rem] text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          <span className="uppercase tracking-[0.2em]">About this{aboutOpen ? '' : ' — what it is, where it comes from, how it works'}</span>
+          <span className="ml-auto">{aboutOpen ? '▾' : '▸'}</span>
+        </button>
+        {aboutOpen && (
+          <div className="px-3 pb-2 space-y-1 text-[0.8rem] text-[#1A1815]" style={serif}>
+            <p>{study.about.what}</p>
+            <p><span className="uppercase tracking-wider text-[0.625rem] text-[#5A6E3D]">Your data</span> — {study.about.where}</p>
+            <p><span className="uppercase tracking-wider text-[0.625rem] text-[#5A6E3D]">How to use it</span> — {study.about.how}</p>
+            <HelpButton variant="inline" topic="church:eternal-algorithms" {...helpNav} />
+          </div>
+        )}
+      </div>
+
+      {/* Series index — study #1 now; honest room-for-more (not painted). */}
+      <div className="flex gap-2 flex-wrap mb-3" role="tablist" aria-label="Studies in this series">
+        {studies.map((s) => (
+          <button key={s.id} type="button" role="tab" aria-selected={s.id === activeId}
+            onClick={() => setActiveId(s.id)}
+            className={`${BTN} border ${s.id === activeId ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
+            {s.number}. {s.title}
+          </button>
+        ))}
+        <span className="text-[0.6875rem] text-[#5A5751] self-center italic" style={serif}>More studies in this series are on the way.</span>
+      </div>
+
+      {/* The study. */}
+      <div className="mb-2">
+        <h3 className="text-xl text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Study {study.number} · {study.title}</h3>
+        <p className="text-sm text-[#5A5751]" style={serif}>{study.subtitle}</p>
+        <p className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif}>{study.intro}</p>
+      </div>
+
+      <div className="space-y-2 mb-4">
+        {study.sections.map((sec) => <Section key={sec.id} section={sec} />)}
+      </div>
+
+      {/* Interactive self-examination. */}
+      <div className="border-t-2 border-[#1A1815] pt-3 mb-3">
+        <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Examine yourself</h3>
+        <p className="text-sm text-[#5A5751] mb-2" style={serif}>
+          “Examine yourselves, to see whether you are in the faith” (2 Corinthians 13:5). Answer honestly — it stays on your device. No condemnation; a mirror held in mercy and truth.
+        </p>
+        <div className="space-y-2">
+          {study.selfExam.map((item) => (
+            <SelfExamItem key={item.id} item={item} value={responses[item.id]} onChange={(val) => setItem(item.id, val)} />
+          ))}
+        </div>
+      </div>
+
+      {/* The game hook — belief-vs-action round + Game Night hand-off. */}
+      <div className="border-t-2 border-[#1A1815] pt-3">
+        <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Take it to the game</h3>
+        <p className="text-sm text-[#5A5751] mb-2" style={serif}>
+          Your self-examination becomes a belief-vs-action round — each choice scored on the same eight Yahweh axes the Generations game uses (faith, family, souls, wisdom, service, peace, joy, provision). Do it yourself, or carry it into a family / team Game Night.
+        </p>
+        <div className="flex gap-2 flex-wrap mb-2">
+          <button type="button" onClick={() => setShowRound((v) => !v)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815]`}>
+            {showRound ? 'Hide the round' : 'Run the belief-vs-action round'}
+          </button>
+          <button type="button" onClick={toGameNight} className={`${BTN} border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]`}>
+            <UiIcon name="dice" /> Open Game Night (Generations)
+          </button>
+        </div>
+        {showRound && <BeliefVsActionRound cards={cards} />}
+      </div>
+
+      <p className="text-[0.6875rem] text-[#5A5751] mt-4" style={serif}>
+        King James Version (Public Domain) shown in-app, fetched verbatim and verified; other translations are referenced and linked, not reproduced (copyright). The Word is the arbiter; where we are unsure, we go back to it. Held in grace and truth, for the soul.
+      </p>
+    </div>
+  );
+}
