@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   WALL_GRID, VIDEO_IN, CONTROL, LED_DATA, POWER, MAP,
   ledLineMath, TEACHING_CARD, FINISH_CHECKLIST, CHAIN_DIAGRAM,
-  FIRST_LIGHT, VENDOR_MESSAGE,
+  FIRST_LIGHT, VENDOR_MESSAGE, VX1000_SOFTWARE,
 } from '../lib/led-wall-signal-chain.js';
 
 describe('WALL_GRID — 8 columns x 6 rows = 48', () => {
@@ -158,5 +158,35 @@ describe('VENDOR_MESSAGE — ready-to-send LED Nation ask', () => {
     expect(body).toMatch(/PRE-LOADED/);
     expect(body).toMatch(/\.rcfgx|screen configuration file/i);
     expect(body).toMatch(/8 columns x 6 rows/);
+  });
+});
+
+describe('VX1000_SOFTWARE — the NovaStar program stack + which machine', () => {
+  it('lists NovaLCT (config), V-Can (live), VICP (optional) with the download link', () => {
+    const names = VX1000_SOFTWARE.programs.map((p) => p.name);
+    expect(names).toEqual(['NovaLCT', 'V-Can', 'VICP']);
+    expect(VX1000_SOFTWARE.downloadUrl).toMatch(/novastar\.tech\/downloads/);
+    expect(VX1000_SOFTWARE.programs.find((p) => p.name === 'VICP').optional).toBe(true);
+  });
+  it('NovaLCT does the mapping + RCFG import; V-Can does live switching', () => {
+    const lct = VX1000_SOFTWARE.programs.find((p) => p.name === 'NovaLCT');
+    const vcan = VX1000_SOFTWARE.programs.find((p) => p.name === 'V-Can');
+    expect(lct.does).toMatch(/mapping/i);
+    expect(lct.does).toMatch(/RCFG/);
+    expect(vcan.does).toMatch(/switching|presets|layers/i);
+  });
+  it('first-setup steps: USB Type-B, admin login, map 8x6, RCFG, then V-Can', () => {
+    const s = VX1000_SOFTWARE.steps.join(' ');
+    expect(s).toMatch(/USB Type-B/);
+    expect(s).toMatch(/password "admin"/);
+    expect(s).toMatch(/8 x 6 = 48/);
+    expect(s).toMatch(/RCFG/);
+    expect(s).toMatch(/V-Can/);
+  });
+  it('records which software installs on which control-room machine', () => {
+    const plan = VX1000_SOFTWARE.machinePlan;
+    expect(plan.find((m) => m.install === 'NovaLCT').machine).toMatch(/config/i);
+    expect(plan.find((m) => m.install === 'V-Can').machine).toMatch(/operator/i);
+    expect(VX1000_SOFTWARE.machinePlanConfirm).toMatch(/confirm/i);
   });
 });

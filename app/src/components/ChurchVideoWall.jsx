@@ -38,7 +38,7 @@ import {
 import {
   VIDEO_IN, CONTROL, LED_DATA, POWER, MAP,
   ledLineMath, TEACHING_CARD, FINISH_CHECKLIST, CHAIN_DIAGRAM,
-  FIRST_LIGHT, VENDOR_MESSAGE,
+  FIRST_LIGHT, VENDOR_MESSAGE, VX1000_SOFTWARE,
 } from '../lib/led-wall-signal-chain.js';
 import {
   SESSION_GOAL, PHASES, LANES, isPriority, sessionProgress,
@@ -523,6 +523,53 @@ export default function ChurchVideoWall() {
           ))}
         </div>
         <p className="mt-3 text-[0.8125rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>{TEACHING_CARD.oneLiner}</b></p>
+      </div>
+
+      {/* ===== VX1000 SOFTWARE — the NovaStar program stack (copy on-site) ===== */}
+      <div className={card}>
+        <div className={labelCls}>VX1000 software &middot; {VX1000_SOFTWARE.controller}</div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">
+          Download all NovaStar software: <a href={VX1000_SOFTWARE.downloadUrl} target="_blank" rel="noreferrer" className="text-[#B85838] underline hover:text-[#1A1815]">{VX1000_SOFTWARE.downloadUrl}</a>
+        </p>
+
+        <div className="mt-3 space-y-2">
+          {VX1000_SOFTWARE.programs.map((p) => (
+            <div key={p.name} className="border border-[#E8E4DC] p-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{p.name}{p.optional ? ' (optional)' : ''}</span>
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{p.when}</span>
+              </div>
+              <div className="text-[0.75rem] text-[#1A1815]">{p.role} &mdash; {p.does}</div>
+              <div className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">Installs on: {p.machine}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">On-site first setup</div>
+        <ol className="mt-1.5 space-y-1">
+          {VX1000_SOFTWARE.steps.map((s, i) => (
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">{i + 1}.</span><span>{s}</span></li>
+          ))}
+        </ol>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{VX1000_SOFTWARE.usbNote}</p>
+
+        <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Which software on which machine</div>
+        <ul className="mt-1 space-y-1">
+          {VX1000_SOFTWARE.machinePlan.map((m, i) => (
+            <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{m.install}</b> &rarr; {m.machine}. {m.note}</span></li>
+          ))}
+        </ul>
+        <p className="mt-1 text-[0.6875rem] text-[#B85838] italic">Confirm: {VX1000_SOFTWARE.machinePlanConfirm}</p>
+
+        {/* Copy-ready block — select all + copy on mobile */}
+        <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Copy this</div>
+        <pre className="mt-1.5 whitespace-pre-wrap text-[0.75rem] text-[#1A1815] bg-[#FAF8F4] border border-[#E8E4DC] p-2.5 font-sans">{
+`VX1000 software (download: ${VX1000_SOFTWARE.downloadUrl})
+${VX1000_SOFTWARE.programs.map((p) => `- ${p.name}${p.optional ? ' (optional)' : ''}: ${p.role} — ${p.does} [${p.machine}]`).join('\n')}
+
+On-site first setup:
+${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
+}</pre>
       </div>
 
       {/* ===== FIRST LIGHT — fresh out of box: test tonight, map tomorrow ===== */}
