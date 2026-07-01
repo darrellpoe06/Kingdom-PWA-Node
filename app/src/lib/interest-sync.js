@@ -12,14 +12,11 @@
 import supabase from './supabase.js';
 import { cleanField, FIELD_CAPS } from './sanitize-input.js';
 
-// Darrell + Christina — the only eyes on the list ("all of this before me and my
-// wife Christina"). Mirrors migration 0023's RLS allow-list; the DB is the real
-// gate, this just drives whether the admin UI bothers to query.
-export const ADMIN_EMAILS = ['darrellpoe06@gmail.com', 'mrspoe06@gmail.com'];
-
-export function isAdminEmail(email) {
-  return !!email && ADMIN_EMAILS.includes(String(email).toLowerCase().trim());
-}
+// The admin allowlist lives in its own dependency-free module (one source of truth,
+// shared with admin-console). Re-exported here so this module's public API — which
+// AppInterestAdmin imports — is unchanged.
+import { ADMIN_EMAILS, isAdminEmail } from './admin-allowlist.js';
+export { ADMIN_EMAILS, isAdminEmail };
 
 async function currentEmail() {
   try {
