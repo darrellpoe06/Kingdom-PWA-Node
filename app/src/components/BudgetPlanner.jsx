@@ -13,6 +13,11 @@
 // movement, NO trades. When the ledger is thin/uncategorized the engine SAYS SO
 // (a confidence banner) instead of faking precision. All math is unit-tested in
 // __tests__/budget-engine.test.js; this file only captures goals + renders.
+//
+// THEME-SAFE (contrast + legibility guards, DR-0076): colors go through the
+// midnight-remapped Tailwind CLASS tokens only — never inline color styles and
+// never an un-remapped hex — so every surface reads AA on the dark theme too.
+// Fonts use rem, not fixed px (consistency guard).
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import HelpButton from './HelpButton.jsx';
 import { deriveDebts } from '../lib/financial-engineering.js';
@@ -20,16 +25,35 @@ import { buildGuidance, freeMonthlyForScope } from '../lib/budget-engine.js';
 import { goalsSync } from '../lib/goals-sync.js';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
-const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
-const sectionH = 'text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
+const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
+const sectionH = 'text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
 const money = (n) => `${n < 0 ? '-' : ''}$${Math.abs(Math.round(Number(n) || 0)).toLocaleString()}`;
 
-// Severity → color, all AA-contrast on white (matches the family-surface palette).
+// Semantic color CLASSES — every hex here is midnight-remapped (bright on dark),
+// so status color never regresses to dark-on-dark. Text + border pairs.
+const GOOD = 'text-[#15803D] border-[#15803D]';
+const WARN = 'text-[#B45309] border-[#B45309]';
+const BAD = 'text-[#991B1B] border-[#991B1B]';
+const MUTED = 'text-[#5A5751] border-[#5A5751]';
+
+// Severity → { text/border class, label }. Dots + chips read on both themes.
 const SEV = {
-  alert: { color: '#9B2C2C', label: 'Act now', dot: '●' },
-  watch: { color: '#946A00', label: 'Heads-up', dot: '●' },
-  info: { color: '#2F6B3A', label: 'Good news', dot: '●' },
+  alert: { cls: BAD, txt: 'text-[#991B1B]', label: 'Act now' },
+  watch: { cls: WARN, txt: 'text-[#B45309]', label: 'Heads-up' },
+  info: { cls: GOOD, txt: 'text-[#15803D]', label: 'Good news' },
 };
+
+function statusPair(status) {
+  if (status === 'on-track' || status === 'achieved') return GOOD;
+  if (status === 'behind' || status === 'no-date') return WARN;
+  if (status === 'at-risk') return BAD;
+  return MUTED;
+}
+// Covered bg tokens only for the funded-bar fill (#5A6E3D / #B85838 both remap).
+function barFill(status) {
+  return (status === 'on-track' || status === 'achieved') ? 'bg-[#5A6E3D]' : 'bg-[#B85838]';
+}
+const toneTxt = (ok) => (ok ? 'text-[#15803D]' : 'text-[#991B1B]');
 
 function localId() { return `goal-${Date.now()}`; }
 
@@ -50,7 +74,6 @@ function GoalForm({ debts, scope, currentDate, onAdd, onCancel }) {
   const [currentAmount, setCurrentAmount] = useState('');
   const [linkedDebtId, setLinkedDebtId] = useState(debts[0]?.id || '');
 
-  // For a payoff goal, the target is the live debt balance — prefill + lock it.
   const linked = debts.find((d) => d.id === linkedDebtId);
   const effectiveTarget = goalType === 'payoff' && linked ? linked.balance : Number(targetAmount) || 0;
   const valid = name.trim() && effectiveTarget > 0 && targetDate;
@@ -132,13 +155,13 @@ function GoalForm({ debts, scope, currentDate, onAdd, onCancel }) {
       </div>
 
       {goalType === 'payoff' && linked && (
-        <p className="text-[11px] text-[#5A5751] mt-2">Target is the <strong>live balance</strong> of {linked.name} ({money(linked.balance)}) — it moves as payments post to the ledger, so you never re-enter it.</p>
+        <p className="text-[0.6875rem] text-[#5A5751] mt-2">Target is the <strong>live balance</strong> of {linked.name} ({money(linked.balance)}) — it moves as payments post to the ledger, so you never re-enter it.</p>
       )}
 
       <div className="mt-3 flex items-center gap-2">
         <button onClick={submit} disabled={!valid} className="px-4 py-2 text-xs font-semibold bg-[#1A1815] text-[#FAF8F4] border border-[#1A1815] min-h-[40px] disabled:opacity-40">Add goal</button>
         <button onClick={onCancel} className="px-3 py-2 text-xs text-[#5A5751] border border-[#D8D0C2] min-h-[40px]">Cancel</button>
-        {!valid && <span className="text-[10px] text-[#5A5751]">Name, amount, and a date are required.</span>}
+        {!valid && <span className="text-[0.625rem] text-[#5A5751]">Name, amount, and a date are required.</span>}
       </div>
     </div>
   );
@@ -149,8 +172,7 @@ function GoalCard({ plan, onUpdateSaved, onDelete }) {
   const g = plan.goal;
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(g.currentAmount || 0);
-  const tone = plan.status === 'on-track' || plan.status === 'achieved' ? '#2F6B3A'
-    : plan.status === 'behind' ? '#946A00' : plan.status === 'at-risk' ? '#9B2C2C' : '#5A5751';
+  const pair = statusPair(plan.status);
   const statusLabel = {
     'on-track': 'On track', behind: 'Behind plan', 'at-risk': 'At risk',
     achieved: 'Reached', 'no-date': 'No deadline',
@@ -161,22 +183,22 @@ function GoalCard({ plan, onUpdateSaved, onDelete }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-[#1A1815]">{g.name}</div>
-          <div className="text-[10px] text-[#5A5751]">
+          <div className="text-[0.625rem] text-[#5A5751]">
             {g.goalType === 'payoff' ? 'Pay off' : 'Save'} {money(g.targetAmount)} by {fmtDate(g.targetDate)}
             {plan.basis === 'live-debt' && <span> · live balance</span>}
           </div>
         </div>
-        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 border shrink-0" style={{ color: tone, borderColor: tone }}>{statusLabel}</span>
+        <span className={`text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border shrink-0 ${pair}`}>{statusLabel}</span>
       </div>
 
       {/* funded bar — text carries the number so it reads without color */}
       <div className="mt-3">
-        <div className="flex justify-between text-[10px] text-[#5A5751] mb-1">
+        <div className="flex justify-between text-[0.625rem] text-[#5A5751] mb-1">
           <span>{plan.pctFunded}% funded</span>
           <span>{money(plan.remaining)} to go</span>
         </div>
-        <div className="h-2 bg-[#E3DDD2]" role="img" aria-label={`${plan.pctFunded} percent funded`}>
-          <div className="h-full" style={{ width: `${plan.pctFunded}%`, background: tone }} />
+        <div className="h-2 bg-[#E8E4DC]" role="img" aria-label={`${plan.pctFunded} percent funded`}>
+          <div className={`h-full ${barFill(plan.status)}`} style={{ width: `${plan.pctFunded}%` }} />
         </div>
       </div>
 
@@ -187,7 +209,7 @@ function GoalCard({ plan, onUpdateSaved, onDelete }) {
         </div>
         <div>
           <div className={labelCls}>Getting / mo</div>
-          <div className="tabular-nums font-semibold" style={{ color: plan.allocated >= plan.requiredMonthly ? '#2F6B3A' : '#946A00' }}>{money(plan.allocated ?? 0)}</div>
+          <div className={`tabular-nums font-semibold ${toneTxt(plan.allocated >= plan.requiredMonthly)}`}>{money(plan.allocated ?? 0)}</div>
         </div>
         <div>
           <div className={labelCls}>Lands</div>
@@ -196,21 +218,21 @@ function GoalCard({ plan, onUpdateSaved, onDelete }) {
       </div>
 
       {plan.status === 'behind' && plan.shortfallMonthly > 0 && (
-        <p className="text-[11px] mt-2" style={{ color: '#946A00' }}>Free up {money(plan.shortfallMonthly)}/mo more, or move the date, to stay on plan.</p>
+        <p className="text-[0.6875rem] mt-2 text-[#B45309]">Free up {money(plan.shortfallMonthly)}/mo more, or move the date, to stay on plan.</p>
       )}
 
       <div className="mt-3 flex items-center gap-2">
         {g.goalType === 'save' && !editing && (
-          <button onClick={() => { setEditing(true); setSaved(g.currentAmount || 0); }} className="px-3 py-1.5 text-[11px] border border-[#D8D0C2] text-[#1A1815] min-h-[36px]">Update saved</button>
+          <button onClick={() => { setEditing(true); setSaved(g.currentAmount || 0); }} className="px-3 py-1.5 text-[0.6875rem] border border-[#D8D0C2] text-[#1A1815] min-h-[36px]">Update saved</button>
         )}
         {g.goalType === 'save' && editing && (
           <>
             <input type="number" inputMode="decimal" value={saved} onChange={(e) => setSaved(e.target.value)} className="w-24 px-2 py-1.5 text-xs border border-[#D8D0C2] bg-white text-[#1A1815] tabular-nums min-h-[36px]" />
-            <button onClick={() => { onUpdateSaved(g.id, Number(saved) || 0); setEditing(false); }} className="px-3 py-1.5 text-[11px] bg-[#1A1815] text-[#FAF8F4] min-h-[36px]">Save</button>
-            <button onClick={() => setEditing(false)} className="px-2 py-1.5 text-[11px] text-[#5A5751] min-h-[36px]">Cancel</button>
+            <button onClick={() => { onUpdateSaved(g.id, Number(saved) || 0); setEditing(false); }} className="px-3 py-1.5 text-[0.6875rem] bg-[#1A1815] text-[#FAF8F4] min-h-[36px]">Save</button>
+            <button onClick={() => setEditing(false)} className="px-2 py-1.5 text-[0.6875rem] text-[#5A5751] min-h-[36px]">Cancel</button>
           </>
         )}
-        <button onClick={() => onDelete(g.id)} className="px-3 py-1.5 text-[11px] text-[#9B2C2C] border border-[#E3DDD2] min-h-[36px] ml-auto">Delete</button>
+        <button onClick={() => onDelete(g.id)} className="px-3 py-1.5 text-[0.6875rem] text-[#991B1B] border border-[#E8E4DC] min-h-[36px] ml-auto">Delete</button>
       </div>
     </div>
   );
@@ -221,11 +243,11 @@ function SignalRow({ s }) {
   const sev = SEV[s.severity] || SEV.info;
   return (
     <div className="flex gap-2.5 py-2.5 border-b border-[#F0EBE1] last:border-0">
-      <span className="text-sm leading-5 shrink-0" style={{ color: sev.color }} aria-hidden="true">{sev.dot}</span>
+      <span className={`text-sm leading-5 shrink-0 ${sev.txt}`} aria-hidden="true">●</span>
       <div className="min-w-0">
         <div className="text-sm font-semibold text-[#1A1815] flex items-center gap-2">
           {s.title}
-          <span className="text-[8px] uppercase tracking-wider px-1 py-0.5 border" style={{ color: sev.color, borderColor: sev.color }}>{sev.label}</span>
+          <span className={`text-[0.5rem] uppercase tracking-wider px-1 py-0.5 border ${sev.cls}`}>{sev.label}</span>
         </div>
         <div className="text-xs text-[#5A5751] leading-relaxed mt-0.5">{s.reason}</div>
       </div>
@@ -234,10 +256,10 @@ function SignalRow({ s }) {
 }
 
 const CONF = {
-  high: { color: '#2F6B3A', label: 'High confidence' },
-  medium: { color: '#946A00', label: 'Medium confidence' },
-  low: { color: '#9B2C2C', label: 'Low confidence' },
-  none: { color: '#5A5751', label: 'No data yet' },
+  high: { pair: GOOD, label: 'High confidence' },
+  medium: { pair: WARN, label: 'Medium confidence' },
+  low: { pair: BAD, label: 'Low confidence' },
+  none: { pair: MUTED, label: 'No data yet' },
 };
 
 export default function BudgetPlanner({ data, currentDate, scope = 'consolidated', months = 12 }) {
@@ -302,30 +324,30 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
               Goals & guidance
               <HelpButton variant="inline" topic="budget" />
             </h3>
-            <p className="text-[11px] text-[#5A5751] mt-0.5 leading-relaxed">
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 leading-relaxed">
               Set a target; the engine plans it from your real income and upcoming bills, and warns before you overspend.
               Planning guidance on your own data — <em>not investment advice, no money moves here.</em>
             </p>
           </div>
-          <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 border shrink-0" style={{ color: conf.color, borderColor: conf.color }}>{conf.label}</span>
+          <span className={`text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border shrink-0 ${conf.pair}`}>{conf.label}</span>
         </div>
         {(guidance.confidence.level === 'low' || guidance.confidence.level === 'medium' || guidance.confidence.level === 'none') && (
-          <p className="text-[11px] mt-2 leading-relaxed" style={{ color: conf.color }}>
+          <p className={`text-[0.6875rem] mt-2 leading-relaxed ${conf.pair.split(' ')[0]}`}>
             {guidance.confidence.message} Guidance below is directional until the ledger is complete and categorized.
           </p>
         )}
         <div className="grid grid-cols-3 gap-2 mt-3">
-          <div className="border border-[#E3DDD2] bg-[#FAF8F4] px-3 py-2">
+          <div className="border border-[#E8E4DC] bg-[#FAF8F4] px-3 py-2">
             <div className={labelCls}>Free / month</div>
-            <div className="text-lg font-semibold tabular-nums" style={{ color: freeMonthly >= 0 ? '#2F6B3A' : '#9B2C2C' }}>{money(freeMonthly)}</div>
+            <div className={`text-lg font-semibold tabular-nums ${toneTxt(freeMonthly >= 0)}`}>{money(freeMonthly)}</div>
           </div>
-          <div className="border border-[#E3DDD2] bg-[#FAF8F4] px-3 py-2">
+          <div className="border border-[#E8E4DC] bg-[#FAF8F4] px-3 py-2">
             <div className={labelCls}>Goals need / mo</div>
             <div className="text-lg font-semibold tabular-nums text-[#1A1815]">{money(guidance.allocation.totalRequired)}</div>
           </div>
-          <div className="border border-[#E3DDD2] bg-[#FAF8F4] px-3 py-2">
+          <div className="border border-[#E8E4DC] bg-[#FAF8F4] px-3 py-2">
             <div className={labelCls}>Left over / mo</div>
-            <div className="text-lg font-semibold tabular-nums" style={{ color: guidance.allocation.surplus >= 0 ? '#2F6B3A' : '#9B2C2C' }}>{money(guidance.allocation.surplus)}</div>
+            <div className={`text-lg font-semibold tabular-nums ${toneTxt(guidance.allocation.surplus >= 0)}`}>{money(guidance.allocation.surplus)}</div>
           </div>
         </div>
       </div>
@@ -334,10 +356,10 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
       <div className={card}>
         <div className="flex items-center justify-between mb-1">
           <div className={sectionH}>Proactive guidance</div>
-          <div className="text-[10px] text-[#5A5751]">
-            {guidance.counts.alert > 0 && <span style={{ color: '#9B2C2C' }}>{guidance.counts.alert} act-now</span>}
+          <div className="text-[0.625rem] text-[#5A5751]">
+            {guidance.counts.alert > 0 && <span className="text-[#991B1B]">{guidance.counts.alert} act-now</span>}
             {guidance.counts.alert > 0 && (guidance.counts.watch > 0 || guidance.counts.info > 0) && ' · '}
-            {guidance.counts.watch > 0 && <span style={{ color: '#946A00' }}>{guidance.counts.watch} heads-up</span>}
+            {guidance.counts.watch > 0 && <span className="text-[#B45309]">{guidance.counts.watch} heads-up</span>}
           </div>
         </div>
         {guidance.signals.length ? (
@@ -369,9 +391,9 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
                 <div key={g.id} className={card}>
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-semibold text-[#1A1815]">{g.name}</div>
-                    <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 border" style={{ color: '#2F6B3A', borderColor: '#2F6B3A' }}>Reached</span>
+                    <span className={`text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border ${GOOD}`}>Reached</span>
                   </div>
-                  <button onClick={() => deleteGoal(g.id)} className="mt-2 px-3 py-1.5 text-[11px] text-[#9B2C2C] border border-[#E3DDD2] min-h-[36px]">Delete</button>
+                  <button onClick={() => deleteGoal(g.id)} className="mt-2 px-3 py-1.5 text-[0.6875rem] text-[#991B1B] border border-[#E8E4DC] min-h-[36px]">Delete</button>
                 </div>
               );
             }
@@ -384,7 +406,7 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
       <div className={card}>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
           <div className={sectionH}>Category spending vs plan</div>
-          <label className="flex items-center gap-2 text-[10px] text-[#5A5751]">
+          <label className="flex items-center gap-2 text-[0.625rem] text-[#5A5751]">
             Warn when over by
             <select value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="px-2 py-1 text-xs border border-[#D8D0C2] bg-white text-[#1A1815]">
               <option value={0.10}>10%</option>
@@ -393,12 +415,12 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
             </select>
           </label>
         </div>
-        <p className="text-[11px] text-[#5A5751] mb-2">Plans are derived from your last 3 months of real spending. This month, paced to today.</p>
+        <p className="text-[0.6875rem] text-[#5A5751] mb-2">Plans are derived from your last 3 months of real spending. This month, paced to today.</p>
         {guidance.categoryRows.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-left text-[#5A5751] border-b border-[#E3DDD2]">
+                <tr className="text-left text-[#5A5751] border-b border-[#E8E4DC]">
                   <th className="py-1.5 pr-2 font-medium">Category</th>
                   <th className="py-1.5 px-2 font-medium text-right">Spent</th>
                   <th className="py-1.5 px-2 font-medium text-right">Plan</th>
@@ -408,20 +430,23 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
               </thead>
               <tbody>
                 {guidance.categoryRows.map((r) => {
-                  const st = r.status === 'over' ? { c: '#9B2C2C', t: 'Over' } : r.status === 'hot' ? { c: '#946A00', t: 'Hot' } : r.status === 'under' ? { c: '#2F6B3A', t: 'Under' } : { c: '#5A5751', t: 'On plan' };
+                  const st = r.status === 'over' ? { c: 'text-[#991B1B]', t: 'Over' }
+                    : r.status === 'hot' ? { c: 'text-[#B45309]', t: 'Hot' }
+                      : r.status === 'under' ? { c: 'text-[#15803D]', t: 'Under' }
+                        : { c: 'text-[#5A5751]', t: 'On plan' };
                   return (
                     <tr key={r.category} className="border-b border-[#F0EBE1]">
                       <td className="py-2 pr-2 font-semibold text-[#1A1815] capitalize">{r.category}</td>
                       <td className="py-2 px-2 text-right tabular-nums text-[#1A1815]">{money(r.spent)}</td>
                       <td className="py-2 px-2 text-right tabular-nums text-[#5A5751]">{money(r.plan)}</td>
-                      <td className="py-2 px-2 text-right tabular-nums" style={{ color: st.c }}>{money(r.projected)}</td>
-                      <td className="py-2 pl-2 text-right"><span className="text-[9px] uppercase tracking-wider" style={{ color: st.c }}>{st.t}</span></td>
+                      <td className={`py-2 px-2 text-right tabular-nums ${st.c}`}>{money(r.projected)}</td>
+                      <td className="py-2 pl-2 text-right"><span className={`text-[0.5625rem] uppercase tracking-wider ${st.c}`}>{st.t}</span></td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-            {catAttention.length === 0 && <p className="text-[11px] text-[#2F6B3A] mt-2">Every category is tracking within plan this month.</p>}
+            {catAttention.length === 0 && <p className="text-[0.6875rem] text-[#15803D] mt-2">Every category is tracking within plan this month.</p>}
           </div>
         ) : (
           <p className="text-xs text-[#5A5751] py-2">Once there's a few months of categorized spending, per-category plans and pacing show here.</p>
@@ -431,15 +456,15 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
       {/* PIPELINE — what's coming */}
       <div className={card}>
         <div className={sectionH}>Down the pipeline</div>
-        <p className="text-[11px] text-[#5A5751] mt-0.5 mb-2">Non-monthly bills coming up, with cash left after each lands — so you can save ahead.</p>
+        <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 mb-2">Non-monthly bills coming up, with cash left after each lands — so you can save ahead.</p>
         {guidance.pipeline.length ? (
           <ul className="space-y-1">
             {guidance.pipeline.slice(0, 8).map((o, i) => (
               <li key={i} className="flex items-center justify-between text-xs border-b border-[#F0EBE1] last:border-0 py-1.5">
                 <span className="text-[#1A1815]">{o.label} <span className="text-[#5A5751]">· ~{o.dueMonth}</span></span>
                 <span className="flex items-center gap-3">
-                  <span className="tabular-nums" style={{ color: '#9B2C2C' }}>{money(o.amount)}</span>
-                  <span className="tabular-nums text-[10px]" style={{ color: o.cashAfter < 0 ? '#9B2C2C' : '#5A5751' }}>cash after: {money(o.cashAfter)}</span>
+                  <span className="tabular-nums text-[#991B1B]">{money(o.amount)}</span>
+                  <span className={`tabular-nums text-[0.625rem] ${o.cashAfter < 0 ? 'text-[#991B1B]' : 'text-[#5A5751]'}`}>cash after: {money(o.cashAfter)}</span>
                 </span>
               </li>
             ))}
