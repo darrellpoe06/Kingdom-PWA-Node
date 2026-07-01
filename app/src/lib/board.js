@@ -55,6 +55,80 @@ export function groupLabelOf(task) {
   return g || DEFAULT_GROUP;
 }
 
+// =============================================================================
+// OWNERSHIP — least-human default (declared by Darrell 2026-07-01)
+// =============================================================================
+// Default ownership follows LEAST-HUMAN: an item the SYSTEM can do is owned by
+// the AI; a human owns an item ONLY when it truly needs one — a decision, a
+// real-world action, or a credential a person physically holds. The app's AI is
+// branded "Ari" (project-ari-ai-identity), so Ari is the one AI owner name the
+// board speaks. Early seeds used the label "Claude" for that same AI; those are
+// normalized to Ari on read so no board shows two names for one worker.
+export const AI_OWNER = 'Ari';
+const LEGACY_AI_OWNER_LABELS = ['claude', 'ai', 'assistant', 'system-ai'];
+export function normalizeOwner(owner) {
+  if (owner == null) return null;
+  const s = String(owner).trim();
+  if (!s) return null;
+  return LEGACY_AI_OWNER_LABELS.includes(s.toLowerCase()) ? AI_OWNER : s;
+}
+export function isAiOwner(owner) {
+  return normalizeOwner(owner) === AI_OWNER;
+}
+
+// The two principals of the human↔AI collaboration channel. A handoff reassigns
+// an item to the OTHER party with a short note, and every push is logged to the
+// item's history so both sides see what the other is thinking (the two-way
+// record Darrell asked for; ties project-ai-hi-shared-memory-collaboration).
+export const HANDOFF_TARGETS = [
+  { value: AI_OWNER,  label: 'Push to Ari',     hint: 'AI / system can do this' },
+  { value: 'Darrell', label: 'Push to Darrell', hint: 'needs a human — decision, real-world step, or a credential' },
+];
+
+// -----------------------------------------------------------------------------
+// Handoff history — persisted on the shared backbone inside board_tasks.links
+// (the existing synced jsonb column) as links.history: an append-only list of
+// { at, from, to, by, note, kind } entries. No schema migration needed; it rides
+// the same realtime sync every board_tasks row already uses, so it is live for
+// both sides immediately. kind='handoff' = a deliberate push; kind='default' =
+// the system re-defaulting an owner to least-human.
+// -----------------------------------------------------------------------------
+export function taskHistory(task) {
+  const h = task && task.links && Array.isArray(task.links.history) ? task.links.history : [];
+  return h;
+}
+export function makeHandoff({ at, from = null, to, by = null, note = '', kind = 'handoff' }) {
+  return {
+    at: at || null,
+    from: from ?? null,
+    to: to ?? null,
+    by: by ?? null,
+    note: (note || '').trim() || null,
+    kind,
+  };
+}
+// Return a new links object with the entry appended to links.history (immutable;
+// preserves every other link field — project_slug, dr_ref, live_metric, …).
+export function appendHistory(links, entry) {
+  const base = links && typeof links === 'object' ? links : {};
+  const history = Array.isArray(base.history) ? base.history : [];
+  return { ...base, history: [...history, entry] };
+}
+
+// canonicalSeedOwner — the least-human owner a SEED item is defined to have, from
+// its SEED_BOARDS spec. Used to self-heal live rows that were seeded with the old
+// backwards default (a system item mis-assigned to a human) — unless a deliberate
+// handoff has since moved it. Returns undefined for a non-seed / unknown slug.
+export function canonicalSeedOwner(boardSlug, slug) {
+  const spec = SEED_BOARD_BY_SLUG[boardSlug];
+  if (!spec) return undefined;
+  const prefix = `bt-seed-${boardSlug}-`;
+  if (!slug || !slug.startsWith(prefix)) return undefined;
+  const key = slug.slice(prefix.length);
+  const item = (spec.items || []).find((it) => it.key === key);
+  return item ? normalizeOwner(item.owner) : undefined;
+}
+
 // -----------------------------------------------------------------------------
 // boardProgress — the honest roll-up that drives the per-board progress bar and
 // the board-selector pills. Pure tally of the REAL rows passed in (already
@@ -192,12 +266,12 @@ export const SEED_BOARDS = [
     metric: 'modular-cutover',
     groupOrder: ['Stages'],
     items: [
-      { key: 's0', group: 'Stages', title: 'Stage 0 — new-surface = new-module (in force)', status: 'done', owner: 'Claude', notes: 'Every new surface ships as its own file; conference surfaces isolated. Already true.' },
-      { key: 's1', group: 'Stages', title: 'Stage 1 — introduce surfaces.js registry + freeze monolith (C1/C2)', status: 'done', owner: 'Claude', notes: 'app/src/surfaces.js exists; the monolith is frozen (scripts/monolith-budget.json) and may only go DOWN — the live line-count vs budget is on this board metric above.' },
-      { key: 's2', group: 'Stages', title: 'Stage 2 — migrate existing surfaces onto the registry-driven mount', status: 'in-progress', owner: 'Claude', notes: 'Registry holds every lazy loader; the shell still uses named exports + render switch. Replace the switch with a registry-driven mount (derive nav C3/C4, route allow-list C5, feedback-area C6).' },
-      { key: 's3', group: 'Stages', title: 'Stage 3 — peel remaining in-file sections (Church wrapper, BigPicture, Admin, FeedbackModal)', status: 'not-started', owner: 'Claude', notes: 'Work queue = ranked hot-file output (conflict-analytics.mjs), highest-contention first. One section per PR, behavior pinned by tests.' },
-      { key: 's4', group: 'Stages', title: 'Stage 4 — boundary gate + timestamped migration names', status: 'in-progress', owner: 'Claude', notes: 'module-boundary-guard.mjs + monolith-budget-guard.mjs exist. Remaining: timestamped migration allocator (YYYYMMDDHHMM-slug.sql) to end the duplicate-number class.' },
-      { key: 's5', group: 'Stages', title: 'Stage 5 — full decomposition (monolith becomes a thin composition root)', status: 'not-started', owner: 'Claude', notes: 'After the in-flight queue drains + soak confirms the conflict trend turned DOWN.' },
+      { key: 's0', group: 'Stages', title: 'Stage 0 — new-surface = new-module (in force)', status: 'done', owner: 'Ari', notes: 'Every new surface ships as its own file; conference surfaces isolated. Already true.' },
+      { key: 's1', group: 'Stages', title: 'Stage 1 — introduce surfaces.js registry + freeze monolith (C1/C2)', status: 'done', owner: 'Ari', notes: 'app/src/surfaces.js exists; the monolith is frozen (scripts/monolith-budget.json) and may only go DOWN — the live line-count vs budget is on this board metric above.' },
+      { key: 's2', group: 'Stages', title: 'Stage 2 — migrate existing surfaces onto the registry-driven mount', status: 'in-progress', owner: 'Ari', notes: 'Registry holds every lazy loader; the shell still uses named exports + render switch. Replace the switch with a registry-driven mount (derive nav C3/C4, route allow-list C5, feedback-area C6).' },
+      { key: 's3', group: 'Stages', title: 'Stage 3 — peel remaining in-file sections (Church wrapper, BigPicture, Admin, FeedbackModal)', status: 'not-started', owner: 'Ari', notes: 'Work queue = ranked hot-file output (conflict-analytics.mjs), highest-contention first. One section per PR, behavior pinned by tests.' },
+      { key: 's4', group: 'Stages', title: 'Stage 4 — boundary gate + timestamped migration names', status: 'in-progress', owner: 'Ari', notes: 'module-boundary-guard.mjs + monolith-budget-guard.mjs exist. Remaining: timestamped migration allocator (YYYYMMDDHHMM-slug.sql) to end the duplicate-number class.' },
+      { key: 's5', group: 'Stages', title: 'Stage 5 — full decomposition (monolith becomes a thin composition root)', status: 'not-started', owner: 'Ari', notes: 'After the in-flight queue drains + soak confirms the conflict trend turned DOWN.' },
     ],
   },
 
@@ -213,7 +287,7 @@ export const SEED_BOARDS = [
       { key: 'led-signal', group: 'LED video wall', title: 'LED data path — 8 lines per COLUMN, direct (no switch)', status: 'done', owner: 'Darrell', notes: 'Recorded: LED data = 8 lines per column direct; ATEM = production, VX1000 = source switch.' },
       { key: 'led-videoin', group: 'LED video wall', title: 'Video-in via owned KEQINX HDMI-over-Cat6', status: 'in-progress', owner: 'Darrell', notes: 'Owned KEQINX HDMI-over-Cat6 for video-in. Confirm runs + terminations on the finish checklist.' },
       { key: 'led-finish', group: 'LED video wall', title: 'Finish checklist — mounting, alignment, calibration', status: 'not-started', owner: 'Darrell', notes: 'In-app finish-checklist on the video-wall record; walk it on-site.' },
-      { key: 'led-teach', group: 'LED video wall', title: 'Teaching card so staff can run the wall', status: 'done', owner: 'Claude', notes: 'In-app doc + teaching card shipped with the signal-chain record.' },
+      { key: 'led-teach', group: 'LED video wall', title: 'Teaching card so staff can run the wall', status: 'done', owner: 'Ari', notes: 'In-app doc + teaching card shipped with the signal-chain record.' },
       { key: 'inf-nas', group: 'Compute + AV stack', title: 'Church NAS — the brain + barn (storage, services, backup)', status: 'in-progress', owner: 'Darrell', notes: 'Sovereign church stack. 3-2-1 backup incl. encrypted sealed-blob offsite. Ties infrastructure-class.js.' },
       { key: 'inf-towers', group: 'Compute + AV stack', title: 'Two compute towers next to the NovaStar (Ollama / XTTS / whisper, LAN-only)', status: 'not-started', owner: 'Darrell', notes: 'TWO tower PCs, specs SME/TBD; compose local AI + voice + transcription, LAN-only. Parallel sovereign local-coder workers (mesh nodes.json).' },
       { key: 'inf-network', group: 'Compute + AV stack', title: 'UniFi gateway + VLAN walls (family · COLG · TLC · Properties · PoeTech)', status: 'not-started', owner: 'Darrell', notes: 'One door to the internet; separate walled VLAN rooms per domain.' },
@@ -228,11 +302,11 @@ export const SEED_BOARDS = [
     blurb: 'The money pipeline end to end: bank data in → categorize + verify → debts + forecast. Each stage is a real loop that must move LIVE data, not paint a number.',
     groupOrder: ['Pipeline'],
     items: [
-      { key: 'fin-import', group: 'Pipeline', title: 'Bank statement import (email → Gmail → NAS → verified ledger)', status: 'in-progress', owner: 'Darrell', notes: 'wf18 import repaired (2026-06-17). Coverage loaded Nov24–May26 (4 Chase accts, 1932 txns). Needs a fresh June export + Gmail reconnect to fully automate.' },
-      { key: 'fin-categorize', group: 'Pipeline', title: 'Categorize + verify imported transactions', status: 'in-progress', owner: 'Darrell', notes: 'Human-verify step before a txn is load-bearing. Books figures derive from the ledger (account-balances.js), never a stored balance.' },
-      { key: 'fin-balances', group: 'Pipeline', title: 'Derived account balances reconcile to the bank', status: 'done', owner: 'Claude', notes: 'Balances derive from the append-only ledger and reconcile to bank (e.g. acct 7206 = $317.17). No painted totals.' },
-      { key: 'fin-debts', group: 'Pipeline', title: 'Debts — snowball/avalanche payoff tracking', status: 'in-progress', owner: 'Darrell', notes: 'Debts flow into the forecast as obligations.' },
-      { key: 'fin-forecast', group: 'Pipeline', title: 'Forecast — dynamic cash-flow projection + scenarios (projected vs actual)', status: 'done', owner: 'Claude', notes: 'Family-gated Forecast: dynamic projections + scenarios + projected-vs-actual (financial-engineering.js, v2.16).' },
+      { key: 'fin-import', group: 'Pipeline', title: 'Bank statement import (email → Gmail → NAS → verified ledger)', status: 'in-progress', owner: 'Ari', notes: 'System work (wf18 import, repaired 2026-06-17). Coverage loaded Nov24–May26 (4 Chase accts, 1932 txns). Ari runs the import; the one human sub-step (Gmail reconnect — a credential Darrell holds) is pushed to Darrell when it comes due.' },
+      { key: 'fin-categorize', group: 'Pipeline', title: 'Categorize + verify imported transactions', status: 'in-progress', owner: 'Ari', notes: 'Ari categorizes each txn; the human spot-verify before a txn is load-bearing is a push-to-Darrell checkpoint, not the owner of the whole loop. Books figures derive from the ledger (account-balances.js), never a stored balance.' },
+      { key: 'fin-balances', group: 'Pipeline', title: 'Derived account balances reconcile to the bank', status: 'done', owner: 'Ari', notes: 'Balances derive from the append-only ledger and reconcile to bank (e.g. acct 7206 = $317.17). No painted totals.' },
+      { key: 'fin-debts', group: 'Pipeline', title: 'Debts — snowball/avalanche payoff tracking', status: 'in-progress', owner: 'Ari', notes: 'System computes snowball/avalanche payoff order + progress from the ledger. Debts flow into the forecast as obligations. Darrell governs the strategy choice; the tracking is Ari.' },
+      { key: 'fin-forecast', group: 'Pipeline', title: 'Forecast — dynamic cash-flow projection + scenarios (projected vs actual)', status: 'done', owner: 'Ari', notes: 'Family-gated Forecast: dynamic projections + scenarios + projected-vs-actual (financial-engineering.js, v2.16).' },
     ],
   },
 
@@ -247,7 +321,7 @@ export const SEED_BOARDS = [
       { key: 'tlc-courses', group: 'Courses + CE', title: 'Clinician courses — 10 fields, pre/post tests, hours + cert', status: 'in-progress', owner: 'Christina', notes: 'FOUR-STRAND spine (Yahweh centre + clinical + neuroscience + societal); multi-track grounded IL/CSWE hours. PracticeLearn.jsx, PR #429.' },
       { key: 'tlc-ceu', group: 'Courses + CE', title: 'CE/CEU renewal tracker (multi-state)', status: 'in-progress', owner: 'Christina', notes: 'ceu-tracker.js STATE_RULESETS; IL ruleset confirmed:false pending Christina SME. 0055.' },
       { key: 'tlc-sme', group: 'Courses + CE', title: 'Christina SME gate — clinical content review before publish', status: 'not-started', owner: 'Christina', notes: 'SME sign-off gate on clinician-facing content. Reviewed by use in her hands.' },
-      { key: 'tlc-ingest', group: 'Courses + CE', title: 'YouTube-distill ingest (Rivah/Ellis → Couples track)', status: 'not-started', owner: 'Claude', notes: 'Distill SME video → course modules; local NAS pipeline.' },
+      { key: 'tlc-ingest', group: 'Courses + CE', title: 'YouTube-distill ingest (Rivah/Ellis → Couples track)', status: 'not-started', owner: 'Ari', notes: 'Distill SME video → course modules; local NAS pipeline.' },
     ],
   },
 
@@ -259,7 +333,7 @@ export const SEED_BOARDS = [
     blurb: 'The stewardship handoff: who carries what, and the plan for passing the system + the ministry + the businesses to the next generation.',
     groupOrder: ['Succession'],
     items: [
-      { key: 'suc-surface', group: 'Succession', title: 'Succession surface in-app (family-gated)', status: 'done', owner: 'Claude', notes: 'FamilySuccession.jsx built + mounted (surfaces.js: succession, family/governor-gated).' },
+      { key: 'suc-surface', group: 'Succession', title: 'Succession surface in-app (family-gated)', status: 'done', owner: 'Ari', notes: 'FamilySuccession.jsx built + mounted (surfaces.js: succession, family/governor-gated).' },
       { key: 'suc-map', group: 'Succession', title: 'Map each role/asset to a successor + readiness', status: 'not-started', owner: 'Darrell', notes: 'Who carries what; readiness per successor. Real family data, entered by Darrell.' },
       { key: 'suc-docs', group: 'Succession', title: 'Governing documents + access handoff plan', status: 'not-started', owner: 'Darrell', notes: 'DB primary → home hardware (~Jul–Aug 2026); sealed-blob backup at church. Access handoff on the same arc.' },
     ],
@@ -283,7 +357,7 @@ export function seedTasksForBoard(boardSlug) {
     boardTitle: spec.title,
     title: it.title,
     status: BOARD_STATUS[it.status] ? it.status : 'not-started',
-    owner: it.owner || null,
+    owner: normalizeOwner(it.owner),
     group: it.group || DEFAULT_GROUP,
     startDate: it.startDate || null,
     dueDate: it.dueDate || null,

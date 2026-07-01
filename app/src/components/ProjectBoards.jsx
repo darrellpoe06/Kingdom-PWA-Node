@@ -20,12 +20,12 @@
 import React, { useMemo, useState } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import {
-  useBoardTasks, addTask, patchTask, removeTask, cycleStatus, loadSeed,
+  useBoardTasks, addTask, patchTask, removeTask, cycleStatus, loadSeed, pushTask,
 } from '../lib/use-board-tasks.js';
 import {
   BOARD_STATUS, BOARD_STATUS_ORDER, statusMeta,
   boardProgress, groupTasks, tasksForBoard, mergedBoardList,
-  SEED_BOARD_BY_SLUG,
+  SEED_BOARD_BY_SLUG, HANDOFF_TARGETS, taskHistory, isAiOwner,
 } from '../lib/board.js';
 import { moduleLedger } from '../lib/completion.js';
 
@@ -85,6 +85,7 @@ export default function ProjectBoards({ isGovernor = false, currentUserPersona =
           onPatch={patchTask}
           onRemove={removeTask}
           onCycle={cycleStatus}
+          onPush={pushTask}
           onLoadSeed={() => doLoadSeed(selectedBoard.slug)}
         />
       )}
@@ -190,7 +191,7 @@ function ProgressBar({ progress, seedCount = 0 }) {
 // -----------------------------------------------------------------------------
 // BoardDetail — one board: header + live metric + groups of items.
 // -----------------------------------------------------------------------------
-function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona, onBack, onAddTask, onPatch, onRemove, onCycle, onLoadSeed }) {
+function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona, onBack, onAddTask, onPatch, onRemove, onCycle, onPush, onLoadSeed }) {
   const progress = useMemo(() => boardProgress(tasks), [tasks]);
   const groups = useMemo(() => groupTasks(tasks, spec?.groupOrder || []), [tasks, spec]);
   const [addingGroup, setAddingGroup] = useState('');
@@ -237,7 +238,7 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
           </div>
           <ul>
             {g.tasks.map((t) => (
-              <TaskRow key={t.slug} task={t} onPatch={onPatch} onRemove={onRemove} onCycle={onCycle} />
+              <TaskRow key={t.slug} task={t} currentUserPersona={currentUserPersona} onPatch={onPatch} onRemove={onRemove} onCycle={onCycle} onPush={onPush} />
             ))}
           </ul>
           <AddItem
@@ -265,11 +266,12 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
 // TaskRow — one item: status chip (tap to cycle), title (click to edit), owner,
 // due date, delete. Every control keyboard-focusable.
 // -----------------------------------------------------------------------------
-function TaskRow({ task, onPatch, onRemove, onCycle }) {
+function TaskRow({ task, currentUserPersona, onPatch, onRemove, onCycle, onPush }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.title);
   const [open, setOpen] = useState(false);
   const m = statusMeta(task.status);
+  const ownerIsAi = isAiOwner(task.owner);
 
   return (
     <li className="border-b border-[#F0EDE6] last:border-b-0">
@@ -301,9 +303,12 @@ function TaskRow({ task, onPatch, onRemove, onCycle }) {
           </button>
         )}
 
-        {/* Owner */}
-        <span className="hidden sm:block text-xs text-[#5A5751] w-20 truncate text-right" title={task.owner || ''}>
-          {task.owner || '—'}
+        {/* Owner — an AI-owned item wears a subtle badge so the least-human split is legible at a glance. */}
+        <span
+          className={`hidden sm:inline-flex items-center gap-1 text-xs w-20 justify-end truncate ${ownerIsAi ? 'text-[#2A5A8E]' : 'text-[#5A5751]'}`}
+          title={ownerIsAi ? `${task.owner} — AI / system owns this` : (task.owner ? `${task.owner} — needs a human` : 'no owner')}
+        >
+          {ownerIsAi && <span aria-hidden="true">◆</span>}{task.owner || '—'}
         </span>
 
         {/* Due date */}
@@ -314,14 +319,14 @@ function TaskRow({ task, onPatch, onRemove, onCycle }) {
           title="Due date"
         />
 
-        <button onClick={() => setOpen((v) => !v)} className="shrink-0 text-[#5A5751] text-sm px-1 focus:outline focus:outline-2 focus:outline-[#B85838] rounded" title="Details">
+        <button onClick={() => setOpen((v) => !v)} className="shrink-0 text-[#5A5751] text-sm px-1 focus:outline focus:outline-2 focus:outline-[#B85838] rounded" title="Details" aria-expanded={open}>
           {open ? '▾' : '▸'}
         </button>
       </div>
 
-      {/* Expanded editor: owner + notes + delete */}
+      {/* Expanded editor: owner + status + notes + handoff + history + delete */}
       {open && (
-        <div className="px-4 pb-3 pt-0 space-y-2 bg-[#FAF8F4]">
+        <div className="px-4 pb-3 pt-0 space-y-3 bg-[#FAF8F4]">
           <div className="flex flex-wrap gap-2 items-center">
             <label className="text-xs text-[#5A5751]">Owner</label>
             <input
@@ -343,12 +348,111 @@ function TaskRow({ task, onPatch, onRemove, onCycle }) {
             rows={2}
             className="w-full rounded border border-[#E8E4DC] px-2 py-1 text-sm text-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
           />
+
+          <Handoff task={task} currentUserPersona={currentUserPersona} onPush={onPush} />
+          <HandoffHistory task={task} />
+
           <button onClick={() => onRemove(task)} className="text-xs text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838] rounded">
             Delete item
           </button>
         </div>
       )}
     </li>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Handoff — the two-way push control. Reassign an item to the OTHER party with a
+// short note (what/why). Preview-then-execute: choosing a target reveals a note
+// field + a plain-English preview of the reassignment before it commits; every
+// push is logged to the item's history (see HandoffHistory). This is the record
+// Darrell asked for so each side can see what the other is thinking.
+// -----------------------------------------------------------------------------
+function Handoff({ task, currentUserPersona, onPush }) {
+  const [target, setTarget] = useState(null);   // the chosen destination (composing)
+  const [note, setNote] = useState('');
+  const by = currentUserPersona ? String(currentUserPersona) : null;
+  const byLabel = by ? by.charAt(0).toUpperCase() + by.slice(1) : 'someone';
+  const options = HANDOFF_TARGETS.filter((o) => o.value.toLowerCase() !== String(task.owner || '').toLowerCase());
+  const chosen = HANDOFF_TARGETS.find((o) => o.value === target) || null;
+
+  const send = () => {
+    if (!target) return;
+    onPush(task, { to: target, by, note });
+    setTarget(null); setNote('');
+  };
+
+  if (!options.length) return null; // owner already both parties? nothing to push
+
+  return (
+    <div className="rounded-lg border border-[#E8E4DC] bg-white p-2 space-y-2">
+      <div className="text-xs font-medium text-[#5A5751]">Hand this off · currently {task.owner || 'unassigned'}</div>
+      {!target ? (
+        <div className="flex flex-wrap gap-2">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => setTarget(o.value)}
+              title={o.hint}
+              className="rounded-full border border-[#2A5A8E] text-[#2A5A8E] px-3 py-1 text-xs hover:bg-[#2A5A8E] hover:text-white transition-colors focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              → {o.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="text-xs text-[#1A1815]">
+            Reassign <span className="font-medium">{task.owner || 'unassigned'}</span> → <span className="font-medium">{chosen?.value}</span>
+            <span className="text-[#5A5751]"> — {chosen?.hint}</span>
+          </div>
+          <textarea
+            autoFocus value={note} onChange={(e) => setNote(e.target.value)}
+            placeholder="Note — what / why (so the other side knows what you're thinking)"
+            rows={2}
+            className="w-full rounded border border-[#E8E4DC] px-2 py-1 text-sm text-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          />
+          <div className="flex items-center gap-2">
+            <button onClick={send} className="rounded-lg bg-[#1A1815] text-[#FAF8F4] px-3 py-1 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Send to {chosen?.value}
+            </button>
+            <button onClick={() => { setTarget(null); setNote(''); }} className="text-sm text-[#5A5751]">Cancel</button>
+            <span className="text-xs text-[#5A5751]">logged as {byLabel}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// HandoffHistory — the recorded two-way channel: every push (and every system
+// re-default) on this item, newest first. Persisted on board_tasks.links.history
+// so both sides see the same trail on every device.
+// -----------------------------------------------------------------------------
+function HandoffHistory({ task }) {
+  const entries = taskHistory(task);
+  if (!entries.length) return null;
+  const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : s);
+  const when = (iso) => {
+    const d = new Date(iso || '');
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  return (
+    <div className="rounded-lg border border-[#E8E4DC] bg-white p-2">
+      <div className="text-xs font-medium text-[#5A5751] mb-1">Handoff history · {entries.length}</div>
+      <ul className="space-y-1">
+        {[...entries].reverse().map((e, i) => (
+          <li key={i} className="text-xs text-[#1A1815]">
+            <span className="text-[#5A5751]">{when(e.at)}</span>{' · '}
+            <span className="font-medium">{e.from || 'unassigned'}</span> → <span className="font-medium">{e.to}</span>
+            {e.by ? <span className="text-[#5A5751]"> (by {cap(e.by)})</span> : null}
+            {e.kind === 'default' ? <span className="text-[#5A5751]"> · auto</span> : null}
+            {e.note ? <div className="text-[#5A5751] pl-1">“{e.note}”</div> : null}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
