@@ -84,6 +84,19 @@ function isImportedViewAuthorized() {
   }
 }
 
+// Client-side equivalent of wf18's server-side institution/status/since filter.
+// The deterministic Python snapshot (/finance/imported.json) is the FULL set, so
+// this reproduces the same filter UX regardless of source. Counts stay the full
+// totals (the cards show totals); only the table narrows — matching prior UX.
+export function applyClientFilters(json, filters) {
+  if (!json || !Array.isArray(json.transactions)) return json;
+  let txns = json.transactions;
+  if (filters.institution) txns = txns.filter(t => t.institution === filters.institution);
+  if (filters.status && filters.status !== 'all') txns = txns.filter(t => (t.status || 'unknown') === filters.status);
+  if (filters.since) txns = txns.filter(t => String(t.posted || '') >= filters.since);
+  return { ...json, transactions: txns };
+}
+
 const STATUS_BADGE = {
   verified:    { color: '#16A34A', label: '✓ Verified',     hint: 'Matched a Gmail-claimed event within tolerance' },
   unconfirmed: { color: '#D97706', label: '⚠ Unconfirmed', hint: 'Gmail mentioned it but no bank match yet'        },
@@ -122,28 +135,56 @@ export default function Imported() {
     }
     setLoading(true);
     setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (filters.institution) params.set('institution', filters.institution);
-      if (filters.status && filters.status !== 'all') params.set('status', filters.status);
-      if (filters.since) params.set('since', filters.since);
-      params.set('limit', '1000');
-      const url = `${N8N_BASE.replace(/\/+$/, '')}/webhook/imported-transactions?${params.toString()}`;
-      // L16: this fetch is reached only past isImportedViewAuthorized(), so the
-      // bearer is attached here and never on a demo / profileless load.
-      const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) }, mode: 'cors' });
-      if (!r.ok) throw new Error(`Workflow 18 returned ${r.status}`);
-      const json = await r.json();
-      setData(json);
-    } catch (e) {
-      setError(
-        `Could not reach workflow 18 at ${N8N_BASE}. ` +
-        `Make sure workflow 18 is imported + published in n8n, and that this device can reach the NAS ` +
-        `(Tailscale on if off-LAN). Details: ${e.message}`
-      );
-    } finally {
-      setLoading(false);
+    const params = new URLSearchParams();
+    if (filters.institution) params.set('institution', filters.institution);
+    if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+    if (filters.since) params.set('since', filters.since);
+    params.set('limit', '1000');
+    const qs = params.toString();
+
+    // Resilient cascade, most-reliable first. First source that returns valid
+    // JSON wins — so "sometimes good, others not" (a single cross-origin hop)
+    // becomes "tries the sovereign local path, then the network."
+    //   1. Deterministic Python snapshot, SAME-ORIGIN static file (no n8n at
+    //      all). Written by infra/nas-finance-ingest/imported_snapshot.py. The
+    //      full set, so filter client-side.
+    //   2. n8n via the SAME-ORIGIN Caddy /n8n proxy (handle_path /n8n/* ->
+    //      reverse_proxy n8n). No cross-origin hop = no Funnel throttle/"Failed
+    //      to fetch" when the app is served from the NAS.
+    //   3. n8n via the absolute Tailscale Funnel (works when served off-NAS,
+    //      e.g. Vercel, where the same-origin /n8n route does not exist).
+    const snapshotUrl = `${import.meta.env.BASE_URL}finance/imported.json`;
+    const sources = [
+      { url: snapshotUrl, mode: 'same-origin', auth: false, clientFilter: true },
+      { url: `/n8n/webhook/imported-transactions?${qs}`, mode: 'same-origin', auth: true, clientFilter: false },
+      { url: `${N8N_BASE.replace(/\/+$/, '')}/webhook/imported-transactions?${qs}`, mode: 'cors', auth: true, clientFilter: false },
+    ];
+
+    let lastErr = null;
+    for (const src of sources) {
+      try {
+        // L16 bearer only on the n8n sources, and only past the auth gate above.
+        const headers = { Accept: 'application/json', ...(src.auth ? n8nAuthHeaders(true) : {}) };
+        const r = await fetch(src.url, { headers, mode: src.mode });
+        if (!r.ok) { lastErr = new Error(`${src.url} -> ${r.status}`); continue; }
+        // A same-origin miss (static file not deployed, or /n8n route absent)
+        // returns the SPA index.html with a 200 — skip anything that isn't JSON
+        // so we fall through cleanly instead of throwing on HTML.
+        if (!(r.headers.get('content-type') || '').includes('json')) { lastErr = new Error(`${src.url} -> non-JSON`); continue; }
+        const json = await r.json();
+        if (!json || !Array.isArray(json.transactions)) { lastErr = new Error(`${src.url} -> unexpected shape`); continue; }
+        setData(src.clientFilter ? applyClientFilters(json, filters) : json);
+        setLoading(false);
+        return;
+      } catch (e) {
+        lastErr = e;
+      }
     }
+    setError(
+      `Could not load imported transactions. Tried the local snapshot and n8n workflow 18. ` +
+      `If off-LAN, turn Tailscale on; otherwise the snapshot refreshes on the NAS. Details: ${lastErr ? lastErr.message : 'unknown'}`
+    );
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -202,7 +243,7 @@ export default function Imported() {
           Imported transactions
         </h2>
         <p className="text-[12px] text-[#5A5751] mt-1">
-          Read-only view of bank + Gmail data ingested from your accounts. Source: <code className="text-[10px]">/volume1/PoeTech/finance-events/</code> via n8n workflow 18.
+          Read-only view of bank + Gmail data ingested from your accounts. Source: <code className="text-[10px]">/volume1/PoeTech/finance-events/</code> — a deterministic Python snapshot on the NAS (served same-origin), with n8n workflow 18 as fallback.
         </p>
       </div>
 
