@@ -1,11 +1,13 @@
 // =============================================================================
 // display-targets — where the Presenter / NDI output actually renders
 // =============================================================================
-// Darrell 2026-06-24: the new ALTAR/sanctuary LED VIDEO WALL is now the PRIMARY
-// output target — 9 ft (H) x 12 ft (W), 1.9 mm pixel pitch, driven by a NovaStar
-// VX1000 all-in-one video processor + controller. Lyrics, Scripture, slides, and
-// especially IMAGES must land crisp at the wall's NATIVE resolution — never upscale a
-// low-res asset onto a 1.9 mm wall.
+// Darrell 2026-06-24/29: the new ALTAR/sanctuary LED VIDEO WALL is the PRIMARY
+// output target — CONFIRMED on site 2026-06-29 as 8 x 6 = 48 Mirackle P1.99 mm
+// cabinets (640x480 mm), 16.8 ft (W) x 9.45 ft (H) = exactly 16:9, driven by a
+// NovaStar VX1000 all-in-one video processor + controller. (An earlier estimate
+// had it 9 x 12 ft / 4:3 — corrected; see lib/video-wall-spec.js for the cabinet
+// grid + power/data math.) Lyrics, Scripture, slides, and especially IMAGES must
+// land crisp at the wall's NATIVE resolution — never upscale onto a 1.99 mm wall.
 //
 // SIGNAL PATH (the important correction): the VX1000 has NO native NDI input. Its
 // inputs are 2x HDMI 1.4 (+loop), 2x DVI / "HDMI 4.1" (+loop), 1x 3G-SDI (+loop), and
@@ -93,25 +95,26 @@ export const VX1000 = {
   },
 };
 
-// The PRIMARY target: the new sanctuary altar LED wall.
-const WALL_NATIVE = nativeResEstimate({ widthFt: 12, heightFt: 9, pitchMm: 1.9 });
+// The PRIMARY target: the new sanctuary altar LED wall (confirmed 8x6 grid).
+const WALL_NATIVE = nativeResEstimate({ widthFt: 16.8, heightFt: 9.45, pitchMm: 1.99 });
 
 export const SANCTUARY_WALL = {
   id: 'sanctuary-wall',
   label: 'Sanctuary altar LED video wall',
   primary: true,
   processor: 'NovaStar VX1000',
-  pitchMm: 1.9,
-  widthFt: 12,
-  heightFt: 9,
-  native: WALL_NATIVE,                 // ~1925x1444, 4:3, ~2.78 Mpx (estimate; confirm via NovaLCT)
-  // The clean design canvas the Presenter renders to; snap to the confirmed native map.
-  designCanvas: { width: 1920, height: 1440, aspectLabel: '4:3' },
+  pitchMm: 1.99,
+  widthFt: 16.8,
+  heightFt: 9.45,
+  native: WALL_NATIVE,                 // ~2573x1447, 16:9, ~3.72 Mpx (estimate; confirm via NovaLCT)
+  // The clean design canvas the Presenter renders to: the 320x240/cabinet x 8x6
+  // grid = 2560x1440 (QHD, 16:9); snap to the confirmed native map at install.
+  designCanvas: { width: 2560, height: 1440, aspectLabel: '16:9' },
   withinProcessorCapacity: WALL_NATIVE ? WALL_NATIVE.megapixels <= VX1000.capacity.maxLoadMegapixels : null,
   // HOW it is fed — NOT NDI-direct:
   feed: {
     path: 'Presenter PC --HDMI/DVI--> NovaStar VX1000 --> wall',
-    recommendedInput: 'DVI / "HDMI 4.1" (higher bandwidth) for ~1920x1440@60; HDMI 1.4 tops ~1080p60/4K30.',
+    recommendedInput: 'DVI / "HDMI 4.1" (higher bandwidth) for ~2560x1440@60; HDMI 1.4 tops ~1080p60/4K30.',
     ndiDirect: false,
     ndiNote: 'To put an NDI source on the wall, decode it first (NDI->HDMI converter) into a VX1000 input. The VX1000 itself has no NDI input.',
   },
@@ -135,9 +138,9 @@ export const SIGNAL_PATH = {
   wallLane: {
     title: 'Wall lane (HDMI/DVI — NOT NDI)',
     hops: [
-      'Presenter PC renders the program at the wall native res (~1920x1440, 4:3).',
+      'Presenter PC renders the program at the wall native res (~2560x1440, 16:9).',
       'Presenter PC outputs HDMI/DVI into a NovaStar VX1000 input (use DVI / "HDMI 4.1" for 1440@60).',
-      'VX1000 scales/maps to the LED module grid and drives the 9x12 ft 1.9 mm wall (1-frame latency, genlock).',
+      'VX1000 scales/maps to the LED module grid and drives the 16.8x9.45 ft 1.99 mm wall (1-frame latency, genlock).',
     ],
   },
   ndiLane: {
@@ -154,9 +157,9 @@ export const SIGNAL_PATH = {
 // The authoring rule that makes "images will be amazing" true: on a 1.9 mm wall, the
 // pixels are there — feed it HIGH-RES source media. Do NOT upscale a small asset.
 export const IMAGE_AUTHORING_RULE = {
-  rule: 'Use source images at or above the wall native resolution (~1920x1440). A 1.9 mm wall shows every pixel — a low-res asset upscaled will look soft. Render full-bleed at native res; never scale a small image up to fill the wall.',
-  minLongEdgePx: 1920,
-  targetPx: '1920x1440 (4:3) for full-bleed; larger is fine (the VX1000 scales down crisply).',
+  rule: 'Use source images at or above the wall native resolution (~2560x1440). A 1.99 mm wall shows every pixel — a low-res asset upscaled will look soft. Render full-bleed at native res; never scale a small image up to fill the wall.',
+  minLongEdgePx: 2560,
+  targetPx: '2560x1440 (16:9) for full-bleed; larger is fine (the VX1000 scales down crisply).',
 };
 
 // Optional, SECONDARY (explicitly NOT the LHF): the app could manage the VX1000 per

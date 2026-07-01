@@ -100,6 +100,21 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
     setCloudPlaying(false);
   };
 
+  // Stop only any in-flight CLOUD audio. Used right before a fresh browser-voice
+  // read: the TTS engine's own play() already cancels a prior utterance safely, so
+  // we must NOT bare-cancel the synth here — a cancel() immediately before the first
+  // speak() is swallowed on Chrome/mobile (the classic "tap Read, nothing happens").
+  const stopCloudAudio = () => {
+    if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
+    setCloudPlaying(false);
+  };
+
+  // The engine reports when a tap produced no audio at all (mobile blocked/suspended
+  // synth) — never leave the button dead and quiet; tell the listener what to do.
+  useEffect(() => {
+    if (tts.failed) setNotice('Your phone didn’t start the audio on that tap. Press Read once more — some phones need a second tap, or pick the free System voice.');
+  }, [tts.failed]);
+
   // The one play path. Tries the real sovereign studio for a consented personal
   // voice when it is live; otherwise (and on ANY failure) falls back to the browser
   // voice — the System voice always works, so a tap is never a dead button.
@@ -109,7 +124,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
     const prov = resolveVoiceProvider(voice, { sovereignVoiceReady });
     if (prov.blocked) { setNotice('That voice needs the person’s consent before it can be used.'); return; }
 
-    stopAll();
+    stopCloudAudio();
 
     if (prov.real && voice.kind === KIND.PERSONAL && sovereignVoiceReady) {
       // REAL cloned voice: condition on the person's RECORDED sample (few-shot).

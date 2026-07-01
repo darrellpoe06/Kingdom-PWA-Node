@@ -1,0 +1,31 @@
+DROP CHRISTIAN'S CHOIR VIDEOS IN THIS FOLDER
+============================================
+
+This is the intake folder for the choir keyboardist (Christian) SME videos.
+
+From your desktop (Windows File Explorer), open:
+
+    \\192.168.1.26\PoeTech\sme-pipeline\intake\choir-keyboardist\
+
+(or on the NAS itself: /volume1/PoeTech/sme-pipeline/intake/choir-keyboardist/)
+
+Copy the video files in here. Any common format works (.mp4, .mov, .m4a, .wav,
+.mkv). They are TOO LARGE for chat upload -- that's the whole point: they ingest
+the sovereign way, placed here, transcribed locally on the NAS. Nothing leaves
+the box.
+
+Then run (on the NAS, manual -- nothing runs automatically):
+
+    cd /volume1/PoeTech/sme-pipeline
+    ./choir-keyboardist-to-knowledge.sh ./intake/choir-keyboardist/<the-video-file>
+
+Output lands in output/choir-keyboardist/<name>-<timestamp>/:
+    transcript.txt   - what he said
+    knowledge.md     - readable choir knowledge (review this)
+    knowledge.json   - per-song key/arrangement/note for the Song Workshop
+    source.json      - consent + provenance
+
+CPU is slow (this NAS has no GPU): budget roughly 1-3x the video length to
+transcribe. Long videos: run overnight. A GPU box later makes it fast.
+
+See CONSENT.md in this folder for scope + consent.

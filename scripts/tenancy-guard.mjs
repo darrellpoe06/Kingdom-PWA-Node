@@ -178,6 +178,50 @@ export function checkIdentityGate(srcOverride = null) {
   return { ok: problems.length === 0, problems, names: namesFound };
 }
 
+// --- Check D: no self-referential policy on `instances` (DR-0060 ext.) ------
+// A SELECT policy ON `instances` whose USING subquery reads FROM `instances`
+// makes Postgres abort the query with 42P17 "infinite recursion detected in
+// policy" — a LIVE 500 the RLS-coverage check (A) cannot see, because RLS is
+// still ENABLED; it just never executes. Found 2026-06-30 by adversarial probe
+// (the v2.1 `instances_parent_chain_read` policy), fixed in migration 0056.
+//
+// This is DROP-aware: it replays CREATE/DROP POLICY ... ON instances in apply
+// order (schema files, then migrations-auto, each filename-sorted) and only
+// inspects the SURVIVING policies — so the historical recursive policy in
+// schema-v2.1 does not false-positive once 0056 drops it. Pass a SQL string to
+// test the catch without the filesystem (anti-theater proof, DR-0060).
+function orderedSql() {
+  const read = (dir) => {
+    if (!existsSync(dir)) return '';
+    return readdirSync(dir)
+      .filter(f => f.endsWith('.sql') && statSync(join(dir, f)).isFile())
+      .sort()
+      .map(f => '\n' + readFileSync(join(dir, f), 'utf8'))
+      .join('');
+  };
+  return read(SCHEMA_DIR) + read(MIGRATIONS_DIR);
+}
+
+export function checkInstancesRecursion(sqlOverride = null) {
+  const sql = stripComments(sqlOverride != null ? sqlOverride : orderedSql());
+  // Replay CREATE/DROP POLICY ... ON instances in document (≈apply) order.
+  const surviving = new Map(); // policy name -> USING body
+  const re = /(CREATE|DROP)\s+POLICY\s+(?:IF\s+EXISTS\s+)?([a-zA-Z_][\w]*)\s+ON\s+(?:public\.)?instances\b([\s\S]*?);/gi;
+  let m;
+  while ((m = re.exec(sql)) !== null) {
+    const [, verb, name, body] = m;
+    if (/^create$/i.test(verb)) surviving.set(name.toLowerCase(), body);
+    else surviving.delete(name.toLowerCase());
+  }
+  const problems = [];
+  for (const [name, body] of surviving) {
+    if (/\bfrom\s+(?:public\.)?instances\b/i.test(body)) {
+      problems.push(`policy "${name}" on instances self-references FROM instances (42P17 recursion risk)`);
+    }
+  }
+  return { ok: problems.length === 0, problems, surviving: [...surviving.keys()] };
+}
+
 // --- CLI -------------------------------------------------------------------
 function isMain() {
   return process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
@@ -187,6 +231,7 @@ if (isMain()) {
   const { tableScoped, rlsOn, missing } = scanTenancy();
   const prov = checkProvisioning();
   const ident = checkIdentityGate();
+  const recur = checkInstancesRecursion();
 
   console.log('# TENANCY GUARD (deterministic data-isolation gate)\n');
   console.log('## A. RLS coverage');
@@ -220,7 +265,17 @@ if (isMain()) {
     console.log('');
   }
 
-  const failed = missing.length > 0 || !prov.ok || !ident.ok;
+  console.log('## D. No self-referential `instances` policy (42P17 recursion)');
+  console.log(`Surviving instances policies: ${recur.surviving.join(', ') || '(none)'}`);
+  if (recur.ok) {
+    console.log('PASS — no surviving instances policy reads FROM instances.\n');
+  } else {
+    console.log('FAIL — a surviving instances policy will 42P17-recurse on the live DB:');
+    recur.problems.forEach(p => console.log(`  - ${p}`));
+    console.log('');
+  }
+
+  const failed = missing.length > 0 || !prov.ok || !ident.ok || !recur.ok;
   console.log(failed ? 'TENANCY GUARD: FAIL' : 'TENANCY GUARD: PASS');
   process.exit(failed ? 1 : 0);
 }

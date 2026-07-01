@@ -5,7 +5,7 @@
 // scripts/tenancy-guard.mjs (also runnable as a CLI); this test runs it inside
 // `app — lint + vitest` so it gates every merge with no ruleset change.
 import { describe, it, expect } from 'vitest';
-import { scanTenancy, checkProvisioning, checkIdentityGate } from '../../../scripts/tenancy-guard.mjs';
+import { scanTenancy, checkProvisioning, checkIdentityGate, checkInstancesRecursion } from '../../../scripts/tenancy-guard.mjs';
 
 describe('tenancy guard — data isolation (DR-0059)', () => {
   it('the scanner actually sees the schema (not vacuously empty)', () => {
@@ -44,6 +44,37 @@ describe('tenancy guard — data isolation (DR-0059)', () => {
     const { ok, problems } = checkIdentityGate(regression);
     expect(ok).toBe(false);
     expect(problems.join(' ')).toMatch(/Darrell/);
+  });
+
+  // Check D (2026-06-30 incident): a SELECT policy on `instances` whose USING
+  // subquery reads FROM `instances` 42P17-recurses on the live DB — a 500 that
+  // Check A (RLS-enabled) cannot see. The real schema (with migration 0056's
+  // fix) must pass.
+  it('no surviving `instances` policy self-references (no 42P17 recursion)', () => {
+    const { ok, problems, surviving } = checkInstancesRecursion();
+    // Non-vacuous: the replay must actually find at least one instances policy.
+    expect(surviving.length, 'no instances policies found — re-anchor Check D').toBeGreaterThan(0);
+    expect(ok, problems.join('; ')).toBe(true);
+  });
+
+  // Anti-theater: inject the exact recursive policy and confirm it is CAUGHT.
+  it('CATCHES a self-referential instances policy (the 2026-06-30 regression)', () => {
+    const recursive = `CREATE POLICY p_bad ON instances FOR SELECT
+      USING ( id IN (SELECT parent_instance_id FROM instances WHERE user_in_instance(id)) );`;
+    const { ok, problems } = checkInstancesRecursion(recursive);
+    expect(ok).toBe(false);
+    expect(problems.join(' ')).toMatch(/self-references/);
+  });
+
+  // DROP-aware: a recursive policy that is later DROPped must NOT false-positive.
+  it('is DROP-aware — a dropped recursive policy does not trip the guard', () => {
+    const dropped = `CREATE POLICY p_bad ON instances FOR SELECT
+        USING ( id IN (SELECT parent_instance_id FROM instances WHERE user_in_instance(id)) );
+      DROP POLICY IF EXISTS p_bad ON instances;
+      CREATE POLICY p_ok ON instances FOR SELECT
+        USING ( user_in_instance(id) OR user_in_instance(parent_instance_id) );`;
+    const { ok } = checkInstancesRecursion(dropped);
+    expect(ok).toBe(true);
   });
 
   // And confirm the fixed form passes (so the guard isn't just always-failing).

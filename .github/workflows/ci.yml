@@ -54,6 +54,20 @@ jobs:
       # Fails the build on any new re-tangle. Also covered by vitest, but run as a
       # named step so the boundary is a visible green check.
       - run: node ../scripts/module-boundary-guard.mjs
+      # Monolith line-budget freeze (DR-0078 cutover / DR-0076): the forcing
+      # function the boundary gate lacked. module-boundary-guard keeps the shell
+      # from being re-tangled structurally, but does not cap its SIZE — so after
+      # Stage 1 the monolith kept growing (8,769 -> 9,386 lines) as net-new
+      # features landed inline. This freezes the shell to bug-fixes only: its line
+      # count may only go DOWN. A PR that grows app/src/poe-financial-mvp-v28.jsx
+      # past the frozen budget (scripts/monolith-budget.json) HARD-FAILS here, so
+      # new capability must ship as its own module. Proven-to-catch in vitest.
+      - run: node ../scripts/monolith-budget-guard.mjs
+      # Interconnection-loop guard (DR-0076 / 2026-06-29): fails the build if a
+      # module-to-module loop declared LIVE lost the wiring that makes a destination
+      # read its live source — a loop can't silently go static. Also covered by
+      # vitest, run as a named step so the live-data promise is a visible check.
+      - run: node ../scripts/interconnect-guard.mjs
       - run: npx vitest run
       # Real production bundle. Rollup hard-fails on a missing named export, so
       # this catches the cross-module-export break that lint+vitest let through.

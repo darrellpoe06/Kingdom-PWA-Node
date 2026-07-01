@@ -1,0 +1,47 @@
+{
+	admin off
+	auto_https off
+}
+
+# PoeTech PWA — sovereign static host on the NAS (port 80 inside the container,
+# published on host :8088, exposed publicly via Tailscale Funnel :8443).
+# auto_https off because Tailscale terminates TLS; Caddy serves plain HTTP.
+:80 {
+	encode gzip zstd
+
+	# Security + privacy headers — mirror app/vercel.json (PR #278 parity).
+	# NOTE: upgrade-insecure-requests is intentionally OMITTED: this host is
+	# reachable over plain-HTTP on the LAN (http://192.168.1.26:8088) AND over
+	# the Funnel HTTPS; the upgrade directive would break every module fetch on
+	# the LAN path. On the Funnel everything is already HTTPS, so it is moot.
+	header {
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; manifest-src 'self'"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), payment=(), usb=(), browsing-topics=(), interest-cohort=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-DNS-Prefetch-Control "off"
+		-Server
+	}
+
+	# Same-origin n8n proxy — mirrors the Vercel "/n8n/:path* -> funnel/:path*"
+	# rewrite. handle_path strips the /n8n prefix before forwarding to host n8n.
+	handle_path /n8n/* {
+		reverse_proxy 172.17.0.1:5678
+	}
+
+	# The PWA, built with Vite base /poetech-app/.
+	handle /poetech-app/* {
+		root * /srv
+		@assets path /poetech-app/assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@shell path /poetech-app/ /poetech-app/index.html /poetech-app/sw.js /poetech-app/manifest.webmanifest
+		header @shell Cache-Control "no-cache, no-store, must-revalidate"
+		try_files {path} /poetech-app/index.html
+		file_server
+	}
+
+	redir / /poetech-app/ 302
+	redir /poetech-app /poetech-app/ 302
+}

@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/shared.jsx';
 import TraceableNumber from './components/TraceableNumber.jsx';
+// Contextual help — the discrete "?" that explains the current tab/tool (Ari's
+// voice) + the optional first-run roadmap tour. lib/help-content.js is the one
+// help registry every surface reads from. Small + always-present chrome, so it
+// rides the initial bundle rather than a lazy chunk.
+import HelpButton from './components/HelpButton.jsx';
+import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { fmt, fmtCompact, MONTHS_ABBR, monthLabel } from './lib/format.js';
 import {
   traceNetCashFlow,
@@ -120,12 +126,13 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, ChefCorner,
+  Inventory, Forecast, FamilySuccession, AdminConsole, ChefCorner,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
+import { deriveAccountBalances, deriveEntityRollups } from './lib/financial-engineering.js';
 import { N8N_BASE, n8nAuthHeaders } from './lib/n8n-base.js';
 
 // =============================================================================
@@ -1767,7 +1774,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','admin','center','crm','inventory','forecast'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','admin','center','crm','inventory','forecast','succession'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -1783,75 +1790,12 @@ function getInitialChurchView() {
   } catch (e) { return 'home'; }
 }
 
-// Admin — quiet utility surface, NOT a marketing surface. Reached via the
-// footer "Admin" link (every page) or the ?view=admin deep-link. Renders two
-// branches off the existing isPublicHost() gate (reused, not re-implemented):
-// on the public host (poetech.us / *.vercel.app) it shows the NAS Tailscale +
-// LAN URLs to switch to; on a Tailscale/LAN host it shows the live internal
-// surfaces list. Tailscale IS the access control — this route is a navigation
-// aid, not an auth boundary, so no real auth is added here.
-function Admin() {
-  const TS_URL = 'https://poetech.tail5a2f35.ts.net/webhook/dispatch-status-page';
-  const LAN_URL = 'http://192.168.1.26:5678/webhook/dispatch-status-page';
-  const cardCls = "max-w-2xl mx-auto bg-[#1A1815] text-[#FAF8F4] border border-[#5A5751] p-5 sm:p-6 mt-6";
-  const serif = { fontFamily: '"Fraunces", serif' };
-  const codeCls = "block bg-black/30 border border-[#5A5751] px-3 py-2 text-xs text-[#FAF8F4] break-all";
-  const codeStyle = { fontFamily: 'monospace' };
-  const linkCls = "inline-block mt-1.5 text-xs text-[#B85838] underline underline-offset-4 hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]";
-
-  if (isPublicHost()) {
-    return (
-      <div className={cardCls} style={serif}>
-        <h2 className="text-xl mb-1" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.01em' }}>Admin — family-private surfaces</h2>
-        <p className="text-sm text-[#FAF8F4] opacity-80 mb-5 leading-relaxed">These surfaces live on the family NAS. You need to be connected to the Poe family Tailscale network to reach them. Once on Tailscale, switch to the Tailscale hostname below.</p>
-
-        <div className="mb-5">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1.5">Dispatch Status — Tailscale</div>
-          <code className={codeCls} style={codeStyle}>{TS_URL}</code>
-          <a href={TS_URL} className={linkCls}>Open via Tailscale →</a>
-        </div>
-
-        <div className="mb-5">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1.5">Dispatch Status — LAN (at home)</div>
-          <code className={codeCls} style={codeStyle}>{LAN_URL}</code>
-          <a href={LAN_URL} className={linkCls}>Open on home network →</a>
-        </div>
-
-        <div className="border-t border-[#5A5751] pt-4">
-          <a href="https://tailscale.com" target="_blank" rel="noopener noreferrer" className={linkCls + " mt-0"}>What is Tailscale? →</a>
-          <p className="text-[11px] text-[#5A5751] mt-3 leading-relaxed">Admin access expanding to family + dev team as the system matures. Today: Darrell only.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Tailscale / LAN host branch (isPublicHost() === false). Internal surfaces list.
-  return (
-    <div className={cardCls} style={serif}>
-      <h2 className="text-xl mb-4" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.01em' }}>Admin — Internal Surfaces</h2>
-      <ul className="space-y-3">
-        <li className="border-b border-[#5A5751] pb-3">
-          <a href="/webhook/dispatch-status-page" className="text-base text-[#B85838] underline underline-offset-4 hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Dispatch Status</a>
-          <div className="text-[11px] text-[#5A5751] mt-0.5"><code style={codeStyle}>/webhook/dispatch-status-page</code> on this NAS</div>
-          <p className="text-xs text-[#FAF8F4] opacity-80 mt-1 leading-relaxed">Live workflow reel + Code Task snapshot + ntfy QR subscription. Bookmark this URL for always-on visibility.</p>
-        </li>
-      </ul>
-      {/* TODO: future internal admin surfaces — queued per project-continuous-feedback-reel
-          (TIER 2+3). Add each as a <li> above as it ships, with its NAS webhook/path:
-            - Family Money-Date Packet
-            - Property Operations dashboard
-            - Foundation Agent Self-Health
-            - Bishop Gwin pastoral dashboard
-            - COLG congregation surface
-            - Sponsor / Partner pipeline
-            - Sermon-to-Content production
-            - Loved Ones cohort admin
-            - Quality Gatekeeper outputs
-          Keep this branch a quiet functional list — no hero, no images. */}
-      <p className="text-[11px] text-[#5A5751] mt-4 leading-relaxed">Admin access expanding to family + dev team as the system matures. Today: Darrell only.</p>
-    </div>
-  );
-}
+// Admin — the real in-app backend control surface — now lives in its own module
+// (components/AdminConsole.jsx, registered in surfaces.js). It replaced the old
+// dead-end "list of NAS URLs to copy" surface with genuine, plain-language
+// controls (People & Access, Data & Loops, System & Build, Internal Surfaces),
+// each previewing consequential actions before a deliberate execute. Rendered by
+// the `view === 'admin'` branch below, family/governor-gated with a no-leak nav.
 
 export default function PoeFinancialSystem() {
   const demoPersona = getDemoPersona();
@@ -4263,6 +4207,11 @@ export default function PoeFinancialSystem() {
     } catch (_) { /* same */ }
   };
 
+  // Single source of truth for displayed balances: the DERIVED "right now"
+  // balance per account (openingBalance + cleared tx). Every cash/credit figure
+  // below reads this, so an entered or imported transaction moves all of them
+  // (Big Picture, Accounts, Entities) in lockstep with Tx + Forecast (DR-0076).
+  const derivedBalances = useMemo(() => deriveAccountBalances(data, currentDate), [data, currentDate]);
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
     // v28+ Real Estate restructure: only income-producing properties feed rental math.
@@ -4288,9 +4237,9 @@ export default function PoeFinancialSystem() {
     // financial picture" — disputed, frozen, under probate, etc. They surface
     // in the Legal tab instead.
     const CASH_TYPES = ['checking','savings','cash','investment'];
-    const allAccountsCash = (data.accounts || []).filter(a => CASH_TYPES.includes(a.type) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
+    const allAccountsCash = (data.accounts || []).filter(a => CASH_TYPES.includes(a.type) && !a.inLegal).reduce((s, a) => s + (derivedBalances[a.id] ?? a.balance ?? 0), 0);
     return { salaryActual, rentalActual, rentalExpected, rentGap, collectionRate, totalInflow, totalOutflow, netCashFlow, totalConsumerDebt, totalRentalDebt, totalRentalPI, totalPersonalRealEstateDebt, totalPersonalRealEstatePI, totalOpportunity, totalOppHours, allAccountsCash };
-  }, [data]);
+  }, [data, derivedBalances]);
 
   // Reserves math extracted into computeReserves (app/src/lib/financial-calcs.js)
   // so Pass 2 of the financial audit can unit-test it directly. See FLAG-10
@@ -4302,8 +4251,8 @@ export default function PoeFinancialSystem() {
   // is worse than none). Recomputes whenever a balance changes or a bank sync
   // lands; sums every savings account, excluding any in a legal hold.
   const bufferCurrentReal = useMemo(
-    () => (data.accounts || []).filter(a => a.type === 'savings' && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0),
-    [data.accounts]
+    () => (data.accounts || []).filter(a => a.type === 'savings' && !a.inLegal).reduce((s, a) => s + (derivedBalances[a.id] ?? a.balance ?? 0), 0),
+    [data.accounts, derivedBalances]
   );
 
   // Pressure -> real money toward debt. The discretionary lever is a % of the
@@ -4340,30 +4289,13 @@ export default function PoeFinancialSystem() {
   }, [data.entities, currentProfile]);
   const visibleEntityIds = useMemo(() => new Set(visibleEntities.map(e => e.id)), [visibleEntities]);
 
-  const entityRollups = useMemo(() => {
-    // 2026-05-24 — sort entities so personal types render first, then business
-    // types. Keeps the Accounts tab's "your money first" ordering aligned with
-    // the entity grouping. Within each type, preserve insertion order.
-    // Multi-user Layer A — only roll up entities visible to current profile.
-    const sortedEntities = [...visibleEntities].sort((a, b) => {
-      if (a.type === b.type) return 0;
-      return a.type === 'personal' ? -1 : 1;
-    });
-    return sortedEntities.map(entity => {
-      const accounts = data.accounts.filter(a => a.entityId === entity.id);
-      const isCash = (a) => ['checking','savings','cash','investment'].includes(a.type);
-      const isCredit = (a) => a.type === 'credit' || a.type === 'loan';
-      // inLegal accounts are out of the financial picture (per Darrell 2026-05-24).
-      // They still belong to the entity but don't contribute to cash/credit totals.
-      const cashBalance = accounts.filter(a => isCash(a) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
-      const creditBalance = accounts.filter(a => isCredit(a) && !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0);
-      const balance = accounts.filter(a => !a.inLegal).reduce((s, a) => s + (a.balance || 0), 0); // legacy total
-      const inflow = [...data.inflows.salaries.filter(s => s.entityId === entity.id).map(s => s.actual), ...data.inflows.rentals.filter(r => r.entityId === entity.id).map(r => r.actual)].reduce((s, x) => s + x, 0);
-      const debts = data.debts.filter(d => d.entityId === entity.id);
-      const debtBalance = debts.reduce((s, d) => s + d.balance, 0);
-      return { entity, accounts, balance, cashBalance, creditBalance, inflow, debts, debtBalance };
-    });
-  }, [data, visibleEntities]);
+  // Per-entity rollup extracted to lib/financial-engineering (deriveEntityRollups):
+  // personal-first sort, visible-entity scope, and every account decorated with
+  // its DERIVED balance so Accounts/Entities/Big Picture move with the ledger.
+  const entityRollups = useMemo(
+    () => deriveEntityRollups(data, visibleEntities, currentDate),
+    [data, visibleEntities, currentDate],
+  );
 
   const flaggedRentals = data.inflows.rentals.filter((r) => r.status === 'late' && (r.rent || 0) > 0);
   const flaggedOpportunities = data.opportunities.filter((o) => o.flag);
@@ -5136,6 +5068,11 @@ html{scroll-padding-bottom:280px}
         </div>
       )}
 
+      {/* First-run roadmap tour — a discrete bottom card offering the "what is
+          this app" walkthrough, dismissible and remembered per device. Self-
+          positions (fixed); placed once near the app root. */}
+      <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
+
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
@@ -5178,6 +5115,20 @@ html{scroll-padding-bottom:280px}
               </button>
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
+              {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any
+                  tab and Ari explains THAT surface (what / how / why), plus the user
+                  roadmap. Context-aware: it reads the live view/sub-view, so one
+                  button covers every tab with no per-tab wiring. Sits with the other
+                  "make this comfortable to understand" controls. */}
+              <HelpButton
+                variant="header"
+                view={view}
+                churchView={churchView}
+                booksView={booksView}
+                setView={setView}
+                setChurchView={setChurchView}
+                setBooksView={setBooksView}
+              />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
@@ -5295,10 +5246,18 @@ html{scroll-padding-bottom:280px}
                 // so the entry is absent from the DOM for everyone else (no-leak),
                 // and the component carries a locked fallback for any deep-link.
                 ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
-                // Admin surfaced at the top so users can SEE a steward space
-                // exists (visible-but-locked, like 🔒 Observation). ACCESS is
-                // gated at the render below — the entry being visible is the goal.
-                ['admin', <><UiIcon name="lock" /> Admin</>],
+                // Succession — asset-transfer planning (TODI + companion instruments).
+                // Family/Governor only (the plan of who inherits what is the most
+                // sensitive data in the app); absent from the DOM for everyone else.
+                ...(isFamilyMember ? [['succession', <><UiIcon name="book" /> Succession</>]] : []),
+                // Admin — the real backend control surface. Shown to family
+                // stewards, and on the trusted NAS/home host (where being on the
+                // family network is itself the access control) — the SAME gate the
+                // render below applies, so the tab and the surface never disagree.
+                // On the public site a non-steward never gets the entry (no-leak,
+                // like Center / Forecast); the module also carries a defense-in-
+                // depth locked fallback for any deep-link.
+                ...((isFamilyMember || !isPublicHost()) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
               ].map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
@@ -5893,7 +5852,7 @@ html{scroll-padding-bottom:280px}
         )}
 
         {view === 'crm' && (isFamilyMember
-          ? <CRM inquiries={data.inquiries || []} currentUserId={authSession?.user?.id || null} />
+          ? <CRM inquiries={data.inquiries || []} practiceLeads={data.practiceLeads || []} currentUserId={authSession?.user?.id || null} />
           : (
             <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
               <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
@@ -5930,21 +5889,23 @@ html{scroll-padding-bottom:280px}
 
         {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
 
-        {view === 'admin' && ((isFamilyMember || !isPublicHost())
-          ? <Admin />
-          : (
-            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
-              <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
-              <p className="text-sm text-[#1A1815] font-semibold">Admin is a stewardship space.</p>
-              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Sign in with a steward account to enter. Each steward serves only their own domain — the system, the Word, or the choir — and no one sees another's people or private data.</p>
-            </div>
-          ))}
+        {view === 'succession' && <FamilySuccession data={data} currentDate={currentDate} email={authSession?.user?.email || ''} isFamilyMember={isFamilyMember} />}
+
+        {view === 'admin' && (
+          <AdminConsole
+            isGovernor={isFamilyMember || !isPublicHost()}
+            email={authSession?.user?.email || null}
+            instanceId={mpInstanceId}
+            backendReachable={mpBackendAvailable && !!mpInstanceId}
+            data={data}
+            isPublicHost={isPublicHost()}
+            onResetSeed={resetToSeed}
+          />
+        )}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
           <button type="button" onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
-          <span className="mx-2 text-[10px] text-[#5A5751]" aria-hidden="true">·</span>
-          <button type="button" onClick={() => { setView('admin'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4" title="Internal / Tailscale-hosted admin surfaces">Admin</button>
         </footer>
         {view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mt-6">
@@ -5954,7 +5915,7 @@ html{scroll-padding-bottom:280px}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
         </Suspense>
       </main>
-      <TTSControl isOwner={isFamilyMember} />
+      <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} />
       <InstallPrompt />
       <UpdatePrompt />
       <NetworkStatus />
@@ -6455,6 +6416,9 @@ const FEEDBACK_AREAS = [
     ['forecast-scenarios', '└ Scenarios · best/base/worst · add property / tier / capital purchase (editable assumptions)'],
     ['forecast-track', '└ Track · projected-vs-actual over time (forecast accuracy)'],
   ]},
+  { group: 'Succession (🔒 steward · asset-transfer planning)', items: [
+    ['succession', 'Succession · asset to entity to beneficiary to instrument (TODI / trust / LLC / POD) + gap view + attorney package'],
+  ]},
   { group: "Chef's Corner — Kitchen Inventory (steward · homed in Chef's Corner)", items: [
     ['kitchen', "Kitchen Inventory · Chef Mario's inventory, in Chef's Corner (count by weight/unit · par alerts · value)"],
     ['kitchen-stock', '└ Stock · items by category / storage area · on-hand + value (derived)'],
@@ -6497,7 +6461,7 @@ const FEEDBACK_AREAS = [
     ['about-community', 'About · community partnership model'],
     ['tier-gating', 'Tier gating (Foundation / PoeTech+ / Family / Premium / Business)'],
     ['tier-switcher', 'Tier switcher (header dropdown)'],
-    ['admin', 'Admin · internal / Tailscale-hosted surfaces (footer link)'],
+    ['admin', 'Admin · backend controls — people & access, data & loops, system & build, internal surfaces'],
   ]},
   { group: 'Cross-cutting', items: [
     ['navigation', 'Navigation · tab order · separator'],
@@ -7336,15 +7300,16 @@ function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, s
         let manualCash = 0;
         for (const a of allUserAccounts) {
           if (!['checking','savings','cash','investment'].includes(a.type) || a.inLegal) continue;
-          manualCash += (a.balance || 0);
+          const manualBal = (a.derivedBalance ?? a.balance ?? 0);
+          manualCash += manualBal;
           const last4 = (a.fragment || '').match(/(\d{4})/)?.[1];
-          if (!last4) { bankCash += (a.balance || 0); continue; }
+          if (!last4) { bankCash += manualBal; continue; }
           const balKey = Object.keys(ingestData.bank_balances).find(k => k.includes(last4));
           if (balKey && typeof ingestData.bank_balances[balKey].ledger_balance === 'number') {
             linkedCount += 1;
             bankCash += ingestData.bank_balances[balKey].ledger_balance;
           } else {
-            bankCash += (a.balance || 0);
+            bankCash += manualBal;
           }
         }
         const sc = (ingestData.counts && ingestData.counts.status_counts) || {};
@@ -8990,7 +8955,7 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
   // 2026-05-24: liquid = cash types AND not in legal. Credit cards and loans
   // no longer surface on this tab; their totals live on the Debts page.
   const liquidAccounts = allAccounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal);
-  const liquidTotal = liquidAccounts.reduce((s, a) => s + (a.balance || 0), 0);
+  const liquidTotal = liquidAccounts.reduce((s, a) => s + (a.derivedBalance ?? a.balance ?? 0), 0);
 
   // Phase 2B — bank-derived totals for the same liquid set. Sums LEDGERBAL
   // for each linked account, plus the manual balance for accounts that
@@ -9004,7 +8969,7 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
       bankLinkedCount += 1;
       bankDerivedLiquid += bal.ledger_balance;
     } else {
-      bankDerivedLiquid += (a.balance || 0);
+      bankDerivedLiquid += (a.derivedBalance ?? a.balance ?? 0);
     }
   }
   const bankDerivedDelta = +(bankDerivedLiquid - liquidTotal).toFixed(2);
@@ -9219,12 +9184,13 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
       {entityRollups.map(r => {
         // Bank accounts only (cash types), and only those NOT in legal status.
         const bankAccounts = r.accounts.filter(a => ['checking','savings','cash','investment'].includes(a.type) && !a.inLegal);
-        const bankTotal = bankAccounts.reduce((s, a) => s + (a.balance || 0), 0);
+        const bankTotal = bankAccounts.reduce((s, a) => s + (a.derivedBalance ?? a.balance ?? 0), 0);
         const renderRow = (a, i, arr) => {
           // Phase 2B — bank-side balance for this account, if we can match it.
           const bal = balanceFor(a);
           const hasBankBal = bal && typeof bal.ledger_balance === 'number';
-          const delta = hasBankBal ? +(bal.ledger_balance - (a.balance || 0)).toFixed(2) : null;
+          const acctBal = (a.derivedBalance ?? a.balance ?? 0);
+          const delta = hasBankBal ? +(bal.ledger_balance - acctBal).toFixed(2) : null;
           const deltaClass = delta === null ? '' :
             Math.abs(delta) < 0.5 ? 'text-[#5A6E3D]' :
             delta < 0 ? 'text-[#B85838]' : 'text-[#D97706]';
@@ -9245,7 +9211,7 @@ function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, del
                 )}
               </div>
               <div className="text-right">
-                <div className={`${a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</div>
+                <div className={`${acctBal < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(acctBal)}</div>
                 {hasBankBal && (
                   <div className="text-[10px] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }} title={bal.balance_as_of ? `Bank ledger balance as of ${bal.balance_as_of}` : 'Bank ledger balance'}>
                     <span className="text-[#5A5751] uppercase tracking-wider mr-1">bank:</span>

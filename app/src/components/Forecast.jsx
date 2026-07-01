@@ -22,6 +22,7 @@
 // + financial-scenarios test suites); this file only renders it.
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import SectionBoundary from './SectionBoundary.jsx';
+import HelpButton from './HelpButton.jsx';
 import {
   buildProjection, snapshotFromProjection, actualVsProjected, monthLabelFrom,
 } from '../lib/financial-engineering.js';
@@ -56,8 +57,11 @@ function ClarityLine({ q, children }) {
 
 function Metric({ label, value, tone }) {
   const color = tone === 'bad' ? '#9B2C2C' : tone === 'good' ? '#2F6B3A' : '#1A1815';
+  // data-talk markers expose this real figure to "Talk about this" (the voice
+  // EXPLAIN mode, lib/surface-digest) so Ari narrates the actual on-screen number,
+  // never an invented one. label/value are plain strings, so the digest is exact.
   return (
-    <div className="border border-[#E3DDD2] bg-[#FAF8F4] px-3 py-2">
+    <div className="border border-[#E3DDD2] bg-[#FAF8F4] px-3 py-2" data-talk-fact={label} data-talk-value={value}>
       <div className={labelCls}>{label}</div>
       <div className="text-lg font-semibold tabular-nums" style={{ color }}>{value}</div>
     </div>
@@ -414,7 +418,12 @@ export default function Forecast({ data, currentDate, isOwner = false }) {
     <SectionBoundary name="Forecast">
       <div className="max-w-4xl mx-auto mt-4 space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Forecast — financial engineering</h2>
+          <h2 className="text-lg font-semibold text-[#1A1815] flex items-center gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Forecast — financial engineering
+            {/* Inline help — the same shared "?" primitive a tool drops by its
+                title to explain itself (here it explains the Forecast surface). */}
+            <HelpButton variant="inline" topic="forecast" />
+          </h2>
           <p className="text-xs text-[#5A5751] mt-0.5 leading-relaxed">
             Where the money goes from here — projected forward from your real accounts, transactions, obligations, debts, and rentals.
             It updates as your data changes. <em>Projections, not promises:</em> a model of your own numbers, never investment advice.

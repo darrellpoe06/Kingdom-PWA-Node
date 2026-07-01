@@ -1,0 +1,23 @@
+Okay so I'm walking through the church right now and I'm thinking about the
+check-in problem again. When people show up for a conference, the volunteers at
+the front are older, they're not super techy, and right now they've got a paper
+list and they're scanning down it with a finger trying to find names. It's slow
+and the line backs up out the door.
+
+What I want is a thing on a tablet, real simple, big buttons, big text, where a
+volunteer types the first couple letters of someone's last name and it filters
+the registered list down instantly. They tap the person, it marks them checked
+in with a timestamp, and it's done. One tap. No scrolling forever.
+
+And here's the important part, it has to work off the registration list we
+already collected through the signup funnel, the real registrations, not some
+made up list. So it reads from the conference registration table. And when they
+check someone in it writes a check-in record, who and when.
+
+Two more things. It needs to keep working if the wifi drops, because the church
+wifi is bad in the lobby, so it should hold the check-ins locally and sync when
+it comes back. And accessibility, it has to be high contrast, big text, because
+the volunteers running it are older and some of the attendees coming up are too.
+
+Oh and at the end of the day I want to see a number, how many of the people who
+registered actually showed up. The no-show rate basically. That's it for now.
