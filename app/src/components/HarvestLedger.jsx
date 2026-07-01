@@ -30,14 +30,11 @@ import RecordsLog from './RecordsLog.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import { getChoirAccess } from '../lib/choir-sync.js';
 import { HARVEST_TYPES, harvestMapFor, harvestType, TRANSCRIPT_DERIVED_KEYS } from '../lib/video-harvest.js';
+import { aboutFor } from '../lib/surface-help.js';
 
-// Self-explaining copy (LIGHT inline; deep version in Help under 'church:harvest').
-const HARVEST_ABOUT = {
-  what: 'The coverage ledger — every ingested service recording and what it has (and has not yet) been mined into, so no Sunday or Wednesday is wasted.',
-  where: 'The video_harvests ledger joined over your real corpus (choir_sermons + choir_songs); every ✦ is a harvest verified against actual app data, never painted.',
-  how: 'Recordings are filed by service date, newest first; orphans (nothing pulled yet) surface so you can confirm coverage. Jump to any month to audit a period.',
-  helpTopic: 'church:harvest',
-};
+// LIGHT inline self-explanation — declared centrally in surface-help.js so the
+// Help-freshness gate can verify the deep Help entry stays current with it.
+const HARVEST_ABOUT = aboutFor('church:harvest');
 
 // Which harvests are mined from the service transcript (now auto-sourced from the
 // video's YouTube captions, no GPU) vs. derived from the row the instant it lands.
