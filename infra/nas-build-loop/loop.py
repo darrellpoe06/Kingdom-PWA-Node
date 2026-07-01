@@ -58,6 +58,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -94,6 +95,28 @@ STOP_FILE = os.path.join(HOME, "STOP")        # kill-switch: present => inert
 ARMED_FILE = os.path.join(HOME, "ARMED")      # must be present to act; ships absent
 TOKEN_FILE = "/volume1/PoeTech/secrets/github-token.txt"
 MIRROR_DIR = os.path.join(HOME, "repo")       # best-effort sovereign clone
+
+# ---- the SHARED BRAIN (Darrell 2026-07-01: AI and humans share ONE weakness --
+# memory -- so the institutional record is the shared brain both read/write).
+# READ the canonical settled record at the START of every cycle so the loop
+# never re-litigates settled things or loses context across cycles/compaction;
+# WRITE every material decision (with its WHY) + outcome to the canonical
+# governance store both future agents AND humans can see. Deterministic plumbing;
+# no LLM. The governance dir is dpoe-writable and is the canonical governance
+# store (holds decision-queue.md) -- we coordinate there, not in a parallel sink.
+GOV_DIR = "/volume1/PoeTech/governance"
+SHARED_BRAIN_DIR = os.path.join(GOV_DIR, "shared-brain")
+SHARED_BRAIN_LOG = os.path.join(SHARED_BRAIN_DIR, "driver-events.jsonl")
+# optional human lever: {"pause_merges": true} makes the loop stop acting while
+# still reading + recording (a governance-side brake living in the shared brain).
+DIRECTIVES_FILE = os.path.join(GOV_DIR, "driver-directives.json")
+# optional forward-compatible Concerns-board export (lights up when dropped here).
+CONCERNS_EXPORT = os.path.join(SHARED_BRAIN_DIR, "concerns-open.json")
+# canonical records read from the sovereign git mirror.
+REC_INDEX = os.path.join(MIRROR_DIR, "docs", "decisions", "INDEX.md")
+REC_PRINCIPLES = os.path.join(MIRROR_DIR, "docs", "decisions", "PRINCIPLES.md")
+REC_MEMORY = os.path.join(MIRROR_DIR, "memory", "MEMORY.md")
+REC_LESSONS = os.path.join(MIRROR_DIR, "docs", "00-foundations", "_root", "LESSONS-LEARNED.md")
 # optional Dispatch Status mirror. NOTE: this dir is owned by the n8n container
 # (uid 1000); dpoe (uid 1026) cannot write it, so this mirror currently no-ops
 # and the sovereign reel at state/reel.jsonl is the record. Wiring these runs
@@ -211,6 +234,71 @@ def reel(rec):
                 f.write(line + "\n")
         except Exception:
             pass
+
+
+# =============================================================================
+# THE SHARED BRAIN -- read the settled record IN, write decisions+outcomes OUT.
+# =============================================================================
+def merges_paused(directives):
+    """Pure: a governance directive can pause the loop's write-actions."""
+    return bool(directives and directives.get("pause_merges"))
+
+
+def read_shared_brain():
+    """Read the canonical settled record at cycle start (deterministic, from the
+    sovereign git mirror + the governance store). Returns (grounded, directives).
+    Never raises; degrades to what it could read."""
+    g = {"latest_dr": None, "principles": False, "memory_lines": 0,
+         "lessons": False, "concerns": "no-export"}
+    directives = {}
+    try:
+        if os.path.isfile(REC_INDEX):
+            txt = open(REC_INDEX, encoding="utf-8", errors="replace").read()
+            # prefer DR ids that appear as real table rows ([DR-####](...)); fall
+            # back to any DR token. Avoids reporting the "Next ID" pointer as latest.
+            drs = re.findall(r"\[DR-(\d{4})\]", txt) or re.findall(r"DR-(\d{4})", txt)
+            if drs:
+                g["latest_dr"] = "DR-" + max(drs)
+        g["principles"] = os.path.isfile(REC_PRINCIPLES)
+        if os.path.isfile(REC_MEMORY):
+            g["memory_lines"] = sum(1 for _ in open(REC_MEMORY, encoding="utf-8", errors="replace"))
+        g["lessons"] = os.path.isfile(REC_LESSONS)
+        if os.path.isfile(CONCERNS_EXPORT):
+            c = json.load(open(CONCERNS_EXPORT))
+            n = len(c) if isinstance(c, list) else len(c.get("open", []))
+            g["concerns"] = "%d open" % n
+    except Exception as e:
+        log("shared-brain read: partial (%s)" % e)
+    try:
+        if os.path.isfile(DIRECTIVES_FILE):
+            d = json.load(open(DIRECTIVES_FILE))
+            if isinstance(d, dict):
+                directives = {"pause_merges": bool(d.get("pause_merges", False))}
+    except Exception as e:
+        log("shared-brain directives: unreadable (%s)" % e)
+    log("shared-brain: READ (grounded in %s, principles=%s, memory=%d lines, "
+        "lessons=%s, concerns=%s, directives=%s)"
+        % (g["latest_dr"], g["principles"], g["memory_lines"], g["lessons"],
+           g["concerns"], directives or "none"))
+    return g, directives
+
+
+def write_shared_brain(rec):
+    """Write a MATERIAL decision+outcome record to the canonical governance store
+    both future agents and humans can read. Every cycle logs the write step; only
+    cycles with a material decision append to the governance log (kept high-signal,
+    not a 96/day firehose). The per-cycle reel keeps the full trace regardless."""
+    decisions = rec.get("decisions", [])
+    if not decisions:
+        log("shared-brain: WRITE (no material decision this cycle; reel holds the trace)")
+        return
+    try:
+        os.makedirs(SHARED_BRAIN_DIR, exist_ok=True)
+        with open(SHARED_BRAIN_LOG, "a") as f:
+            f.write(json.dumps(rec) + "\n")
+        log("shared-brain: WRITE (%d decision(s) -> %s)" % (len(decisions), SHARED_BRAIN_LOG))
+    except Exception as e:
+        log("shared-brain write failed: %s" % e)
 
 
 # =============================================================================
@@ -368,9 +456,21 @@ def run_cycle():
         "blocked": 0, "unknown": 0, "needs_enable": 0,
         "dispatched": 0, "updated": 0, "mirror": "", "detail": "",
     }
+    decisions = []  # structured {action,target,why,result} written to the shared brain
 
-    # 2. sovereign mirror (best-effort)
+    # 2. sovereign mirror (best-effort) -- also refreshes the canonical records the
+    #    shared-brain READ consults below.
     summary["mirror"] = sovereign_mirror(token)
+
+    # 2b. SHARED BRAIN: read the settled record IN so we never re-litigate settled
+    #     things or lose context across cycles/compaction (Darrell 2026-07-01).
+    grounded, directives = read_shared_brain()
+    summary["grounded"] = grounded
+    paused = merges_paused(directives)
+    if paused:
+        decisions.append({"action": "pause", "target": "write-actions",
+                          "why": "governance directive pause_merges=true (shared-brain lever)",
+                          "result": "dispatch + update-branch skipped this cycle"})
 
     # 3. list + classify eligible PRs
     prs = list_open_prs(token)
@@ -409,34 +509,55 @@ def run_cycle():
     summary["needs_enable"] = needs_enable
 
     # 4. HEARTBEAT: dispatch the proven auto-merge sweep if any eligible PR is
-    #    not yet enabled and we are under the daily dispatch cap.
-    if needs_enable > 0 and counter["dispatches"] < MAX_DISPATCHES_PER_DAY:
-        st, _ = gh_api(token, "POST",
-                       "/repos/%s/%s/actions/workflows/%s/dispatches"
-                       % (OWNER, REPO, AUTOMERGE_WORKFLOW),
-                       {"ref": BASE_BRANCH})
-        if st in (201, 204):
-            counter["dispatches"] += 1
-            summary["dispatched"] = 1
-            log("dispatched %s (%d eligible PRs needed enable)" % (AUTOMERGE_WORKFLOW, needs_enable))
-        else:
-            log("dispatch %s returned HTTP %s" % (AUTOMERGE_WORKFLOW, st))
+    #    not yet enabled and we are under the daily dispatch cap. Skipped when the
+    #    shared-brain governance lever paused write-actions.
+    if paused:
+        if needs_enable > 0 or behind_prs:
+            log("paused by governance directive; skipping dispatch + update-branch")
+    else:
+        if needs_enable > 0 and counter["dispatches"] < MAX_DISPATCHES_PER_DAY:
+            st, _ = gh_api(token, "POST",
+                           "/repos/%s/%s/actions/workflows/%s/dispatches"
+                           % (OWNER, REPO, AUTOMERGE_WORKFLOW),
+                           {"ref": BASE_BRANCH})
+            if st in (201, 204):
+                counter["dispatches"] += 1
+                summary["dispatched"] = 1
+                log("dispatched %s (%d eligible PRs needed enable)" % (AUTOMERGE_WORKFLOW, needs_enable))
+                decisions.append({"action": "dispatch-auto-merge", "target": AUTOMERGE_WORKFLOW,
+                                  "why": "%d eligible PR(s) lacked native auto-merge enablement" % needs_enable,
+                                  "result": "dispatched (HTTP %s)" % st})
+            else:
+                log("dispatch %s returned HTTP %s" % (AUTOMERGE_WORKFLOW, st))
+                decisions.append({"action": "dispatch-auto-merge", "target": AUTOMERGE_WORKFLOW,
+                                  "why": "%d eligible PR(s) lacked auto-merge" % needs_enable,
+                                  "result": "FAILED (HTTP %s)" % st})
 
-    # 5. update-branch on trivially-behind PRs (bounded). Never touches DIRTY.
-    for n in behind_prs[:MAX_UPDATES_PER_CYCLE]:
-        if counter["updates"] >= MAX_UPDATES_PER_DAY:
-            log("update-branch: daily cap reached, skipping remaining")
-            break
-        if time.time() - start > CYCLE_DEADLINE_SECONDS:
-            break
-        st, _ = gh_api(token, "PUT",
-                       "/repos/%s/%s/pulls/%d/update-branch" % (OWNER, REPO, n))
-        if st in (202,):
-            counter["updates"] += 1
-            summary["updated"] += 1
-            log("update-branch #%d (behind -> updating; CI will re-run)" % n)
-        else:
-            log("update-branch #%d returned HTTP %s" % (n, st))
+        # 5. update-branch on trivially-behind PRs (bounded). Never touches DIRTY.
+        for n in behind_prs[:MAX_UPDATES_PER_CYCLE]:
+            if counter["updates"] >= MAX_UPDATES_PER_DAY:
+                log("update-branch: daily cap reached, skipping remaining")
+                break
+            if time.time() - start > CYCLE_DEADLINE_SECONDS:
+                break
+            st, _ = gh_api(token, "PUT",
+                           "/repos/%s/%s/pulls/%d/update-branch" % (OWNER, REPO, n))
+            if st in (202,):
+                counter["updates"] += 1
+                summary["updated"] += 1
+                log("update-branch #%d (behind -> updating; CI will re-run)" % n)
+                decisions.append({"action": "update-branch", "target": "#%d" % n,
+                                  "why": "eligible PR behind main; refresh so CI re-runs and it can merge",
+                                  "result": "requested (HTTP 202)"})
+            else:
+                log("update-branch #%d returned HTTP %s" % (n, st))
+
+    # a DIRTY (conflicting) PR is a decision to DEFER -- recorded so the shared
+    # brain hands it to the local-LLM judgment lane rather than silently dropping.
+    if dirty_numbers:
+        decisions.append({"action": "defer", "target": "PRs %s" % dirty_numbers,
+                          "why": "DIRTY conflicts need reasoning; the deterministic loop must not touch them",
+                          "result": "flagged for the local-LLM judgment lane"})
 
     save_counter(counter)
 
@@ -444,6 +565,7 @@ def run_cycle():
     summary["duration_ms"] = dur
     if dirty_numbers:
         summary["dirty_prs"] = dirty_numbers  # flagged for the local-LLM judgment lane
+    summary["decisions"] = decisions
     if not summary["detail"]:
         summary["detail"] = (
             "eligible=%d clean=%d behind=%d dirty=%d blocked=%d | "
@@ -455,6 +577,18 @@ def run_cycle():
 
     log("cycle: %s (%dms)" % (summary["detail"], dur))
     reel(summary)
+
+    # SHARED BRAIN: write decisions+outcomes OUT to the canonical governance store.
+    record = {
+        "ts": now_iso(), "node": "nas-DS1621xs", "agent": "nas-build-loop",
+        "grounded_in": grounded,
+        "observed": {k: summary[k] for k in
+                     ("eligible", "clean", "behind", "dirty", "blocked", "unknown")},
+        "decisions": decisions,
+        "outcome": summary["detail"],
+    }
+    write_shared_brain(record)
+
     try:
         with open(LASTCYCLE_FILE, "w") as f:
             json.dump(summary, f, indent=2)
@@ -504,6 +638,12 @@ def selftest():
     check("chore/ NOT eligible", not is_eligible(pr("chore/x")))
     check("draft NOT eligible", not is_eligible(pr("feat/x", draft=True)))
     check("hold label NOT eligible", not is_eligible(pr("feat/x", labels=["hold"])))
+
+    # shared-brain governance lever
+    check("pause_merges=true pauses", merges_paused({"pause_merges": True}))
+    check("pause_merges=false does not", not merges_paused({"pause_merges": False}))
+    check("no directives does not pause", not merges_paused({}))
+    check("None directives does not pause", not merges_paused(None))
 
     print("\nSELFTEST " + ("PASSED" if ok else "FAILED"))
     return 0 if ok else 1
