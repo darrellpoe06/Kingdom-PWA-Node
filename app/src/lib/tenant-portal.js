@@ -138,9 +138,15 @@ export function buildNotice(form = {}, clock) {
 }
 
 export function buildMessage(form = {}, clock) {
-  const role = form.fromRole === 'landlord' ? 'landlord' : 'tenant';
-  const cap = role === 'landlord' ? 'message.tenant' : 'message.landlord';
-  if (!can(REL, role, cap)) throw new Error(`${role} cannot message on this tenancy`);
+  // Three participants can be on a unit thread: the tenant, the owner
+  // (landlord), and the PROPERTY MANAGER. The manager messages on the landlord
+  // SIDE (same capability), but the real role is preserved for attribution +
+  // the DB from_role CHECK (migration 0062 allows 'manager').
+  const raw = form.fromRole;
+  const role = (raw === 'landlord' || raw === 'manager') ? raw : 'tenant';
+  const side = role === 'tenant' ? 'tenant' : 'landlord';
+  const cap = side === 'landlord' ? 'message.tenant' : 'message.landlord';
+  if (!can(REL, side, cap)) throw new Error(`${role} cannot message on this tenancy`);
   const body = clean(form.body, 4000);
   if (!body) throw new Error('a message needs a body');
   return {

@@ -14,6 +14,8 @@ import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
 import { derivePortfolio, isPersonalProp } from '../lib/rental-portfolio.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
+import UnitManagement from './UnitManagement.jsx';
+import { groupDoorsByBuilding, buildRestoreUnits } from '../lib/building-group.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -822,7 +824,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // v28+ Rentals expansion: add/edit property + autocomplete + map + evaluator
   const [showPropForm, setShowPropForm] = useState(false);
   const [editingPropId, setEditingPropId] = useState(null);
-  const blankProp = () => ({ name: '', address: '', city: '', state: '', zip: '', tenantName: '', lat: null, lon: null, propertyType: 'single-family', units: 1, rent: 0, status: 'paying', entityId: 'e-poeprops', purchasePrice: 0, purchaseDate: '', estimatedValue: 0, mortgageBalance: 0, mortgageRate: 6.5, monthlyPI: 0, escrow: 0, notes: '' });
+  const blankProp = () => ({ name: '', address: '', city: '', state: '', zip: '', tenantName: '', lat: null, lon: null, propertyType: 'single-family', units: 1, building: '', unitLabel: '', rent: 0, status: 'paying', entityId: 'e-poeprops', purchasePrice: 0, purchaseDate: '', estimatedValue: 0, mortgageBalance: 0, mortgageRate: 6.5, monthlyPI: 0, escrow: 0, notes: '' });
   const [propForm, setPropForm] = useState(blankProp());
   const [suggestions, setSuggestions] = useState([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
@@ -974,6 +976,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       lat: r.lat ?? null, lon: r.lon ?? null,
       propertyType: r.propertyType || 'single-family',
       units: r.units || 1,
+      building: r.building || '', unitLabel: r.unitLabel || '',
       rent: r.rent || 0, status: r.status || 'paying', entityId: r.entityId || 'e-poeprops',
       purchasePrice: r.purchasePrice || 0, purchaseDate: r.purchaseDate || '', estimatedValue: r.estimatedValue || 0,
       mortgageBalance: r.mortgage?.balance || 0, mortgageRate: r.mortgage?.rate || 6.5,
@@ -994,6 +997,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       lat: propForm.lat, lon: propForm.lon,
       propertyType: propForm.propertyType,
       units: Math.max(1, parseInt(propForm.units, 10) || 1),
+      building: (propForm.building || '').trim(),
+      unitLabel: (propForm.unitLabel || '').trim(),
       rent: parseFloat(propForm.rent) || 0,
       actual: parseFloat(propForm.rent) || 0,
       status: propForm.status,
@@ -1015,6 +1020,42 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     cancelPropForm();
   };
   const confirmDeleteProp = (r) => { if (confirm(`Delete property "${r.name}"? Snowball math will recompute without it.`)) deleteRental(r.id); };
+
+  // Restore a multi-unit building's separate doors. The reported 805 N Prospect
+  // regression collapsed a four-plex to ONE door (losing per-unit records). This
+  // is the in-app control (P15: a surface is a CONTROL for real state): it turns
+  // one collapsed record into a BUILDING with a door per unit — the base becomes
+  // the first unit, the rest are created as their own doors sharing the building,
+  // so each apartment regains its own notes / maintenance / photos / thread /
+  // requests. Names come from the family (never invented), defaulting to the
+  // four apartments the Synology-Chat source records for 805 (apt 1..4).
+  const restoreUnits = (base) => {
+    const suggested = base.address ? `${base.address}` : (base.name || 'Building');
+    const buildingName = (base.building && base.building.trim())
+      || (prompt('Building name (groups the units):', suggested) || '').trim();
+    if (!buildingName) return;
+    const raw = prompt(
+      `Unit labels for "${buildingName}", comma-separated:`,
+      'Apt 1, Apt 2, Apt 3, Apt 4'
+    );
+    if (!raw) return;
+    const labels = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    if (labels.length < 2) { alert('Enter at least two units (e.g. Apt 1, Apt 2).'); return; }
+    // The existing door becomes the first unit under the building.
+    updateRental(base.id, {
+      building: buildingName,
+      unitLabel: labels[0],
+      propertyType: base.propertyType && base.propertyType !== 'single-family' ? base.propertyType : 'multi-family',
+      units: 1,
+      name: base.address ? `${base.address} ${labels[0]}` : `${buildingName} ${labels[0]}`,
+    });
+    // The remaining units become their own doors, sharing the building.
+    let n = 0;
+    const newDoors = buildRestoreUnits({ ...base, building: buildingName }, labels.slice(1),
+      () => `r-unit-${base.id}-${(++n)}`);
+    newDoors.forEach((d) => addRental(d));
+    alert(`Restored ${labels.length} doors under "${buildingName}". Each unit now has its own records, notes, requests, and thread.`);
+  };
 
   // v28+ Maintenance trio: per-property records (maintenance log + conversations)
   // Stored on the rental record itself. All local, zero ongoing cost.
@@ -1376,6 +1417,17 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               <input type="number" min="1" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.units} onChange={e => setPropForm({ ...propForm, units: e.target.value })} />
               <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Rentable doors in this property — a single-family = 1, a fourplex = 4. Feeds the portfolio door count up top.</p>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building (groups units)</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 N Prospect" value={propForm.building} onChange={e => setPropForm({ ...propForm, building: e.target.value })} />
+                <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Give the same building name to each apartment to group them as one building with separate doors.</p>
+              </div>
+              <div>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Unit label (optional)</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Apt 3" value={propForm.unitLabel} onChange={e => setPropForm({ ...propForm, unitLabel: e.target.value })} />
+              </div>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property type</label>
@@ -1642,6 +1694,18 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div className="mt-3 pt-3 border-t border-[#E8E4DC] space-y-4">
                       {/* v28+ MVP v1.5: lease/tenant/equipment/rooms — Real Estate App carryover */}
                       <PropertyDetails rental={r} updateRental={updateRental} voiceOps={voiceOps} />
+                      {/* Restore a collapsed multi-unit building into separate
+                          doors — the fix for 805 N Prospect showing as one door. */}
+                      <div className="text-[0.625rem]">
+                        <button type="button" onClick={() => restoreUnits(r)} className="uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">
+                          Multi-unit building? Restore its separate doors
+                        </button>
+                      </div>
+                      {/* Per-unit MANAGEMENT: notes (property memory) + service
+                          requests (assignable to the PM) + tenant/manager/owner
+                          thread (draft->preview->approve-send). The app RUNS the
+                          workflow per door, not just displays it. */}
+                      <UnitManagement rental={r} updateRental={updateRental} />
                       {/* MAINTENANCE LOG */}
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -2024,14 +2088,39 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No properties yet. Use + Add property above.</p>
                 </div>
               )}
-              {incomeProducing.length > 0 && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</div>
-                  <div className="bg-white border border-[#1A1815]">
-                    {incomeProducing.map((r, i) => renderPropertyRow(r, i, incomeProducing.length - 1))}
+              {incomeProducing.length > 0 && (() => {
+                // Group unit-doors under their building (building-group.js). A
+                // building carrying 2+ doors renders one address header with its
+                // separate doors nested beneath — so a four-plex reads as one
+                // building with four doors, each keeping its own records. A lone
+                // door renders standalone, exactly as before.
+                const entries = groupDoorsByBuilding(incomeProducing);
+                const lastIdx = incomeProducing.length - 1;
+                let gi = 0;
+                return (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</div>
+                    <div className="space-y-3">
+                      {entries.map((e) => e.type === 'building' ? (
+                        <div key={`b-${e.key}`} className="bg-white border border-[#1A1815]">
+                          <div className="bg-[#FAF8F4] border-b border-[#1A1815] px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
+                            <span className="flex items-baseline gap-2">
+                              <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{e.building}</span>
+                              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{e.rollup.doorCount} {e.rollup.doorCount === 1 ? 'door' : 'doors'}</span>
+                            </span>
+                            <span className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(e.rollup.monthlyRent)}/mo</span>
+                          </div>
+                          {e.units.map((u) => renderPropertyRow(u, gi++, lastIdx))}
+                        </div>
+                      ) : (
+                        <div key={`s-${e.rental.id}`} className="bg-white border border-[#1A1815]">
+                          {renderPropertyRow(e.rental, gi++, lastIdx)}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
               {personal.length > 0 && (
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Personal & Non-Rental · {personal.length}</div>
