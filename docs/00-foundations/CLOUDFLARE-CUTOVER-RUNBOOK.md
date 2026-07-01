@@ -6,6 +6,12 @@
 - **Governing doctrine:** every step ends in an observed proof line (DR-0076). The single point of no return (the DNS flip) is gated to Darrell and is reversible by reverting one record.
 - **Supersedes:** the dated session note [`docs/99-session-notes/2026-06-16-cutover-plan-vercel-to-cloudflare-pages.md`](../99-session-notes/2026-06-16-cutover-plan-vercel-to-cloudflare-pages.md). That note references a companion `research-review-off-vercel-hosting.md` that was **never committed to the repo** — there is no separate research-review file; this runbook is the authoritative hand document.
 
+> **Live off-network verification — 2026-07-01 (DR-0076).** Curling the public hostname (public DNS → Cloudflare edge, i.e. the real off-network path) confirmed, from evidence not assumption:
+> - `https://poetech.us/poetech-app/` → **HTTP 200**, all three app chunks 200 (no deploy-skew 404s).
+> - **Serves the current `main` build:** the served `sw.js` cache version is `a2a2dc5`, byte-equal to `origin/main` HEAD `a2a2dc5773…`. (During the check, the always-on merge/deploy lane advanced `main` and Vercel rebuilt it — the SW-SHA match proved that pipeline end-to-end.)
+> - **All security headers already live** in production: `content-security-policy` (byte-identical to `vercel.json`), `strict-transport-security`, `x-frame-options: DENY`, `x-content-type-options: nosniff`, `referrer-policy`, `permissions-policy`.
+> - **Topology today:** `server: cloudflare` + `cf-ray` with `x-vercel-cache: HIT` / `x-vercel-id` behind it → **Cloudflare already fronts the domain; Vercel is only the origin.** The cutover swaps that origin (Vercel → Cloudflare Pages); it does **not** move DNS onto Cloudflare (already there — see §7 Case A, now confirmed).
+
 ---
 
 ## 1. What is already done in the repo (verified)
@@ -130,14 +136,14 @@ If ANY of these fail, STOP — do not change DNS. Vercel is still live and unaff
 
 > Do this ONLY after every check in section 6 is green. **Lower the DNS TTL to ~300s about 24h beforehand** so a rollback propagates in minutes, not hours.
 
-First confirm where `poetech.us` DNS is managed today (it decides Case A vs B):
+**CONFIRMED 2026-07-01: this is Case A.** `nslookup -type=NS poetech.us` returns `adi.ns.cloudflare.com` + `jim.ns.cloudflare.com`, and the apex resolves to a Cloudflare address (`2606:4700::…`) — the zone is already on Cloudflare. So your DNS step is the **simple dashboard path below** (Case B does not apply): no registrar CNAME edit, no apex-flattening concern. Re-run the check yourself if you want to reconfirm before flipping:
 
 ```powershell
 cd C:\Users\dpoe\Kingdom-PWA-Node
 nslookup -type=NS poetech.us
 ```
 
-### Case A — `poetech.us` zone is already on Cloudflare
+### Case A — `poetech.us` zone is already on Cloudflare  ← **the confirmed path**
 1. Cloudflare -> your `poetech-app` Pages project -> **Custom domains** -> **Set up a custom domain** -> enter `poetech.us` (repeat for `www.poetech.us` if you serve it).
 2. Cloudflare auto-creates the proxied record and provisions the certificate. Near-instant; no registrar step.
 
@@ -184,7 +190,7 @@ The backend is Supabase + n8n — **unchanged** by the host move. Rollback is pu
 
 ## 9. Honest open items (confirm before / during cutover)
 
-- **Where `poetech.us` DNS lives** — Case A vs B above. The `nslookup -type=NS` in section 7 answers it; cannot be confirmed from the repo.
+- ~~**Where `poetech.us` DNS lives** — Case A vs B above.~~ **RESOLVED 2026-07-01: Case A** (zone on Cloudflare — NS `adi/jim.ns.cloudflare.com`, apex resolves to `2606:4700::…`). The custom-domain step in §7 is dashboard-only; no registrar change.
 - **`www` vs apex** canonical host — match whatever Vercel serves today.
 - **Cloudflare Pages Functions free invocation cap (2026)** — confirm at Cloudflare's Workers/Pages pricing page. Family + congregation volume is trivially under any plausible cap, but it has not been checked against current pricing.
 - **`wrangler pages dev` re-parse with the new `/*` security block** — the earlier wrangler proof predates this PR's added `/*` header rule. The block uses standard `_headers` syntax (path at column 0, indented `Name: value`) and the in-repo guard validates its structure, but a fresh `wrangler pages dev` (or the section 6 `curl -D -` header check) is the live confirmation that Cloudflare emits these headers.
