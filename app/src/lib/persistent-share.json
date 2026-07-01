@@ -1,0 +1,23 @@
+{
+  "totalLines": 261523,
+  "totalFiles": 1481,
+  "persistentPct": 13.24,
+  "persistentLines": 34629,
+  "sub": {
+    "sql": 6.27,
+    "python": 1.16,
+    "shellPs": 2.61,
+    "ci": 3.2
+  },
+  "frontendPct": 51.59,
+  "configDocsPct": 35.17,
+  "baselinePct": 12.6,
+  "targetPct": 20.0,
+  "moduleLedger": {
+    "monolithLines": 8403,
+    "frozenBudget": 8489,
+    "surfaces": 37
+  },
+  "previousPct": 12.92,
+  "generatedAt": "2026-07-01T13:00:08Z"
+}
