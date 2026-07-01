@@ -27,8 +27,9 @@
 // Accessibility: white cards / #1A1815 body, #5A5751 secondary, labelled inputs,
 // visible #B85838 focus outline.
 // =============================================================================
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SectionTitle, TabScroll } from './shared.jsx';
+import UiIcon from './UiIcon.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
@@ -36,11 +37,21 @@ import {
   saveSermonDocument, importSermonsFromChannel, openSermonDocument, fetchPublicSermons, dedupeSermons,
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
+import { extractYoutubeId } from '../lib/youtube-title-parse.js';
+import { pointsForVideo, pointsSearchText } from '../lib/sermon-points.js';
+import { sortByEngagement, engagementFor, engagementLabel, SORT_MODES } from '../lib/sermon-engagement.js';
+import { fetchPointsData, subscribeEngagement, toggleReaction } from '../lib/sermon-library-sync.js';
 import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
 import { useReadingResume } from '../lib/reading-position.js';
 import { aboutFor } from '../lib/surface-help.js';
+
+// The stable YouTube id for a message — the row's own video_id, else parsed from
+// its watch URL. Keys the thumbnail, the points, and the engagement counts.
+const videoIdOf = (s) => (s && (s.videoId || extractYoutubeId(s.youtubeUrl))) || null;
+// YouTube's always-present medium thumbnail (no API key, no vendor tracker).
+const thumbUrl = (id) => (id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : null);
 
 // LIGHT inline self-explanation — declared centrally in surface-help.js so the
 // Help-freshness gate can verify the deep Help entry stays current with it.
@@ -126,37 +137,125 @@ function MessageForm({ initial, onSave, onCancel, busy, speakers = [] }) {
   );
 }
 
-function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
+// The numbered teaching outline under a video — BG's own points (harvest lane /
+// transcript-derived), collapsed by default so the library stays scannable. When
+// there are no numbered points yet, a scripture strip still shows (title anchors)
+// so the card is never empty — the graceful-until-transcript state.
+function PointsBlock({ bundle }) {
+  const [open, setOpen] = useState(false);
+  if (!bundle) return null;
+  const { points = [], scriptures = [], source } = bundle;
+  const hasPoints = points.length > 0;
+  if (!hasPoints && scriptures.length === 0) return null;
+  return (
+    <div className="mt-1.5">
+      {hasPoints ? (
+        <button type="button" onClick={() => setOpen((p) => !p)} aria-expanded={open}
+          className="text-[0.6875rem] px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          style={{ fontFamily: '"Fraunces", serif' }}>
+          {open ? '▾ Hide points' : `▸ ${points.length} point${points.length === 1 ? '' : 's'}`}
+        </button>
+      ) : (
+        scriptures.length > 0 && (
+          <div className="flex flex-wrap gap-1 items-center">
+            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Scriptures</span>
+            {scriptures.slice(0, 6).map((s) => (
+              <span key={s} className="text-[0.6875rem] bg-[#FAF8F4] border border-[#E8E4DC] px-1.5 py-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s}</span>
+            ))}
+          </div>
+        )
+      )}
+      {open && hasPoints && (
+        <ol className="mt-1.5 space-y-1.5">
+          {points.map((p) => (
+            <li key={p.n + p.text.slice(0, 12)} className="flex gap-2">
+              <span className="text-[0.6875rem] font-semibold text-[#5A6E3D] tabular-nums shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.n}.</span>
+              <span className="text-[0.8125rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                {p.text}
+                {p.scriptures && p.scriptures.length > 0 && (
+                  <span className="ml-1.5 inline-flex flex-wrap gap-1 align-middle">
+                    {p.scriptures.map((s) => (
+                      <span key={s} className="text-[0.625rem] bg-[#FAF8F4] border border-[#E8E4DC] px-1 py-0.5 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s}</span>
+                    ))}
+                  </span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {open && hasPoints && source === 'transcript' && (
+        <p className="text-[0.5625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Points read from the message transcript — his own words.</p>
+      )}
+    </div>
+  );
+}
+
+function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null, engagement = null, onHeart = null, rank = null }) {
   // Embed the service video INLINE (Darrell: embedding is cleaner than frames).
   const [playing, setPlaying] = useState(false);
   const baseEmbed = youtubeEmbedUrl(sermon.youtubeUrl);
   const embed = baseEmbed && sermon.startSeconds ? `${baseEmbed}?start=${Math.floor(sermon.startSeconds)}` : baseEmbed;
   const watch = youtubeTimedUrl(sermon.youtubeUrl, sermon.startSeconds);
   const watchLabel = `▶ Watch${sermon.startSeconds ? ` @ ${formatTimecode(sermon.startSeconds)}` : ''}`;
+  const vid = videoIdOf(sermon);
+  const thumb = thumbUrl(vid);
+  const eng = engagement || null;
+  const engLabel = eng ? engagementLabel(eng) : '';
+  const play = () => setPlaying((p) => !p);
   return (
     <div className="p-3 border-b border-[#E8E4DC]">
-      <div className="flex items-baseline justify-between gap-2 flex-wrap">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{sermon.title}</span>
-          {sermon.status === 'draft' && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
-          {sermon.scriptureRef && <span className="text-[0.6875rem] text-[#5A5751]">{sermon.scriptureRef}</span>}
+      <div className="flex gap-3">
+        {/* Thumbnail — the consumer-video-library affordance; click to play inline. */}
+        {thumb && (
+          <button type="button" onClick={play} aria-label={playing ? 'Hide video' : `Play ${sermon.title}`}
+            className="relative shrink-0 w-28 sm:w-36 focus:outline focus:outline-2 focus:outline-[#B85838]">
+            <img src={thumb} alt="" loading="lazy" className="w-full aspect-video object-cover border border-[#1A1815]" />
+            <span aria-hidden className="absolute inset-0 flex items-center justify-center text-white text-lg" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>{playing ? '▾' : '▶'}</span>
+            {typeof rank === 'number' && <span className="absolute top-0 left-0 bg-[#1A1815] text-white text-[0.625rem] px-1.5 py-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>#{rank}</span>}
+          </button>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{sermon.title}</span>
+              {sermon.status === 'draft' && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
+              {sermon.scriptureRef && <span className="text-[0.6875rem] text-[#5A5751]">{sermon.scriptureRef}</span>}
+            </div>
+            <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {sermon.serviceType === 'wednesday' ? 'Wed' : 'Sun'}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
+          </div>
+          {sermon.speaker && <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
+          {sermon.repreachSourceName && (
+            <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+              ↻ Re-preached — original by {sermon.repreachSourceName}{sermon.repreachSourceTitle ? `: “${sermon.repreachSourceTitle}”` : ''}
+            </p>
+          )}
+          {sermon.notes && <p className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.notes}</p>}
+
+          {/* BG's numbered points (or a scripture strip) under the video. */}
+          <PointsBlock bundle={points} />
+
+          {/* Engagement — hearts users give + views/likes, and the sort signal. */}
+          <div className="flex gap-2 mt-1.5 flex-wrap items-center">
+            {onHeart && (
+              <button type="button" onClick={() => onHeart(sermon)} aria-pressed={!!(eng && eng.myHeart)}
+                className={`text-[0.6875rem] px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${eng && eng.myHeart ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#B85838] text-[#B85838] hover:bg-[#FAF8F4]'}`}
+                style={{ fontFamily: '"Fraunces", serif' }}>
+                <UiIcon name={eng && eng.myHeart ? 'heartFilled' : 'heart'} /> {eng && eng.hearts ? eng.hearts : ''} <span className="sr-only">hearts</span>
+              </button>
+            )}
+            {engLabel && <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{engLabel}</span>}
+          </div>
+
+          <div className="flex gap-2 mt-1 flex-wrap">
+            {embed && <button type="button" onClick={play} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={playing}>{playing ? '▾ Hide video' : watchLabel}</button>}
+            {!embed && watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel}</a>}
+            {sermon.documentUrl && <button type="button" onClick={async () => { const u = await openSermonDocument(sermon.documentUrl); if (u) window.open(u, '_blank', 'noopener'); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Document</button>}
+            {canEdit && onReuse && <button type="button" onClick={() => onReuse(sermon)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Re-preach this</button>}
+            {canEdit && onEdit && <button type="button" onClick={() => onEdit(sermon)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
+            {canEdit && onDelete && <button type="button" onClick={() => onDelete(sermon)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
+          </div>
         </div>
-        <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {sermon.serviceType === 'wednesday' ? 'Wed' : 'Sun'}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
-      </div>
-      {sermon.speaker && <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
-      {sermon.repreachSourceName && (
-        <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
-          ↻ Re-preached — original by {sermon.repreachSourceName}{sermon.repreachSourceTitle ? `: “${sermon.repreachSourceTitle}”` : ''}
-        </p>
-      )}
-      {sermon.notes && <p className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.notes}</p>}
-      <div className="flex gap-2 mt-1 flex-wrap">
-        {embed && <button type="button" onClick={() => setPlaying((p) => !p)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={playing}>{playing ? '▾ Hide video' : watchLabel}</button>}
-        {!embed && watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel}</a>}
-        {sermon.documentUrl && <button type="button" onClick={async () => { const u = await openSermonDocument(sermon.documentUrl); if (u) window.open(u, '_blank', 'noopener'); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Document</button>}
-        {canEdit && onReuse && <button type="button" onClick={() => onReuse(sermon)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Re-preach this</button>}
-        {canEdit && onEdit && <button type="button" onClick={() => onEdit(sermon)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
-        {canEdit && onDelete && <button type="button" onClick={() => onDelete(sermon)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
       </div>
       {playing && embed && (
         <div className="mt-2 aspect-video">
@@ -172,9 +271,12 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse }) {
 // management controls + the in-progress drafts; everyone else sees only the
 // published list (the RPC returns no drafts to them).
 // -----------------------------------------------------------------------------
-function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey }) {
+function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsByVideo = {}, engagementMap = {}, onHeart = null }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [importMsg, setImportMsg] = useState('');
+  const [sortMode, setSortMode] = useState('newest'); // newest | hearted | viewed
+  const [rankQuery, setRankQuery] = useState('');      // search for the ranked (engagement) views
+  const [rankAll, setRankAll] = useState(false);       // cap the ranked list; expand on demand (no death-scroll)
   const runImport = async () => {
     setImportMsg('Importing…');
     const r = await onImport();
@@ -189,9 +291,37 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
   const drafts = list.filter((s) => s.status === 'draft');
   const history = list.filter((s) => s.status !== 'draft');
   const roster = speakerRoster(list);
+
+  // Attach the points bundle + engagement to each history item (keyed by video),
+  // so both the date-grouped and the ranked views render the same enriched row
+  // and search can match a point's text ("show me the one about X").
+  const enrich = (s) => {
+    const vid = videoIdOf(s);
+    return { ...s, _vid: vid, _points: (vid && pointsByVideo[vid]) || null, _engagement: engagementFor(engagementMap, vid) };
+  };
+  const historyEnriched = history.map(enrich);
+  const rowFor = (s) => (
+    <MessageRow sermon={s} canEdit={canEdit} points={s._points} engagement={s._engagement}
+      onHeart={onHeart} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />
+  );
+
   // The Word is the second consumer of the shared reading-position primitive:
   // return to the message library right where you were scrolled, not the top.
   const { hasResume, resume, label } = useReadingResume({ userKey, surface: 'theword', itemId: 'library' });
+
+  // Ranked (engagement) view: sort by the chosen signal, filter by the search,
+  // then cap to a scannable top slice with an expand — popularity up top, never a
+  // death-scroll. Only used when sortMode !== 'newest'.
+  const ranked = sortMode === 'newest' ? [] : (() => {
+    const q = rankQuery.trim().toLowerCase();
+    const filtered = q
+      ? historyEnriched.filter((s) => `${s.title || ''} ${s.scriptureRef || ''} ${s.speaker || ''} ${pointsSearchText(s._points)}`.toLowerCase().includes(q))
+      : historyEnriched;
+    const ordered = sortByEngagement(filtered.map((s) => ({ ...s, videoId: s._vid })), engagementMap, sortMode);
+    return ordered;
+  })();
+  const RANK_CAP = 25;
+
   return (
     <div>
       {hasResume && (
@@ -199,7 +329,19 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
           ↓ {label || 'Continue where you left off'}
         </button>
       )}
-      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Every past message — Sundays + Wednesday Bible Study, newest first. Bishop Gwin preaches most; guest preachers and teachers fill in so he can rest, and each message credits who delivered it. Watch the service right here.{canEdit ? ' Add, reuse, and manage messages below.' : ''}</p>
+      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Every past message — Sundays + Wednesday Bible Study. Pick one by its points, or sort by what resonates. Bishop Gwin preaches most; guest preachers and teachers fill in so he can rest, and each message credits who delivered it. Watch the service right here.{canEdit ? ' Add, reuse, and manage messages below.' : ''}</p>
+
+      {/* Sort — a real video library: newest, or ranked by what resonates. */}
+      <div className="flex items-center gap-1.5 mb-2 flex-wrap" role="group" aria-label="Sort messages">
+        <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Sort</span>
+        {SORT_MODES.map((m) => (
+          <button key={m.key} type="button" onClick={() => { setSortMode(m.key); setRankAll(false); }}
+            aria-pressed={sortMode === m.key}
+            className={`text-[0.6875rem] px-2.5 py-1 rounded-full border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] ${sortMode === m.key ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}
+            style={{ fontFamily: '"Fraunces", serif' }}>{m.label}</button>
+        ))}
+      </div>
+
       {roster.length > 0 && (
         <div className="mb-3">
           <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] mb-1">Preachers &amp; teachers</div>
@@ -226,25 +368,52 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
         <div className="mb-3">
           <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] mb-1">In progress (private)</div>
           <div className="bg-white border border-[#5A6E3D]">
-            {drafts.sort(byDateDesc).map((s) => <MessageRow key={s.id} sermon={s} canEdit={canEdit} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />)}
+            {drafts.map(enrich).sort(byDateDesc).map((s) => <div key={s.id}>{rowFor(s)}</div>)}
           </div>
         </div>
       )}
 
-      {history.length ? (
+      {historyEnriched.length === 0 ? (
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No messages yet.</p>
+      ) : sortMode === 'newest' ? (
+        // NEWEST — the office-like, date-grouped view (no death-scroll). Points
+        // text is folded into search so "the one about X" finds it.
         <RecordsLog
-          items={history}
+          items={historyEnriched}
           getDate={(s) => s.serviceDate}
-          getText={(s) => `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''}`}
+          getText={(s) => `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''} ${pointsSearchText(s._points)}`}
           countNoun="message"
           about={THEWORD_ABOUT}
           facets={[
             { key: 'speaker', label: 'speakers', getValue: (s) => s.speaker },
             { key: 'type', label: 'services', getValue: (s) => (s.serviceType === 'wednesday' ? 'Wednesday' : 'Sunday') },
           ]}
-          renderRow={(s) => <MessageRow sermon={s} canEdit={canEdit} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />}
+          renderRow={(s) => rowFor(s)}
         />
-      ) : <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No messages yet.</p>}
+      ) : (
+        // RANKED — most-hearted / most-viewed first, searchable, capped to a
+        // scannable top slice with an expand (popularity up top, not a scroll).
+        <div>
+          <label className="sr-only" htmlFor="tw-rank-q">Search messages</label>
+          <input id="tw-rank-q" className={FIELD} value={rankQuery} onChange={(e) => { setRankQuery(e.target.value); setRankAll(false); }}
+            placeholder="Search title, scripture, or a point…" />
+          <p className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] my-2">
+            {ranked.length} message{ranked.length === 1 ? '' : 's'} · {sortMode === 'hearted' ? 'most hearted first' : 'most viewed first'}
+          </p>
+          <div className="bg-white border border-[#1A1815]">
+            {(rankAll ? ranked : ranked.slice(0, RANK_CAP)).map((s, i) => (
+              <MessageRow key={s.id} sermon={s} canEdit={canEdit} points={s._points} engagement={s._engagement}
+                onHeart={onHeart} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse}
+                rank={i + 1} />
+            ))}
+          </div>
+          {!rankAll && ranked.length > RANK_CAP && (
+            <button type="button" onClick={() => setRankAll(true)} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mt-2`}>
+              Show all {ranked.length}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -335,6 +504,8 @@ export default function Pulpit() {
   const [publicSermons, setPublicSermons] = useState([]); // everyone else: RPC (published)
   const [sermonDocs, setSermonDocs] = useState([]);  // owner/admin only (RLS)
   const [speakers, setSpeakers] = useState([]);      // canonical speaker entities (0037) — typeahead source
+  const [pointsData, setPointsData] = useState({ transcriptsByVideo: {}, harvestsByVideo: {} }); // points sources
+  const [engagementMap, setEngagementMap] = useState({}); // { [videoId]: { hearts, ytViews, myHeart, ... } }
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -364,6 +535,20 @@ export default function Pulpit() {
     return () => { alive = false; };
   }, [canManage]);
 
+  // LIBRARY ENRICHMENT (signed-in): the points sources (transcripts + recorded
+  // harvest `lessons` refs) and the live engagement map (hearts + YouTube stats).
+  // RLS returns empty for a non-member, so this degrades to a plain library —
+  // points fall back to title scriptures, engagement reads as no-signal-yet —
+  // and never throws. Signed-out skips it entirely (the public archive stands
+  // on its own). Points come fully alive as the transcript pipeline backfills.
+  useEffect(() => {
+    if (!signedIn) { setPointsData({ transcriptsByVideo: {}, harvestsByVideo: {} }); setEngagementMap({}); return undefined; }
+    let alive = true;
+    fetchPointsData().then((d) => { if (alive) setPointsData(d || { transcriptsByVideo: {}, harvestsByVideo: {} }); });
+    const unsub = subscribeEngagement((m) => { if (alive) setEngagementMap(m || {}); }, email);
+    return () => { alive = false; try { unsub && unsub(); } catch { /* noop */ } };
+  }, [signedIn, email]);
+
   const reportSkip = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Your changes were not stored — try again.`); else setErr(''); };
 
   // Tag each message with its canonical speaker's primary flag (0037) so the
@@ -386,6 +571,32 @@ export default function Pulpit() {
   });
   const libraryItems = canManage ? withDocs : publicSermons;
   const tabs = theWordTabs(canManage);
+
+  // Points per video: prefer the harvest lane's recorded `lessons` refs, else
+  // derive live from the transcript, else fall back to the title's anchor
+  // scriptures — all pure (sermon-points.js). Recomputes when the corpus or the
+  // points sources change; keyed by video id for the row to look up.
+  const pointsByVideo = useMemo(() => {
+    const { transcriptsByVideo, harvestsByVideo } = pointsData;
+    const out = {};
+    for (const s of libraryItems) {
+      const vid = videoIdOf(s);
+      if (!vid || out[vid]) continue;
+      out[vid] = pointsForVideo({ sermon: s, harvestRow: harvestsByVideo[vid] || null, transcript: transcriptsByVideo[vid] || null });
+    }
+    return out;
+  }, [libraryItems, pointsData]);
+
+  // Give / take a heart (or like) on a message. Self-scoped, fails soft; the
+  // realtime subscription refreshes the counts, so no optimistic bookkeeping.
+  const onHeart = async (sermon) => {
+    const vid = videoIdOf(sermon);
+    if (!vid) return;
+    const r = await toggleReaction(vid, 'heart', email);
+    if (r && r.skipped === 'signed-out') setErr('Sign in to leave a heart on a message.');
+    else if (r && r.skipped && r.skipped !== 'no-church') setErr(`Could not save your heart (${r.skipped}).`);
+    else setErr('');
+  };
 
   const onSave = async (s) => { setBusy(true); const r = await saveSermon(s); reportSkip(r); if (r?.id) await saveSermonDocument(r.id, s.documentUrl); setBusy(false); };
   const onDelete = async (s) => { reportSkip(await deleteSermon(s.id)); };
@@ -466,6 +677,7 @@ export default function Pulpit() {
       {tab === 'library' && (
         <LibraryPanel
           sermons={libraryItems} canEdit={canManage} busy={busy} speakers={speakers} userKey={email}
+          pointsByVideo={pointsByVideo} engagementMap={engagementMap} onHeart={signedIn ? onHeart : null}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
         />
