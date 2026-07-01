@@ -29,7 +29,6 @@
 // =============================================================================
 import React, { useEffect, useMemo, useState } from 'react';
 import { SectionTitle, TabScroll } from './shared.jsx';
-import UiIcon from './UiIcon.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
@@ -39,8 +38,11 @@ import {
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import { extractYoutubeId } from '../lib/youtube-title-parse.js';
 import { pointsForVideo, pointsSearchText } from '../lib/sermon-points.js';
-import { sortByEngagement, engagementFor, engagementLabel, SORT_MODES } from '../lib/sermon-engagement.js';
-import { fetchPointsData, subscribeEngagement, toggleReaction } from '../lib/sermon-library-sync.js';
+import { sortByReactions, reactionsFor } from '../lib/reactions.js';
+import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reactions-sync.js';
+import { churchInstanceId } from '../lib/church-instance.js';
+import ReactionBar from './ReactionBar.jsx';
+import { fetchPointsData, fetchVideoStats } from '../lib/sermon-library-sync.js';
 import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
@@ -191,7 +193,7 @@ function PointsBlock({ bundle }) {
   );
 }
 
-function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null, engagement = null, onHeart = null, rank = null }) {
+function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null, reaction = null, onReact = null, onShowWho = null, views = null, signedIn = false, rank = null }) {
   // Embed the service video INLINE (Darrell: embedding is cleaner than frames).
   const [playing, setPlaying] = useState(false);
   const baseEmbed = youtubeEmbedUrl(sermon.youtubeUrl);
@@ -200,8 +202,6 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
   const watchLabel = `▶ Watch${sermon.startSeconds ? ` @ ${formatTimecode(sermon.startSeconds)}` : ''}`;
   const vid = videoIdOf(sermon);
   const thumb = thumbUrl(vid);
-  const eng = engagement || null;
-  const engLabel = eng ? engagementLabel(eng) : '';
   const play = () => setPlaying((p) => !p);
   return (
     <div className="p-3 border-b border-[#E8E4DC]">
@@ -235,17 +235,22 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
           {/* BG's numbered points (or a scripture strip) under the video. */}
           <PointsBlock bundle={points} />
 
-          {/* Engagement — hearts users give + views/likes, and the sort signal. */}
-          <div className="flex gap-2 mt-1.5 flex-wrap items-center">
-            {onHeart && (
-              <button type="button" onClick={() => onHeart(sermon)} aria-pressed={!!(eng && eng.myHeart)}
-                className={`text-[0.6875rem] px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${eng && eng.myHeart ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#B85838] text-[#B85838] hover:bg-[#FAF8F4]'}`}
-                style={{ fontFamily: '"Fraunces", serif' }}>
-                <UiIcon name={eng && eng.myHeart ? 'heartFilled' : 'heart'} /> {eng && eng.hearts ? eng.hearts : ''} <span className="sr-only">hearts</span>
-              </button>
-            )}
-            {engLabel && <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{engLabel}</span>}
-          </div>
+          {/* In-app reactions (PRIMARY signal) — the reusable Godhead palette.
+              YouTube views ride alongside as a SECONDARY display, not the source. */}
+          {onReact && (
+            <div className="flex gap-3 mt-1.5 flex-wrap items-center">
+              <ReactionBar
+                entry={reaction}
+                signedIn={signedIn}
+                contentLabel={sermon.title || 'this message'}
+                onReact={(key) => onReact(sermon, key)}
+                onShowWho={onShowWho ? (() => onShowWho(sermon)) : null}
+              />
+              {Number(views) > 0 && (
+                <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{Number(views).toLocaleString()} YouTube views</span>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2 mt-1 flex-wrap">
             {embed && <button type="button" onClick={play} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={playing}>{playing ? '▾ Hide video' : watchLabel}</button>}
@@ -271,10 +276,12 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
 // management controls + the in-progress drafts; everyone else sees only the
 // published list (the RPC returns no drafts to them).
 // -----------------------------------------------------------------------------
-function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsByVideo = {}, engagementMap = {}, onHeart = null }) {
+const LIB_SORTS = [['newest', 'Newest'], ['reacted', 'Most reacted'], ['viewed', 'Most viewed']];
+
+function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsByVideo = {}, reactionMap = {}, statsMap = {}, onReact = null, onShowWho = null, signedIn = false }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [importMsg, setImportMsg] = useState('');
-  const [sortMode, setSortMode] = useState('newest'); // newest | hearted | viewed
+  const [sortMode, setSortMode] = useState('newest'); // newest | reacted (in-app, primary) | viewed (YouTube, secondary)
   const [rankQuery, setRankQuery] = useState('');      // search for the ranked (engagement) views
   const [rankAll, setRankAll] = useState(false);       // cap the ranked list; expand on demand (no death-scroll)
   const runImport = async () => {
@@ -297,12 +304,18 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
   // and search can match a point's text ("show me the one about X").
   const enrich = (s) => {
     const vid = videoIdOf(s);
-    return { ...s, _vid: vid, _points: (vid && pointsByVideo[vid]) || null, _engagement: engagementFor(engagementMap, vid) };
+    return {
+      ...s, _vid: vid,
+      _points: (vid && pointsByVideo[vid]) || null,
+      _reaction: reactionsFor(reactionMap, vid),
+      _views: (vid && statsMap[vid] && statsMap[vid].ytViews) || 0,
+    };
   };
   const historyEnriched = history.map(enrich);
   const rowFor = (s) => (
-    <MessageRow sermon={s} canEdit={canEdit} points={s._points} engagement={s._engagement}
-      onHeart={onHeart} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />
+    <MessageRow sermon={s} canEdit={canEdit} points={s._points} reaction={s._reaction} views={s._views}
+      onReact={onReact} onShowWho={onShowWho} signedIn={signedIn}
+      onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />
   );
 
   // The Word is the second consumer of the shared reading-position primitive:
@@ -317,8 +330,12 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
     const filtered = q
       ? historyEnriched.filter((s) => `${s.title || ''} ${s.scriptureRef || ''} ${s.speaker || ''} ${pointsSearchText(s._points)}`.toLowerCase().includes(q))
       : historyEnriched;
-    const ordered = sortByEngagement(filtered.map((s) => ({ ...s, videoId: s._vid })), engagementMap, sortMode);
-    return ordered;
+    if (sortMode === 'reacted') {
+      // PRIMARY signal — rank by in-app reactions (keyed by video id).
+      return sortByReactions(filtered.map((s) => ({ ...s, contentId: s._vid })), reactionMap);
+    }
+    // SECONDARY — YouTube views, tie-broken newest.
+    return [...filtered].sort((a, b) => (b._views - a._views) || String(b.serviceDate || '').localeCompare(String(a.serviceDate || '')));
   })();
   const RANK_CAP = 25;
 
@@ -334,11 +351,11 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
       {/* Sort — a real video library: newest, or ranked by what resonates. */}
       <div className="flex items-center gap-1.5 mb-2 flex-wrap" role="group" aria-label="Sort messages">
         <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Sort</span>
-        {SORT_MODES.map((m) => (
-          <button key={m.key} type="button" onClick={() => { setSortMode(m.key); setRankAll(false); }}
-            aria-pressed={sortMode === m.key}
-            className={`text-[0.6875rem] px-2.5 py-1 rounded-full border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] ${sortMode === m.key ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}
-            style={{ fontFamily: '"Fraunces", serif' }}>{m.label}</button>
+        {LIB_SORTS.map(([key, label]) => (
+          <button key={key} type="button" onClick={() => { setSortMode(key); setRankAll(false); }}
+            aria-pressed={sortMode === key}
+            className={`text-[0.6875rem] px-2.5 py-1 rounded-full border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] ${sortMode === key ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}
+            style={{ fontFamily: '"Fraunces", serif' }}>{label}</button>
         ))}
       </div>
 
@@ -398,12 +415,13 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
           <input id="tw-rank-q" className={FIELD} value={rankQuery} onChange={(e) => { setRankQuery(e.target.value); setRankAll(false); }}
             placeholder="Search title, scripture, or a point…" />
           <p className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] my-2">
-            {ranked.length} message{ranked.length === 1 ? '' : 's'} · {sortMode === 'hearted' ? 'most hearted first' : 'most viewed first'}
+            {ranked.length} message{ranked.length === 1 ? '' : 's'} · {sortMode === 'reacted' ? 'most reacted first' : 'most viewed first'}
           </p>
           <div className="bg-white border border-[#1A1815]">
             {(rankAll ? ranked : ranked.slice(0, RANK_CAP)).map((s, i) => (
-              <MessageRow key={s.id} sermon={s} canEdit={canEdit} points={s._points} engagement={s._engagement}
-                onHeart={onHeart} onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse}
+              <MessageRow key={s.id} sermon={s} canEdit={canEdit} points={s._points} reaction={s._reaction} views={s._views}
+                onReact={onReact} onShowWho={onShowWho} signedIn={signedIn}
+                onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse}
                 rank={i + 1} />
             ))}
           </div>
@@ -505,7 +523,9 @@ export default function Pulpit() {
   const [sermonDocs, setSermonDocs] = useState([]);  // owner/admin only (RLS)
   const [speakers, setSpeakers] = useState([]);      // canonical speaker entities (0037) — typeahead source
   const [pointsData, setPointsData] = useState({ transcriptsByVideo: {}, harvestsByVideo: {} }); // points sources
-  const [engagementMap, setEngagementMap] = useState({}); // { [videoId]: { hearts, ytViews, myHeart, ... } }
+  const [reactionMap, setReactionMap] = useState({}); // { [videoId]: { counts, myKey, score, top } } — PRIMARY signal
+  const [statsMap, setStatsMap] = useState({});        // { [videoId]: { ytViews, ytLikes } } — SECONDARY (YouTube)
+  const [churchInstId, setChurchInstId] = useState(null); // resolved church instance for keying reactions
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -536,16 +556,26 @@ export default function Pulpit() {
   }, [canManage]);
 
   // LIBRARY ENRICHMENT (signed-in): the points sources (transcripts + recorded
-  // harvest `lessons` refs) and the live engagement map (hearts + YouTube stats).
+  // harvest refs), the live IN-APP reaction map (PRIMARY signal, keyed by the
+  // church instance + content_type='sermon'), and the SECONDARY YouTube stats.
   // RLS returns empty for a non-member, so this degrades to a plain library —
-  // points fall back to title scriptures, engagement reads as no-signal-yet —
-  // and never throws. Signed-out skips it entirely (the public archive stands
-  // on its own). Points come fully alive as the transcript pipeline backfills.
+  // points fall back to title scriptures, reactions read as no-signal-yet — and
+  // never throws. Signed-out skips it. Points/reactions come alive as data lands.
   useEffect(() => {
-    if (!signedIn) { setPointsData({ transcriptsByVideo: {}, harvestsByVideo: {} }); setEngagementMap({}); return undefined; }
+    if (!signedIn) {
+      setPointsData({ transcriptsByVideo: {}, harvestsByVideo: {} });
+      setReactionMap({}); setStatsMap({}); setChurchInstId(null);
+      return undefined;
+    }
     let alive = true;
     fetchPointsData().then((d) => { if (alive) setPointsData(d || { transcriptsByVideo: {}, harvestsByVideo: {} }); });
-    const unsub = subscribeEngagement((m) => { if (alive) setEngagementMap(m || {}); }, email);
+    fetchVideoStats().then((m) => { if (alive) setStatsMap(m || {}); });
+    let unsub = null;
+    churchInstanceId(email).then((id) => {
+      if (!alive) return;
+      setChurchInstId(id || null);
+      unsub = subscribeReactions((m) => { if (alive) setReactionMap(m || {}); }, { instanceId: id, contentType: 'sermon' });
+    });
     return () => { alive = false; try { unsub && unsub(); } catch { /* noop */ } };
   }, [signedIn, email]);
 
@@ -587,15 +617,20 @@ export default function Pulpit() {
     return out;
   }, [libraryItems, pointsData]);
 
-  // Give / take a heart (or like) on a message. Self-scoped, fails soft; the
-  // realtime subscription refreshes the counts, so no optimistic bookkeeping.
-  const onHeart = async (sermon) => {
+  // React to a message (single-pick, self-scoped). ReactionBar handles optimistic
+  // feedback; the realtime subscription refreshes the real counts. Returns the
+  // result so ReactionBar can reconcile on a soft failure.
+  const displayName = (email && email.split('@')[0]) || 'Someone';
+  const onReact = async (sermon, key) => {
     const vid = videoIdOf(sermon);
-    if (!vid) return;
-    const r = await toggleReaction(vid, 'heart', email);
-    if (r && r.skipped === 'signed-out') setErr('Sign in to leave a heart on a message.');
-    else if (r && r.skipped && r.skipped !== 'no-church') setErr(`Could not save your heart (${r.skipped}).`);
-    else setErr('');
+    if (!vid) return { skipped: 'no-content' };
+    return toggleReaction({ instanceId: churchInstId, contentType: 'sermon', contentId: vid, reactionKey: key, displayName });
+  };
+  // Who reacted (instance-member gated by the RPC) — the "tap shows who" readout.
+  const onShowWho = async (sermon) => {
+    const vid = videoIdOf(sermon);
+    if (!vid) return [];
+    return fetchReactors({ instanceId: churchInstId, contentType: 'sermon', contentId: vid });
   };
 
   const onSave = async (s) => { setBusy(true); const r = await saveSermon(s); reportSkip(r); if (r?.id) await saveSermonDocument(r.id, s.documentUrl); setBusy(false); };
@@ -677,7 +712,8 @@ export default function Pulpit() {
       {tab === 'library' && (
         <LibraryPanel
           sermons={libraryItems} canEdit={canManage} busy={busy} speakers={speakers} userKey={email}
-          pointsByVideo={pointsByVideo} engagementMap={engagementMap} onHeart={signedIn ? onHeart : null}
+          pointsByVideo={pointsByVideo} reactionMap={reactionMap} statsMap={statsMap}
+          onReact={onReact} onShowWho={onShowWho} signedIn={signedIn}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
         />

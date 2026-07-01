@@ -16,8 +16,12 @@
 // Governor-only: the queue names credentials, spend, and Tier-C activations, so
 // it renders only for a signed-in family/governor account (isGovernor gate at
 // the call site).
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { DECISION_KIND } from '../lib/decisions.js';
+import supabase from '../lib/supabase.js';
+import ReactionBar from './ReactionBar.jsx';
+import { reactionsFor } from '../lib/reactions.js';
+import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reactions-sync.js';
 
 // Guarded so tests / SSR that don't run the vite define still render.
 const QUEUE = (typeof __GOVERNANCE_QUEUE__ !== 'undefined')
@@ -65,10 +69,31 @@ const statusColor = (s) => (s === 'superseded' ? '#8A6D3B' : s === 'accepted' ? 
 // hand-offs + concern resolutions), derived from the same shared records the app
 // and humans both write (lib/decisions.js). Each carries its rationale so a
 // future steward inherits the why, not just the outcome.
-export default function GovernanceQueue({ appDecisions = [] }) {
+export default function GovernanceQueue({ appDecisions = [], familyInstanceId = null, signedIn = false }) {
   const { items, openCount } = normalizeGovernanceQueue(QUEUE);
   const ledger = normalizeDecisionLedger(LEDGER);
   const decisions = Array.isArray(appDecisions) ? appDecisions.filter((d) => d && d.id) : [];
+
+  // In-app reactions on FAMILY/FINANCIAL decisions (Darrell 2026-07-01: "the kids
+  // loving a budget decision Christina made"). The SAME reusable primitive as the
+  // sermon library — content_type='decision', keyed by the family instance. A
+  // family member (and, within guardian-granted scope, a kid who can reach this
+  // surface) reacts; it persists + counts. Degrades to empty when signed-out /
+  // no instance (tests + non-member), so this never throws.
+  const [reactionMap, setReactionMap] = useState({});
+  const [displayName, setDisplayName] = useState('Someone');
+  useEffect(() => {
+    if (!familyInstanceId) { setReactionMap({}); return undefined; }
+    let alive = true; let unsub = null;
+    supabase.auth.getSession().then(({ data }) => {
+      const email = data?.session?.user?.email || '';
+      if (alive && email) setDisplayName(email.split('@')[0]);
+    });
+    unsub = subscribeReactions((m) => { if (alive) setReactionMap(m || {}); }, { instanceId: familyInstanceId, contentType: 'decision' });
+    return () => { alive = false; try { unsub && unsub(); } catch { /* noop */ } };
+  }, [familyInstanceId]);
+  const onReactDecision = (d, key) => toggleReaction({ instanceId: familyInstanceId, contentType: 'decision', contentId: d.id, reactionKey: key, displayName });
+  const onWhoDecision = (d) => fetchReactors({ instanceId: familyInstanceId, contentType: 'decision', contentId: d.id });
   return (
     <div className="space-y-6">
       {/* ---- OPEN: decisions waiting on the governor ---- */}
@@ -145,6 +170,17 @@ export default function GovernanceQueue({ appDecisions = [] }) {
                   <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                     Source · {d.source}{d.owner ? ` · ${d.owner}` : ''}
                   </p>
+                  {/* React to a family/financial decision — encouragement + a
+                      teaching moment (a kid "crowning" mom's stewardship call). */}
+                  <div className="mt-2">
+                    <ReactionBar
+                      entry={reactionsFor(reactionMap, d.id)}
+                      signedIn={signedIn}
+                      contentLabel={d.title || 'this decision'}
+                      onReact={(key) => onReactDecision(d, key)}
+                      onShowWho={() => onWhoDecision(d)}
+                    />
+                  </div>
                 </div>
               );
             })}
