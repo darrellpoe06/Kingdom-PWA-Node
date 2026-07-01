@@ -34,7 +34,7 @@ If any of 1–5 differs, the math below shifts — flag it and re-derive.
 > - **Unblock it:** ask LED Nation tonight (1) whether the **receiving cards are pre-loaded** and (2) for the **screen config `.rcfgx`**. The in-app card carries a copy-ready message.
 
 > ### 💻 VX1000 SOFTWARE (download + which machine)
-> Download all NovaStar software: **https://www.novastar.tech/downloads/**
+> Download (official NovaStar only — no third-party installers): **https://www.novastar.tech/download/download.html?catid=7** — open the **"Software"** category tab → **NovaLCT (latest V5.9.1, Windows)**. Search fallback: **https://www.novastar.tech/downloads/search.html** (search "NovaLCT").
 > - **NovaLCT** — *main configuration tool*: screen layout, Ethernet-port → cabinet mapping, brightness/chroma calibration, firmware, **RCFG** cabinet-file import. → **control-room CONFIG laptop (Windows)**.
 > - **V-Can** — *live on-site control after config*: input switching, layers, presets. → **control-room OPERATOR machine (Windows)**.
 > - **VICP** — *optional cloud monitoring*. → any admin machine (optional).

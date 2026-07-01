@@ -42,8 +42,9 @@ describe('the VX1000 software card shows in the app', () => {
     expect(text).toMatch(/NovaLCT/);
     expect(text).toMatch(/V-Can/);
     expect(text).toMatch(/VICP/);
-    const link = [...document.body.querySelectorAll('a')].find((a) => /novastar\.tech\/downloads/.test(a.getAttribute('href') || ''));
-    expect(link, 'download link renders as a real anchor').toBeTruthy();
+    // the CORRECTED working downloads page renders as a real anchor
+    const link = [...document.body.querySelectorAll('a')].find((a) => /novastar\.tech\/download\/download\.html\?catid=7/.test(a.getAttribute('href') || ''));
+    expect(link, 'corrected download link renders as a real anchor').toBeTruthy();
   });
   it('renders the on-site first-setup steps (USB Type-B, admin, 8x6, RCFG, V-Can)', async () => {
     await mount();
