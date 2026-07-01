@@ -3872,7 +3872,9 @@ export default function PoeFinancialSystem() {
   // rooms, equipment, logs, and the lease/tenant/market sub-objects stay
   // device-local (leases + rent_payments sync is the follow-up).
   const addRental = (item) => {
-    const seeded = { ...item, id: `r-${Date.now()}` };
+    // Random suffix so rapid same-ms adds (restore-a-building's units loops
+    // addRental) get distinct ids instead of colliding into one door.
+    const seeded = { ...item, id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` };
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       // Stamp remoteUuid as soon as the insert lands — without it, an edit or
