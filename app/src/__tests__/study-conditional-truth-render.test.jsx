@@ -15,14 +15,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import Study from '../components/Study.jsx';
-import { emptyStudy, seedIfEmpty, saveStudy, studyKey, SEED_THEMES, normalizeEntry } from '../lib/study-space.js';
+import { emptyStudy, saveStudy, SEED_THEMES, normalizeEntry } from '../lib/study-space.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const EMAIL = 'darrellpoe06@gmail.com';
 let container, root;
 const clickEl = async (el) => { await act(async () => { el.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); }); };
-const btnByText = (re) => [...container.querySelectorAll('button')].find((b) => re.test((b.textContent || '').trim()));
 
 beforeEach(() => { try { localStorage.clear(); } catch { /* no storage */ } });
 
