@@ -146,7 +146,8 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AccessUsageMetrics, AdminConsole, ChefCorner, Games, Relationships,
+  Inventory, Forecast, AccessUsageMetrics, AdminConsole, ChefCorner, Games,
+  EternalAlgorithmsStudy, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -5305,7 +5306,7 @@ html{scroll-padding-bottom:280px}
                 (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
                 caps the row via zoom while body text scales. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -5401,6 +5402,7 @@ html{scroll-padding-bottom:280px}
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
         {view === 'church' && churchView === 'pulpit' && <Pulpit />}
         {view === 'church' && churchView === 'scripture' && <ScriptureLibrary email={authSession?.user?.email} canStudy={isStudyCircle} />}
+        {view === 'church' && churchView === 'eternal-algorithms' && <EternalAlgorithmsStudy email={authSession?.user?.email} view={view} churchView={churchView} setView={setView} setChurchView={setChurchView} />}
         {/* Harvest Ledger: no video lost — every ingested recording fully mined
             (one-source-many-harvests). Staff-gated; RLS read = choir (0050). */}
         {view === 'church' && churchView === 'harvest' && (isChurchStaff
@@ -6211,6 +6213,7 @@ const FEEDBACK_AREAS = [
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-program', 'Church · 📖 Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
+    ['church-eternal-algorithms', 'Church · Eternal Algorithms (if/then studies · self-examination → game)'],
     ['church-harvest', 'Church · 🌾 Harvest Ledger (staff: no video lost — every recording fully mined)'],
     ['church-videowall', 'Church · 📺 Video Wall (🔒 sanctuary LED capital project — budget · donations · spec)'],
     ['church-devices', 'Church · Device Inventory (staff: asset register — NAS · GPU nodes · VX1000 · LED wall · network · cameras · sound + idle-GPU compute pool)'],

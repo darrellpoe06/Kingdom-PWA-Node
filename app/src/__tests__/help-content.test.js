@@ -24,7 +24,7 @@ const TOP_LEVEL_VIEWS = [
   'study', 'church', 'markets', 'center', 'crm', 'relationships', 'inventory', 'forecast', 'admin',
 ];
 const CHURCH_SUBS = [
-  'home', 'engagement', 'choir', 'program', 'learn', 'conference', 'events',
+  'home', 'engagement', 'choir', 'program', 'learn', 'eternal-algorithms', 'conference', 'events',
   'pulpit', 'scripture', 'harvest', 'videowall', 'observe',
 ];
 const BOOKS_SUBS = [

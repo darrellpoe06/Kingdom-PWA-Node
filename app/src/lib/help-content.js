@@ -508,6 +508,18 @@ export const HELP = {
     why: 'Formation, not just information. Teaching the how of thinking — fairly, with sources — equips people to walk wisely instead of just handing them a conclusion.',
     section: 'church',
   },
+  'church:eternal-algorithms': {
+    title: 'Eternal Algorithms',
+    tag: "Yahweh's if/then truths as decision-logic — studies for honest self-examination.",
+    what: 'A public study series that reads Yahweh\'s conditional (if/then) truths as His eternal decision-logic. Entry #1, Conditional Truth, is about the gap between what we say we believe and what we actually do. Every point is anchored in Scripture (the Word is the arbiter), held in both mercy and accountability, and open-handed — we are still piecing together the Truth.',
+    how: [
+      'Read the teaching — tap "Go deeper" on any point to see the fuller treatment and the Scripture behind it.',
+      'Answer the self-examination honestly; your answers stay on your device only, never sent anywhere.',
+      'Run the belief-vs-action round — each choice is scored on the same eight Yahweh axes the Generations game uses — solo or in a family / team Game Night.',
+    ],
+    why: 'Doing the word, not just hearing it, is the proof of real agreement (James 1:22). A mirror held in grace and truth helps a person close the distance between profession and action — for the soul, and for the Kingdom.',
+    section: 'church',
+  },
   'church:conference': {
     title: 'Conference',
     tag: 'Register for and run a conference event.',
