@@ -67,6 +67,25 @@ describe('hardcoded-percent-tile (dynamic-not-static)', () => {
   });
 });
 
+describe('hardcoded-count-tile (dynamic-not-static) — the 2026-07-01 static->live sweep guard', () => {
+  it('CATCHES a comma-grouped painted count/amount with no $ (the class the currency check misses)', () => {
+    const f = auditSource(surface('demo'), '<div className="stat-value">12,340</div>', rubric);
+    expect(f.some((x) => x.item === 'hardcoded-count-tile')).toBe(true);
+  });
+  it('CATCHES a small comma-grouped literal like 1,234', () => {
+    const f = auditSource(surface('demo'), '<span>1,234</span>', rubric);
+    expect(f.some((x) => x.item === 'hardcoded-count-tile')).toBe(true);
+  });
+  it('is SILENT when the number is derived (live renders as {fmt(n)}, no literal comma in source)', () => {
+    const f = auditSource(surface('demo'), '<div className="stat-value">{fmt(count)}</div>', rubric);
+    expect(f.some((x) => x.item === 'hardcoded-count-tile')).toBe(false);
+  });
+  it('is SILENT on a plain small integer (not comma-grouped, not a big painted stat)', () => {
+    const f = auditSource(surface('demo'), '<span>{n} of 10</span>', rubric);
+    expect(f.some((x) => x.item === 'hardcoded-count-tile')).toBe(false);
+  });
+});
+
 describe('list-pagination (intuitive-ux, scoped to long-list surfaces)', () => {
   it('CATCHES a long-list surface with no pagination (endless-scroll class)', () => {
     // 'crm' is in the check's includeSurfaces.
