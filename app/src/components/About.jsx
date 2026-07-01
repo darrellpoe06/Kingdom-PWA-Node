@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle } from './shared.jsx';
 import TrustedDevices from './TrustedDevices.jsx';
+import AdoptPoeTech from './AdoptPoeTech.jsx';
 import { ARI } from '../lib/ari.js';
 
 // Patch the function signature to also accept VIEW_TIER_REQUIREMENTS as a prop.
@@ -165,6 +166,11 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
           Annual pricing reflects ~17% savings (2 months free). Foundation is free forever — to generate the experience and the data that improves the system for every family. Loved Ones tier honors the warm-market relationships that make PoeTech viable: people who already know us, trust us, and pray for us. Their early adoption is the foundation everything else stands on — and their pricing is locked even as the broader pricing reflects the platform's growing value.
         </p>
       </section>
+
+      {/* Adopt PoeTech — the front door for friends bringing this to their own
+          family, church, or business. Pure presentation over the onboarding libs
+          (lib/adopter-onboarding.js + lib/adopter-templates.js); no main-file dep. */}
+      <AdoptPoeTech />
 
       {feedback.length > 0 && (
         <section className="bg-white border-2 border-[#B85838] p-5">
