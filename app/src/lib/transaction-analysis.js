@@ -58,6 +58,22 @@ function round2(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
 }
 
+// reviewStatus — the deterministic "verify/categorize" scoreboard. A transaction
+// is CATEGORIZED (the new "verified") once it carries a real category; anything
+// still 'other' or blank is NEEDS-REVIEW (the old "unexplained"). Pure count over
+// the ledger, so it moves as the categorizer runs and as the user confirms rows.
+export function reviewStatus(txns) {
+  let categorized = 0;
+  let needsReview = 0;
+  for (const t of txns || []) {
+    if (!t) continue;
+    const c = t.category;
+    if (c && c !== 'other') categorized += 1; else needsReview += 1;
+  }
+  const total = categorized + needsReview;
+  return { categorized, needsReview, total, pctCategorized: total ? Math.round((categorized / total) * 100) : 0 };
+}
+
 // categorySummary — the EVALUATE view: per-category income (credits) vs outflow
 // (debits) + net + count, sorted by gross size so the biggest movers lead, with
 // grand totals. This is how they judge the real picture against what they know.

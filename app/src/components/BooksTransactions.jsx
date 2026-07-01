@@ -18,7 +18,7 @@ import { versionTimeline } from '../lib/record-history.js';
 import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows } from '../lib/statement-import.js';
 import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
-import { filterTransactions, sortTransactions, categorySummary } from '../lib/transaction-analysis.js';
+import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -830,6 +830,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const list = txView === 'upcoming' ? upcoming : historyView;
   // Evaluate view runs the same filtered set through the income-vs-outflow math.
   const evalSummary = categorySummary(historyView);
+  // Verify/categorize scoreboard — categorized (verified) vs still needs review.
+  const evalReview = reviewStatus(historyView);
 
   return (
     <div className="space-y-6">
@@ -1007,6 +1009,20 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   );
                 })}
               </div>
+            </section>
+            <section className="bg-white border border-[#1A1815] p-4">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap mb-3">
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Verify · categorize</div>
+                <div className="text-[0.625rem] text-[#5A5751]">{evalReview.pctCategorized}% categorized</div>
+              </div>
+              <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+                <div className="bg-white p-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D]">Categorized</div><div className="text-base text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{evalReview.categorized.toLocaleString()}</div></div>
+                <div className="bg-white p-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838]">Needs review</div><div className="text-base text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{evalReview.needsReview.toLocaleString()}</div></div>
+                <div className="bg-white p-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Total</div><div className="text-base text-[#1A1815]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{evalReview.total.toLocaleString()}</div></div>
+              </div>
+              <p className="text-[0.625rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                Categorized rows carry a real category (deterministic classifier + your edits). "Needs review" are still uncategorized — open a row to set its category.
+              </p>
             </section>
             <section className="bg-white border border-[#1A1815] p-4">
               <div className="flex items-baseline justify-between gap-2 flex-wrap mb-3">
