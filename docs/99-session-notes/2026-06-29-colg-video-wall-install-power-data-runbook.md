@@ -33,6 +33,13 @@ If any of 1–5 differs, the math below shifts — flag it and re-derive.
 > - **Tomorrow (map it once):** Windows laptop + **NovaLCT** + USB/Cat6 to the control port. Sequence: **Connect → Receiving-card config (vendor `.rcfgx` or Smart Settings) → Screen Connection (columns = 8, rows = 6; assign each output port to its column in cable order) → Save to hardware → set brightness → feed the HDMI source.** Menu labels/advanced password vary by NovaLCT version — the vendor `.rcfgx` is the reliable path.
 > - **Unblock it:** ask LED Nation tonight (1) whether the **receiving cards are pre-loaded** and (2) for the **screen config `.rcfgx`**. The in-app card carries a copy-ready message.
 
+> ### 💻 VX1000 SOFTWARE (download + which machine)
+> Download all NovaStar software: **https://www.novastar.tech/downloads/**
+> - **NovaLCT** — *main configuration tool*: screen layout, Ethernet-port → cabinet mapping, brightness/chroma calibration, firmware, **RCFG** cabinet-file import. → **control-room CONFIG laptop (Windows)**.
+> - **V-Can** — *live on-site control after config*: input switching, layers, presets. → **control-room OPERATOR machine (Windows)**.
+> - **VICP** — *optional cloud monitoring*. → any admin machine (optional).
+> **On-site first setup:** (1) connect the VX1000 via **USB Type-B** for first setup (more stable than Ethernet); (2) open NovaLCT, log in **Advanced / Synchronous** user (default password **"admin"**); (3) **Screen Configuration** → map the **8 × 6 = 48**-cabinet grid across the VX1000 output ports; (4) load the panel maker's **RCFG** if provided; (5) switch to **V-Can** for live control. *(Confirm the real control-room machines + who runs NovaLCT vs V-Can.)*
+
 ---
 
 ## 1. THE WALL (confirmed spec)

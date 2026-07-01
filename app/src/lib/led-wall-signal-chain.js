@@ -187,3 +187,54 @@ export const CHAIN_DIAGRAM = {
   ledEdge: { from: 'vx1000', to: 'wall', label: '8 direct LED lines (no switch)' },
   controlNote: 'CONTROL: NovaStar control port -> Cat6 -> server-room switch (network).',
 };
+
+// =============================================================================
+// VX1000 SOFTWARE — the NovaStar program stack (confirmed 2026-07-01)
+// =============================================================================
+// The three programs that run the VX1000, what each is for, WHEN it's used, and
+// WHICH control-room machine it installs on. Plus the on-site first-setup steps.
+// Copy-friendly on the in-app card so Darrell can follow it from his phone.
+export const VX1000_SOFTWARE = {
+  controller: 'NovaStar VX1000',
+  downloadUrl: 'https://www.novastar.tech/downloads/',
+  programs: [
+    {
+      name: 'NovaLCT',
+      role: 'Main configuration tool',
+      does: 'Screen layout, Ethernet-port -> cabinet mapping, brightness/chroma calibration, firmware, RCFG cabinet-file import.',
+      when: 'Setup + recalibration',
+      machine: 'Control-room CONFIG laptop (Windows)',
+    },
+    {
+      name: 'V-Can',
+      role: 'Live on-site control (after config)',
+      does: 'Input switching, layers, presets during service.',
+      when: 'Live / every service',
+      machine: 'Control-room OPERATOR machine (Windows)',
+    },
+    {
+      name: 'VICP',
+      role: 'Cloud monitoring (optional)',
+      does: 'Remote status / monitoring of the processor.',
+      when: 'Optional / ongoing',
+      machine: 'Any admin machine (optional)',
+      optional: true,
+    },
+  ],
+  // On-site first-setup order (uses the CONFIRMED default advanced password).
+  steps: [
+    'Connect the VX1000 to the config laptop via USB Type-B for first setup (more stable than Ethernet).',
+    'Open NovaLCT; log in as the Advanced / Synchronous user (default password "admin").',
+    'Screen Configuration -> map the 8 x 6 = 48-cabinet grid across the VX1000 output ports.',
+    'Load the panel maker’s RCFG cabinet file if provided (Receiving Card -> load/import).',
+    'Switch to V-Can for live control (input switching, layers, presets).',
+  ],
+  // Which software on which machine (record + confirm the real machines on site).
+  machinePlan: [
+    { machine: 'Control-room config laptop (Windows)', install: 'NovaLCT', note: 'The setup + calibration machine; USB Type-B to the VX1000 for first config.' },
+    { machine: 'Control-room operator machine (Windows)', install: 'V-Can', note: 'Runs live during service; can be the same laptop or the presentation/build tower.' },
+    { machine: 'Any admin machine (optional)', install: 'VICP', note: 'Optional cloud monitoring; not required to run the wall.' },
+  ],
+  machinePlanConfirm: 'Confirm the actual control-room machines on site + record who has each (NovaLCT config vs V-Can operator).',
+  usbNote: 'USB Type-B is for FIRST setup (most stable). After config, the control port -> LAN carries control (NovaLCT/V-Can over the network).',
+};
