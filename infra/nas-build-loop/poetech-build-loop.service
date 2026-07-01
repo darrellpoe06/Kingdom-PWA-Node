@@ -1,0 +1,15 @@
+[Unit]
+Description=PoeTech NAS-resident deterministic build loop (merge/deploy heartbeat)
+Documentation=https://github.com/darrellpoe06/Kingdom-PWA-Node/blob/main/infra/nas-build-loop/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=dpoe
+Environment=HOME=/var/services/homes/dpoe
+ExecStart=/usr/bin/python3 /volume1/homes/dpoe/poetech-build/loop.py
+# Hard wall-clock backstop (the BUDGET brake's outer bound; loop.py has its own
+# softer CYCLE_DEADLINE_SECONDS). systemd kills an overrun run; it cannot hang.
+TimeoutStartSec=300
+Nice=10

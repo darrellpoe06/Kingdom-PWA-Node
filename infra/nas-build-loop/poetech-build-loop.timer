@@ -1,0 +1,16 @@
+[Unit]
+Description=Fire the PoeTech build loop every 15 minutes (24/7, app-independent)
+Documentation=https://github.com/darrellpoe06/Kingdom-PWA-Node/blob/main/infra/nas-build-loop/README.md
+
+[Timer]
+# 3 min after boot, then every 15 min. Persistent=true runs a missed fire once
+# on wake (e.g. after the NAS was asleep). This is the always-on cadence that
+# no longer depends on the desktop app or on Darrell being awake.
+OnBootSec=3min
+OnUnitActiveSec=15min
+AccuracySec=30s
+Persistent=true
+Unit=poetech-build-loop.service
+
+[Install]
+WantedBy=timers.target
