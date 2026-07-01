@@ -146,7 +146,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AccessUsageMetrics, ChefCorner, Games, Relationships,
+  Inventory, Forecast, AccessUsageMetrics, AdminConsole, ChefCorner, Games, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -1783,75 +1783,12 @@ function getInitialChurchView() {
   } catch (e) { return 'home'; }
 }
 
-// Admin — quiet utility surface, NOT a marketing surface. Reached via the
-// footer "Admin" link (every page) or the ?view=admin deep-link. Renders two
-// branches off the existing isPublicHost() gate (reused, not re-implemented):
-// on the public host (poetech.us / *.vercel.app) it shows the NAS Tailscale +
-// LAN URLs to switch to; on a Tailscale/LAN host it shows the live internal
-// surfaces list. Tailscale IS the access control — this route is a navigation
-// aid, not an auth boundary, so no real auth is added here.
-function Admin() {
-  const TS_URL = 'https://poetech.tail5a2f35.ts.net/webhook/dispatch-status-page';
-  const LAN_URL = 'http://192.168.1.26:5678/webhook/dispatch-status-page';
-  const cardCls = "max-w-2xl mx-auto bg-[#1A1815] text-[#FAF8F4] border border-[#5A5751] p-5 sm:p-6 mt-6";
-  const serif = { fontFamily: '"Fraunces", serif' };
-  const codeCls = "block bg-black/30 border border-[#5A5751] px-3 py-2 text-xs text-[#FAF8F4] break-all";
-  const codeStyle = { fontFamily: 'monospace' };
-  const linkCls = "inline-block mt-1.5 text-xs text-[#B85838] underline underline-offset-4 hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]";
-
-  if (isPublicHost()) {
-    return (
-      <div className={cardCls} style={serif}>
-        <h2 className="text-xl mb-1" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.01em' }}>Admin — family-private surfaces</h2>
-        <p className="text-sm text-[#FAF8F4] opacity-80 mb-5 leading-relaxed">These surfaces live on the family NAS. You need to be connected to the Poe family Tailscale network to reach them. Once on Tailscale, switch to the Tailscale hostname below.</p>
-
-        <div className="mb-5">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1.5">Dispatch Status — Tailscale</div>
-          <code className={codeCls} style={codeStyle}>{TS_URL}</code>
-          <a href={TS_URL} className={linkCls}>Open via Tailscale →</a>
-        </div>
-
-        <div className="mb-5">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1.5">Dispatch Status — LAN (at home)</div>
-          <code className={codeCls} style={codeStyle}>{LAN_URL}</code>
-          <a href={LAN_URL} className={linkCls}>Open on home network →</a>
-        </div>
-
-        <div className="border-t border-[#5A5751] pt-4">
-          <a href="https://tailscale.com" target="_blank" rel="noopener noreferrer" className={linkCls + " mt-0"}>What is Tailscale? →</a>
-          <p className="text-[11px] text-[#5A5751] mt-3 leading-relaxed">Admin access expanding to family + dev team as the system matures. Today: Darrell only.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Tailscale / LAN host branch (isPublicHost() === false). Internal surfaces list.
-  return (
-    <div className={cardCls} style={serif}>
-      <h2 className="text-xl mb-4" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.01em' }}>Admin — Internal Surfaces</h2>
-      <ul className="space-y-3">
-        <li className="border-b border-[#5A5751] pb-3">
-          <a href="/webhook/dispatch-status-page" className="text-base text-[#B85838] underline underline-offset-4 hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Dispatch Status</a>
-          <div className="text-[11px] text-[#5A5751] mt-0.5"><code style={codeStyle}>/webhook/dispatch-status-page</code> on this NAS</div>
-          <p className="text-xs text-[#FAF8F4] opacity-80 mt-1 leading-relaxed">Live workflow reel + Code Task snapshot + ntfy QR subscription. Bookmark this URL for always-on visibility.</p>
-        </li>
-      </ul>
-      {/* TODO: future internal admin surfaces — queued per project-continuous-feedback-reel
-          (TIER 2+3). Add each as a <li> above as it ships, with its NAS webhook/path:
-            - Family Money-Date Packet
-            - Property Operations dashboard
-            - Foundation Agent Self-Health
-            - Bishop Gwin pastoral dashboard
-            - COLG congregation surface
-            - Sponsor / Partner pipeline
-            - Sermon-to-Content production
-            - Loved Ones cohort admin
-            - Quality Gatekeeper outputs
-          Keep this branch a quiet functional list — no hero, no images. */}
-      <p className="text-[11px] text-[#5A5751] mt-4 leading-relaxed">Admin access expanding to family + dev team as the system matures. Today: Darrell only.</p>
-    </div>
-  );
-}
+// Admin — the real in-app backend control surface — now lives in its own module
+// (components/AdminConsole.jsx, registered in surfaces.js). It replaced the old
+// dead-end "list of NAS URLs to copy" surface with genuine, plain-language
+// controls (People & Access, Data & Loops, System & Build, Internal Surfaces),
+// each previewing consequential actions before a deliberate execute. Rendered by
+// the `view === 'admin'` branch below, family/governor-gated with a no-leak nav.
 
 export default function PoeFinancialSystem() {
   const demoPersona = getDemoPersona();
@@ -5308,10 +5245,14 @@ html{scroll-padding-bottom:280px}
                 // governance over real members); spread so the entry is absent
                 // from the DOM for everyone else (no-leak), like Center / CRM.
                 ...(isFamilyMember ? [['access', <><UiIcon name="monitor" /> Access</>]] : []),
-                // Admin surfaced at the top so users can SEE a steward space
-                // exists (visible-but-locked, like 🔒 Observation). ACCESS is
-                // gated at the render below — the entry being visible is the goal.
-                ['admin', <><UiIcon name="lock" /> Admin</>],
+                // Admin — the real backend control surface. Shown to family
+                // stewards, and on the trusted NAS/home host (where being on the
+                // family network is itself the access control) — the SAME gate the
+                // render below applies, so the tab and the surface never disagree.
+                // On the public site a non-steward never gets the entry (no-leak,
+                // like Center / Forecast); the module also carries a defense-in-
+                // depth locked fallback for any deep-link.
+                ...((isFamilyMember || !isPublicHost()) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
               ].map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
@@ -6053,21 +5994,21 @@ html{scroll-padding-bottom:280px}
             </div>
           ))}
 
-        {view === 'admin' && ((isFamilyMember || !isPublicHost())
-          ? <Admin />
-          : (
-            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
-              <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
-              <p className="text-sm text-[#1A1815] font-semibold">Admin is a stewardship space.</p>
-              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Sign in with a steward account to enter. Each steward serves only their own domain — the system, the Word, or the choir — and no one sees another's people or private data.</p>
-            </div>
-          ))}
+        {view === 'admin' && (
+          <AdminConsole
+            isGovernor={isFamilyMember || !isPublicHost()}
+            email={authSession?.user?.email || null}
+            instanceId={mpInstanceId}
+            backendReachable={mpBackendAvailable && !!mpInstanceId}
+            data={data}
+            isPublicHost={isPublicHost()}
+            onResetSeed={resetToSeed}
+          />
+        )}
 
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
           <button type="button" onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
-          <span className="mx-2 text-[10px] text-[#5A5751]" aria-hidden="true">·</span>
-          <button type="button" onClick={() => { setView('admin'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4" title="Internal / Tailscale-hosted admin surfaces">Admin</button>
         </footer>
         {view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mt-6">
@@ -6297,7 +6238,7 @@ const FEEDBACK_AREAS = [
     ['about-community', 'About · community partnership model'],
     ['tier-gating', 'Tier gating (Foundation / PoeTech+ / Family / Premium / Business)'],
     ['tier-switcher', 'Tier switcher (header dropdown)'],
-    ['admin', 'Admin · internal / Tailscale-hosted surfaces (footer link)'],
+    ['admin', 'Admin · backend controls — people & access, data & loops, system & build, internal surfaces'],
   ]},
   { group: 'Cross-cutting', items: [
     ['navigation', 'Navigation · tab order · separator'],
