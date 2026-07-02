@@ -8,6 +8,7 @@
   },
   "rewrites": [
     { "source": "/n8n/:path*", "destination": "https://poetech.tail5a2f35.ts.net/:path*" },
+    { "source": "/nas-photos/:path*", "destination": "https://poetech.tail5a2f35.ts.net/nas-photos/:path*" },
     { "source": "/poetech-app/(.*)", "destination": "/$1" }
   ],
   "headers": [

@@ -297,6 +297,11 @@ const modulepreloadMonolith = () => ({
 // exactly as the production Vercel rewrite makes them work. LAN-reachable
 // NAS; never used in the production build (Vercel handles /n8n there).
 const N8N_DEV_TARGET = process.env.N8N_DEV_TARGET || 'http://192.168.1.26:5678';
+// The sovereign property-photo image server (infra/nas-property-photos) runs on
+// its own NAS port. In dev we reach it directly (prod goes via the /nas-photos
+// Vercel rewrite -> Tailscale-fronted NAS). Prefix stripped so the server sees
+// /property-photos, exactly as the production proxy-mount delivers it.
+const NAS_PHOTOS_DEV_TARGET = process.env.NAS_PHOTOS_DEV_TARGET || 'http://192.168.1.26:8099';
 
 export default defineConfig({
   base: '/poetech-app/',
@@ -332,6 +337,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/n8n': { target: N8N_DEV_TARGET, changeOrigin: true, rewrite: (p) => p.replace(/^\/n8n/, '') },
+      '/nas-photos': { target: NAS_PHOTOS_DEV_TARGET, changeOrigin: true, rewrite: (p) => p.replace(/^\/nas-photos/, '') },
     },
   },
 });

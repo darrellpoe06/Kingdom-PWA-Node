@@ -29,6 +29,21 @@
 
 export const CHAT_BRIDGE_TOKEN_KEY = 'poetech-chat-bridge-token';
 
+// Property photos are served by the SOVEREIGN PYTHON IMAGE SERVER on the NAS
+// (infra/nas-property-photos/photo_server.py) via the same-origin `/nas-photos`
+// Vercel rewrite -> Tailscale-fronted NAS. This REPLACED the old n8n bridge
+// (/n8n/webhook/property-photos) after the 2026-07-01 regression: the count
+// (psql, live) kept working while every thumbnail came back null, because the
+// old n8n->SSH->resolver chain's thumbnail-path assumption drifted. One
+// deterministic Python process now owns the whole path -- no n8n hop. The
+// wire contract is unchanged: { count, total, photos:[{id,date,name,text,thumb}] }.
+// (family/album galleries are separate workflows and still ride `/n8n`.)
+export const NAS_PHOTO_BASE = '/nas-photos';
+
+export function propertyPhotosUrl(channel, { limit = 24, offset = 0 } = {}) {
+  return `${NAS_PHOTO_BASE}/property-photos?channel=${encodeURIComponent(channel)}&limit=${limit}&offset=${offset}`;
+}
+
 export function bridgeToken() {
   try { return (localStorage.getItem(CHAT_BRIDGE_TOKEN_KEY) || '').trim(); } catch (_) { return ''; }
 }
@@ -69,7 +84,7 @@ export async function fetchChannelPhotos(channel, { limit = 12, offset = 0 } = {
   const token = bridgeToken();
   if (!token || !channel) return null;
   try {
-    const resp = await fetch(`/n8n/webhook/property-photos?channel=${encodeURIComponent(channel)}&limit=${limit}&offset=${offset}`, {
+    const resp = await fetch(propertyPhotosUrl(channel, { limit, offset }), {
       headers: { authorization: `Bearer ${token}` },
     });
     if (!resp.ok) return null;
