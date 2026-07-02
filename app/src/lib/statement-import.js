@@ -16,6 +16,8 @@
 // imported pipeline when the NAS was unreachable).
 // =============================================================================
 
+import { reconcile } from './ingest-reconcile.js';
+
 const SPREADSHEET_RE = /\.(xlsx|xlsm|xlsb|xls)$/i;
 
 // True when the file looks like an Excel workbook (by name or MIME).
@@ -106,12 +108,23 @@ export function parseDelimitedToRows(text, { flipSign = false } = {}) {
     credit: findCol('credit'),
     category: findCol('category', 'type'),
   };
+  const dataLines = lines.slice(1);
   const errors = [];
   if (idx.date === -1) errors.push('No Date column found.');
   if (idx.desc === -1) errors.push('No Description column found.');
   if (idx.amount === -1 && idx.credit === -1) errors.push('No Amount column found.');
-  if (errors.length) return { rows: [], headers, errors };
-  const rows = lines.slice(1).map((line) => {
+  // RECONCILIATION GATE: never silently drop a row. Every source data row is
+  // either ingested or rejected-with-a-reason, and ingested + rejected must
+  // equal the source total. A missing column doesn't return an empty file — it
+  // rejects EVERY row loudly with the schema reason, so the loss is visible.
+  if (errors.length) {
+    const reason = errors.join(' ');
+    const rejected = dataLines.map((line, i) => ({ line: i + 2, reason, raw: line }));
+    return { rows: [], rejected, reconciliation: reconcile(dataLines.length, 0, rejected.length), headers, errors };
+  }
+  const rows = [];
+  const rejected = [];
+  dataLines.forEach((line, i) => {
     const cells = parseCsvLine(line);
     const date = normalizeDate(cells[idx.date] || '');
     const desc = cells[idx.desc] || '';
@@ -120,8 +133,12 @@ export function parseDelimitedToRows(text, { flipSign = false } = {}) {
     else if (idx.credit !== -1 && cells[idx.credit]) amt = parseFloat(cells[idx.credit].replace(/[$,]/g, '')) || 0;
     if (flipSign) amt = -amt;
     const category = idx.category !== -1 ? (cells[idx.category] || 'other').toLowerCase() : 'other';
-    const ok = !!date && !!desc && /^\d{4}-\d{2}-\d{2}$/.test(date);
-    return { date, description: desc, amount: amt, category, ok };
-  }).filter((r) => r.ok);
-  return { rows, headers, errors: [] };
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      rejected.push({ line: i + 2, reason: 'unreadable-date', raw: line, value: cells[idx.date] || '' });
+      return;
+    }
+    if (!desc) { rejected.push({ line: i + 2, reason: 'missing-description', raw: line }); return; }
+    rows.push({ date, description: desc, amount: amt, category, ok: true });
+  });
+  return { rows, rejected, reconciliation: reconcile(dataLines.length, rows.length, rejected.length), headers, errors: [] };
 }

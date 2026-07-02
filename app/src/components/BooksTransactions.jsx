@@ -151,6 +151,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const [csvAccountId, setCsvAccountId] = useState(accounts[0]?.id || '');
   const [csvFlipSign, setCsvFlipSign] = useState(false);
   const [bulkPlan, setBulkPlan] = useState(null);
+  const [bulkRecon, setBulkRecon] = useState(null); // {sourceTotal, ingested, rejected, unaccounted, rows[]}
   const [bulkBusy, setBulkBusy] = useState('');
   const [csvError, setCsvError] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -616,10 +617,18 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     setBulkBusy(`Reading ${files.length} file(s)…`); setBulkPlan(null); setCsvError('');
     try {
       const parsed = [];
+      const rejects = [];
+      let sourceTotal = 0, ingested = 0, rejectedN = 0;
       for (const f of files) {
         const text = await statementFileToCsv(f);
-        parsed.push({ name: f.name, rows: parseDelimitedToRows(text, { flipSign: csvFlipSign }).rows });
+        const p = parseDelimitedToRows(text, { flipSign: csvFlipSign });
+        parsed.push({ name: f.name, rows: p.rows });
+        const rc = p.reconciliation || { sourceTotal: p.rows.length, ingested: p.rows.length, rejected: 0 };
+        sourceTotal += rc.sourceTotal; ingested += rc.ingested; rejectedN += rc.rejected;
+        (p.rejected || []).forEach(r => rejects.push({ ...r, file: f.name }));
       }
+      // Reconciliation gate — prove ingested + rejected == source across all files.
+      setBulkRecon({ sourceTotal, ingested, rejected: rejectedN, unaccounted: sourceTotal - ingested - rejectedN, rows: rejects });
       setBulkPlan(planBulkImport(parsed, accounts, data.transactions || [], csvAccountId || null));
     } catch (e) {
       setBulkPlan(null); setCsvError(`Could not read files: ${e.message || 'error'}`);
@@ -630,7 +639,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     if (!confirm(`Import ${bulkPlan.totalNew} transaction(s) across ${bulkPlan.routed.length} account(s)? ${bulkPlan.duplicates} duplicate(s) will be skipped.`)) return;
     bulkPlan.routed.forEach(b => b.txns.forEach(t => addTransaction(t)));
     recordLoopRun({ key: 'upload-import', status: 'success', processed: bulkPlan.totalNew, detail: `bulk · ${bulkPlan.routed.length} accounts` });
-    setBulkPlan(null); setCsvOpen(false);
+    setBulkPlan(null); setBulkRecon(null); setCsvOpen(false);
     alert(`Imported ${bulkPlan.totalNew} transaction(s).`);
   };
   const onCsvFile = (file) => {
@@ -1172,6 +1181,28 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <label className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">Or BULK import — drop MANY files at once; each is auto-routed to its account by filename and duplicates are skipped (for whole months + onboarding)</label>
                 <input type="file" multiple accept=".csv,text/csv,.xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onChange={e => onBulkFiles(e.target.files)} className="block w-full text-xs mt-1 file:mr-3 file:px-3 file:py-1.5 file:bg-[#B85838] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
                 {bulkBusy && <div className="text-xs text-[#5A5751] mt-1 italic" style={{ fontFamily: '"Fraunces", serif' }}>{bulkBusy}</div>}
+                {bulkRecon && (
+                  <div className="mt-2 bg-[#FAF8F4] p-2 space-y-1" style={{ border: `1px solid ${bulkRecon.unaccounted !== 0 ? '#B85838' : '#1A1815'}` }}>
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold text-[#1A1815]">Reconciliation</div>
+                    <div className="text-xs text-[#1A1815]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {bulkRecon.sourceTotal} in source = {bulkRecon.ingested} ingested + {bulkRecon.rejected} rejected
+                      {bulkRecon.unaccounted !== 0
+                        ? <span className="text-[#B85838] font-semibold"> · {bulkRecon.unaccounted} UNACCOUNTED</span>
+                        : <span className="text-[#5A6E3D]"> · balanced, nothing dropped</span>}
+                    </div>
+                    {bulkRecon.rejected > 0 && (
+                      <details className="text-[0.6875rem]">
+                        <summary className="cursor-pointer text-[#B85838] uppercase tracking-wider text-[0.5625rem]">{bulkRecon.rejected} row(s) couldn&apos;t import — see each row + reason</summary>
+                        <div className="mt-1 max-h-40 overflow-y-auto space-y-0.5 border-l-2 border-[#E8E4DC] pl-2">
+                          {bulkRecon.rows.slice(0, 100).map((r, i) => (
+                            <div key={i} className="text-[#5A5751]"><span className="uppercase tracking-wider text-[0.5rem] text-[#B85838]">{r.reason}</span> · {r.file} L{r.line}: <span className="text-[#1A1815]">{(r.raw || '').slice(0, 80)}</span></div>
+                          ))}
+                          {bulkRecon.rows.length > 100 && <div className="italic text-[#5A5751]">+ {bulkRecon.rows.length - 100} more</div>}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                )}
                 {bulkPlan && (
                   <div className="mt-2 bg-[#FAF8F4] border border-[#1A1815] p-2 space-y-1">
                     <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{bulkPlan.totalNew} new · {bulkPlan.duplicates} duplicate(s) skipped · {bulkPlan.totalRows} read</div>
