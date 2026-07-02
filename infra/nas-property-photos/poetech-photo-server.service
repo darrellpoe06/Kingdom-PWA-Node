@@ -1,0 +1,18 @@
+[Unit]
+Description=PoeTech sovereign property-photo image server (no n8n)
+# psql (Synology Chat DB) must be up; the server elevates only the read via sudo.
+After=network-online.target pgsql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dpoe
+Environment=PHOTO_PORT=8099
+# Reads the bearer token from /volume1/PoeTech/secrets/chat-bridge-token.txt by
+# default; binds 127.0.0.1 (reached only via the Tailscale-fronted /nas-photos).
+ExecStart=/usr/bin/python3 -u /volume1/PoeTech/scripts/photo_server.py --serve
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

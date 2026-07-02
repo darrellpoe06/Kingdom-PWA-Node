@@ -69,23 +69,39 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-# --- Constants shared with the old resolver (kept identical where proven) -----
+# --- Constants ----------------------------------------------------------------
 SAFE_CHANNEL = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
-# [^/\\] (not .+) so a crafted file name cannot climb out of the backup root.
-STD_NAME = re.compile(r"^(\d{4})(\d{2})\d{2}_[^/\\]+\.(jpg|jpeg|png)$", re.IGNORECASE)
+# A safe photo filename: no path separators (the name comes from chat
+# file_props and is NEVER trusted as a path). glob.escape() also neutralizes
+# any wildcard chars before it reaches the filesystem.
+SAFE_NAME = re.compile(r"^[^/\\]{1,255}$")
+# Pull the first plausible YYYYMMDD found ANYWHERE in the name. Covers every
+# real camera/screenshot convention seen in the archive:
+#   20240123_144917.jpg / Screenshot_20240109_063559_Chrome.jpg / PXL_20240109_*.
+# Names with no date (iPhone IMG_3832.jpg) fall through to the undated search.
+DATE_ANYWHERE = re.compile(r"(20\d{2})(0[1-9]|1[0-2])([0-3]\d)")
 THUMB_PATTERNS = (
     "SYNOFILE_THUMB_M*.jpg", "SYNOFILE_THUMB_SM*.jpg",
     "SYNOFILE_THUMB_S*.jpg", "SYNOFILE_THUMB_*.jpg",
 )
-# Candidate {y}/{m} roots for a photo, tried in order. The FIRST was the only
-# path the old resolver knew; the rest catch the drift cases (Synology Photos
-# library relocation, alternate Drive mount) that blank the gallery. Override
-# with PHOTO_ROOTS (newline- or ';'-separated glob templates using {y} {m}).
+# DATED roots pin the {y}/{m} folder (fast path when the name carries a date).
+# `DCIM/*` (was `DCIM/Camera`) so Screenshots/, and any other DCIM subfolder,
+# resolve too. `Drive/*/*` matches ANY device-backup folder name (PhotoBackup/
+# <device>, Backup/<device>, "Christina's Note20 Ultra", ...). Override with
+# PHOTO_ROOTS (newline/';'-separated templates using {y} {m}).
 DEFAULT_ROOTS = [
-    "/volume1/homes/*/Drive/PhotoBackup/*/DCIM/Camera/{y}/{m}",
+    "/volume1/homes/*/Drive/*/*/DCIM/*/{y}/{m}",
+    "/volume1/homes/*/Drive/*/DCIM/*/{y}/{m}",
     "/volume1/homes/*/Photos/PhotoLibrary/{y}/{m}",
-    "/volume1/photo/*/DCIM/Camera/{y}/{m}",
-    "/volume1/homes/*/Drive/PhotoBackup/*/{y}/{m}",
+    "/volume1/photo/*/DCIM/*/{y}/{m}",
+]
+# UNDATED roots wildcard the year/month IN the template, for names with no date
+# (iPhone IMG_####.jpg). Bounded (no recursive **): glob walks
+# device/subdir/year/month explicitly. Override with PHOTO_UNDATED_ROOTS.
+DEFAULT_UNDATED_ROOTS = [
+    "/volume1/homes/*/Drive/*/*/DCIM/*/*/*",
+    "/volume1/homes/*/Drive/*/DCIM/*/*/*",
+    "/volume1/photo/*/DCIM/*/*/*",
 ]
 MAX_THUMB_BYTES = 400000      # Synology thumbs are ~20KB; guard against surprises
 MAX_ORIGINAL_BYTES = 40 * 1024 * 1024  # cap the original we will downscale
@@ -101,6 +117,25 @@ def roots():
     if env:
         return [r.strip() for r in re.split(r"[\n;]+", env) if r.strip()]
     return DEFAULT_ROOTS
+
+
+def undated_roots():
+    env = os.environ.get("PHOTO_UNDATED_ROOTS", "").strip()
+    if env:
+        return [r.strip() for r in re.split(r"[\n;]+", env) if r.strip()]
+    return DEFAULT_UNDATED_ROOTS
+
+
+def _search_bases(name):
+    """Directory globs to look in for a photo. If the name carries a date, pin
+    the {y}/{m} folder (fast, specific); otherwise wildcard year/month so
+    date-less names (iPhone IMG_####.jpg) still resolve. Returns (bases, tag)
+    where tag names the strategy for the probe."""
+    m = DATE_ANYWHERE.search(name or "")
+    if m:
+        y, mo = m.group(1), m.group(2)
+        return [t.format(y=y, m=mo) for t in roots()], "dated"
+    return list(undated_roots()), "undated"
 
 
 # --- Data layer (psql over Synology Chat) ------------------------------------
@@ -146,15 +181,13 @@ def total_count(channel):
 
 # --- Thumbnail resolution (hardened) -----------------------------------------
 def _premade_thumb(name):
-    """Synology's own ~20KB thumbnail, across all candidate roots. Returns
-    (bytes, root_template) or (None, None)."""
-    m = STD_NAME.match(name or "")
-    if not m:
+    """Synology's own ~20KB thumbnail, across all candidate bases. Returns
+    (bytes, strategy_tag) or (None, None)."""
+    if not SAFE_NAME.match(name or ""):
         return None, None
-    y, mo = m.group(1), m.group(2)
     esc = glob.escape(name)
-    for tmpl in roots():
-        base = tmpl.format(y=y, m=mo)
+    bases, tag = _search_bases(name)
+    for base in bases:
         for pat in THUMB_PATTERNS:
             hits = glob.glob(base + "/@eaDir/" + esc + "/" + pat)
             if hits:
@@ -162,20 +195,19 @@ def _premade_thumb(name):
                     with open(hits[0], "rb") as fh:
                         data = fh.read()
                     if 0 < len(data) <= MAX_THUMB_BYTES:
-                        return data, tmpl
+                        return data, tag
                 except OSError:
                     pass
     return None, None
 
 
 def _find_original(name):
-    m = STD_NAME.match(name or "")
-    if not m:
+    if not SAFE_NAME.match(name or ""):
         return None
-    y, mo = m.group(1), m.group(2)
     esc = glob.escape(name)
-    for tmpl in roots():
-        hits = glob.glob(tmpl.format(y=y, m=mo) + "/" + esc)
+    bases, _tag = _search_bases(name)
+    for base in bases:
+        hits = glob.glob(base + "/" + esc)
         if hits:
             return hits[0]
     return None
@@ -347,14 +379,14 @@ def probe(channel):
     total = total_count(channel)
     rows = query_rows(channel, 48, 0)
     resolved = premade = downscaled = 0
-    root_hits = {}
+    strategy_hits = {}
     unresolved = []
     for _cid, _ca, name, _t in rows:
-        data, root = _premade_thumb(name)
+        data, tag = _premade_thumb(name)
         if data is not None:
             premade += 1
             resolved += 1
-            root_hits[root] = root_hits.get(root, 0) + 1
+            strategy_hits[tag] = strategy_hits.get(tag, 0) + 1
             continue
         orig = _find_original(name)
         if orig and _downscale(orig):
@@ -371,8 +403,9 @@ def probe(channel):
         "via_premade_thumb": premade,
         "via_downscale_fallback": downscaled,
         "unresolved": len(rows) - resolved,
-        "root_hits": root_hits,
+        "strategy_hits": strategy_hits,
         "roots_searched": roots(),
+        "undated_roots_searched": undated_roots(),
         "unresolved_sample": unresolved,
         "have_pillow": _have_pillow(),
     }, indent=2))
@@ -396,17 +429,28 @@ def selftest():
     ok("channel accepts 1003Koehn", bool(SAFE_CHANNEL.match("1003Koehn")))
     ok("channel rejects traversal", not SAFE_CHANNEL.match("../etc"))
     ok("channel rejects space", not SAFE_CHANNEL.match("bad name"))
-    ok("stdname parses 20241206_x.jpg", bool(STD_NAME.match("20241206_081632.jpg")))
-    ok("stdname year/month", STD_NAME.match("20241206_1.jpg").group(1) == "2024"
-       and STD_NAME.match("20241206_1.jpg").group(2) == "12")
-    ok("stdname rejects traversal name", not STD_NAME.match("20241206_../../x.jpg"))
-    ok("stdname rejects screenshot", not STD_NAME.match("Screenshot_2024.png"))
+    # date-anywhere extraction across every real naming convention in the archive
+    ok("date from 20240123_144917.jpg", DATE_ANYWHERE.search("20240123_144917.jpg").group(1, 2) == ("2024", "01"))
+    ok("date from Screenshot_20240109_063559_Chrome.jpg",
+       DATE_ANYWHERE.search("Screenshot_20240109_063559_Chrome.jpg").group(1, 2) == ("2024", "01"))
+    ok("date from PXL_20231225_x.jpg", DATE_ANYWHERE.search("PXL_20231225_x.jpg").group(2) == "12")
+    ok("no date from iPhone IMG_3832.jpg", DATE_ANYWHERE.search("IMG_3832.jpg") is None)
+    ok("no bogus date (month 13)", DATE_ANYWHERE.search("20241332_x.jpg") is None)
+    # _search_bases picks the right strategy
+    ok("dated name -> dated strategy", _search_bases("20240123_1.jpg")[1] == "dated")
+    ok("dateless name -> undated strategy", _search_bases("IMG_3832.jpg")[1] == "undated")
+    ok("dated bases pin {y}/{m}", any("2024/01" in b for b in _search_bases("20240123_1.jpg")[0]))
+    # filename is never trusted as a path
+    ok("name rejects slash (path sep)", not SAFE_NAME.match("a/b.jpg"))
+    ok("name rejects backslash", not SAFE_NAME.match("a\\b.jpg"))
+    ok("name accepts spaces + apostrophe", bool(SAFE_NAME.match("Christina's photo.jpg")))
     ok("bearer rejects empty expected", not bearer_ok("Bearer abc", ""))
     ok("bearer rejects missing header", not bearer_ok(None, "secret"))
     ok("bearer rejects wrong token", not bearer_ok("Bearer nope", "secret"))
     ok("bearer accepts right token", bearer_ok("Bearer secret", "secret"))
     ok("bearer is scheme-insensitive", bearer_ok("bearer secret", "secret"))
     ok("roots default non-empty", len(roots()) >= 1)
+    ok("undated roots default non-empty", len(undated_roots()) >= 1)
     os.environ["PHOTO_ROOTS"] = "/a/{y}/{m};/b/{y}/{m}"
     ok("roots honors env override", roots() == ["/a/{y}/{m}", "/b/{y}/{m}"])
     del os.environ["PHOTO_ROOTS"]
