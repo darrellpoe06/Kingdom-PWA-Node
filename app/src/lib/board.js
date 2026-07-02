@@ -338,6 +338,43 @@ export const SEED_BOARDS = [
       { key: 'suc-docs', group: 'Succession', title: 'Governing documents + access handoff plan', status: 'not-started', owner: 'Darrell', notes: 'DB primary → home hardware (~Jul–Aug 2026); sealed-blob backup at church. Access handoff on the same arc.' },
     ],
   },
+
+  // ── 6. Aggregator / harvest roadmap ──────────────────────────────────────
+  // Self-tracking: registered as first-class board_tasks rows so the roadmap
+  // survives a vendor-LLM outage. The companion NAS resume manifest
+  // (infra/nas-build-loop/aggregator-manifest.json) carries the same items in
+  // dependency order with a driver field (deterministic|llm|human|none) so the
+  // always-on NAS heartbeat can advance deterministic portions while LLM-needed
+  // items queue for capacity return (Darrell 2026-07-02).
+  {
+    slug: 'board-aggregator-harvest',
+    title: 'Aggregator / harvest roadmap',
+    domain: 'business-poetech',
+    blurb: 'Self-tracking pipeline roadmap: backbone seam → per-platform adapters → personal social → historical events. Statuses are verified-honest (DR-0076); done only where working end-to-end.',
+    groupOrder: ['Foundation', 'Adapter: YouTube', 'Adapter: RSS', 'Personal social', 'Historical events'],
+    items: [
+      // Foundation
+      { key: 'backbone-seam', group: 'Foundation', title: 'Sovereign aggregator backbone + source-adapter seam (pluggable, multi-tenant, platform-agnostic)', status: 'done', owner: 'Ari', notes: 'Migration 0066 live; CI guard passing (source-adapter-guard.mjs); 2 adapters (YouTube + RSS), 2 platforms declared. No COLG hardcode. Paired manifest: backbone-seam.' },
+      // Adapter: YouTube
+      { key: 'yt-captions', group: 'Adapter: YouTube', title: 'YouTube caption / transcript pipeline (load-transcripts.py, NAS-resident)', status: 'in-progress', owner: 'Ari', notes: 'Fetches auto-captions via youtube_transcript_api; writes video_harvests + video_transcripts (source=youtube-asr). NAS-runnable without LLM. Lane local_4d62ae64. Paired manifest: yt-captions.' },
+      { key: 'yt-choir-songs', group: 'Adapter: YouTube', title: 'YouTube choir songs extraction (transcript → structured song records: title / key / theme)', status: 'not-started', owner: 'Ari', notes: 'Depends on yt-captions. LLM extracts structured song records from raw transcript text. Output feeds the Choir Songbook. Paired manifest: yt-choir-songs.' },
+      { key: 'yt-sermon-points', group: 'Adapter: YouTube', title: 'YouTube sermon points + scripture extraction (transcript → numbered outline + scripture refs)', status: 'not-started', owner: 'Ari', notes: 'Depends on yt-captions. LLM extracts numbered points + Scripture references. Output feeds the Pulpit / study surface. Paired manifest: yt-sermon-points.' },
+      { key: 'yt-order-of-service', group: 'Adapter: YouTube', title: 'YouTube order of service extraction (transcript → structured OOS segments)', status: 'not-started', owner: 'Ari', notes: 'Depends on yt-captions. LLM identifies and structures OOS segments. Output feeds the Order of Service module. Paired manifest: yt-order-of-service.' },
+      { key: 'yt-historical-events', group: 'Adapter: YouTube', title: 'YouTube historical events extraction (transcript → dated event records)', status: 'not-started', owner: 'Ari', notes: 'Depends on yt-captions. LLM pulls named events, dates, and context from transcripts. Output feeds the Historical Events module. Paired manifest: yt-historical-events.' },
+      { key: 'yt-channel-latest-fix', group: 'Adapter: YouTube', title: 'Fix: shared channel-latest feed — Church + Choir + The Word + Video Wall all auto-show latest upload', status: 'blocked', owner: 'Ari', notes: 'Decouple show-video from mine-content. All four surfaces must display the latest channel upload independently of whether the harvest pipeline has run. Fake-green banner is blocked on this. Paired manifest: yt-channel-latest-fix.' },
+      { key: 'yt-fake-green-banner', group: 'Adapter: YouTube', title: 'Fix: fake-green harvest banner (display real run status, not painted green)', status: 'blocked', owner: 'Ari', notes: 'Depends on yt-channel-latest-fix. Harvest banner must reflect the actual last-run-at + last-run-status from the NAS pipeline record in content_sources, not a hardcoded or inferred green. Paired manifest: yt-fake-green-banner.' },
+      // Adapter: RSS
+      { key: 'rss-ingest', group: 'Adapter: RSS', title: 'RSS / podcast feed ingest (rss-ingest.py — proves seam genericity)', status: 'in-progress', owner: 'Ari', notes: 'rss-ingest.py: stdlib-only, normalizes RSS/Atom to CanonicalItem, writes source_platform=rss rows into video_harvests + video_transcripts. NAS-runnable without LLM. Lane local_baedd723. Paired manifest: rss-ingest.' },
+      { key: 'rss-display-layer', group: 'Adapter: RSS', title: 'RSS display layer — buildLedger() coverage % includes RSS items (not just YouTube / choir_sermons)', status: 'not-started', owner: 'Ari', notes: 'Current gap: buildLedger() joins choir_sermons (YouTube-only corpus). RSS items are in video_harvests but invisible in coverage %. Fix the display query to be platform-agnostic. Paired manifest: rss-display-layer.' },
+      // Personal social
+      { key: 'social-fb-linkedin', group: 'Personal social', title: 'Adapter: Facebook + LinkedIn (Darrell\'s own accounts, API-OAuth path first)', status: 'not-started', owner: 'Darrell', notes: 'Darrell\'s own accounts first. OAuth credential setup is a human step (Darrell holds the credential); adapter code written by Ari after that. Capture metadata as first-class. Sovereign: data-IN-liberal / data-OUT-protected. Paired manifest: social-fb-linkedin.' },
+      { key: 'social-ig-tiktok-x', group: 'Personal social', title: 'Adapter: IG / TikTok / X (after Facebook + LinkedIn proven)', status: 'not-started', owner: 'Darrell', notes: 'Depends on social-fb-linkedin. Same pattern: own accounts, API-OAuth or Download-Your-Data path. Paired manifest: social-ig-tiktok-x.' },
+      { key: 'social-download-archive', group: 'Personal social', title: 'Download-Your-Data export-archive ingest path (all platforms, maximal owner-consented completeness)', status: 'not-started', owner: 'Ari', notes: 'After at least one social adapter is coded. Export archives are deterministic ingest once the adapter parses the format. Owner-consented, sovereign, no-leak. Paired manifest: social-download-archive.' },
+      // Historical events
+      { key: 'historical-events-primitive', group: 'Historical events', title: 'Historical events: in-app create primitive (title / date / category / notes — baseline entry point)', status: 'not-started', owner: 'Ari', notes: 'First-class in-app event creation before the harvest pipeline seeds it. The baseline ensures Darrell can enter events manually even without a completed harvest adapter. Paired manifest: historical-events-primitive.' },
+      { key: 'historical-events-seed', group: 'Historical events', title: 'Historical events: seed from past-video + platform harvest (connect yt-historical-events output to the events primitive)', status: 'not-started', owner: 'Ari', notes: 'Depends on historical-events-primitive + yt-historical-events. The NAS deterministically pipes LLM-extracted event records into the in-app primitive once both exist. Paired manifest: historical-events-seed.' },
+    ],
+  },
 ];
 
 export const SEED_BOARD_BY_SLUG = Object.fromEntries(SEED_BOARDS.map((b) => [b.slug, b]));

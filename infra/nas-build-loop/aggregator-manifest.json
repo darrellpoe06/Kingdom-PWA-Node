@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "description": "Aggregator / harvest roadmap resume manifest. Repo-tracked so the NAS always-on heartbeat (loop.py) reads the current queue after each sovereign-mirror fetch. Items are in dependency order. The 'driver' field tells the NAS what capacity category is currently needed to advance the item: 'none'=done, 'deterministic'=NAS can run this without LLM, 'llm'=needs LLM reasoning or coding, 'human'=needs a human decision or credential. When the vendor LLM is offline, the heartbeat logs deterministic-pending items so they can be queued for NAS pipeline-runner execution; llm-pending items are held and surfaced for the next LLM session. Declared: Darrell 2026-07-02 (institutional-memory / resume-manifest principle).",
+  "board_slug": "board-aggregator-harvest",
+  "items": [
+    {
+      "id": "backbone-seam",
+      "title": "Sovereign aggregator backbone + source-adapter seam (pluggable, multi-tenant, platform-agnostic)",
+      "group": "Foundation",
+      "status": "done",
+      "driver": "none",
+      "depends_on": [],
+      "priority": 1,
+      "notes": "Migration 0066 live; CI guard passing (source-adapter-guard.mjs); 2 adapters (YouTube + RSS), 2 platforms declared. No COLG hardcode."
+    },
+    {
+      "id": "yt-captions",
+      "title": "YouTube caption / transcript pipeline (load-transcripts.py, NAS-resident)",
+      "group": "Adapter: YouTube",
+      "status": "in-progress",
+      "driver": "deterministic",
+      "depends_on": ["backbone-seam"],
+      "priority": 2,
+      "notes": "Script: infra/nas-sme-pipeline/load-transcripts.py. Fetches auto-captions via youtube_transcript_api; writes video_harvests + video_transcripts (source=youtube-asr). NAS-runnable without LLM. Lane local_4d62ae64. Run: python3 load-transcripts.py on NAS.",
+      "run_cmd": "cd /volume1/homes/dpoe/poetech-build/repo && python3 infra/nas-sme-pipeline/load-transcripts.py"
+    },
+    {
+      "id": "yt-choir-songs",
+      "title": "YouTube choir songs extraction (transcript to structured song records: title / key / theme)",
+      "group": "Adapter: YouTube",
+      "status": "not-started",
+      "driver": "llm",
+      "depends_on": ["yt-captions"],
+      "priority": 3,
+      "notes": "LLM extracts structured song records (title, key, theme tags) from raw transcript text. Output feeds the Choir Songbook module."
+    },
+    {
+      "id": "yt-sermon-points",
+      "title": "YouTube sermon points + scripture extraction (transcript to numbered outline + scripture refs)",
+      "group": "Adapter: YouTube",
+      "status": "not-started",
+      "driver": "llm",
+      "depends_on": ["yt-captions"],
+      "priority": 4,
+      "notes": "LLM extracts numbered points + Scripture references from transcript. Output feeds the Pulpit / study surface."
+    },
+    {
+      "id": "yt-order-of-service",
+      "title": "YouTube order of service extraction (transcript to structured OOS segments)",
+      "group": "Adapter: YouTube",
+      "status": "not-started",
+      "driver": "llm",
+      "depends_on": ["yt-captions"],
+      "priority": 5,
+      "notes": "LLM identifies and structures OOS segments from transcript. Output feeds the Order of Service module."
+    },
+    {
+      "id": "yt-historical-events",
+      "title": "YouTube historical events extraction (transcript to dated event records)",
+      "group": "Adapter: YouTube",
+      "status": "not-started",
+      "driver": "llm",
+      "depends_on": ["yt-captions"],
+      "priority": 6,
+      "notes": "LLM pulls named events, dates, and context from transcripts. Output feeds the Historical Events module."
+    },
+    {
+      "id": "yt-channel-latest-fix",
+      "title": "Fix: shared channel-latest feed (Church + Choir + The Word + Video Wall all auto-show latest upload)",
+      "group": "Adapter: YouTube",
+      "status": "blocked",
+      "driver": "llm",
+      "depends_on": ["yt-captions"],
+      "priority": 7,
+      "notes": "Decouple show-video from mine-content. All four surfaces must display the latest channel upload independently of whether the harvest pipeline has run. Fake-green banner is also blocked on this. Code change needed in display layer."
+    },
+    {
+      "id": "yt-fake-green-banner",
+      "title": "Fix: fake-green harvest banner (display real run status from content_sources, not painted green)",
+      "group": "Adapter: YouTube",
+      "status": "blocked",
+      "driver": "llm",
+      "depends_on": ["yt-channel-latest-fix"],
+      "priority": 8,
+      "notes": "Harvest banner must reflect actual last_run_at + last_run_status from the NAS pipeline record in content_sources, not a hardcoded or inferred green."
+    },
+    {
+      "id": "rss-ingest",
+      "title": "RSS / podcast feed ingest (rss-ingest.py, proves seam genericity)",
+      "group": "Adapter: RSS",
+      "status": "in-progress",
+      "driver": "deterministic",
+      "depends_on": ["backbone-seam"],
+      "priority": 9,
+      "notes": "Script: infra/nas-sme-pipeline/rss-ingest.py. Stdlib-only, normalizes RSS/Atom to CanonicalItem, writes source_platform=rss rows. NAS-runnable without LLM. Lane local_baedd723. Run: python3 rss-ingest.py <feed_url> on NAS.",
+      "run_cmd": "cd /volume1/homes/dpoe/poetech-build/repo && python3 infra/nas-sme-pipeline/rss-ingest.py"
+    },
+    {
+      "id": "rss-display-layer",
+      "title": "RSS display layer (buildLedger coverage % includes RSS items, not just YouTube / choir_sermons)",
+      "group": "Adapter: RSS",
+      "status": "not-started",
+      "driver": "llm",
+      "depends_on": ["rss-ingest"],
+      "priority": 10,
+      "notes": "Current gap: buildLedger() in harvest-ledger.js joins choir_sermons (YouTube-only corpus). RSS items are in video_harvests (source_platform=rss) but invisible in coverage %. Fix the display query to be platform-agnostic."
+    },
+    {
+      "id": "social-fb-linkedin",
+      "title": "Adapter: Facebook + LinkedIn (Darrell own accounts, API-OAuth path first)",
+      "group": "Personal social",
+      "status": "not-started",
+      "driver": "human",
+      "depends_on": ["backbone-seam"],
+      "priority": 11,
+      "notes": "OAuth credential setup is a human step (Darrell holds the credential). Once credentials are in place, adapter code is llm-driven. Capture metadata as first-class. Sovereign: data-IN-liberal / data-OUT-protected."
+    },
+    {
+      "id": "social-ig-tiktok-x",
+      "title": "Adapter: IG / TikTok / X (after Facebook + LinkedIn proven)",
+      "group": "Personal social",
+      "status": "not-started",
+      "driver": "human",
+      "depends_on": ["social-fb-linkedin"],
+      "priority": 12,
+      "notes": "Same pattern as social-fb-linkedin: own accounts first, API-OAuth or Download-Your-Data path. Depends on fb/linkedin proving the seam pattern works for personal accounts."
+    },
+    {
+      "id": "social-download-archive",
+      "title": "Download-Your-Data export-archive ingest path (all platforms, maximal owner-consented completeness)",
+      "group": "Personal social",
+      "status": "not-started",
+      "driver": "llm",
+      "depends_on": ["social-fb-linkedin"],
+      "priority": 13,
+      "notes": "After at least one social adapter is coded. Export archives are deterministic ingest once the adapter parses the format. Sovereign, no-leak, owner-consented. Personal life-corpus + timeline target."
+    },
+    {
+      "id": "historical-events-primitive",
+      "title": "Historical events: in-app create primitive (title / date / category / notes, baseline entry point)",
+      "group": "Historical events",
+      "status": "not-started",
+      "driver": "llm",
+      "depends_on": ["yt-historical-events"],
+      "priority": 14,
+      "notes": "First-class in-app event creation before harvest seeds it. Baseline ensures Darrell can enter events manually even without a completed harvest adapter. Code change: new surface + migration."
+    },
+    {
+      "id": "historical-events-seed",
+      "title": "Historical events: seed from past-video + platform harvest (connect extraction output to events primitive)",
+      "group": "Historical events",
+      "status": "not-started",
+      "driver": "deterministic",
+      "depends_on": ["historical-events-primitive", "yt-historical-events"],
+      "priority": 15,
+      "notes": "NAS deterministically pipes LLM-extracted event records into the in-app primitive once both exist. Script to be written after historical-events-primitive lands.",
+      "run_cmd": "cd /volume1/homes/dpoe/poetech-build/repo && python3 infra/nas-sme-pipeline/seed-historical-events.py"
+    }
+  ]
+}

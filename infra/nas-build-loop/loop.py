@@ -117,6 +117,11 @@ REC_INDEX = os.path.join(MIRROR_DIR, "docs", "decisions", "INDEX.md")
 REC_PRINCIPLES = os.path.join(MIRROR_DIR, "docs", "decisions", "PRINCIPLES.md")
 REC_MEMORY = os.path.join(MIRROR_DIR, "memory", "MEMORY.md")
 REC_LESSONS = os.path.join(MIRROR_DIR, "docs", "00-foundations", "_root", "LESSONS-LEARNED.md")
+# repo-tracked aggregator roadmap resume manifest (read from sovereign mirror after each fetch).
+# Source: infra/nas-build-loop/aggregator-manifest.json
+# Tells the loop which items are deterministic (NAS can run without LLM), llm-needed (queue for
+# capacity return), or human-gated (await Darrell credential/decision). Declared 2026-07-02.
+AGGREGATOR_MANIFEST = os.path.join(MIRROR_DIR, "infra", "nas-build-loop", "aggregator-manifest.json")
 # optional Dispatch Status mirror. NOTE: this dir is owned by the n8n container
 # (uid 1000); dpoe (uid 1026) cannot write it, so this mirror currently no-ops
 # and the sovereign reel at state/reel.jsonl is the record. Wiring these runs
@@ -416,6 +421,56 @@ def sovereign_mirror(token):
 
 
 # =============================================================================
+# aggregator manifest reader -- reads the resume manifest from the sovereign
+# mirror after each fetch. Returns a summary so the loop can log what is owed
+# and distinguish deterministic-pending (NAS can drive without LLM) from
+# llm-pending (hold for capacity return) and human-pending (await credential /
+# decision). No action is taken here; the loop records and routes. Pure
+# function of the filesystem; deterministic, no network.
+# =============================================================================
+def read_aggregator_manifest():
+    """Read infra/nas-build-loop/aggregator-manifest.json from the sovereign mirror.
+    Returns a summary dict with pending items by driver category, or None on failure."""
+    try:
+        if not os.path.isfile(AGGREGATOR_MANIFEST):
+            log("aggregator-manifest: not found at %s" % AGGREGATOR_MANIFEST)
+            return None
+        with open(AGGREGATOR_MANIFEST, encoding="utf-8") as f:
+            data = json.load(f)
+        items = data.get("items", [])
+        total = len(items)
+        by_status = {}
+        deterministic_pending = []
+        llm_pending = []
+        human_pending = []
+        for it in items:
+            s = it.get("status", "not-started")
+            by_status[s] = by_status.get(s, 0) + 1
+            if s in ("not-started", "in-progress", "blocked"):
+                drv = it.get("driver", "")
+                item_id = it.get("id", "?")
+                if drv == "deterministic":
+                    deterministic_pending.append(item_id)
+                elif drv == "llm":
+                    llm_pending.append(item_id)
+                elif drv == "human":
+                    human_pending.append(item_id)
+        return {
+            "total": total,
+            "done": by_status.get("done", 0),
+            "in_progress": by_status.get("in-progress", 0),
+            "not_started": by_status.get("not-started", 0),
+            "blocked": by_status.get("blocked", 0),
+            "deterministic_pending": deterministic_pending,
+            "llm_pending": llm_pending,
+            "human_pending": human_pending,
+        }
+    except Exception as e:
+        log("aggregator-manifest: read failed (%s)" % e)
+        return None
+
+
+# =============================================================================
 # one cycle
 # =============================================================================
 def run_cycle():
@@ -471,6 +526,48 @@ def run_cycle():
         decisions.append({"action": "pause", "target": "write-actions",
                           "why": "governance directive pause_merges=true (shared-brain lever)",
                           "result": "dispatch + update-branch skipped this cycle"})
+
+    # 2c. AGGREGATOR MANIFEST: read the resume manifest from the sovereign mirror.
+    #     Reports pending work by driver category so the NAS can advance deterministic
+    #     items (caption fetch, RSS ingest, export-archive ingestion, seed steps) even
+    #     when the vendor LLM is offline -- queuing LLM-needed items for capacity return.
+    #     No action is taken here; the loop records the state and routes to the shared brain.
+    #     (Darrell 2026-07-02 institutional-memory / resume-manifest principle.)
+    manifest_summary = read_aggregator_manifest()
+    if manifest_summary:
+        log("aggregator-manifest: total=%d done=%d in-progress=%d not-started=%d "
+            "blocked=%d | deterministic-pending=%d llm-pending=%d human-pending=%d"
+            % (manifest_summary["total"], manifest_summary["done"],
+               manifest_summary["in_progress"], manifest_summary["not_started"],
+               manifest_summary["blocked"],
+               len(manifest_summary["deterministic_pending"]),
+               len(manifest_summary["llm_pending"]),
+               len(manifest_summary["human_pending"])))
+        reel({"event": "aggregator-manifest", "ok": True, **manifest_summary})
+        det = manifest_summary["deterministic_pending"]
+        llm = manifest_summary["llm_pending"]
+        if det:
+            decisions.append({
+                "action": "queue-deterministic",
+                "target": det,
+                "why": ("aggregator-manifest: %d deterministic item(s) the NAS can advance "
+                        "without LLM (caption fetch, RSS ingest, export-archive ingestion, "
+                        "metadata parsing, seed steps)" % len(det)),
+                "result": ("logged for NAS pipeline-runner execution; run the relevant script "
+                           "(e.g. load-transcripts.py, rss-ingest.py) when NAS has capacity. "
+                           "See run_cmd in each manifest item.")
+            })
+        if llm:
+            decisions.append({
+                "action": "queue-llm",
+                "target": llm,
+                "why": ("aggregator-manifest: %d item(s) need LLM reasoning (content extraction, "
+                        "adapter code, display-layer fixes, code changes)" % len(llm)),
+                "result": ("logged; deterministic loop holds position -- "
+                           "LLM lane picks up on capacity return")
+            })
+    else:
+        log("aggregator-manifest: not available this cycle (mirror may not have fetched yet)")
 
     # 3. list + classify eligible PRs
     prs = list_open_prs(token)
