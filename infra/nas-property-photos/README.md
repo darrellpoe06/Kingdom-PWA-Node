@@ -8,12 +8,23 @@ Estate while the photo COUNT stayed correct (e.g. 1003 Koehn Dr "233 PHOTOS").
 
 The count is fetched **live** from the same bridge (`fetchChannelPhotos(…,{limit:1})`
 → psql `COUNT(*)`), so the count being right proves the **transport was up**. What
-broke is **thumbnail resolution**: every `photo.thumb` came back `null`, so the
-gallery `<img src={thumb}>` rendered nothing. The old resolver
-(`infra/n8n/property-photos.py`) predicted ONE exact PhotoBackup `@eaDir` path per
-photo and hard-failed to `null` the moment that assumption drifted (a DSM /
-Synology Photos relocation, a `homes/` permissions change, or an oversized base64
-gallery response failing a hop the tiny count response survives).
+broke is **thumbnail resolution**: `photo.thumb` came back `null`, so the gallery
+`<img src={thumb}>` rendered nothing. **Measured** with `--probe` on the NAS, the
+old resolver (`infra/n8n/property-photos.py`) was too narrow on THREE axes and
+silently `null`ed anything outside them:
+
+1. **Backup folder name.** It only globbed `Drive/PhotoBackup/<device>/…`, but the
+   real photos for 1003 Koehn live under `Drive/Backup/"DP Note 20 backup"/…`.
+   → generic `Drive/*/*/DCIM/…` matches any device-backup folder.
+2. **DCIM subfolder.** It only globbed `DCIM/Camera`, but screenshots live under
+   `DCIM/Screenshots`. → `DCIM/*`.
+3. **Filename shape.** It required a strict `YYYYMMDD_` *prefix*, missing
+   `Screenshot_20240109_…`. → pull the date from **anywhere** in the name, with
+   an undated fallback for date-less iPhone `IMG_####.jpg`.
+
+(On top of that, the heavy `limit=48` base64 gallery response likely also failed
+at a hop the tiny `limit=1` count response survived — dropping the n8n hop removes
+that failure mode too.)
 
 Run the **probe** on the NAS to localize it exactly:
 
@@ -90,33 +101,61 @@ mount prefix or not.
 3. **sudoers** — the process runs as `dpoe` and elevates only the psql read.
    The n8n SSH path already runs this exact `sudo -n -u postgres psql synochat …`
    as `dpoe`, so the sudoers grant already exists; nothing new is needed.
-4. **Run it** (foreground, to prove it):
-   `PHOTO_BRIDGE_TOKEN=… python3 /volume1/PoeTech/scripts/photo_server.py --serve`
-   then from the NAS: `curl -s localhost:8099/healthz` → `{"ok":true}`.
-5. **Front it on the sovereign path.** The Funnel host
-   `poetech.tail5a2f35.ts.net` already serves n8n; add a path handler for the
-   image server (prefix stripped → server sees `/property-photos`):
+4. **Install the systemd service** (boot-persistent, auto-restart):
+   `sudo cp .../poetech-photo-server.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable poetech-photo-server && sudo systemctl start poetech-photo-server`
+   then `curl -s localhost:8099/healthz` → `{"ok":true}`.
+5. **Front it on the sovereign path** (public Funnel host
+   `poetech.tail5a2f35.ts.net`, which already serves n8n at `/`). Add a path
+   handler for the image server (prefix stripped → server sees `/property-photos`):
 
    ```
-   tailscale serve --bg --set-path /nas-photos http://127.0.0.1:8099
-   tailscale serve status      # confirm /nas-photos -> 127.0.0.1:8099
+   sudo tailscale funnel --bg --set-path=/nas-photos http://127.0.0.1:8099
+   sudo tailscale serve status      # confirm /nas-photos -> localhost:8099
    ```
 
-   (DSM's Application Portal → Reverse Proxy is the GUI alternative if the
-   Tailscale CLI path handler isn't available on this tailscaled version.)
-6. **Persist it.** DSM → Control Panel → Task Scheduler → Triggered Task →
-   *Boot-up*, run-as `dpoe`, command:
-   `/usr/bin/python3 /volume1/PoeTech/scripts/photo_server.py --serve`
-   (reads the default token file; or a `systemd` unit if this DSM has one.)
+   This is **additive** — the root `/` → n8n handler is untouched. (DSM's
+   Application Portal → Reverse Proxy is the GUI alternative.)
 
-## Verify (served)
+`scripts/nas-deploy-property-photos.sh` performs steps 1–4 and prints step 5.
 
-- On the NAS: `python3 …/photo_server.py --probe 1003Koehn` → non-zero `resolved`.
-- In the app (poetech.us → Real Estate → 1003 Koehn → Records → 📷 Browse):
-  thumbnails render and the click-to-enlarge lightbox opens.
+## Verify (served) — done 2026-07-01/02
+
+Measured through the full production chain
+`poetech.us → Vercel /nas-photos rewrite → Funnel → localhost:8099`:
+
+- `curl https://poetech.us/nas-photos/healthz` → `{"ok":true}`.
+- `…/nas-photos/property-photos?channel=1003Koehn&limit=4` (bearer) → the
+  1003 Koehn regression channel: **total=233**, real thumbnail data URLs.
+- Per-channel thumbnail resolution after the broadened resolver (first page):
+  1003Koehn 24/24 · 805NProspect 24/24 · 709CommercialSt 24/24 ·
+  1508Williamsburg 2/2 · 2111TalansDr 16/24 · 1513HH 13/24 · 440SS 33/48.
+- In-app: poetech.us → Real Estate → 1003 Koehn → Records → 📷 Browse —
+  thumbnails render; the click-to-enlarge lightbox (unchanged `Lightbox.jsx`,
+  fed the same `thumb` data URLs) opens.
+
+### Known remaining gap (documented, not silent) — `re-review: 2026-08-15`
+
+Some photos still come back `thumb=null` and are hidden by the app (as they
+always were). These are files that were **never backed up to the NAS Drive
+PhotoBackup trees** — verified: `find /volume1/homes -iname IMG_3832.jpg`
+returns nothing. They are:
+
+- **iPhone `IMG_####.jpg`** (no date in the name; not present in any Drive
+  backup on this NAS), and
+- **messaging-app `1000######.jpg`** saved images (likewise not in a backup).
+
+They exist only inside Synology Chat's own upload store, which this resolver
+does **not** read: the `synochat` DB `posts.file_props` carries no path to the
+stored bytes, and there is no `fileinfo` table — mapping a post to its stored
+file would mean reverse-engineering Synology Chat's undocumented hashed file
+storage. **Why deferred:** disproportionate risk/effort vs. a partial gap on a
+few properties, and the regression target (1003 Koehn) is fully resolved.
+**Re-review 2026-08-15** — if the gap matters, the path is a `posts →
+fileinfo/hashed-store` fallback that serves/downscales the chat original
+directly (would push resolution to ~100% regardless of backup). (DR-0075.)
 
 ## Retiring the old n8n bridge
 
-Once served-verified, the n8n `wf-property-photos` workflow can be **deactivated**
+Now served-verified, the n8n `wf-property-photos` workflow can be **deactivated**
 (leave `infra/n8n/property-photos.py` + `wf-property-photos.json` in the repo as
 history). Family/album galleries still ride `/n8n` and are unaffected.

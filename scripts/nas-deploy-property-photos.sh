@@ -70,15 +70,24 @@ if [ ! -s "$TOKEN_FILE" ]; then
 fi
 chmod 600 "$TOKEN_FILE" 2>/dev/null || true
 
-# ---- 4. (Re)start on 127.0.0.1:PORT ------------------------------------------
-# Stop any prior instance of THIS script's server (match the exact command).
-OLD=$(pgrep -f "photo_server.py --serve" 2>/dev/null || true)
-if [ -n "$OLD" ]; then echo "    stopping prior instance(s): $OLD"; kill $OLD 2>/dev/null || true; sleep 1; fi
-
-echo "==> starting server on 127.0.0.1:$PORT ..."
-PHOTO_BRIDGE_TOKEN=$(cat "$TOKEN_FILE") PHOTO_PORT="$PORT" \
-  nohup "$PY" "$DEST" --serve >/volume1/PoeTech/scripts/photo_server.log 2>&1 &
-sleep 2
+# ---- 4. Install + (re)start as a systemd service (boot-persistent) -----------
+UNIT_SRC="/volume1/PoeTech/scripts/poetech-photo-server.service"
+UNIT_DST="/etc/systemd/system/poetech-photo-server.service"
+# Fetch the unit alongside the server (best-effort; skip if already present).
+wget -qO "$UNIT_SRC.new" "https://raw.githubusercontent.com/darrellpoe06/Kingdom-PWA-Node/main/infra/nas-property-photos/poetech-photo-server.service" \
+  && mv "$UNIT_SRC.new" "$UNIT_SRC" || rm -f "$UNIT_SRC.new"
+if [ -f "$UNIT_SRC" ]; then
+  sudo cp "$UNIT_SRC" "$UNIT_DST"
+  sudo systemctl daemon-reload
+  sudo systemctl enable poetech-photo-server 2>&1 | tail -1
+  sudo systemctl restart poetech-photo-server
+  sleep 2
+  echo "    service: $(sudo systemctl is-active poetech-photo-server) / $(sudo systemctl is-enabled poetech-photo-server)"
+else
+  echo "    (no unit file; falling back to nohup -- NOT boot-persistent)"
+  PHOTO_PORT="$PORT" nohup "$PY" "$DEST" --serve >/volume1/PoeTech/scripts/photo_server.log 2>&1 < /dev/null &
+  sleep 2
+fi
 
 # ---- 5. Liveness + a real probe (measures the fix) ---------------------------
 echo "==> /healthz:"
@@ -90,17 +99,13 @@ echo "==> probe 1003Koehn (real thumbnail resolution on this NAS):"
 cat <<EOF
 
 ============================================================
-Server running on 127.0.0.1:$PORT  (log: $DEST_DIR/photo_server.log)
+Server active on 127.0.0.1:$PORT via systemd (poetech-photo-server).
 
-REMAINING one-time steps:
-  1. Front it on the sovereign path (once):
-       tailscale serve --bg --set-path /nas-photos http://127.0.0.1:$PORT
-       tailscale serve status
-     (DSM Application Portal -> Reverse Proxy is the GUI alternative.)
-  2. Persist across reboot (DSM -> Control Panel -> Task Scheduler ->
-     Create -> Triggered Task -> Boot-up, run-as dpoe):
-       $PY $DEST --serve
+REMAINING one-time step -- front it on the sovereign path (public Funnel):
+    sudo tailscale funnel --bg --set-path=/nas-photos http://127.0.0.1:$PORT
+    sudo tailscale serve status      # confirm /nas-photos -> localhost:$PORT
 
-Then verify at poetech.us -> Real Estate -> 1003 Koehn -> Records -> Browse.
+Then verify: curl https://poetech.us/nas-photos/healthz  -> {"ok":true}
+and in-app: poetech.us -> Real Estate -> 1003 Koehn -> Records -> Browse.
 ============================================================
 EOF
