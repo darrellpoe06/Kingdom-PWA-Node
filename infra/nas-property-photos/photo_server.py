@@ -90,7 +90,10 @@ DEFAULT_ROOTS = [
 MAX_THUMB_BYTES = 400000      # Synology thumbs are ~20KB; guard against surprises
 MAX_ORIGINAL_BYTES = 40 * 1024 * 1024  # cap the original we will downscale
 DOWNSCALE_MAX = 480           # px longest edge for the on-the-fly fallback
-TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/photo-bridge-token"
+# The family bridge token ALREADY lives on the NAS (seeded for the old n8n
+# bridge). Reuse it -- no second copy of the secret, no re-seeding. The PWA
+# stores the same value in localStorage["poetech-chat-bridge-token"].
+TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
 
 
 def roots():

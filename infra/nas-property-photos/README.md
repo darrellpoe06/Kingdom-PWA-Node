@@ -52,11 +52,13 @@ mount prefix or not.
 
 ## Security / sovereignty
 
-- **Bearer token** expected value is read from a NAS-resident file
-  (`/volume1/PoeTech/secrets/photo-bridge-token`) or `PHOTO_BRIDGE_TOKEN` env —
-  it **stays on the NAS**, never printed, never logged, never in the repo.
-  Compared in constant time (`hmac.compare_digest`). Use the **same token value**
-  the PWA already stores (`poetech-chat-bridge-token`) so no device re-provisioning.
+- **Bearer token** expected value is read from the **existing** NAS-resident
+  token file `/volume1/PoeTech/secrets/chat-bridge-token.txt` (the one the old
+  n8n bridge already used) or `PHOTO_BRIDGE_TOKEN` env — it **stays on the NAS**,
+  never printed, never logged, never in the repo. Compared in constant time
+  (`hmac.compare_digest`). This is the **same value** the PWA already stores in
+  `localStorage["poetech-chat-bridge-token"]`, so **no re-seeding and no device
+  re-provisioning** — every device that could see photos before still can.
 - `channel` is whitelist-validated; SQL interpolates only the sanitized channel.
   `limit`/`offset` int-bounded (≤48).
 - Binds to **127.0.0.1** by default — reachable only via the local reverse proxy
@@ -83,8 +85,8 @@ mount prefix or not.
 `scripts/nas-deploy-property-photos.sh` does all of this; the steps, for reference:
 
 1. **Copy the server** to `/volume1/PoeTech/scripts/photo_server.py`.
-2. **Seed the token file** (once) with the SAME value the PWA uses:
-   `printf '%s' '<token>' > /volume1/PoeTech/secrets/photo-bridge-token && chmod 600 …`
+2. **Token** — none to seed: the server reuses the existing
+   `/volume1/PoeTech/secrets/chat-bridge-token.txt`.
 3. **sudoers** — the process runs as `dpoe` and elevates only the psql read.
    The n8n SSH path already runs this exact `sudo -n -u postgres psql synochat …`
    as `dpoe`, so the sudoers grant already exists; nothing new is needed.
@@ -104,8 +106,8 @@ mount prefix or not.
    Tailscale CLI path handler isn't available on this tailscaled version.)
 6. **Persist it.** DSM → Control Panel → Task Scheduler → Triggered Task →
    *Boot-up*, run-as `dpoe`, command:
-   `PHOTO_BRIDGE_TOKEN=$(cat /volume1/PoeTech/secrets/photo-bridge-token) /usr/bin/python3 /volume1/PoeTech/scripts/photo_server.py --serve`
-   (Or a `systemd` unit if this DSM has one.)
+   `/usr/bin/python3 /volume1/PoeTech/scripts/photo_server.py --serve`
+   (reads the default token file; or a `systemd` unit if this DSM has one.)
 
 ## Verify (served)
 

@@ -9,13 +9,13 @@
 # Run on the NAS:
 #   wget -qO- https://raw.githubusercontent.com/darrellpoe06/Kingdom-PWA-Node/main/scripts/nas-deploy-property-photos.sh | sh
 #
+# The token is REUSED from the existing /volume1/PoeTech/secrets/chat-bridge-token.txt
+# (the old n8n bridge already seeded it) -- nothing to seed.
+#
 # After it succeeds, two ONE-TIME steps (printed again at the end):
-#   1. Seed the token file with the SAME value the PWA uses (if not already):
-#        printf '%s' '<poetech-chat-bridge-token>' > /volume1/PoeTech/secrets/photo-bridge-token
-#        chmod 600 /volume1/PoeTech/secrets/photo-bridge-token
-#   2. Front it on the sovereign path (prefix stripped -> server sees /property-photos):
+#   1. Front it on the sovereign path (prefix stripped -> server sees /property-photos):
 #        tailscale serve --bg --set-path /nas-photos http://127.0.0.1:8099
-#   3. Persist across reboot: DSM Task Scheduler -> Triggered Task -> Boot-up,
+#   2. Persist across reboot: DSM Task Scheduler -> Triggered Task -> Boot-up,
 #      run-as dpoe, command:
 #        PHOTO_BRIDGE_TOKEN=$(cat /volume1/PoeTech/secrets/photo-bridge-token) /usr/bin/python3 /volume1/PoeTech/scripts/photo_server.py --serve
 
@@ -25,7 +25,10 @@ RAW="https://raw.githubusercontent.com/darrellpoe06/Kingdom-PWA-Node/main/infra/
 DEST_DIR="/volume1/PoeTech/scripts"
 DEST="$DEST_DIR/photo_server.py"
 SECRETS="/volume1/PoeTech/secrets"
-TOKEN_FILE="$SECRETS/photo-bridge-token"
+# Reuse the EXISTING family bridge token (seeded for the old n8n bridge) -- no
+# second secret, no re-seeding. Falls back to a photo-specific file if present.
+TOKEN_FILE="$SECRETS/chat-bridge-token.txt"
+[ -s "$SECRETS/photo-bridge-token" ] && [ ! -s "$TOKEN_FILE" ] && TOKEN_FILE="$SECRETS/photo-bridge-token"
 PORT="${PHOTO_PORT:-8099}"
 TS=$(date +%Y%m%d-%H%M%S)
 
@@ -96,7 +99,7 @@ REMAINING one-time steps:
      (DSM Application Portal -> Reverse Proxy is the GUI alternative.)
   2. Persist across reboot (DSM -> Control Panel -> Task Scheduler ->
      Create -> Triggered Task -> Boot-up, run-as dpoe):
-       PHOTO_BRIDGE_TOKEN=\$(cat $TOKEN_FILE) $PY $DEST --serve
+       $PY $DEST --serve
 
 Then verify at poetech.us -> Real Estate -> 1003 Koehn -> Records -> Browse.
 ============================================================
