@@ -31,6 +31,7 @@ import {
   saveResource, deleteResource,
   inviteToChurch,
 } from '../lib/choir-sync.js';
+import { serviceDayLabel } from '../lib/service-day.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
 const roleLabel = (r) => (ROLE_OPTS.find(([k]) => k === r)?.[1]) || r;
@@ -41,7 +42,6 @@ const fmtDate = (d) => {
   try { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); }
   catch { return d; }
 };
-const serviceLabel = (t) => (t === 'rehearsal' ? 'Thursday rehearsal' : t === 'sunday' ? 'Sunday service' : t);
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -196,7 +196,7 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
   return (
     <div className="bg-white border border-[#1A1815] p-3">
       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{serviceLabel(svc.serviceType)} · {fmtDate(svc.serviceDate)}{svc.title ? ` · ${svc.title}` : ''}</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{serviceDayLabel(svc.serviceType, svc.serviceDate)} · {fmtDate(svc.serviceDate)}{svc.title ? ` · ${svc.title}` : ''}</div>
         <div className="flex items-center gap-2">
           {svc.youtubeUrl && <a href={svc.youtubeUrl} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>▶ Watch service</a>}
           {canEdit && !past && <button type="button" onClick={() => onAddSong(svc)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Add song</button>}
@@ -274,7 +274,7 @@ function SchedulePanel({ schedule, canEdit, onAdd, onEdit, onDelete }) {
             <div key={svc.id} className="flex items-baseline justify-between gap-2 flex-wrap p-3 border-b border-[#E8E4DC]">
               <div>
                 <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtDate(svc.serviceDate)}</span>
-                <span className="text-[0.6875rem] text-[#5A5751] ml-2">{serviceLabel(svc.serviceType)}{svc.title ? ` · ${svc.title}` : ''}</span>
+                <span className="text-[0.6875rem] text-[#5A5751] ml-2">{serviceDayLabel(svc.serviceType, svc.serviceDate)}{svc.title ? ` · ${svc.title}` : ''}</span>
               </div>
               {canEdit && (
                 <div className="flex gap-2">

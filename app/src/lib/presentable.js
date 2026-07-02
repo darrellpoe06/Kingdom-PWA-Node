@@ -41,6 +41,7 @@
 // =============================================================================
 import { TEACH_CHANNEL, formatClock } from './teach-present.js';
 import { formatClassDate } from './church-classes.js';
+import { serviceKindLabel } from './service-day.js';
 
 // Re-export the shared, versioned channel + clock so callers import one module.
 export { TEACH_CHANNEL, formatClock };
@@ -618,7 +619,10 @@ function sermonDateLabel(iso) {
   } catch { return null; }
 }
 
-const sermonDay = (s) => (s.serviceType === 'wednesday' ? 'Wednesday Bible Study' : 'Sunday');
+// The KIND of service (Service / Bible study / Rehearsal) — NOT a weekday word.
+// The picker's dateLabel already shows the real weekday from the date, so this
+// must not assert a contradicting weekday (a Monday conference is not "Sunday").
+const sermonDay = (s) => serviceKindLabel(s.serviceType);
 
 // The pickable library: published messages, newest service date first. Each entry is
 // lightweight (what the picker shows) — the full presentation is built on selection.

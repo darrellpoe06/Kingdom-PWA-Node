@@ -2,6 +2,9 @@
 # =============================================================================
 # load-transcripts.py -- climb the Harvest % past 22%, deterministically.
 # =============================================================================
+# SOURCE-ADAPTER DECLARATION (scripts/source-adapter-guard.mjs checks this):
+PLATFORM = "youtube"
+
 # Darrell 2026-06-30: the Harvest % was stuck at 22% because the transcript-gated
 # harvests (lessons / discernment / testimony / trivia / full Scripture sweep)
 # had no transcript to derive from. The prior "fix" (#399) shipped the extractors
