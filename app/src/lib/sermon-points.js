@@ -12,6 +12,13 @@
 // produced and, where a transcript is present, derives the numbered outline live.
 //
 // SOURCE PRECEDENCE (most-trusted first):
+//   0. 'prep'      — BG's OWN pre-service prep document (emailed to Christina),
+//                    parsed by prep-outline.js into his numbered points + the
+//                    scriptures under each. His own words + structure = ground
+//                    truth; it beats anything parsed from the noisy transcript.
+//                    Where a prep outline exists for a service, IT WINS (Darrell
+//                    2026-07-02: "where BG's email exists, it wins"). The transcript
+//                    lane fills gaps only — never overrides his own outline.
 //   1. 'harvest'   — the recorded `lessons` refs on the video_harvests row: BG's
 //                    own teaching beats, already mined by the harvest lane.
 //   2. 'transcript'— derived live from the service transcript (YouTube captions),
@@ -147,39 +154,84 @@ export function pointsFromHarvest(harvestRow, { limit = 8 } = {}) {
 }
 
 // =============================================================================
-// pointsForVideo — the ONE call the library surface uses. Resolves points for a
-// video by source precedence (harvest -> transcript -> title fallback) and rolls
+// pointsFromPrep — read BG's parsed pre-service prep outline (from sermon_prep,
+// produced by prep-outline.js) as the display points. His numbered points already
+// carry their own (correct, incrementing) number and the scriptures under each,
+// plus any lettered sub-points — the authoritative structure, passed through as-is.
+// =============================================================================
+export function pointsFromPrep(prep, { limit = 12 } = {}) {
+  const raw = Array.isArray(prep?.points) ? prep.points : [];
+  const out = [];
+  for (const p of raw) {
+    const text = tidyClaim(p?.text || '', 200);
+    if (!text) continue;
+    const n = Number.isFinite(p?.n) && p.n > 0 ? p.n : out.length + 1;
+    const scriptures = Array.isArray(p?.scriptures) ? p.scriptures.filter((s) => typeof s === 'string' && s.trim()).slice(0, 10) : [];
+    const subpoints = Array.isArray(p?.subpoints)
+      ? p.subpoints.map((s) => ({
+        label: String(s?.label || '').slice(0, 3),
+        text: tidyClaim(s?.text || '', 200),
+        scriptures: Array.isArray(s?.scriptures) ? s.scriptures.filter((x) => typeof x === 'string' && x.trim()).slice(0, 10) : [],
+      })).filter((s) => s.text)
+      : [];
+    out.push({ n, text, scriptures, subpoints });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+// =============================================================================
+// pointsForVideo — the ONE call the library surface uses. Resolves points by
+// source precedence (prep -> harvest -> transcript -> title fallback) and rolls
 // up the distinct scriptures across all points (+ the message's own anchor
 // scripture) so the card can show a scripture strip even with zero numbered
 // points. Always returns a well-formed bundle; never throws.
 //
 //   sermon:     { title, scriptureRef, ... }   — the message row (for fallback)
+//   prep:       a sermon_prep row (or null)     — BG's own emailed outline (WINS)
 //   harvestRow: a toHarvestShape() row (or null) — recorded lessons refs
 //   transcript: { text } | string | null       — the service transcript
+//
+// When a prep outline exists for the service it WINS: the transcript lane never
+// overrides BG's own words. A prep with scriptures but no numbered points (a
+// scripture-reading service) still supplies the scripture strip — honestly his.
 // =============================================================================
-export function pointsForVideo({ sermon = {}, harvestRow = null, transcript = null } = {}) {
+export function pointsForVideo({ sermon = {}, prep = null, harvestRow = null, transcript = null } = {}) {
   const transcriptText = transcript && typeof transcript === 'object'
     ? (transcript.text || '') : (typeof transcript === 'string' ? transcript : '');
 
-  let points = pointsFromHarvest(harvestRow);
-  let source = points.length ? 'harvest' : 'none';
+  const prepPoints = pointsFromPrep(prep);
+  const prepScriptures = Array.isArray(prep?.scriptures)
+    ? prep.scriptures.filter((s) => typeof s === 'string' && s.trim()) : [];
+  const prepActive = prepPoints.length > 0 || prepScriptures.length > 0;
 
-  if (!points.length && transcriptText.trim()) {
-    points = extractSermonPoints(transcriptText);
-    if (points.length) source = 'transcript';
+  let points;
+  let source;
+  if (prepActive) {
+    points = prepPoints;
+    source = 'prep';
+  } else {
+    points = pointsFromHarvest(harvestRow);
+    source = points.length ? 'harvest' : 'none';
+    if (!points.length && transcriptText.trim()) {
+      points = extractSermonPoints(transcriptText);
+      if (points.length) source = 'transcript';
+    }
   }
 
-  // Roll up every distinct scripture: the anchor(s) named on the row + the ones
-  // attached to points. De-duped, order preserved (anchors first).
+  // Roll up every distinct scripture: BG's prep list (his key text first) + the
+  // anchor(s) named on the row + the ones attached to points and sub-points.
+  // De-duped, order preserved.
   const anchor = extractScriptureRefs([sermon.scriptureRef, sermon.title]);
+  const pointRefs = points.flatMap((p) => [...(p.scriptures || []), ...((p.subpoints || []).flatMap((s) => s.scriptures || []))]);
   const seen = new Set();
   const scriptures = [];
-  for (const ref of [...anchor, ...points.flatMap((p) => p.scriptures)]) {
+  for (const ref of [...(prepActive ? prepScriptures : []), ...anchor, ...pointRefs]) {
     const key = ref.toLowerCase();
     if (!seen.has(key)) { seen.add(key); scriptures.push(ref); }
   }
 
-  if (!points.length && scriptures.length) source = 'title';
+  if (!prepActive && !points.length && scriptures.length) source = 'title';
   return { points, scriptures, source, count: points.length };
 }
 
