@@ -7,7 +7,7 @@
 // "list the harvest-extracted POINTS so a user can pick a video by its points."
 import { describe, it, expect } from 'vitest';
 import {
-  extractSermonPoints, pointsFromHarvest, pointsForVideo, pointsSearchText,
+  extractSermonPoints, pointsFromHarvest, pointsFromPrep, pointsForVideo, pointsSearchText,
 } from '../lib/sermon-points.js';
 
 // A compact, realistic caption run in BG's numbered-outline shape (the 5-point
@@ -62,6 +62,63 @@ describe('pointsFromHarvest', () => {
   it('is empty when there are no lessons refs', () => {
     expect(pointsFromHarvest(null)).toEqual([]);
     expect(pointsFromHarvest({ harvests: {} })).toEqual([]);
+  });
+});
+
+// A parsed prep outline (sermon_prep row shape) — BG's own emailed structure.
+const PREP = {
+  points: [
+    { n: 1, text: 'Elijah Is Standing Before Ahab', scriptures: ['1 Kings 17:1'],
+      subpoints: [{ label: 'A', text: 'By The Brook Cherith', scriptures: ['1 Kings 17:2-6'] }] },
+    { n: 2, text: 'God Sustains Elijah', scriptures: ['1 Kings 18:1-2'], subpoints: [] },
+  ],
+  scriptures: ['Isaiah 61:7', '2 Kings 2:9-10', '1 Kings 17:1', '1 Kings 17:2-6', '1 Kings 18:1-2'],
+  theme: "Don't Allow Any Struggles To Distract You From Your Double!",
+};
+
+describe('pointsFromPrep', () => {
+  it('reads BG\'s numbered points, their scriptures, and sub-points', () => {
+    const pts = pointsFromPrep(PREP);
+    expect(pts.map((p) => p.n)).toEqual([1, 2]);
+    expect(pts[0].scriptures).toContain('1 Kings 17:1');
+    expect(pts[0].subpoints[0].label).toBe('A');
+    expect(pts[0].subpoints[0].scriptures).toContain('1 Kings 17:2-6');
+  });
+  it('is empty for a null / point-less prep', () => {
+    expect(pointsFromPrep(null)).toEqual([]);
+    expect(pointsFromPrep({ scriptures: ['Matthew 5:13'] })).toEqual([]);
+  });
+});
+
+describe('pointsForVideo — prep (BG email) wins over everything', () => {
+  it('prefers the prep outline over harvest AND transcript', () => {
+    const b = pointsForVideo({
+      sermon: { title: 'Double', scriptureRef: '2 Kings 2' },
+      prep: PREP,
+      harvestRow: { harvests: { lessons: { refs: ['some transcript beat — John 3:16'] } } },
+      transcript: { text: TRANSCRIPT },
+    });
+    expect(b.source).toBe('prep');
+    expect(b.points.map((p) => p.n)).toEqual([1, 2]);
+    // BG's own scripture feed leads the strip (his key text first).
+    expect(b.scriptures[0]).toBe('Isaiah 61:7');
+    expect(b.scriptures).toContain('1 Kings 17:2-6'); // sub-point ref rolled in
+  });
+
+  it('a scriptures-only prep (reading service) supplies the strip and still wins', () => {
+    const b = pointsForVideo({
+      sermon: { title: 'Are You Salty' },
+      prep: { points: [], scriptures: ['Matthew 5:13', 'Matthew 5:14-16'] },
+      transcript: { text: TRANSCRIPT }, // must NOT override BG's own (empty) outline
+    });
+    expect(b.source).toBe('prep');
+    expect(b.points).toHaveLength(0);
+    expect(b.scriptures).toEqual(['Matthew 5:13', 'Matthew 5:14-16']);
+  });
+
+  it('falls through to harvest/transcript when there is no prep', () => {
+    const b = pointsForVideo({ sermon: { title: 'Elijah' }, prep: null, transcript: { text: TRANSCRIPT } });
+    expect(b.source).toBe('transcript');
   });
 });
 

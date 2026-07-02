@@ -163,9 +163,12 @@ function PointsBlock({ bundle }) {
         scriptures.length > 0 && (
           <div className="flex flex-wrap gap-1 items-center">
             <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Scriptures</span>
-            {scriptures.slice(0, 6).map((s) => (
+            {scriptures.slice(0, 8).map((s) => (
               <span key={s} className="text-[0.6875rem] bg-[#FAF8F4] border border-[#E8E4DC] px-1.5 py-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{s}</span>
             ))}
+            {source === 'prep' && (
+              <span className="text-[0.5625rem] text-[#5A5751] italic ml-1" style={{ fontFamily: '"Fraunces", serif' }}>from his prep email</span>
+            )}
           </div>
         )
       )}
@@ -183,10 +186,33 @@ function PointsBlock({ bundle }) {
                     ))}
                   </span>
                 )}
+                {/* Lettered sub-points (A./B./C.) under the point — BG's own structure. */}
+                {p.subpoints && p.subpoints.length > 0 && (
+                  <ul className="mt-1 ml-1 space-y-1">
+                    {p.subpoints.map((sp) => (
+                      <li key={sp.label + sp.text.slice(0, 10)} className="flex gap-1.5">
+                        <span className="text-[0.625rem] font-semibold text-[#8A7E5D] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{sp.label}.</span>
+                        <span className="text-[0.75rem] text-[#5A5751]">
+                          {sp.text}
+                          {sp.scriptures && sp.scriptures.length > 0 && (
+                            <span className="ml-1.5 inline-flex flex-wrap gap-1 align-middle">
+                              {sp.scriptures.map((s) => (
+                                <span key={s} className="text-[0.5625rem] bg-[#FAF8F4] border border-[#E8E4DC] px-1 py-0.5 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s}</span>
+                              ))}
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </span>
             </li>
           ))}
         </ol>
+      )}
+      {open && hasPoints && source === 'prep' && (
+        <p className="text-[0.5625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>From Bishop Gwin&rsquo;s own prep email — his points and scriptures (an editable draft).</p>
       )}
       {open && hasPoints && source === 'transcript' && (
         <p className="text-[0.5625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Points read from the message transcript — his own words.</p>
@@ -280,7 +306,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
 // -----------------------------------------------------------------------------
 const LIB_SORTS = [['newest', 'Newest'], ['reacted', 'Most reacted'], ['viewed', 'Most viewed']];
 
-function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsByVideo = {}, reactionMap = {}, statsMap = {}, onReact = null, onShowWho = null, signedIn = false }) {
+function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsBySermon = {}, reactionMap = {}, statsMap = {}, onReact = null, onShowWho = null, signedIn = false }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [importMsg, setImportMsg] = useState('');
   const [sortMode, setSortMode] = useState('newest'); // newest | reacted (in-app, primary) | viewed (YouTube, secondary)
@@ -301,14 +327,15 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
   const history = list.filter((s) => s.status !== 'draft');
   const roster = speakerRoster(list);
 
-  // Attach the points bundle + engagement to each history item (keyed by video),
-  // so both the date-grouped and the ranked views render the same enriched row
-  // and search can match a point's text ("show me the one about X").
+  // Attach the points bundle + engagement to each history item. Points are keyed
+  // by SERMON id (so an email-sourced message with no video still shows its prep
+  // points); reactions/views stay keyed by video id. Both the date-grouped and the
+  // ranked views render the same enriched row and search can match a point's text.
   const enrich = (s) => {
     const vid = videoIdOf(s);
     return {
       ...s, _vid: vid,
-      _points: (vid && pointsByVideo[vid]) || null,
+      _points: pointsBySermon[s.id] || null,
       _reaction: reactionsFor(reactionMap, vid),
       _views: (vid && statsMap[vid] && statsMap[vid].ytViews) || 0,
     };
@@ -525,7 +552,7 @@ export default function Pulpit() {
   const [publicSermons, setPublicSermons] = useState([]); // everyone else: RPC (published)
   const [sermonDocs, setSermonDocs] = useState([]);  // owner/admin only (RLS)
   const [speakers, setSpeakers] = useState([]);      // canonical speaker entities (0037) — typeahead source
-  const [pointsData, setPointsData] = useState({ transcriptsByVideo: {}, harvestsByVideo: {} }); // points sources
+  const [pointsData, setPointsData] = useState({ prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} }); // points sources
   const [reactionMap, setReactionMap] = useState({}); // { [videoId]: { counts, myKey, score, top } } — PRIMARY signal
   const [statsMap, setStatsMap] = useState({});        // { [videoId]: { ytViews, ytLikes } } — SECONDARY (YouTube)
   const [churchInstId, setChurchInstId] = useState(null); // resolved church instance for keying reactions
@@ -566,12 +593,12 @@ export default function Pulpit() {
   // never throws. Signed-out skips it. Points/reactions come alive as data lands.
   useEffect(() => {
     if (!signedIn) {
-      setPointsData({ transcriptsByVideo: {}, harvestsByVideo: {} });
+      setPointsData({ prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} });
       setReactionMap({}); setStatsMap({}); setChurchInstId(null);
       return undefined;
     }
     let alive = true;
-    fetchPointsData().then((d) => { if (alive) setPointsData(d || { transcriptsByVideo: {}, harvestsByVideo: {} }); });
+    fetchPointsData().then((d) => { if (alive) setPointsData(d || { prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} }); });
     fetchVideoStats().then((m) => { if (alive) setStatsMap(m || {}); });
     let unsub = null;
     churchInstanceId(email).then((id) => {
@@ -605,17 +632,22 @@ export default function Pulpit() {
   const libraryItems = canManage ? withDocs : publicSermons;
   const tabs = theWordTabs(canManage);
 
-  // Points per video: prefer the harvest lane's recorded `lessons` refs, else
-  // derive live from the transcript, else fall back to the title's anchor
-  // scriptures — all pure (sermon-points.js). Recomputes when the corpus or the
-  // points sources change; keyed by video id for the row to look up.
-  const pointsByVideo = useMemo(() => {
-    const { transcriptsByVideo, harvestsByVideo } = pointsData;
+  // Points per SERMON (keyed by sermon id, not video id — so an email-sourced
+  // message with no video still gets its prep points): prefer BG's own prep outline
+  // (authoritative), else the harvest lane's recorded refs, else derive live from
+  // the transcript, else fall back to the title's anchor scriptures — all pure
+  // (sermon-points.js). Recomputes when the corpus or the points sources change.
+  const pointsBySermon = useMemo(() => {
+    const { prepBySermon = {}, transcriptsByVideo = {}, harvestsByVideo = {} } = pointsData;
     const out = {};
     for (const s of libraryItems) {
       const vid = videoIdOf(s);
-      if (!vid || out[vid]) continue;
-      out[vid] = pointsForVideo({ sermon: s, harvestRow: harvestsByVideo[vid] || null, transcript: transcriptsByVideo[vid] || null });
+      out[s.id] = pointsForVideo({
+        sermon: s,
+        prep: prepBySermon[s.id] || null,
+        harvestRow: (vid && harvestsByVideo[vid]) || null,
+        transcript: (vid && transcriptsByVideo[vid]) || null,
+      });
     }
     return out;
   }, [libraryItems, pointsData]);
@@ -715,7 +747,7 @@ export default function Pulpit() {
       {tab === 'library' && (
         <LibraryPanel
           sermons={libraryItems} canEdit={canManage} busy={busy} speakers={speakers} userKey={email}
-          pointsByVideo={pointsByVideo} reactionMap={reactionMap} statsMap={statsMap}
+          pointsBySermon={pointsBySermon} reactionMap={reactionMap} statsMap={statsMap}
           onReact={onReact} onShowWho={onShowWho} signedIn={signedIn}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
