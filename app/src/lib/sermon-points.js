@@ -60,7 +60,10 @@ const ORDINAL = {
 // names, or null for a "next/last/another" running-counter marker. Conservative
 // on purpose: a bare "first I want to say hi" won't match — the marker must read
 // like the start of a teaching point.
-const NUMBERED_RE = /\b(?:number|point|reason|key|step|principle|thing|truth)\s+(one|two|three|four|five|six|seven|eight|\d)\b/i;
+// The leading (?<!verse )(?<!chapter ) guard stops a SCRIPTURE citation ("verse
+// number seven", "chapter 2 verse number two") from being read as a point ordinal
+// — a top cause of the broken numbering (verse numbers leaking in as "points").
+const NUMBERED_RE = /(?<!verse )(?<!chapter )\b(?:number|point|reason|key|step|principle|thing|truth)\s+(one|two|three|four|five|six|seven|eight|\d)\b/i;
 const MY_POINT_RE = /\bmy\s+(first|second|third|fourth|fifth|sixth|seventh|eighth)\s+(?:point|reason|key)\b/i;
 const THE_NTH_RE  = /\bthe\s+(first|second|third|fourth|fifth|sixth|seventh|eighth|next|last|final)\s+(?:point|thing|key|reason|principle|step|truth)\b/i;
 const LEADING_ORD_RE = /^(?:and\s+|so\s+|now\s+|but\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth)(?:ly)?\b/i;
@@ -108,27 +111,42 @@ export function extractSermonPoints(transcript, { limit = 8 } = {}) {
   }
   if (!openers.length) return [];
 
-  const points = [];
-  let running = 0;
+  // Walk the openers in SPOKEN order and keep only those that ADVANCE the outline.
+  // BG restates a beat ("the first thing" said three times) and reads many verses
+  // ("verse number seven"), so the raw spoken ordinal is noisy and repeats. Rules:
+  //   - a null-ordinal marker ("the next point") advances by one;
+  //   - an explicit ordinal is kept only when it is exactly the next number
+  //     (maxOrd + 1) — a repeat/regression (a restated point) or a jump (a leaked
+  //     verse number like 7, 9) does NOT start a new point.
+  // The kept points are then numbered SEQUENTIALLY by order, so the display shows
+  // 1, 2, 3, 4… — never a duplicated or out-of-order "1." for every point.
+  const kept = [];
+  let maxOrd = 0;
   const seen = new Set();
   for (let k = 0; k < openers.length; k += 1) {
     const { i, ordinal } = openers[k];
     const nextI = k + 1 < openers.length ? openers[k + 1].i : Math.min(sentences.length, i + 5);
-    // The claim is the opener sentence; scriptures come from the opener + the
-    // window up to the next opener (where he reads the supporting passage).
-    const windowText = sentences.slice(i, nextI).join(' ');
     const claim = tidyClaim(sentences[i]);
     const key = claim.toLowerCase().replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim();
     if (key.length < 8 || seen.has(key)) continue;
+    if (ordinal == null) {
+      // running marker — advances the outline by one
+    } else if (ordinal === maxOrd + 1) {
+      maxOrd = ordinal; // the clean next point
+    } else {
+      continue; // repeat / regression / verse-number jump — not a new point
+    }
     seen.add(key);
-    running += 1;
-    const n = Number.isFinite(ordinal) && ordinal > 0 ? ordinal : running;
-    points.push({ n, text: claim, scriptures: extractScriptureRefs([windowText]).slice(0, 6) });
+    // The claim is the opener sentence; scriptures come from the opener + the
+    // window up to the next opener (where he reads the supporting passage).
+    const windowText = sentences.slice(i, nextI).join(' ');
+    kept.push({ text: claim, scriptures: extractScriptureRefs([windowText]).slice(0, 6) });
+    if (kept.length >= limit) break;
   }
 
-  // Order by the ordinal BG named (stable), cap to a sane outline length.
-  points.sort((a, b) => a.n - b.n);
-  return points.slice(0, limit);
+  // Number sequentially by order — the outline reads 1..n regardless of the noisy
+  // spoken ordinals.
+  return kept.map((p, idx) => ({ n: idx + 1, text: p.text, scriptures: p.scriptures }));
 }
 
 // =============================================================================

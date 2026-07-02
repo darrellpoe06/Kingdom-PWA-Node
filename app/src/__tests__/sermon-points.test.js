@@ -45,6 +45,29 @@ describe('extractSermonPoints', () => {
     expect(extractSermonPoints('')).toEqual([]);
     expect(extractSermonPoints('Amen. Hallelujah. Praise God.')).toEqual([]);
   });
+
+  // PROVEN-TO-CATCH the "1. 1. 1. …" render bug (Darrell 2026-07-02). BG restates a
+  // beat and reads many verses; the raw spoken ordinal repeats + leaks verse
+  // numbers. The outline must still number 1..n sequentially, one point per beat.
+  it('numbers sequentially even when BG repeats "the first thing" and reads verses', () => {
+    const messy = `First of all, an unexpected pregnancy has drama. That is the first thing.
+    Here is the FIRST THING you must know today. Because the first thing we need is faith.
+    The second thing is that it is an example of faith. Now moving down to verse number seven,
+    it says for your shame you will have double. Verse number nine and ten say the same.`;
+    const pts = extractSermonPoints(messy);
+    // sequential, no duplicates, no leaked verse numbers (7, 9)
+    expect(pts.map((p) => p.n)).toEqual(pts.map((_, i) => i + 1));
+    expect(new Set(pts.map((p) => p.n)).size).toBe(pts.length);
+    expect(pts.every((p) => p.n <= pts.length)).toBe(true);
+    // the five "first thing" restatements collapse to ONE point 1, "second thing" -> 2
+    expect(pts.map((p) => p.n)).toEqual([1, 2]);
+  });
+
+  it('a clean 6-point outline reads 1..6, not "1." six times', () => {
+    const six = [1, 2, 3, 4, 5, 6].map((w) => `Number ${['one', 'two', 'three', 'four', 'five', 'six'][w - 1]}, this is teaching beat ${w} that matters.`).join(' ');
+    const pts = extractSermonPoints(six);
+    expect(pts.map((p) => p.n)).toEqual([1, 2, 3, 4, 5, 6]);
+  });
 });
 
 describe('pointsFromHarvest', () => {
