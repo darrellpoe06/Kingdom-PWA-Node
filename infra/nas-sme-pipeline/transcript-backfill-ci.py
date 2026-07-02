@@ -256,7 +256,7 @@ def main():
                     help="Fetch and report but write nothing to the DB")
     args = ap.parse_args()
 
-    db_url = os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL")
+    db_url = (os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL") or "").strip()
     if not db_url:
         log("ERROR: set DATABASE_URL (or SUPABASE_DB_URL) to the Supabase session-pooler URL.")
         sys.exit(2)
