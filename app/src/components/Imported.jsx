@@ -31,7 +31,7 @@
 
 import React, { useMemo, useState } from 'react';
 import {
-  sortByDate, effectiveRange, periodRange, filterByRange, groupByMonth, totals,
+  sortByDate, sortRows, effectiveRange, periodRange, filterByRange, groupByMonth, totals,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel,
 } from '../lib/imported-view.js';
 
@@ -167,6 +167,16 @@ export default function Imported({ data = {} }) {
   const [period, setPeriod] = useState(null);
   const [range, setRange] = useState({ from: '', to: '' }); // custom range picker
   const [sortDir, setSortDir] = useState('desc');
+  // Which column the table sorts by (date / account / payee / category / amount).
+  // Clicking a column header sets it; clicking the active column flips direction.
+  const [sortKey, setSortKey] = useState('date');
+  const toggleSort = (key) => {
+    if (key === sortKey) { setSortDir((d) => (d === 'desc' ? 'asc' : 'desc')); }
+    else { setSortKey(key); setSortDir(key === 'date' || key === 'amount' ? 'desc' : 'asc'); }
+  };
+  const sortArrow = (key) => (sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '');
+  // Which row is expanded to its detail drawer (receipt + full metadata).
+  const [expandedId, setExpandedId] = useState(null);
 
   const accounts = Array.isArray(data?.accounts) ? data.accounts : [];
   const view = useMemo(() => buildImportedView(data, filters, Date.now()), [data, filters]);
@@ -190,9 +200,12 @@ export default function Imported({ data = {} }) {
   // Window -> sort -> group. Every number here is summed from the rows it groups.
   const grouped = useMemo(() => {
     const windowed = filterByRange(view.filtered, sinceMs, untilMs);
-    const sorted = sortByDate(windowed, sortDir);
-    return { groups: groupByMonth(sorted), windowTotals: totals(windowed), matched: windowed.length };
-  }, [view.filtered, sinceMs, untilMs, sortDir]);
+    // Months stay newest-first (group order from a date sort); ROWS within each
+    // month sort by the active column (date/account/payee/category/amount).
+    const groups = groupByMonth(sortByDate(windowed, 'desc'))
+      .map((g) => ({ ...g, rows: sortRows(g.rows, sortKey, sortDir) }));
+    return { groups, windowTotals: totals(windowed), matched: windowed.length };
+  }, [view.filtered, sinceMs, untilMs, sortKey, sortDir]);
 
   // Running-balance column — only when a single account is in view AND it carries
   // a real opening balance to anchor to (truthful-or-absent). Computed over the
@@ -372,17 +385,22 @@ export default function Imported({ data = {} }) {
                     <table className="w-full text-xs">
                       <thead className="bg-white text-[#5A5751] uppercase tracking-wider text-[0.625rem]">
                         <tr>
-                          <th className="text-left px-2 py-1.5">Date</th>
-                          <th className="text-left px-2 py-1.5">Account</th>
-                          <th className="text-left px-2 py-1.5">Payee / Description</th>
-                          <th className="text-left px-2 py-1.5">Category</th>
-                          <th className="text-right px-2 py-1.5">Amount</th>
+                          <th className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
+                          <th className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('account')} className="uppercase tracking-wider hover:text-[#1A1815]">Account{sortArrow('account')}</button></th>
+                          <th className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('payee')} className="uppercase tracking-wider hover:text-[#1A1815]">Payee / Description{sortArrow('payee')}</button></th>
+                          <th className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('category')} className="uppercase tracking-wider hover:text-[#1A1815]">Category{sortArrow('category')}</button></th>
+                          <th className="text-right px-2 py-1.5"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
                           {showBalance && <th className="text-right px-2 py-1.5">Balance</th>}
+                          <th className="w-6 px-1 py-1.5" aria-label="Details" />
                         </tr>
                       </thead>
                       <tbody>
-                        {g.rows.map(t => (
-                          <tr key={t.id} className="border-t border-[#E8E4DC] hover:bg-[#FAF8F4]">
+                        {g.rows.map(t => {
+                          const open = expandedId === t.id;
+                          const cols = showBalance ? 7 : 6;
+                          return (
+                          <React.Fragment key={t.id}>
+                          <tr className="border-t border-[#E8E4DC] hover:bg-[#FAF8F4] cursor-pointer" onClick={() => setExpandedId(open ? null : t.id)} aria-expanded={open}>
                             <td className="px-2 py-1.5 whitespace-nowrap">{formatDate(t.posted)}</td>
                             <td className="px-2 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.institution}</td>
                             <td className="px-2 py-1.5 truncate max-w-[16.25rem]" title={t.name}>
@@ -396,8 +414,26 @@ export default function Imported({ data = {} }) {
                                 {balByRow.has(t.id) ? formatAmount(balByRow.get(t.id)) : '—'}
                               </td>
                             )}
+                            <td className="px-1 py-1.5 text-center text-[#5A5751]" aria-hidden="true">{open ? '▾' : '▸'}</td>
                           </tr>
-                        ))}
+                          {open && (
+                            <tr className="bg-[#FAF8F4]">
+                              <td colSpan={cols} className="px-3 py-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[0.6875rem]">
+                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</div><div className="text-[#1A1815]">{formatDate(t.posted)}</div></div>
+                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</div><div className="text-[#1A1815]">{t.institution}</div></div>
+                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</div><div className="text-[#1A1815] capitalize">{t.category || '—'}</div></div>
+                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount</div><div className="font-mono" style={{ color: t.amount < 0 ? '#B85838' : '#166534' }}>{formatAmount(t.amount)}</div></div>
+                                  <div className="col-span-2 sm:col-span-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Full description</div><div className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t.name}</div></div>
+                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</div><div className="text-[#1A1815]">{t.pending ? 'Pending' : 'Cleared'}</div></div>
+                                  <div className="col-span-2 sm:col-span-4 border-t border-[#E8E4DC] pt-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Receipt</div><div className="text-[#5A5751] italic">No receipt on file — bank-imported rows carry no receipt image. Attach one from the Tx tab when receipt capture lands.</div></div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          </React.Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

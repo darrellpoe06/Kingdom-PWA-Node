@@ -59,6 +59,34 @@ export function sortByDate(txns, dir = 'desc') {
   return indexed.map((x) => x[0]);
 }
 
+// sortRows — stable sort of imported rows by ANY column (the metadata sort the
+// user asked for: date / account / payee / category / amount), asc or desc.
+// Rows already carry the resolved account name (institution), payee (name),
+// category, and amount, so this is a pure field compare. Ties preserve original
+// order. 'date' delegates to the posted-ms comparator (undated rows sink).
+const ROW_CMP = {
+  date: (r) => postedMs(r),
+  amount: (r) => (typeof r.amount === 'number' ? r.amount : Number(r.amount) || 0),
+  account: (r) => String(r.institution || '').toLowerCase(),
+  payee: (r) => String(r.name || '').toLowerCase(),
+  category: (r) => String(r.category || '').toLowerCase(),
+};
+export function sortRows(rows, key = 'date', dir = 'desc') {
+  const get = ROW_CMP[key] || ROW_CMP.date;
+  const sign = dir === 'asc' ? 1 : -1;
+  return (rows || []).map((r, i) => [r, i]).sort((a, b) => {
+    const va = get(a[0]);
+    const vb = get(b[0]);
+    const an = va == null, bn = vb == null;
+    if (an && bn) return a[1] - b[1];
+    if (an) return 1;   // nulls sink regardless of direction
+    if (bn) return -1;
+    if (va < vb) return -1 * sign;
+    if (va > vb) return 1 * sign;
+    return a[1] - b[1];
+  }).map((x) => x[0]);
+}
+
 // Resolve a named preset to a {sinceMs, untilMs} window relative to nowMs.
 // A null bound means "unbounded on that side". 'week' and 'month' are calendar
 // based (start of the current week / month, local time); '30d' / '90d' are
