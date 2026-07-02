@@ -306,13 +306,15 @@ the sovereign secrets store.
 ## 4. Platform Feasibility Table
 
 Quick-reference across all platforms. Priority flags:
-- 🔴 **PRIORITY #1** — Facebook (Darrell's own account; highest personal-corpus value)
+- 🟣 **PRIORITY IMMEDIATE** — Gmail/Email (richest quality data; reuses the proven Gmail-receipts lane; implement right after YouTube)
+- 🔴 **PRIORITY #1** — Facebook (Darrell's own account; longest personal-history corpus)
 - 🟠 **PRIORITY #2** — LinkedIn (professional life-corpus; professional history + connections)
 
 | Platform | Auth Model | API Access to Own Content | ToS Constraints | Recommended Path | Completeness |
 |---|---|---|---|---|---|
 | YouTube | None (public) or Data API v3 | Full — own videos, playlists, comments, analytics | Scraping prohibited; API is the right path | Live API + caption fetch ✓ (adapter #1, implemented) | High |
 | RSS/Podcast | None — open standard | N/A — feed is the source | Open standard; no ToS risk | RSS feed fetch ✓ (adapter #2, draft) | Complete for what feed publishes |
+| **Gmail/Email 🟣** | Gmail API + OAuth 2.0 (live pull) — REUSE the Gmail-receipts lane (local_e63f400c) | Full owner mailbox — all messages, all time, structured + free-text | Personal use permitted; no scraping; OAuth is the correct path | **Live API via receipts-lane OAuth** — extend to dual output (see §7) | Very high — full mailbox history |
 | **Facebook 🔴** | Meta Graph API + OAuth 2.0 (live) OR "Download Your Information" archive (offline) | API: very limited for personal profiles post-Cambridge Analytica; Archive: comprehensive | Personal-profile API severely restricted; archive is owner's legal right | **Export-archive preferred** (see §5) | Archive: very high; API: low |
 | **LinkedIn 🟠** | LinkedIn API + OAuth 2.0 (live) OR "Get a copy of your data" archive (offline) | API: extremely limited for reading own historical posts; Archive: comprehensive | API Partner Program required for post-reading; archive is owner's legal right | **Export-archive preferred** (see §6) | Archive: high; API: very low |
 | Instagram | Meta Graph (Business/Creator) or Basic Display (personal) + OAuth | Basic Display: photos/videos; Business: media + insights | Personal API requires app review; scraping prohibited | Export-archive OR Basic Display API | Archive: high; API: medium |
@@ -559,7 +561,256 @@ LinkedIn) and profile sync.
 
 ---
 
-## 7. Instagram — Analysis
+## 7. Gmail / Email — Analysis (PRIORITY IMMEDIATE)
+
+### 7.1 Why Gmail is Priority Immediate
+
+Darrell's framing (2026-07-02): *"a direct path to the Quality Data and historical events already
+known and loved by the users, including myself."*
+
+Email is fundamentally different from every other source in this roadmap: **it is verified factual
+history, not inferred signal.** A flight confirmation IS a trip that happened. An order confirmation
+IS a purchase that was made. A family email thread IS family history written in the family's own
+words. A medical appointment confirmation IS a health event with a date and provider.
+
+This is **Quality Data** — ground-truth records of real events, not engagement behavior:
+
+- **Travel** — airline booking confirmations, hotel reservations, Airbnb stays, car rentals.
+  Every trip in the personal timeline is probably in email, with confirmation numbers, dates,
+  destinations, and fellow travelers.
+- **Milestones** — graduation announcements, baby shower invites, moving announcements,
+  condolence messages, wedding invitations, birthday letters.
+- **Family correspondence** — direct family email threads: personal narrative written in the
+  family's own voice, not mediated through a social platform.
+- **Purchases** — Amazon orders, any e-commerce confirmation. Items, prices, dates — a purchase
+  history rooted in real transactions.
+- **Events attended** — Ticketmaster, Eventbrite, concert/church/conference confirmations.
+  What was actually attended, not what was "interested" in.
+- **Professional history** — job offer letters, contracts, project correspondence, client emails.
+  The professional life-corpus as it actually unfolded.
+- **Financial** — bank alerts, statement notifications, tax documents, insurance paperwork.
+  The financial events timeline already being built (receipts lane) extended to all financial comms.
+- **Medical** — appointment confirmations, lab result notifications, prescription orders.
+  Health events with dates; sensitive by definition, requires `'health'` sensitive signal flag.
+- **Photos/attachments** — family photos emailed directly between people, documents, receipts.
+  Attachments are high-value content: they predate every photo-sharing platform and often contain
+  events that were never posted publicly anywhere.
+
+### 7.2 Design Principle: One Gmail Connection, Dual Output
+
+The Gmail-receipts lane (lane `local_e63f400c`) is already being built to pull from Darrell's
+Gmail via OAuth + the Gmail API. **Do not design a separate Gmail auth or pull path.** Extend the
+existing lane to route emails to TWO downstream consumers:
+
+```
+Gmail API pull (proven receipts-lane OAuth)
+          │
+          ▼
+  email normalizer
+    ├──▶ RECEIPT / PURCHASE extractor → financial transactions store (existing receipts lane)
+    └──▶ HISTORICAL EVENTS extractor → video_harvests (source_platform='gmail')
+                                         + video_transcripts (source='email-body')
+```
+
+One OAuth connection, one pull per run, two outputs. The same email can feed both pipelines
+simultaneously — a restaurant receipt is both a financial transaction AND a dated life event.
+
+### 7.3 Auth Path: Gmail API + OAuth 2.0 (Reuse Receipts Lane)
+
+**Scopes required (already used by receipts lane):**
+- `https://www.googleapis.com/auth/gmail.readonly` — read all email; no send/modify access
+- Optionally `https://www.googleapis.com/auth/gmail.metadata` for header-only scan (fast)
+
+**Token management:** Same pattern as `load-transcripts.py` — refresh token stored in
+`/volume1/PoeTech/secrets/gmail-{slug}.json`; access tokens refreshed automatically via the
+Google OAuth2 refresh flow; the system never stores passwords, only authorized tokens.
+
+**App registration:** Google Cloud Console, OAuth 2.0 client credentials (installed app type).
+No app review required for personal-use scopes against a personal Google account — consent screen
+shows the user exactly what access they're granting. Refresh tokens for personal accounts do not
+expire as long as the app is used at least once every 6 months.
+
+**Rate limits:** 250 quota units/second; 1 billion units/day — effectively unlimited for personal
+mailbox use. A mailbox with 50,000 emails can be fully indexed in a single run.
+
+**ToS:** Google's ToS permits reading your own email via the API for personal use. No redistribution.
+The sovereign store receives the data; it never leaves.
+
+### 7.4 What the Adapter Retrieves
+
+**Full mailbox scope:**
+- Every message ever received or sent in the Gmail account (all labels, all time)
+- Message headers (From, To, Cc, Subject, Date, Message-ID, thread grouping)
+- Message body (text/plain preferred; HTML stripped to text; multipart handled)
+- Attachment metadata (filename, MIME type, size; actual file downloadable via attachment API)
+- Label names (INBOX, SENT, STARRED, custom labels — these are classification signals)
+- Thread grouping (Gmail thread_id groups a conversation)
+
+**What Gmail API does NOT expose:**
+- Spam and Trash are accessible but filtered by default (set `--include-spam-trash=false`)
+- Emails deleted and permanently removed from Trash before the pull (gone)
+- Encrypted S/MIME body content (the API returns the encrypted blob, not the plaintext)
+
+**Incremental sync:** Gmail API provides a `historyId` mechanism — the adapter stores the
+last-seen `historyId` and on subsequent runs only fetches messages added/modified since that point.
+Efficient for ongoing incremental capture after the initial full-history pull.
+
+### 7.5 Email Canonical Item Shape
+
+Email maps to `CanonicalItem` as follows:
+
+```
+CanonicalItem (email) {
+  item_key:     "gmail:{message_id}"           # Gmail's stable Message-ID
+  platform:     "gmail"
+  title:        subject line (normalized)       # "Re: …" stripped to root subject
+  body_text:    email body (text/plain)         # full body, plain text; HTML stripped
+  published_at: Date header (ISO-8601)          # when the email was sent/received
+  source_kind:  inferred (see §7.6)
+
+  metadata: {
+    # Temporal
+    created_at:      Date header (sent time)
+    published_at:    Date header
+    fetched_at:      when the adapter pulled it
+
+    # Attribution
+    author_id:        From email address
+    author_name:      From display name
+    author_handle:    From email address
+    author_account_type: "personal"  # always
+
+    # Email-specific via platform_fields
+    platform_fields: {
+      message_id:     str              # Gmail Message-ID (stable, unique)
+      thread_id:      str              # Gmail thread — groups a conversation
+      label_ids:      [str]            # INBOX, SENT, STARRED, custom labels
+      snippet:        str              # Gmail's 200-char preview (for quick display)
+      recipients:     [str]            # To + Cc addresses
+      
+      # Deterministically extracted structured fields (when parser matches):
+      event_type:     str | null       # 'travel' | 'purchase' | 'event' | 'financial'
+                                       # | 'medical' | 'milestone' | 'correspondence' | null
+      
+      travel: {                        # populated when event_type = 'travel'
+        confirmation_number: str,
+        carrier:             str,      # airline, hotel chain, car rental brand
+        route:               str,      # "ORD → LAX" or "Chicago Marriott"
+        departure_date:      date,
+        return_date:         date | null,
+        traveler_names:      [str],
+      } | null,
+      
+      purchase: {                      # populated when event_type = 'purchase'
+        order_number:  str,
+        vendor:        str,
+        order_date:    date,
+        total_amount:  decimal | null,
+        currency:      str | null,
+        items:         [{name, qty, price}],  # extracted when structured data present
+      } | null,
+      
+      event_booking: {                 # populated when event_type = 'event'
+        event_name:    str,
+        venue:         str | null,
+        event_date:    date,
+        ticket_count:  int | null,
+        confirmation:  str | null,
+      } | null,
+      
+      attachments: [
+        {
+          filename:       str,
+          mime_type:      str,
+          size_bytes:     int,
+          attachment_id:  str,         # Gmail attachment ID for download
+          sovereign_path: str | null,  # NAS path if downloaded
+        }
+      ],
+    },
+
+    # Standard fields
+    content_type:       "email",
+    tags:               label_ids (as tag list),
+    visibility:         "private",    # email is always private
+    owner_consented:    True,
+    source_path:        "live_api",   # or "export_archive" if Takeout path used
+    sensitive_signals:  [],           # populated per-email: 'health' | 'financial' | 'contacts'
+  }
+}
+```
+
+### 7.6 Source-Kind Inference and Parsing Strategy
+
+#### Tier 1 — Deterministic structured parsing (no LLM)
+
+Many high-value email categories have machine-readable signals:
+
+| Signal | Detection | Source-kind |
+|---|---|---|
+| From domain: `@aa.com`, `@united.com`, `@delta.com`, `@booking.com`, `@airbnb.com`, travel agencies | Sender domain regex | `'event-confirmation'` / travel |
+| Subject: "Your order", "Order confirmation", "Receipt for" + Amazon/Shopify/etc. sender | Subject + sender pattern | `'purchase'` |
+| Subject: "Your reservation", "Booking confirmation" | Subject pattern | `'event-confirmation'` |
+| Schema.org markup in HTML body (`@type: FlightReservation`, `OrderAction`, `EventReservation`) | HTML meta/JSON-LD extract | specific structured event |
+| Bank/financial sender domains, subject: "Statement available", "Alert: transaction" | Sender + subject | `'financial'` |
+| Appointment confirmation: medical provider domains, subject: "Appointment reminder/confirmation" | Sender domain + subject | `'medical'` |
+| Calendar invite attachment (`text/calendar`, `.ics` file) | MIME type detection | `'event'` with event metadata |
+
+Schema.org email markup (`email.schema.org`) is supported by Google, Amazon, Eventbrite, and many
+travel platforms — it provides machine-readable structured data directly in the email envelope.
+Parse this FIRST; it gives dates, locations, confirmation numbers without text extraction.
+
+#### Tier 2 — Light LLM classification (Sonnet / local qwen2.5:14b)
+
+For emails that pass Tier 1 without a match:
+- Classify into `event_type` (travel / purchase / milestone / correspondence / other)
+- Extract key metadata: event date, location, participants from free body text
+- Generate a one-sentence event summary for the historical-events timeline display
+
+**Never use Opus for routine email classification.** Sonnet (for cloud) or `qwen2.5:14b` (for
+local NAS) is sufficient. Batch in groups of 20–50 per LLM call to keep costs low. Most emails
+will be classified by Tier 1 alone.
+
+### 7.7 Historical Events Timeline Feed
+
+Every email item that produces a `service_date` (from the Date header) lands on the
+historical-events timeline. The `source_kind` determines the timeline display:
+
+| `source_kind` | Timeline event label |
+|---|---|
+| `event-confirmation` | "Trip / Event: {title}" |
+| `purchase` | "Purchase: {vendor} — {order_date}" |
+| `milestone` | "Milestone: {subject}" |
+| `financial` | "Financial event: {subject}" |
+| `medical` | "Health event: {subject}" [PIN-gated] |
+| `correspondence` | "Correspondence: {subject}" [opt-in only] |
+
+`correspondence` (personal/family email threads) is opt-in only for timeline display — not every
+email thread should surface as a visible event, only ones the owner designates as milestones.
+
+### 7.8 Sequencing
+
+1. **YouTube adapter verified in production** (lane `local_4d62ae64` — seam is proven)
+2. **Gmail-receipts lane verified** (lane `local_e63f400c` — OAuth pull is proven, receipt extraction works)
+3. **THEN:** extend the Gmail pull to also extract historical events via the dual-output router
+   (same OAuth, same pull, additional `source_kind` routing + `video_harvests` upsert)
+4. Facebook/LinkedIn archive adapters can proceed after Gmail is live
+
+Gmail has the shortest path to implementation because steps 1 and 2 are prerequisites for it and
+for the project overall. Once both lanes clear, the Gmail historical-events extension is the
+lowest-new-work, highest-value-return adapter in the roadmap.
+
+### 7.9 Privacy Notes
+
+- **Message bodies** — contain other people's text; flag all email as `sensitive_signals: ['contacts']`
+- **Medical emails** — add `'health'`; access to these items requires PIN re-auth in the app
+- **Financial emails** — add `'financial'`; held in the sovereign store; surface requires auth
+- **Attachments** — if downloaded to NAS, flag `sovereign_path` and never re-upload to external services
+- **Sent mail** — treated identically to received mail; part of the owner's record
+
+---
+
+## 8. Instagram — Analysis
 
 **Archive path ("Download Your Information"):**
 - Posts, stories (archived), reels, IGTV, profile photos, tagged photos
@@ -587,7 +838,7 @@ new media posts. Business/Creator API if account is upgraded.
 
 ---
 
-## 8. TikTok — Analysis
+## 9. TikTok — Analysis
 
 **Archive path ("Download My Data" on TikTok app → Privacy → Download Data):**
 - Your videos (download link + metadata): video file, date posted, description, music used
@@ -611,7 +862,7 @@ fills in content the API misses. Lower priority than FB/LinkedIn for personal co
 
 ---
 
-## 9. X / Twitter — Analysis
+## 10. X / Twitter — Analysis
 
 **Archive path ("Request your Twitter archive" via Settings → Your account → Download archive):**
 - ALL tweets ever posted, with timestamp, full text, media, retweets, likes received
@@ -637,7 +888,7 @@ cross-posting TO X becomes a use case.
 
 ---
 
-## 10. Item-Key Namespace Convention
+## 11. Item-Key Namespace Convention
 
 Ensures that two platforms can never write conflicting keys into the same `(instance_id, video_id)`
 unique constraint, and that the platform of any existing row is recoverable from the key alone.
@@ -646,6 +897,7 @@ unique constraint, and that the platform of any existing row is recoverable from
 |---|---|---|
 | YouTube | Raw video ID (no prefix — backward compat) | `dQw4w9WgXcQ` |
 | RSS | `rss:{guid}` | `rss:https://example.com/episodes/123` |
+| Gmail / Email | `gmail:{message_id}` | `gmail:18f2a3b4c5d6e7f8` (Gmail Message-ID) |
 | Facebook | `fb:{post_id}` | `fb:10150123456789012` |
 | LinkedIn | `li:{share_urn}` (URL-encoded) | `li:urn:li:share:7012345678901234567` |
 | Instagram | `ig:{media_id}` | `ig:17854360229135492` |
@@ -658,7 +910,7 @@ items of the same content (useful when the same post exists in both the live API
 
 ---
 
-## 11. Known Gap — Coverage Display Layer
+## 12. Known Gap — Coverage Display Layer
 
 `buildLedger()` in `app/src/lib/video-harvest.js` computes the harvest coverage % by joining
 `choir_sermons` (a YouTube-sourced corpus table) OVER `video_harvests`. Items from other platforms
@@ -677,33 +929,64 @@ non-YouTube content.
 
 ---
 
-## 12. Registered Adapters
+## 13. Registered Adapters
 
 | Adapter | File | Platform | Auth | Status |
 |---|---|---|---|---|
 | YouTube caption-fetch | `load-transcripts.py` | `youtube` | None (public caption API) | **Active — production** (COLG Sunday/Wednesday) |
 | RSS / Podcast | `rss-ingest.py` | `rss` | None — open standard | **Draft — on hold** pending YouTube lane verification |
+| Gmail / Email (historical events) | `gmail-ingest.py` (future) | `gmail` | Gmail API OAuth 2.0 — REUSE receipts-lane connection | **Design stage. PRIORITY IMMEDIATE** — implement after YouTube + receipts lane verified. |
+| Gmail / Email (receipts, existing lane) | (lane `local_e63f400c`) | `gmail` | Gmail API OAuth 2.0 | In progress (receipts lane); foundation for historical events extension |
 | Facebook (archive) | `facebook-ingest.py` (future) | `facebook` | Export archive — no OAuth | Design stage. PRIORITY #1. |
 | LinkedIn (archive) | `linkedin-ingest.py` (future) | `linkedin` | Export archive — no OAuth | Design stage. PRIORITY #2. |
-| Facebook (live API) | `facebook-api-ingest.py` (future) | `facebook` | OAuth 2.0 + Meta Graph API | Design stage — secondary to archive path. |
-| LinkedIn (live API) | `linkedin-api-ingest.py` (future) | `linkedin` | OAuth 2.0 — limited to write+profile | Design stage — write-only use case; portfolio read via API not viable. |
+| Facebook (live API) | `facebook-api-ingest.py` (future) | `facebook` | OAuth 2.0 + Meta Graph API | Design stage — secondary to archive path; incremental new-post sync. |
+| LinkedIn (live API) | `linkedin-api-ingest.py` (future) | `linkedin` | OAuth 2.0 — limited to write+profile | Design stage — write-only use case; post-reading not viable without Partner Program. |
 | Instagram | (future) | `instagram` | Meta Basic Display or Graph API + OAuth | Post-FB/LinkedIn. |
 | X / Twitter | (future) | `x` | Archive (primary); API (expensive) | Post-FB/LinkedIn. |
 | TikTok | (future) | `tiktok` | API + archive combined | Lowest priority for personal corpus. |
 
 ---
 
-## 13. Implementation Hold
+## 14. Implementation Hold and Sequencing
 
-The following are on hold until YouTube adapter (lane `local_4d62ae64`) is verified working in
-production (confirmed writing to `video_transcripts` and raising the Harvest %):
+### Gate 1 — YouTube adapter verified in production
 
+Prerequisites for everything below. Lane `local_4d62ae64` must confirm:
+- `load-transcripts.py` writing to `video_transcripts` for real COLG videos
+- Harvest % climbing past the previous 22% stall
+- The seam (CanonicalItem shape) matches what the live adapter actually needed
+
+On hold until Gate 1:
 - `rss-ingest.py` (draft committed) — activate after YouTube proves the seam
-- `scripts/source-adapter-guard.mjs` (draft committed) — activate after RSS is validated
+- `scripts/source-adapter-guard.mjs` (draft committed) — activate after RSS validates
 - Migration 0066 (`content_sources` + `source_platform`) — apply to production after YouTube lane merges
-- Facebook archive ingest adapter — not started
-- LinkedIn archive ingest adapter — not started
+
+### Gate 2 — Gmail-receipts lane verified in production
+
+Lane `local_e63f400c` must confirm Gmail OAuth pull is working and receipt extraction is live.
+
+On hold until Gate 2 (in addition to Gate 1):
+- Gmail historical-events extension — PRIORITY IMMEDIATE after Gate 2 clears
+- This is the lowest-new-work, highest-value-return adapter: OAuth is proven, only dual-output
+  routing + `video_harvests` upsert and the email-category parsers are new work
+
+### Gate 3 — RSS adapter activated (seam proven by two adapters)
+
+After both YouTube + RSS write through the same backbone without collisions:
+- Facebook archive adapter — PRIORITY #1
+- LinkedIn archive adapter — PRIORITY #2
+
+### Sequence diagram
+
+```
+YouTube lane (local_4d62ae64)  ──▶  Gate 1 ──▶  RSS adapter (validate seam)
+                                                        │
+Gmail-receipts (local_e63f400c) ──▶  Gate 2 ──────────┘──▶  Gmail historical events
+                                                                    │
+                                                       Gate 3 ──────┘──▶  Facebook archive
+                                                                                │
+                                                                           LinkedIn archive
+```
 
 **The design contract in this document (CanonicalItem + metadata block + adapter contract) is the
-target shape.** Once the YouTube lane proves what the seam actually needs in production, adapt the
-RSS draft against that proven shape, then Facebook, then LinkedIn.
+target shape.** Nothing implements until the gate above it clears. No fake green.
