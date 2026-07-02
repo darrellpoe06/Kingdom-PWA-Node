@@ -70,4 +70,33 @@ describe('the VX1000 software card shows in the app', () => {
     expect(text).toMatch(/never exposed to the public internet/i);
     expect(text).toMatch(/ONE operator/);
   });
+  it('renders the illustrated NovaLCT setup runbook (9 steps) with photo slots', async () => {
+    await mount();
+    const text = document.body.textContent;
+    expect(text).toMatch(/LED Wall Setup/i);
+    expect(text).toMatch(/SOFTWARE category/);
+    expect(text).toMatch(/CP210x/);
+    expect(text).toMatch(/READBACK/i);
+    // labeled slots render (serving pending) — the "attach on-site image" fallback
+    expect(text).toMatch(/attach on-site image/i);
+  });
+  it('renders the canonical panel spec + verified 8-port connection map', async () => {
+    await mount();
+    const text = document.body.textContent;
+    expect(text).toMatch(/MRV412-N/);
+    expect(text).toMatch(/320 x 240/);
+    expect(text).toMatch(/2560 x 1440/);
+    expect(text).toMatch(/Port 1/);
+    expect(text).toMatch(/Port 8/);
+    expect(text).toMatch(/SELECT the Ethernet port FIRST/i);
+  });
+  it('renders the final config (per-column apply) + tomorrow activation + gallery', async () => {
+    await mount();
+    const text = document.body.textContent;
+    expect(text).toMatch(/COMPLETE/);
+    expect(text).toMatch(/NO "Apply to Entire Screen"/i);
+    expect(text).toMatch(/SEPARATE CABINETS/i);
+    expect(text).toMatch(/Quantity of Screens = 1/);
+    expect(text).toMatch(/Install gallery/i);
+  });
 });

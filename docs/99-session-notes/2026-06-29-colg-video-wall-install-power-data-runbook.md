@@ -53,6 +53,13 @@ If any of 1–5 differs, the math below shifts — flag it and re-derive.
 > - **VX1000 Pro built-in web page + VICP:** browser-based **quick adjustments** (brightness, input, presets) — no install.
 > - **⚠ Guardrails:** keep the VX1000 control port on **LAN / tailnet ONLY** (never public internet); **one operator** pushes config at a time (avoid conflicting NovaLCT sessions).
 
+> ### ✅ VERIFIED CONFIG + SPEC (2026-07-01) — canonical
+> **NovaLCT setup order:** (1) download from novastar.tech → **Software** category (NOT Processors; search box misses it), V5.9.1/V5.8.1 → cache on NAS · (2) install + the **CP210x** USB driver · (3) connect **USB-B** (LED-out ports stay wired) · (4) NovaLCT shows **"Control System: 1"** · (5) User → Advanced login, pw **"admin"** · (6) Screen Configuration = 3 tabs · (7) Receiving Card → **Readback** (do NOT blind-Send/Smart-Set; module 32W×16H, 1/8 scan, 74HC138) · (8) Screen Connection → the 8×6 map · (9) Sending Card → 2560×1440.
+> **Panel/wall spec:** LED Nation / Miracle **P1.99**, **MRV412-N** (NovaStar MRV412-N RX card, 512×512 max). Cabinet **320×240 px** (640×480 mm, six 320×160 mm modules, 1.99 mm). Wall **8×6 = 2560×1440** (~16.8 × 9.45 ft). **Receiving Card Size = W320/H240.** Per-port = 320×1440 ≈ **461k px/column** (within one gigabit port → validates one-port-per-column). Source: feed 4K → scales to 2560×1440; Sending Card output = 2560×1440. Verify against **Readback** (authoritative).
+> **Verified Screen Connection map:** 8 columns × 6 rows; each **COLUMN on its own port, top-entry, daisy-chain DOWN** — Port 1 = leftmost (cards 1→6), … Port 8 = rightmost. Eight independent vertical runs, no crossing. **Mechanic:** SELECT the port FIRST, THEN draw that column top→bottom (switching ports per column is what keeps them separate). Save to File + NAS; **Send to HW** to activate on the powered wall.
+> **Config COMPLETE:** all 48 cabinets at **320×240**, 8-port column map intact (~70% per port). **Real apply procedure:** there is **NO "Apply to Entire Screen"** button — options are Apply to Entire **Column** / Row / Port, labels **truncated (hover)**. Type W320/H240, then **select each column → "Apply to Entire Column" ×8**. Remaining: Save (+ NAS backup); **Readback then Send to HW** on the powered wall.
+> **Tomorrow (activation):** wall shows **separate cabinets, not one screen** — the 8×6 map isn't pushed to HW yet. Steps: Screen Connection → confirm map loaded (Load from File if empty) → **Quantity of Screens = 1** → **Send to HW** → Save/solidify → feed source + scale the VX1000 layer to full **2560×1440**. *(Illustrated version + photo slots live on the in-app LED-wall project page.)*
+
 ---
 
 ## 1. THE WALL (confirmed spec)
