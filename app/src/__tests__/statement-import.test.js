@@ -9,7 +9,7 @@
 // SheetJS workbook, not a mock.
 import { describe, it, expect } from 'vitest';
 import * as XLSXns from 'xlsx';
-import { isSpreadsheetFile, workbookToCsv } from '../lib/statement-import.js';
+import { isSpreadsheetFile, workbookToCsv, parseDelimitedToRows } from '../lib/statement-import.js';
 
 const XLSX = XLSXns.default || XLSXns;
 
@@ -65,5 +65,34 @@ describe('workbookToCsv — Excel becomes the CSV the Books mapper consumes', ()
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([[]]), 'Empty');
     expect(workbookToCsv(XLSX, wb)).toBe('');
+  });
+});
+
+describe('parseDelimitedToRows — reconciliation gate (no silent drops)', () => {
+  const CSV = [
+    'Date,Description,Amount',
+    '2026-05-01,County Market,-50',   // ok
+    'not-a-date,Bad date row,-9',      // rejected: unreadable-date
+    '2026-05-03,,-12',                 // rejected: missing-description
+    '2026-05-05,Payroll,1200',         // ok (last row survives — no early stop)
+  ].join('\n');
+
+  it('accepts good rows, rejects the rest WITH reasons, and balances', () => {
+    const r = parseDelimitedToRows(CSV);
+    expect(r.rows.map((x) => x.description)).toEqual(['County Market', 'Payroll']);
+    expect(r.rejected.map((x) => x.reason)).toEqual(['unreadable-date', 'missing-description']);
+    expect(r.reconciliation.sourceTotal).toBe(4);
+    expect(r.reconciliation.ingested).toBe(2);
+    expect(r.reconciliation.rejected).toBe(2);
+    expect(r.reconciliation.balanced).toBe(true);
+    expect(r.reconciliation.unaccounted).toBe(0);
+  });
+
+  it('a missing column rejects EVERY row loudly (not an empty, silent result)', () => {
+    const r = parseDelimitedToRows('Foo,Bar\n1,2\n3,4');
+    expect(r.rows).toHaveLength(0);
+    expect(r.rejected).toHaveLength(2); // both data rows accounted for
+    expect(r.reconciliation.balanced).toBe(true); // 0 ingested + 2 rejected == 2 source
+    expect(r.errors.join(' ')).toMatch(/No Date column/);
   });
 });
