@@ -10,7 +10,7 @@
     "trackedDebtPages": 16,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 121
+    "debtViolations": 123
   },
   "pages": [
     {
@@ -34,7 +34,7 @@
     {
       "page": "components/Imported.jsx",
       "status": "TRACKED-DEBT",
-      "violations": 11,
+      "violations": 13,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
