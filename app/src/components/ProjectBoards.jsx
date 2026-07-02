@@ -19,6 +19,7 @@
 // =============================================================================
 import React, { useMemo, useState } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
+import HelpButton from './HelpButton.jsx';
 import {
   useBoardTasks, addTask, patchTask, removeTask, cycleStatus, loadSeed, pushTask,
 } from '../lib/use-board-tasks.js';
@@ -28,6 +29,7 @@ import {
   SEED_BOARD_BY_SLUG, HANDOFF_TARGETS, taskHistory, isAiOwner,
 } from '../lib/board.js';
 import { moduleLedger } from '../lib/completion.js';
+import { anchorForBoard } from '../lib/anchor-principles.js';
 
 // =============================================================================
 export default function ProjectBoards({ isGovernor = false, currentUserPersona = null, projects = [] }) {
@@ -202,7 +204,14 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
         ← All boards
       </button>
 
-      {spec?.blurb && <p className="text-sm text-[#5A5751]">{spec.blurb}</p>}
+      {spec?.blurb && (
+        <div className="flex items-start gap-2">
+          <p className="text-sm text-[#5A5751] flex-1">{spec.blurb}</p>
+          {anchorForBoard(board.slug) && (
+            <HelpButton variant="inline" topic="projects:boards" />
+          )}
+        </div>
+      )}
 
       {/* Roll-up + optional live metric */}
       <div className="rounded-xl border border-[#E8E4DC] bg-white p-4 space-y-3">

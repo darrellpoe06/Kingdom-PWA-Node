@@ -30,6 +30,7 @@
 // =============================================================================
 
 import { ARI } from './ari.js';
+import { ANCHOR_PRINCIPLES } from './anchor-principles.js';
 
 // Ari's name, surfaced so help UIs attribute the explanation to the one A.I.
 // identity rather than re-deriving copy. The lead line a help sheet shows above
@@ -266,6 +267,30 @@ export const HELP = {
     why: 'Work that is tracked gets finished; work that lives in your head gets dropped. This keeps every effort visible until it is truly done.',
     section: 'business',
   },
+  'projects:boards': (() => {
+    // Reads from the single anchor-principles record — store once, read everywhere.
+    const ap = ANCHOR_PRINCIPLES['anchor-aggregator-life-corpus'];
+    const purposeProse = ap
+      ? ap.purposes
+          .map((p, i) => `(${i + 1}) ${p.label}: ${p.body}`)
+          .join(' ')
+      : '';
+    return {
+      title: 'Boards — self-tracking roadmaps',
+      tag: 'Honest statuses, real queue — not painted green.',
+      what: 'Boards are the self-tracking work roadmaps inside Projects. Each item carries a verified-honest status — blocked means blocked, done means end-to-end verified on real data — and a driver category (NAS-runnable / needs-LLM / needs-a-human-decision) so the pipeline knows what to advance even when the vendor AI is offline.',
+      how: [
+        'Browse groups to see the full queue in dependency order.',
+        'Status is verified-honest (DR-0076): nothing is fake-green. Check what is blocked before assuming it is in progress.',
+        'The NAS heartbeat reads the same manifest on every cycle and logs what it can run now vs what needs a credential or LLM session.',
+      ],
+      why: ap ? ap.oneliner : 'We track work inside the app so nothing lives only in a vendor tool the family does not own.',
+      more: ap
+        ? `Declared by ${ap.author} on ${ap.date}: "${ap.verbatim}" The five bound purposes: ${purposeProse} ${ap.scripture}`
+        : undefined,
+      section: 'business',
+    };
+  })(),
   practice: {
     title: 'Practice',
     tag: 'Operations and client growth for a practice.',
