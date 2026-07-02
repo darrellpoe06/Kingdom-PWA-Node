@@ -239,6 +239,49 @@ export function songsForService(songs, serviceDate, serviceType) {
     .sort((a, b) => (a.sortOrder - b.sortOrder) || String(a.title).localeCompare(String(b.title)));
 }
 
+// The past-services list for the Choir "This week" panel. HISTORY is the real
+// service corpus, not just the planning calendar: a card shows for any past
+// service that has a planned schedule row OR at least one song on it (manual OR a
+// harvested draft). This is why a service the worship-song harvester wrote drafts
+// for (keyed by its choir_sermons date/type) now appears with its setlist instead
+// of being invisible — the schedule table only ever holds the few planned dates.
+// Deduped by date|type, newest-first. Pure + channel-agnostic (callers pass the
+// already tenant-scoped rows). Each entry is a service-card shape:
+//   { id, serviceDate, serviceType, title, youtubeUrl }
+export function buildPastServices(schedule, sermons, songs, todayIso) {
+  const today = todayIso || '';
+  const byKey = new Map();
+  const keyOf = (d, t) => `${d}|${t || 'sunday'}`;
+  const consider = (svc, isSchedule) => {
+    if (!svc || !svc.serviceDate || svc.serviceDate >= today) return;
+    const type = svc.serviceType || 'sunday';
+    const k = keyOf(svc.serviceDate, type);
+    const prev = byKey.get(k);
+    // A schedule row is authoritative for title/link; a sermon fills gaps.
+    byKey.set(k, {
+      id: (prev && prev.id) || svc.id || k,
+      serviceDate: svc.serviceDate,
+      serviceType: type,
+      title: (isSchedule ? svc.title : (prev && prev.title)) || (prev && prev.title) || svc.title || null,
+      youtubeUrl: (isSchedule ? svc.youtubeUrl : (prev && prev.youtubeUrl)) || (prev && prev.youtubeUrl) || svc.youtubeUrl || null,
+      _scheduled: (prev && prev._scheduled) || isSchedule,
+    });
+  };
+  for (const s of schedule || []) consider(s, true);
+  for (const s of sermons || []) consider(s, false);
+  // Keep a service only if it was planned OR actually has a setlist (a card with
+  // neither is just noise — the corpus has 130+ services with no songs yet).
+  const out = [];
+  for (const svc of byKey.values()) {
+    const hasSongs = songsForService(songs, svc.serviceDate, svc.serviceType).length > 0;
+    if (svc._scheduled || hasSongs) {
+      const { _scheduled, ...clean } = svc;
+      out.push(clean);
+    }
+  }
+  return out.sort((a, b) => String(b.serviceDate).localeCompare(String(a.serviceDate)));
+}
+
 // Which week a date falls in relative to today: 'this' (within 7 days), 'next'
 // (8-14 days), or 'later'. Past dates return 'past'. Lets the planner group
 // upcoming services so Christina can plan this week + next week and beyond.

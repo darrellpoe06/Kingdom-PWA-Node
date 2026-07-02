@@ -23,8 +23,8 @@ import ChoirSongbook from './ChoirSongbook.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
-  sortServices, songsForService, weekBucket, isOutOnDate, suggestBackups,
-  subscribeSongs, subscribeSchedule, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
+  sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups,
+  subscribeSongs, subscribeSchedule, subscribeSermons, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
   subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, openTeamDocument,
   saveSong, deleteSong, reuseSong, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
@@ -64,6 +64,9 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{song.title}</span>
+          {song.needsReview && (
+            <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 bg-[#FBE7D8] text-[#8A4B24] border border-[#E0B48C]" title="Auto-drafted from the service transcript — please verify or correct the title.">Draft · verify</span>
+          )}
           {song.scriptureRef && <span className="text-[0.6875rem] text-[#5A5751]">{song.scriptureRef}</span>}
         </div>
         <div className="flex items-center gap-2">
@@ -202,7 +205,14 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
           {canEdit && !past && <button type="button" onClick={() => onAddSong(svc)} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Add song</button>}
         </div>
       </div>
-      {list.length ? list.map((s) => <SongRow key={s.id} song={s} canEdit={canEdit} onEdit={past ? null : onEditSong} onDelete={past ? null : onDeleteSong} onReuse={onReuse} />)
+      {list.length ? list.map((s) => (
+        // Past cards are read-only EXCEPT auto-draft songs (needsReview), which the
+        // choir team edits to confirm the title — that correction is the point.
+        <SongRow key={s.id} song={s} canEdit={canEdit}
+          onEdit={(!past || s.needsReview) ? onEditSong : null}
+          onDelete={(!past || s.needsReview) ? onDeleteSong : null}
+          onReuse={onReuse} />
+      ))
         : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No songs {past ? 'recorded' : 'assigned'} yet.</p>}
       {!past && out.length > 0 && (
         <p className="text-[0.6875rem] text-[#991B1B] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -217,12 +227,15 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
 // Christina can plan songs as far out as she wants; a collapsible history lets
 // her browse past Sundays and reuse old songs onto a future date (Darrell
 // 2026-06-14).
-function ThisWeekPanel({ schedule, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse }) {
+function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse }) {
   const today = todayIso();
   const [showPast, setShowPast] = useState(false);
   const ordered = sortServices(schedule, today);
   const upcoming = ordered.filter((s) => s.serviceDate >= today);
-  const past = ordered.filter((s) => s.serviceDate < today); // sortServices already newest-first
+  // Past history is the REAL service corpus (sermons + any service that has a
+  // setlist), not just the planning calendar — so a service the worship-song
+  // harvester drafted songs for shows up with its setlist instead of vanishing.
+  const past = buildPastServices(schedule, sermons, songs, today);
   return (
     <div className="space-y-5">
       {upcoming.length ? WEEK_GROUPS.map(([bucket, label]) => {
@@ -251,9 +264,9 @@ function ThisWeekPanel({ schedule, songs, absences, canEdit, onAddSong, onEditSo
           </button>
           {showPast && (
             <div className="space-y-3 mt-2">
-              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past Sunday to see what was sung, watch the service, and reuse a song onto a future date.</p>
+              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past Sunday to see what was sung, watch the service, and reuse a song onto a future date. A “Draft · verify” song was auto-drafted from the service recording — edit it to confirm the title.</p>
               {past.map((svc) => (
-                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onReuse={onReuse} past />
+                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} past />
               ))}
             </div>
           )}
@@ -578,6 +591,7 @@ export default function Choir() {
   const [tab, setTab] = useState('week');
   const [songs, setSongs] = useState([]);
   const [schedule, setSchedule] = useState([]);
+  const [sermons, setSermons] = useState([]);
   const [members, setMembers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [absences, setAbsences] = useState([]);
@@ -603,6 +617,7 @@ export default function Choir() {
     const unsubs = [
       subscribeSongs(setSongs),
       subscribeSchedule(setSchedule),
+      subscribeSermons(setSermons),
       subscribeMembers(setMembers),
       subscribeChoirMessages(setMessages),
       subscribeAbsences(setAbsences),
@@ -653,7 +668,7 @@ export default function Choir() {
         <>
           {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
           <ThisWeekPanel
-            schedule={schedule} songs={songs} absences={absences} canEdit={access.canEdit}
+            schedule={schedule} sermons={sermons} songs={songs} absences={absences} canEdit={access.canEdit}
             onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
             onEditSong={(s) => setSongForm({ initial: s })}
             onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}

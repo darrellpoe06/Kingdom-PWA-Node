@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape, toAbsenceShape,
   toSermonShape, toResourceShape, toSermonDocShape, toTeamDocShape,
-  deriveAccess, youtubeEmbedUrl, sortServices, songsForService,
+  deriveAccess, youtubeEmbedUrl, sortServices, songsForService, buildPastServices,
   weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
   selectNewSermonImports, isValidInviteEmail, isExternalUrl,
@@ -105,6 +105,44 @@ describe('songsForService', () => {
     const ids = songsForService(songs, '2026-06-21', 'sunday').map((s) => s.id);
     expect(ids).not.toContain('5');
     expect(ids).not.toContain('4');
+  });
+});
+
+describe('buildPastServices', () => {
+  const today = '2026-07-02';
+  const schedule = [
+    { id: 'sch1', serviceDate: '2026-06-28', serviceType: 'sunday', title: 'Planned', youtubeUrl: 'u1' },
+    { id: 'sch2', serviceDate: '2026-07-13', serviceType: 'sunday', title: 'Future' }, // future -> excluded
+  ];
+  const sermons = [
+    { videoId: 'v1', serviceDate: '2026-06-29', serviceType: 'sunday', title: 'Msg 29', youtubeUrl: 'y29' },
+    { videoId: 'v2', serviceDate: '2026-06-15', serviceType: 'sunday', title: 'Msg 15', youtubeUrl: 'y15' }, // no songs -> excluded
+    { videoId: 'v3', serviceDate: '2026-06-28', serviceType: 'sunday', title: 'Sermon dup' }, // dup of sch1
+  ];
+  const songs = [
+    { id: 's1', title: 'My Worship', serviceDate: '2026-06-29', serviceType: 'sunday', status: 'active' },
+  ];
+
+  it('includes a past service that has a harvested song even with no schedule row', () => {
+    const past = buildPastServices(schedule, sermons, songs, today);
+    const dates = past.map((s) => s.serviceDate);
+    expect(dates).toContain('2026-06-29'); // has a song
+    expect(dates).toContain('2026-06-28'); // scheduled
+  });
+  it('excludes past sermons with no setlist and no schedule row (avoids 130 empty cards)', () => {
+    const past = buildPastServices(schedule, sermons, songs, today);
+    expect(past.map((s) => s.serviceDate)).not.toContain('2026-06-15');
+  });
+  it('excludes future services and dedupes schedule+sermon on the same date/type', () => {
+    const past = buildPastServices(schedule, sermons, songs, today);
+    expect(past.map((s) => s.serviceDate)).not.toContain('2026-07-13');
+    expect(past.filter((s) => s.serviceDate === '2026-06-28').length).toBe(1);
+    // schedule row is authoritative for the title
+    expect(past.find((s) => s.serviceDate === '2026-06-28').title).toBe('Planned');
+  });
+  it('newest-first', () => {
+    const dates = buildPastServices(schedule, sermons, songs, today).map((s) => s.serviceDate);
+    expect(dates).toEqual([...dates].sort().reverse());
   });
 });
 
