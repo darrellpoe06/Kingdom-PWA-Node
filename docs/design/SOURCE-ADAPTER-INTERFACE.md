@@ -69,7 +69,7 @@ This is the seam contract: the canonical form the store speaks regardless of pla
 CanonicalItem {
   # --- Identity ---
   item_key:         str   # Stable, globally-unique key within this (instance, platform).
-                          # Namespace convention (§9):
+                          # Namespace convention (§13):
                           #   YouTube:   raw video ID      e.g. "dQw4w9WgXcQ"
                           #   RSS:       "rss:{guid}"      e.g. "rss:https://…/ep/123"
                           #   Facebook:  "fb:{post_id}"    e.g. "fb:10150123456789012"
@@ -79,7 +79,7 @@ CanonicalItem {
                           #   X:         "x:{tweet_id}"
 
   platform:         str   # 'youtube' | 'rss' | 'facebook' | 'linkedin' | 'instagram'
-                          # | 'tiktok' | 'x' | ...
+                          # | 'tiktok' | 'x' | 'gphotos' | ...
 
   # --- Content ---
   title:            str   # headline or first-N-chars of post text. Required.
@@ -320,6 +320,8 @@ Quick-reference across all platforms. Priority flags:
 | Instagram | Meta Graph (Business/Creator) or Basic Display (personal) + OAuth | Basic Display: photos/videos; Business: media + insights | Personal API requires app review; scraping prohibited | Export-archive OR Basic Display API | Archive: high; API: medium |
 | TikTok | TikTok for Developers + OAuth 2.0 | video.list for own videos; export available | Own-content-only API; no bulk history access | Export-archive (JSON) | Archive: moderate |
 | X / Twitter | X API v2 + OAuth 1.0a or 2.0 (paid tiers for volume) OR archive download | Full tweet history via archive; API is paid and rate-limited | Archive download is owner's right; API is expensive | **Export-archive strongly preferred** | Archive: very high (all tweets to account creation) |
+| **Google Photos** | Google Photos API + OAuth 2.0 (ongoing sync) OR Google Takeout archive (corpus seed) | Full personal photo library — EXIF metadata (date taken, GPS, camera), album context, captions | Personal use permitted; OAuth scopes declared on Google consent screen; no redistribution | **Takeout for corpus seed; API for incremental sync** (see §11) | Takeout: very high; API: high |
+| **Facebook Photos** | Included in Facebook "Download Your Information" archive — no separate auth or export | All uploaded photos with EXIF metadata + GPS preserved (archive retains GPS that Facebook strips from the public web) | Owner's legal right (GDPR Art. 20); same constraints as Facebook archive (§5) | Handled as photo-parser module within the Facebook archive adapter (see §5, §11) | Very high |
 
 ---
 
@@ -888,7 +890,423 @@ cross-posting TO X becomes a use case.
 
 ---
 
-## 11. Item-Key Namespace Convention
+## 11. Photo Sources — Analysis
+
+### 11.1 Why Photo Sources Belong in the Life-Corpus
+
+Photos are the densest dated-placed records in most people's digital life. A photo taken with GPS metadata IS a verifiable event — a trip, a gathering, a milestone — anchored to a specific date and location. EXIF data turns a pixel array into a life-corpus entry with:
+
+- **Date taken** (`DateTimeOriginal`) — the moment of capture, not the upload date; anchors to the historical-events timeline
+- **GPS coordinates** (latitude/longitude/altitude) — places the event geographically; held sovereign, never transmitted externally (§11.4)
+- **Camera make + model** — identifies which family member shot it (every person's phone is a different model)
+- **Album + caption** — the occasion and what the owner said about the moment
+- **Tagged people** — who was present; the relational layer of the event
+
+This feeds the historical-events timeline as *placed* events: not just "December 25, 2019" but "December 25, 2019 · Champaign, IL."
+
+### 11.2 Google Photos — Two-Path Analysis
+
+#### Path A — Google Photos API + OAuth 2.0 (Ongoing Sync)
+
+**Scope required:**
+- `https://www.googleapis.com/auth/photoslibrary.readonly` — read all media items and albums; no write access
+
+**What is reachable:**
+- Every photo and video in the library: filename, MIME type, `productUrl` (stable Google Photos permalink)
+- **EXIF-derived metadata** via `mediaItem.mediaMetadata.photo`:
+  - `cameraMake`, `cameraModel`, `focalLength`, `apertureFNumber`, `isoEquivalent`, `exposureTime`
+  - `creationTime` — EXIF `DateTimeOriginal` when present; falls back to upload timestamp
+  - `geoMetadata.latitude / .longitude / .altitude` — GPS when the original photo contained it
+- Albums: `albums.list` (album titles, media counts); `mediaItems:search` by `albumId` (album members)
+
+**What is NOT reachable via API:**
+- Face/person groups (Google uses face recognition internally; groups are not exposed via API)
+- Comments on shared albums
+- Google-generated collages, animations, highlight videos (derivative content; originals are present)
+- Photos permanently deleted from Trash before the pull
+
+**Rate limits:**
+- Media list/get: 10,000 requests/day; `mediaItems.batchGet` (up to 50 items per call) reduces quota cost
+- Album list: 20 requests/day — sufficient; a personal library rarely requires more than a handful of album-list pages
+- `baseUrl` (download URL): expires 60 minutes after fetch — media must be downloaded during the same adapter run, or the URL re-fetched before download
+
+**App registration:** Google Cloud Console, same project as Gmail (`gmail.readonly` + `photoslibrary.readonly` on one consent screen). Development mode (≤100 test users) requires no app review — covers personal use. Multi-user deployment requires OAuth verification review (2–4 weeks).
+
+**Incremental sync:** Store the `creationTime` of the most recently fetched item. Subsequent runs filter `mediaItems.list` by `dateFilter.ranges` — only new items are pulled. Very efficient for ongoing capture after the initial corpus seed.
+
+---
+
+#### Path B — Google Takeout (Export Archive — Corpus Seed)
+
+**How to request:** `takeout.google.com` → Google Photos → "All photo albums included" → export as ZIP(s).
+
+**What the archive includes:**
+- **All original photo and video files** at original resolution
+- **JSON sidecar per media file** (same filename + `.json` extension):
+  - `photoTakenTime.timestamp` — UNIX timestamp of EXIF `DateTimeOriginal`
+  - `creationTime.timestamp` — Google Photos upload time
+  - `geoData.latitude / .longitude / .altitude` — GPS from EXIF (0.0 when no GPS present)
+  - `geoDataExif.latitude / .longitude / .altitude` — EXIF GPS verbatim
+  - `people[].name` — names manually tagged by the owner (not face-recognition exports)
+  - `description` — photo caption
+  - `title` — original filename
+
+**What Takeout does NOT include:**
+- Face recognition group names (internal to Google; not exported)
+- Comments from shared albums
+- Google-generated derivative content (collages, movies, highlights)
+
+**Advantage over API:** Delivers actual media files with no URL-expiry problem. Retrieves the complete library history regardless of pagination edge cases or rate limits. EXIF timestamps are in the sidecar for every photo, including ones uploaded years before the API existed.
+
+**Recommendation:** **Takeout archive for the corpus seed; Google Photos API for ongoing incremental sync.** Same pattern as Facebook (§5): the archive seeds the full history; the live API captures new additions efficiently.
+
+---
+
+#### Google Photos CanonicalItem Shape
+
+```
+CanonicalItem (Google Photos) {
+  item_key:     "gphotos:{media_item_id}"       # stable Google Photos API ID
+                                                 # "gphotos-arc:{sha256}" for Takeout items
+                                                 # (SHA-256 of filename + photoTakenTime)
+  platform:     "gphotos"
+  title:        caption if present; else "{album_title} · {filename}"
+  body_text:    description / caption (full text)
+  published_at: EXIF DateTimeOriginal (ISO-8601); fall back to Google Photos creationTime
+  source_kind:  "photo"
+  url:          productUrl (stable Google Photos web link)
+  item_url:     baseUrl (expiring download URL — capture at ingest; store sovereign_path thereafter)
+
+  metadata: {
+    content_type: "photo" | "video"
+    published_at: EXIF DateTimeOriginal
+    created_at:   Google Photos upload time (creationTime)
+    fetched_at:   when the adapter pulled this item
+
+    author_id:    owner Google account email (all items are the owner's own library)
+    author_name:  owner display name
+
+    location: {                              # sovereign — never transmitted externally (§11.4)
+      latitude:    float | null,             # from EXIF GPS
+      longitude:   float | null,
+      altitude:    float | null,
+      place_name:  str | null,               # reverse-geocoded locally (offline lib or NAS Nominatim)
+    },
+
+    platform_fields: {
+      camera_make:    str | null,            # e.g. "Apple"
+      camera_model:   str | null,            # e.g. "iPhone 14 Pro"
+      focal_length:   float | null,          # mm
+      aperture:       float | null,          # f/stop number
+      iso:            int | null,
+      exposure_time:  str | null,            # e.g. "1/120"
+      album_title:    str | null,            # e.g. "Family Christmas 2019"
+      album_id:       str | null,
+      people_tagged:  [str],                 # owner-tagged names (not face recognition)
+      filename:       str,
+      mime_type:      str,                   # image/jpeg, video/mp4, etc.
+      width:          int | null,
+      height:         int | null,
+      media_item_id:  str,                   # Google Photos stable API ID
+    },
+
+    visibility:         "private",           # always — items from the owner's own library
+    owner_consented:    True,
+    source_path:        "live_api" | "export_archive",
+    sensitive_signals:  ["location"],        # GPS always present in scope; add "minors" when children tagged
+  }
+}
+```
+
+### 11.3 Facebook Photos — Handling Within the Facebook Archive Adapter
+
+Facebook Photos are a module within the Facebook "Download Your Information" archive (§5.3 covers the full archive). No separate export or auth is needed — photos arrive in the same ZIP, under `photos_and_videos/`.
+
+**What the archive includes for photos:**
+- Every photo uploaded, organized by album in `photos_and_videos/` subdirectories
+- Actual image files at original resolution
+- JSON metadata per album (`album_name.json`), per-photo fields:
+  - `creation_timestamp` — upload date (UNIX; NOT the photo capture date)
+  - `media.media_metadata.photo_metadata.exif_data.date_taken_timestamp` — EXIF capture date when present
+  - `media.media_metadata.photo_metadata.exif_data.latitude / longitude` — **GPS preserved in archive** even though Facebook strips GPS from the public web version (anti-stalking measure; the archive returns the original EXIF the owner uploaded)
+  - `media.media_metadata.photo_metadata.exif_data.camera_make / camera_model`
+  - `place.name`, `place.coordinate.latitude / longitude` — tagged location (separate from EXIF GPS)
+  - `tags[].name` — people tagged in the photo
+  - `media.description` — caption
+
+**Critical field distinction:** `creation_timestamp` = upload date; `exif_data.date_taken_timestamp` = capture date. The adapter ALWAYS uses the EXIF capture date for `published_at` and the historical-events timeline. A photo taken at Christmas 2011 but uploaded in 2014 lands on December 25, 2011.
+
+**Item key:** `fb-photo:{media_id}` — distinct from post-type items (`fb:{post_id}`) because a single photo can appear in multiple posts and albums.
+
+**Deduplication:** The archive may include the same image in multiple albums. Dedup by SHA-256 hash of the image file content combined with EXIF capture date before upsert.
+
+**Implementation:** Facebook photo handling is a parser module within `facebook-ingest.py` — not a separate adapter. The photo parser runs when the archive walker encounters `photos_and_videos/` paths.
+
+### 11.4 Location Data Sovereignty Rule
+
+GPS coordinates in photos are high-value (they place events geographically) and high-sensitivity (they reveal where the family was at specific times). The sovereignty rule is absolute:
+
+1. **Store only.** GPS coordinates land in `video_harvests.harvests → metadata.location` (JSONB). Never in a separately queryable column that could be accidentally joined against external services.
+2. **Reverse geocoding is local only.** Converting lat/lon to a human-readable place name uses:
+   - `reverse_geocoder` Python library (bundled city + country database; zero network calls), OR
+   - NAS-hosted Nominatim instance (OpenStreetMap; fully self-hosted)
+   - Coordinates are NEVER sent to Google Maps, Mapbox, Apple Maps, or any external geocoding API.
+3. `sensitive_signals: ["location"]` is mandatory for every item with GPS coordinates.
+4. **App display:** the timeline may fetch map tiles for visual rendering; tile servers see bounding boxes, never raw coordinates of a specific photo. The lat/lon values themselves are never transmitted to external services.
+
+### 11.5 Photo Adapter Sequencing
+
+- **Google Photos API adapter:** implements after Gate 1 (YouTube seam proven) AND Gate 2 (Gmail OAuth proven end-to-end in the app — confirming the in-app OAuth flow works before adding Google Photos OAuth). The opt-in connect-flow primitive (§12) must ship first.
+- **Facebook Photos:** implemented as a parser module within `facebook-ingest.py`; same gate as the Facebook archive adapter (Gate 3, after RSS validates the seam).
+- **Connect-flow (§12):** must be designed and the `<ConnectSourceFlow>` component shipped BEFORE any OAuth-gated source adapter (Google Photos, Gmail live sync) goes live in the app.
+
+---
+
+## 12. Opt-In Connect-Flow Primitive
+
+*Design only. No implementation until Gate 1 (YouTube seam) clears. The `<ConnectSourceFlow>` component ships before any OAuth-gated adapter (Google Photos, Gmail live sync) goes live in the app.*
+
+### 12.1 The Experience Principle
+
+Darrell's framing (2026-07-02): *"only for those who want their data, not mandatory, just possible, and easy to understand and implement with a short intuitive process inside the PoeTech App."*
+
+This maps directly to `ANXIETY-CLARITY-PRINCIPLE.md`: the user who is uncertain needs to know what, when, why, and how — before anything happens. The user who does not want to connect anything needs a frictionless exit at every step.
+
+**Five non-negotiables:**
+1. **No surprises.** Every item that will be pulled is stated plainly, in user language, before auth.
+2. **Preview before execute.** The user sees sample real results before the import begins.
+3. **Deliberate confirm.** Auth callback alone does NOT start the import — a distinct confirm step is required.
+4. **One-click disconnect.** Disconnect never deletes already-imported data. Two separate actions, two separate dialogs.
+5. **Never mandatory.** Every step has "Not now" / "Cancel." Skipping changes nothing in the app.
+
+### 12.2 Connect-Flow Steps
+
+The same 7-step flow applies to every platform adapter. Platform-specific variation is copy and auth mechanism, not structure.
+
+**Step 1 — Source discovery card**
+
+A card on the Life History / Connections settings surface, one per available source:
+
+```
+[Platform icon]  Google Photos
+  Your photos organized by date and location on your personal timeline.
+  Status: Not connected
+
+  [Connect]
+```
+
+No technical terms. The card describes the outcome, not the mechanism.
+
+---
+
+**Step 2 — Intent screen (plain-language explanation, before ANY auth prompt)**
+
+```
+Connect Google Photos
+
+What you'll get:
+  • Your photos organized by date and location on your personal timeline
+  • Dates and GPS locations pulled from your photo metadata
+  • Album names and captions preserved as context
+
+What we won't do:
+  • Your photos stay in Google Photos — we read metadata only
+  • No sharing with anyone, ever
+  • No data sent to any third party
+
+Ready? Google will ask you to confirm what access you're granting.
+
+  [Continue to Google sign-in]          [Not now]
+```
+
+Hover tooltip on "photo metadata": "Hidden data cameras attach to photos — like the date taken and GPS location. We use it to place photos on your personal timeline." Tooltip is supplementary; it is never the primary carrier of essential information.
+
+---
+
+**Step 3 — Auth or archive upload**
+
+*OAuth sources (Google Photos, Gmail):*
+Standard browser OAuth popup. User sees Google's own consent screen with exact scopes listed. After approval, returns to the app. PoeTech never handles credentials — only the resulting authorized token.
+
+*Archive sources (Facebook, LinkedIn):*
+
+```
+Download and upload your Facebook archive
+
+  1. Go to Facebook → Settings → Your Facebook Information
+     → Download Your Information
+  2. Choose: Format: JSON  ·  Time range: All time  ·  All categories
+  3. Wait for the download email (up to 24 hours), then download the ZIP
+  4. Upload the ZIP here:  [Choose file]
+
+  The archive is processed on your NAS. It is never uploaded to any external server.
+```
+
+---
+
+**Step 4 — Preview (mandatory preview-then-execute)**
+
+The adapter runs a lightweight probe (dry-run) before writing anything to the store:
+
+```
+Here's what's ready from Google Photos
+
+  3,847 items  ·  spanning Jan 2008 – Jul 2026  ·  1,204 with GPS location
+
+  Sample items:
+  📷  Jun 14, 2019  ·  Champaign, IL  ·  "Family Reunion" album
+  📷  Dec 25, 2022  ·  Chicago, IL   ·  "Christmas" album
+  📷  Mar 8, 2015   ·  no location   ·  no album
+
+  [Import all 3,847]      [Import last 90 days only]      [Cancel]
+```
+
+This step is mandatory — no adapter may proceed from auth directly to import without showing a preview. The probe path is part of the adapter contract (§3.2: `discover_latest()` / `ingest_archive()` with `--dry-run`).
+
+---
+
+**Step 5 — Deliberate confirm**
+
+```
+Import 3,847 photos from Google Photos?
+
+These will appear on your personal timeline. Your photos
+stay in Google Photos — we're adding them to your PoeTech
+life history, not moving them.
+
+  [Yes, import my Google Photos]          [Cancel]
+```
+
+Button text uses the user's voice. The import does NOT begin until this button is tapped.
+
+---
+
+**Step 6 — Live progress (never silent)**
+
+```
+Importing Google Photos...
+  ████████░░░░░░░░░  2,108 of 3,847  (~4 min remaining)
+
+  You can close this screen. We'll notify you when it's done.
+```
+
+The adapter runs on the NAS; the app polls status and displays progress. Imports are resumable — if interrupted, the adapter picks up where it left off on the next run (idempotent upsert by `item_key`).
+
+---
+
+**Step 7 — Done**
+
+```
+Google Photos imported
+
+  3,847 photos added to your timeline
+  1,204 with GPS location
+  Earliest: January 3, 2008
+
+  [View my timeline]     [Connect another source]
+```
+
+### 12.3 Disconnect and Data Sovereignty
+
+The source management card for a connected source:
+
+```
+Google Photos  ·  Connected  ·  Last synced Jul 2, 2026
+3,847 items in your life history
+
+  [Sync now]     [Disconnect]
+```
+
+Tapping "Disconnect":
+
+```
+Disconnect Google Photos?
+
+  • Syncing will stop
+  • Your 3,847 imported items stay in your PoeTech history
+  • You can reconnect at any time
+
+  [Yes, disconnect]     [Cancel]
+```
+
+After disconnect: the OAuth token is revoked via the platform's revocation endpoint. The NAS adapter stops scheduling runs for this source. **Imported data is NOT deleted** — the user owns it; it stays in the sovereign store until explicitly removed.
+
+Data removal is a separate, distinct action ("Remove all Google Photos from my history") with its own confirmation dialog. Two separate buttons. Two separate intents. Disconnect and delete are never the same action.
+
+### 12.4 The Reusable Primitive
+
+This flow is not photo-specific. Every adapter in this roadmap (Gmail, Google Photos, Facebook, LinkedIn, X) goes through the same 7 steps. Platform variation is copy and auth mechanism, not structure.
+
+**Future component shape:**
+
+```jsx
+<ConnectSourceFlow
+  sourceKey="gphotos"                    // drives copy + icon from CONNECT_SOURCES config
+  authType="oauth"                       // or "archive" — changes Step 3 UI
+  onAuth={handleOAuthCallback}           // OAuth: called on token receipt
+  onArchiveUpload={handleZipUpload}      // archive: called on file upload
+  onProbe={runProbe}                     // returns { count, dateRange, sampleItems }
+  onConfirm={startImport}               // triggers the NAS adapter run
+  onProgress={pollImportStatus}          // live status: { done, total, etaSeconds }
+  onDisconnect={revokeAndStop}          // OAuth revoke + stop NAS schedule
+/>
+```
+
+Per-source copy lives in a `CONNECT_SOURCES` config — same pattern as `help-content.js` and `lib/feedback-triage.js`:
+
+```js
+const CONNECT_SOURCES = {
+  gphotos: {
+    name: "Google Photos",
+    tagline: "Your photos organized by date and location on your personal timeline.",
+    whatYouGet: [
+      "Photos organized by date and location on your personal timeline",
+      "Dates and GPS locations from your photo metadata",
+      "Album names and captions preserved as context",
+    ],
+    whatWeWont: [
+      "Your photos stay in Google Photos — we read metadata only",
+      "No sharing with anyone, ever",
+      "No data sent to any third party",
+    ],
+    authType: "oauth",
+    previewLabel: "photos",
+    confirmVerb: "import my Google Photos",
+    disconnectNote: "Syncing stops; your imported photos stay in your history.",
+    metadataTooltip: "Hidden data cameras attach to photos — like the date taken and GPS location.",
+  },
+  gmail:    { /* ... */ },
+  facebook: { /* ... */ },
+  linkedin: { /* ... */ },
+};
+```
+
+### 12.5 Anxiety-Clarity Mapping
+
+Per `ANXIETY-CLARITY-PRINCIPLE.md` — every surface answers what / when / why / how:
+
+| User question | Answer in the connect-flow |
+|---|---|
+| "What will you take from my account?" | Step 2: "What you'll get" bullet list |
+| "Will you share it with anyone?" | Step 2: "What we won't do" bullet list |
+| "What will it look like in the app?" | Step 4 preview: real sample items before committing |
+| "How much is this?" | Step 4 preview: count + date range |
+| "What if I change my mind?" | "Not now" at Step 2; "Cancel" at Steps 3–5; "Disconnect" at Step 7 |
+| "Will my data disappear if I disconnect?" | Disconnect dialog: "Your items stay in your history" |
+| "Do I HAVE to connect anything?" | Source cards are optional; skipping changes nothing |
+
+### 12.6 Design Constraints
+
+- **No jargon in user-facing copy.** "OAuth" → "sign in to Google." "EXIF" → tooltip only. "API" → never visible.
+- **Opt-in only.** Source tiles appear on the settings surface; nothing auto-connects or auto-imports.
+- **Preview is mandatory.** No adapter may skip from auth callback to import without a probe step. The probe/dry-run is part of the adapter contract (§3.2).
+- **Disconnect never deletes.** These are permanently separate actions with separate confirmation dialogs.
+- **Mobile-first tap targets.** Minimum 44×44 px for all interactive elements. Tooltips explain jargon but are never the sole access path — an info icon with tap fallback is provided.
+- **WCAG 2.1 AA throughout.** Same contrast and focus standards as the rest of the app (see `feedback_wcag_aa_binding_standard` memory).
+
+---
+
+## 13. Item-Key Namespace Convention
 
 Ensures that two platforms can never write conflicting keys into the same `(instance_id, video_id)`
 unique constraint, and that the platform of any existing row is recoverable from the key alone.
@@ -904,13 +1322,16 @@ unique constraint, and that the platform of any existing row is recoverable from
 | TikTok | `tt:{video_id}` | `tt:7123456789012345678` |
 | X | `x:{tweet_id}` | `x:1234567890123456789` |
 | Archive items (FB) | `fb-arc:{hash}` | `fb-arc:a3f2...` (SHA-256 of guid from archive) |
+| Google Photos (API) | `gphotos:{media_item_id}` | `gphotos:ALS3qF0Abcd1234EfGhi` (stable Google Photos API ID) |
+| Google Photos (Takeout) | `gphotos-arc:{sha256}` | `gphotos-arc:a3f2...` (SHA-256 of filename + photoTakenTime) |
+| Facebook Photos | `fb-photo:{media_id}` | `fb-photo:10155123456789012` (distinct from post-type `fb:{post_id}`) |
 
 Archive-sourced items use the platform prefix + `-arc` suffix to distinguish them from live-API-sourced
 items of the same content (useful when the same post exists in both the live API and an archive snapshot).
 
 ---
 
-## 12. Known Gap — Coverage Display Layer
+## 14. Known Gap — Coverage Display Layer
 
 `buildLedger()` in `app/src/lib/video-harvest.js` computes the harvest coverage % by joining
 `choir_sermons` (a YouTube-sourced corpus table) OVER `video_harvests`. Items from other platforms
@@ -929,7 +1350,7 @@ non-YouTube content.
 
 ---
 
-## 13. Registered Adapters
+## 15. Registered Adapters
 
 | Adapter | File | Platform | Auth | Status |
 |---|---|---|---|---|
@@ -944,10 +1365,12 @@ non-YouTube content.
 | Instagram | (future) | `instagram` | Meta Basic Display or Graph API + OAuth | Post-FB/LinkedIn. |
 | X / Twitter | (future) | `x` | Archive (primary); API (expensive) | Post-FB/LinkedIn. |
 | TikTok | (future) | `tiktok` | API + archive combined | Lowest priority for personal corpus. |
+| Google Photos | `gphotos-ingest.py` (future) | `gphotos` | Google Photos API OAuth 2.0 — same Google Cloud project as Gmail (`photoslibrary.readonly` scope) | Design stage. Implement after Gate 1 (YouTube seam proven) + Gate 2 (Gmail OAuth proven end-to-end in the app). Connect-flow primitive (§12) must ship first. |
+| Facebook Photos | Module within `facebook-ingest.py` (future) | `facebook` | Facebook "Download Your Information" archive — no separate auth | Photo parser module within the Facebook archive adapter. Same gate as FB archive (Gate 3). See §11.3. |
 
 ---
 
-## 14. Implementation Hold and Sequencing
+## 16. Implementation Hold and Sequencing
 
 ### Gate 1 — YouTube adapter verified in production
 
@@ -960,6 +1383,7 @@ On hold until Gate 1:
 - `rss-ingest.py` (draft committed) — activate after YouTube proves the seam
 - `scripts/source-adapter-guard.mjs` (draft committed) — activate after RSS validates
 - Migration 0066 (`content_sources` + `source_platform`) — apply to production after YouTube lane merges
+- `<ConnectSourceFlow>` component (§12) — design and ship after Gate 1 clears, before any OAuth-gated adapter (Google Photos, Gmail live sync) goes live in the app
 
 ### Gate 2 — Gmail-receipts lane verified in production
 
@@ -973,20 +1397,35 @@ On hold until Gate 2 (in addition to Gate 1):
 ### Gate 3 — RSS adapter activated (seam proven by two adapters)
 
 After both YouTube + RSS write through the same backbone without collisions:
-- Facebook archive adapter — PRIORITY #1
+- Facebook archive adapter — PRIORITY #1 (includes photo parser module, see §11.3)
 - LinkedIn archive adapter — PRIORITY #2
+
+### Connect-Flow Primitive (§12) — Prerequisite for OAuth Sources
+
+The `<ConnectSourceFlow>` component ships after Gate 1, before any OAuth-gated source goes live.
+Required for: Google Photos API adapter, Gmail live-sync UI, any future adapter with a user-facing authorization step.
+Archive-only adapters (Facebook, LinkedIn) can use a simplified Step 3 (file upload) via the same component.
+
+### Photo Adapters
+
+- **Google Photos API (`gphotos-ingest.py`):** Gate 1 + Gate 2 must clear; connect-flow (§12) must ship first. The Gmail OAuth proof (Gate 2) confirms the in-app OAuth flow end-to-end before adding the Google Photos OAuth scope.
+- **Facebook Photos:** parser module within `facebook-ingest.py`; same gate as the Facebook archive adapter (Gate 3). No separate auth or sequencing requirement.
 
 ### Sequence diagram
 
 ```
 YouTube lane (local_4d62ae64)  ──▶  Gate 1 ──▶  RSS adapter (validate seam)
-                                                        │
-Gmail-receipts (local_e63f400c) ──▶  Gate 2 ──────────┘──▶  Gmail historical events
-                                                                    │
-                                                       Gate 3 ──────┘──▶  Facebook archive
-                                                                                │
-                                                                           LinkedIn archive
+                                       │                    │
+                              Connect-flow (§12)       Gate 2 (Gmail OAuth)
+                              ships here                    │
+                                                    Gmail historical events
+                                                            │
+                                                      Gate 3 ──▶  Facebook archive
+                                                            │       (incl. FB photos module)
+                                                       LinkedIn archive
+                                                       Google Photos API
+                                                       (Gate 2 + connect-flow required)
 ```
 
-**The design contract in this document (CanonicalItem + metadata block + adapter contract) is the
+**The design contract in this document (CanonicalItem + metadata block + adapter contract + connect-flow primitive) is the
 target shape.** Nothing implements until the gate above it clears. No fake green.
