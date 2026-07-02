@@ -1,0 +1,103 @@
+#!/bin/sh
+# nas-deploy-property-photos.sh   (run ON the NAS host, as dpoe)
+#
+# 2026-07-01  Sovereign property-photo image server (no n8n). Installs
+# photo_server.py to /volume1/PoeTech/scripts/, proves it (selftest + probe),
+# and starts it on 127.0.0.1:8099. Idempotent: re-running re-installs the latest
+# server and restarts it cleanly.
+#
+# Run on the NAS:
+#   wget -qO- https://raw.githubusercontent.com/darrellpoe06/Kingdom-PWA-Node/main/scripts/nas-deploy-property-photos.sh | sh
+#
+# After it succeeds, two ONE-TIME steps (printed again at the end):
+#   1. Seed the token file with the SAME value the PWA uses (if not already):
+#        printf '%s' '<poetech-chat-bridge-token>' > /volume1/PoeTech/secrets/photo-bridge-token
+#        chmod 600 /volume1/PoeTech/secrets/photo-bridge-token
+#   2. Front it on the sovereign path (prefix stripped -> server sees /property-photos):
+#        tailscale serve --bg --set-path /nas-photos http://127.0.0.1:8099
+#   3. Persist across reboot: DSM Task Scheduler -> Triggered Task -> Boot-up,
+#      run-as dpoe, command:
+#        PHOTO_BRIDGE_TOKEN=$(cat /volume1/PoeTech/secrets/photo-bridge-token) /usr/bin/python3 /volume1/PoeTech/scripts/photo_server.py --serve
+
+set -e
+
+RAW="https://raw.githubusercontent.com/darrellpoe06/Kingdom-PWA-Node/main/infra/nas-property-photos/photo_server.py"
+DEST_DIR="/volume1/PoeTech/scripts"
+DEST="$DEST_DIR/photo_server.py"
+SECRETS="/volume1/PoeTech/secrets"
+TOKEN_FILE="$SECRETS/photo-bridge-token"
+PORT="${PHOTO_PORT:-8099}"
+TS=$(date +%Y%m%d-%H%M%S)
+
+echo "============================================================"
+echo "property-photo image server deploy -- $TS"
+echo "============================================================"
+
+PY=$(command -v python3 || echo /usr/bin/python3)
+echo "    python3 = $PY"
+
+# ---- 1. Install the server (backup any existing copy) ------------------------
+mkdir -p "$DEST_DIR"
+if [ -f "$DEST" ]; then cp "$DEST" "$DEST.bak-$TS"; echo "    backed up existing -> $DEST.bak-$TS"; fi
+if wget -qO "$DEST.new" "$RAW"; then
+  mv "$DEST.new" "$DEST"
+  chmod 755 "$DEST"
+  echo "    installed $DEST"
+else
+  echo "ERROR: could not fetch $RAW  (is the branch pushed?). Aborting."
+  rm -f "$DEST.new"
+  exit 1
+fi
+
+# ---- 2. Prove the logic (offline, no NAS state needed) -----------------------
+echo "==> selftest:"
+"$PY" "$DEST" --selftest || { echo "ERROR: selftest failed. NOT starting."; exit 1; }
+
+# ---- 3. Token file present? --------------------------------------------------
+mkdir -p "$SECRETS"; chmod 700 "$SECRETS" 2>/dev/null || true
+if [ ! -s "$TOKEN_FILE" ]; then
+  echo ""
+  echo "!!  No token yet at $TOKEN_FILE"
+  echo "!!  Seed it with the SAME value the PWA uses (localStorage poetech-chat-bridge-token /"
+  echo "!!  the n8n 'property-history bridge token'), then re-run this script:"
+  echo "!!      printf '%s' '<token>' > $TOKEN_FILE && chmod 600 $TOKEN_FILE"
+  echo ""
+  echo "Server installed but NOT started (it refuses to run without a token)."
+  exit 0
+fi
+chmod 600 "$TOKEN_FILE" 2>/dev/null || true
+
+# ---- 4. (Re)start on 127.0.0.1:PORT ------------------------------------------
+# Stop any prior instance of THIS script's server (match the exact command).
+OLD=$(pgrep -f "photo_server.py --serve" 2>/dev/null || true)
+if [ -n "$OLD" ]; then echo "    stopping prior instance(s): $OLD"; kill $OLD 2>/dev/null || true; sleep 1; fi
+
+echo "==> starting server on 127.0.0.1:$PORT ..."
+PHOTO_BRIDGE_TOKEN=$(cat "$TOKEN_FILE") PHOTO_PORT="$PORT" \
+  nohup "$PY" "$DEST" --serve >/volume1/PoeTech/scripts/photo_server.log 2>&1 &
+sleep 2
+
+# ---- 5. Liveness + a real probe (measures the fix) ---------------------------
+echo "==> /healthz:"
+wget -qO- "http://127.0.0.1:$PORT/healthz" || echo "(no response)"
+echo ""
+echo "==> probe 1003Koehn (real thumbnail resolution on this NAS):"
+"$PY" "$DEST" --probe 1003Koehn || true
+
+cat <<EOF
+
+============================================================
+Server running on 127.0.0.1:$PORT  (log: $DEST_DIR/photo_server.log)
+
+REMAINING one-time steps:
+  1. Front it on the sovereign path (once):
+       tailscale serve --bg --set-path /nas-photos http://127.0.0.1:$PORT
+       tailscale serve status
+     (DSM Application Portal -> Reverse Proxy is the GUI alternative.)
+  2. Persist across reboot (DSM -> Control Panel -> Task Scheduler ->
+     Create -> Triggered Task -> Boot-up, run-as dpoe):
+       PHOTO_BRIDGE_TOKEN=\$(cat $TOKEN_FILE) $PY $DEST --serve
+
+Then verify at poetech.us -> Real Estate -> 1003 Koehn -> Records -> Browse.
+============================================================
+EOF

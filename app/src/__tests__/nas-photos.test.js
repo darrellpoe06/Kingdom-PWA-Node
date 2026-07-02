@@ -2,7 +2,33 @@
 // user-influenced, so isValidDest is the device-side belt (the workflow is the
 // real gate); these lock that no traversal or junk dest leaves the device.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { isValidDest, isValidAlbum, bigPictureAlbum, setBigPictureAlbum } from '../lib/nas-photos.js';
+import { isValidDest, isValidAlbum, bigPictureAlbum, setBigPictureAlbum, propertyPhotosUrl, NAS_PHOTO_BASE } from '../lib/nas-photos.js';
+
+// 2026-07-01 regression fix: property photos moved OFF the n8n bridge onto the
+// sovereign Python image server, reached via the same-origin `/nas-photos`
+// rewrite. This pins the cutover so a stray edit can't silently route property
+// photos back through /n8n/webhook (which is what broke on 2026-07-01).
+describe('propertyPhotosUrl (sovereign Python image server path)', () => {
+  it('targets the /nas-photos base, NOT the old /n8n/webhook bridge', () => {
+    const url = propertyPhotosUrl('1003Koehn', { limit: 48, offset: 0 });
+    expect(NAS_PHOTO_BASE).toBe('/nas-photos');
+    expect(url.startsWith('/nas-photos/property-photos')).toBe(true);
+    expect(url).not.toContain('/n8n');
+    expect(url).not.toContain('webhook');
+  });
+
+  it('encodes the channel and carries limit/offset', () => {
+    expect(propertyPhotosUrl('805NProspect', { limit: 24, offset: 96 }))
+      .toBe('/nas-photos/property-photos?channel=805NProspect&limit=24&offset=96');
+    // a channel with URL-significant chars is encoded, never injected raw
+    expect(propertyPhotosUrl('a&b', { limit: 1, offset: 0 }))
+      .toBe('/nas-photos/property-photos?channel=a%26b&limit=1&offset=0');
+  });
+
+  it('defaults limit/offset when omitted', () => {
+    expect(propertyPhotosUrl('1003Koehn')).toBe('/nas-photos/property-photos?channel=1003Koehn&limit=24&offset=0');
+  });
+});
 
 describe('isValidDest', () => {
   it('accepts the family root and clean property channels', () => {

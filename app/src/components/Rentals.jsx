@@ -8,7 +8,7 @@ import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
-import { hasBridgeToken, chatChannelFor, fetchChannelPhotos } from '../lib/nas-photos.js';
+import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl } from '../lib/nas-photos.js';
 import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
@@ -1197,7 +1197,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     const all = []; const seen = new Set();
     try {
       for (let offset = 0; all.length < target; offset += 48) {
-        const resp = await fetch(`/n8n/webhook/property-photos?channel=${encodeURIComponent(chatChannelFor(r))}&limit=48&offset=${offset}`, { headers: { authorization: `Bearer ${token}` } });
+        const resp = await fetch(propertyPhotosUrl(chatChannelFor(r), { limit: 48, offset }), { headers: { authorization: `Bearer ${token}` } });
         if (resp.status === 401 || resp.status === 403) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [], badToken: true }); return; }
         if (!resp.ok) throw new Error(`photo bridge answered ${resp.status}`);
         const json = await resp.json();
@@ -1216,7 +1216,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     if (!token) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [] }); return; }
     setPhotoImport(p => ({ rentalId: r.id, status: 'loading', photos: (p && p.rentalId === r.id ? p.photos : []), offset }));
     try {
-      const resp = await fetch(`/n8n/webhook/property-photos?channel=${encodeURIComponent(chatChannelFor(r))}&limit=${PHOTO_PAGE}&offset=${offset}`, {
+      const resp = await fetch(propertyPhotosUrl(chatChannelFor(r), { limit: PHOTO_PAGE, offset }), {
         headers: { authorization: `Bearer ${token}` },
       });
       if (resp.status === 401 || resp.status === 403) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [], badToken: true }); return; }
