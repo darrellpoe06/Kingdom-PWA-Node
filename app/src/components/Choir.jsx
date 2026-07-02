@@ -65,7 +65,7 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
         <div className="flex items-baseline gap-2 flex-wrap">
           <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{song.title}</span>
           {song.needsReview && (
-            <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 bg-[#FBE7D8] text-[#8A4B24] border border-[#E0B48C]" title="Auto-drafted from the service transcript — please verify or correct the title.">Draft · verify</span>
+            <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#B85838] text-[#B85838]" title="Auto-drafted from the service transcript — please verify or correct the title.">Draft · verify</span>
           )}
           {song.scriptureRef && <span className="text-[0.6875rem] text-[#5A5751]">{song.scriptureRef}</span>}
         </div>
