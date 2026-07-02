@@ -172,6 +172,32 @@ export function groupByMonth(txns) {
   return groups;
 }
 
+// Group rows by an arbitrary field (payee / category / account / anything) with a
+// deterministic per-group subtotal — the "roll up repeated payees" view
+// (Darrell 2026-07-01). Same {key,label,rows,totals} shape as groupByMonth so the
+// render is identical. Groups are ordered biggest-first by |net| (where the money
+// is), then by count, then by key — a stable, consumer-obvious order. A null/blank
+// key collects under '—'. `getKey` is a row accessor; `labelFn` maps a key to its
+// display label (defaults to the key). Totals are summed the same way as the
+// overall period total (totals()), so per-group subtotals always tie out to it.
+export function groupByField(rows, getKey, opts = {}) {
+  const labelFn = opts.labelFn || ((k) => k);
+  const map = new Map();
+  for (const t of (rows || [])) {
+    const raw = typeof getKey === 'function' ? getKey(t) : (t ? t[getKey] : null);
+    const key = raw == null || raw === '' ? '—' : String(raw);
+    if (!map.has(key)) map.set(key, { key, label: labelFn(key), rows: [] });
+    map.get(key).rows.push(t);
+  }
+  const groups = [...map.values()];
+  for (const g of groups) g.totals = totals(g.rows);
+  groups.sort((a, b) =>
+    Math.abs(b.totals.net) - Math.abs(a.totals.net)
+    || b.totals.count - a.totals.count
+    || a.key.localeCompare(b.key));
+  return groups;
+}
+
 // ---- Quick month jump ('YYYY-MM') — the Mint/YNAB month-stepper --------------
 
 // The 'YYYY-MM' key for a timestamp (local month).

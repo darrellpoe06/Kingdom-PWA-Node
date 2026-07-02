@@ -74,6 +74,12 @@ export default function RecordsLog({
   const [search, setSearch] = useState('');
   const [facetSel, setFacetSel] = useState({}); // key -> value ('' = all)
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => new Set()); // collapsed group keys
+  const toggleGroup = (key) => setCollapsed((prev) => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
 
   const all = useMemo(() => (Array.isArray(items) ? items : []), [items]);
 
@@ -242,10 +248,18 @@ export default function RecordsLog({
         </div>
       ) : (
         <div className="border border-[#E8E4DC] bg-white">
-          {grouped.groups.map((g) => (
+          {grouped.groups.map((g) => {
+            const isCollapsed = collapsed.has(g.key);
+            return (
             <div key={g.key}>
-              <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-3 py-2 bg-[#FAF8F4] border-y border-[#E8E4DC]">
+              <button
+                type="button"
+                onClick={() => toggleGroup(g.key)}
+                aria-expanded={!isCollapsed}
+                className="sticky top-0 z-10 w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#FAF8F4] border-y border-[#E8E4DC] text-left hover:bg-white"
+              >
                 <span className="flex items-baseline gap-2">
+                  <span className="text-[#5A5751] text-xs" aria-hidden="true">{isCollapsed ? '▸' : '▾'}</span>
                   <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{g.label}</span>
                   <span className="text-[0.625rem] text-[#5A5751]">{g.totals.count.toLocaleString()} {countNoun}{g.totals.count === 1 ? '' : 's'}</span>
                 </span>
@@ -256,14 +270,17 @@ export default function RecordsLog({
                     <span style={amtStyle(g.totals.net < 0 ? '#B85838' : '#166534')}>net {fmtMoney(g.totals.net)}</span>
                   </span>
                 )}
-              </div>
-              <div>
-                {g.records.map((it, i) => (
-                  <React.Fragment key={it.id ?? i}>{renderRow(it)}</React.Fragment>
-                ))}
-              </div>
+              </button>
+              {!isCollapsed && (
+                <div>
+                  {g.records.map((it, i) => (
+                    <React.Fragment key={it.id ?? i}>{renderRow(it)}</React.Fragment>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

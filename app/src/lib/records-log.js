@@ -18,12 +18,13 @@
 // =============================================================================
 
 import {
-  periodRange, effectiveRange, monthRange, monthKeyOf, isMonthKey, monthLabelOf, shiftMonthKey,
+  periodRange, effectiveRange, monthRange, monthKeyOf, isMonthKey, monthLabelOf, shiftMonthKey, groupByField,
 } from './imported-view.js';
 
-// Re-export the item-agnostic date-math so a surface imports one module.
+// Re-export the item-agnostic date-math + the field-rollup grouper (repeated-key
+// subtotals) so a surface adopting RecordsLog imports one module.
 export {
-  periodRange, effectiveRange, monthRange, monthKeyOf, isMonthKey, monthLabelOf, shiftMonthKey,
+  periodRange, effectiveRange, monthRange, monthKeyOf, isMonthKey, monthLabelOf, shiftMonthKey, groupByField,
 };
 
 // Parse any date-ish value to epoch ms. Accepts 'YYYY-MM-DD' (local midnight),

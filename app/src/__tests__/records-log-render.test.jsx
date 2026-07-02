@@ -66,4 +66,15 @@ describe('RecordsLog — shared filing-office primitive (real mount)', () => {
     expect(html).toContain('Filed by month.');   // how
     expect(html).toContain('Learn more');        // routes to Help (deep tier)
   });
+
+  it('a group header collapses to hide its rows (the shared collapsible-group behavior)', async () => {
+    const { container, click } = await mount(base);
+    expect(container.innerHTML).toContain('Newest June'); // expanded by default
+    // the GROUP header (has the count), not the month-stepper button (also "June 2026")
+    const header = [...container.querySelectorAll('button')].find((b) => /June 2026/.test(b.textContent) && /message/.test(b.textContent));
+    await click(header);
+    const html = container.innerHTML;
+    expect(html).toContain('June 2026');          // header + count still shown
+    expect(html).not.toContain('Newest June');    // rows hidden while collapsed
+  });
 });

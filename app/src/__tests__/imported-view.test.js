@@ -9,7 +9,7 @@
 // sum the rows shown — no painted numbers (DR-0076).
 import { describe, it, expect } from 'vitest';
 import {
-  postedMs, totals, sortByDate, periodRange, effectiveRange, filterByRange, groupByMonth,
+  postedMs, totals, sortByDate, periodRange, effectiveRange, filterByRange, groupByMonth, groupByField,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances,
 } from '../lib/imported-view.js';
 
@@ -177,5 +177,57 @@ describe('runningBalances — the statement Balance column, truthful', () => {
   it('handles a non-numeric amount as zero (never NaN-poisons the running total)', () => {
     const bal = runningBalances([{ id: 'x', posted: '2026-06-01', amount: 'oops' }], 200);
     expect(bal.get('x')).toBe(200);
+  });
+});
+
+describe('groupByField — repeated payees roll up to ONE subtotaled group', () => {
+  // Darrell's Salary view: several identical University of IL Payroll rows + others.
+  const SALARY = [
+    { id: 'u1', name: 'University of IL Payroll', amount: 2099.93 },
+    { id: 'u2', name: 'University of IL Payroll', amount: 2099.93 },
+    { id: 'u3', name: 'University of IL Payroll', amount: 2099.93 },
+    { id: 't1', name: 'TLC Therapy', amount: 1500 },
+    { id: 'c1', name: 'Church of the Living God Payroll', amount: 800 },
+    { id: 's1', name: 'State of IL Payroll', amount: 1200 },
+  ];
+
+  it('each group total is the deterministic sum of its rows, and ties out to the overall total', () => {
+    const groups = groupByField(SALARY, (r) => r.name);
+    const uofi = groups.find((g) => g.key === 'University of IL Payroll');
+    expect(uofi.rows).toHaveLength(3);
+    expect(uofi.totals.in).toBeCloseTo(6299.79, 2);   // 3 × 2099.93 rolled up
+    expect(uofi.totals.count).toBe(3);
+    // sum of every group's net === the overall total (subtotals reconcile)
+    const overall = totals(SALARY);
+    const summed = groups.reduce((s, g) => s + g.totals.net, 0);
+    expect(summed).toBeCloseTo(overall.net, 2);
+  });
+
+  it('orders groups biggest-first by magnitude (where the money is)', () => {
+    const groups = groupByField(SALARY, (r) => r.name);
+    expect(groups.map((g) => g.key)).toEqual([
+      'University of IL Payroll',        // 6299.79
+      'TLC Therapy',                     // 1500
+      'State of IL Payroll',             // 1200
+      'Church of the Living God Payroll' // 800
+    ]);
+  });
+
+  it('splits in/out per group (a refund inside a payee nets correctly)', () => {
+    const rows = [
+      { id: 'a', name: 'Store', amount: -100 },
+      { id: 'b', name: 'Store', amount: -40 },
+      { id: 'c', name: 'Store', amount: 25 }, // refund
+    ];
+    const [store] = groupByField(rows, (r) => r.name);
+    expect(store.totals).toEqual({ in: 25, out: 140, net: -115, count: 3 });
+  });
+
+  it('a null/blank key collects under a single "—" group; labelFn maps labels', () => {
+    const rows = [{ id: 'x', cat: null, amount: 5 }, { id: 'y', cat: '', amount: 3 }, { id: 'z', cat: 'food', amount: 2 }];
+    const groups = groupByField(rows, (r) => r.cat, { labelFn: (k) => (k === '—' ? 'Uncategorized' : k) });
+    const dash = groups.find((g) => g.key === '—');
+    expect(dash.rows).toHaveLength(2);
+    expect(dash.label).toBe('Uncategorized');
   });
 });

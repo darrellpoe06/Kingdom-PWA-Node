@@ -68,4 +68,38 @@ describe('Imported — bank-convention view (real mount)', () => {
     expect(html).toContain('1,500.00');
     expect(html).toContain('1,420.00');
   });
+
+  // Darrell's Salary view: repeated payees roll up to a combined subtotal.
+  const SALARY_DATA = {
+    accounts: [{ id: 'a1', name: 'Chase 7206', openingBalance: 0 }],
+    transactions: [
+      { id: 'p1', accountId: 'a1', date: '2026-06-15', amount: 2099.93, description: 'University of IL Payroll', category: 'salary' },
+      { id: 'p2', accountId: 'a1', date: '2026-06-30', amount: 2099.93, description: 'University of IL Payroll', category: 'salary' },
+      { id: 'p3', accountId: 'a1', date: '2026-06-28', amount: 1500, description: 'TLC Therapy', category: 'salary' },
+    ],
+  };
+
+  it('Group by Payee rolls repeated payees into ONE subtotaled group, line items still visible', async () => {
+    const { container, click, byText } = await mount(SALARY_DATA);
+    await click(byText('Payee'));
+    const html = container.innerHTML;
+    expect(html).toContain('University of IL Payroll');   // the group header
+    expect(html).toContain('TLC Therapy');
+    expect(html).toContain('in $4,200');                  // subtotal: 2 × 2099.93 = 4199.86 -> $4,200
+    expect(html).toContain('in $1,500');                  // TLC group subtotal
+    expect(html).toContain('2,099.93');                   // itemized line still visible under the group
+    // overall period total up top ties out (2099.93×2 + 1500 = 5699.86 -> $5,700)
+    expect(html).toContain('in $5,700');
+  });
+
+  it('a group header collapses to hide its line items (subtotal stays)', async () => {
+    const { container, click, byText } = await mount(SALARY_DATA);
+    await click(byText('Payee'));
+    const header = [...container.querySelectorAll('button')].find((b) => /University of IL Payroll/.test(b.textContent));
+    await click(header);
+    const html = container.innerHTML;
+    expect(html).toContain('University of IL Payroll'); // header + subtotal still shown
+    expect(html).toContain('in $4,200');
+    expect(html).not.toContain('2,099.93');             // itemized rows hidden while collapsed
+  });
 });
