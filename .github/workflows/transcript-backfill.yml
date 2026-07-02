@@ -1,0 +1,75 @@
+# transcript-backfill — YouTube auto-caption harvest for @thelovecorner
+#
+# Two phases:
+#   Phase 1: sync new channel uploads → choir_sermons (auto-detects today's
+#            Bible study + rehearsal the moment YouTube publishes them).
+#   Phase 2: fetch YouTube auto-captions → video_transcripts (the un-freeze:
+#            the served app derives lessons/discernment/testimony/trivia/
+#            Scripture sweep LIVE off these rows, no GPU, no Whisper, no n8n).
+#
+# Auth: uses SUPABASE_DB_URL (the session-pooler direct PostgreSQL URL, already
+# a repo secret). Direct psql connection bypasses RLS -- no service-role JWT
+# needed. youtube-transcript-api fetches public auto-captions; no OAuth.
+#
+# THREE BRAKES (CLAUDE.md autonomous-automation rule):
+#   (1) Budget  -- --max 50 per run (inputs.max overrides).
+#   (2) Lock    -- concurrency group below (cancel-in-progress: false);
+#                  a queued run waits; it does NOT stack.
+#   (3) Kill    -- ships INACTIVE (workflow_dispatch ONLY). To enable the
+#                  hourly polling schedule for today's new uploads, uncomment
+#                  the `schedule:` block below and merge. Disable by
+#                  re-commenting and merging, or via GitHub Actions > Disable.
+#
+# One-time setup: SUPABASE_DB_URL must be set as a repository secret
+#   (Settings > Secrets > Actions). This is the same secret used by db-migrate.
+
+name: transcript-backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      max:
+        description: 'Max videos to fetch per run (0 = unlimited)'
+        default: '50'
+        required: false
+      dry_run:
+        description: 'Dry run — fetch captions but do not write to DB (true/false)'
+        default: 'false'
+        required: false
+      ids:
+        description: 'Specific video IDs (comma-separated). Leave blank = full corpus.'
+        required: false
+      skip_channel_sync:
+        description: 'Skip Phase 1 channel sync (true/false)'
+        default: 'false'
+        required: false
+
+  # SCHEDULE (THREE BRAKES: ship inactive — uncomment to enable polling for
+  # today's new uploads; captions take minutes-to-hours post-publish):
+  # schedule:
+  #   - cron: '0 * * * *'   # hourly; the idempotency means re-runs are cheap
+
+# Brake 2: single-instance lock. Two concurrent runs applying to the same DB
+# table at once would double-insert; queuing (not cancelling) is correct here.
+concurrency:
+  group: transcript-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python dependencies
+        run: pip install youtube-transcript-api psycopg2-binary
+
+      - name: Phase 1 + 2 — channel sync + transcript backfill
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          ARGS="--slug colg --max ${{ inputs.max || '50' }}"
+          if [ "${{ inputs.dry_run }}"          = "true" ]; then ARGS="$ARGS --dry-run";            fi
+          if [ "${{ inputs.skip_channel_sync }}" = "true" ]; then ARGS="$ARGS --skip-channel-sync"; fi
+          if [ -n "${{ inputs.ids }}" ];                    then ARGS="$ARGS --ids '${{ inputs.ids }}'"; fi
+          python infra/nas-sme-pipeline/transcript-backfill-ci.py $ARGS
