@@ -246,3 +246,49 @@ export const VX1000_SOFTWARE = {
   machinePlanConfirm: 'Confirm the actual control-room machines on site + record who has each (NovaLCT config vs V-Can operator).',
   usbNote: 'USB Type-B is for FIRST setup (most stable). After config, the control port -> LAN carries control (NovaLCT/V-Can over the network).',
 };
+
+// =============================================================================
+// TOOL CACHE — a sovereign, known-good copy of the VX1000 tools on the NAS
+// =============================================================================
+// So any control PC pulls ONE vetted copy without re-hunting NovaStar's JS-gated
+// site. The NAS folder + README exist; the actual files are dropped in once by a
+// human who VETS them (an installer download is not auto-fetched). Files not yet
+// dropped are marked to-populate, not claimed as present.
+export const TOOL_CACHE = {
+  purpose: 'A sovereign, known-good copy of the VX1000 tools on the NAS, so any control PC pulls one vetted copy without re-hunting NovaStar\'s JS-gated download site.',
+  nasPath: '/volume1/PoeTech/tool-cache/novastar/',
+  smbPath: '\\\\192.168.1.26\\PoeTech\\tool-cache\\novastar\\',
+  contents: [
+    { file: 'NovaLCT V5.9.1 (Windows) installer zip', status: 'to-populate', note: 'Vetted from novastar.tech "Software" tab.' },
+    { file: 'VX1000 Synchronous Control System manual (PDF)', status: 'to-populate' },
+    { file: 'RCFG cabinet file (8x6 receiving-card config)', status: 'to-populate', note: 'SME-pending from LED Nation.' },
+  ],
+  howToPull: 'From any control PC on the LAN or Tailscale: SMB \\\\192.168.1.26\\PoeTech\\tool-cache\\novastar\\, or scp dpoe@192.168.1.26:/volume1/PoeTech/tool-cache/novastar/*.',
+  populateOnce: 'Drop the vetted files into the NAS path once (owner/tech). After that the cache is the one known-good source.',
+  officialSource: 'https://www.novastar.tech/download/download.html?catid=7',
+};
+
+// =============================================================================
+// CONTROL FROM ANYWHERE — remote NovaLCT / browser control of the VX1000
+// =============================================================================
+// NovaLCT is a Windows app that talks to the VX1000 over the CONTROL network, so
+// "remote" = a PC that can REACH the VX1000 control port (LAN or Tailscale mesh).
+export const CONTROL_FROM_ANYWHERE = {
+  summary: 'NovaLCT is a Windows app that talks to the VX1000 over the CONTROL network — so "remote control" means a PC that can REACH the VX1000 control port.',
+  options: [
+    {
+      name: 'NovaLCT on a networked PC (sovereign — recommended)',
+      how: 'Install NovaLCT (from the NAS cache) on a PC that has network reach to the VX1000 control port. Reach it over the Tailscale mesh from home / other nodes — no cloud.',
+      use: 'Full config: screen mapping, calibration, firmware, presets.',
+    },
+    {
+      name: 'VX1000 Pro built-in web page + VICP',
+      how: 'Browser-based control via the VX1000 Pro\'s built-in web page, plus VICP for quick adjustments.',
+      use: 'Quick adjustments (brightness, input select, presets) from a browser — no install.',
+    },
+  ],
+  guardrails: [
+    'Keep the VX1000 control port on the LAN / tailnet ONLY — never exposed to the public internet.',
+    'ONE operator pushes config at a time — do not run two NovaLCT sessions writing at once (conflicts).',
+  ],
+};

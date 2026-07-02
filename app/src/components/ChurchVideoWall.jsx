@@ -39,6 +39,7 @@ import {
   VIDEO_IN, CONTROL, LED_DATA, POWER, MAP,
   ledLineMath, TEACHING_CARD, FINISH_CHECKLIST, CHAIN_DIAGRAM,
   FIRST_LIGHT, VENDOR_MESSAGE, VX1000_SOFTWARE,
+  TOOL_CACHE, CONTROL_FROM_ANYWHERE,
 } from '../lib/led-wall-signal-chain.js';
 import {
   SESSION_GOAL, PHASES, LANES, isPriority, sessionProgress,
@@ -578,6 +579,39 @@ ${VX1000_SOFTWARE.programs.map((p) => `- ${p.name}${p.optional ? ' (optional)' :
 On-site first setup:
 ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
 }</pre>
+      </div>
+
+      {/* ===== TOOL CACHE + CONTROL FROM ANYWHERE ===== */}
+      <div className={card}>
+        <div className={labelCls}>Tool cache &amp; control from anywhere</div>
+
+        <div className="mt-2 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Sovereign tool cache (NAS)</div>
+        <p className="mt-1 text-[0.8125rem] text-[#1A1815]">{TOOL_CACHE.purpose}</p>
+        <p className="mt-1 text-[0.75rem] text-[#1A1815]"><b>NAS:</b> <span className="font-sans">{TOOL_CACHE.nasPath}</span> &middot; <b>SMB:</b> <span className="font-sans">{TOOL_CACHE.smbPath}</span></p>
+        <ul className="mt-1.5 space-y-1">
+          {TOOL_CACHE.contents.map((c, i) => (
+            <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{c.file} <span className="text-[#B85838] italic">[{c.status}]</span>{c.note ? ` — ${c.note}` : ''}</span></li>
+          ))}
+        </ul>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751]"><b>Pull:</b> {TOOL_CACHE.howToPull}</p>
+        <p className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">{TOOL_CACHE.populateOnce}</p>
+
+        <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Control from anywhere</div>
+        <p className="mt-1 text-[0.8125rem] text-[#1A1815]">{CONTROL_FROM_ANYWHERE.summary}</p>
+        <div className="mt-2 space-y-2">
+          {CONTROL_FROM_ANYWHERE.options.map((o, i) => (
+            <div key={i} className="border border-[#E8E4DC] p-2.5">
+              <div className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{o.name}</div>
+              <div className="text-[0.75rem] text-[#1A1815]">{o.how}</div>
+              <div className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">Use for: {o.use}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 border-l-2 border-[#B85838] pl-2.5">
+          {CONTROL_FROM_ANYWHERE.guardrails.map((g, i) => (
+            <p key={i} className="text-[0.75rem] text-[#1A1815]"><b>&#9888;</b> {g}</p>
+          ))}
+        </div>
       </div>
 
       {/* ===== FIRST LIGHT — fresh out of box: test tonight, map tomorrow ===== */}

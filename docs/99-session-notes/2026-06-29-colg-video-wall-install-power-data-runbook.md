@@ -40,6 +40,19 @@ If any of 1–5 differs, the math below shifts — flag it and re-derive.
 > - **VICP** — *optional cloud monitoring*. → any admin machine (optional).
 > **On-site first setup:** (1) connect the VX1000 via **USB Type-B** for first setup (more stable than Ethernet); (2) open NovaLCT, log in **Advanced / Synchronous** user (default password **"admin"**); (3) **Screen Configuration** → map the **8 × 6 = 48**-cabinet grid across the VX1000 output ports; (4) load the panel maker's **RCFG** if provided; (5) switch to **V-Can** for live control. *(Confirm the real control-room machines + who runs NovaLCT vs V-Can.)*
 
+> ### 🗄️ SOVEREIGN TOOL CACHE (NAS) — pull a known-good copy, no re-hunting
+> A vetted copy of the VX1000 tools lives on the NAS so any control PC pulls one known-good source.
+> - **NAS path:** `/volume1/PoeTech/tool-cache/novastar/` &middot; **SMB:** `\\192.168.1.26\PoeTech\tool-cache\novastar\`
+> - **Contents (drop the vetted files here once — currently to-populate):** NovaLCT **V5.9.1** (Windows) installer zip · VX1000 **Synchronous Control System** manual (PDF) · the **RCFG** cabinet file (from LED Nation).
+> - **Pull from a control PC (LAN or Tailscale):** `scp dpoe@192.168.1.26:/volume1/PoeTech/tool-cache/novastar/* .` or the SMB share.
+> - Vet + refresh from the official page only: `https://www.novastar.tech/download/download.html?catid=7`.
+
+> ### 🌐 CONTROL FROM ANYWHERE (sovereign, no cloud)
+> NovaLCT is a **Windows app that talks to the VX1000 over the control network** — so "remote" = a PC that can **reach the VX1000 control port**.
+> - **NovaLCT on a networked PC (recommended):** install NovaLCT (from the NAS cache) on a PC with network reach to the control port; reach it over the **Tailscale mesh** from home / other nodes — no cloud. Full config (mapping, calibration, firmware, presets).
+> - **VX1000 Pro built-in web page + VICP:** browser-based **quick adjustments** (brightness, input, presets) — no install.
+> - **⚠ Guardrails:** keep the VX1000 control port on **LAN / tailnet ONLY** (never public internet); **one operator** pushes config at a time (avoid conflicting NovaLCT sessions).
+
 ---
 
 ## 1. THE WALL (confirmed spec)
