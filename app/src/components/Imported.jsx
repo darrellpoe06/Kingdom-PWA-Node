@@ -34,6 +34,8 @@ import {
   sortByDate, sortRows, effectiveRange, periodRange, filterByRange, groupByMonth, groupByField, totals,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel,
 } from '../lib/imported-view.js';
+import ReportActions from './ReportActions.jsx';
+import { currentViewModel, financePresets } from '../lib/finance-reports.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -232,8 +234,20 @@ export default function Imported({ data = {} }) {
     }
     // Rows within each group sort by the active column (date/account/payee/…).
     groups = groups.map((g) => ({ ...g, rows: sortRows(g.rows, sortKey, sortDir) }));
-    return { groups, windowTotals: totals(windowed), matched: windowed.length };
+    return { groups, windowed, windowTotals: totals(windowed), matched: windowed.length };
   }, [view.filtered, sinceMs, untilMs, sortKey, sortDir, groupMode]);
+
+  // Report meta (period + active filters + generated stamp) and the export models.
+  // DISPLAY/EXPORT only; deterministic; built from the same rows on screen so a
+  // downloaded/printed report ties out to the view (RLS-scoped — no leak).
+  const reportMeta = () => ([
+    { label: 'Period', value: periodLabel(activePeriod) },
+    { label: 'Account', value: filters.institution || 'All accounts' },
+    { label: 'Category', value: filters.category || 'All categories' },
+    { label: 'Grouped by', value: GROUP_MODES.find(([k]) => k === groupMode)?.[1] || 'Month' },
+    { label: 'Generated', value: new Date().toLocaleString('en-US') },
+  ]);
+  const presets = financePresets(grouped.windowed, reportMeta());
 
   // Running-balance column — only when a single account is in view AND it carries
   // a real opening balance to anchor to (truthful-or-absent). Computed over the
@@ -398,6 +412,15 @@ export default function Imported({ data = {} }) {
               ))}
             </div>
           </div>
+
+          {/* Download + Print — the current filtered/grouped view exports exactly
+              as displayed (CSV = raw data, Print = PDF-ready), plus one-click
+              preset reports. Deterministic; export-only; RLS-scoped. */}
+          <ReportActions
+            buildModel={() => currentViewModel(grouped.groups, reportMeta())}
+            filenameBase="imported-transactions"
+            presets={presets}
+          />
 
           <div className="text-[0.625rem] text-[#5A5751]">
             Showing {grouped.matched.toLocaleString()} of {view.total.toLocaleString()} transactions
