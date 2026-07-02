@@ -19,7 +19,7 @@ import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows } from '../
 import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
-import { categorize } from '../lib/categorize.js';
+import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -50,7 +50,7 @@ function TxHistory({ recordEvents, txId }) {
   );
 }
 
-export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction, ingestData = null, visibleEntities = null, visibleEntityIds = null }) {
+export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction, recategorizePayee = null, ingestData = null, visibleEntities = null, visibleEntityIds = null }) {
   // UNBREAKABLE (2026-06-25 white-screen fix) — every account/entity access in
   // this view assumed `data.accounts` and `data.entities` were always present
   // arrays. They are not guaranteed: a signed-in user's merged cloud data can
@@ -155,6 +155,9 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const [csvError, setCsvError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  // "Apply this category to every transaction from this payee" — learns the rule
+  // + back-applies (recategorizePayee). Reset each time an edit opens/closes.
+  const [applyToPayee, setApplyToPayee] = useState(false);
   const todayISO = currentDate.toISOString().slice(0, 10);
   const blank = { date: todayISO, accountId: accounts[0]?.id || '', amount: 0, description: '', category: 'other', entityOverride: '' };
   const [form, setForm] = useState(blank);
@@ -164,14 +167,20 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const startAdd = () => { setForm({ ...blank, accountId: accounts[0]?.id || '' }); setEditingId(null); setShowForm(true); };
   // r32 — Inline edit per IN-PLACE-FIRST: edit form drops down under the row,
   // top form reserved for Add only.
-  const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setShowForm(false); };
-  const cancel = () => { setShowForm(false); setEditingId(null); setForm(blank); };
+  const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setApplyToPayee(false); setShowForm(false); };
+  const cancel = () => { setShowForm(false); setEditingId(null); setApplyToPayee(false); setForm(blank); };
   const submit = () => {
     if (!form.date || !form.accountId || !form.description) { alert('Date, account, and description are required.'); return; }
     const payload = { ...form, amount: parseFloat(form.amount) || 0 };
     if (!payload.entityOverride) delete payload.entityOverride;
-    if (editingId) updateTransaction(editingId, payload);
-    else addTransaction(payload);
+    if (editingId) {
+      updateTransaction(editingId, payload);
+      // Learn + back-apply: one correction re-labels every row from this payee
+      // and teaches the rule for future imports.
+      if (applyToPayee && recategorizePayee && payload.category) recategorizePayee(payload.description, payload.category);
+    } else {
+      addTransaction(payload);
+    }
     cancel();
   };
   const confirmDelete = (t) => { if (confirm(`Delete transaction "${t.description}"?`)) deleteTransaction(t.id); };
@@ -797,6 +806,15 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
               </div>
               <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Description</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+              {recategorizePayee && (() => {
+                const n = countPayeeMatches(data.transactions || [], payeeKey(form.description));
+                return (
+                  <label className="flex items-start gap-2 text-[0.6875rem] text-[#5A5751] cursor-pointer bg-white border border-[#E8E4DC] p-2">
+                    <input type="checkbox" checked={applyToPayee} onChange={e => setApplyToPayee(e.target.checked)} className="mt-0.5" />
+                    <span>Apply <strong className="capitalize">{form.category}</strong> to all <strong>{n}</strong> transaction{n === 1 ? '' : 's'} from this payee — and remember it so future imports from this payee categorize the same way.</span>
+                  </label>
+                );
+              })()}
               <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity override (optional)</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}><option value="">— No override —</option>{entities.map(en => <option key={en.id} value={en.id}>{entityLabel(en)}</option>)}</select></div>
               <div className="flex gap-2">
                 <button type="button" onClick={submit} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
