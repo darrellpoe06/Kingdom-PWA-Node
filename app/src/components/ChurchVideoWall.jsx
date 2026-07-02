@@ -44,6 +44,11 @@ import {
 import {
   SESSION_GOAL, PHASES, LANES, isPriority, sessionProgress,
 } from '../lib/onsite-session.js';
+import {
+  MEDIA_BASE_KEY, mediaUrl,
+  NOVALCT_SETUP_STEPS, PANEL_SPEC, SCREEN_CONNECTION_MAP, FINAL_CONFIG,
+  TOMORROW_ACTIVATION, INSTALL_GALLERY,
+} from '../lib/led-wall-training.js';
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -151,6 +156,19 @@ function BudgetLine({ line }) {
   );
 }
 
+// Renders the real photo IF a NAS media base is configured, else a labeled slot
+// (the authorized fallback while image serving is pending — the guide stays
+// complete and lights up with the real photo the moment the base is set).
+function MediaSlot({ base, photo, label }) {
+  const url = mediaUrl(photo, base);
+  if (url) return <img src={url} alt={label} loading="lazy" className="mt-2 w-full max-h-72 object-contain border border-[#E8E4DC]" />;
+  return (
+    <div className="mt-2 border border-dashed border-[#C9C2B6] bg-[#FAF8F4] px-3 py-2">
+      <span className="text-[0.6875rem] text-[#5A5751]">{label} &mdash; <span className="italic">attach on-site image</span></span>
+    </div>
+  );
+}
+
 const CHECKLIST_KEY = 'colg-led-wall-finish-checklist-v1';
 const ONSITE_KEY = 'colg-onsite-session-v1';
 
@@ -158,6 +176,11 @@ export default function ChurchVideoWall() {
   const [access, setAccess] = useState({ signedIn: false, canSee: false, canEdit: false });
   const [projects, setProjects] = useState(null);   // null = loading
   const [lines, setLines] = useState(null);
+  // NAS media base for on-site photos/screenshots — empty until serving is wired,
+  // so the illustrated guide renders labeled slots today, real photos later.
+  const [mediaBase] = useState(() => {
+    try { return (localStorage.getItem(MEDIA_BASE_KEY) || '').trim(); } catch { return ''; }
+  });
   // Finish-checklist progress — local to this device (a personal work aid, not a
   // shared system-state claim). Persisted to localStorage so it survives reloads.
   const [checked, setChecked] = useState(() => {
@@ -579,6 +602,94 @@ ${VX1000_SOFTWARE.programs.map((p) => `- ${p.name}${p.optional ? ' (optional)' :
 On-site first setup:
 ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
 }</pre>
+      </div>
+
+      {/* ===== ILLUSTRATED NovaLCT SETUP RUNBOOK (verified on-site 2026-07-01) ===== */}
+      <div className={card}>
+        <div className={labelCls}>LED Wall Setup &middot; NovaStar VX1000 Pro + NovaLCT (illustrated)</div>
+        <p className="mt-1 text-[0.75rem] text-[#5A5751]">Verified on site 2026-07-01. Each step has its screenshot/photo below (labeled slot until the on-site image is attached).</p>
+        <ol className="mt-3 space-y-3">
+          {NOVALCT_SETUP_STEPS.map((s) => (
+            <li key={s.n} className="flex gap-3">
+              <div className="shrink-0 w-6 h-6 rounded-full bg-[#1A1815] text-white text-[0.625rem] flex items-center justify-center" style={serif}>{s.n}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{s.title}</div>
+                <div className="text-[0.75rem] text-[#1A1815]">{s.action}</div>
+                <div className="mt-0.5 text-[0.6875rem] text-[#5A5751]">{s.detail}</div>
+                <MediaSlot base={mediaBase} photo={s.photo} label={s.slot} />
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* ===== PANEL / WALL SPEC (canonical) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Panel / wall spec (canonical &middot; confirmed on-site)</div>
+        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[0.75rem]">
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Panel</dt><dd className="text-[#1A1815]">{PANEL_SPEC.vendor}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Model / RX card</dt><dd className="text-[#1A1815]">{PANEL_SPEC.panelModel} &middot; {PANEL_SPEC.receivingCard}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Cabinet</dt><dd className="text-[#1A1815]">{PANEL_SPEC.cabinetPx} ({PANEL_SPEC.cabinetMm}), {PANEL_SPEC.modules}, {PANEL_SPEC.pitchMm}mm</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Module params</dt><dd className="text-[#1A1815]">{PANEL_SPEC.moduleParams}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Wall</dt><dd className="text-[#1A1815]">{PANEL_SPEC.grid} = {PANEL_SPEC.nativePx}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">RX Card Size</dt><dd className="text-[#1A1815]">{PANEL_SPEC.receivingCardSize}</dd></div>
+        </dl>
+        <p className="mt-2 text-[0.6875rem] text-[#1A1815]"><b>Per-port:</b> {PANEL_SPEC.perPortLoad}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#1A1815]"><b>Source:</b> {PANEL_SPEC.source}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#B85838] italic">{PANEL_SPEC.verify}</p>
+      </div>
+
+      {/* ===== VERIFIED SCREEN CONNECTION MAP (canonical reference) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Verified screen connection map &middot; {SCREEN_CONNECTION_MAP.verifiedOn}</div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{SCREEN_CONNECTION_MAP.rule}</p>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>The mechanic to teach:</b> {SCREEN_CONNECTION_MAP.mechanic}</p>
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          {SCREEN_CONNECTION_MAP.ports.map((p) => (
+            <div key={p.port} className="border border-[#E8E4DC] p-1.5 text-[0.625rem]">
+              <div className="font-semibold text-[#1A1815]">Port {p.port}</div>
+              <div className="text-[#5A5751]">{p.column}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[0.6875rem] text-[#B85838] italic">{SCREEN_CONNECTION_MAP.receivingCardSizeNote}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">{SCREEN_CONNECTION_MAP.save}</p>
+        <MediaSlot base={mediaBase} photo={SCREEN_CONNECTION_MAP.photo} label={SCREEN_CONNECTION_MAP.slot} />
+      </div>
+
+      {/* ===== VERIFIED FINAL CONFIG + the real apply procedure ===== */}
+      <div className={card}>
+        <div className={labelCls}>Screen configuration &middot; COMPLETE (verified)</div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{FINAL_CONFIG.status}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">{FINAL_CONFIG.verified}</p>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>&#9888; Real procedure:</b> {FINAL_CONFIG.realProcedure}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#B85838] italic">{FINAL_CONFIG.friction}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#1A1815]"><b>Remaining:</b> {FINAL_CONFIG.remaining}</p>
+        <MediaSlot base={mediaBase} photo={FINAL_CONFIG.photo} label={FINAL_CONFIG.slot} />
+      </div>
+
+      {/* ===== TOMORROW — activation (open item) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Tomorrow &middot; activation (open item)</div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]"><b>Symptom:</b> {TOMORROW_ACTIVATION.symptom}</p>
+        <p className="mt-1 text-[0.75rem] text-[#5A5751]"><b>Cause:</b> {TOMORROW_ACTIVATION.cause}</p>
+        <ol className="mt-2 space-y-1">
+          {TOMORROW_ACTIVATION.steps.map((s, i) => (
+            <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">{i + 1}.</span><span>{s}</span></li>
+          ))}
+        </ol>
+        <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">{TOMORROW_ACTIVATION.status}</p>
+      </div>
+
+      {/* ===== INSTALL GALLERY (labeled slots — attach the on-site photos) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Install gallery &middot; on-site photos</div>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">The actual COLG install. Labeled slots until the on-site photos are attached (serving pending the NAS media host).</p>
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {INSTALL_GALLERY.map((g) => (
+            <MediaSlot key={g.id} base={mediaBase} photo={g.photo} label={g.label} />
+          ))}
+        </div>
       </div>
 
       {/* ===== TOOL CACHE + CONTROL FROM ANYWHERE ===== */}
