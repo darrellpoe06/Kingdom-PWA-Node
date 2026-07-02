@@ -60,4 +60,14 @@ describe('the VX1000 software card shows in the app', () => {
     expect(text).toMatch(/config laptop/i);
     expect(text).toMatch(/operator machine/i);
   });
+  it('renders the sovereign tool cache + control-from-anywhere + guardrails', async () => {
+    await mount();
+    const text = document.body.textContent;
+    expect(text).toMatch(/tool cache/i);
+    expect(text).toMatch(/\/volume1\/PoeTech\/tool-cache\/novastar/);
+    expect(text).toMatch(/Control from anywhere/i);
+    expect(text).toMatch(/Tailscale/);
+    expect(text).toMatch(/never exposed to the public internet/i);
+    expect(text).toMatch(/ONE operator/);
+  });
 });

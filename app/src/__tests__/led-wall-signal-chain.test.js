@@ -8,6 +8,7 @@ import {
   WALL_GRID, VIDEO_IN, CONTROL, LED_DATA, POWER, MAP,
   ledLineMath, TEACHING_CARD, FINISH_CHECKLIST, CHAIN_DIAGRAM,
   FIRST_LIGHT, VENDOR_MESSAGE, VX1000_SOFTWARE,
+  TOOL_CACHE, CONTROL_FROM_ANYWHERE,
 } from '../lib/led-wall-signal-chain.js';
 
 describe('WALL_GRID — 8 columns x 6 rows = 48', () => {
@@ -200,5 +201,39 @@ describe('VX1000_SOFTWARE — the NovaStar program stack + which machine', () =>
     expect(plan.find((m) => m.install === 'NovaLCT').machine).toMatch(/config/i);
     expect(plan.find((m) => m.install === 'V-Can').machine).toMatch(/operator/i);
     expect(VX1000_SOFTWARE.machinePlanConfirm).toMatch(/confirm/i);
+  });
+});
+
+describe('TOOL_CACHE — sovereign known-good copy on the NAS', () => {
+  it('points at the NAS path + SMB + official source, files flagged to-populate', () => {
+    expect(TOOL_CACHE.nasPath).toMatch(/\/volume1\/PoeTech\/tool-cache\/novastar/);
+    expect(TOOL_CACHE.smbPath).toMatch(/192\.168\.1\.26/);
+    expect(TOOL_CACHE.officialSource).toMatch(/novastar\.tech\/download/);
+    // honest: files are not claimed present until vetted + dropped
+    expect(TOOL_CACHE.contents.every((c) => c.status === 'to-populate')).toBe(true);
+    const files = TOOL_CACHE.contents.map((c) => c.file).join(' ');
+    expect(files).toMatch(/NovaLCT V5\.9\.1/);
+    expect(files).toMatch(/manual/i);
+    expect(files).toMatch(/RCFG/);
+  });
+  it('says how to pull from a control PC (LAN or Tailscale)', () => {
+    expect(TOOL_CACHE.howToPull).toMatch(/SMB|scp/);
+    expect(TOOL_CACHE.howToPull).toMatch(/Tailscale|LAN/);
+  });
+});
+
+describe('CONTROL_FROM_ANYWHERE — remote control + guardrails', () => {
+  it('offers the sovereign NovaLCT-over-Tailscale path and the web/VICP path', () => {
+    const names = CONTROL_FROM_ANYWHERE.options.map((o) => o.name).join(' ');
+    expect(names).toMatch(/NovaLCT/);
+    expect(names).toMatch(/web page|VICP/i);
+    const sovereign = CONTROL_FROM_ANYWHERE.options.find((o) => /sovereign/i.test(o.name));
+    expect(sovereign.how).toMatch(/Tailscale/);
+    expect(sovereign.how).toMatch(/no cloud/i);
+  });
+  it('guardrails: control port LAN/tailnet only, single operator', () => {
+    const g = CONTROL_FROM_ANYWHERE.guardrails.join(' ');
+    expect(g).toMatch(/never exposed to the public internet/i);
+    expect(g).toMatch(/ONE operator/);
   });
 });
