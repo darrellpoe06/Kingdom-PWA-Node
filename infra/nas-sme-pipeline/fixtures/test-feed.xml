@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Test RSS/podcast feed for rss-ingest.py dry-run verification.
+  Modeled on a realistic church podcast feed (COLG-style Sunday messages).
+  No real personal data. Usage:
+    python infra/nas-sme-pipeline/rss-ingest.py
+      flag feed-file: infra/nas-sme-pipeline/out/test-feed.xml
+      flag slug:      colg
+      flag dry-run
+-->
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Church of the Living God — Sunday Messages</title>
+    <link>https://www.colgchampaign.org/messages</link>
+    <description>
+      Sunday worship service messages from Bishop Glen Grayson and the Church of the
+      Living God, Champaign-Urbana, Illinois. Rooted in the Word, walking in the Spirit.
+    </description>
+    <language>en-us</language>
+    <itunes:author>Bishop Glen Grayson</itunes:author>
+    <itunes:category text="Religion &amp; Spirituality">
+      <itunes:category text="Christianity"/>
+    </itunes:category>
+
+    <item>
+      <title>2026-06-29 — "Walking in the Spirit" — Bishop Glen Grayson</title>
+      <guid isPermaLink="false">https://colgchampaign.org/messages/2026-06-29-walking-in-the-spirit</guid>
+      <pubDate>Sun, 29 Jun 2026 11:00:00 +0000</pubDate>
+      <link>https://colgchampaign.org/messages/2026-06-29</link>
+      <description>
+        Bishop Grayson opens the morning from Romans 8:1-4 and Galatians 5:16-25, exploring
+        what it means to walk daily in the Spirit rather than the flesh. The message anchors
+        in the freedom Christ purchased and the fruit that walking in the Spirit produces.
+        Scripture references: Romans 8:1, Romans 8:4, Galatians 5:16, Galatians 5:22.
+      </description>
+      <enclosure url="https://media.colgchampaign.org/messages/2026-06-29.mp3"
+                 length="54000000" type="audio/mpeg"/>
+      <itunes:duration>56:23</itunes:duration>
+    </item>
+
+    <item>
+      <title>2026-06-22 — "The Promise Keeper" — Bishop Glen Grayson</title>
+      <guid isPermaLink="false">https://colgchampaign.org/messages/2026-06-22-promise-keeper</guid>
+      <pubDate>Sun, 22 Jun 2026 11:00:00 +0000</pubDate>
+      <link>https://colgchampaign.org/messages/2026-06-22</link>
+      <description>
+        A message on God's faithfulness across generations, anchored in Hebrews 10:23
+        and Numbers 23:19. Bishop Grayson traces the covenant promises from Abraham through
+        to the believer today, showing that Yahweh's word does not return void.
+        Key text: Isaiah 55:11, Hebrews 10:23, Numbers 23:19.
+      </description>
+      <enclosure url="https://media.colgchampaign.org/messages/2026-06-22.mp3"
+                 length="49000000" type="audio/mpeg"/>
+      <itunes:duration>51:07</itunes:duration>
+    </item>
+
+    <item>
+      <title>2026-06-15 — "Stewardship of Time" — Minister Poe</title>
+      <guid isPermaLink="false">https://colgchampaign.org/messages/2026-06-15-stewardship-time</guid>
+      <pubDate>Sun, 15 Jun 2026 11:00:00 +0000</pubDate>
+      <link>https://colgchampaign.org/messages/2026-06-15</link>
+      <description>
+        On redeeming the time given to us and walking in wisdom before those without faith.
+        Grounded in Ephesians 5:15-16 and Colossians 4:5. The message draws the connection
+        between the seven-year biblical cycle and the stewardship call on the believer today.
+        Scripture: Ephesians 5:15, Ephesians 5:16, Colossians 4:5.
+      </description>
+      <enclosure url="https://media.colgchampaign.org/messages/2026-06-15.mp3"
+                 length="41000000" type="audio/mpeg"/>
+      <itunes:duration>43:55</itunes:duration>
+    </item>
+
+    <item>
+      <title>2026-06-08 Wednesday Bible Study — "The Armor of God" — Bishop Glen Grayson</title>
+      <guid isPermaLink="false">https://colgchampaign.org/messages/2026-06-08-armor-of-god</guid>
+      <pubDate>Wed, 08 Jun 2026 13:00:00 +0000</pubDate>
+      <link>https://colgchampaign.org/messages/2026-06-08</link>
+      <description>
+        Wednesday 1pm Bible study. A verse-by-verse walk through Ephesians 6:10-18,
+        the full armor of God. Bishop Grayson breaks down each piece of armor and its
+        practical application for the believer facing spiritual warfare.
+        Full text: Ephesians 6:10, Ephesians 6:11, Ephesians 6:13, Ephesians 6:17.
+      </description>
+      <enclosure url="https://media.colgchampaign.org/messages/2026-06-08-study.mp3"
+                 length="38000000" type="audio/mpeg"/>
+      <itunes:duration>39:42</itunes:duration>
+    </item>
+
+  </channel>
+</rss>

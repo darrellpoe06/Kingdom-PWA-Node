@@ -68,6 +68,13 @@ jobs:
       # read its live source — a loop can't silently go static. Also covered by
       # vitest, run as a named step so the live-data promise is a visible check.
       - run: node ../scripts/interconnect-guard.mjs
+      # Source-adapter seam guard (docs/design/SOURCE-ADAPTER-INTERFACE.md / 0066):
+      # fails the build if the backbone seam migration is missing, any *-ingest.py
+      # adapter lacks a PLATFORM declaration, fewer than two platforms are registered,
+      # or the interface doc is absent. Proven-to-catch: the guard would have failed
+      # before 0066 landed (no content_sources) and before rss-ingest.py existed
+      # (only one platform declared).
+      - run: node ../scripts/source-adapter-guard.mjs
       - run: npx vitest run
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
