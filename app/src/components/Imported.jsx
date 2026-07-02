@@ -31,9 +31,18 @@
 
 import React, { useMemo, useState } from 'react';
 import {
-  sortByDate, sortRows, effectiveRange, periodRange, filterByRange, groupByMonth, totals,
+  sortByDate, sortRows, effectiveRange, periodRange, filterByRange, groupByMonth, groupByField, totals,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel,
 } from '../lib/imported-view.js';
+
+// How the register is grouped: by month (the statement default) or rolled up by a
+// field so repeated payees/categories/accounts show a combined subtotal.
+const GROUP_MODES = [
+  ['month', 'Month'],
+  ['payee', 'Payee'],
+  ['category', 'Category'],
+  ['account', 'Account'],
+];
 
 function formatAmount(n) {
   if (n == null || Number.isNaN(n)) return '—';
@@ -177,6 +186,14 @@ export default function Imported({ data = {} }) {
   const sortArrow = (key) => (sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '');
   // Which row is expanded to its detail drawer (receipt + full metadata).
   const [expandedId, setExpandedId] = useState(null);
+  // How the register is grouped, and which group headers are collapsed.
+  const [groupMode, setGroupMode] = useState('month');
+  const [collapsed, setCollapsed] = useState(() => new Set());
+  const toggleGroup = (key) => setCollapsed((prev) => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
 
   const accounts = Array.isArray(data?.accounts) ? data.accounts : [];
   const view = useMemo(() => buildImportedView(data, filters, Date.now()), [data, filters]);
@@ -197,15 +214,26 @@ export default function Imported({ data = {} }) {
     return periodRange(activePeriod, Date.now());
   }, [activePeriod, range.from, range.to]);
 
-  // Window -> sort -> group. Every number here is summed from the rows it groups.
+  // Window -> group -> sort. Every number here is summed from the rows it groups,
+  // so each group's subtotal (in/out/net) always ties out to the overall period
+  // total shown up top. By Month: newest-first statement sections. By a field
+  // (Payee/Category/Account): repeated payees roll up into ONE group with a
+  // combined subtotal, biggest-first, itemized rows still under each.
   const grouped = useMemo(() => {
     const windowed = filterByRange(view.filtered, sinceMs, untilMs);
-    // Months stay newest-first (group order from a date sort); ROWS within each
-    // month sort by the active column (date/account/payee/category/amount).
-    const groups = groupByMonth(sortByDate(windowed, 'desc'))
-      .map((g) => ({ ...g, rows: sortRows(g.rows, sortKey, sortDir) }));
+    let groups;
+    if (groupMode === 'month') {
+      groups = groupByMonth(sortByDate(windowed, 'desc'));
+    } else {
+      const getKey = groupMode === 'payee' ? (r) => r.name
+        : groupMode === 'account' ? (r) => r.institution
+          : (r) => r.category;
+      groups = groupByField(windowed, getKey, { labelFn: (k) => k || '—' });
+    }
+    // Rows within each group sort by the active column (date/account/payee/…).
+    groups = groups.map((g) => ({ ...g, rows: sortRows(g.rows, sortKey, sortDir) }));
     return { groups, windowTotals: totals(windowed), matched: windowed.length };
-  }, [view.filtered, sinceMs, untilMs, sortKey, sortDir]);
+  }, [view.filtered, sinceMs, untilMs, sortKey, sortDir, groupMode]);
 
   // Running-balance column — only when a single account is in view AND it carries
   // a real opening balance to anchor to (truthful-or-absent). Computed over the
@@ -352,6 +380,25 @@ export default function Imported({ data = {} }) {
             />
           </div>
 
+          {/* Group by — Month (statement sections) or roll up repeated
+              payees/categories/accounts into ONE subtotaled group. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Group by</span>
+            <div className="inline-flex rounded-md border border-[#E8E4DC] overflow-hidden" role="group" aria-label="Group transactions by">
+              {GROUP_MODES.map(([key, label], i) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => { setGroupMode(key); setCollapsed(new Set()); }}
+                  aria-pressed={groupMode === key}
+                  className={`px-3 py-1 text-[0.6875rem] uppercase tracking-wider ${i > 0 ? 'border-l border-[#E8E4DC]' : ''} ${groupMode === key ? 'bg-[#1A1815] text-white' : 'bg-white text-[#5A5751] hover:bg-[#FAF8F4]'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="text-[0.625rem] text-[#5A5751]">
             Showing {grouped.matched.toLocaleString()} of {view.total.toLocaleString()} transactions
             {' · '}<span style={{ color: '#166534' }}>in {fmtMoney(grouped.windowTotals.in)}</span>
@@ -368,11 +415,19 @@ export default function Imported({ data = {} }) {
             </div>
           ) : (
             <div className="border border-[#E8E4DC] bg-white">
-              {grouped.groups.map(g => (
+              {grouped.groups.map(g => {
+                const isCollapsed = collapsed.has(g.key);
+                return (
                 <div key={g.key}>
-                  <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-3 py-2 bg-[#FAF8F4] border-y border-[#E8E4DC]">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(g.key)}
+                    aria-expanded={!isCollapsed}
+                    className="sticky top-0 z-10 w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#FAF8F4] border-y border-[#E8E4DC] text-left hover:bg-white"
+                  >
                     <span className="flex items-baseline gap-2">
-                      <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{g.label}</span>
+                      <span className="text-[#5A5751] text-xs" aria-hidden="true">{isCollapsed ? '▸' : '▾'}</span>
+                      <span className={`text-[#1A1815] ${groupMode === 'category' ? 'capitalize' : ''}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{g.label}</span>
                       <span className="text-[0.625rem] text-[#5A5751]">{g.totals.count.toLocaleString()} tx</span>
                     </span>
                     <span className="flex items-center gap-2 text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -380,7 +435,8 @@ export default function Imported({ data = {} }) {
                       <span style={{ color: '#B85838' }}>out {fmtMoney(g.totals.out)}</span>
                       <span style={{ color: g.totals.net < 0 ? '#B85838' : '#166534' }}>net {fmtMoney(g.totals.net)}</span>
                     </span>
-                  </div>
+                  </button>
+                  {!isCollapsed && (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-white text-[#5A5751] uppercase tracking-wider text-[0.625rem]">
@@ -437,8 +493,10 @@ export default function Imported({ data = {} }) {
                       </tbody>
                     </table>
                   </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
