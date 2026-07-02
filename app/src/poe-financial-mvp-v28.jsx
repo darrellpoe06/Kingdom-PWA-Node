@@ -636,7 +636,57 @@ const DEMO_DATA_FAMILY_OF_4 = {
     { id: 'dt-10', date: '2026-05-15', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
     { id: 'dt-11', date: '2026-05-15', accountId: 'a-checking', amount: -200,  description: 'Church giving · tithe',       category: 'charitable' },
     { id: 'dt-12', date: '2026-05-16', accountId: 'a-checking', amount: -340,  description: 'Auto loan payment',           category: 'debt-payment' },
-    { id: 'dt-13', date: '2026-05-17', accountId: 'a-cc-1',     amount: -85,   description: 'Aldi · weekly groceries',     category: 'groceries' },
+    // Emailed-receipt enrichment (aspirational demo, no real data): a single
+    // Walmart charge the bank shows as one $83.73 debit, expanded by the matched
+    // order-confirmation email into its line items. The itemization splits the
+    // charge across groceries / household / medical and the items reconcile back
+    // to the exact bank amount — the bank stays the source of truth for the
+    // amount; the receipt supplies the detail + the second verification.
+    { id: 'dt-13', date: '2026-05-17', accountId: 'a-cc-1', amount: -83.73, description: 'Walmart Supercenter', category: 'household',
+      reconciliation: {
+        matched: true, matched_to: ['bank', 'email'], merchant: 'Walmart', method: 'visa-debit', card_last4: '3344',
+        total: 83.73, source_email: { from: 'help@walmart.com', subject: 'Your Walmart order', received: '2026-05-17' },
+        orders: [{ order: '2000123456789', tax: 3.11, paid: 83.73, items: [
+          { name: 'Great Value Whole Milk 1 gal', qty: 1, price: 3.98 },
+          { name: 'Bananas each', qty: 6, price: 1.62 },
+          { name: 'Boneless Chicken Breast', qty: 1, price: 9.44 },
+          { name: 'Large White Eggs 18ct', qty: 1, price: 4.87 },
+          { name: 'Honey Nut Cereal', qty: 2, price: 5.96 },
+          { name: 'Tide PODS Laundry Detergent 42ct', qty: 1, price: 12.97 },
+          { name: 'Bounty Paper Towels 6 rolls', qty: 1, price: 14.94 },
+          { name: 'Charmin Toilet Paper 12 rolls', qty: 1, price: 13.97 },
+          { name: 'Tylenol Extra Strength 100ct', qty: 1, price: 12.87 },
+        ] }],
+      } },
+    // A Walgreens charge enriched the same way — items are medical-dominant, so
+    // the derived category is 'medical' even though the payee alone is ambiguous.
+    { id: 'dt-13b', date: '2026-05-18', accountId: 'a-cc-1', amount: -28.39, description: 'Walgreens', category: 'medical',
+      reconciliation: {
+        matched: true, matched_to: ['bank', 'email'], merchant: 'Walgreens', method: 'visa-debit', card_last4: '3344',
+        total: 28.39, source_email: { from: 'Walgreens@email.walgreens.com', subject: 'Your Walgreens order is ready', received: '2026-05-18' },
+        orders: [{ order: 'WAG-88231', tax: 0.62, paid: 28.39, items: [
+          { name: 'Amoxicillin 500mg Rx', qty: 1, price: 10.00, category: 'medical' },
+          { name: 'Advil Ibuprofen 200mg 100ct', qty: 1, price: 9.49 },
+          { name: 'Band-Aid Flexible Fabric 30ct', qty: 1, price: 4.29 },
+          { name: 'Dawn Ultra Dish Soap', qty: 1, price: 3.99 },
+        ] }],
+      } },
+    // PHOTO/OCR path (aspirational demo): a Target charge whose itemization came
+    // from a PHOTOGRAPHED receipt — the proof image is attached, the capture time
+    // is kept, and the location tag was stripped before storing. Same downstream,
+    // same verification (items reconcile to the $29.70 bank amount).
+    { id: 'dt-13c', date: '2026-05-19', accountId: 'a-cc-1', amount: -29.70, description: 'Target', category: 'household',
+      reconciliation: {
+        matched: true, matched_to: ['bank', 'photo'], merchant: 'Target', method: 'card', captured_via: 'photo',
+        total: 29.70,
+        source_image: { dataUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjYwIiB2aWV3Qm94PSIwIDAgMjAwIDI2MCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyNjAiIGZpbGw9IiNmNmY0ZWYiLz48cmVjdCB4PSIxNCIgeT0iMTIiIHdpZHRoPSIxNzIiIGhlaWdodD0iMjM2IiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiNkOWQ0YzkiLz48dGV4dCB4PSIxMDAiIHk9IjQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjMDAwMCI+VEFSR0VUPC90ZXh0Pjx0ZXh0IHg9IjI0IiB5PSI3NCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5Ij5VcCBQYXBlciBUb3dlbHMgOC45OTwvdGV4dD48dGV4dCB4PSIyNCIgeT0iMTg0IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCI+VE9UQUwgMjkuNzA8L3RleHQ+PC9zdmc+', name: 'target-receipt.jpg', captured_at: '2026-05-19T16:42:00', has_gps: false, stripped_exif: true },
+        orders: [{ order: 'TGT-5540', tax: 1.94, paid: 29.70, items: [
+          { name: 'Up & Up Paper Towels 6pk', qty: 1, price: 8.99 },
+          { name: 'Good & Gather Whole Milk', qty: 1, price: 3.49 },
+          { name: 'Market Pantry Large Eggs 12ct', qty: 1, price: 3.29 },
+          { name: 'Tide Liquid Detergent', qty: 1, price: 11.99 },
+        ] }],
+      } },
     { id: 'dt-14', date: '2026-05-20', accountId: 'a-checking', amount: -500,  description: 'Visa payment',                category: 'debt-payment' },
     { id: 'dt-15', date: '2026-05-22', accountId: 'a-cc-1',     amount: -130,  description: 'Kids · clothes + supplies',   category: 'household' },
     { id: 'dt-16', date: '2026-05-25', accountId: 'a-checking', amount: -65,   description: 'Phone bill',                  category: 'utilities' },
@@ -647,6 +697,21 @@ const DEMO_DATA_FAMILY_OF_4 = {
     { id: 'dt-20', date: '2026-06-06', accountId: 'a-checking', amount: -150,  description: 'State Farm · auto',           category: 'insurance' },
     { id: 'dt-21', date: '2026-06-10', accountId: 'a-checking', amount: -340,  description: 'Auto loan payment',           category: 'debt-payment' },
     { id: 'dt-22', date: '2026-06-15', accountId: 'a-checking', amount: -200,  description: 'Church giving · tithe',       category: 'charitable' },
+  ],
+  // Emailed receipts the NAS email feed delivered but NOT yet confirmed — they
+  // wait in the shared validation gate (Books > Tx > "Review N emailed"). This
+  // Amazon order matches the -$130 "Kids · clothes + supplies" charge (dt-15).
+  emailReceipts: [
+    { merchant: 'Amazon', date: '2026-05-22', total: 130.00, tax: 8.00, confidence: 1, source: 'email',
+      order: '112-4455667-8899001',
+      source_email: { from: 'auto-confirm@amazon.com', subject: 'Your Amazon order', received: '2026-05-22' },
+      items: [
+        { name: 'Kids Winter Jacket', qty: 1, price: 49.99 },
+        { name: 'School Backpack', qty: 1, price: 34.99 },
+        { name: 'Notebooks 5-pack', qty: 1, price: 12.49 },
+        { name: 'Colored Pencils 24ct', qty: 1, price: 8.99 },
+        { name: 'Insulated Lunch Box', qty: 1, price: 15.54 },
+      ] },
   ],
   contractors1099: [],
   taxCalendar: [],

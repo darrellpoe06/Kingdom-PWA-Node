@@ -28,6 +28,7 @@
 import { monthCoverage } from './transaction-analysis.js';
 import { groupDoorsByBuilding } from './building-group.js';
 import { unitsOf, isPersonalProp } from './rental-portfolio.js';
+import { hasReceiptItems, receiptVerification, categorySplit } from './receipt-itemize.js';
 
 // Today, YYYY-MM-DD — the day the process flagged it (app runtime; Date is fine).
 function today() {
@@ -137,6 +138,60 @@ export function shapeMismatchConcerns({ debts = [] } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// receiptConcerns — RECEIPT-vs-BANK cross-check reflex over the ledger. When a
+// transaction is enriched with an emailed vendor receipt (Walmart/Walgreens/…),
+// the itemized detail is a SECOND source that must agree with the bank amount
+// (DR-0076: the cross-reference IS the verification). This flags the two ways
+// that agreement can break so a governor sees it without opening every charge:
+//   • a receipt whose items do NOT reconcile to the bank debit (amount off /
+//     tampered / incomplete parse) — receiptVerification() fails.
+//   • a receipt where too many dollars could not be categorized from item names
+//     (category uncertain) — the split's `uncertain` flag.
+// Auto-resolves the moment the underlying reconciliation is fixed (detector stops
+// finding it), like every other read-through concern. Pure + offline + $0.
+// ---------------------------------------------------------------------------
+export function receiptConcerns(transactions = []) {
+  const out = [];
+  for (const t of transactions || []) {
+    if (!t || !t.reconciliation || !hasReceiptItems(t.reconciliation)) continue;
+    const merchant = t.reconciliation.merchant || t.description || 'A charge';
+    const v = receiptVerification(t.reconciliation, t.amount);
+    if (!v.verified) {
+      out.push({
+        id: `derived-receipt-mismatch-${t.id}`,
+        concern: `${merchant} (${t.date || 'undated'}) has a matched receipt whose itemized detail does NOT reconcile to the bank amount: ${v.reason}. The bank stays the source of truth for the amount — the receipt parse or the match is off.`,
+        solution: `Open this charge in Books → Transactions and check the receipt items against the statement. Re-run the receipt parse for ${merchant}, or unlink the wrong receipt. Amount is trusted from the bank; only the itemization is in question.`,
+        status: 'open',
+        area: 'Banking import',
+        whenNote: 'auto-detected · receipt cross-check (receiptVerification)',
+        source: 'reconciliation',
+        readOnly: true,
+        detectedBy: 'receiptVerification',
+        created: today(),
+      });
+      continue; // one card per charge; a mismatch is the more urgent signal
+    }
+    const split = categorySplit(t.reconciliation);
+    if (split.uncertain) {
+      const pct = Math.round(split.uncertainShare * 100);
+      out.push({
+        id: `derived-receipt-uncat-${t.id}`,
+        concern: `${merchant} (${t.date || 'undated'}) reconciles to the bank, but ${pct}% of its receipt dollars could not be categorized from the item names — the category split is uncertain.`,
+        solution: `Review the uncategorized items on this charge and set their category so the groceries/household/medical split is precise. This teaches future ${merchant} receipts.`,
+        status: 'open',
+        area: 'Banking import',
+        whenNote: 'auto-detected · receipt category-completeness',
+        source: 'reconciliation',
+        readOnly: true,
+        detectedBy: 'categorySplit',
+        created: today(),
+      });
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // deriveDataConcerns — run every process detector over the live app data and
 // return the flat list of read-through concern cards. Defensive: any detector
 // throwing (bad row shape) is isolated so one bad record never blanks the board.
@@ -145,6 +200,7 @@ export function deriveDataConcerns({ transactions = [], rentals = [], debts = []
   const safe = (fn) => { try { return fn() || []; } catch (e) { console.warn('[derive-concerns] detector failed', e); return []; } };
   return [
     ...safe(() => coverageConcerns(transactions)),
+    ...safe(() => receiptConcerns(transactions)),
     ...safe(() => doorCollapseConcerns(rentals)),
     ...safe(() => shapeMismatchConcerns({ debts })),
   ];

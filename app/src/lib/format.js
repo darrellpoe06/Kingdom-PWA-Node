@@ -16,6 +16,15 @@
 export const fmt = (n) =>
   n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
+// Exact currency to the cent, locale-grouped. `—` for null/non-finite. Use where
+// the cents CARRY MEANING and rounding would lie — per-item receipt prices, line
+// totals, reconciliation figures ($12.97 must not read as $13). `fmt` stays the
+// whole-dollar default for balances/forecasts; this is the precise complement.
+export const fmtCents = (n) =>
+  n == null || !isFinite(n)
+    ? '—'
+    : `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 // Compact currency (k / M / B) for tight cells. `—` for null/non-finite.
 export const fmtCompact = (n) => {
   if (n == null || !isFinite(n)) return '—';

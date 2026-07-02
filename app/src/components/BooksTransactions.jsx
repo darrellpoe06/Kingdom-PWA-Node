@@ -11,15 +11,20 @@
 // n8n base + reconciliation helpers it uses were already core libs.
 import React, { useState, useEffect, useMemo } from 'react';
 import { TabScroll } from './shared.jsx';
-import { fmt } from '../lib/format.js';
+import { fmt, fmtCents } from '../lib/format.js';
 import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
+import { hasReceiptItems, categorySplit, derivedCategory, receiptVerification, categorizeItem } from '../lib/receipt-itemize.js';
 import { versionTimeline } from '../lib/record-history.js';
 import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows } from '../lib/statement-import.js';
 import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
 import { categorize } from '../lib/categorize.js';
+import ReceiptCapture from './ReceiptCapture.jsx';
+import Lightbox from './Lightbox.jsx';
+import InputValidation from './InputValidation.jsx';
+import { candidateFromManual, candidateFromBankRow } from '../lib/input-validation.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -47,6 +52,146 @@ function TxHistory({ recordEvents, txId }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// ReceiptItemization — the emailed-receipt enrichment dropdown (DR-0076). When a
+// bank transaction is matched to a vendor receipt/order-confirmation email
+// (Walmart, Walgreens, Amazon, …), the reconciliation carries the LINE ITEMS the
+// bank line never could. This expands a charge to show every item + its price,
+// the category SPLIT derived from those items (groceries vs household on one
+// charge), and the item-level verification: the items must sum to the same bank
+// debit the statement already confirmed. The bank stays the source of truth for
+// the amount; the receipt only enriches + double-checks it. Self-explaining with
+// hover tooltips; nothing here moves money (display-only).
+function ReceiptItemization({ reconciliation, amount, txCategory }) {
+  const [showImage, setShowImage] = useState(false);
+  if (!hasReceiptItems(reconciliation)) return null;
+  const split = categorySplit(reconciliation);
+  const verdict = receiptVerification(reconciliation, amount);
+  const derived = derivedCategory(reconciliation);
+  const orders = (reconciliation.orders || []).filter((o) => Array.isArray(o.items) && o.items.length);
+  const itemCount = orders.reduce((n, o) => n + o.items.length, 0);
+  const merchant = reconciliation.merchant || 'Receipt';
+  // Proof image (photo/OCR path). dataUrl renders directly; a NAS-only ref shows
+  // an honest "stored on NAS" note (no thumbnail URL wired here yet).
+  const img = reconciliation.source_image || null;
+  const imgSrc = img && img.dataUrl ? img.dataUrl : null;
+  const catLabel = split.parts.filter((p) => p.category !== 'other').map((p) => p.category).join(' + ') || 'items';
+  const email = reconciliation.source_email || null;
+  return (
+    <details className="mt-1 text-[0.6875rem]">
+      <summary
+        className="cursor-pointer text-[#5A5751] hover:text-[#1A1815] select-none"
+        style={{ fontFamily: '"Fraunces", serif' }}
+        title={`Itemized detail from the ${merchant} receipt (${(reconciliation.matched_to || []).includes('photo') ? 'photographed' : 'email'}) matched to this bank charge. Click to expand every item and its price.`}
+      >
+        {merchant} receipt · {itemCount} item{itemCount === 1 ? '' : 's'} · {catLabel}
+        {(reconciliation.matched_to || []).includes('photo') && <span className="text-[#5A5751]" title="This receipt came from a photo you captured; the text was read on-device."> · photo</span>}
+      </summary>
+      <div className="mt-1 pl-3 border-l-2 border-[#E8E4DC] space-y-2">
+        {/* Proof image (photo/OCR path): a thumbnail that opens the full receipt. */}
+        {imgSrc && (
+          <div className="pb-1">
+            <button type="button" onClick={() => setShowImage(true)}
+              className="inline-block focus:outline focus:outline-2 focus:outline-[#B85838]"
+              title="View the full receipt photo attached as proof (location data was stripped before storing)">
+              <img src={imgSrc} alt={`${merchant} receipt photo`} className="h-16 w-16 object-cover border border-[#E8E4DC]" />
+            </button>
+            <span className="ml-2 text-[0.5625rem] text-[#5A5751] align-top" title="Proof of purchase attached to this charge.">receipt photo · proof attached</span>
+          </div>
+        )}
+        {!imgSrc && img && img.ref && (
+          <div className="pb-1 text-[0.5625rem] text-[#5A5751]" title="The receipt photo is stored on the family NAS.">receipt photo stored on NAS · proof attached</div>
+        )}
+        {orders.map((o, oi) => (
+          <div key={oi} className="space-y-0.5">
+            {o.order && (
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" title="The vendor order/receipt number from the email.">Order {o.order}</div>
+            )}
+            {o.items.map((it, ii) => {
+              const cat = categorizeItem(it).category;
+              return (
+                <div key={ii} className="flex items-baseline justify-between gap-2">
+                  <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {it.qty && Number(it.qty) !== 1 ? <span className="text-[#5A5751]" title="Quantity on the receipt line">{it.qty}× </span> : ''}
+                    {it.name}
+                    {cat && (
+                      <span
+                        className="ml-1.5 inline-block px-1 py-px text-[0.5rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] align-middle"
+                        title={`Categorized from the item name as ${cat}. This is why one charge can split across categories.`}
+                      >
+                        {cat}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[#1A1815] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtCents(it.price)}</span>
+                </div>
+              );
+            })}
+            {(o.tax || o.fees || o.shipping || o.discount) ? (
+              <div className="flex items-baseline justify-between gap-2 text-[#5A5751]">
+                <span title="Tax, fees, shipping, and discounts from the receipt — what makes the items sum to the amount charged.">
+                  {[o.tax ? `tax ${fmtCents(o.tax)}` : null, o.fees ? `fees ${fmtCents(o.fees)}` : null, o.shipping ? `shipping ${fmtCents(o.shipping)}` : null, o.discount ? `− discount ${fmtCents(o.discount)}` : null].filter(Boolean).join(' · ')}
+                </span>
+                <span />
+              </div>
+            ) : null}
+          </div>
+        ))}
+
+        {/* Category SPLIT — the precise-categorization payoff. One charge, several categories. */}
+        {split.parts.length > 0 && (
+          <div className="pt-1 border-t border-[#E8E4DC]">
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] mb-0.5" title="Where this one charge's dollars actually went, split by item category — instead of filing the whole charge under a single guess.">
+              Category split from items
+            </div>
+            {split.parts.map((p) => (
+              <div key={p.category} className="flex items-baseline justify-between gap-2">
+                <span className={`uppercase tracking-wider text-[0.5625rem] ${p.category === 'other' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>
+                  {p.category === 'other' ? 'uncategorized' : p.category}{' '}<span className="normal-case tracking-normal">· {p.itemCount} item{p.itemCount === 1 ? '' : 's'}</span>
+                </span>
+                <span className="text-[#1A1815] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtCents(p.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Item-level verification — the cross-reference IS the verification. */}
+        <div className="pt-1 border-t border-[#E8E4DC] flex items-baseline justify-between gap-2">
+          {verdict.verified ? (
+            <span className="text-[#5A6E3D]" title={`Every item + tax reconciles to the ${fmtCents(Math.abs(amount))} the bank already confirmed. Two independent sources agree.`}>
+              ✓ Items reconcile to the {fmtCents(Math.abs(amount))} bank debit — verified
+            </span>
+          ) : (
+            <span className="text-[#B85838]" title={`This charge is flagged to the Concerns queue: ${verdict.reason}`}>
+              Receipt does not reconcile — {verdict.reason}
+            </span>
+          )}
+          <span />
+        </div>
+
+        {/* If the items imply a different category than the row is filed under, say so. */}
+        {derived && txCategory && derived !== txCategory && (
+          <div className="text-[0.625rem] text-[#5A5751]" title="The item mix suggests a more precise category than the current one. Edit the row to apply it.">
+            Items suggest <span className="text-[#5A6E3D] uppercase tracking-wider">{derived}</span> (filed as {txCategory})
+          </div>
+        )}
+        {email && (
+          <div className="text-[0.5625rem] text-[#5A5751]" title="Provenance: the receipt email this itemization came from.">
+            from {email.from || 'vendor email'}{email.received ? ` · ${email.received}` : ''}
+          </div>
+        )}
+        {img && (
+          <div className="text-[0.5625rem] text-[#5A5751]" title="The photo's capture time (kept for matching) and confirmation the location tag was removed before storing.">
+            photographed{img.captured_at ? ` · ${String(img.captured_at).slice(0, 10)}` : ''} · location tag stripped
+          </div>
+        )}
+      </div>
+      {showImage && imgSrc && (
+        <Lightbox items={[{ src: imgSrc, alt: `${merchant} receipt photo`, caption: `${merchant} receipt` }]} index={0} onClose={() => setShowImage(false)} />
+      )}
+    </details>
   );
 }
 
@@ -159,6 +304,16 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const blank = { date: todayISO, accountId: accounts[0]?.id || '', amount: 0, description: '', category: 'other', entityOverride: '' };
   const [form, setForm] = useState(blank);
 
+  // The ONE shared validate -> preview -> confirm -> commit gate. EVERY input
+  // path (manual add, bank-file import, captured photos, emailed receipts) opens
+  // this same InputValidation surface with candidates; nothing commits until the
+  // user confirms there. `validation` holds the open review, or null.
+  const [validation, setValidation] = useState(null);
+  const openValidation = (candidates, title) => {
+    const list = (candidates || []).filter(Boolean);
+    if (list.length) setValidation({ candidates: list, title: title || 'Review before it commits' });
+  };
+
   // Round 9: no scroll-to-top. Form opens at the top of the transaction list;
   // the user keeps their place in whatever row they were reading.
   const startAdd = () => { setForm({ ...blank, accountId: accounts[0]?.id || '' }); setEditingId(null); setShowForm(true); };
@@ -170,8 +325,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     if (!form.date || !form.accountId || !form.description) { alert('Date, account, and description are required.'); return; }
     const payload = { ...form, amount: parseFloat(form.amount) || 0 };
     if (!payload.entityOverride) delete payload.entityOverride;
-    if (editingId) updateTransaction(editingId, payload);
-    else addTransaction(payload);
+    if (editingId) { updateTransaction(editingId, payload); cancel(); return; }
+    // ADD goes through the SAME validation gate as every other input — the entry
+    // is previewed (auto-picked category, confidence) and confirmed before it
+    // commits. Nothing lands silently.
+    openValidation([candidateFromManual(payload, { categoryRules: data?.categoryRules })], 'Review this entry');
     cancel();
   };
   const confirmDelete = (t) => { if (confirm(`Delete transaction "${t.description}"?`)) deleteTransaction(t.id); };
@@ -577,26 +735,19 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     if (!csvAccountId) { setCsvError('Pick a target account first.'); return; }
     const valid = csvParsed.rows.filter(r => r.ok);
     if (valid.length === 0) { setCsvError('No valid rows to import.'); return; }
-    if (!confirm(`Import ${valid.length} transaction(s) into ${(accounts.find(a => a.id === csvAccountId) || {}).name || 'this account'}?`)) return;
-    valid.forEach(r => {
-      addTransaction({
-        date: r.date,
-        accountId: csvAccountId,
-        amount: r.amount,
-        description: r.desc.slice(0, 200),
-        category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
-      });
-    });
-    // Emit the run-state outcome for the Loops watching layer (DR-0083) —
-    // ran-when / rows / status, read-only + non-blocking so observing can never
-    // break the import. The balance already moved off the addTransaction calls;
-    // this only RECORDS that it happened.
+    // Bank-file rows go through the SAME validation gate — each parsed row is a
+    // candidate (category auto-picked from the description) the user previews +
+    // confirms before it commits. No silent bulk insert.
+    const cands = valid.map(r => candidateFromBankRow(
+      { date: r.date, amount: r.amount, description: r.desc.slice(0, 200), category: r.category },
+      { accountId: csvAccountId, categoryRules: data?.categoryRules },
+    ));
     const acctName = (accounts.find(a => a.id === csvAccountId) || {}).name || 'account';
-    recordLoopRun({ key: 'upload-import', status: 'success', processed: valid.length, detail: `${acctName} · CSV/Excel` });
+    recordLoopRun({ key: 'upload-import', status: 'success', processed: valid.length, detail: `${acctName} · CSV/Excel (review)` });
     setCsvOpen(false);
     setCsvRaw('');
     setCsvError('');
-    alert(`Imported ${valid.length} transaction(s).`);
+    openValidation(cands, `Review ${cands.length} imported transaction${cands.length === 1 ? '' : 's'}`);
   };
   // Bulk import — drop MANY statement files at once, each AUTO-ROUTED to its
   // account by filename, deduped (FITID/content) so a re-upload or overlapping
@@ -618,11 +769,15 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   };
   const commitBulk = () => {
     if (!bulkPlan || !bulkPlan.totalNew) return;
-    if (!confirm(`Import ${bulkPlan.totalNew} transaction(s) across ${bulkPlan.routed.length} account(s)? ${bulkPlan.duplicates} duplicate(s) will be skipped.`)) return;
-    bulkPlan.routed.forEach(b => b.txns.forEach(t => addTransaction(t)));
-    recordLoopRun({ key: 'upload-import', status: 'success', processed: bulkPlan.totalNew, detail: `bulk · ${bulkPlan.routed.length} accounts` });
+    // Same gate for the multi-file bank import: every routed row becomes a
+    // reviewable candidate (its account is already resolved by planBulkImport).
+    const cands = bulkPlan.routed.flatMap(b => b.txns.map(t => candidateFromBankRow(
+      { date: t.date, amount: t.amount, description: t.description, category: t.category },
+      { accountId: t.accountId, categoryRules: data?.categoryRules },
+    )));
+    recordLoopRun({ key: 'upload-import', status: 'success', processed: bulkPlan.totalNew, detail: `bulk · ${bulkPlan.routed.length} accounts (review)` });
     setBulkPlan(null); setCsvOpen(false);
-    alert(`Imported ${bulkPlan.totalNew} transaction(s).`);
+    openValidation(cands, `Review ${cands.length} imported transaction${cands.length === 1 ? '' : 's'}`);
   };
   const onCsvFile = (file) => {
     if (!file) return;
@@ -701,6 +856,24 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 ✓ matched to bank{(t.reconciliation.matched_to || []).includes('email') ? ' · email' : ''}
               </span>
             )}
+            {/* Emailed-receipt itemization present + reconciles → a distinct
+                "receipt verified" badge. Only paints when the line items sum to
+                the same bank debit (receiptVerification), so like the bank badge
+                a green here always means the two sources agree. */}
+            {hasReceiptItems(t.reconciliation) && receiptVerification(t.reconciliation, t.amount).verified && (
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D]"
+                style={{ backgroundColor: '#5A6E3D22', border: '1px solid #5A6E3D' }}
+                title={`Itemized receipt from ${t.reconciliation.merchant || 'the vendor email'} reconciles to this charge — item detail verified. Expand below.`}>
+                ✓ receipt verified
+              </span>
+            )}
+            {hasReceiptItems(t.reconciliation) && !receiptVerification(t.reconciliation, t.amount).verified && (
+              <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider text-[#B85838]"
+                style={{ backgroundColor: '#B8583822', border: '1px solid #B85838' }}
+                title={`Receipt found but it does not reconcile to the bank amount — flagged to Concerns: ${receiptVerification(t.reconciliation, t.amount).reason}`}>
+                ! receipt mismatch
+              </span>
+            )}
             {t._status && t._source === 'bank-ingest' && t._status !== 'unknown' && (
               <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider"
                 style={{
@@ -713,10 +886,18 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               </span>
             )}
           </div>
+          {/* Emailed-receipt itemization (Walmart/Walgreens/Amazon…): the line
+              items behind this one charge + the category split + item-level
+              verification. Rendered instead of the invoice rollup below when the
+              reconciliation carries receipt items[]. */}
+          {t.reconciliation?.matched && hasReceiptItems(t.reconciliation) && (
+            <ReceiptItemization reconciliation={t.reconciliation} amount={t.amount} txCategory={t.category} />
+          )}
           {/* Invoice rollup (migration 0036): one bank debit, several merchant
               invoices. Shows that the parts sum to the whole so the single
-              ledger amount is never mistaken for triple-counting. */}
-          {t.reconciliation?.matched && Array.isArray(t.reconciliation.orders) && t.reconciliation.orders.length > 0 && (
+              ledger amount is never mistaken for triple-counting. The receipt
+              path above owns the itemized case; this stays the invoice case. */}
+          {t.reconciliation?.matched && !hasReceiptItems(t.reconciliation) && Array.isArray(t.reconciliation.orders) && t.reconciliation.orders.length > 0 && (
             <details className="mt-1 text-[0.6875rem]">
               <summary className="cursor-pointer text-[#5A5751] hover:text-[#1A1815] select-none" style={{ fontFamily: '"Fraunces", serif' }}>
                 {t.reconciliation.orders.length} invoices → one {t.reconciliation.method === 'visa-debit' ? 'debit' : 'charge'}{t.reconciliation.card_last4 ? ` ···${t.reconciliation.card_last4}` : ''} · {fmt(t.reconciliation.total)}
@@ -868,6 +1049,30 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         );
       })()}
 
+      {/* Photo/OCR receipt capture + emailed receipts — both hand candidates to
+          the ONE shared validation gate below (InputValidation), the same gate
+          manual entries and bank-file imports use. Capture extracts; the gate
+          confirms + commits. */}
+      <ReceiptCapture
+        transactions={data.transactions || []}
+        emailReceipts={data.emailReceipts || []}
+        onValidate={openValidation}
+      />
+
+      {/* The ONE shared validate -> preview -> confirm -> commit gate. Opened by
+          manual add, bank-file import, captured photos, and emailed receipts —
+          all reviewed identically here before anything commits. */}
+      {validation && (
+        <InputValidation
+          candidates={validation.candidates}
+          title={validation.title}
+          accounts={accounts}
+          transactions={data.transactions || []}
+          addTransaction={addTransaction}
+          updateTransaction={updateTransaction}
+          onClose={() => setValidation(null)}
+        />
+      )}
 
       <section>
         {/* Tx sub-tabs route through the shared <TabScroll> primitive so they

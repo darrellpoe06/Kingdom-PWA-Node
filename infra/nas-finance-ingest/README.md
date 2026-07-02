@@ -41,6 +41,53 @@ python3 ingest.py --root /volume1/PoeTech/finance-events --out "$HOME/nas-financ
 Output dir holds `imported-transactions.json`, `verified-ledger.json`,
 `_loop_runs.json`, and the brake state files.
 
+## Receipt enrichment (`receipts.py`) — itemized detail behind each charge
+Companion to `ingest.py`. Where `ingest.py` builds the verified bank ledger (the
+source of truth for every **amount**), `receipts.py` pulls the **itemized detail**
+the bank line can never carry — the line items + per-item prices inside vendor
+**receipt / order-confirmation emails** (Walmart, Walgreens, Amazon, Target, …) —
+and **cross-references** them to those bank transactions. A matched pair becomes a
+`reconciliation` block (migration 0036 shape) the PWA renders as the expandable
+**itemized dropdown**: a `$83.73` Walmart debit expands to the milk, the Tide, the
+Tylenol behind it, **split across categories** (groceries / household / medical),
+**verified** against the bank amount.
+
+- **Privacy-scoped, family-sensitive Gmail** (Darrell's + Christina's): reads the
+  same sovereign `finance-events/gmail/*.json` drop `ingest.py` reads, fetched
+  over the NAS-resident SSH/CLI path (**keys stay on the NAS — never printed,
+  never exfiltrated; no network calls; email bodies are never printed**).
+  `is_receipt()` is **default-deny** — only vendor receipt/order-confirmation mail
+  is ever parsed; personal/family mail and vendor **marketing** are rejected
+  (selftest proves a Walmart *marketing* blast and a personal `$20` note are both
+  rejected). Email content is treated as **data, never instructions**.
+- **Deterministic-first**: per-vendor regex parsers for known templates; a generic
+  parser for near-known layouts; the **LLM is a fallback for unknown layouts
+  only**, injected as a callable so the module stays offline + testable (the NAS
+  wires the local Ollama in).
+- **The bank stays the source of truth for the amount.** A receipt only matches a
+  bank row when amount (exact cents, ±2c rounding) + date (±3 days) agree, and the
+  itemization must **reconcile** (`items + tax == total == |debit|`) before it is
+  attached — the cross-reference **IS** the verification (DR-0076). Non-reconciling
+  pairs go to `mismatches` and unmatched receipts to `unmatched_receipts`; the app
+  surfaces both to the **Concerns** queue. Display-only — never moves money.
+- **Output**: `receipt-reconciliations.json` = `{ fitid: reconciliation }` the app
+  overlays onto the matched transaction, plus `mismatches` + `counts`. Same three
+  brakes (`.receipts.lock` / budget / `.receipts.paused`). **Ships inactive.**
+
+```
+python3 receipts.py --selftest    # 18 checks incl. proven-to-catch (tamper -> mismatch)
+python3 receipts.py --root /volume1/PoeTech/finance-events --out "$HOME/nas-finance-verified"
+```
+
+**Honest reachability caveat.** `receipts.py` parses whatever receipt emails land
+in the `gmail/` drop. That drop is produced by the sovereign SSH-fetched Gmail
+step. **Christina's Gmail is only reachable once her account is actually connected
+to that fetch** (an OAuth/credential step only Darrell or Christina can do) — until
+then only the already-authorized mailbox flows through. The parsing + cross-ref +
+UI are built and proven against representative fixtures; live Christina-mailbox
+receipts require that credential connection + the fetch/timer armed with someone
+watching (Tier C).
+
 ## Arming later (NOT done yet — gated)
 Once a human is watching, a Synology scheduled task (DSM → Control Panel → Task
 Scheduler) or cron runs `python3 /path/ingest.py ...` on an interval, and the PWA
