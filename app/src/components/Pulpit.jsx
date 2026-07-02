@@ -174,9 +174,12 @@ function PointsBlock({ bundle }) {
       )}
       {open && hasPoints && (
         <ol className="mt-1.5 space-y-1.5">
-          {points.map((p) => (
+          {points.map((p, i) => (
             <li key={p.n + p.text.slice(0, 12)} className="flex gap-2">
-              <span className="text-[0.6875rem] font-semibold text-[#5A6E3D] tabular-nums shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.n}.</span>
+              {/* Number by POSITION (1,2,3…), never the raw stored ordinal — the
+                  transcript extractor can repeat/skip ordinals, so a positional
+                  count is the reliable "1..n" display regardless of source. */}
+              <span className="text-[0.6875rem] font-semibold text-[#5A6E3D] tabular-nums shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{i + 1}.</span>
               <span className="text-[0.8125rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                 {p.text}
                 {p.scriptures && p.scriptures.length > 0 && (
