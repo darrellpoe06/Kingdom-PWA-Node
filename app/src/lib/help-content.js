@@ -608,6 +608,27 @@ export const HELP = {
     why: 'Knowing what a tool is for — and who it is built to serve — is the start of trusting it. This page answers that before you commit a thing.',
     section: 'start',
   },
+
+  // ── Reactions key (the "Images of the Godhead" legend) ─────────────────────
+  // Not a nav tab — a shared reference reachable from the "?" beside any reaction
+  // control. The KEY itself (each symbol + meaning + Scripture) is rendered by
+  // ReactionKey.jsx straight from lib/reactions.js, the SAME source the picker's
+  // hover reads, so this never duplicates the meanings (legend: 'reactions').
+  reactions: {
+    title: 'Reaction key — the Images of the Godhead',
+    tag: 'What each reaction symbol means and the Scripture behind it.',
+    what: 'The reactions on messages and decisions are not just a heart and a thumbs-up. Most of them are images of Yahweh — the Father, the Son, and the Holy Spirit — each drawn from a specific verse: the Lion of Judah, the Lamb of God, the Dove of the Spirit, the Cloud of Glory, and more. This key names every symbol so you can react with the one that fits how the Word landed.',
+    how: [
+      'Read the key below: it is grouped by the Son, the Spirit, and the Father, with the plain reactions (Like, Love, Amen, Wrestling) at the top.',
+      'Each row shows the symbol, what it means when you tap it (how the Word landed), and the Scripture it comes from.',
+      'On any message or decision, tap "React" to open the same palette — hover a symbol there and you will see this same meaning and verse.',
+      'Tap your reaction to add it, tap it again to remove it; you carry one reaction per item, and the counts add up for everyone to see.',
+    ],
+    why: 'These symbols are a language for how Scripture meets you — humbled like the Lamb, emboldened like the Lion, given peace like the Dove. Learning the key lets the whole body react with meaning, not just a like, and keeps every reaction anchored to the Word.',
+    more: 'The key is read straight from the one reaction registry the picker uses, so it can never fall out of step with what the app actually offers — add a reaction and it appears here automatically, with its verse.',
+    section: 'church',
+    legend: 'reactions',
+  },
 };
 
 // -----------------------------------------------------------------------------

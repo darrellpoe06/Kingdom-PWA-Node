@@ -43,6 +43,7 @@ import { sortByReactions, reactionsFor } from '../lib/reactions.js';
 import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reactions-sync.js';
 import { churchInstanceId } from '../lib/church-instance.js';
 import ReactionBar from './ReactionBar.jsx';
+import HelpButton from './HelpButton.jsx';
 import { fetchPointsData, fetchVideoStats } from '../lib/sermon-library-sync.js';
 import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
@@ -358,6 +359,7 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
             className={`text-[0.6875rem] px-2.5 py-1 rounded-full border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] ${sortMode === key ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}
             style={{ fontFamily: '"Fraunces", serif' }}>{label}</button>
         ))}
+        <HelpButton variant="inline" topic="reactions" className="ml-0.5" />
       </div>
 
       {roster.length > 0 && (
