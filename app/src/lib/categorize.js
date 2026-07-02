@@ -92,3 +92,22 @@ export function learnRule(learned, description, category) {
 // LOW_CONFIDENCE — at/below this, a categorization should be flagged for review
 // rather than trusted silently.
 export const LOW_CONFIDENCE = 0.5;
+
+// applyCategoryToPayee — back-apply a category to EVERY transaction sharing a
+// payee key (one correction, applied everywhere). Pure: returns the new
+// transactions array + how many rows changed, so the caller can preview the
+// count, then persist + sync the result.
+export function applyCategoryToPayee(transactions, key, category) {
+  let count = 0;
+  const out = (transactions || []).map((t) => {
+    if (payeeKey(t.description) === key && t.category !== category) { count += 1; return { ...t, category }; }
+    return t;
+  });
+  return { transactions: out, count };
+}
+
+// countPayeeMatches — how many transactions share a payee key (for the preview
+// "apply to all N from this payee").
+export function countPayeeMatches(transactions, key) {
+  return (transactions || []).filter((t) => payeeKey(t.description) === key).length;
+}

@@ -154,6 +154,7 @@ import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
+import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { N8N_BASE } from './lib/n8n-base.js';
 
@@ -3853,6 +3854,30 @@ export default function PoeFinancialSystem() {
     }
     if (before && after) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'update', before, after });
   };
+  // recategorizePayee — LEARN + BACK-APPLY. When the user corrects a category,
+  // record the payee->category rule (data.categoryRules, so future imports of
+  // that payee auto-apply) AND re-label every existing transaction from the same
+  // payee. One correction, applied everywhere; each changed row syncs. Returns
+  // the number of rows changed so the caller can confirm.
+  const recategorizePayee = (description, category) => {
+    const key = payeeKey(description);
+    if (!key) return 0;
+    const changed = (data.transactions || []).filter(t => payeeKey(t.description) === key && t.category !== category);
+    setData(d => ({
+      ...d,
+      categoryRules: { ...(d.categoryRules || {}), [key]: category },
+      transactions: applyCategoryToPayee(d.transactions || [], key, category).transactions,
+    }));
+    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+      for (const t of changed) {
+        if (t.remoteUuid) transactionsSync.updateRow(t.remoteUuid, { category }).catch(e => console.warn('[transactions-sync] recategorize failed', e));
+      }
+    }
+    for (const t of changed) {
+      recordHistoryEvent({ recordKind: 'transaction', recordId: t.id, action: 'update', before: t, after: { ...t, category } });
+    }
+    return changed.length;
+  };
   const deleteTransaction = (id) => {
     const before = (data.transactions || []).find(t => t.id === id) || null;
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
@@ -5338,7 +5363,7 @@ html{scroll-padding-bottom:280px}
                 SectionBoundary makes the unbreakable-pass hold for the migrated surface:
                 a thrown error OR a chunk-load failure degrades JUST this panel, never the
                 whole app (the new failure mode lazy-loading introduces over the old inline). */}
-            {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} /></SectionBoundary>}
+            {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} /></SectionBoundary>}
             {booksView === 'imported' && (importedAllowed
               ? <Imported data={data} />
               : <ImportedDemoGuard setBooksView={setBooksView} />)}
