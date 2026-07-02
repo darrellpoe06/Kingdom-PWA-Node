@@ -141,8 +141,10 @@ describe('The Word — a LIBRARY of messages, each its OWN presentation', () => 
     const lib = wordLibrary(sermons);
     expect(lib.length).toBe(2);                  // draft excluded
     expect(lib[0].id).toBe('m1');                // newest first
-    expect(lib[0].dayLabel).toBe('Sunday');
-    expect(lib[1].dayLabel).toBe('Wednesday Bible Study');
+    // dayLabel is the KIND now (not a weekday word) — the dateLabel carries the
+    // real weekday, so the label can never contradict the date (2026-07-02 fix).
+    expect(lib[0].dayLabel).toBe('Service');
+    expect(lib[1].dayLabel).toBe('Bible study');
     expect(wordLibrary(null)).toEqual([]);
   });
 
