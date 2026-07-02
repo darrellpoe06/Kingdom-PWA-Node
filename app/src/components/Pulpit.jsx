@@ -38,6 +38,7 @@ import {
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import { extractYoutubeId } from '../lib/youtube-title-parse.js';
 import { pointsForVideo, pointsSearchText } from '../lib/sermon-points.js';
+import { serviceKindLabel } from '../lib/service-day.js';
 import { sortByReactions, reactionsFor } from '../lib/reactions.js';
 import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reactions-sync.js';
 import { churchInstanceId } from '../lib/church-instance.js';
@@ -222,7 +223,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
               {sermon.status === 'draft' && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
               {sermon.scriptureRef && <span className="text-[0.6875rem] text-[#5A5751]">{sermon.scriptureRef}</span>}
             </div>
-            <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {sermon.serviceType === 'wednesday' ? 'Wed' : 'Sun'}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
+            <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {serviceKindLabel(sermon.serviceType)}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
           </div>
           {sermon.speaker && <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
           {sermon.repreachSourceName && (
