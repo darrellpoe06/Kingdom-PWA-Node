@@ -37,6 +37,7 @@ import {
   helpFor, ROADMAP, SECTION_TITLE, ariHelpLead, HELP_VOICE_NAME,
 } from '../lib/help-content.js';
 import UiIcon from './UiIcon.jsx';
+import ReactionKey from './ReactionKey.jsx';
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import { digestFromHelp } from '../lib/surface-digest.js';
 import { narrateDigest } from '../lib/talk-about.js';
@@ -247,6 +248,14 @@ export default function HelpButton({
               <div className="mt-4 px-3 py-2 bg-[#FAF8F4] border-l-2 border-[#B85838]">
                 <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-0.5">Why it matters</div>
                 <p className="text-sm leading-relaxed text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{entry.why}</p>
+              </div>
+            )}
+
+            {/* LEGEND (optional) — a rich in-sheet reference rendered from its own
+                single source. Today: the reaction key, straight from lib/reactions.js. */}
+            {entry.legend === 'reactions' && (
+              <div className="mt-5 pt-4 border-t border-[#E8E4DC]">
+                <ReactionKey />
               </div>
             )}
 

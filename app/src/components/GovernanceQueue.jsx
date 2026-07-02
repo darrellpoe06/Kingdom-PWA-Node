@@ -20,6 +20,7 @@ import React, { useEffect, useState } from 'react';
 import { DECISION_KIND } from '../lib/decisions.js';
 import supabase from '../lib/supabase.js';
 import ReactionBar from './ReactionBar.jsx';
+import HelpButton from './HelpButton.jsx';
 import { reactionsFor } from '../lib/reactions.js';
 import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reactions-sync.js';
 
@@ -136,7 +137,10 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
       {/* ---- RECORDED BY THE APP: live decisions the running system logged ---- */}
       <div className="space-y-3">
         <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#2A5A8E] font-semibold">Governance · Recorded by the app</div>
+          <div className="flex items-center gap-1.5">
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#2A5A8E] font-semibold">Governance · Recorded by the app</div>
+            <HelpButton variant="inline" topic="reactions" />
+          </div>
           <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             The decisions the running system logged between commits — a board hand-off (Push to Ari / Darrell, with the note) and a concern marked resolved (the how becomes the record). Each carries its <em>why</em>, so a future steward inherits the understanding, not just the outcome. Auto-derived from the same records the app and you both write — no one types these in. {decisions.length > 0 ? `${decisions.length} recorded` : 'None yet'}.
           </p>
