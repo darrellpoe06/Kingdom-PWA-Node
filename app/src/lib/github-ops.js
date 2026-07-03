@@ -93,23 +93,102 @@ export function landOrder(pulls) {
 }
 
 // --- live fetch (bounded, honest degradation) -------------------------------
+//
+// RATE-BUDGET DISCIPLINE (2026-07-03, "GitHub capped us"): one fetchOps() costs
+// up to 11 unauthenticated requests, and the See tab mounts THREE panels that
+// each called it — up to 33 requests per visit against a 60/hr/IP budget. Two
+// visits in an hour = capped. Two structural fixes, both here so no caller can
+// regress them:
+//   1. ETag conditional requests — GitHub 304s DON'T COUNT against the
+//      unauthenticated rate limit, so a repeat read of an unchanged endpoint is
+//      free. Bodies + ETags cache in localStorage (pruned, best-effort).
+//   2. One shared fetch — concurrent fetchOps() calls join the same in-flight
+//      promise, and a fresh result is reused within OPS_TTL_MS instead of
+//      re-spending the budget three times for one screen.
+
+const ETAG_KEY = 'poe-gh-etag-cache';
+const ETAG_CAP = 24; // endpoints worth of {etag, body} — pruned oldest-first
+
+// ONE in-memory cache object, hydrated from localStorage once. Concurrent
+// endpoint reads (fetchOps fires several in a Promise.all) mutate the SAME
+// object, so a parallel writer can never clobber another's entry the way
+// independent read-modify-write cycles on the storage key would (the pinning
+// test caught exactly that race). Persistence is best-effort.
+let etagCache = null;
+// Test seam: force re-hydration from localStorage (the cache hydrates once).
+export function __resetEtagCacheForTests() { etagCache = null; }
+function getEtagCache() {
+  if (!etagCache) {
+    try {
+      const raw = JSON.parse(localStorage.getItem(ETAG_KEY) || '{}');
+      etagCache = raw && typeof raw === 'object' ? raw : {};
+    } catch { etagCache = {}; }
+  }
+  return etagCache;
+}
+function persistEtagCache(cache) {
+  try {
+    const keys = Object.keys(cache);
+    if (keys.length > ETAG_CAP) {
+      keys.sort((a, b) => (cache[a].at || 0) - (cache[b].at || 0))
+        .slice(0, keys.length - ETAG_CAP)
+        .forEach((k) => { delete cache[k]; });
+    }
+    localStorage.setItem(ETAG_KEY, JSON.stringify(cache));
+  } catch { /* private mode / full storage — caching is best-effort */ }
+}
 
 async function getJson(url, fetchImpl) {
   const f = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
   if (!f) throw new Error('no fetch');
-  const r = await f(url, { headers: { Accept: 'application/vnd.github+json' } });
+  const cache = getEtagCache();
+  const hit = cache[url];
+  const headers = { Accept: 'application/vnd.github+json' };
+  if (hit && hit.etag) headers['If-None-Match'] = hit.etag;
+  const r = await f(url, { headers });
+  if (r.status === 304 && hit) {
+    return hit.body; // free: a 304 does not count against the unauth limit
+  }
   if (r.status === 403 || r.status === 429) {
     const err = new Error('rate-limited');
     err.rateLimited = true;
     throw err;
   }
   if (!r.ok) throw new Error('http ' + r.status);
-  return r.json();
+  const body = await r.json();
+  const etag = (r.headers && typeof r.headers.get === 'function') ? r.headers.get('etag') : null;
+  if (etag) {
+    cache[url] = { etag, body, at: Date.now() };
+    persistEtagCache(cache);
+  }
+  return body;
+}
+
+// Share one live read across every panel on the screen: concurrent callers
+// join the in-flight promise; a completed read is reused for OPS_TTL_MS.
+// Injected-fetch calls (tests) bypass the share so fixtures stay isolated.
+export const OPS_TTL_MS = 90 * 1000;
+let opsInflight = null;
+let opsLast = { at: 0, data: null };
+
+export async function fetchOps(opts = {}) {
+  if (!opts.fetch) {
+    const now = Date.now();
+    if (opsLast.data && now - opsLast.at < OPS_TTL_MS && !opts.force) return opsLast.data;
+    if (opsInflight) return opsInflight;
+    opsInflight = fetchOpsUncached(opts).then((data) => {
+      opsLast = { at: Date.now(), data };
+      opsInflight = null;
+      return data;
+    }, (e) => { opsInflight = null; throw e; });
+    return opsInflight;
+  }
+  return fetchOpsUncached(opts);
 }
 
 // Pull the live orchestration picture. Returns a normalized, render-ready shape
 // with an explicit `ok` / `notice` so the UI can show partial truth honestly.
-export async function fetchOps(opts = {}) {
+async function fetchOpsUncached(opts = {}) {
   const fetchImpl = opts.fetch;
   const out = { ok: false, fetchedAt: null, main: null, mainCi: null, pulls: [], recentMerges: [], notice: null };
   try {
