@@ -19,24 +19,51 @@
 // chosen reaction is aria-pressed. No emoji (device-independent SVG via
 // ReactionIcon), rem font sizes (the global large-print control scales it).
 //
-// TOUCH-FIRST (Darrell 2026-07-03: "nice in theory, they don't feel intuitive
-// yet"): every tile shows its NAME under the icon — the meaning is never hidden
-// behind hover, which touch devices don't have. On a no-hover device the pick is
-// TWO taps: the first shows the meaning + Scripture in the detail strip and arms
-// the tile ("tap again to react"); the second confirms. Desktop keeps one-click
-// (hover already previews). Nobody reacts blind, nobody reacts by accident.
+// TEXTING-APP FEEL (Darrell 2026-07-03: "long hold gives options not a touch
+// the choose... it's clunky... makes it feel cheap"): the interaction is now
+// the one every messaging app trained the world on —
+//   TAP the chip   -> react instantly (Love by default; tap again removes);
+//   HOLD the chip  -> the full palette opens under your finger;
+//   TAP a tile     -> picks it, one touch, done;
+//   HOLD a tile    -> previews its meaning + Scripture without reacting.
+// Every tile still shows its NAME under the icon (meaning never hides behind
+// hover), and the ▾ affordance beside the chip opens the palette on plain
+// click — the discoverable + keyboard-first route to the same options.
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactionIcon from './ReactionIcon.jsx';
 import {
   REACTION_GROUPS, reactionsInGroup, reactionDef, reactionSummary, EMPTY_REACTIONS,
 } from '../lib/reactions.js';
+import { usePressHold } from '../lib/use-press-hold.js';
 
-// True when the device has a real hover (mouse/trackpad). Touch/pen-only devices
-// report (hover: none) and get the two-tap flow. Environments without matchMedia
-// (tests, older engines) default to hover-capable, preserving one-click.
-function canHover() {
-  return !(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: none)').matches);
+// The one-tap default — the reaction a quick tap applies when you haven't
+// reacted yet (the texting-app convention; hold for the full palette).
+const DEFAULT_REACTION = 'love';
+
+// One palette tile: TAP picks (one touch, done); HOLD previews the meaning +
+// Scripture in the detail strip without reacting. Hover/focus preview stays for
+// mouse/keyboard. A component (not inline) because usePressHold is a hook.
+function PaletteTile({ reaction: r, mine, onPick, onPreview }) {
+  const gesture = usePressHold({ onTap: onPick, onHold: onPreview });
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      {...gesture}
+      onMouseEnter={onPreview}
+      onFocus={onPreview}
+      aria-pressed={mine}
+      title={`${r.label}${r.scripture ? ` — ${r.scripture.ref}` : ''}`}
+      className={`flex flex-col items-center justify-start gap-0.5 px-1 pt-1.5 pb-1 border touch-none select-none focus:outline focus:outline-2 focus:outline-[#B85838] ${
+        mine ? 'bg-[#B85838] text-white border-[#B85838]'
+        : 'bg-[#FAF8F4] text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] hover:bg-white'}`}
+    >
+      <span className="text-[1.05rem] leading-none"><ReactionIcon name={r.icon} title={r.label} /></span>
+      {/* The name is always VISIBLE — meaning never hides behind hover. */}
+      <span className="text-[0.5625rem] leading-tight text-center">{r.label}</span>
+    </button>
+  );
 }
 
 // Move one vote from oldKey -> newKey in a counts map (optimistic display).
@@ -57,7 +84,6 @@ export default function ReactionBar({
 }) {
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState(null);      // the reaction whose Scripture is shown in the palette
-  const [armed, setArmed] = useState(null);        // touch two-tap: the key awaiting its confirming tap
   const [pendingMy, setPendingMy] = useState(null); // optimistic: the just-picked key, '' = removed, null = none
   const [who, setWho] = useState(null);            // reactors list (when the counts row is tapped)
   const [note, setNote] = useState('');            // soft status (e.g. sign-in prompt)
@@ -75,8 +101,8 @@ export default function ReactionBar({
   const total = summary.reduce((a, s) => a + s.count, 0);
   const myDef = myKey ? reactionDef(myKey) : null;
 
-  // Opening fresh or closing drops any half-armed pick.
-  useEffect(() => { setArmed(null); setDetail(null); }, [open]);
+  // Opening fresh or closing resets the preview strip.
+  useEffect(() => { setDetail(null); }, [open]);
 
   // Close on outside tap / Escape.
   useEffect(() => {
@@ -88,18 +114,6 @@ export default function ReactionBar({
     return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
-  // A tap on a palette tile. No-hover devices confirm in two taps: the first
-  // arms the tile and shows its meaning (the preview hover would have given);
-  // the second (same tile) reacts. Hover devices react on the single click.
-  const pick = (r) => {
-    if (!canHover() && armed !== r.key) {
-      setDetail(r);
-      setArmed(r.key);
-      return;
-    }
-    react(r.key);
-  };
-
   const react = async (key) => {
     if (!signedIn) { setNote('Sign in to react.'); return; }
     setNote('');
@@ -107,7 +121,6 @@ export default function ReactionBar({
     const next = myKey === key ? '' : key;
     setPendingMy(next);
     setOpen(false);
-    setArmed(null);
     const res = await onReact?.(key);
     if (res && res.skipped) {
       setPendingMy(null); // reconcile back to server truth
@@ -115,6 +128,13 @@ export default function ReactionBar({
       else if (res.skipped !== 'no-instance') setNote('Could not save your reaction.');
     }
   };
+
+  // The chip: TAP reacts instantly (toggle my reaction, or apply the default);
+  // HOLD opens the palette under the finger (texting-app convention).
+  const chipGesture = usePressHold({
+    onTap: () => react(myKey || DEFAULT_REACTION),
+    onHold: () => setOpen(true),
+  });
 
   const showWho = async () => {
     if (!onShowWho) return;
@@ -128,19 +148,28 @@ export default function ReactionBar({
   return (
     <div ref={rootRef} className={`relative ${className}`} style={{ fontFamily: '"Fraunces", serif' }}>
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Trigger — my reaction, or a "React" affordance. TAP opens the palette. */}
+        {/* The chip — TAP reacts instantly (Love, or removes yours); HOLD opens
+            the palette (texting-app convention). The ▾ beside it is the same
+            palette on a plain click — discoverable + keyboard-first. */}
+        <button
+          type="button"
+          {...chipGesture}
+          aria-pressed={!!myKey}
+          className={`${CHIP} touch-none select-none ${myKey ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+          title={myDef ? `You reacted: ${myDef.label}${myDef.scripture ? ` — ${myDef.scripture.ref}` : ''}. Tap to remove · hold for all reactions` : `React to ${contentLabel} — tap for Love · hold for all reactions`}
+        >
+          <ReactionIcon name={myDef ? myDef.icon : 'love'} />
+          <span>{myDef ? myDef.label : 'React'}</span>
+        </button>
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-haspopup="menu"
           aria-expanded={open}
-          aria-pressed={!!myKey}
-          className={`${CHIP} ${myKey ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
-          title={myDef ? `You reacted: ${myDef.label}${myDef.scripture ? ` — ${myDef.scripture.ref}` : ''}` : `React to ${contentLabel}`}
-        >
-          <ReactionIcon name={myDef ? myDef.icon : 'love'} />
-          <span>{myDef ? myDef.label : 'React'}</span>
-        </button>
+          aria-label={`All reactions for ${contentLabel}`}
+          title="All reactions"
+          className={`${CHIP} border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] px-1`}
+        >▾</button>
 
         {/* Compact per-reaction counts. Tap to see who (community-default). */}
         {summary.length > 0 && (
@@ -201,24 +230,13 @@ export default function ReactionBar({
                 <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1">{g.label}</div>
                 <div className="grid grid-cols-4 gap-1">
                   {items.map((r) => (
-                    <button
+                    <PaletteTile
                       key={r.key}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => pick(r)}
-                      onMouseEnter={() => setDetail(r)}
-                      onFocus={() => setDetail(r)}
-                      aria-pressed={myKey === r.key}
-                      title={`${r.label}${r.scripture ? ` — ${r.scripture.ref}` : ''}`}
-                      className={`flex flex-col items-center justify-start gap-0.5 px-1 pt-1.5 pb-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${
-                        myKey === r.key ? 'bg-[#B85838] text-white border-[#B85838]'
-                        : armed === r.key ? 'bg-white text-[#1A1815] border-[#B85838]'
-                        : 'bg-[#FAF8F4] text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] hover:bg-white'}`}
-                    >
-                      <span className="text-[1.05rem] leading-none"><ReactionIcon name={r.icon} title={r.label} /></span>
-                      {/* The name is always VISIBLE — meaning never hides behind hover. */}
-                      <span className="text-[0.5625rem] leading-tight text-center">{r.label}</span>
-                    </button>
+                      reaction={r}
+                      mine={myKey === r.key}
+                      onPick={() => react(r.key)}
+                      onPreview={() => setDetail(r)}
+                    />
                   ))}
                 </div>
               </div>
@@ -241,15 +259,10 @@ export default function ReactionBar({
                 ) : (
                   <p className="text-[0.625rem] text-[#5A5751] mt-0.5 italic">A plain reaction.</p>
                 )}
-                {armed === (detail && detail.key) && (
-                  <p className="text-[0.625rem] font-semibold mt-0.5 text-[#B85838]">Tap “{detail.label}” again to react.</p>
-                )}
               </div>
             ) : (
               <p className="text-[0.625rem] text-[#5A5751] italic">
-                {canHover()
-                  ? 'Hover a reaction to see its meaning and Scripture. Tap to react.'
-                  : 'Tap a reaction once to see its meaning and Scripture — tap it again to react.'}
+                Tap a reaction to react. Hold one to see its meaning and Scripture first.
               </p>
             )}
           </div>
