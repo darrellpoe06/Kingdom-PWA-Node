@@ -199,7 +199,32 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['generations', 'curses', 'family', 'turning', 'the-way'],
   },
 
+  {
+    // Darrell 2026-07-03: "Give Him Your Heart not just your money — your
+    // subconscious... eat the Word."
+    id: 'gh-give-heart', section: 'wisdom', name: 'Give Me Thine Heart (not just your money)',
+    refs: ['Proverbs 23:26'],
+    condition: 'MY SON, GIVE ME THINE HEART — the ask is the heart itself, the subconscious, the eyes\' delight in His ways; the wallet was never the point.',
+    consequence: 'The heart given observes His ways — the whole person comes with it, because everything you do flows from where the heart lives.',
+    threeD: 'Tithes without the heart is rent, not relationship. Hand over the inner life — what you dwell on, delight in, and default to — and eat the Word until the subconscious sees His Heart.',
+    outcome: 'A whole-person surrender the money could never buy — and a heart that sees.',
+    psyche: 'Behavior follows the heart\'s attachments, not the ledger: what the subconscious treasures steers the person. Giving Him the heart is giving Him the steering, and the habits follow it home.',
+    tags: ['heart', 'surrender', 'subconscious', 'word'],
+  },
   // ── THE PROPHETS ──────────────────────────────────────────────────────────
+  {
+    // "we will stay in the furnace as long as the King wants us to — we're
+    // kings, lions of Judah, The Christ's Tribe."
+    id: 'gh-furnace', section: 'prophets', name: 'The Furnace and the Fourth Man (but if not)',
+    refs: ['Daniel 3:17-18', 'Daniel 3:25'],
+    condition: 'Serve Him whether He delivers or not — "our God whom we serve is able to deliver us... BUT IF NOT, we will not serve thy gods." The allegiance is not conditional on the rescue.',
+    consequence: 'The fire holds a FOURTH man, like the Son of God — He joins you IN the furnace; and the only thing that burned was what bound them.',
+    threeD: 'Stay in the furnace as long as the King wants you there — kings and lions of Judah do not negotiate allegiance with the flame. What the fire actually takes is the ropes.',
+    outcome: 'Un-blackmailable faith — company in the fire, bonds burned off, and a testimony the watching king ends up preaching for you.',
+    psyche: 'The "but if not" settles the outcome-anxiety in advance: when obedience no longer depends on results, the threat loses its leverage — the psychology of a decision that cannot be re-opened under pressure.',
+    tags: ['furnace', 'faithfulness', 'trial', 'judah'],
+  },
+
   {
     id: 'gh-tithe-windows', section: 'prophets', name: 'Prove Me in the Tithe (windows of Heaven)',
     refs: ['Malachi 3:10'],
@@ -390,6 +415,17 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['confession', 'forgiveness', 'cleansing'],
   },
   {
+    // "In a closet so He Will Teach you... it's His Will."
+    id: 'gh-closet', section: 'gospels', name: 'The Closet (in secret, He teaches — and rewards openly)',
+    refs: ['Matthew 6:6'],
+    condition: 'Enter thy CLOSET, shut thy door, pray to thy Father WHICH IS IN SECRET — the unwitnessed meeting is the condition.',
+    consequence: 'Thy Father which seeth in secret shall reward thee OPENLY — the private room has a public output.',
+    threeD: 'The closet is the classroom: no audience, no performance, just you and the Teacher — it is His will to teach you there. Build the secret meeting into the day before the public one.',
+    outcome: 'Taught in secret, rewarded openly — a public life funded by a private one.',
+    psyche: 'Every audience bends behavior toward performance; removing all witnesses is the only setting where the unedited self shows up — which is exactly the self He teaches.',
+    tags: ['prayer', 'secret', 'closet', 'teaching'],
+  },
+  {
     // Darrell 2026-07-03: "not just die — suffer for righteousness' sake:
     // they Will Be Filled."
     id: 'gh-filled-righteousness', section: 'gospels', name: 'Hunger and Suffer for Righteousness → Filled, and the Kingdom',
@@ -412,6 +448,17 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['testing', 'crown', 'endurance', 'faith'],
   },
 
+  {
+    // "GIVE LESS TO him who gives little..." — the sower sets the harvest.
+    id: 'gh-sow-bountifully', section: 'epistles', name: 'The Sower Sets the Harvest (sparingly or bountifully)',
+    refs: ['2 Corinthians 9:6-7'],
+    condition: 'He which soweth SPARINGLY — and he which soweth BOUNTIFULLY; each gives as he purposeth in his heart, not grudgingly, for God loveth a CHEERFUL giver.',
+    consequence: 'Reap sparingly, or reap bountifully — the harvest is denominated in the sowing; who gives little is given little.',
+    threeD: 'You choose your own return rate at planting time — in money, in mercy, in the Body. Set the purpose in the heart first, then sow like someone who believes the equation.',
+    outcome: 'A bountiful harvest on purpose — and the cheerfulness that turns giving from tax into worship.',
+    psyche: 'Grudging giving rehearses scarcity; cheerful purposed giving rehearses abundance and agency — the giver\'s own posture is the first thing the sowing changes.',
+    tags: ['sowing', 'giving', 'harvest', 'cheerful'],
+  },
   {
     // "the Tribe appreciation is shown each Sunday and Wednesday we congregate
     // ... Forsake not the brethren — they need you and you may need them one day."
