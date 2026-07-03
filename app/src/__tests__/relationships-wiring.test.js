@@ -29,7 +29,8 @@ describe('Relationships surface is fully wired', () => {
     expect(mono).toMatch(/isFamilyMember\s*\?\s*\[\['relationships'/);        // no-leak nav spread
     expect(mono).toMatch(/view === 'relationships'/);                          // render branch
     expect(mono).toMatch(/<Relationships\s+isGovernor=\{isFamilyMember\}/);    // governor-gated render
-    expect(mono).toMatch(/\['relationships',/);                                // FEEDBACK_AREAS entry
+    // FEEDBACK_AREAS moved to components/FeedbackCenter.jsx with the extraction.
+    expect(read('components/FeedbackCenter.jsx')).toMatch(/\['relationships',/); // FEEDBACK_AREAS entry
   });
 });
 

@@ -28,6 +28,8 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MONOLITH = join(ROOT, 'app/src/poe-financial-mvp-v28.jsx');
+// FEEDBACK_AREAS moved out of the monolith with the FeedbackCenter extraction.
+const FEEDBACK_CENTER = join(ROOT, 'app/src/components/FeedbackCenter.jsx');
 const CHOIR = join(ROOT, 'app/src/components/Choir.jsx');
 
 // Pull the first quoted string of every `['id', ...]` pair in a slice. The outer
@@ -62,7 +64,7 @@ export function mappedArraySlice(src, bodyMarker) {
 
 // The FEEDBACK_AREAS keys (the first string of each `['key', 'label']` item).
 export function feedbackKeys(src) {
-  const start = src.indexOf('const FEEDBACK_AREAS = [');
+  const start = src.indexOf('FEEDBACK_AREAS = [');
   if (start === -1) throw new Error('feedback-area-guard: FEEDBACK_AREAS not found');
   const end = src.indexOf('\n];', start);
   if (end === -1) throw new Error('feedback-area-guard: end of FEEDBACK_AREAS not found');
@@ -97,7 +99,7 @@ export function scan() {
   const churchSub = pairIds(mappedArraySlice(mono, 'setChurchView(id)'));
   const choirStart = choir.indexOf('const TABS = [');
   const choirTabs = pairIds(choir.slice(choirStart, choir.indexOf('];', choirStart)));
-  const keys = feedbackKeys(mono);
+  const keys = feedbackKeys(readFileSync(FEEDBACK_CENTER, 'utf8'));
   const gaps = coverageGaps({ topNav, churchSub, choirTabs, keys });
   return { topNav, churchSub, choirTabs, keys, gaps };
 }
