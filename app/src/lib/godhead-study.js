@@ -594,6 +594,23 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['born-again', 'blood', 'new-spirit', 'quickened', 'adoption'],
   },
   {
+    // Darrell 2026-07-03: "His Word doesn't return void... period... more
+    // than conquerors... my mother put me out young and said I was a disgrace
+    // and a disappointment — but the biblical scriptures say Jesus separates,
+    // so the government created the pressure Yahweh wants, because Jesus only
+    // does what The Father wants." Sits beside gh-train-child on purpose:
+    // the same mother gave the 6am inheritance AND the wound — both true,
+    // and the Word she planted did not return void even when she turned.
+    id: 'gh-more-than-conquerors', section: 'epistles', name: 'More Than Conquerors (the separation cannot separate)',
+    refs: ['Romans 8:35-37', 'Matthew 10:36', 'Isaiah 55:11'],
+    condition: 'The separation comes — even from inside the house: "a man\'s foes shall be they of his own household." Tribulation, distress, rejection by the very hands that raised you — all named IN the list.',
+    consequence: 'NONE of it shall separate you from the love of Christ — "Nay, in all these things we are MORE than conquerors through him that loved us." And the Word planted in you does not return void, even when the planter turns.',
+    threeD: 'Being put out is not being cut off: the door that closed was a pressure the Father permitted for a purpose, because Jesus only does what the Father wants. Grieve the wound honestly, forgive (we are eternal anyway), and watch the 6am seed keep growing — the Word outlasts the wounder, period.',
+    outcome: 'A conqueror-and-then-some: wounds that could not reach the love, a separation that could not separate, and a planted Word still compounding decades past the door that shut.',
+    psyche: 'Parental rejection cuts identity at the root; healing holds two truths at once — the gift was real AND the wound was real — and reframes the rejection as redirection without excusing the harm. That double-truth is what makes forgiveness possible without self-erasure.',
+    tags: ['conquerors', 'separation', 'rejection', 'word-not-void', 'love'],
+  },
+  {
     // Darrell 2026-07-03: "Seated inside Heavenly Places right now — we souls
     // are eternally blessed of Yahweh, just have to support each other while
     // we grow."
