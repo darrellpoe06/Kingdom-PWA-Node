@@ -13,9 +13,12 @@
 //      (1 Cor 9:19-23, "all things to all men").
 //
 // ACCESS is gated in the monolith to the smallest circle (Darrell + Christina +
-// Bishop Gwin). DATA is device-local + sovereign (study-space.js) — never sent to
-// the cloud, never mined, never trained on. This component owns the surface; the
-// pure logic + persistence live in ../lib/study-space.js (shared, testable).
+// Bishop Gwin). DATA is sovereign: device-local localStorage is the immediate
+// truth (study-space.js), and since 2026-07-03 it SYNCS across the owner's own
+// devices through the family's self-hosted Supabase on the NAS (study-sync.js +
+// migration 0070 — owner-only RLS; BG's sign-in reads BG's rows and nothing
+// else). Never a third-party cloud, never mined, never trained on. This
+// component owns the surface; pure logic lives in ../lib (shared, testable).
 //
 // Accessibility mirrors the Pulpit/Choir surfaces: white / #FAF8F4 cards, #1A1815
 // body, #5A5751 secondary, labelled inputs, visible #B85838 focus outline (AA).
@@ -36,6 +39,10 @@ import {
   sortEntries, filterEntries, countsByKind, distillState, captureExchange,
   deriveFrom,
 } from '../lib/study-space.js';
+import {
+  fetchStudyCloud, mergeStudy, pushStudyEntries, tombstoneStudyEntries,
+  pushStudyLabel, subscribeStudyRealtime,
+} from '../lib/study-sync.js';
 
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const AREA = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] leading-relaxed focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -58,6 +65,16 @@ function MicButton({ onText, label }) {
     >{mic.listening ? '⏹ Stop' : '🎤 Speak'}</button>
   );
 }
+
+// The honest sync footer — the surface states its REAL persistence state
+// (DR-0076: no claim without the state behind it). "The family's own server"
+// is literal: Supabase self-hosted on the NAS, owner-only rows (0070).
+const SYNC_FOOT = {
+  synced: 'Sovereign & private: your Study is yours alone — owner-only at the database — and follows your sign-in across your devices through the family’s own server. Never a third-party cloud, never mined, never used to train anything.',
+  syncing: 'Sovereign & private: everything here is safe on this device — checking the family server for your Study…',
+  local: 'Sovereign & private: the family server isn’t reachable right now, so you’re working from this device’s copy. It syncs automatically when the connection returns — nothing is lost.',
+  error: 'Sovereign & private: some recent changes haven’t reached the family server yet. They are safe on this device and will be re-sent with your next change.',
+};
 
 const DISTILL_BADGE = {
   both:       { text: 'Distilled · deep + plain', cls: 'bg-[#5A6E3D] text-white' },
@@ -191,7 +208,7 @@ function EntryCard({ entry, onEdit, onDelete, onPin, onDeriveFrom }) {
         <button type="button" onClick={() => onEdit(entry)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
         <button type="button" onClick={() => onDeriveFrom(entry)} title="Start a new study from this one — your own notes, building on it" className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">✦ Create from this</button>
         <button type="button" onClick={() => onPin(entry.id)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{entry.pinned ? 'Unpin' : 'Pin'}</button>
-        <button type="button" onClick={() => { if (window.confirm('Delete this entry? It is only on this device.')) onDelete(entry.id); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
+        <button type="button" onClick={() => { if (window.confirm('Delete this entry from your Study? It will be removed on your other devices too.')) onDelete(entry.id); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
       </div>
     </div>
   );
@@ -208,7 +225,7 @@ function CaptureBox({ onCapture }) {
   return (
     <div className="bg-white border border-[#1A1815] p-3 mb-3">
       <div className="text-[10px] uppercase tracking-[0.25em] text-[#1A1815] font-semibold mb-1.5">Capture an exchange</div>
-      <p className="text-[11px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Paste a deep reflective exchange here. It lands as the <strong>deep source</strong> of a new reflection — distill the plain wider-audience version next. Stays on this device, just for the circle.</p>
+      <p className="text-[11px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Paste a deep reflective exchange here. It lands as the <strong>deep source</strong> of a new reflection — distill the plain wider-audience version next. Private to your sign-in, just for the circle.</p>
       <input className={`${FIELD} mb-2`} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional — first line is used if blank)" aria-label="Reflection title" />
       <textarea className={AREA} rows="4" value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste the exchange…" aria-label="Exchange text" />
       <div className="flex gap-2 mt-2 flex-wrap">
@@ -231,10 +248,23 @@ export default function Study({ email }) {
   const [renaming, setRenaming] = useState(false);
   const [labelDraft, setLabelDraft] = useState('');
   const [presenting, setPresenting] = useState(false); // live present mode (the circle)
+  // Cross-device sync state (study-sync.js). 'syncing' → first pull in flight;
+  // 'synced' → the family server holds this Study; 'local' → server unreachable
+  // or signed out (device-local, exactly the pre-sync behavior); 'error' → some
+  // pushes did not land (safe locally, retried on the next change).
+  const [syncStatus, setSyncStatus] = useState('syncing');
   const loadedFor = useRef(null);
+  const studyRef = useRef(null);
+  // What we believe the family server holds (id → serialized entry, + label).
+  // The persist effect diffs against this to push ONLY real changes, and merge
+  // application updates it FIRST so pulled-down content never echoes back up.
+  const cloudShadow = useRef({ entries: new Map(), label: null, ready: false });
+  const pendingTombstones = useRef([]);
 
-  // Load (and first-time seed) the device-local store for this identity. Reloads
-  // when the signed-in email changes so one device never shows another's space.
+  // Load (and first-time seed) the device-local store for this identity, then
+  // pull + merge the owner's Study from the family server and keep it live.
+  // Reloads when the signed-in email changes so one device never shows
+  // another's space.
   useEffect(() => {
     // seedIfEmpty handles a brand-new store (label + all seeds); mergeMissingSeeds
     // brings any teaching added AFTER a reader's first visit into their existing
@@ -242,15 +272,83 @@ export default function Study({ email }) {
     // already opened the Study. Additive + idempotent; never overwrites edits.
     const loaded = mergeMissingSeeds(seedIfEmpty(loadStudy(email), nowMs()), nowMs());
     setStudy(loaded);
+    studyRef.current = loaded;
     loadedFor.current = email || null;
     // Persist the seed on first open so it survives reload.
     saveStudy(email, loaded);
+
+    cloudShadow.current = { entries: new Map(), label: null, ready: false };
+    pendingTombstones.current = [];
+    setSyncStatus('syncing');
+    let cancelled = false;
+
+    const pullMerge = async () => {
+      const cloud = await fetchStudyCloud();
+      if (cancelled) return;
+      if (!cloud) { setSyncStatus('local'); return; }
+      const base = studyRef.current || loaded;
+      const { study: merged, pushEntries: up, pushTombstones, pushLabel: labelUp } = mergeStudy(base, cloud);
+      const shadow = cloudShadow.current;
+      shadow.entries = new Map(merged.entries.map((e) => [e.id, JSON.stringify(e)]));
+      shadow.label = merged.label;
+      shadow.ready = true;
+      // Only re-render when the merge actually changed something (a realtime
+      // echo of our own push merges to identical content — skip it).
+      if (JSON.stringify(merged) !== JSON.stringify(base)) {
+        setStudy(merged);
+        studyRef.current = merged;
+        saveStudy(email, merged);
+      }
+      const okUp = await pushStudyEntries(up);
+      const okTomb = await tombstoneStudyEntries(pushTombstones);
+      const okLabel = labelUp ? await pushStudyLabel(merged.label) : true;
+      if (!cancelled) setSyncStatus(okUp && okTomb && okLabel ? 'synced' : 'error');
+    };
+
+    pullMerge();
+    const unsubscribe = subscribeStudyRealtime(pullMerge);
+    // A NAS that was unreachable at open syncs as soon as the device is back
+    // online — the 'local' state is a moment, not a mode.
+    const onOnline = () => pullMerge();
+    window.addEventListener('online', onOnline);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      window.removeEventListener('online', onOnline);
+    };
   }, [email]);
 
-  // Persist on every change (after the initial load for this identity).
+  // Persist on every change (after the initial load for this identity), then
+  // push exactly what changed up to the family server (diff vs the shadow).
   useEffect(() => {
     if (loadedFor.current !== (email || null)) return;
     saveStudy(email, study);
+    studyRef.current = study;
+    const shadow = cloudShadow.current;
+    if (!shadow.ready) return; // first pull not landed yet — nothing to diff against
+    const changed = [];
+    const present = new Set();
+    for (const e of study.entries) {
+      present.add(e.id);
+      const j = JSON.stringify(e);
+      if (shadow.entries.get(e.id) !== j) { changed.push(e); shadow.entries.set(e.id, j); }
+    }
+    for (const id of [...shadow.entries.keys()]) {
+      if (!present.has(id)) { pendingTombstones.current.push(id); shadow.entries.delete(id); }
+    }
+    const label = study.label || DEFAULT_LABEL;
+    const labelChanged = shadow.label !== label;
+    if (labelChanged) shadow.label = label;
+    const tombstones = pendingTombstones.current;
+    if (!changed.length && !tombstones.length && !labelChanged) return;
+    (async () => {
+      const okUp = await pushStudyEntries(changed);
+      const okTomb = await tombstoneStudyEntries(tombstones);
+      const okLabel = labelChanged ? await pushStudyLabel(label) : true;
+      if (okTomb) pendingTombstones.current = [];
+      if (!okUp) for (const e of changed) shadow.entries.delete(e.id); // re-push on the next change
+      setSyncStatus(okUp && okTomb && okLabel ? 'synced' : 'error');
+    })();
   }, [study, email]);
 
   const counts = useMemo(() => countsByKind(study.entries), [study.entries]);
@@ -324,7 +422,7 @@ export default function Study({ email }) {
       {/* James 1:17 — the Father of lights; the room of illumination. KJV-free ESV. */}
       <blockquote className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-2 mb-4" style={serif}>
         <p className="text-sm text-[#1A1815] italic">“Every good gift and every perfect gift is from above, coming down from the Father of lights, with whom there is no variation or shadow due to change.”</p>
-        <footer className="text-[11px] text-[#5A5751] mt-1">— James 1:17 (ESV). The deep layer beneath the briefings — your thinking, processing, and reprocessing, kept on this device for you, Christina, and Bishop Gwin.</footer>
+        <footer className="text-[11px] text-[#5A5751] mt-1">— James 1:17 (ESV). The deep layer beneath the briefings — your thinking, processing, and reprocessing. Private to your own sign-in within the circle; your notes follow you across your devices.</footer>
       </blockquote>
 
       {/* Space toggle — the reflective workspace vs. the Eternal Algorithms
@@ -377,12 +475,12 @@ export default function Study({ email }) {
         <div className="bg-[#FAF8F4] border border-dashed border-[#E8E4DC] p-6 text-center">
           <div className="text-2xl mb-1 text-[#5A5751]"><UiIcon name={KINDS[kind].icon} /></div>
           <p className="text-sm text-[#1A1815] font-semibold" style={serif}>{query ? 'Nothing matches that search.' : `This room is empty.`}</p>
-          <p className="text-xs text-[#5A5751] mt-1" style={serif}>{query ? 'Try a different word.' : `Start a ${KINDS[kind].label.toLowerCase()} above — it stays here, on this device, for the circle.`}</p>
+          <p className="text-xs text-[#5A5751] mt-1" style={serif}>{query ? 'Try a different word.' : `Start a ${KINDS[kind].label.toLowerCase()} above — it stays private to you, in your Study.`}</p>
         </div>
       )}
 
-      <p className="text-[10px] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif}>
-        Sovereign &amp; private: everything here lives on this device only — never sent to the cloud, never mined, never used to train anything. A shared sovereign rail for the circle (your NAS) is the next step; for now this is yours.
+      <p className="text-[10px] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif} role="status">
+        {SYNC_FOOT[syncStatus] || SYNC_FOOT.local}
       </p>
       </>
       )}
