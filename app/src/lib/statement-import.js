@@ -28,6 +28,63 @@ export function isSpreadsheetFile(file) {
   return t.includes('spreadsheetml') || t === 'application/vnd.ms-excel';
 }
 
+// True when the file is something this importer can read AT ALL. 2026-07-03:
+// a tablet's file picker happily hands over a .jpg photo, which then falls
+// through to the CSV text path and produces three baffling "No … column found"
+// errors. Name the real problem instead (honest error, DR-0076).
+export function looksImportableFile(file) {
+  if (!file) return false;
+  if (isSpreadsheetFile(file)) return true;
+  if (/\.(csv|tsv|txt)$/i.test(file.name || '')) return true;
+  const t = (file.type || '').toLowerCase();
+  if (t.startsWith('image/') || t.startsWith('video/') || t.startsWith('audio/') || t === 'application/pdf') return false;
+  return t.includes('csv') || t.startsWith('text/') || t === '';
+}
+
+// ---------------------------------------------------------------------------
+// Header detection — find the REAL header row, wherever it is.
+// ---------------------------------------------------------------------------
+// 2026-07-03 (Christina's "how do I upload?"): her CSV failed with "No
+// Description column found" because detection only ever read LINE 1 — but
+// real exports (including this app's own Download primitive) often start with
+// a title or preamble line. Scan the first rows for the line that best matches
+// Date / Description / Amount (word-boundary synonyms, so "Posting Date" or
+// "Merchant" count too) and start the data AFTER it.
+const HEADER_MATCHERS = {
+  date: /\b(transaction date|posted date|post date|posting date|date)\b/,
+  desc: /\b(description|details|memo|name|payee|merchant)\b/,
+  amount: /\b(amount|debit|transaction amount)\b/,
+  credit: /\bcredit\b/,
+  category: /\b(category|type)\b/,
+};
+const HEADER_SCAN_LINES = 10;
+
+// lines: the file's non-empty lines. Returns { headerRow, headers, idx, errors }
+// — errors non-empty when no usable header exists in the scanned window.
+export function findStatementHeader(lines) {
+  let best = null;
+  const limit = Math.min(lines.length, HEADER_SCAN_LINES);
+  for (let row = 0; row < limit; row += 1) {
+    const cells = parseCsvLine(lines[row]).map((h) => String(h || '').toLowerCase());
+    const idx = {};
+    for (const [kind, re] of Object.entries(HEADER_MATCHERS)) {
+      idx[kind] = cells.findIndex((c) => re.test(c));
+    }
+    const score = (idx.date !== -1 ? 1 : 0) + (idx.desc !== -1 ? 1 : 0)
+      + ((idx.amount !== -1 || idx.credit !== -1) ? 1 : 0);
+    if (!best || score > best.score) best = { headerRow: row, headers: cells, idx, score };
+    if (score === 3) break; // earliest full match wins
+  }
+  if (!best) {
+    return { headerRow: 0, headers: [], idx: { date: -1, desc: -1, amount: -1, credit: -1, category: -1 }, errors: ['File is empty.'] };
+  }
+  const errors = [];
+  if (best.idx.date === -1) errors.push('No Date column found.');
+  if (best.idx.desc === -1) errors.push('No Description column found.');
+  if (best.idx.amount === -1 && best.idx.credit === -1) errors.push('No Amount column found.');
+  return { headerRow: best.headerRow, headers: best.headers, idx: best.idx, errors };
+}
+
 // Convert a parsed SheetJS workbook to CSV text using its FIRST non-empty sheet.
 // Pure (takes the XLSX module + workbook) so it is unit-testable without a File
 // or a dynamic import. Returns '' when no sheet has content.
@@ -99,16 +156,8 @@ export function parseDelimitedToRows(text, { flipSign = false } = {}) {
   if (!text || !text.trim()) return { rows: [], headers: [], errors: ['File is empty.'] };
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return { rows: [], headers: [], errors: ['File is empty.'] };
-  const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
-  const findCol = (...names) => { for (const n of names) { const i = headers.indexOf(n); if (i !== -1) return i; } return -1; };
-  const idx = {
-    date: findCol('transaction date', 'date', 'posted date', 'post date'),
-    desc: findCol('description', 'details', 'memo', 'name', 'payee'),
-    amount: findCol('amount', 'debit', 'transaction amount'),
-    credit: findCol('credit'),
-    category: findCol('category', 'type'),
-  };
-  const dataLines = lines.slice(1);
+  const { headerRow, headers, idx } = findStatementHeader(lines);
+  const dataLines = lines.slice(headerRow + 1);
   const errors = [];
   if (idx.date === -1) errors.push('No Date column found.');
   if (idx.desc === -1) errors.push('No Description column found.');

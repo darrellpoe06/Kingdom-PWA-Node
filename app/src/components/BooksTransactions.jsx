@@ -15,7 +15,7 @@ import { fmt } from '../lib/format.js';
 import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
-import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows } from '../lib/statement-import.js';
+import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatementHeader, looksImportableFile } from '../lib/statement-import.js';
 import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
@@ -547,27 +547,13 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     if (!csvRaw.trim()) return { rows: [], headers: [], idx: {}, errors: [] };
     const lines = csvRaw.split(/\r?\n/).filter(l => l.trim().length > 0);
     if (lines.length === 0) return { rows: [], headers: [], idx: {}, errors: ['File is empty.'] };
-    const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
-    const findCol = (...names) => {
-      for (const n of names) {
-        const i = headers.indexOf(n);
-        if (i !== -1) return i;
-      }
-      return -1;
-    };
-    const idx = {
-      date: findCol('transaction date', 'date', 'posted date', 'post date'),
-      desc: findCol('description', 'details', 'memo', 'name', 'payee'),
-      amount: findCol('amount', 'debit', 'transaction amount'),
-      credit: findCol('credit'),
-      category: findCol('category', 'type'),
-    };
-    const errors = [];
-    if (idx.date === -1) errors.push('No Date column found.');
-    if (idx.desc === -1) errors.push('No Description column found.');
-    if (idx.amount === -1 && idx.credit === -1) errors.push('No Amount column found.');
+    // Header detection lives in statement-import.js (findStatementHeader): it
+    // scans the first rows for the real header line — a title/preamble row no
+    // longer produces "No Description column found" (Christina, 2026-07-03) —
+    // and matches synonym headers ("Posting Date", "Merchant") by word.
+    const { headerRow, headers, idx, errors } = findStatementHeader(lines);
     if (errors.length) return { rows: [], headers, idx, errors };
-    const rows = lines.slice(1).map((line, i) => {
+    const rows = lines.slice(headerRow + 1).map((line, i) => {
       const cells = parseCsvLine(line);
       const rawDate = cells[idx.date] || '';
       const date = normalizeDate(rawDate);
@@ -578,7 +564,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       if (csvFlipSign) amt = -amt;
       const category = idx.category !== -1 ? (cells[idx.category] || 'other').toLowerCase() : 'other';
       const ok = !!date && !!desc && /^\d{4}-\d{2}-\d{2}$/.test(date);
-      return { lineNo: i + 2, rawDate, date, desc, amount: amt, category, ok };
+      return { lineNo: headerRow + i + 2, rawDate, date, desc, amount: amt, category, ok };
     });
     return { rows, headers, idx, errors };
   })();
@@ -644,6 +630,14 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   };
   const onCsvFile = (file) => {
     if (!file) return;
+    // A photo/PDF from the tablet's picker is not a statement — say so plainly
+    // instead of the baffling three "No … column found" errors (2026-07-03).
+    if (!looksImportableFile(file)) {
+      setCsvRaw('');
+      const kind = (file.type || '').startsWith('image/') ? 'a photo' : (file.type === 'application/pdf' ? 'a PDF' : 'not a spreadsheet');
+      setCsvError(`"${file.name}" is ${kind} — this importer reads the .csv or Excel file downloaded from the bank. Choose that export instead.`);
+      return;
+    }
     // Excel (.xlsx/.xls) is parsed to CSV text first (lazy SheetJS), then flows
     // through the SAME proven CSV mapper + importCsv -> addTransaction -> ledger
     // path that drives the derived balance. Reading an .xlsx as plain text used
@@ -1222,6 +1216,10 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               {csvParsed.errors.length > 0 && (
                 <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>
                   {csvParsed.errors.map((er, i) => <div key={i}>· {er}</div>)}
+                  {csvParsed.headers && csvParsed.headers.length > 0 && (
+                    <div className="mt-1 text-[#5A5751]">This file&apos;s columns: {csvParsed.headers.filter(Boolean).slice(0, 12).join(' · ') || '(none readable)'}</div>
+                  )}
+                  <div className="mt-1 text-[#1A1815]">The importer needs Date, Description, and Amount columns — the CSV your bank lets you download has them.</div>
                 </div>
               )}
 
@@ -1258,8 +1256,17 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
 
               {csvError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{csvError}</div>}
 
+              {/* The button says WHAT IT NEEDS instead of a dead "Import 0
+                  transactions" (Christina 2026-07-03: "how do I upload it? I
+                  don't see where it says upload"). Step 3 completes the 1-2-3. */}
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">3. Import into the ledger</div>
               <button type="button" onClick={importCsv} disabled={csvParsed.rows.filter(r => r.ok).length === 0 || !csvAccountId} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
-                Import {csvParsed.rows.filter(r => r.ok).length} transaction{csvParsed.rows.filter(r => r.ok).length === 1 ? '' : 's'}
+                {(() => {
+                  const n = csvParsed.rows.filter(r => r.ok).length;
+                  if (n === 0) return csvRaw.trim() ? 'Nothing to import yet — fix the file issue above' : 'Import — choose a file first (step 2)';
+                  if (!csvAccountId) return 'Pick a target account (step 1) to import';
+                  return `Import ${n} transaction${n === 1 ? '' : 's'}`;
+                })()}
               </button>
               <p className="text-[0.625rem] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
                 Rows without a parseable date are skipped automatically. Amounts with $ or commas are normalized. Unknown categories become 'other'.
