@@ -21,6 +21,7 @@ import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/chu
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
 import UiIcon from './UiIcon.jsx';
+import EmojiText from './EmojiText.jsx';
 
 export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry }) {
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
@@ -565,7 +566,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                       {entry.createdAt.slice(0, 10)}{entry.topic ? ` · ${entry.topic}` : ''}
                     </div>
                     {entry.text && (
-                      <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{entry.text}</div>
+                      <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}><EmojiText text={entry.text} /></div>
                     )}
                     {entry.link && (
                       <div className="text-xs mt-0.5">
@@ -756,7 +757,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                   <div className="min-w-0 flex-1">
                     <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{pr.createdAt.slice(0, 10)} · {pr.requester || '(anonymous)'}</div>
-                    <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{pr.request}</div>
+                    <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}><EmojiText text={pr.request} /></div>
                     <div className="text-[0.625rem] uppercase tracking-wider mt-1 text-[#5A5751]">{pr.sentAt ? `✓ sent ${pr.sentAt.slice(0, 10)}` : pr.shareWithChurch ? 'ready to share' : 'private'}</div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">

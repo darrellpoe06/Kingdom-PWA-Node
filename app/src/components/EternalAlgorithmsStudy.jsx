@@ -24,7 +24,7 @@ import UiIcon from './UiIcon.jsx';
 import { kjvText, readOnline } from '../lib/scriptures.js';
 import {
   SERIES, listStudies, getStudy, AXES,
-  studyToGameCards, scoreRound,
+  studyToGameCards, algorithmsToGameCards, scoreRound,
   loadResponses, saveResponses,
 } from '../lib/eternal-algorithms-studies.js';
 import { withStudyDeck } from '../lib/games/generations.js';
@@ -232,7 +232,14 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
     });
   };
 
-  const cards = useMemo(() => studyToGameCards(study, responses), [study, responses]);
+  // The full deck: the study's belief-vs-action items PLUS every framework
+  // published from the family forge (Darrell 2026-07-03: "All eternal
+  // algorithms going into the game so they can be further aware of the Word.
+  // Real study is fun and exploration."). Same axes, one engine.
+  const cards = useMemo(
+    () => [...studyToGameCards(study, responses), ...algorithmsToGameCards(forge)],
+    [study, responses, forge],
+  );
   // Persist the generated deck so a Game Night (Generations) can pick it up, and
   // go to the games hub. withStudyDeck proves the deck injects into a real def.
   const toGameNight = () => {
@@ -318,7 +325,7 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
       <div className="border-t-2 border-[#1A1815] pt-3">
         <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Take it to the game</h3>
         <p className="text-sm text-[#5A5751] mb-2" style={serif}>
-          Your self-examination becomes a belief-vs-action round — each choice scored on the same eight Yahweh axes the Generations game uses (faith, family, souls, wisdom, service, peace, joy, provision). Do it yourself, or carry it into a family / team Game Night.
+          Your self-examination — and every framework published from the family forge — becomes a playable round, each choice scored on the same eight Yahweh axes the Generations game uses (faith, family, souls, wisdom, service, peace, joy, provision). Real study is fun and exploration: run the algorithm, or teach it to someone, and the Word travels with the play. Do it yourself, or carry it into a family / team Game Night.
         </p>
         <div className="flex gap-2 flex-wrap mb-2">
           <button type="button" onClick={() => setShowRound((v) => !v)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815]`}>

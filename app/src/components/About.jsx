@@ -636,6 +636,12 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
           </div>
         </div>
       )}
+
+      {/* Credits — the borrowed artwork is named (CC-BY 4.0 requires it, and
+          honesty does anyway). Self-hosted: no CDN is called at runtime. */}
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-6 pt-3 border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+        Emoji artwork from the Twemoji project (CC-BY 4.0), self-hosted so your notes render the same on every device. Scripture text shown in-app is King James Version (Public Domain); other translations are linked, never reproduced.
+      </p>
     </div>
   );
 }

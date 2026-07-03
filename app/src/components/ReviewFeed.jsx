@@ -22,6 +22,7 @@
 //   - Governor-gated at the call site (Projects.jsx), like the decision queue.
 import React, { useEffect, useState } from 'react';
 import { N8N_BASE } from '../lib/n8n-base.js';
+import EmojiText from './EmojiText.jsx';
 
 // Review token — PER-DEVICE first (typed once, localStorage, never in the
 // bundle), VITE_ build var only as a transition fallback (2026-07-03: a VITE_
@@ -250,7 +251,7 @@ export default function ReviewFeed() {
                   </p>
                 )}
                 {p.note && (
-                  <p className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Note · {p.note}</p>
+                  <p className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Note · <EmojiText text={p.note} /></p>
                 )}
                 {/* Controls (DR-0061): Keep / Dismiss act on the real staged file. */}
                 <div className="mt-3 pt-2 border-t border-[#E8E4DC] flex items-center gap-2 flex-wrap">
