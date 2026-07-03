@@ -5372,7 +5372,7 @@ html{scroll-padding-bottom:280px}
         {/* The Word — Migdal: PUBLIC library for everyone; the component itself
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
         {view === 'church' && churchView === 'pulpit' && <Pulpit />}
-        {view === 'church' && churchView === 'scripture' && <ScriptureLibrary email={authSession?.user?.email} canStudy={isStudyCircle} />}
+        {view === 'church' && churchView === 'scripture' && <ScriptureLibrary email={authSession?.user?.email} canStudy={isStudyCircle} setChurchView={setChurchView} />}
         {view === 'church' && churchView === 'eternal-algorithms' && <EternalAlgorithmsStudy email={authSession?.user?.email} view={view} churchView={churchView} setView={setView} setChurchView={setChurchView} />}
         {/* Harvest Ledger: no video lost — every ingested recording fully mined
             (one-source-many-harvests). Staff-gated; RLS read = choir (0050). */}
