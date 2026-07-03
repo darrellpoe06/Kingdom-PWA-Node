@@ -200,7 +200,7 @@ function GodheadStudyView() {
           Pattern recognition is how Yahweh helps us — blind 3rd-dimensional sheep, lions and lambs — understand the Knowledge of the Most Holy. Each entry carries the practice AND, where it helps, how the mind runs it (the psychological perspective of His Word). Not the destination — the journey molds you.
         </p>
         <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
-          Die daily. This 3rd-dimensional space is not Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. See you when you get there.
+          Die daily. This 3rd-dimensional space is not Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. This platform is that work: bringing the church to the streets, using the world's technology so there is a Way — from Yahweh, His tool, held humbly by the Tribe. See you when you get there.
         </p>
       </div>
       {godheadBySection().map((s) => (
