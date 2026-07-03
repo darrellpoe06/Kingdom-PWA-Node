@@ -30,6 +30,7 @@ import {
 import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
 import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook } from '../lib/godhead-study.js';
+import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse } from '../lib/third-witness.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -245,6 +246,80 @@ function GodheadStudyView() {
   );
 }
 
+// -----------------------------------------------------------------------------
+// THE 3RD-DIMENSION WITNESS (Darrell 2026-07-03) — high-quality, cited expert
+// data cross-referenced with the Scriptures, "so we can see this trauma from
+// the 3rd-dimension better as a Body of Christ." Every source cited; every
+// verse verbatim from the verified fetch; the science is the witness, the
+// Word is the authority. Pastoral, not clinical.
+// -----------------------------------------------------------------------------
+function WitnessPair({ pair }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={CARD}>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+        className="w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838]">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+          <span className="text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>✦ {pair.refs.join(' · ')}</span>
+          <span className="text-[0.625rem] text-[#5A6E3D]" style={mono}>at {pair.cite} {open ? '▾' : '▸'}</span>
+        </div>
+        <p className="text-[0.75rem] text-[#5A5751] mt-0.5" style={serif}>
+          <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] font-semibold">3rd dimension</span> {pair.claim}
+        </p>
+      </button>
+      {open && (
+        <div className="mt-1.5">
+          {pair.refs.map((r) => {
+            const text = witnessVerse(r);
+            return (
+              <div key={r} className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-1.5 my-1.5">
+                {text
+                  ? <p className="text-sm text-[#1A1815]" style={serif}>“{text}”<span className="text-[0.625rem] text-[#5A5751] ml-1" style={mono}>KJV</span></p>
+                  : <p className="text-xs text-[#5A5751] italic" style={serif}>{r} — read it in your Bible.</p>}
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{r}</span>
+                  <a href={readOnline(r, 'ESV')} target="_blank" rel="noopener noreferrer"
+                    className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Read ESV ↗</a>
+                </div>
+              </div>
+            );
+          })}
+          <div className="border-l-2 border-[#5A5751] pl-3 pr-2 py-1">
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">The intertwine — 4th dimension said it first</div>
+            <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{pair.bridge}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WitnessView() {
+  return (
+    <div>
+      <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
+        <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">The 3rd-Dimension Witness · science cross-referenced with the Word</p>
+        <p className="text-sm leading-relaxed" style={serif}>{WITNESS_TAGLINE}</p>
+        <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
+          So we can see this trauma from the 3rd dimension better, as a Body of Christ. Every expert is cited — honour to whom honour is due — and every verse is rendered verbatim. The science describes the frame Yahweh made; His Word governs. This room helps the Body see; it does not diagnose or treat.
+        </p>
+      </div>
+      {WITNESS_SOURCES.map((src) => (
+        <div key={src.id} className="mb-4">
+          <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>{src.topic}</h3>
+          <p className="text-[0.75rem] text-[#5A5751]" style={serif}>{src.summary}</p>
+          <p className="text-[0.6875rem] text-[#5A6E3D] mb-2" style={mono}>
+            Source: {src.source.expert} ({src.source.credential}) — {src.source.work}
+          </p>
+          <div className="space-y-2">
+            {src.pairs.map((p) => <WitnessPair key={p.id} pair={p} />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // One self-examination item: the Word, a stated-input choice, an honest action
 // probe (saved device-local), and the mirror (mercy + accountability) revealed
 // once the person engages.
@@ -381,8 +456,9 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
         </span>
       </SectionTitle>
 
-      {/* Two rooms, one surface: the interactive study series, and the
-          whole-Bible Godhead Study (Darrell 2026-07-03). */}
+      {/* Three rooms, one surface: the interactive study series, the
+          whole-Bible Godhead Study, and the 3rd-Dimension Witness — cited
+          science cross-referenced with the Word (Darrell 2026-07-03). */}
       <div className="flex gap-2 flex-wrap mb-3" role="tablist" aria-label="Eternal Algorithms rooms">
         <button type="button" role="tab" aria-selected={room === 'series'} onClick={() => setRoom('series')}
           className={`${BTN} border ${room === 'series' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
@@ -392,9 +468,14 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
           className={`${BTN} border ${room === 'godhead' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
           The Godhead Study · whole Bible
         </button>
+        <button type="button" role="tab" aria-selected={room === 'witness'} onClick={() => setRoom('witness')}
+          className={`${BTN} border ${room === 'witness' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
+          3rd-Dimension Witness
+        </button>
       </div>
 
       {room === 'godhead' && <GodheadStudyView />}
+      {room === 'witness' && <WitnessView />}
 
       {room === 'series' && (<>
       {/* The series frame — reverent, humble-seeking. */}
