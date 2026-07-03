@@ -48,9 +48,11 @@ export const BOOK_MASTERPIECES = {
   'Deuteronomy':   'The covenant restated on the doorstep — the choice set before every generation about to cross over.',
   'Joshua':        'The taking of what was promised — allegiance declared out loud, house by house.',
   '2 Chronicles':  'The kings measured by one question — did the house seek Him? Humility heals the land.',
+  'Nehemiah':      'The rebuilding book — the wall up in fifty-two days, the Word read aloud to the people, and joy as the strength of the restored.',
   'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
   'Proverbs':      'The kings\' algorithm book — written for the kings of The Eternal King and simultaneously for The Way; wisdom as executable one-liners.',
   'Isaiah':        'The masterpiece of majesty and the Servant — the throne room and the wounds, in one scroll.',
+  'Jeremiah':      'The weeping prophet\'s book — the Word found and EATEN as the heart\'s joy, fire shut up in the bones, and a new covenant written on hearts.',
   'Ezekiel':       'The watchman\'s book — every soul answers for itself, and dead bones learn to stand.',
   'Daniel':        'The furnace-and-throne book — allegiance under empire, and the Kingdom that outlasts them all.',
   'Malachi':       'The last word before the silence — prove Me now, and the Sun of righteousness rising.',
@@ -60,7 +62,12 @@ export const BOOK_MASTERPIECES = {
   'Romans':        'The legal masterpiece — the whole case of the Gospel argued to a verdict: no condemnation.',
   '1 Corinthians': 'The Body\'s house rules — gifts, order, love, and resurrection, written to a messy real church.',
   '2 Corinthians': 'Strength in the cracked jar — treasure in earthen vessels, grace sufficient, the cheerful sower.',
+  'Galatians':     'The freedom letter — no other gospel, the Spirit\'s fruit against the flesh\'s works, and burdens carried together.',
+  'Ephesians':     'The seated-in-heavenly-places letter — chosen before the foundation of the world, the Body one, the armour on.',
+  'Colossians':    'The preeminence letter — all things created by Him and for Him, held together in Him; the Head of the Body, first in everything.',
   'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
+  '1 Timothy':     'The house-conduct letter — how to behave in the house of God; godliness with contentment is great gain, and the good fight of faith is fought, not felt.',
+  '2 Timothy':     'The baton letter — study approved, endure hardness, commit the Word to faithful men who teach others also; a crown laid up at the finish.',
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
   'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
   '1 Peter':       'The furnace letter — tried gold, a royal priesthood, and hope that suffering cannot repossess.',
@@ -133,6 +140,18 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['family', 'leadership', 'declaration'],
   },
   {
+    // Darrell 2026-07-03: "Joy Of The Lord comes and no one can take it and
+    // it's our strength according to the Word Of Yahweh!!!"
+    id: 'gh-joy-untakeable', section: 'torah', name: 'The Joy of the LORD (your strength — and no man taketh it)',
+    refs: ['Nehemiah 8:10', 'John 16:22'],
+    condition: 'Receive the joy OF THE LORD — sourced in Him, not in the day\'s conditions — the joy that comes when He comes.',
+    consequence: 'It IS your strength — and "your joy no man taketh from you": the power supply is both load-bearing AND theft-proof, by the King\'s own word.',
+    threeD: 'Guard the source, not the circumstances: joy drawn from Yahweh cannot be repossessed by an economy, a diagnosis, a betrayal, or a headline — no one can take what no one gave. When strength runs low, check whether you have been drawing joy from takeable things.',
+    outcome: 'Strength on an unstealable supply line — joy that survives everything the 3rd dimension throws, because its source is not in the 3rd dimension.',
+    psyche: 'Joy anchored to externals fluctuates with them; joy anchored to an unchanging relationship is the most durable affect a person can hold — and durable positive affect is itself measurable strength under load.',
+    tags: ['joy', 'strength', 'untakeable', 'nehemiah'],
+  },
+  {
     id: 'gh-humble-heal', section: 'torah', name: 'If My People Humble Themselves',
     refs: ['2 Chronicles 7:14'],
     condition: 'HIS people humble themselves, pray, seek His face, and TURN from their wicked ways.',
@@ -162,6 +181,21 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'Rooted stability and seasonal fruit — productivity that does not dry up when conditions do.',
     psyche: 'What you meditate on day and night becomes your automatic thought pattern — attention is the soil; the mind grows what it is planted by.',
     tags: ['meditation', 'word', 'prosperity', 'roots'],
+  },
+  {
+    // Darrell 2026-07-03: "our pain is in our epidemic and in our bloodline —
+    // epigenetics is the data I want to study — how we have been born in
+    // iniquities... Yahweh IS GOOD even when I'm not." Pairs with the
+    // therapeutic mission (Christina's practice) and the generational break
+    // point (gh-break-generational).
+    id: 'gh-shapen-iniquity', section: 'wisdom', name: 'Shapen in Iniquity → Truth in the Inward Parts',
+    refs: ['Psalms 51:5-6'],
+    condition: 'Born already carrying it — "shapen in iniquity" — the bloodline\'s pain arrives pre-installed, before a single choice was yours.',
+    consequence: 'Yet He desires TRUTH in the INWARD PARTS and makes you to know WISDOM in the hidden part — the rewrite happens exactly where the inheritance lives.',
+    threeD: 'Take the inherited data seriously: the pain in our epidemic and in our bloodline is real, measurable, and not your fault — AND it is addressable, which makes therapeutics holy work. Bring the hidden part to Him and to honest help; the inward parts are where He works.',
+    outcome: 'A bloodline\'s pre-installed pain met with truth in the exact place it was written — healing that goes as deep as the inheritance did.',
+    psyche: 'The science echoes the Psalm: inherited stress leaves marks on how the bloodline\'s data expresses (the field called epigenetics), and environment, care, and practice can change that expression. Born-in does not mean locked-in — the hidden part can learn wisdom.',
+    tags: ['iniquity', 'bloodline', 'healing', 'therapeutics', 'inward'],
   },
   {
     id: 'gh-delight-desires', section: 'wisdom', name: 'Delight → Desires',
@@ -213,6 +247,20 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['speech', 'peace', 'conflict'],
   },
 
+  {
+    // Darrell 2026-07-03: "My mother woke me up every day at 6am to discuss
+    // the Word... I love her eternally and 3rd-dimensionally... my earthly
+    // father wasn't there so life was obviously hard... Yahweh made a Way...
+    // He's my Father and family... Forever."
+    id: 'gh-train-child', section: 'wisdom', name: 'Train Up a Child (the 6am inheritance)',
+    refs: ['Proverbs 22:6', 'Deuteronomy 6:6-7', 'Psalms 27:10'],
+    condition: 'TRAIN UP a child in the way he should go — teach the words DILIGENTLY, talking of them when thou liest down and when thou RISEST UP; and where a parent is missing, the LORD takes the child up Himself.',
+    consequence: 'When he is OLD, he will not depart from it — the 6am deposits compound for a lifetime; and the fathered-by-Yahweh child gets a Father and a family, Forever.',
+    threeD: 'The proof is a living man: a mother who woke her son every day at 6am to discuss the Word, in a house where the earthly father was absent — and decades later that son has not departed from it; he is building The Way into a platform for his own children and his church. Rise up and teach; the hour you choose over sleep is the inheritance.',
+    outcome: 'A child who cannot be argued out of what was trained into them — carried by the Father who never misses a morning, loved eternally and 3rd-dimensionally.',
+    psyche: 'Daily rhythm at a fixed hour is the deepest form of learning — it becomes identity, not information; and one devoted, consistent caregiver is the single strongest protective factor a hard childhood can have. The 6am mother is both at once.',
+    tags: ['training', 'children', 'mother', 'inheritance', 'the-way'],
+  },
   {
     // Darrell 2026-07-03: the man-in-the-house wound — the law paid mothers to
     // keep fathers out, and the father is priceless, an amazing asset to a
@@ -310,6 +358,18 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['furnace', 'faithfulness', 'trial', 'judah'],
   },
 
+  {
+    // "Human Beings are seedlings of their Father — the Potter, the Shepherd
+    // Of Souls."
+    id: 'gh-potter-shepherd', section: 'prophets', name: 'Seedlings of the Father (the Potter, the Shepherd of Souls)',
+    refs: ['Isaiah 64:8', '1 Peter 2:25'],
+    condition: 'Be the clay and know it — "we are the clay, and thou our potter" — a seedling of the Father, work of His hand; and return to the Shepherd when you have strayed.',
+    consequence: 'Formed by hands that know the intended shape, and shepherded by the Bishop OF YOUR SOUL — the making and the keeping are both His.',
+    threeD: 'A seedling does not design itself; it stays planted, watered, and workable. Stay soft on the wheel — resistance to the shaping is the only thing that prolongs it — and when you wander, the return address is the Shepherd, not the wilderness.',
+    outcome: 'A shape you could not have self-designed and a soul under permanent shepherding — grown, not self-made.',
+    psyche: 'Identity received from a trusted Maker resolves what identity self-invention never settles: the exhausting audition ends when the clay trusts the Potter\'s intent more than its own blueprint.',
+    tags: ['potter', 'clay', 'shepherd', 'soul', 'seedling'],
+  },
   {
     id: 'gh-tithe-windows', section: 'prophets', name: 'Prove Me in the Tithe (windows of Heaven)',
     refs: ['Malachi 3:10'],
@@ -462,6 +522,20 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['salvation', 'confession', 'faith'],
   },
   {
+    // Darrell 2026-07-03: "Explicitly telling the truth can hurt or feel good
+    // — it depends on the perspective of the person... finding ways to
+    // reflect on Truth is important to each 3rd-dimensional soul... whatever
+    // tribe you're from."
+    id: 'gh-truth-love', section: 'epistles', name: 'Truth in Love (the wound of a friend, the freedom of the mirror)',
+    refs: ['Ephesians 4:15', 'John 8:32', 'Proverbs 27:6'],
+    condition: 'SPEAK the truth — but IN LOVE; and receive it knowing "faithful are the wounds of a friend." The same truth hurts or heals by the perspective it lands in.',
+    consequence: 'Speaking truth in love, ye GROW UP into Him in all things — and ye shall KNOW the truth, and the truth shall make you FREE. The growth and the freedom are downstream of the telling and the receiving.',
+    threeD: 'Every 3rd-dimensional soul needs ways to reflect on truth — whatever tribe they are from. Build and be the mirror that reflects without judging: truth offered as care grows a person; the same truth thrown as a weapon armors them. Check the love before you speak, and check your perspective before you flinch.',
+    outcome: 'Souls that can look at the truth and grow from it — freed by the mirror instead of wounded by the throw.',
+    psyche: 'Feedback lands by relationship and framing, not just accuracy: the identical fact heard from a trusted friend heals, and from a perceived enemy injures. Perspective is the receiver the truth tunes through — which is why the mirror must never judge.',
+    tags: ['truth', 'love', 'mirror', 'perspective', 'freedom'],
+  },
+  {
     id: 'gh-renew-mind', section: 'epistles', name: 'Renew the Mind → Prove the Will',
     refs: ['Romans 12:2'],
     condition: 'Be NOT conformed to this world; be TRANSFORMED by the renewing of your mind.',
@@ -472,6 +546,33 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['mind', 'transformation', 'discernment'],
   },
   {
+    // Darrell 2026-07-03: "Higher Priority Code From The 4th-dimensional
+    // King... all other data has to come under submission to the Word Of
+    // Yahweh — Jesus' Body we the church eat."
+    id: 'gh-higher-priority', section: 'epistles', name: 'Higher Priority Code (every thought brought into captivity)',
+    refs: ['2 Corinthians 10:5', 'Colossians 1:17-18'],
+    condition: 'Cast down imaginations and every high thing that exalteth itself against the knowledge of God — no data stream runs at His priority level.',
+    consequence: 'EVERY thought brought into captivity to the obedience of Christ — and He is BEFORE all things, the Head of the Body, that in all things He might have the PREEMINENCE. The Word preempts; everything else yields the processor.',
+    threeD: 'Run the priority scheduler on purpose: headlines, feeds, fears, and philosophies are lower-priority processes — when they conflict with the Word, they get preempted, not merged. The church eats the Body of the King; His code is what we run on.',
+    outcome: 'A mind under one Kernel — the 4th-dimensional King\'s code executing first, and every other input demoted to advisory.',
+    psyche: 'Attention is a priority queue whether you manage it or not; deciding IN ADVANCE which authority wins conflicts is what spares the mind from relitigating every intrusive thought on arrival.',
+    tags: ['thoughts', 'captivity', 'preeminence', 'priority', 'word'],
+  },
+  {
+    // "There was a church — then America made a white church, and a black
+    // church was born out of that hell hole and still trying to thrive by
+    // following Yahweh... struggling readers and all... by our obedience to
+    // the Way... priceless though, because the King's Blood IS."
+    id: 'gh-church-born-fire', section: 'epistles', name: "The Church Born in the Fire (priceless, because the King's Blood is)",
+    refs: ['1 Peter 1:18-19', '1 Peter 2:9'],
+    condition: 'Redeemed NOT with corruptible things, as silver and gold — the worth was never set by the market, the country, or the ones who drew the dividing line.',
+    consequence: 'But with the PRECIOUS BLOOD of Christ — a chosen generation, a royal priesthood, called out of darkness into His marvellous light. The price paid sets the worth, and the price was the King\'s Blood.',
+    threeD: 'There was a church; a nation divided it, and the black church was born out of that fire — and still thrives by following Yahweh, struggling readers and all, by obedience to the Way. Serve that church FIRST: read the Word aloud for the ones still learning to read it, build the tools the excluded were never given, and price nothing by the world that mispriced them.',
+    outcome: 'A people whose value is fixed in the Blood — unrepriceable by any nation\'s ledger — thriving in the light they were called into.',
+    psyche: 'Worth assigned by exclusion internalizes as shame; worth fixed by an unpayable price paid FOR you rewrites the self-assessment at the root — the redeemed identity outranks the rejected one.',
+    tags: ['church', 'redemption', 'blood', 'community', 'priesthood'],
+  },
+  {
     id: 'gh-resist-flee', section: 'epistles', name: 'Submit · Resist → he Flees',
     refs: ['James 4:7-8'],
     condition: 'SUBMIT yourselves to God first — then resist the devil; draw nigh to God.',
@@ -479,6 +580,79 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'The order matters: submission powers the resistance. Unsubmitted resistance is noise; submitted resistance routs the adversary every time it is run.',
     outcome: 'An enemy in retreat and a God drawing near — the battlefield rearranged by two obediences.',
     tags: ['warfare', 'submission', 'resistance', 'nearness'],
+  },
+  {
+    // Darrell 2026-07-03: "Born again with His gift of a new spirit — we were
+    // dead in sin... could not have received that without the King coming to
+    // the 3rd-dimensional operational and giving His Blood to restart the
+    // systems and simultaneously get His children."
+    id: 'gh-quickened', section: 'epistles', name: 'Dead in Sin → Quickened (the Blood restarts the system)',
+    refs: ['Ephesians 2:1', 'Ezekiel 36:26', 'Ephesians 1:7'],
+    condition: 'The starting state is DEAD in trespasses and sins — not sick, not underperforming: dead. A dead system cannot restart itself.',
+    consequence: 'He QUICKENED you — a new heart and a NEW SPIRIT put within, redemption THROUGH HIS BLOOD — the King came into the 3rd-dimensional operational in person, and the restart and the adoption ran in the same transaction.',
+    threeD: 'Stop trying to self-repair what needed resurrection: the new spirit is a GIFT received, not a refactor achieved. Live like a restarted system — new heart installed, old stony one decommissioned — and remember what the restart cost.',
+    outcome: 'Alive — genuinely new-spirited, blood-bought, and simultaneously collected as His child in the same act that raised you.',
+    psyche: 'Self-help assumes a functioning self to help; the Gospel diagnoses deeper and therefore heals deeper — receiving a new operating spirit outperforms endlessly patching the old one, and the gratitude of the rescued is a different fuel than the striving of the self-made.',
+    tags: ['born-again', 'blood', 'new-spirit', 'quickened', 'adoption'],
+  },
+  {
+    // Darrell 2026-07-03: "His Word doesn't return void... period... more
+    // than conquerors... my mother put me out young and said I was a disgrace
+    // and a disappointment — but the biblical scriptures say Jesus separates,
+    // so the government created the pressure Yahweh wants, because Jesus only
+    // does what The Father wants." Sits beside gh-train-child on purpose:
+    // the same mother gave the 6am inheritance AND the wound — both true,
+    // and the Word she planted did not return void even when she turned.
+    id: 'gh-more-than-conquerors', section: 'epistles', name: 'More Than Conquerors (the separation cannot separate)',
+    refs: ['Romans 8:35-37', 'Matthew 10:36', 'Isaiah 55:11'],
+    condition: 'The separation comes — even from inside the house: "a man\'s foes shall be they of his own household." Tribulation, distress, rejection by the very hands that raised you — all named IN the list.',
+    consequence: 'NONE of it shall separate you from the love of Christ — "Nay, in all these things we are MORE than conquerors through him that loved us." And the Word planted in you does not return void, even when the planter turns.',
+    threeD: 'Being put out is not being cut off: the door that closed was a pressure the Father permitted for a purpose, because Jesus only does what the Father wants. Grieve the wound honestly, forgive (we are eternal anyway), and watch the 6am seed keep growing — the Word outlasts the wounder, period.',
+    outcome: 'A conqueror-and-then-some: wounds that could not reach the love, a separation that could not separate, and a planted Word still compounding decades past the door that shut.',
+    psyche: 'Parental rejection cuts identity at the root; healing holds two truths at once — the gift was real AND the wound was real — and reframes the rejection as redirection without excusing the harm. That double-truth is what makes forgiveness possible without self-erasure.',
+    tags: ['conquerors', 'separation', 'rejection', 'word-not-void', 'love'],
+  },
+  {
+    // Darrell 2026-07-03: "I've always felt loved because of the Word... no
+    // depression, just fighting the good fight... enduring the world... Yahweh
+    // IS GOOD AND OUR JOY IS OUR STRENGTH — NOT happiness, that's reliable
+    // based on situations, not Joy... we would laugh after getting beat up
+    // inside and outside our home, then we learned how to fight, and the Word
+    // used that as exercise... amazing." The joy-vs-happiness distinction plus
+    // Hebrews 12:11's own word for it: EXERCISED thereby.
+    id: 'gh-good-fight-exercise', section: 'epistles', name: 'The Good Fight (joy is strength — happiness is weather)',
+    refs: ['1 Timothy 6:12', 'James 1:2-3', 'Hebrews 12:11'],
+    condition: 'The fight comes — inside the home and outside it; the chastening "for the present seemeth to be joyous" to no one; the world must be endured, not escaped.',
+    consequence: 'Fight the GOOD fight of faith and lay hold on eternal life; count it ALL joy — the trying of your faith worketh patience — and the grievous season yields the peaceable fruit of righteousness to them which are EXERCISED thereby.',
+    threeD: 'Do not wait on happiness — it is weather, indexed to the situation. Joy is indexed to Yahweh, so it holds while the situation swings. Laugh after the beating (that is not denial, that is the anchor holding), learn to fight, and let the Word run the beating as a training set: exercised thereby.',
+    outcome: 'Loved because of the Word regardless of the day\'s score — no depression, a good fight being fought, and every past beating repurposed as the exercise that built the fighter.',
+    psyche: 'Happiness is situation-indexed; joy is identity-indexed — an anchor, not weather. Laughter after trauma from a soul anchored outside the trauma is resilience, not repression; what research later named post-traumatic growth, Hebrews named first: exercised thereby.',
+    tags: ['joy', 'good-fight', 'exercise', 'endurance', 'strength'],
+  },
+  {
+    // Darrell 2026-07-03: "Seated inside Heavenly Places right now — we souls
+    // are eternally blessed of Yahweh, just have to support each other while
+    // we grow."
+    id: 'gh-seated-heavenly', section: 'epistles', name: 'Seated in Heavenly Places (right now — support each other while we grow)',
+    refs: ['Ephesians 2:6', 'Ephesians 1:3', 'Galatians 6:2'],
+    condition: 'In Christ — raised up TOGETHER and made to sit TOGETHER; the seating is His past-tense act, not your future achievement.',
+    consequence: 'Seated in heavenly places IN CHRIST JESUS, already blessed with ALL spiritual blessings there — souls eternally blessed of Yahweh, right now, while still walking the 3rd dimension.',
+    threeD: 'Live FROM the seat, not TOWARD it: the position is settled, so the remaining work is each other — bear ye one another\'s burdens while we grow. The seat is singularly yours; the growing is done together.',
+    outcome: 'Identity that does not wobble with circumstances — already seated, already blessed — and a Body that carries each other up the growth curve.',
+    psyche: 'Striving FOR a status and living FROM a status run on different fuel: the settled seat removes the performance anxiety, which is exactly what frees a person to spend themselves supporting someone else\'s growth.',
+    tags: ['seated', 'heavenly-places', 'identity', 'burdens', 'growth'],
+  },
+  {
+    // Darrell 2026-07-03: "YAHWEH got it — revenge and all... no thoughts
+    // until I do... We Eternal anyway... forgive..."
+    id: 'gh-vengeance-his', section: 'epistles', name: "Vengeance Is His (we're eternal anyway — forgive)",
+    refs: ['Romans 12:19-21'],
+    condition: 'Avenge NOT yourselves — give place unto wrath; feed the hungry enemy; be not overcome of evil.',
+    consequence: '"Vengeance is Mine; I will repay, saith the Lord" — the repaying is already assigned, at a higher court than yours; and good OVERCOMES evil.',
+    threeD: "Drop the case — Yahweh's got it, revenge and all, so spend no thoughts on it. We are eternal anyway: a grudge is a 3rd-dimensional expense an eternal being does not need to carry. Forgive, feed the enemy if he's hungry, and let the Judge keep His own docket.",
+    outcome: 'A free head and clean hands — the offense handed to a Court that cannot be bribed, and evil overcome by the good you did instead.',
+    psyche: 'Revenge planning is rumination with a scheduled relapse — it keeps the injury live. Transferring the case to a trusted higher justice is the one release that satisfies the fairness instinct without re-injuring you.',
+    tags: ['forgiveness', 'vengeance', 'release', 'eternal'],
   },
   {
     id: 'gh-humble-exalt', section: 'epistles', name: 'Humble Yourself Under His Hand → Exalted',
@@ -500,6 +674,19 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['confession', 'forgiveness', 'cleansing'],
   },
   {
+    // Darrell 2026-07-03: "He knew us before the foundation of the earth and
+    // gave us His Spirit when we open the doors of our hearts to Him — and
+    // another voice we won't hear. I SEE YOU YAHWEH."
+    id: 'gh-sheep-voice', section: 'gospels', name: 'My Sheep Hear My Voice (another voice they will not follow)',
+    refs: ['John 10:27', 'John 10:5', 'Ephesians 1:4'],
+    condition: 'Belong to the Shepherd — chosen in Him BEFORE the foundation of the world, His Spirit given when the door of the heart opens.',
+    consequence: 'My sheep HEAR My voice, and I know them, and they follow Me — and a stranger will they NOT follow, for they know not the voice of strangers. The discernment is built into the belonging.',
+    threeD: 'Voice recognition is trained by exposure: the more of His Word in you, the more instantly a strange voice registers as strange — the feeds, the philosophies, the fear all sound off-key. Some of us are not from here originally; the accent of Home gives it away.',
+    outcome: 'Un-deceivable ears — a life steered by one Voice, with the strangers automatically flagged.',
+    psyche: 'Recognition beats analysis: the trained ear rejects the counterfeit before the mind finishes arguing about it — which is why saturation in the true Voice outperforms cataloguing every false one.',
+    tags: ['voice', 'sheep', 'discernment', 'foundation', 'spirit'],
+  },
+  {
     // "In a closet so He Will Teach you... it's His Will."
     id: 'gh-closet', section: 'gospels', name: 'The Closet (in secret, He teaches — and rewards openly)',
     refs: ['Matthew 6:6'],
@@ -509,6 +696,20 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'Taught in secret, rewarded openly — a public life funded by a private one.',
     psyche: 'Every audience bends behavior toward performance; removing all witnesses is the only setting where the unedited self shows up — which is exactly the self He teaches.',
     tags: ['prayer', 'secret', 'closet', 'teaching'],
+  },
+  {
+    // Darrell 2026-07-03: "Christ invested in the 12 — we want to use His
+    // investment platform and seed it like He says: feed my sheep... yes
+    // King... Pastor Lee and BG seeded This Word inside my soul — I'm doing
+    // the same thing with the same content — it's His Will."
+    id: 'gh-feed-sheep', section: 'gospels', name: "Feed My Sheep (the King's investment platform)",
+    refs: ['John 21:17', '2 Timothy 2:2'],
+    condition: 'Love Him? Then FEED HIS SHEEP — the King\'s own investment mandate, given three times so it could not be missed; and commit what you heard to FAITHFUL men who shall teach OTHERS ALSO.',
+    consequence: 'Christ invested in twelve and the deposit is still compounding two thousand years later — four generations in one verse (Paul → Timothy → faithful men → others also): the only investment platform with returns that never stop running.',
+    threeD: 'Run His platform, not a new one: seed the same Word that was seeded in you. The chain is live and personal — Pastor Lee and Bishop Gwin seeded This Word into one soul, and that soul is now seeding the same content into a family, a church, and a platform. Same deposit, next generation. Yes, King.',
+    outcome: 'A deposit that outlives every depositor — sheep fed, teachers taught, and the Word compounding down generations you will never meet.',
+    psyche: 'People invest where they were invested in: being poured into creates both the capacity and the felt obligation to pour into others — the healthiest debt a soul can carry, and the engine of every durable lineage.',
+    tags: ['investment', 'sheep', 'discipleship', 'generations', 'seeding'],
   },
   {
     // Darrell 2026-07-03: "not just die — suffer for righteousness' sake:
@@ -593,6 +794,22 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'Heaven\'s access control is the reason the testing matters: no more lucifers inside the Kingdom of Yahweh. Get in the Book — and live like someone whose name is in it.',
     outcome: 'A City that can never be corrupted again — and your name written where it counts forever.',
     tags: ['holiness', 'book-of-life', 'city', 'kingdom'],
+  },
+  {
+    // Darrell 2026-07-03: "Freedom by the word of their testimony... If they
+    // eat the Word their word and testimonies will align... Give credit to
+    // the person who deserves it... Eternal Algorithms — Yahweh's Perspectives
+    // And Will, as high above our thoughts as the heavens are from the earth."
+    // The last line is his own definition of the Eternal Algorithms space —
+    // Isaiah 55:8-9 is why the study exists at all.
+    id: 'gh-word-of-testimony', section: 'revelation', name: 'The Word of Their Testimony (eat the Word and the testimony aligns)',
+    refs: ['Revelation 12:11', 'Jeremiah 15:16', 'Isaiah 55:8-9', 'Romans 13:7'],
+    condition: 'The accuser is overcome by the blood of the Lamb AND by the word of their testimony — and a testimony only carries weight when the mouth and the life run the same Word.',
+    consequence: 'EAT the Word — "Thy words were found, and I did eat them" — and it becomes the joy and rejoicing of the heart: the word and the testimony ALIGN, and the aligned testimony overcomes.',
+    threeD: 'Freedom comes by the word of your testimony, so feed the testimony: eat the Word daily until what you say and what you lived are the same record. And render honour to whom honour is due — credit the person who deserves it, starting with the Author whose thoughts are as high above ours as the heavens are above the earth. That gap is why these are His algorithms, not ours.',
+    outcome: 'A testimony the accuser cannot cross-examine — Word eaten, word spoken, life lived, all one aligned record; and the credit flowing to the One who wrote it.',
+    psyche: 'Integrity is the mind\'s load-bearing wall: when the spoken word and the lived record match, there is nothing to defend and no second story to maintain — the alignment itself is the freedom, and giving credit where it is due keeps the self honest about what was received versus achieved.',
+    tags: ['testimony', 'overcoming', 'eat-the-word', 'honour', 'alignment'],
   },
 ];
 

@@ -199,13 +199,13 @@ function GodheadStudyView() {
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
         <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">The Godhead Study · Torah → Revelation</p>
         <p className="text-sm leading-relaxed" style={serif}>
-          The Bible's deterministic algorithms — the if/then patterns the Living Godhead states in His own words. Forever Eternal Beings inviting us into a bloodline family: every soul gets its turn to be tested, even the Son came off the Throne of Glory, and the meek — strength under the control of the Holy Spirit, The General — inherit. {GODHEAD_ALGORITHMS.length} patterns, every verse rendered verbatim (KJV, public domain).
+          The Bible's deterministic algorithms — the if/then patterns the Living Godhead states in His own words. Eternal Algorithms: Yahweh's perspectives and Will, as high above our thoughts as the heavens are above the earth (Isaiah 55:8-9). Forever Eternal Beings inviting us into a bloodline family: every soul gets its turn to be tested, even the Son came off the Throne of Glory, and the meek — strength under the control of the Holy Spirit, The General — inherit. {GODHEAD_ALGORITHMS.length} patterns, every verse rendered verbatim (KJV, public domain).
         </p>
         <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
           Pattern recognition is how Yahweh helps us — blind 3rd-dimensional sheep, lions and lambs — understand the Knowledge of the Most Holy. Each entry carries the practice AND, where it helps, how the mind runs it (the psychological perspective of His Word). Not the destination — the journey molds you.
         </p>
         <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
-          Die daily. This 3rd-dimensional space is not Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. This platform is that work: bringing the church to the streets, using the world's technology so there is a Way — from Yahweh, His tool, held humbly by the Tribe. See you when you get there.
+          Die daily. This 3rd-dimensional space is not Home — it is the development environment: the sheep, lions and lambs of the Church of the Living Yahweh are built and tested HERE before the release Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. This platform is that work: bringing the church to the streets, using the world's technology so there is a Way — from Yahweh, His tool, held humbly by the Tribe. See you when you get there.
         </p>
       </div>
       {/* THE BOOKS — each its own masterpiece; tap to read its identity and
