@@ -1,4 +1,4 @@
-// surface-boundary (DR-0090) — one broken surface can never white-screen the app.
+// surface-boundary (DR-0092) — one broken surface can never white-screen the app.
 // Mounts the REAL boundary in jsdom (Verification Doctrine: observe behavior,
 // not just logic) and proves the break-it path: a child that throws during
 // render degrades to the inline card, the sibling content SURVIVES, the error

@@ -67,7 +67,7 @@ export const RELATIONSHIPS = Object.freeze([
       'A guardian (Darrell / Christina) sets exactly what a child account can do. ' +
       'Child-safe by default; outbound actions are guardian-approval-gated at most; ' +
       'spending and security stay locked. What a child SEES — including the family ' +
-      'finances, for money education — is the guardian’s decision (DR-0092).',
+      'finances, for money education — is the guardian’s decision (DR-0094).',
     roles: ['guardian', 'child'],
     steward: 'guardian', // the side that CONFIGURES the other's access
   },
@@ -161,7 +161,7 @@ export const CHILD_CAPABILITY_POLICY = Object.freeze({
   // Outbound: a guardian may UP TO approval-gate it, never free-allow it.
   'message.outbound':  { default: SETTING.DENY,     maxGrant: SETTING.APPROVAL },
   'share.outbound':    { default: SETTING.DENY,     maxGrant: SETTING.APPROVAL },
-  // Money VISIBILITY is the guardian's decision (DR-0092; Darrell 2026-07-03:
+  // Money VISIBILITY is the guardian's decision (DR-0094; Darrell 2026-07-03:
   // "I do want the guardian to make that decision — I want to make sure my
   // kids can see how money actually works, education before they need it").
   // Default stays child-safe DENY (a per-child, deliberate opt-in), but the

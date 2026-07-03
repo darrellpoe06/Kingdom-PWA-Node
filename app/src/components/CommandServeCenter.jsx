@@ -192,7 +192,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
       </section>
 
       {/* SEE — real system + quality state. The Quality & Throughput board
-          (DR-0089) leads as the roll-up: every gate/coverage/ops number read
+          (DR-0091) leads as the roll-up: every gate/coverage/ops number read
           live from its real artifact with the governing DR + principle beside
           it; OpsBoard and QualityProof carry the per-area detail below. */}
       {tab === 'see' && (
@@ -240,7 +240,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
       )}
 
       {/* SERVE — the ontology the seat operates within, and the household it
-          serves first: the Family Roster (DR-0091) provisions children through
+          serves first: the Family Roster (DR-0093) provisions children through
           the 0055/0057 safety rails — never through the email allowlist. */}
       {tab === 'serve' && (
         <div className="space-y-3">

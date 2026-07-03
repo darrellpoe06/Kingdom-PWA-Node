@@ -1,4 +1,4 @@
-// Render smoke test for the Quality & Throughput board (DR-0089). Proves the
+// Render smoke test for the Quality & Throughput board (DR-0091). Proves the
 // component mounts and surfaces the REAL build-time artifacts — the measured
 // test census, the vitest-synced legibility scan, the committed audit findings,
 // the parsed LESSONS principles — as JSX, and that a why-ref missing from the

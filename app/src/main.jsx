@@ -17,7 +17,7 @@ window.storage = storage;
 wireChunkHeal(window);
 
 // Record every uncaught error + unhandled rejection to the device-local error
-// journal (DR-0090) — the failure stays visible to the steward on the Quality &
+// journal (DR-0092) — the failure stays visible to the steward on the Quality &
 // Throughput board instead of dying as one console line. Watching only; the
 // handlers can never throw. Wired first so boot-time failures are captured too.
 installGlobalErrorCapture(window);

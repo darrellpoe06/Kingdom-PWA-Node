@@ -15,11 +15,13 @@ import { fmt } from '../lib/format.js';
 import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
-import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows } from '../lib/statement-import.js';
+import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatementHeader, looksImportableFile } from '../lib/statement-import.js';
 import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
 import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
+import { compressImageFile } from '../lib/image.js';
+import { receiptShape, loadPending, addPending, removePending, suggestMatches } from '../lib/receipts.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -45,6 +47,114 @@ function TxHistory({ recordEvents, txId }) {
               : <span>{v.summary}</span>}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ReceiptModal (DR-0090) — snap or pick a receipt photo on a STILL screen
+// (overlay, never a scroll-jump). Two modes: attachTo set = attach straight to
+// that transaction; attachTo null = save to the pending pool ("snap now,
+// match later") where each waiting receipt shows its suggested bank-row
+// matches (amount + settlement-window date) for one-tap pairing.
+// ---------------------------------------------------------------------------
+function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending, onDeletePending, onClose }) {
+  const [src, setSrc] = useState('');
+  const [amount, setAmount] = useState(attachTo ? String(Math.abs(Number(attachTo.amount) || 0) || '') : '');
+  const [merchant, setMerchant] = useState('');
+  const [capturedAt, setCapturedAt] = useState(new Date().toISOString().slice(0, 10));
+  const [busy, setBusy] = useState('');
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const onPhoto = async (file) => {
+    if (!file) return;
+    if (!(file.type || '').startsWith('image/')) { setBusy(`"${file.name}" is not a photo.`); return; }
+    setBusy('Compressing…');
+    try { setSrc(await compressImageFile(file, 1280, 0.6)); setBusy(''); }
+    catch (e) { setBusy(`Could not read the photo: ${e.message || 'unknown error'}`); }
+  };
+
+  const buildReceipt = () => receiptShape({ src, amount, merchant, capturedAt });
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#1A1815]/60 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white border-2 border-[#1A1815] max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={attachTo ? 'Attach a receipt' : 'Receipts'}>
+        <div className="p-5 space-y-4" style={{ fontFamily: '"Fraunces", serif' }}>
+          <div className="flex items-baseline justify-between gap-2">
+            <div>
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Receipts</div>
+              <h3 className="text-lg text-[#1A1815] font-semibold">{attachTo ? `Attach to: ${attachTo.description}` : 'Snap a receipt'}</h3>
+              <p className="text-xs text-[#5A5751]">{attachTo ? 'The photo stores on this transaction and follows it to every device.' : 'No matching charge yet? Save it here — when the bank row lands, match it with one tap.'}</p>
+            </div>
+            <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">× Close</button>
+          </div>
+
+          <div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">1. The photo</div>
+            <input type="file" accept="image/*" capture="environment" onChange={(e) => onPhoto(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
+            {src && <img src={src} alt="Receipt preview" className="mt-2 max-h-48 border border-[#E8E4DC]" />}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" htmlFor="rcpt-amt">Total (optional)</label>
+              <input id="rcpt-amt" type="number" step="0.01" inputMode="decimal" className="w-full border border-[#E8E4DC] px-2 py-1.5 text-sm" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="48.59" />
+            </div>
+            <div>
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" htmlFor="rcpt-mer">Merchant (optional)</label>
+              <input id="rcpt-mer" className="w-full border border-[#E8E4DC] px-2 py-1.5 text-sm" value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder="Aspen Tap House" />
+            </div>
+            <div>
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" htmlFor="rcpt-date">Date</label>
+              <input id="rcpt-date" type="date" className="w-full border border-[#E8E4DC] px-2 py-1.5 text-sm" value={capturedAt} onChange={(e) => setCapturedAt(e.target.value)} />
+            </div>
+          </div>
+
+          {busy && <p className="text-xs text-[#B85838]" aria-live="polite">{busy}</p>}
+
+          {attachTo ? (
+            <button type="button" disabled={!src} onClick={() => { onAttach(attachTo, buildReceipt()); onClose(); }} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40">
+              {src ? 'Attach receipt to this transaction' : 'Add the photo first (step 1)'}
+            </button>
+          ) : (
+            <button type="button" disabled={!src} onClick={() => { const r = onSavePending(buildReceipt()); setBusy(r.skipped ? r.message : ''); if (!r.skipped) { setSrc(''); setMerchant(''); setAmount(''); } }} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40">
+              {src ? 'Save — match when the charge lands' : 'Add the photo first (step 1)'}
+            </button>
+          )}
+
+          {!attachTo && pending.length > 0 && (
+            <div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Waiting to match ({pending.length}) — on this device until paired</div>
+              <div className="space-y-2">
+                {pending.map((r) => {
+                  const matches = suggestMatches(r, transactions);
+                  return (
+                    <div key={r.id} className="border border-[#E8E4DC] p-2 flex gap-2">
+                      {r.src && <img src={r.src} alt={`Pending receipt${r.merchant ? ` from ${r.merchant}` : ''}`} className="h-16 border border-[#E8E4DC]" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-[#1A1815]">{r.merchant || 'Receipt'} · {r.amount != null ? fmt(-r.amount) : 'no total'} · {r.capturedAt}</div>
+                        {matches.length === 0 ? (
+                          <p className="text-[0.625rem] text-[#5A5751] italic">No matching charge in the ledger yet — it usually lands within a few days.</p>
+                        ) : matches.map((t) => (
+                          <button key={t.id} type="button" onClick={() => { onAttach(t, { ...r }); onDeletePending(r.id); }} className="block text-left text-[0.6875rem] text-[#5A6E3D] hover:text-[#1A1815] underline">
+                            Attach → {t.description} · {fmt(t.amount)} · {t.date}
+                          </button>
+                        ))}
+                        <button type="button" onClick={() => onDeletePending(r.id)} className="mt-0.5 text-[0.625rem] text-[#991B1B] hover:underline">Delete</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -144,6 +254,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const [transferContext, setTransferContext] = useState(null); // { targetAccountId, shortfall, occasion }
   const [transferAmount, setTransferAmount] = useState(0);
   const [transferSourceId, setTransferSourceId] = useState('');
+
+  // Receipts (DR-0090): the snap/attach modal + the per-device pending pool.
+  const [receiptOpen, setReceiptOpen] = useState(null);       // null | { attachTo: txn|null }
+  const [pendingReceipts, setPendingReceipts] = useState(() => loadPending());
+  const [receiptViewId, setReceiptViewId] = useState(null);   // txn id whose receipt image is expanded
 
   // v28+ CSV import state
   const [csvOpen, setCsvOpen] = useState(false);
@@ -547,27 +662,13 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     if (!csvRaw.trim()) return { rows: [], headers: [], idx: {}, errors: [] };
     const lines = csvRaw.split(/\r?\n/).filter(l => l.trim().length > 0);
     if (lines.length === 0) return { rows: [], headers: [], idx: {}, errors: ['File is empty.'] };
-    const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
-    const findCol = (...names) => {
-      for (const n of names) {
-        const i = headers.indexOf(n);
-        if (i !== -1) return i;
-      }
-      return -1;
-    };
-    const idx = {
-      date: findCol('transaction date', 'date', 'posted date', 'post date'),
-      desc: findCol('description', 'details', 'memo', 'name', 'payee'),
-      amount: findCol('amount', 'debit', 'transaction amount'),
-      credit: findCol('credit'),
-      category: findCol('category', 'type'),
-    };
-    const errors = [];
-    if (idx.date === -1) errors.push('No Date column found.');
-    if (idx.desc === -1) errors.push('No Description column found.');
-    if (idx.amount === -1 && idx.credit === -1) errors.push('No Amount column found.');
+    // Header detection lives in statement-import.js (findStatementHeader): it
+    // scans the first rows for the real header line — a title/preamble row no
+    // longer produces "No Description column found" (Christina, 2026-07-03) —
+    // and matches synonym headers ("Posting Date", "Merchant") by word.
+    const { headerRow, headers, idx, errors } = findStatementHeader(lines);
     if (errors.length) return { rows: [], headers, idx, errors };
-    const rows = lines.slice(1).map((line, i) => {
+    const rows = lines.slice(headerRow + 1).map((line, i) => {
       const cells = parseCsvLine(line);
       const rawDate = cells[idx.date] || '';
       const date = normalizeDate(rawDate);
@@ -578,7 +679,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       if (csvFlipSign) amt = -amt;
       const category = idx.category !== -1 ? (cells[idx.category] || 'other').toLowerCase() : 'other';
       const ok = !!date && !!desc && /^\d{4}-\d{2}-\d{2}$/.test(date);
-      return { lineNo: i + 2, rawDate, date, desc, amount: amt, category, ok };
+      return { lineNo: headerRow + i + 2, rawDate, date, desc, amount: amt, category, ok };
     });
     return { rows, headers, idx, errors };
   })();
@@ -644,6 +745,14 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   };
   const onCsvFile = (file) => {
     if (!file) return;
+    // A photo/PDF from the tablet's picker is not a statement — say so plainly
+    // instead of the baffling three "No … column found" errors (2026-07-03).
+    if (!looksImportableFile(file)) {
+      setCsvRaw('');
+      const kind = (file.type || '').startsWith('image/') ? 'a photo' : (file.type === 'application/pdf' ? 'a PDF' : 'not a spreadsheet');
+      setCsvError(`"${file.name}" is ${kind} — this importer reads the .csv or Excel file downloaded from the bank. Choose that export instead.`);
+      return;
+    }
     // Excel (.xlsx/.xls) is parsed to CSV text first (lazy SheetJS), then flows
     // through the SAME proven CSV mapper + importCsv -> addTransaction -> ledger
     // path that drives the derived balance. Reading an .xlsx as plain text used
@@ -730,7 +839,30 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 {t._status}
               </span>
             )}
+            {/* Receipt evidence (DR-0090): view the attached photo, or attach one. */}
+            {t.receipt && t.receipt.src ? (
+              <button type="button"
+                onClick={() => setReceiptViewId(receiptViewId === t.id ? null : t.id)}
+                className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                aria-expanded={receiptViewId === t.id}
+                title={`Receipt attached${t.receipt.merchant ? ` — ${t.receipt.merchant}` : ''} (${t.receipt.capturedAt || ''})`}>
+                {receiptViewId === t.id ? '▾ receipt' : '▸ receipt'}
+              </button>
+            ) : (
+              <button type="button"
+                onClick={() => setReceiptOpen({ attachTo: t })}
+                className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] hover:text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                title="Attach a receipt photo to this transaction">
+                +receipt
+              </button>
+            )}
           </div>
+          {receiptViewId === t.id && t.receipt && t.receipt.src && (
+            <div className="mt-2">
+              <img src={t.receipt.src} alt={`Receipt${t.receipt.merchant ? ` from ${t.receipt.merchant}` : ''} for ${t.description}`} className="max-h-64 border border-[#E8E4DC]" />
+              <button type="button" onClick={() => { if (confirm('Remove this receipt from the transaction?')) { updateTransaction(t.id, { receipt: null }); setReceiptViewId(null); } }} className="block mt-1 text-[0.625rem] text-[#991B1B] hover:underline">Remove receipt</button>
+            </div>
+          )}
           {/* Invoice rollup (migration 0036): one bank debit, several merchant
               invoices. Shows that the parts sum to the whole so the single
               ledger amount is never mistaken for triple-counting. */}
@@ -912,6 +1044,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setCsvOpen(true)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">📤 Import CSV</button>
+            <button type="button" onClick={() => setReceiptOpen({ attachTo: null })} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">+ Receipt{pendingReceipts.length ? ` (${pendingReceipts.length} waiting)` : ''}</button>
             <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
           </div>
         </div>
@@ -1222,6 +1355,10 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               {csvParsed.errors.length > 0 && (
                 <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>
                   {csvParsed.errors.map((er, i) => <div key={i}>· {er}</div>)}
+                  {csvParsed.headers && csvParsed.headers.length > 0 && (
+                    <div className="mt-1 text-[#5A5751]">This file&apos;s columns: {csvParsed.headers.filter(Boolean).slice(0, 12).join(' · ') || '(none readable)'}</div>
+                  )}
+                  <div className="mt-1 text-[#1A1815]">The importer needs Date, Description, and Amount columns — the CSV your bank lets you download has them.</div>
                 </div>
               )}
 
@@ -1258,8 +1395,17 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
 
               {csvError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{csvError}</div>}
 
+              {/* The button says WHAT IT NEEDS instead of a dead "Import 0
+                  transactions" (Christina 2026-07-03: "how do I upload it? I
+                  don't see where it says upload"). Step 3 completes the 1-2-3. */}
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">3. Import into the ledger</div>
               <button type="button" onClick={importCsv} disabled={csvParsed.rows.filter(r => r.ok).length === 0 || !csvAccountId} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
-                Import {csvParsed.rows.filter(r => r.ok).length} transaction{csvParsed.rows.filter(r => r.ok).length === 1 ? '' : 's'}
+                {(() => {
+                  const n = csvParsed.rows.filter(r => r.ok).length;
+                  if (n === 0) return csvRaw.trim() ? 'Nothing to import yet — fix the file issue above' : 'Import — choose a file first (step 2)';
+                  if (!csvAccountId) return 'Pick a target account (step 1) to import';
+                  return `Import ${n} transaction${n === 1 ? '' : 's'}`;
+                })()}
               </button>
               <p className="text-[0.625rem] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
                 Rows without a parseable date are skipped automatically. Amounts with $ or commas are normalized. Unknown categories become 'other'.
@@ -1267,6 +1413,18 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             </div>
           </div>
         </div>
+      )}
+
+      {receiptOpen && (
+        <ReceiptModal
+          attachTo={receiptOpen.attachTo}
+          transactions={data.transactions || []}
+          pending={pendingReceipts}
+          onAttach={(txn, receipt) => updateTransaction(txn.id, { receipt })}
+          onSavePending={(receipt) => { const r = addPending(receipt); if (r.added) setPendingReceipts(r.pending); return r; }}
+          onDeletePending={(id) => setPendingReceipts(removePending(id).pending)}
+          onClose={() => setReceiptOpen(null)}
+        />
       )}
 
       {transferContext && (() => {

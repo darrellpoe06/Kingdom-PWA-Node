@@ -1,4 +1,4 @@
-// Quality & Throughput board (DR-0089) — the pure core + the cross-seam guards.
+// Quality & Throughput board (DR-0091) — the pure core + the cross-seam guards.
 //
 // Proven-to-catch (DR-0076): the census counter is exercised against fixtures
 // with a KNOWN census (a miscount fails), the lessons parser against a fixture

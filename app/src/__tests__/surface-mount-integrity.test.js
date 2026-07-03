@@ -1,4 +1,4 @@
-// surface-mount-integrity (DR-0090) — the REAL registry against the REAL shell.
+// surface-mount-integrity (DR-0092) — the REAL registry against the REAL shell.
 //
 // Two dead-end gaps this closes (per the 2026-07-03 hardening recon):
 //   1. The surface-audit CLI asserts reachability for TOP-LEVEL surfaces only,
@@ -11,7 +11,7 @@
 //
 // This test feeds the REAL registry and the REAL shell source through a pure
 // checker covering all three nav kinds, and proves the checker catches (a
-// fabricated unmounted surface is detected). Also pins the DR-0090 containment
+// fabricated unmounted surface is detected). Also pins the DR-0092 containment
 // wiring: every registry surface is boundary-wrapped at the mount layer.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -54,7 +54,7 @@ describe('every registered surface has a render branch in the live shell', () =>
   });
 });
 
-describe('per-surface crash containment is wired at the mount layer (DR-0090)', () => {
+describe('per-surface crash containment is wired at the mount layer (DR-0092)', () => {
   it('the registry wraps every lazy surface in the boundary', () => {
     expect(registrySrc).toContain("import { withSurfaceBoundary } from './lib/surface-boundary.jsx'");
     expect(registrySrc).toContain('withSurfaceBoundary(lazy(s.load), s.label)');

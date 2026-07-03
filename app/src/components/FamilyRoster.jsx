@@ -1,5 +1,5 @@
 // =============================================================================
-// FamilyRoster — the household roster, in the steward seat (DR-0091)
+// FamilyRoster — the household roster, in the steward seat (DR-0093)
 // =============================================================================
 // "I'll add my son and daughters so I can explain it to users." (Darrell,
 // 2026-07-03.) The first surface wired to the child-safety rails that shipped
@@ -41,7 +41,7 @@ export default function FamilyRoster({ io = DEFAULT_IO, currentUserId = null }) 
   const [form, setForm] = useState({ displayName: '', persona: '', minorTier: 'under13', childUserId: '' });
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
-  // The consolidated permission state (one home, DR-0093): per-persona config
+  // The consolidated permission state (one home, DR-0095): per-persona config
   // from the real child_capabilities rows + the live approval queue.
   const [capsByPersona, setCapsByPersona] = useState({});
   const [requests, setRequests] = useState([]);
@@ -57,7 +57,7 @@ export default function FamilyRoster({ io = DEFAULT_IO, currentUserId = null }) 
   useEffect(() => { refresh(); }, [refresh]);
 
   // Set one child's capability: clamp to the safety ceiling (spending/security
-  // stay locked; visibility is the guardian's free choice, DR-0092), write the
+  // stay locked; visibility is the guardian's free choice, DR-0094), write the
   // persona-scoped row, reflect optimistically.
   const onSetCapability = useCallback(async (persona, cap, choice) => {
     const current = capsByPersona[persona] || {};
@@ -211,12 +211,12 @@ export default function FamilyRoster({ io = DEFAULT_IO, currentUserId = null }) 
           <li>Add them to the roster above with just their name and age band — that part works right now.</li>
           <li>When they need their own sign-in: create their account as the guardian in the Supabase dashboard (Authentication → Users → Add user). There is no child self-signup, on purpose.</li>
           <li>Copy the new account&apos;s UUID and re-add the same name here with the UUID filled in — the roster row updates and the account gets the protected <strong>child</strong> role.</li>
-          <li>What each child can see and do — including <strong>See family finances</strong> for money education — is decided by you, per child, <strong>right below on this page</strong> (DR-0092). Seeing is not spending: buy/spend stays locked off for a child no matter what you grant.</li>
+          <li>What each child can see and do — including <strong>See family finances</strong> for money education — is decided by you, per child, <strong>right below on this page</strong> (DR-0094). Seeing is not spending: buy/spend stays locked off for a child no matter what you grant.</li>
           <li>Their email is never added to the family sign-in allowlist — that is the protection, not an omission.</li>
         </ol>
       </details>
 
-      {/* ----- what each child can see & do (the ONE home, DR-0093) ----- */}
+      {/* ----- what each child can see & do (the ONE home, DR-0095) ----- */}
       {state.rows.length > 0 && (
         <div className="mt-4">
           <GuardianChildPanel

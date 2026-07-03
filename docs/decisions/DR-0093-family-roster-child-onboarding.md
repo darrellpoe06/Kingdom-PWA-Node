@@ -1,4 +1,4 @@
-# DR-0091 — The Family Roster: children join through the safety rails, never through the allowlist
+# DR-0093 — The Family Roster: children join through the safety rails, never through the allowlist
 
 - **Status:** accepted
 - **Tier:** C (family onboarding, a minor's data — shipped on the reviewed PR at the Governor's explicit direction: "I'll add my son and daughters so I can explain it to users")

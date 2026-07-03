@@ -116,7 +116,7 @@ function MatrixPanel({ childConfig }) {
 
 // ---------------------------------------------------------------------------
 // Guardian panel — MOVED to components/GuardianChildPanel.jsx, mounted on the
-// Family Roster (Center → Serve): the ONE input home for the family (DR-0093).
+// Family Roster (Center → Serve): the ONE input home for the family (DR-0095).
 // The tab below renders a pointer, not a duplicate.
 // ---------------------------------------------------------------------------
 // Landlord panel — the rent roll + the four landlord<->tenant workflows.
@@ -262,7 +262,7 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
   // Load real config (for the read-only matrix) + tenancies on mount (fail-soft).
   // The guardian↔child INPUT surface (set capabilities + the approval queue)
   // moved to its one home — the Family Roster in the Center's Serve faculty
-  // (DR-0093 consolidation; the hardcoded twin placeholder personas died with
+  // (DR-0095 consolidation; the hardcoded twin placeholder personas died with
   // the move — the roster drives it with the REAL family_member_profiles rows).
   useEffect(() => {
     let live = true;
@@ -356,10 +356,10 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
       {tab === 'matrix' && <MatrixPanel childConfig={childConfig} />}
       {tab === 'guardian' && (
         <Panel title="Guardian & Child — moved to its one home" icon="users"
-          note="One place for the family, not four similar ones (DR-0093).">
+          note="One place for the family, not four similar ones (DR-0095).">
           <p className="text-sm text-[#1A1815]">
             Adding a family member <strong>and</strong> deciding what each child can see and do — including
-            {' '}<strong>See family finances</strong> for money education (your call, DR-0092) — now live together
+            {' '}<strong>See family finances</strong> for money education (your call, DR-0094) — now live together
             on the <strong>Family Roster</strong>: Command, Control &amp; Serve Center → <strong>Serve</strong>.
             The read-only matrix view stays here; landlord &amp; tenant stays here.
           </p>

@@ -130,16 +130,25 @@ function SongForm({ initial, onSave, onCancel, busy }) {
   });
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const save = () => onSave({ ...f, startSeconds: parseTimecode(f.startTime) });
-  // The form renders at the TOP of the tab, but Edit is tapped deep in the
-  // list — without this scroll the tap looks like it did nothing (Darrell
-  // 2026-07-03: "the edit buttons don't work"). Bring the form to the user.
-  const formRef = useRef(null);
+  // The form comes to the USER as an overlay on a still screen — the page must
+  // never jump or scroll out from under the tap (Darrell 2026-07-03: "I hate
+  // when the whole screen moves after one click"). Escape or a backdrop tap
+  // cancels, same as the Cancel button.
   useEffect(() => {
-    const el = formRef.current;
-    if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
+    const onKey = (e) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onCancel]);
   return (
-    <div ref={formRef} className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2" style={{ scrollMarginTop: '5rem' }}>
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={f.id ? 'Edit song' : 'Add song'}
+      style={{ background: 'rgba(26,24,21,0.6)' }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 w-full overflow-y-auto" style={{ maxWidth: '42rem', maxHeight: '85vh' }}>
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? `Edit song${f.title ? ` — ${f.title}` : ''}` : 'Add song'}</div>
       <div><label className={LABEL} htmlFor="cs-title">Title</label><input id="cs-title" className={FIELD} value={f.title} onChange={set('title')} placeholder="Song title" /></div>
       <div><label className={LABEL} htmlFor="cs-yt">YouTube link (the video the choir learns from)</label><input id="cs-yt" className={FIELD} value={f.youtubeUrl} onChange={set('youtubeUrl')} placeholder="https://youtu.be/…" /></div>
@@ -161,6 +170,7 @@ function SongForm({ initial, onSave, onCancel, busy }) {
       <div className="flex gap-2 flex-wrap pt-1">
         <button type="button" disabled={busy || !f.title.trim()} onClick={save} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>{busy ? 'Saving…' : 'Save song'}</button>
         <button type="button" onClick={onCancel} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:bg-white`}>Cancel</button>
+      </div>
       </div>
     </div>
   );

@@ -25,7 +25,7 @@ class SectionBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     console.error(`Section error caught (${this.props.name || 'section'}):`, error, info?.componentStack);
-    // Durable signal for the Quality & Throughput board (DR-0090); never throws.
+    // Durable signal for the Quality & Throughput board (DR-0092); never throws.
     recordError({ source: `section:${this.props.name || 'section'}`, kind: 'render', message: error?.message || String(error) });
   }
 

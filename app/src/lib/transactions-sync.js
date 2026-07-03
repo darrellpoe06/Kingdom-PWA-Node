@@ -37,6 +37,7 @@ export const transactionsSync = createTableSync({
       category:             item.category ?? null,
       is_transfer:          !!item.isTransfer,
       reconciliation:       item.reconciliation ?? null,
+      receipt:              item.receipt ?? null,
     };
   },
 
@@ -53,6 +54,7 @@ export const transactionsSync = createTableSync({
       category:       row.category,
       isTransfer:     !!row.is_transfer,
       reconciliation: row.reconciliation ?? null,
+      receipt:        row.receipt ?? null,
       updatedAt:      row.updated_at,
       createdAt:      row.created_at,
     };

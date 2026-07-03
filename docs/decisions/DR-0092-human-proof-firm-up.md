@@ -1,7 +1,7 @@
-# DR-0090 — Human-proof firm-up: per-surface crash containment, the error journal, and full-registry dead-end guarantees
+# DR-0092 — Human-proof firm-up: per-surface crash containment, the error journal, and full-registry dead-end guarantees
 
 - **Status:** accepted
-- **Tier:** B (structural resilience in the mount layer + a new watching subsystem; rides the DR-0089 branch preview soak)
+- **Tier:** B (structural resilience in the mount layer + a new watching subsystem; rides the DR-0091 branch preview soak)
 - **Scope:** every surface mounted through the registry; every uncaught runtime error; the whole nav registry
 - **Date:** 2026-07-03
 - **Principles:** VERIFICATION-DOCTRINE, EXECUTION-OUTCOME-OBSERVABILITY, PERPETUAL-IMPROVEMENT, APP-IS-PRIMARY, DATA-AS-EMPOWERMENT, LESSONS-LEARNED, DECISION-RECORDS
@@ -21,7 +21,7 @@ Darrell, 2026-07-03: "fix or firm up this app so humans can't break it or expose
 
 1. **Containment at the mount layer** (`lib/surface-boundary.jsx` + `surfaces.js`): every registry surface is wrapped `withSurfaceBoundary(lazy(load), label)` — one broken surface degrades to one inline recover-card (Try again / Reload); the nav and every other tab keep working. Lives in `lib/` because the registry is core and the boundary law forbids it a static `components/` import. Navigating away unmounts the branch, so a return visit gets a fresh boundary.
 2. **The error journal** (`lib/error-journal.js`): capped, device-local (localStorage — the user's own diagnostic data, nothing egresses), dedupe-by-repeat (a recurring error bumps a count; the repeat is the signal). Fed by the new boundary, both existing boundaries, and a global `error` + `unhandledrejection` capture installed at boot. The watcher can never throw (DR-0083 posture: observing never breaks the observed).
-3. **Surfaced beside the other numbers**: a "Runtime errors (this device)" row on the Quality & Throughput board (DR-0089) — recent-24h drives the status dot; the last real error shows with its source. Honest scope stated on the row: device-local.
+3. **Surfaced beside the other numbers**: a "Runtime errors (this device)" row on the Quality & Throughput board (DR-0091) — recent-24h drives the status dot; the last real error shows with its source. Honest scope stated on the row: device-local.
 4. **Full-registry dead-end guarantee** (`surface-mount-integrity.test.js`): the vitest suite now binds the REAL `SURFACES` registry to the REAL shell for all three nav kinds — top-level AND church/books subs (closing the documented audit limitation) — with a proven-to-catch fabricated-surface check. Zero dead ends found at adoption.
 
 ## Not done, with why (DR-0075)

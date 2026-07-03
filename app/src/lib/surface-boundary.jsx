@@ -12,7 +12,7 @@
 //
 // Every catch is recorded to the error journal (lib/error-journal.js) so the
 // failure is visible on the Quality & Throughput board afterward, not just a
-// console line lost to the moment (DR-0090). Chunk-load failures are healed
+// console line lost to the moment (DR-0092). Chunk-load failures are healed
 // upstream by lib/chunk-reload-heal.js (reload-once on deploy skew); what
 // reaches this boundary is a real render/runtime error, where a reload loop
 // would not help — so the recovery here is user-driven (Try again / Reload).

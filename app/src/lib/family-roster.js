@@ -1,5 +1,5 @@
 // =============================================================================
-// family-roster — pure rules for the household roster (DR-0091)
+// family-roster — pure rules for the household roster (DR-0093)
 // =============================================================================
 // "I'll add my son and daughters so I can explain it to users." (Darrell,
 // 2026-07-03.) The safe rails shipped in migrations 0055/0057 — the 'child'

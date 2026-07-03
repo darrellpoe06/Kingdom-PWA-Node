@@ -1,4 +1,4 @@
-// error-journal (DR-0090) — the app's durable memory of its own failures.
+// error-journal (DR-0092) — the app's durable memory of its own failures.
 // Proven-to-catch (DR-0076): recording, dedupe-by-repeat, the cap, the 24h
 // roll-up, and the global capture wiring are each exercised — including the
 // failure modes (broken storage, corrupt JSON, non-browser context), because

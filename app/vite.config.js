@@ -226,7 +226,7 @@ let conflictLoop;
 try { conflictLoop = buildConflictManifest(); }
 catch (e) { conflictLoop = { ok: false, error: (e && e.message) || 'manifest unavailable', eventCount: 0, hotFiles: [], contendedAreas: [], rate: { buckets: [], trend: 'baseline' }, decomposition: [], problems: [] }; }
 
-// Test census + LESSONS-LEARNED principles (DR-0089, the Quality & Throughput
+// Test census + LESSONS-LEARNED principles (DR-0091, the Quality & Throughput
 // board). The census MEASURES the verification suite's size from the real test
 // tree (any hand-typed count would be painted the moment it landed, DR-0076);
 // the lessons manifest parses the REAL foundation doc so the extracted

@@ -20,7 +20,7 @@ class ErrorBoundary extends React.Component {
     // Keep the console signal for diagnosis; the boundary handles the UI.
     console.error('App error caught by ErrorBoundary:', error, info?.componentStack);
     // And the durable signal: the journal keeps the failure visible afterward
-    // on the Quality & Throughput board (DR-0090). Recording never throws.
+    // on the Quality & Throughput board (DR-0092). Recording never throws.
     recordError({ source: 'app-boundary', kind: 'render', message: error?.message || String(error) });
   }
 

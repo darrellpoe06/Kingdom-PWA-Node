@@ -1,4 +1,4 @@
-# DR-0093 — One home for the family: consolidate the people inputs, siblings point, never duplicate
+# DR-0095 — One home for the family: consolidate the people inputs, siblings point, never duplicate
 
 - **Status:** accepted
 - **Tier:** B (consolidation of existing surfaces; no new data model)
@@ -12,13 +12,13 @@ Darrell, 2026-07-03, holding two screenshots of the live Admin → People & Acce
 
 ## What the trace found
 
-Four sibling surfaces touched "people," none complete: **Admin → People & Access** (read-only allowlist + role check + request count), the **Access** tab (usage metrics), **Relationships** (the guardian↔child capability editor — driven by hardcoded `'Twin A'/'Twin B'` placeholder personas, with panel copy still claiming family finances "cannot be granted" after DR-0092 said otherwise, and a config-flatten bug where one child's settings bled onto every sibling), and the new **Family Roster** (add a member). On the live build there was NO way to add family at all, and the roster's own card pointed users BACK to Relationships — fragmenting the exact flow it existed to unify.
+Four sibling surfaces touched "people," none complete: **Admin → People & Access** (read-only allowlist + role check + request count), the **Access** tab (usage metrics), **Relationships** (the guardian↔child capability editor — driven by hardcoded `'Twin A'/'Twin B'` placeholder personas, with panel copy still claiming family finances "cannot be granted" after DR-0094 said otherwise, and a config-flatten bug where one child's settings bled onto every sibling), and the new **Family Roster** (add a member). On the live build there was NO way to add family at all, and the roster's own card pointed users BACK to Relationships — fragmenting the exact flow it existed to unify.
 
 ## Decision
 
 **The Family Roster (Center → Serve) is the ONE input home for the family.** Consolidated onto it, one page, one flow:
-1. **Add a member** (DR-0091 rails) →
-2. **Decide what each child can see & do** — the full capability editor (`GuardianChildPanel`, extracted from Relationships), driven by the REAL roster personas, per-child config properly scoped (`configByPersona` — the sibling-bleed bug fixed and pinned by test), with **See family finances** offered as the guardian's free three-way choice (DR-0092) and the acting capabilities (spend / security) still locked →
+1. **Add a member** (DR-0093 rails) →
+2. **Decide what each child can see & do** — the full capability editor (`GuardianChildPanel`, extracted from Relationships), driven by the REAL roster personas, per-child config properly scoped (`configByPersona` — the sibling-bleed bug fixed and pinned by test), with **See family finances** offered as the guardian's free three-way choice (DR-0094) and the acting capabilities (spend / security) still locked →
 3. **Work the approval queue** — a child's ask-first request is approved or denied on the same page.
 
 **Siblings point, never duplicate:** Relationships keeps its landlord↔tenant domain and its read-only matrix; its guardian tab is now a pointer card to the one home. The stale "cannot be granted" copy is corrected in both the panel and the registry blurb. The placeholder personas are deleted — the editor renders real rows or nothing.

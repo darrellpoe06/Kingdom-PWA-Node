@@ -1,5 +1,5 @@
 // =============================================================================
-// quality-throughput — pure logic for the Quality & Throughput board (DR-0089)
+// quality-throughput — pure logic for the Quality & Throughput board (DR-0091)
 // =============================================================================
 // One steward surface where the system's quantitative state (gates, coverage,
 // debt, ops throughput) and its qualitative record (the DR, the principle, the
@@ -177,7 +177,7 @@ export const WHY = {
     note: 'Watching is read-only and separate from doing — observing a loop can never break it.',
   },
   errors: {
-    drs: ['DR-0090'],
+    drs: ['DR-0092'],
     principles: ['P3', 'P6'],
     note: 'Every surface is boundary-contained (one crash = one inline card, never a white screen) and every caught error lands here — the failure stays visible, not lost to a console line.',
   },

@@ -1,5 +1,5 @@
 // =============================================================================
-// error-journal — the app records its own runtime failures (DR-0090)
+// error-journal — the app records its own runtime failures (DR-0092)
 // =============================================================================
 // "Make sure it has proactive error correcting algorithms so qualitative and
 // quantitative errors are minor because of our procedures." (Darrell, 2026-07-03.)

@@ -2,7 +2,7 @@
 // GuardianChildPanel — set what a child can see & do + the approval queue
 // =============================================================================
 // MOVED here from Relationships.jsx as part of the one-home consolidation
-// (DR-0093; Darrell 2026-07-03: "we have too many places that are similar…
+// (DR-0095; Darrell 2026-07-03: "we have too many places that are similar…
 // consolidate the inputs from users inside one that has all the features and
 // conditions of the others"). The ONE input home for family is the Family
 // Roster (Center → Serve): add a member there and decide what they can see
@@ -11,7 +11,7 @@
 //
 // Two corrections carried in the move:
 //   1. The old panel note said family finances "are locked and cannot be
-//      granted" — contradicting the Governor's standing decision (DR-0092).
+//      granted" — contradicting the Governor's standing decision (DR-0094).
 //      Money VISIBILITY is the guardian's call (No / Ask / Yes); spending and
 //      security stay locked because they ACT.
 //   2. Personas were hardcoded placeholders ('Twin A'/'Twin B') and the config
@@ -71,7 +71,7 @@ export default function GuardianChildPanel({ personas, configByPersona, onSetCap
   return (
     <>
       <Panel title="Set what each child can see & do" icon="sliders"
-        note="Defaults are child-safe. Outbound actions can be set to ask-first at most; spending and security stay locked because they act. What a child SEES — including the family finances, for money education — is the guardian's decision (DR-0092). Every change here is a deliberate guardian action, per child.">
+        note="Defaults are child-safe. Outbound actions can be set to ask-first at most; spending and security stay locked because they act. What a child SEES — including the family finances, for money education — is the guardian's decision (DR-0094). Every change here is a deliberate guardian action, per child.">
         {personas.length > 1 ? (
           <div className="flex gap-2 mb-4 flex-wrap">
             {personas.map((p) => (

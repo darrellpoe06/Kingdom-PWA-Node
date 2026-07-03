@@ -85,7 +85,7 @@ describe('guardian <-> child: child-safety is structural', () => {
     }
   });
 
-  it("money VISIBILITY is the guardian's decision (DR-0092): default deny, grantable — spending stays locked", () => {
+  it("money VISIBILITY is the guardian's decision (DR-0094): default deny, grantable — spending stays locked", () => {
     // Darrell 2026-07-03: "I do want the guardian to make that decision — I
     // want to make sure my kids can see how money actually works, education
     // before they need it." The default is still the child-safe deny (a

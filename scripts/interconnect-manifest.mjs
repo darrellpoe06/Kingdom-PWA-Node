@@ -160,7 +160,7 @@ export const INTERCONNECT_REGISTRY = [
     awaiting: 'Built + tested but not mounted: no component renders the worship set-list through <Presenter> (6 other surfaces do). Needs a lyrics→sections mapper + a worship surface. The pure machinery and NDI output already exist.',
   },
 
-  // ---- The system watching itself (DR-0089) ----
+  // ---- The system watching itself (DR-0091) ----
   {
     id: 'quality-throughput', name: 'Verification artifacts → Quality & Throughput board', status: 'live',
     from: 'legibility-health.json + audit-findings.json + ops_commands + _schema_migrations + the live harvest join', to: 'Quality & Throughput board (C2S See faculty)',

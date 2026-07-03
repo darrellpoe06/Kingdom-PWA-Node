@@ -96,3 +96,65 @@ describe('parseDelimitedToRows — reconciliation gate (no silent drops)', () =>
     expect(r.errors.join(' ')).toMatch(/No Date column/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Header detection + file-type honesty (Darrell + Christina, 2026-07-03).
+// Christina's CSV died with "No Description column found" because detection
+// only ever read LINE 1 — exports often start with a title row. And a .jpg
+// from the tablet's picker fell through to the CSV parser and produced three
+// baffling column errors instead of naming the real problem.
+// ---------------------------------------------------------------------------
+import { findStatementHeader, looksImportableFile } from '../lib/statement-import.js';
+
+describe('findStatementHeader — the header row is found wherever it is', () => {
+  it('classic bank export: header on line 1', () => {
+    const h = findStatementHeader(['Transaction Date,Description,Amount', '06/01/2026,WENDYS,-21.00']);
+    expect(h.headerRow).toBe(0);
+    expect(h.errors).toEqual([]);
+  });
+  it("Christina's case: a title/preamble line before the header no longer kills the import", () => {
+    const h = findStatementHeader([
+      'Imported transactions — June 2026',
+      'Date,Payee,Amount,Category',
+      '06/01/2026,WENDYS,-21.00,dining',
+    ]);
+    expect(h.headerRow).toBe(1);
+    expect(h.errors).toEqual([]);
+    expect(h.idx.desc).toBe(1); // Payee counts as the description column
+  });
+  it('synonym headers match by word: Posting Date / Merchant / Debit', () => {
+    const h = findStatementHeader(['Posting Date,Merchant,Debit', '06/01/2026,KROGER,12.34']);
+    expect(h.errors).toEqual([]);
+    expect(h.idx.date).toBe(0);
+    expect(h.idx.desc).toBe(1);
+    expect(h.idx.amount).toBe(2);
+  });
+  it('a file with no usable header anywhere still fails loudly with the column errors', () => {
+    const h = findStatementHeader(['just,some,garbage', 'more,random,cells']);
+    expect(h.errors.join(' ')).toMatch(/No Date column/);
+    expect(h.errors.join(' ')).toMatch(/No Description column/);
+    expect(h.errors.join(' ')).toMatch(/No Amount column/);
+  });
+});
+
+describe('parseDelimitedToRows rides the header finder (bulk path fixed too)', () => {
+  it('imports rows from a file whose header sits under a title line', () => {
+    const r = parseDelimitedToRows('My Export\nDate,Description,Amount\n06/01/2026,WENDYS,-21.00');
+    expect(r.errors).toEqual([]);
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0].description).toBe('WENDYS');
+    expect(r.reconciliation.balanced).toBe(true);
+  });
+});
+
+describe('looksImportableFile — photos and PDFs are named, not parsed', () => {
+  it('rejects a photo and a PDF', () => {
+    expect(looksImportableFile({ name: '20260702_135507.jpg', type: 'image/jpeg' })).toBe(false);
+    expect(looksImportableFile({ name: 'statement.pdf', type: 'application/pdf' })).toBe(false);
+  });
+  it('accepts csv / excel / text exports (by name or MIME)', () => {
+    expect(looksImportableFile({ name: 'imported-transactions.csv', type: 'text/csv' })).toBe(true);
+    expect(looksImportableFile({ name: 'June.xlsx', type: '' })).toBe(true);
+    expect(looksImportableFile({ name: 'export', type: 'text/plain' })).toBe(true);
+  });
+});

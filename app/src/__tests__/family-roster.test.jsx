@@ -1,4 +1,4 @@
-// FamilyRoster (DR-0091) — the household roster on the 0055/0057 safety rails.
+// FamilyRoster (DR-0093) — the household roster on the 0055/0057 safety rails.
 // Proven-to-catch (DR-0076): the pure rules are pinned (slugging, tier + UUID
 // validation), the REAL card is mounted in jsdom against injected IO — the
 // happy path, the guardian-refused path, and the migration-missing path each
@@ -186,14 +186,14 @@ describe('FamilyRoster card — real mount, injected IO', () => {
   });
 });
 
-// --- the consolidated permission editor (the ONE home, DR-0093) ----------------
+// --- the consolidated permission editor (the ONE home, DR-0095) ----------------
 
 const ROSTER_TWO = [
   { member_persona: 'christian', display_name: 'Christian', minor_tier: 'under13', coppa_protected: true, member_user_id: null },
   { member_persona: 'christyn', display_name: 'Christyn', minor_tier: 'teen', coppa_protected: false, member_user_id: null },
 ];
 
-describe('FamilyRoster — what each child can see & do, decided here (DR-0092/0093)', () => {
+describe('FamilyRoster — what each child can see & do, decided here (DR-0094/0093)', () => {
   it('renders the editor with the REAL roster personas (no Twin placeholders anywhere)', async () => {
     const c = await mount({ loadRoster: async () => ({ ok: true, data: ROSTER_TWO }) });
     expect(c.innerHTML).toContain('Set what each child can see &amp; do');
@@ -207,7 +207,7 @@ describe('FamilyRoster — what each child can see & do, decided here (DR-0092/0
   // matches the wrong <li>.
   const capRow = (c, desc) => Array.from(c.querySelectorAll('li')).find((li) => li.textContent.includes(desc));
 
-  it('offers the guardian the FULL choice on See family finances (No / Ask / Yes) — the DR-0092 decision, on screen', async () => {
+  it('offers the guardian the FULL choice on See family finances (No / Ask / Yes) — the DR-0094 decision, on screen', async () => {
     const c = await mount({ loadRoster: async () => ({ ok: true, data: ROSTER_TWO }) });
     const row = capRow(c, 'View the family books');
     expect(row).toBeTruthy();
