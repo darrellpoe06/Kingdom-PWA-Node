@@ -381,6 +381,26 @@ export const SEED_ALGORITHMS = [
     ],
   },
   {
+    // Darrell 2026-07-03 (spoken; distilled faithfully from his own words):
+    // Yahweh's table is eternal; the Word is the meal; eating it is what seats
+    // you. Crumbs treated as the meal is the counterfeit. Scripture fetched
+    // verbatim (KJV, public domain) — never from memory (DR-0076).
+    name: "Yahweh's Table (eat the Word, stay at the table)",
+    fourD: {
+      summary: 'Yahweh\'s table is eternal, and the meal is the Word — the Bread of Life Himself. "Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God" (Mt 4:4, KJV). To sit at the table IS to eat: dissecting the meal, enjoying it, understanding it, comprehending it. If you are not eating the Word, you are not sitting at the table — and crumbs that fall from it get treated as if they were the meal. There is no dual seating: "ye cannot be partakers of the Lord\'s table, and of the table of devils" (1 Cor 10:21, KJV) — the world sets other tables, and the adversary\'s table is one of them. Even suffering at His table is not a catastrophe but "your reasonable service" (Rom 12:1), because you know what is at stake — your soul, everybody\'s soul — and you know a crown is coming. So: "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth" (2 Tim 2:15, KJV). Why? Because we want to stay at HIS table.',
+      scripture: '1 Corinthians 10:21; 2 Timothy 2:15; Matthew 4:4; Romans 12:1',
+    },
+    threeD: {
+      summary: 'Eat the Word like meals, not crumbs: read whole passages and dissect them until you actually understand and enjoy them — do not let secondhand snippets, entertainment tables, or the culture\'s tables stand in for the meal. Watch which table you are seated at; the headlines make sense once you see whose table the world eats from. Stay low, stay humble, stay planted where the Eternal King says stay — and when suffering comes, it does not move you, because you know what is at stake and what is ahead.',
+    },
+    outcome: 'You stay seated at His table — fed and steady. Crumb-sized substitutes cannot pass as the meal anymore, other tables lose their pull, suffering re-orders as reasonable service because the crown is known, and your soul stays where the Eternal King says stay.',
+    tags: ['table', 'word', 'eat', 'study', 'crumbs', 'humility', 'discernment', 'crown'],
+    links: [
+      { label: 'Sister framework: The Table Before the Enemy', where: 'Eternal Algorithms' },
+      { label: 'The Word — Migdal (the meal served weekly)', where: 'Church › The Word' },
+    ],
+  },
+  {
     name: 'The Finish Is Guaranteed (Author and Finisher)',
     fourD: {
       summary: 'You run toward a finish already secured. "Looking to Jesus, the founder and perfecter of our faith" (Heb 12:2, ESV; KJV: "the author and finisher of our faith"). "He who began a good work in you will bring it to completion at the day of Jesus Christ" (Phil 1:6). The One who starts it is the One who finishes it.',
