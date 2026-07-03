@@ -13,7 +13,13 @@
 //     Technology Briefings).
 //
 // Lives INSIDE Darrell's Study (gated to the circle in the monolith). DATA is
-// device-local + sovereign (eternal-algorithms.js) — never cloud, never mined.
+// sovereign: device-local is the immediate truth (eternal-algorithms.js), and
+// since 2026-07-03 the gallery SYNCS across the owner's own devices through the
+// family's self-hosted server (eternal-algorithms-sync.js + migration 0071 —
+// owner-only RLS). THE BRIDGE: a finalized framework can be PUBLISHED to the
+// public Church › Eternal Algorithms series — the owner chooses per entry
+// whether the deep 4D layer goes out (DR-0094); unpublished work never leaves
+// the circle (DB-enforced, never a UI-only lock).
 // Accessibility mirrors the Study/Pulpit surfaces: white / #FAF8F4 cards,
 // #1A1815 body, #5A5751 secondary, labelled inputs, visible #B85838 focus (AA).
 // =============================================================================
@@ -26,14 +32,29 @@ import {
   normalizeAlgorithm, upsertAlgorithm, removeAlgorithm, togglePin,
   sortAlgorithms, filterAlgorithms, frameworksAndOutcomes,
 } from '../lib/eternal-algorithms.js';
+import {
+  fetchLibraryCloud, mergeLibrary, pushAlgorithms, tombstoneAlgorithms,
+  subscribeAlgorithmsRealtime,
+} from '../lib/eternal-algorithms-sync.js';
 
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const AREA = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] leading-relaxed focus:outline focus:outline-2 focus:outline-[#B85838]';
-const LABEL = 'text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1';
+const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const serif = { fontFamily: '"Fraunces", serif' };
 
 const nowMs = () => Date.now();
+
+// Honest sync footer (DR-0076): the surface states its REAL persistence state.
+// "The family's own server" is literal — self-hosted, owner-only rows (0071).
+// Anything marked published is visible in the public Church series by design;
+// everything else never leaves the circle.
+const EA_SYNC_FOOT = {
+  synced: 'Sovereign & private: the gallery is yours alone — owner-only at the database — and follows your sign-in across your devices through the family’s own server. Only what you explicitly publish appears in the church series.',
+  syncing: 'Sovereign & private: everything here is safe on this device — checking the family server for your gallery…',
+  local: 'Sovereign & private: the family server isn’t reachable right now, so you’re working from this device’s copy. It syncs automatically when the connection returns.',
+  error: 'Sovereign & private: some recent changes haven’t reached the family server yet. They are safe on this device and will be re-sent with your next change.',
+};
 
 // Shared voice primitive — appends dictation into a field; renders nothing where
 // unsupported. (Reused, not re-rolled.)
@@ -80,7 +101,7 @@ function AlgorithmEditor({ initial, onSave, onCancel }) {
   const submit = () => { if (check.ok) onSave(candidate); };
   return (
     <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit' : 'New'} eternal algorithm</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit' : 'New'} eternal algorithm</div>
       <div>
         <label className={LABEL} htmlFor="ea-name">Framework name</label>
         <input id="ea-name" className={FIELD} value={f.name} onChange={set('name')} placeholder="e.g. Response over Circumstance (90/10)" />
@@ -89,7 +110,7 @@ function AlgorithmEditor({ initial, onSave, onCancel }) {
       {/* OUTCOME — first-class, given its own emphasized field. */}
       <div className="border-l-2 border-[#5A6E3D] pl-2">
         <div className="flex items-center justify-between mb-1">
-          <label className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold block" htmlFor="ea-outcome">✦ Outcome · the result you win with it</label>
+          <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold block" htmlFor="ea-outcome">✦ Outcome · the result you win with it</label>
           <MicButton onText={append('outcome')} label="the outcome" />
         </div>
         <textarea id="ea-outcome" className={AREA} rows="2" value={f.outcome} onChange={set('outcome')} placeholder="What running this algorithm produces — the win." />
@@ -98,7 +119,7 @@ function AlgorithmEditor({ initial, onSave, onCancel }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-1">
         <div className="border-l-2 border-[#1A1815] pl-2">
           <div className="flex items-center justify-between mb-1">
-            <label className="text-[9px] uppercase tracking-wider text-[#1A1815] font-semibold block" htmlFor="ea-4d">4D · eternal / scriptural</label>
+            <label className="text-[0.5625rem] uppercase tracking-wider text-[#1A1815] font-semibold block" htmlFor="ea-4d">4D · eternal / scriptural</label>
             <MicButton onText={append('fourSummary')} label="the 4th-dimensional expression" />
           </div>
           <textarea id="ea-4d" className={AREA} rows="6" value={f.fourSummary} onChange={set('fourSummary')} placeholder="The eternal / scriptural expression — quote Scripture accurately." />
@@ -107,7 +128,7 @@ function AlgorithmEditor({ initial, onSave, onCancel }) {
         </div>
         <div className="border-l-2 border-[#5A5751] pl-2">
           <div className="flex items-center justify-between mb-1">
-            <label className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold block" htmlFor="ea-3d">3D · practical / temporal</label>
+            <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold block" htmlFor="ea-3d">3D · practical / temporal</label>
             <MicButton onText={append('threeSummary')} label="the 3rd-dimensional expression" />
           </div>
           <textarea id="ea-3d" className={AREA} rows="6" value={f.threeSummary} onChange={set('threeSummary')} placeholder="How it plays out in this-world life and work." />
@@ -120,12 +141,12 @@ function AlgorithmEditor({ initial, onSave, onCancel }) {
       </div>
 
       {!check.ok && (
-        <p className="text-[11px] text-[#9A3412]" style={serif} role="status">
+        <p className="text-[0.6875rem] text-[#9A3412]" style={serif} role="status">
           Final only — still needs: {check.missing.join(', ')}. (Rough drafts live in Study › Finalize.)
         </p>
       )}
       {check.ok && !check.hasScripture && (
-        <p className="text-[11px] text-[#5A5751]" style={serif}>No Scripture ref yet — add one if it has a clear anchor (never invent a verse).</p>
+        <p className="text-[0.6875rem] text-[#5A5751]" style={serif}>No Scripture ref yet — add one if it has a clear anchor (never invent a verse).</p>
       )}
       <div className="flex gap-2 flex-wrap pt-1">
         <button type="button" disabled={!check.ok} onClick={submit} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`} title={check.ok ? '' : `Needs: ${check.missing.join(', ')}`}>Save</button>
@@ -144,8 +165,8 @@ function PairingList({ rows, onOpen }) {
   return (
     <div className="border border-[#E8E4DC] bg-white">
       <div className="hidden sm:grid grid-cols-2 gap-0 bg-[#FAF8F4] border-b border-[#E8E4DC]">
-        <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] px-3 py-2 border-r border-[#E8E4DC]">Framework</div>
-        <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A6E3D] px-3 py-2">✦ Outcome — you win with it</div>
+        <div className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#5A5751] px-3 py-2 border-r border-[#E8E4DC]">Framework</div>
+        <div className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#5A6E3D] px-3 py-2">✦ Outcome — you win with it</div>
       </div>
       <ul>
         {rows.map((r) => (
@@ -154,7 +175,7 @@ function PairingList({ rows, onOpen }) {
               <button type="button" onClick={() => onOpen(r.id)} className="text-left text-sm text-[#1A1815] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ ...serif, fontWeight: 600 }}>
                 {r.pinned ? '📌 ' : ''}{r.name}
               </button>
-              {r.scripture && <p className="text-[11px] text-[#5A6E3D] mt-0.5" style={serif}>{r.scripture}</p>}
+              {r.scripture && <p className="text-[0.6875rem] text-[#5A6E3D] mt-0.5" style={serif}>{r.scripture}</p>}
             </div>
             <div className="px-3 py-2.5 bg-[#FCFBF8] sm:bg-transparent">
               <p className="text-sm text-[#1A1815]" style={serif}>{r.outcome || <span className="text-[#9A3412] italic">No outcome yet — add the win.</span>}</p>
@@ -169,22 +190,32 @@ function PairingList({ rows, onOpen }) {
 // -----------------------------------------------------------------------------
 // Card — 3D plain layer + OUTCOME first; the 4D source one click beneath.
 // -----------------------------------------------------------------------------
-function AlgorithmCard({ entry, onEdit, onDelete, onPin, openByDefault }) {
+function AlgorithmCard({ entry, onEdit, onDelete, onPin, onSetPublish, openByDefault }) {
   const [openDeep, setOpenDeep] = useState(!!openByDefault);
+  const [publishing, setPublishing] = useState(false);   // inline publish panel
+  const [include4D, setInclude4D] = useState(!!entry.publish4D);
   return (
     <div className={`bg-white border p-3 ${entry.pinned ? 'border-[#B85838]' : 'border-[#E8E4DC]'}`}>
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <span style={{ ...serif, fontWeight: 600 }} className="text-[#1A1815]">{entry.pinned ? '📌 ' : ''}✦ {entry.name || 'Untitled framework'}</span>
-        {entry.seed
-          ? <span className="text-[9px] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">seed</span>
-          : entry.source === 'study'
-            ? <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5" title="Promoted from a finalized Study thought">✓ Finalized from Study</span>
-            : null}
+        <span className="flex items-baseline gap-1.5 flex-wrap">
+          {/* The reflect badge — the two rooms visibly agree on what's public. */}
+          {entry.published && (
+            <span className="text-[0.5625rem] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5" title={entry.publish4D ? 'Published to the Church series, including the deep 4D layer' : 'Published to the Church series (3D + outcome + scripture; the deep 4D layer stays in the circle)'}>
+              ● Live in the church series{entry.publish4D ? ' · with 4D' : ''}
+            </span>
+          )}
+          {entry.seed
+            ? <span className="text-[0.5625rem] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">seed</span>
+            : entry.source === 'study'
+              ? <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5" title="Promoted from a finalized Study thought">✓ Finalized from Study</span>
+              : null}
+        </span>
       </div>
 
       {/* OUTCOME — first-class, highlighted. */}
       <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
-        <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
         {entry.outcome
           ? <p className="text-sm text-[#1A1815]" style={serif}>{entry.outcome}</p>
           : <p className="text-xs text-[#9A3412] italic" style={serif}>No outcome yet — the framework↔outcome pairing needs the win.</p>}
@@ -192,7 +223,7 @@ function AlgorithmCard({ entry, onEdit, onDelete, onPin, openByDefault }) {
 
       {/* 3D plain layer — how it plays out. */}
       <div className="mt-2">
-        <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold">3D · practical / temporal</div>
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">3D · practical / temporal</div>
         {entry.threeD?.summary
           ? <p className="text-sm text-[#1A1815] whitespace-pre-wrap" style={serif}>{entry.threeD.summary}</p>
           : <p className="text-xs text-[#5A5751] italic" style={serif}>No 3D expression yet.</p>}
@@ -201,12 +232,12 @@ function AlgorithmCard({ entry, onEdit, onDelete, onPin, openByDefault }) {
       {/* 4D source — one click deeper (progressive disclosure). */}
       {(entry.fourD?.summary || entry.fourD?.scripture) && (
         <div className="mt-2">
-          <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
             {openDeep ? '↑ Hide the 4D source' : '↓ Open the 4D source (eternal / scriptural)'}
           </button>
           {openDeep && (
             <div className="mt-1.5 bg-[#FAF8F4] border-l-2 border-[#1A1815] pl-3 pr-2 py-2">
-              {entry.fourD?.scripture && <p className="text-[11px] text-[#5A6E3D] mb-1" style={serif}>{entry.fourD.scripture}</p>}
+              {entry.fourD?.scripture && <p className="text-[0.6875rem] text-[#5A6E3D] mb-1" style={serif}>{entry.fourD.scripture}</p>}
               <p className="text-sm text-[#1A1815] whitespace-pre-wrap" style={serif}>{entry.fourD?.summary}</p>
             </div>
           )}
@@ -215,16 +246,16 @@ function AlgorithmCard({ entry, onEdit, onDelete, onPin, openByDefault }) {
 
       {(entry.tags || []).length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">
-          {entry.tags.map((t) => <span key={t} className="text-[10px] bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">{t}</span>)}
+          {entry.tags.map((t) => <span key={t} className="text-[0.625rem] bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">{t}</span>)}
         </div>
       )}
 
       {(entry.links || []).length > 0 && (
         <div className="mt-2 pt-1.5 border-t border-[#E8E4DC]">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Shows up in</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Shows up in</div>
           <div className="flex flex-wrap gap-1.5">
             {entry.links.map((l, i) => (
-              <span key={i} className="text-[10px] text-[#5A5751]" style={serif}>
+              <span key={i} className="text-[0.625rem] text-[#5A5751]" style={serif}>
                 <span className="text-[#1A1815]">{l.label}</span>{l.where ? ` · ${l.where}` : ''}{i < entry.links.length - 1 ? '  •' : ''}
               </span>
             ))}
@@ -232,10 +263,35 @@ function AlgorithmCard({ entry, onEdit, onDelete, onPin, openByDefault }) {
         </div>
       )}
 
+      {/* The forge→pulpit publish panel — the owner decides, per entry, per
+          layer (DR-0094). Publishing sends the framework name + outcome + 3D
+          + scripture to the public Church series; the deep 4D layer goes ONLY
+          if the box is checked. Unpublish pulls it back. */}
+      {publishing && !entry.published && (
+        <div className="mt-2 bg-[#FAF8F4] border border-[#B85838] p-2.5 space-y-2">
+          <p className="text-xs text-[#1A1815]" style={serif}>
+            Publish <strong>{entry.name}</strong> to the public <strong>Church › Eternal Algorithms</strong> series? Everyone (including visitors) will see the framework, its outcome, the 3D expression, and the Scripture anchors.
+          </p>
+          <label className="flex items-baseline gap-2 text-xs" style={serif}>
+            <input type="checkbox" checked={include4D} onChange={(e) => setInclude4D(e.target.checked)} className="accent-[#B85838]" />
+            Also publish the deep 4D layer (otherwise it stays in the circle)
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            <button type="button" onClick={() => { onSetPublish(entry.id, true, include4D); setPublishing(false); }} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Publish</button>
+            <button type="button" onClick={() => setPublishing(false)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#5A5751] text-[#5A5751] hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#E8E4DC] flex-wrap">
-        <button type="button" onClick={() => onEdit(entry)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
-        <button type="button" onClick={() => onPin(entry.id)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{entry.pinned ? 'Unpin' : 'Pin'}</button>
-        <button type="button" onClick={() => { if (window.confirm('Delete this algorithm? It is only on this device.')) onDelete(entry.id); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
+        <button type="button" onClick={() => onEdit(entry)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
+        <button type="button" onClick={() => onPin(entry.id)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{entry.pinned ? 'Unpin' : 'Pin'}</button>
+        {entry.published ? (
+          <button type="button" onClick={() => { if (window.confirm('Unpublish this framework? It will leave the public Church series (your gallery copy is untouched).')) onSetPublish(entry.id, false, false); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">Unpublish</button>
+        ) : (
+          <button type="button" onClick={() => setPublishing((v) => !v)} className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">Publish to church series</button>
+        )}
+        <button type="button" onClick={() => { if (window.confirm(`Delete this algorithm from your gallery on all your devices${entry.published ? ' — it will ALSO leave the public church series' : ''}?`)) onDelete(entry.id); }} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
       </div>
     </div>
   );
@@ -250,18 +306,81 @@ export default function EternalAlgorithms({ email }) {
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState(null); // {} = new, entry = edit, null = none
   const [focusId, setFocusId] = useState(null);  // a framework opened from the pairing list
+  // Cross-device sync state (eternal-algorithms-sync.js) — same rail + same
+  // honest states as the Study: 'syncing' | 'synced' | 'local' | 'error'.
+  const [syncStatus, setSyncStatus] = useState('syncing');
   const loadedFor = useRef(null);
+  const libraryRef = useRef(null);
+  const cloudShadow = useRef({ entries: new Map(), ready: false });
+  const pendingTombstones = useRef([]);
 
   useEffect(() => {
     const loaded = seedIfEmpty(loadLibrary(email), nowMs());
     setLibrary(loaded);
+    libraryRef.current = loaded;
     loadedFor.current = email || null;
     saveLibrary(email, loaded); // persist the seed on first open
+
+    cloudShadow.current = { entries: new Map(), ready: false };
+    pendingTombstones.current = [];
+    setSyncStatus('syncing');
+    let cancelled = false;
+
+    const pullMerge = async () => {
+      const cloud = await fetchLibraryCloud();
+      if (cancelled) return;
+      if (!cloud) { setSyncStatus('local'); return; }
+      const base = libraryRef.current || loaded;
+      const { library: merged, pushEntries: up, pushTombstones } = mergeLibrary(base, cloud);
+      const shadow = cloudShadow.current;
+      shadow.entries = new Map(merged.entries.map((e) => [e.id, JSON.stringify(e)]));
+      shadow.ready = true;
+      if (JSON.stringify(merged) !== JSON.stringify(base)) {
+        setLibrary(merged);
+        libraryRef.current = merged;
+        saveLibrary(email, merged);
+      }
+      const okUp = await pushAlgorithms(up);
+      const okTomb = await tombstoneAlgorithms(pushTombstones);
+      if (!cancelled) setSyncStatus(okUp && okTomb ? 'synced' : 'error');
+    };
+
+    pullMerge();
+    const unsubscribe = subscribeAlgorithmsRealtime(pullMerge);
+    const onOnline = () => pullMerge();
+    window.addEventListener('online', onOnline);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      window.removeEventListener('online', onOnline);
+    };
   }, [email]);
 
   useEffect(() => {
     if (loadedFor.current !== (email || null)) return;
     saveLibrary(email, library);
+    libraryRef.current = library;
+    const shadow = cloudShadow.current;
+    if (!shadow.ready) return;
+    const changed = [];
+    const present = new Set();
+    for (const e of library.entries) {
+      present.add(e.id);
+      const j = JSON.stringify(e);
+      if (shadow.entries.get(e.id) !== j) { changed.push(e); shadow.entries.set(e.id, j); }
+    }
+    for (const id of [...shadow.entries.keys()]) {
+      if (!present.has(id)) { pendingTombstones.current.push(id); shadow.entries.delete(id); }
+    }
+    const tombstones = pendingTombstones.current;
+    if (!changed.length && !tombstones.length) return;
+    (async () => {
+      const okUp = await pushAlgorithms(changed);
+      const okTomb = await tombstoneAlgorithms(tombstones);
+      if (okTomb) pendingTombstones.current = [];
+      if (!okUp) for (const e of changed) shadow.entries.delete(e.id);
+      setSyncStatus(okUp && okTomb ? 'synced' : 'error');
+    })();
   }, [library, email]);
 
   const filtered = useMemo(() => filterAlgorithms(library.entries, query), [library.entries, query]);
@@ -285,6 +404,23 @@ export default function EternalAlgorithms({ email }) {
   const onDelete = (id) => setLibrary((s) => ({ ...s, entries: removeAlgorithm(s.entries, id) }));
   const onPin = (id) => setLibrary((s) => ({ ...s, entries: togglePin(s.entries, id) }));
   const openFramework = (id) => { setFocusId(id); setView('cards'); };
+  // The forge→pulpit bridge: publish/unpublish an entry to the public Church
+  // series. The owner chooses per entry whether the deep 4D layer goes out
+  // (DR-0094). updatedAt bumps so the sync pushes the new state immediately;
+  // the DATABASE window (eternal_algorithms_public) is what the church reads —
+  // nothing unpublished can leak from here.
+  const onSetPublish = (id, published, publish4D) => setLibrary((s) => ({
+    ...s,
+    entries: s.entries.map((e) => e.id === id
+      ? normalizeAlgorithm({
+          ...e,
+          published,
+          publish4D: published ? !!publish4D : false,
+          publishedAt: published ? new Date(nowMs()).toISOString() : null,
+          updatedAt: new Date(nowMs()).toISOString(),
+        })
+      : e),
+  }));
 
   return (
     <div>
@@ -295,12 +431,12 @@ export default function EternalAlgorithms({ email }) {
       {/* Ecclesiastes 3:14 — what the eternal does endures and runs unchanged. */}
       <blockquote className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-2 mb-4" style={serif}>
         <p className="text-sm text-[#1A1815] italic">“I perceived that whatever God does endures forever; nothing can be added to it, nor anything taken from it.”</p>
-        <footer className="text-[11px] text-[#5A5751] mt-1">— Ecclesiastes 3:14 (ESV). Each framework runs the same in the eternal (4D) and in this-world life and work (3D); the outcome is what you win with it.</footer>
+        <footer className="text-[0.6875rem] text-[#5A5751] mt-1">— Ecclesiastes 3:14 (ESV). Each framework runs the same in the eternal (4D) and in this-world life and work (3D); the outcome is what you win with it.</footer>
       </blockquote>
 
       {/* The rule, stated on the surface: this is the finished gallery; the
           workshop is Study › Finalize. No rough drafts here. */}
-      <p className="text-[11px] text-[#5A6E3D] bg-[#F2F4EC] border border-[#E8E4DC] px-3 py-1.5 mb-3" style={serif}>
+      <p className="text-[0.6875rem] text-[#5A6E3D] bg-[#F2F4EC] border border-[#E8E4DC] px-3 py-1.5 mb-3" style={serif}>
         <strong>The finished gallery.</strong> Only final, finalized frameworks live here. Drafting and iteration happen in <strong>Study › Finalize</strong> — a thought promotes in only once it's complete (4D · 3D · outcome) and accepted.
       </p>
 
@@ -308,7 +444,7 @@ export default function EternalAlgorithms({ email }) {
       <div className="flex items-center gap-1 text-xs mb-3 flex-wrap" role="tablist" aria-label="Library views">
         <button type="button" role="tab" aria-selected={view === 'pairs'} onClick={() => setView('pairs')} className={`px-3 py-2 border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${view === 'pairs' ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>⇄ Frameworks &amp; Outcomes</button>
         <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => { setView('cards'); setFocusId(null); }} className={`px-3 py-2 border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${view === 'cards' ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>▦ Cards</button>
-        <span className="text-[10px] text-[#5A5751] ml-auto">{library.entries.length} algorithms</span>
+        <span className="text-[0.625rem] text-[#5A5751] ml-auto">{library.entries.length} algorithms</span>
       </div>
 
       {/* Add / search */}
@@ -334,12 +470,12 @@ export default function EternalAlgorithms({ email }) {
         <PairingList rows={pairs} onOpen={openFramework} />
       ) : (
         <div className="space-y-2">
-          {cards.map((e) => <AlgorithmCard key={e.id} entry={e} onEdit={setEditing} onDelete={onDelete} onPin={onPin} openByDefault={e.id === focusId} />)}
+          {cards.map((e) => <AlgorithmCard key={e.id} entry={e} onEdit={setEditing} onDelete={onDelete} onPin={onPin} onSetPublish={onSetPublish} openByDefault={e.id === focusId} />)}
         </div>
       )}
 
-      <p className="text-[10px] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif}>
-        These power the two-layer progressive disclosure across PoeTech: the 3D side is the plain-audience teaching layer (briefings, courses); the 4D side is the deep source. Sovereign &amp; private: this lives on this device only — never sent to the cloud, never mined, never used to train anything.
+      <p className="text-[0.625rem] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif} role="status">
+        These power the two-layer progressive disclosure across PoeTech: the 3D side is the plain-audience teaching layer (briefings, courses); the 4D side is the deep source. {EA_SYNC_FOOT[syncStatus] || EA_SYNC_FOOT.local}
       </p>
     </div>
   );

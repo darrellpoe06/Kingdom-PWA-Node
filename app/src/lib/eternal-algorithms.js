@@ -87,6 +87,14 @@ export function normalizeAlgorithm(raw = {}, nowMs = 0, salt = 0) {
     source: raw.source === 'study' || raw.source === 'manual' ? raw.source : null,
     sourceId: raw.sourceId ? String(raw.sourceId) : null,
     promotedAt: raw.promotedAt || null,
+    // The forge→pulpit bridge (2026-07-03): publish state is part of the entry
+    // so it survives every load/save/merge. published = visible in the public
+    // church series (through the DB's eternal_algorithms_public window ONLY);
+    // publish4D = the owner chose to include the deep layer (DR-0094 — the
+    // owner decides what's shared, per entry, per layer).
+    published: !!raw.published,
+    publish4D: !!raw.publish4D,
+    publishedAt: raw.publishedAt || null,
     createdAt: iso,
     updatedAt: raw.updatedAt || iso,
   };

@@ -28,6 +28,7 @@ import {
   loadResponses, saveResponses,
 } from '../lib/eternal-algorithms-studies.js';
 import { withStudyDeck } from '../lib/games/generations.js';
+import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -79,6 +80,48 @@ function Section({ section }) {
             <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={serif}>
               <span className="uppercase tracking-wider text-[0.5625rem] text-[#5A6E3D]">Research cited</span> — {section.citation}
             </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// From the forge — a PUBLISHED finalized framework (the forge→pulpit bridge,
+// 2026-07-03). Rendered from the database's ONE public window
+// (eternal_algorithms_public): only entries the owner explicitly published,
+// and the deep 4D layer only when the owner chose to include it (fourD is
+// null otherwise — the section is omitted, never painted). Scripture refs
+// render through the same KJV-verbatim / link-don't-reproduce Verse.
+// -----------------------------------------------------------------------------
+function ForgeFramework({ alg }) {
+  const [openDeep, setOpenDeep] = useState(false);
+  const refs = String(alg.scripture || '').split(';').map((r) => r.trim()).filter(Boolean);
+  return (
+    <div className={CARD}>
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <h4 className="text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>✦ {alg.name}</h4>
+        <span className="text-[0.5625rem] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">From the family forge</span>
+      </div>
+      {alg.outcome && (
+        <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
+          <p className="text-sm text-[#1A1815]" style={serif}>{alg.outcome}</p>
+        </div>
+      )}
+      {alg.threeD && <p className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif}>{alg.threeD}</p>}
+      {refs.map((r) => <Verse key={r} refStr={r} />)}
+      {alg.fourD && (
+        <div className="mt-1.5">
+          <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep}
+            className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            {openDeep ? '↑ Close the deep layer' : '↓ Go deeper (the eternal expression)'}
+          </button>
+          {openDeep && (
+            <div className="mt-1 border-l-2 border-[#1A1815] pl-3 pr-1 py-1">
+              <p className="text-sm text-[#1A1815] leading-relaxed whitespace-pre-wrap" style={serif}>{alg.fourD}</p>
+            </div>
           )}
         </div>
       )}
@@ -169,6 +212,15 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
   const [aboutOpen, setAboutOpen] = useState(false);
   const [responses, setResponses] = useState({});
   const [showRound, setShowRound] = useState(false);
+  // Published frameworks from the family forge (Study › Eternal Algorithms).
+  // Read through the DB's public window — works signed-out; empty stays empty
+  // (the section is omitted, never painted).
+  const [forge, setForge] = useState([]);
+  useEffect(() => {
+    let on = true;
+    fetchPublishedAlgorithms().then((a) => { if (on) setForge(a); });
+    return () => { on = false; };
+  }, []);
 
   // Load the reader's device-local answers for this identity.
   useEffect(() => { setResponses(loadResponses(email)); }, [email]);
@@ -278,6 +330,22 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
         </div>
         {showRound && <BeliefVsActionRound cards={cards} />}
       </div>
+
+      {/* FROM THE FORGE — finalized frameworks published from the family's
+          Study gallery (the forge→pulpit bridge). Only what the owner
+          explicitly published appears here; the deep layer only where they
+          chose to include it. Hidden entirely when nothing is published. */}
+      {forge.length > 0 && (
+        <div className="border-t-2 border-[#1A1815] pt-3 mt-4">
+          <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Finalized frameworks · from the family forge</h3>
+          <p className="text-sm text-[#5A5751] mb-2" style={serif}>
+            Frameworks finished in the family's Study and published here on purpose — each pairs the pattern with the outcome you win with it, anchored in the Word.
+          </p>
+          <div className="space-y-2">
+            {forge.map((alg) => <ForgeFramework key={alg.id} alg={alg} />)}
+          </div>
+        </div>
+      )}
 
       <p className="text-[0.6875rem] text-[#5A5751] mt-4" style={serif}>
         King James Version (Public Domain) shown in-app, fetched verbatim and verified; other translations are referenced and linked, not reproduced (copyright). The Word is the arbiter; where we are unsure, we go back to it. Held in grace and truth, for the soul.
