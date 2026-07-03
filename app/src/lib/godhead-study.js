@@ -328,6 +328,18 @@ export const GODHEAD_ALGORITHMS = [
   },
 
   {
+    // "Human Beings are seedlings of their Father — the Potter, the Shepherd
+    // Of Souls."
+    id: 'gh-potter-shepherd', section: 'prophets', name: 'Seedlings of the Father (the Potter, the Shepherd of Souls)',
+    refs: ['Isaiah 64:8', '1 Peter 2:25'],
+    condition: 'Be the clay and know it — "we are the clay, and thou our potter" — a seedling of the Father, work of His hand; and return to the Shepherd when you have strayed.',
+    consequence: 'Formed by hands that know the intended shape, and shepherded by the Bishop OF YOUR SOUL — the making and the keeping are both His.',
+    threeD: 'A seedling does not design itself; it stays planted, watered, and workable. Stay soft on the wheel — resistance to the shaping is the only thing that prolongs it — and when you wander, the return address is the Shepherd, not the wilderness.',
+    outcome: 'A shape you could not have self-designed and a soul under permanent shepherding — grown, not self-made.',
+    psyche: 'Identity received from a trusted Maker resolves what identity self-invention never settles: the exhausting audition ends when the clay trusts the Potter\'s intent more than its own blueprint.',
+    tags: ['potter', 'clay', 'shepherd', 'soul', 'seedling'],
+  },
+  {
     id: 'gh-tithe-windows', section: 'prophets', name: 'Prove Me in the Tithe (windows of Heaven)',
     refs: ['Malachi 3:10'],
     condition: 'Bring ALL the tithes into the storehouse — and He says PROVE ME NOW HEREWITH: the one place He invites the test.',
@@ -496,6 +508,20 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'The order matters: submission powers the resistance. Unsubmitted resistance is noise; submitted resistance routs the adversary every time it is run.',
     outcome: 'An enemy in retreat and a God drawing near — the battlefield rearranged by two obediences.',
     tags: ['warfare', 'submission', 'resistance', 'nearness'],
+  },
+  {
+    // Darrell 2026-07-03: "Born again with His gift of a new spirit — we were
+    // dead in sin... could not have received that without the King coming to
+    // the 3rd-dimensional operational and giving His Blood to restart the
+    // systems and simultaneously get His children."
+    id: 'gh-quickened', section: 'epistles', name: 'Dead in Sin → Quickened (the Blood restarts the system)',
+    refs: ['Ephesians 2:1', 'Ezekiel 36:26', 'Ephesians 1:7'],
+    condition: 'The starting state is DEAD in trespasses and sins — not sick, not underperforming: dead. A dead system cannot restart itself.',
+    consequence: 'He QUICKENED you — a new heart and a NEW SPIRIT put within, redemption THROUGH HIS BLOOD — the King came into the 3rd-dimensional operational in person, and the restart and the adoption ran in the same transaction.',
+    threeD: 'Stop trying to self-repair what needed resurrection: the new spirit is a GIFT received, not a refactor achieved. Live like a restarted system — new heart installed, old stony one decommissioned — and remember what the restart cost.',
+    outcome: 'Alive — genuinely new-spirited, blood-bought, and simultaneously collected as His child in the same act that raised you.',
+    psyche: 'Self-help assumes a functioning self to help; the Gospel diagnoses deeper and therefore heals deeper — receiving a new operating spirit outperforms endlessly patching the old one, and the gratitude of the rescued is a different fuel than the striving of the self-made.',
+    tags: ['born-again', 'blood', 'new-spirit', 'quickened', 'adoption'],
   },
   {
     // Darrell 2026-07-03: "Seated inside Heavenly Places right now — we souls
