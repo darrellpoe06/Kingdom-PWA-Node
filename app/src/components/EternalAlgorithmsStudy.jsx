@@ -30,8 +30,7 @@ import {
 import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
 import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook } from '../lib/godhead-study.js';
-import { WITNESS_SOURCES, WITNESS_TAGLINE, WITNESS_MODES, witnessVerse } from '../lib/third-witness.js';
-import { LEARN_LEVELS, DEFAULT_LEVEL, resolveLevel } from '../lib/learn-framework.js';
+import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse } from '../lib/third-witness.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -254,26 +253,19 @@ function GodheadStudyView() {
 // verse verbatim from the verified fetch; the science is the witness, the
 // Word is the authority. Pastoral, not clinical.
 // -----------------------------------------------------------------------------
-function WitnessPair({ pair, mode, level }) {
+function WitnessPair({ pair }) {
   const [open, setOpen] = useState(false);
-  const wordOnly = mode === 'word';
-  // The Word-only lesson at the learner's chosen level (teen/standard/senior,
-  // clean fallback to standard via the shared learn-framework resolver).
-  const wordLesson = resolveLevel({ levels: pair.word }, level).text;
   return (
     <div className={CARD}>
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
         className="w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838]">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <span className="text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>✦ {pair.refs.join(' · ')}</span>
-          {!wordOnly && <span className="text-[0.625rem] text-[#5A6E3D]" style={mono}>at {pair.cite} {open ? '▾' : '▸'}</span>}
-          {wordOnly && <span className="text-[0.625rem] text-[#5A6E3D]" style={mono}>{open ? '▾' : '▸'}</span>}
+          <span className="text-[0.625rem] text-[#5A6E3D]" style={mono}>at {pair.cite} {open ? '▾' : '▸'}</span>
         </div>
-        {!wordOnly && (
-          <p className="text-[0.75rem] text-[#5A5751] mt-0.5" style={serif}>
-            <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] font-semibold">3rd dimension</span> {pair.claim}
-          </p>
-        )}
+        <p className="text-[0.75rem] text-[#5A5751] mt-0.5" style={serif}>
+          <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] font-semibold">3rd dimension</span> {pair.claim}
+        </p>
       </button>
       {open && (
         <div className="mt-1.5">
@@ -292,14 +284,10 @@ function WitnessPair({ pair, mode, level }) {
               </div>
             );
           })}
-          {wordOnly ? (
-            <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{wordLesson}</p>
-          ) : (
-            <div className="border-l-2 border-[#5A5751] pl-3 pr-2 py-1">
-              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">The intertwine — 4th dimension said it first</div>
-              <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{pair.bridge}</p>
-            </div>
-          )}
+          <div className="border-l-2 border-[#5A5751] pl-3 pr-2 py-1">
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">The intertwine — 4th dimension said it first</div>
+            <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{pair.bridge}</p>
+          </div>
         </div>
       )}
     </div>
@@ -307,12 +295,10 @@ function WitnessPair({ pair, mode, level }) {
 }
 
 function WitnessView() {
-  // The separation (Darrell 2026-07-03): the same content, differentiated by
-  // mixture (intertwined vs Word only) and by learner level, so all learners
-  // can learn. The third separation — science only, no Scripture — lives in
-  // the Practice's client lessons (witnessClientModule), where it belongs.
-  const [mode, setMode] = useState('mix');
-  const [level, setLevel] = useState(DEFAULT_LEVEL);
+  // Stays MIXED, on purpose (Darrell 2026-07-03: "separates for the practice
+  // only, stays mixed for those of us who need that"). The separated,
+  // science-only rendering of the same content lives in the Practice's client
+  // lessons (witnessClientModule) — not here.
   return (
     <div>
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
@@ -322,39 +308,18 @@ function WitnessView() {
           So we can see this trauma from the 3rd dimension better, as a Body of Christ. Every expert is cited — honour to whom honour is due — and every verse is rendered verbatim. The science describes the frame Yahweh made; His Word governs. This room helps the Body see; it does not diagnose or treat.
         </p>
         <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
-          Don&rsquo;t want the mixture? Word only is one tap away. The same content, separated the other direction — science only, expert cited — feeds the Practice&rsquo;s client lessons. One truth, differentiated for every learner.
+          This room stays mixed — for those of us who need the Word and the witness together. The same content, separated (science only, expert cited), lives in the Practice&rsquo;s client lessons for those who don&rsquo;t want the mixture.
         </p>
-      </div>
-      {/* The separation + the level of the brain — differentiate the lesson. */}
-      <div className="flex gap-3 flex-wrap mb-3">
-        <div role="group" aria-label="Lesson mixture" className="flex gap-1.5">
-          {WITNESS_MODES.map((m) => (
-            <button key={m.id} type="button" aria-pressed={mode === m.id} title={m.hint} onClick={() => setMode(m.id)}
-              className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${mode === m.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-              {m.label}
-            </button>
-          ))}
-        </div>
-        {mode === 'word' && (
-          <div role="group" aria-label="Learning level" className="flex gap-1.5">
-            {LEARN_LEVELS.map((l) => (
-              <button key={l.id} type="button" aria-pressed={level === l.id} title={l.hint} onClick={() => setLevel(l.id)}
-                className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${level === l.id ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-                {l.label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
       {WITNESS_SOURCES.map((src) => (
         <div key={src.id} className="mb-4">
           <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>{src.topic}</h3>
           <p className="text-[0.75rem] text-[#5A5751]" style={serif}>{src.summary}</p>
           <p className="text-[0.6875rem] text-[#5A6E3D] mb-2" style={mono}>
-            {mode === 'word' ? 'Word only — no mixture. The cited source still stands behind the science room.' : <>Source: {src.source.expert} ({src.source.credential}) — {src.source.work}</>}
+            Source: {src.source.expert} ({src.source.credential}) — {src.source.work}
           </p>
           <div className="space-y-2">
-            {src.pairs.map((p) => <WitnessPair key={p.id} pair={p} mode={mode} level={level} />)}
+            {src.pairs.map((p) => <WitnessPair key={p.id} pair={p} />)}
           </div>
         </div>
       ))}
