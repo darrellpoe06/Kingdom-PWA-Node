@@ -27,16 +27,25 @@ const SRC = 'https://raw.githubusercontent.com/aruljohn/Bible-kjv/master';
 // plain node can't load — so the refs are read out of the SOURCE text here.
 // Proven-to-catch: the entry count must match the refs count (a catalog entry
 // whose refs line drifts from the `refs: ['...']` shape fails loudly).
-const libSrc = readFileSync(join(ROOT, 'app/src/lib/godhead-study.js'), 'utf8');
-const refLines = [...libSrc.matchAll(/refs:\s*\[([^\]]+)\]/g)];
-const idCount = (libSrc.match(/^\s*id:\s*'gh-/gm) || []).length;
-if (refLines.length !== idCount) {
-  console.error(`fetch-godhead-verses: refs lines (${refLines.length}) != catalog entries (${idCount}) — a refs array drifted from the expected shape.`);
-  process.exit(1);
+// Both verse-bearing catalogs ride the same rail: the Godhead Study entries
+// (id prefix gh-) and the 3rd-dimension witness pairs (id prefix w3p-).
+const CATALOGS = [
+  { file: 'app/src/lib/godhead-study.js', idRe: /^\s*id:\s*'gh-/gm, label: 'godhead entries' },
+  { file: 'app/src/lib/third-witness.js', idRe: /^\s*id:\s*'w3p-/gm, label: 'witness pairs' },
+];
+const GODHEAD_ALGORITHMS = [];
+for (const cat of CATALOGS) {
+  const libSrc = readFileSync(join(ROOT, cat.file), 'utf8');
+  const refLines = [...libSrc.matchAll(/refs:\s*\[([^\]]+)\]/g)];
+  const idCount = (libSrc.match(cat.idRe) || []).length;
+  if (refLines.length !== idCount) {
+    console.error(`fetch-godhead-verses: refs lines (${refLines.length}) != ${cat.label} (${idCount}) in ${cat.file} — a refs array drifted from the expected shape.`);
+    process.exit(1);
+  }
+  for (const m of refLines) {
+    GODHEAD_ALGORITHMS.push({ refs: [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]) });
+  }
 }
-const GODHEAD_ALGORITHMS = refLines.map((m) => ({
-  refs: [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]),
-}));
 
 // "1 Corinthians 15:31" -> { book:'1Corinthians', chapter:15, v1:31, v2:31 }
 function parseRef(ref) {
