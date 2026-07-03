@@ -8,9 +8,16 @@
 // verse verbatim from the verified fetch (never model memory), every pair
 // carrying both sides of the intertwine.
 import { describe, it, expect } from 'vitest';
-import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse } from '../lib/third-witness.js';
+import { WITNESS_SOURCES, WITNESS_TAGLINE, WITNESS_MODES, witnessVerse, witnessClientModule } from '../lib/third-witness.js';
+import { TLC_LESSON_TRACKS } from '../lib/tlc-lessons.js';
 
 const allPairs = WITNESS_SOURCES.flatMap((s) => s.pairs);
+
+// The separation is only real if it is machine-checked in BOTH directions:
+// Word-only lessons carry no science jargon; the Practice module carries no
+// Scripture. A leak either way fails the build.
+const SCIENCE_TERMS = /dopamine|cortex|amygdala|neuro|prefrontal|default mode|psycholog|biolog/i;
+const SCRIPTURE_MARKS = /KJV|verse|scripture|yahweh|jesus|christ|bible|\b(?:[1-3]\s)?[a-z]+\s\d+:\d+/i;
 
 describe('third-witness: citation integrity (honour to whom honour)', () => {
   it('every source names its expert, credential, and work — no anonymous science', () => {
@@ -70,5 +77,51 @@ describe('third-witness: shape (both sides of the intertwine present)', () => {
     expect(seed).toBeTruthy();
     expect(seed.source.expert).toBe('Dr. Tracey Marks');
     expect(seed.pairs.length).toBeGreaterThanOrEqual(9);
+  });
+});
+
+describe('third-witness: the separation (same content, no mixture, all learners)', () => {
+  it('both modes exist: intertwined and Word only', () => {
+    expect(WITNESS_MODES.map((m) => m.id)).toEqual(['mix', 'word']);
+  });
+
+  it('every pair carries Word-only lessons at teen and standard levels', () => {
+    for (const p of allPairs) {
+      expect(p.word?.teen, `${p.id} missing word.teen`).toBeTruthy();
+      expect(p.word?.standard, `${p.id} missing word.standard`).toBeTruthy();
+    }
+  });
+
+  it('Word-only lessons contain NO science jargon — the mixture is truly separated', () => {
+    for (const p of allPairs) {
+      for (const [lvl, text] of Object.entries(p.word)) {
+        expect(text, `${p.id} word.${lvl} leaks science terms`).not.toMatch(SCIENCE_TERMS);
+      }
+    }
+  });
+
+  it('the Practice client module carries NO Scripture — the other direction of the separation', () => {
+    const mod = witnessClientModule();
+    for (const [lvl, text] of Object.entries(mod.levels)) {
+      expect(text, `client module ${lvl} leaks Scripture into the clinical space`).not.toMatch(SCRIPTURE_MARKS);
+    }
+    expect(mod.bigIdea).not.toMatch(/Yahweh|Jesus|Scripture|KJV/);
+  });
+
+  it('the Practice client module reaches all learner levels (child through senior) with a valid quiz', () => {
+    const mod = witnessClientModule();
+    for (const lvl of ['child', 'teen', 'standard', 'senior']) {
+      expect(mod.levels[lvl], `client module missing ${lvl} level`).toBeTruthy();
+    }
+    for (const q of mod.quiz.questions) {
+      expect(q.options[q.answer], mod.id).toBeTruthy();
+      expect(q.explain, mod.id).toBeTruthy();
+    }
+    expect(mod.source).toContain('Dr. Tracey Marks');
+  });
+
+  it('the client module actually ships in the TLC client track (same content for Practice)', () => {
+    const ids = TLC_LESSON_TRACKS.client.modules.map((m) => m.id);
+    expect(ids).toContain('cl4-bouncing-back-setbacks');
   });
 });
