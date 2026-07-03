@@ -25,9 +25,11 @@ Darrell, 2026-07-03: "I do want the guardian to make that decision. I want to ma
 
 ## The destination this decision aims at (recorded, not yet built)
 
-The grant governs the future **"How Money Works"** child view — Darrell's stated shape: *education before they need it, no stress for them*. Design intent for that slice:
-- **Guardian-curated, not raw**: the child's view teaches how money moves (income, giving/tithe, saving, budgeting — the stewardship picture) rather than dumping the raw ledger with its creditors and shortfalls; "no stress" is a construction constraint, not a tone note.
-- **Grounded where the family's teaching is grounded**: biblical economics per the Worldview (stewardship, the tithe, provision) and the SEED-DATA-AS-ASPIRATION thriving-picture pattern for what "healthy" looks like.
+> **Corrected 2026-07-03, pre-merge, by the Governor.** The first draft of this section constrained the future child view to a "guardian-curated, not raw" teaching surface — quietly re-taking, at a softer layer, the very decision this DR exists to return. Darrell: "Who are you or anyone to tell me when and how to educate my children?" The correction below is the binding version: **the guardian decides WHAT the children see, not just whether.**
+
+The grant governs the future **"How Money Works"** child view — Darrell's stated purpose: *education before they need it, while there's no stress for them*. Design posture for that slice:
+- **The guardian chooses the view.** The real books — raw, as the family actually lives them — and a curated teaching view (how money moves: income, giving/tithe, saving, budgeting) are both OPTIONS the guardian selects per child. The platform builds both and imposes neither. "No stress" is Darrell's parenting intent, honored through his choices — never a platform filter applied against them.
+- **Grounded where the family's teaching is grounded**: biblical economics per the Worldview (stewardship, the tithe, provision) available as framing the guardian can use — the guardian's tool, not a gate on the guardian.
 - **Sequenced behind the existing gates**: it ships after the first child account is linked (DR-0091 re-review) and rides the consent/assent design (DR-0091 deferral) — a child-facing family-data view is exactly the stream that flow exists for.
 - Until that view ships, a capability grant changes nothing a child can reach: RLS still walls the `child` role from the financial tables, and the client family surfaces gate on family sign-in. The grant is the guardian's recorded decision and the switch the education view will honor — stated plainly so nobody mistakes the toggle for a live data path today.
 

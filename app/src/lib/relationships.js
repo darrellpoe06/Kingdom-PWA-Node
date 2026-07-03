@@ -65,8 +65,9 @@ export const RELATIONSHIPS = Object.freeze([
     label: 'Guardian ↔ Child',
     blurb:
       'A guardian (Darrell / Christina) sets exactly what a child account can do. ' +
-      'Child-safe by default; outbound and sensitive actions are guardian-approval-gated; ' +
-      'spending and family finances are locked off and cannot be granted.',
+      'Child-safe by default; outbound actions are guardian-approval-gated at most; ' +
+      'spending and security stay locked. What a child SEES — including the family ' +
+      'finances, for money education — is the guardian’s decision (DR-0092).',
     roles: ['guardian', 'child'],
     steward: 'guardian', // the side that CONFIGURES the other's access
   },

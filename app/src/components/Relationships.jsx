@@ -26,30 +26,19 @@ import UiIcon from './UiIcon.jsx';
 import { TabScroll, MetricCell } from './shared.jsx';
 import {
   RELATIONSHIPS, relationshipByType, RELATIONSHIP_TYPES, SETTING,
-  buildMatrix, CHILD_CAPABILITIES, CAPABILITIES, isChildCapabilityLocked,
-  CHILD_CAPABILITY_POLICY,
+  buildMatrix,
 } from '../lib/relationships.js';
-import {
-  childAccessSummary, setChildCapability, decideChildAction,
-  resolveApprovalRequest,
-} from '../lib/guardian-child.js';
 import {
   buildMaintenanceRequest, buildRentRecord, buildNotice, buildMessage,
   landlordView, tenantView, rentSafetyNote,
 } from '../lib/tenant-portal.js';
 import {
-  loadChildCapabilities, saveChildCapability, configFromRows,
-  loadChildRequests, patchRow, loadTenancies, loadTenancyWorkflows, insertRow,
+  loadChildCapabilities, configFromRows,
+  loadTenancies, loadTenancyWorkflows, insertRow,
 } from '../lib/relationships-sync.js';
-
-// Setting -> themeable classes (text + border + active fill). Class hexes remap
-// per-theme; inline hexes would not (and would fail on midnight).
-const SETTING_CLASS = {
-  [SETTING.ALLOW]:    { text: 'text-[#5A6E3D]', border: 'border-[#5A6E3D]', fill: 'bg-[#5A6E3D]', label: 'Allowed' },
-  [SETTING.APPROVAL]: { text: 'text-[#2A5A8E]', border: 'border-[#2A5A8E]', fill: 'bg-[#2A5A8E]', label: 'Needs approval' },
-  [SETTING.DENY]:     { text: 'text-[#5A5751]', border: 'border-[#5A5751]', fill: 'bg-[#5A5751]', label: 'Not allowed' },
-};
-const verdictToSetting = (v) => (v === 'allow' ? SETTING.ALLOW : v === 'needs-approval' ? SETTING.APPROVAL : SETTING.DENY);
+// The setting palette lives with the guardian panel now (its one home); this
+// surface still reads it for the matrix + landlord status badges.
+import { SETTING_CLASS } from './GuardianChildPanel.jsx';
 
 function Badge({ children, cls }) {
   return (
@@ -126,108 +115,9 @@ function MatrixPanel({ childConfig }) {
 }
 
 // ---------------------------------------------------------------------------
-// Guardian panel — configure a child + work the approval queue.
-// ---------------------------------------------------------------------------
-function GuardianPanel({ personas, config, onSetCapability, requests, onResolve, saving }) {
-  const [persona, setPersona] = useState(personas[0]?.id || 'child');
-  const summary = useMemo(() => childAccessSummary(config), [config]);
-  const pending = requests.filter((r) => r.status === 'pending');
-
-  return (
-    <>
-      <Panel title="Set what a child can do" icon="sliders"
-        note="Defaults are child-safe. Outbound actions can be set to ask-first at most; spending, family finances, and security are locked and cannot be granted. Every change here is a deliberate guardian action.">
-        {personas.length > 1 ? (
-          <div className="flex gap-2 mb-4">
-            {personas.map((p) => (
-              <button key={p.id} onClick={() => setPersona(p.id)}
-                className={`px-3 py-1.5 border border-[#1A1815] text-sm font-semibold ${persona === p.id ? 'bg-[#1A1815] text-white' : 'bg-white text-[#1A1815]'}`}>
-                {p.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="grid sm:grid-cols-3 gap-3 mb-4">
-          <MetricCell label="Can do" value={summary.can.length} />
-          <MetricCell label="Ask first" value={summary.withApproval.length} />
-          <MetricCell label="Never" value={summary.never.length} />
-        </div>
-
-        <ul className="divide-y divide-[#E6E0D6] border border-[#1A1815]">
-          {CHILD_CAPABILITIES.map((cap) => {
-            const meta = CAPABILITIES[cap];
-            const locked = isChildCapabilityLocked(cap);
-            const current = decideChildAction(cap, config);
-            const maxRank = CHILD_CAPABILITY_POLICY[cap].maxGrant;
-            const activeSetting = verdictToSetting(current.verdict);
-            const choices = [SETTING.DENY, SETTING.APPROVAL, SETTING.ALLOW];
-            return (
-              <li key={cap} className="px-3 py-2.5 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold flex items-center gap-1 text-[#1A1815]">
-                    {meta.label}
-                    {locked ? <UiIcon name="lock" className="w-3 h-3" /> : null}
-                    {meta.outbound ? <span className="text-xs text-[#B85838]" title="leaves the family">↗</span> : null}
-                  </div>
-                  <div className="text-xs text-[#5A5751]">{meta.desc}</div>
-                </div>
-                {locked ? (
-                  <Badge cls={SETTING_CLASS[SETTING.DENY]}>Locked</Badge>
-                ) : (
-                  <div className="flex gap-1 shrink-0">
-                    {choices.map((choice) => {
-                      const allowedChoice = choice === SETTING.DENY
-                        || (choice === SETTING.APPROVAL && maxRank !== SETTING.DENY)
-                        || (choice === SETTING.ALLOW && maxRank === SETTING.ALLOW);
-                      if (!allowedChoice) return null;
-                      const active = activeSetting === choice;
-                      const cs = SETTING_CLASS[choice];
-                      const lbl = choice === SETTING.DENY ? 'No' : choice === SETTING.APPROVAL ? 'Ask' : 'Yes';
-                      return (
-                        <button key={choice} disabled={saving}
-                          onClick={() => onSetCapability(persona, cap, choice)}
-                          className={`px-2 py-1 border text-xs font-semibold ${cs.border} ${active ? `${cs.fill} text-white` : `bg-white ${cs.text}`}`}>
-                          {lbl}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </Panel>
-
-      <Panel title="Approval queue" icon="check"
-        note="When a child tries something set to ask-first, it lands here for a guardian to approve or deny. A child can never approve their own request.">
-        {pending.length === 0 ? (
-          <p className="text-sm text-[#5A5751]">No pending requests.</p>
-        ) : (
-          <ul className="divide-y divide-[#E6E0D6] border border-[#1A1815]">
-            {pending.map((req) => (
-              <li key={req.id} className="px-3 py-2.5 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-[#1A1815]">
-                    {(CAPABILITIES[req.capability]?.label) || req.capability}
-                    {req.child_persona ? <span className="ml-1 text-xs text-[#5A5751]">· {req.child_persona}</span> : null}
-                  </div>
-                  {req.context ? <div className="text-xs text-[#5A5751]">{req.context}</div> : null}
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => onResolve(req, 'approved')} className="px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] text-xs font-semibold">Approve</button>
-                  <button onClick={() => onResolve(req, 'denied')} className="px-2 py-1 border border-[#5A5751] text-[#5A5751] text-xs font-semibold">Deny</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
-    </>
-  );
-}
-
+// Guardian panel — MOVED to components/GuardianChildPanel.jsx, mounted on the
+// Family Roster (Center → Serve): the ONE input home for the family (DR-0093).
+// The tab below renders a pointer, not a duplicate.
 // ---------------------------------------------------------------------------
 // Landlord panel — the rent roll + the four landlord<->tenant workflows.
 // ---------------------------------------------------------------------------
@@ -363,23 +253,22 @@ function LandlordPanel({ tenancies, selected, onSelect, workflows, onAction, bus
 export function Relationships({ isGovernor = false, currentUserId = null }) {
   const [tab, setTab] = useState('matrix');
   const [childConfig, setChildConfig] = useState({});
-  const [requests, setRequests] = useState([]);
   const [tenancies, setTenancies] = useState([]);
   const [selectedTenancy, setSelectedTenancy] = useState(null);
   const [workflows, setWorkflows] = useState({ maintenance: [], rent: [], notices: [], messages: [] });
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState('');
 
-  const personas = useMemo(() => ([{ id: 'twin-a', label: 'Twin A' }, { id: 'twin-b', label: 'Twin B' }]), []);
-
-  // Load real config + queue + tenancies on mount (fail-soft).
+  // Load real config (for the read-only matrix) + tenancies on mount (fail-soft).
+  // The guardian↔child INPUT surface (set capabilities + the approval queue)
+  // moved to its one home — the Family Roster in the Center's Serve faculty
+  // (DR-0093 consolidation; the hardcoded twin placeholder personas died with
+  // the move — the roster drives it with the REAL family_member_profiles rows).
   useEffect(() => {
     let live = true;
     (async () => {
       const caps = await loadChildCapabilities();
       if (live && caps.ok) setChildConfig(configFromRows(caps.data));
-      const reqs = await loadChildRequests();
-      if (live && reqs.ok) setRequests(reqs.data);
       const tn = await loadTenancies();
       if (live && tn.ok) setTenancies(tn.data);
     })();
@@ -398,25 +287,6 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
   }, [selectedTenancy]);
 
   const flashMsg = useCallback((m) => { setFlash(m); setTimeout(() => setFlash(''), 2500); }, []);
-
-  const onSetCapability = useCallback(async (persona, cap, choice) => {
-    const { config, effective, locked } = setChildCapability(childConfig, cap, choice);
-    if (locked) { flashMsg('That one is locked for child safety.'); return; }
-    setChildConfig(config); // optimistic
-    setSaving(true);
-    const res = await saveChildCapability({ childPersona: persona, capability: cap, setting: effective });
-    setSaving(false);
-    flashMsg(res.ok ? 'Saved.' : 'Saved on this device (sign in to sync).');
-  }, [childConfig, flashMsg]);
-
-  const onResolve = useCallback(async (req, decision) => {
-    try {
-      const patch = resolveApprovalRequest(req, decision, new Date().toISOString());
-      setRequests((rs) => rs.map((r) => (r.id === req.id ? { ...r, ...patch } : r)));
-      await patchRow('child_action_requests', req.id, { ...patch, resolved_by: currentUserId });
-      flashMsg(decision === 'approved' ? 'Approved.' : 'Denied.');
-    } catch (e) { flashMsg(String(e.message || e)); }
-  }, [currentUserId, flashMsg]);
 
   const onLandlordAction = useCallback(async (kind, form) => {
     if (!selectedTenancy) return;
@@ -485,8 +355,15 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
 
       {tab === 'matrix' && <MatrixPanel childConfig={childConfig} />}
       {tab === 'guardian' && (
-        <GuardianPanel personas={personas} config={childConfig} onSetCapability={onSetCapability}
-          requests={requests} onResolve={onResolve} saving={saving} />
+        <Panel title="Guardian & Child — moved to its one home" icon="users"
+          note="One place for the family, not four similar ones (DR-0093).">
+          <p className="text-sm text-[#1A1815]">
+            Adding a family member <strong>and</strong> deciding what each child can see and do — including
+            {' '}<strong>See family finances</strong> for money education (your call, DR-0092) — now live together
+            on the <strong>Family Roster</strong>: Command, Control &amp; Serve Center → <strong>Serve</strong>.
+            The read-only matrix view stays here; landlord &amp; tenant stays here.
+          </p>
+        </Panel>
       )}
       {tab === 'landlord' && (
         <LandlordPanel tenancies={tenancies} selected={selectedTenancy} onSelect={setSelectedTenancy}

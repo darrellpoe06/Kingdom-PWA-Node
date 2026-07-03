@@ -20,24 +20,62 @@
 // testable without a network (DR-0076); defaults are the real sync layer.
 import React, { useCallback, useEffect, useState } from 'react';
 import UiIcon from './UiIcon.jsx';
+import GuardianChildPanel from './GuardianChildPanel.jsx';
 import { loadFamilyRoster, provisionChild } from '../lib/family-messaging-sync.js';
-import { MINOR_TIERS, TIER_META, personaSlug, validateProvision, rosterRowShape } from '../lib/family-roster.js';
+import { loadChildCapabilities, saveChildCapability, loadChildRequests, patchRow } from '../lib/relationships-sync.js';
+import { setChildCapability, resolveApprovalRequest } from '../lib/guardian-child.js';
+import { CHILD_CAPABILITY_POLICY } from '../lib/relationships.js';
+import { MINOR_TIERS, TIER_META, personaSlug, validateProvision, rosterRowShape, configByPersona } from '../lib/family-roster.js';
 
-const DEFAULT_IO = { loadRoster: loadFamilyRoster, provision: provisionChild };
+const DEFAULT_IO = {
+  loadRoster: loadFamilyRoster,
+  provision: provisionChild,
+  loadCaps: loadChildCapabilities,
+  saveCap: saveChildCapability,
+  loadRequests: loadChildRequests,
+  patchRequest: patchRow,
+};
 
-export default function FamilyRoster({ io = DEFAULT_IO }) {
+export default function FamilyRoster({ io = DEFAULT_IO, currentUserId = null }) {
   const [state, setState] = useState({ phase: 'loading', rows: [], error: null });
   const [form, setForm] = useState({ displayName: '', persona: '', minorTier: 'under13', childUserId: '' });
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
+  // The consolidated permission state (one home, DR-0093): per-persona config
+  // from the real child_capabilities rows + the live approval queue.
+  const [capsByPersona, setCapsByPersona] = useState({});
+  const [requests, setRequests] = useState([]);
 
   const refresh = useCallback(async () => {
     setState((s) => ({ ...s, phase: 'loading' }));
-    const res = await io.loadRoster();
+    const [res, caps, reqs] = await Promise.all([io.loadRoster(), io.loadCaps(), io.loadRequests()]);
     if (!res.ok) setState({ phase: 'error', rows: [], error: res.error });
     else setState({ phase: 'ready', rows: (res.data || []).map(rosterRowShape), error: null });
+    if (caps && caps.ok) setCapsByPersona(configByPersona(caps.data, CHILD_CAPABILITY_POLICY));
+    if (reqs && reqs.ok) setRequests(reqs.data || []);
   }, [io]);
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Set one child's capability: clamp to the safety ceiling (spending/security
+  // stay locked; visibility is the guardian's free choice, DR-0092), write the
+  // persona-scoped row, reflect optimistically.
+  const onSetCapability = useCallback(async (persona, cap, choice) => {
+    const current = capsByPersona[persona] || {};
+    const { config, effective, locked } = setChildCapability(current, cap, choice);
+    if (locked) { setNotice({ kind: 'error', text: 'That one is locked — it acts (spend / security), it does not just see.' }); return; }
+    setCapsByPersona((m) => ({ ...m, [persona]: config }));
+    setSaving(true);
+    const res = await io.saveCap({ childPersona: persona, capability: cap, setting: effective });
+    setSaving(false);
+    setNotice(res.ok ? { kind: 'ok', text: 'Saved.' } : { kind: 'error', text: `Could not save: ${res.error}` });
+  }, [capsByPersona, io]);
+
+  const onResolve = useCallback(async (req, decision) => {
+    const patch = resolveApprovalRequest(req, decision, new Date().toISOString());
+    setRequests((rs) => rs.map((r) => (r.id === req.id ? { ...r, ...patch } : r)));
+    const res = await io.patchRequest('child_action_requests', req.id, { ...patch, resolved_by: currentUserId });
+    if (res && res.ok === false) setNotice({ kind: 'error', text: `Could not record the decision: ${res.error}` });
+  }, [io, currentUserId]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -173,10 +211,24 @@ export default function FamilyRoster({ io = DEFAULT_IO }) {
           <li>Add them to the roster above with just their name and age band — that part works right now.</li>
           <li>When they need their own sign-in: create their account as the guardian in the Supabase dashboard (Authentication → Users → Add user). There is no child self-signup, on purpose.</li>
           <li>Copy the new account&apos;s UUID and re-add the same name here with the UUID filled in — the roster row updates and the account gets the protected <strong>child</strong> role.</li>
+          <li>What each child can see and do — including <strong>See family finances</strong> for money education — is decided by you, per child, <strong>right below on this page</strong> (DR-0092). Seeing is not spending: buy/spend stays locked off for a child no matter what you grant.</li>
           <li>Their email is never added to the family sign-in allowlist — that is the protection, not an omission.</li>
-          <li>What each child can see and do — including <strong>See family finances</strong> for money education (DR-0092: the guardian&apos;s call, so they learn how money actually works before they need it) — is set per child on the <strong>Relationships</strong> tab. Seeing is not spending: buy/spend stays locked off for a child no matter what.</li>
         </ol>
       </details>
+
+      {/* ----- what each child can see & do (the ONE home, DR-0093) ----- */}
+      {state.rows.length > 0 && (
+        <div className="mt-4">
+          <GuardianChildPanel
+            personas={state.rows.map((r) => ({ id: r.persona, label: r.displayName }))}
+            configByPersona={capsByPersona}
+            onSetCapability={onSetCapability}
+            requests={requests}
+            onResolve={onResolve}
+            saving={saving}
+          />
+        </div>
+      )}
     </section>
   );
 }

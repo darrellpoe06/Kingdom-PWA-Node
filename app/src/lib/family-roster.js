@@ -57,6 +57,21 @@ export function validateProvision({ displayName, persona, minorTier, childUserId
   };
 }
 
+// child_capabilities rows -> per-persona config maps ({ persona: { cap: setting } }).
+// Fixes the old flatten bug (one shared config across children): one child's
+// grant must never bleed onto a sibling. Unknown capabilities are dropped
+// (defense, mirroring relationships-sync.configFromRows).
+export function configByPersona(rows, policy) {
+  const out = {};
+  for (const r of rows || []) {
+    if (!r || !r.child_persona || !r.capability || !r.setting) continue;
+    if (policy && !(r.capability in policy)) continue;
+    if (!out[r.child_persona]) out[r.child_persona] = {};
+    out[r.child_persona][r.capability] = r.setting;
+  }
+  return out;
+}
+
 // Shape a family_member_profiles row for the card. Null-safe: a missing field
 // reads as its honest absence, never a crash.
 export function rosterRowShape(row) {
