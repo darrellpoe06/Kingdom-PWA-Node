@@ -27,7 +27,7 @@ export const FAMILY_PICKS = [
     title: 'Round of Applause',
     artist: 'Lecrae',
     album: 'Church Clothes 2',
-    why: 'An anthem for everyone who beat the odds — living proof of what is possible. Lecrae\'s own road out (jail-or-death expectations broken by faith and education), and the single mother who worked her way to graduating with honors, dignity intact. Nobody dictates your potential. Shared by Darrell 2026-07-03.',
+    why: 'An anthem for everyone who beat the odds — living proof that circumstances do not dictate the future. Lecrae\'s testimony in the verses: no father figure, "supposed to be" a dope dealer, supposed to be locked up, probation, quitting smoking, abuse from police, running from God — until faith and education opened the new road. Now a father, an artist, a man of faith. And the single mother who worked her way to graduating with honors, dignity intact. Nobody dictates your potential. Shared by Darrell 2026-07-03.',
     searchUrl: yt('Lecrae Round of Applause Church Clothes 2'),
   },
 ];
