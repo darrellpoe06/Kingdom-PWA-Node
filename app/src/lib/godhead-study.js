@@ -491,6 +491,20 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['salvation', 'confession', 'faith'],
   },
   {
+    // Darrell 2026-07-03: "Explicitly telling the truth can hurt or feel good
+    // — it depends on the perspective of the person... finding ways to
+    // reflect on Truth is important to each 3rd-dimensional soul... whatever
+    // tribe you're from."
+    id: 'gh-truth-love', section: 'epistles', name: 'Truth in Love (the wound of a friend, the freedom of the mirror)',
+    refs: ['Ephesians 4:15', 'John 8:32', 'Proverbs 27:6'],
+    condition: 'SPEAK the truth — but IN LOVE; and receive it knowing "faithful are the wounds of a friend." The same truth hurts or heals by the perspective it lands in.',
+    consequence: 'Speaking truth in love, ye GROW UP into Him in all things — and ye shall KNOW the truth, and the truth shall make you FREE. The growth and the freedom are downstream of the telling and the receiving.',
+    threeD: 'Every 3rd-dimensional soul needs ways to reflect on truth — whatever tribe they are from. Build and be the mirror that reflects without judging: truth offered as care grows a person; the same truth thrown as a weapon armors them. Check the love before you speak, and check your perspective before you flinch.',
+    outcome: 'Souls that can look at the truth and grow from it — freed by the mirror instead of wounded by the throw.',
+    psyche: 'Feedback lands by relationship and framing, not just accuracy: the identical fact heard from a trusted friend heals, and from a perceived enemy injures. Perspective is the receiver the truth tunes through — which is why the mirror must never judge.',
+    tags: ['truth', 'love', 'mirror', 'perspective', 'freedom'],
+  },
+  {
     id: 'gh-renew-mind', section: 'epistles', name: 'Renew the Mind → Prove the Will',
     refs: ['Romans 12:2'],
     condition: 'Be NOT conformed to this world; be TRANSFORMED by the renewing of your mind.',
