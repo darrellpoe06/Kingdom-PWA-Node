@@ -18,12 +18,26 @@
 // item is a button with a full title; Escape + outside-tap close the popover; the
 // chosen reaction is aria-pressed. No emoji (device-independent SVG via
 // ReactionIcon), rem font sizes (the global large-print control scales it).
+//
+// TOUCH-FIRST (Darrell 2026-07-03: "nice in theory, they don't feel intuitive
+// yet"): every tile shows its NAME under the icon — the meaning is never hidden
+// behind hover, which touch devices don't have. On a no-hover device the pick is
+// TWO taps: the first shows the meaning + Scripture in the detail strip and arms
+// the tile ("tap again to react"); the second confirms. Desktop keeps one-click
+// (hover already previews). Nobody reacts blind, nobody reacts by accident.
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactionIcon from './ReactionIcon.jsx';
 import {
   REACTION_GROUPS, reactionsInGroup, reactionDef, reactionSummary, EMPTY_REACTIONS,
 } from '../lib/reactions.js';
+
+// True when the device has a real hover (mouse/trackpad). Touch/pen-only devices
+// report (hover: none) and get the two-tap flow. Environments without matchMedia
+// (tests, older engines) default to hover-capable, preserving one-click.
+function canHover() {
+  return !(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: none)').matches);
+}
 
 // Move one vote from oldKey -> newKey in a counts map (optimistic display).
 function adjustCounts(base = {}, oldKey, newKey) {
@@ -43,6 +57,7 @@ export default function ReactionBar({
 }) {
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState(null);      // the reaction whose Scripture is shown in the palette
+  const [armed, setArmed] = useState(null);        // touch two-tap: the key awaiting its confirming tap
   const [pendingMy, setPendingMy] = useState(null); // optimistic: the just-picked key, '' = removed, null = none
   const [who, setWho] = useState(null);            // reactors list (when the counts row is tapped)
   const [note, setNote] = useState('');            // soft status (e.g. sign-in prompt)
@@ -60,6 +75,9 @@ export default function ReactionBar({
   const total = summary.reduce((a, s) => a + s.count, 0);
   const myDef = myKey ? reactionDef(myKey) : null;
 
+  // Opening fresh or closing drops any half-armed pick.
+  useEffect(() => { setArmed(null); setDetail(null); }, [open]);
+
   // Close on outside tap / Escape.
   useEffect(() => {
     if (!open) return undefined;
@@ -70,6 +88,18 @@ export default function ReactionBar({
     return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
+  // A tap on a palette tile. No-hover devices confirm in two taps: the first
+  // arms the tile and shows its meaning (the preview hover would have given);
+  // the second (same tile) reacts. Hover devices react on the single click.
+  const pick = (r) => {
+    if (!canHover() && armed !== r.key) {
+      setDetail(r);
+      setArmed(r.key);
+      return;
+    }
+    react(r.key);
+  };
+
   const react = async (key) => {
     if (!signedIn) { setNote('Sign in to react.'); return; }
     setNote('');
@@ -77,6 +107,7 @@ export default function ReactionBar({
     const next = myKey === key ? '' : key;
     setPendingMy(next);
     setOpen(false);
+    setArmed(null);
     const res = await onReact?.(key);
     if (res && res.skipped) {
       setPendingMy(null); // reconcile back to server truth
@@ -168,20 +199,25 @@ export default function ReactionBar({
             return (
               <div key={g.key} className="mb-1.5 last:mb-0">
                 <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1">{g.label}</div>
-                <div className="flex flex-wrap gap-1">
+                <div className="grid grid-cols-4 gap-1">
                   {items.map((r) => (
                     <button
                       key={r.key}
                       type="button"
                       role="menuitem"
-                      onClick={() => react(r.key)}
+                      onClick={() => pick(r)}
                       onMouseEnter={() => setDetail(r)}
                       onFocus={() => setDetail(r)}
                       aria-pressed={myKey === r.key}
                       title={`${r.label}${r.scripture ? ` — ${r.scripture.ref}` : ''}`}
-                      className={`w-8 h-8 flex items-center justify-center text-[1.05rem] border focus:outline focus:outline-2 focus:outline-[#B85838] ${myKey === r.key ? 'bg-[#B85838] text-white border-[#B85838]' : 'bg-[#FAF8F4] text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] hover:bg-white'}`}
+                      className={`flex flex-col items-center justify-start gap-0.5 px-1 pt-1.5 pb-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${
+                        myKey === r.key ? 'bg-[#B85838] text-white border-[#B85838]'
+                        : armed === r.key ? 'bg-white text-[#1A1815] border-[#B85838]'
+                        : 'bg-[#FAF8F4] text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] hover:bg-white'}`}
                     >
-                      <ReactionIcon name={r.icon} title={r.label} />
+                      <span className="text-[1.05rem] leading-none"><ReactionIcon name={r.icon} title={r.label} /></span>
+                      {/* The name is always VISIBLE — meaning never hides behind hover. */}
+                      <span className="text-[0.5625rem] leading-tight text-center">{r.label}</span>
                     </button>
                   ))}
                 </div>
@@ -205,9 +241,16 @@ export default function ReactionBar({
                 ) : (
                   <p className="text-[0.625rem] text-[#5A5751] mt-0.5 italic">A plain reaction.</p>
                 )}
+                {armed === (detail && detail.key) && (
+                  <p className="text-[0.625rem] font-semibold mt-0.5 text-[#B85838]">Tap “{detail.label}” again to react.</p>
+                )}
               </div>
             ) : (
-              <p className="text-[0.625rem] text-[#5A5751] italic">Hover a reaction to see its meaning and Scripture. Tap to react.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic">
+                {canHover()
+                  ? 'Hover a reaction to see its meaning and Scripture. Tap to react.'
+                  : 'Tap a reaction once to see its meaning and Scripture — tap it again to react.'}
+              </p>
             )}
           </div>
         </div>

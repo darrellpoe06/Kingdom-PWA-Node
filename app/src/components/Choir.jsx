@@ -78,7 +78,12 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
           {!embed && song.youtubeUrl && (
             <a href={youtubeTimedUrl(song.youtubeUrl, song.startSeconds)} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel.replace('Watch', 'Link')}</a>
           )}
-          {song.lyrics && <button type="button" onClick={() => setWordsOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`} aria-expanded={wordsOpen}>{wordsOpen ? '▾ Hide words' : '🎵 Words'}</button>}
+          {song.lyrics
+            ? <button type="button" onClick={() => setWordsOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`} aria-expanded={wordsOpen}>{wordsOpen ? '▾ Hide words' : '🎵 Words'}</button>
+            /* No lyrics yet: give stewards a PLACE to add them (Darrell 2026-07-03:
+               "most spots don't have a place to add words") — opens the edit form
+               wherever Edit itself is available. */
+            : (canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Words</button>)}
           {canEdit && onReuse && <button type="button" onClick={() => setReuseOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse</button>}
           {canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
           {canEdit && onDelete && <button type="button" onClick={() => onDelete(song)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
@@ -125,9 +130,17 @@ function SongForm({ initial, onSave, onCancel, busy }) {
   });
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const save = () => onSave({ ...f, startSeconds: parseTimecode(f.startTime) });
+  // The form renders at the TOP of the tab, but Edit is tapped deep in the
+  // list — without this scroll the tap looks like it did nothing (Darrell
+  // 2026-07-03: "the edit buttons don't work"). Bring the form to the user.
+  const formRef = useRef(null);
+  useEffect(() => {
+    const el = formRef.current;
+    if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
   return (
-    <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
-      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit song' : 'Add song'}</div>
+    <div ref={formRef} className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2" style={{ scrollMarginTop: '5rem' }}>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? `Edit song${f.title ? ` — ${f.title}` : ''}` : 'Add song'}</div>
       <div><label className={LABEL} htmlFor="cs-title">Title</label><input id="cs-title" className={FIELD} value={f.title} onChange={set('title')} placeholder="Song title" /></div>
       <div><label className={LABEL} htmlFor="cs-yt">YouTube link (the video the choir learns from)</label><input id="cs-yt" className={FIELD} value={f.youtubeUrl} onChange={set('youtubeUrl')} placeholder="https://youtu.be/…" /></div>
       <div className="grid grid-cols-3 gap-2">
