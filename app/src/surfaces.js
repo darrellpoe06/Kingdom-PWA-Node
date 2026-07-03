@@ -59,9 +59,7 @@ export const SURFACES = [
   { id: 'games',        label: 'Games',            nav: 'top', view: 'games',        sub: null,          load: () => import('./components/Games.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
-  // NOTE: church 'home' (the inline `Church` composer) is NOT in this registry
-  // yet — it is still defined inline in the shell and is a Stage 3 extraction
-  // candidate. Only genuinely lazy-loaded surfaces are registered here.
+  { id: 'church-home',      label: 'Church Home',   nav: 'church', view: 'church', sub: 'home',       load: pick(() => import('./components/ChurchHome.jsx'), 'ChurchHome') },
   { id: 'engagement',       label: 'Engagement',    nav: 'church', view: 'church', sub: 'engagement', load: () => import('./components/Engagement.jsx') },
   { id: 'choir',            label: 'Choir',         nav: 'church', view: 'church', sub: 'choir',      load: () => import('./components/Choir.jsx') },
   { id: 'program',          label: 'Service Program', nav: 'church', view: 'church', sub: 'program',  load: () => import('./components/ServiceProgram.jsx') },
@@ -119,6 +117,7 @@ export const AdminConsole     = surfaceById['admin'].component;
 export const AccessUsageMetrics = surfaceById['access'].component;
 export const ChefCorner       = surfaceById['recipes'].component;
 export const Games            = surfaceById['games'].component;
+export const ChurchHome       = surfaceById['church-home'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
 export const ServiceProgram   = surfaceById['program'].component;
