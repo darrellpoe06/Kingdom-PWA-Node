@@ -248,6 +248,34 @@ const ICONS = {
       <line x1="9.8" y1="14.2" x2="14.2" y2="9.8" />
     </>
   ),
+  // stacked coins — money/debt motion (was 💸)
+  coins: (
+    <>
+      <ellipse cx="12" cy="6.5" rx="7" ry="2.8" />
+      <path d="M5 6.5v5c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-5" />
+      <path d="M5 11.5v5c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-5" />
+    </>
+  ),
+  // house — home/rentals (was 🏠)
+  home: (
+    <>
+      <path d="M4 11.5L12 4.5l8 7" />
+      <path d="M6 10v9.5h12V10" />
+      <path d="M10 19.5v-5h4v5" />
+    </>
+  ),
+  // speech bubble — feedback/chat (was 💬)
+  chat: (
+    <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-7Z" />
+  ),
+  // warning triangle — overdue/attention (was ⚠)
+  alert: (
+    <>
+      <path d="M12 4.5L21 19.5H3L12 4.5Z" />
+      <line x1="12" y1="10" x2="12" y2="14.5" />
+      <circle cx="12" cy="17" r="0.4" fill="currentColor" stroke="none" />
+    </>
+  ),
 };
 
 export const UI_ICON_NAMES = Object.keys(ICONS);
