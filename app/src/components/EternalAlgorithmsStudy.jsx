@@ -29,7 +29,7 @@ import {
 } from '../lib/eternal-algorithms-studies.js';
 import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
-import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards } from '../lib/godhead-study.js';
+import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook } from '../lib/godhead-study.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -189,6 +189,11 @@ function GodheadEntry({ entry }) {
 }
 
 function GodheadStudyView() {
+  // Each book is its own masterpiece (Darrell 2026-07-03): tap a book to see
+  // its identity line and filter to the algorithms drawn from it.
+  const [book, setBook] = useState(null);
+  const books = booksInCatalog();
+  const bookEntries = book ? algorithmsForBook(book) : null;
   return (
     <div>
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
@@ -200,10 +205,34 @@ function GodheadStudyView() {
           Pattern recognition is how Yahweh helps us — blind 3rd-dimensional sheep, lions and lambs — understand the Knowledge of the Most Holy. Each entry carries the practice AND, where it helps, how the mind runs it (the psychological perspective of His Word). Not the destination — the journey molds you.
         </p>
         <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
-          Die daily. This 3rd-dimensional space is not Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. See you when you get there.
+          Die daily. This 3rd-dimensional space is not Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. This platform is that work: bringing the church to the streets, using the world's technology so there is a Way — from Yahweh, His tool, held humbly by the Tribe. See you when you get there.
         </p>
       </div>
-      {godheadBySection().map((s) => (
+      {/* THE BOOKS — each its own masterpiece; tap to read its identity and
+          filter to its algorithms. */}
+      <div className="mb-3">
+        <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1.5">Each book is its own masterpiece</div>
+        <div className="flex gap-1.5 flex-wrap">
+          {books.map((b) => (
+            <button key={b} type="button" onClick={() => setBook(book === b ? null : b)} aria-pressed={book === b}
+              className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${book === b ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815] hover:border-[#1A1815]'}`}>
+              {b}
+            </button>
+          ))}
+        </div>
+        {book && BOOK_MASTERPIECES[book] && (
+          <blockquote className="border-l-2 border-[#B85838] bg-[#FAF8F4] pl-3 pr-2 py-2 mt-2" style={serif}>
+            <p className="text-sm text-[#1A1815] italic">{BOOK_MASTERPIECES[book]}</p>
+            <footer className="text-[0.6875rem] text-[#5A5751] mt-0.5">— {book} · {bookEntries.length} algorithm{bookEntries.length === 1 ? '' : 's'} in the study{book === 'Proverbs' ? ' · for the kings of The Eternal King, and for The Way' : ''}</footer>
+          </blockquote>
+        )}
+      </div>
+
+      {book ? (
+        <div className="space-y-2 mb-4">
+          {bookEntries.map((e) => <GodheadEntry key={e.id} entry={e} />)}
+        </div>
+      ) : godheadBySection().map((s) => (
         <div key={s.key} className="mb-4">
           <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>{s.label} · {s.entries.length}</h3>
           <p className="text-[0.75rem] text-[#5A5751] mb-2" style={serif}>{s.blurb}</p>

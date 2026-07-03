@@ -37,6 +37,59 @@ export const GODHEAD_SECTIONS = [
   { key: 'revelation', label: 'Revelation',       blurb: 'The end states — the overcomer\'s throne, the crown for the faithful, and what can never enter the City.' },
 ];
 
+// =============================================================================
+// EACH BOOK IS ITS OWN MASTERPIECE (Darrell 2026-07-03: "Proverbs Algorithms
+// are for the kings of The Eternal King and simultaneously for the Way...
+// Psalms — each book is its own masterpiece.") One identity line per book the
+// catalog currently draws from; the study surfaces it and filters by book.
+// =============================================================================
+export const BOOK_MASTERPIECES = {
+  'Exodus':        'The rescue masterpiece — the Blood, the passover, and a people walked out of what owned them.',
+  'Deuteronomy':   'The covenant restated on the doorstep — the choice set before every generation about to cross over.',
+  'Joshua':        'The taking of what was promised — allegiance declared out loud, house by house.',
+  '2 Chronicles':  'The kings measured by one question — did the house seek Him? Humility heals the land.',
+  'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
+  'Proverbs':      'The kings\' algorithm book — written for the kings of The Eternal King and simultaneously for The Way; wisdom as executable one-liners.',
+  'Isaiah':        'The masterpiece of majesty and the Servant — the throne room and the wounds, in one scroll.',
+  'Ezekiel':       'The watchman\'s book — every soul answers for itself, and dead bones learn to stand.',
+  'Daniel':        'The furnace-and-throne book — allegiance under empire, and the Kingdom that outlasts them all.',
+  'Malachi':       'The last word before the silence — prove Me now, and the Sun of righteousness rising.',
+  'Matthew':       'The King\'s gospel — the Kingdom\'s constitution preached from a mountain.',
+  'Luke':          'The physician\'s gospel — the meticulous mercy of God, table by table.',
+  'John':          'The eternal gospel — in the beginning was the Word; belief unto life, written that ye might believe.',
+  'Romans':        'The legal masterpiece — the whole case of the Gospel argued to a verdict: no condemnation.',
+  '1 Corinthians': 'The Body\'s house rules — gifts, order, love, and resurrection, written to a messy real church.',
+  '2 Corinthians': 'Strength in the cracked jar — treasure in earthen vessels, grace sufficient, the cheerful sower.',
+  'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
+  'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
+  'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
+  '1 Peter':       'The furnace letter — tried gold, a royal priesthood, and hope that suffering cannot repossess.',
+  '1 John':        'Inside LOVE — God is love, and the dwelling is mutual; assurance written in family language.',
+  'Revelation':    'The unveiling — the Lamb wins, the overcomers are seated, and nothing unclean enters the City.',
+};
+
+// "1 Corinthians 15:31" -> "1 Corinthians"
+export function bookOf(ref) {
+  const m = String(ref || '').match(/^([1-3]?\s?[A-Za-z ]+?)\s+\d/);
+  return m ? m[1].trim() : '';
+}
+
+// Books actually present in the catalog, in canon-ish encounter order.
+export function booksInCatalog() {
+  const seen = [];
+  for (const a of GODHEAD_ALGORITHMS) {
+    for (const r of a.refs) {
+      const b = bookOf(r);
+      if (b && !seen.includes(b)) seen.push(b);
+    }
+  }
+  return seen;
+}
+
+export function algorithmsForBook(book) {
+  return GODHEAD_ALGORITHMS.filter((a) => a.refs.some((r) => bookOf(r) === book));
+}
+
 // Every entry: refs (KJV text resolved from the verified JSON), condition (the
 // IF as the verse states it), consequence (the THEN), threeD (the practice),
 // outcome (what you win with it), tags.
@@ -160,7 +213,103 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['speech', 'peace', 'conflict'],
   },
 
+  {
+    // Darrell 2026-07-03: the man-in-the-house wound — the law paid mothers to
+    // keep fathers out, and the father is priceless, an amazing asset to a
+    // family's future even at 10%. Yahweh's counter-pattern was already
+    // written: He Himself fathers the fatherless.
+    id: 'gh-father-fatherless', section: 'wisdom', name: 'A Father of the Fatherless (He sets the solitary in families)',
+    refs: ['Psalms 68:5-6'],
+    condition: 'The fatherless and the solitary exist — a wound the world manufactures (systems have literally paid fathers out of the house) and cannot heal.',
+    consequence: 'GOD in His holy habitation IS a father of the fatherless and a judge of the widows; He setteth the solitary IN FAMILIES.',
+    threeD: 'Where the earthly father was priced out, the Eternal Father steps in — and He works through a Body that adopts: the church as the family the system broke. A present father is a priceless asset to a family\'s future, even at 10 percent; and where he is absent, the Tribe closes the gap on purpose.',
+    outcome: 'No child in the house of God is actually fatherless — the solitary get placed in families, and the generational wound meets the Father who never leaves.',
+    psyche: 'Father-absence wounds attachment and identity; a stable fathering presence — natural or the Body standing in — is one of the strongest protective factors a child can have. Yahweh names Himself into exactly that role.',
+    tags: ['father', 'fatherless', 'family', 'adoption', 'community'],
+  },
+  {
+    // "we will See with our Hearts — subconsciousness now can See Yahweh's
+    // Heart and we are literally inside LOVE."
+    id: 'gh-inside-love', section: 'epistles', name: 'Dwell in Love → Dwell in God (literally inside LOVE)',
+    refs: ['1 John 4:16'],
+    condition: 'Believe the love God hath to us — and DWELL in love, as a residence, not a visit.',
+    consequence: 'God IS love; he that dwelleth in love dwelleth IN GOD, and God in him — the address is mutual.',
+    threeD: 'Cold-heartedness is what undermined paths, psychological war, and economies not built for your future produce. The counter-move is relocation: live inside LOVE and the heart re-warms, because you are literally inside Him.',
+    outcome: 'A warm heart in a cold system — seeing with the heart, because the heart now lives where Love lives.',
+    psyche: 'What surrounds you shapes you: a nervous system that dwells in hostility stays armored; one that dwells in secure love softens and can see again. Dwelling in God\'s love is the deepest version of a secure base.',
+    tags: ['love', 'dwelling', 'heart', 'warmth'],
+  },
+  {
+    // "a mother to those following The Way Of The Word Will Break
+    // Generational Curses."
+    id: 'gh-break-generational', section: 'prophets', name: 'The Son Who Sees and Turns (generational curses break)',
+    refs: ['Ezekiel 18:14', 'Ezekiel 18:20'],
+    condition: 'A son SEES all his father\'s sins — considers them — and does NOT do likewise; he follows The Way of the Word instead.',
+    consequence: 'The soul that sinneth, IT shall die — but the son shall NOT bear the iniquity of the father. The inherited pattern has no legal claim on the one who turned.',
+    threeD: 'Generational curses break at the person who SEES the pattern and refuses it — a mother or father raising children in The Way is running the break in real time. Name the family pattern out loud, take it to the Word, and end its run in your generation.',
+    outcome: 'A bloodline rerouted — what ran for generations stops at you, and what you plant runs forward instead.',
+    psyche: 'Intergenerational patterns transmit through modeling and unexamined normalcy; the documented break point is the one who consciously SEES the pattern and chooses different — exactly the mechanism Ezekiel names.',
+    tags: ['generations', 'curses', 'family', 'turning', 'the-way'],
+  },
+
+  {
+    // "Proverbs Algorithms are for the kings of The Eternal King and
+    // simultaneously for the Way."
+    id: 'gh-honour-kings', section: 'wisdom', name: 'The Honour of Kings (search out the matter)',
+    refs: ['Proverbs 25:2'],
+    condition: 'It is the glory of God to CONCEAL a thing — the treasure is deliberately hidden, not withheld.',
+    consequence: 'The honour of KINGS is to SEARCH OUT a matter — the digging itself is the royalty.',
+    threeD: 'You are kings of The Eternal King: study is not homework, it is coronation behavior. Dig the Word, dig the problem, dig the pattern — the concealment is the invitation.',
+    outcome: 'The honour — found treasure, and a king formed by the searching.',
+    psyche: 'Discovered knowledge binds deeper than delivered knowledge — the effort of the search is what writes it into you. He conceals precisely because finding transforms the finder.',
+    tags: ['kings', 'search', 'study', 'glory'],
+  },
+  {
+    id: 'gh-throne-established', section: 'wisdom', name: 'Judge the Poor Faithfully → the Throne Established',
+    refs: ['Proverbs 29:14'],
+    condition: 'The king that FAITHFULLY judgeth the POOR — justice measured at the bottom, where there is nothing to gain.',
+    consequence: 'His throne shall be ESTABLISHED FOR EVER — the durability of the seat is set by the treatment of the least.',
+    threeD: 'Whatever you govern — a family, a business, a platform — its permanence is priced by how it treats the people with no leverage. Build for the overlooked first (the community the mainstream failed) and the throne holds.',
+    outcome: 'An establishment that outlasts you — because it was founded on the ones who could never repay it.',
+    psyche: 'Power is most honestly measured where it is least accountable; integrity toward the powerless is the one signal that cannot be faked — to others or to yourself.',
+    tags: ['kings', 'justice', 'poor', 'throne', 'community'],
+  },
+  {
+    id: 'gh-secret-place', section: 'wisdom', name: 'Dwell in the Secret Place → Abide Under the Shadow',
+    refs: ['Psalms 91:1-2'],
+    condition: 'DWELL in the secret place of the most High — residence, not visits; and SAY it: "He is my refuge and my fortress."',
+    consequence: 'Abide under the SHADOW of the Almighty — the covering tracks the dwelling.',
+    threeD: 'The shadow only falls on what stays close. Make the secret place the permanent address (the closet, the Word, the abiding) and the protection of Psalm 91 is the climate you live in, not a verse you grab in emergencies.',
+    outcome: 'Life under the shadow — covered as a way of being, with a confession that matches the address.',
+    psyche: 'Security that is dwelt in, not summoned, changes baseline vigilance — the difference between visiting safety and living from it.',
+    tags: ['secret-place', 'dwelling', 'refuge', 'psalm91'],
+  },
+  {
+    // Darrell 2026-07-03: "Give Him Your Heart not just your money — your
+    // subconscious... eat the Word."
+    id: 'gh-give-heart', section: 'wisdom', name: 'Give Me Thine Heart (not just your money)',
+    refs: ['Proverbs 23:26'],
+    condition: 'MY SON, GIVE ME THINE HEART — the ask is the heart itself, the subconscious, the eyes\' delight in His ways; the wallet was never the point.',
+    consequence: 'The heart given observes His ways — the whole person comes with it, because everything you do flows from where the heart lives.',
+    threeD: 'Tithes without the heart is rent, not relationship. Hand over the inner life — what you dwell on, delight in, and default to — and eat the Word until the subconscious sees His Heart.',
+    outcome: 'A whole-person surrender the money could never buy — and a heart that sees.',
+    psyche: 'Behavior follows the heart\'s attachments, not the ledger: what the subconscious treasures steers the person. Giving Him the heart is giving Him the steering, and the habits follow it home.',
+    tags: ['heart', 'surrender', 'subconscious', 'word'],
+  },
   // ── THE PROPHETS ──────────────────────────────────────────────────────────
+  {
+    // "we will stay in the furnace as long as the King wants us to — we're
+    // kings, lions of Judah, The Christ's Tribe."
+    id: 'gh-furnace', section: 'prophets', name: 'The Furnace and the Fourth Man (but if not)',
+    refs: ['Daniel 3:17-18', 'Daniel 3:25'],
+    condition: 'Serve Him whether He delivers or not — "our God whom we serve is able to deliver us... BUT IF NOT, we will not serve thy gods." The allegiance is not conditional on the rescue.',
+    consequence: 'The fire holds a FOURTH man, like the Son of God — He joins you IN the furnace; and the only thing that burned was what bound them.',
+    threeD: 'Stay in the furnace as long as the King wants you there — kings and lions of Judah do not negotiate allegiance with the flame. What the fire actually takes is the ropes.',
+    outcome: 'Un-blackmailable faith — company in the fire, bonds burned off, and a testimony the watching king ends up preaching for you.',
+    psyche: 'The "but if not" settles the outcome-anxiety in advance: when obedience no longer depends on results, the threat loses its leverage — the psychology of a decision that cannot be re-opened under pressure.',
+    tags: ['furnace', 'faithfulness', 'trial', 'judah'],
+  },
+
   {
     id: 'gh-tithe-windows', section: 'prophets', name: 'Prove Me in the Tithe (windows of Heaven)',
     refs: ['Malachi 3:10'],
@@ -351,6 +500,17 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['confession', 'forgiveness', 'cleansing'],
   },
   {
+    // "In a closet so He Will Teach you... it's His Will."
+    id: 'gh-closet', section: 'gospels', name: 'The Closet (in secret, He teaches — and rewards openly)',
+    refs: ['Matthew 6:6'],
+    condition: 'Enter thy CLOSET, shut thy door, pray to thy Father WHICH IS IN SECRET — the unwitnessed meeting is the condition.',
+    consequence: 'Thy Father which seeth in secret shall reward thee OPENLY — the private room has a public output.',
+    threeD: 'The closet is the classroom: no audience, no performance, just you and the Teacher — it is His will to teach you there. Build the secret meeting into the day before the public one.',
+    outcome: 'Taught in secret, rewarded openly — a public life funded by a private one.',
+    psyche: 'Every audience bends behavior toward performance; removing all witnesses is the only setting where the unedited self shows up — which is exactly the self He teaches.',
+    tags: ['prayer', 'secret', 'closet', 'teaching'],
+  },
+  {
     // Darrell 2026-07-03: "not just die — suffer for righteousness' sake:
     // they Will Be Filled."
     id: 'gh-filled-righteousness', section: 'gospels', name: 'Hunger and Suffer for Righteousness → Filled, and the Kingdom',
@@ -371,6 +531,30 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'A crown — and a faith with a fire-tested assay mark no one can dispute.',
     psyche: 'Tested strength is the only strength you can trust under load — and knowing the test is universal (everyone gets their turn) strips the isolation out of suffering.',
     tags: ['testing', 'crown', 'endurance', 'faith'],
+  },
+
+  {
+    // "GIVE LESS TO him who gives little..." — the sower sets the harvest.
+    id: 'gh-sow-bountifully', section: 'epistles', name: 'The Sower Sets the Harvest (sparingly or bountifully)',
+    refs: ['2 Corinthians 9:6-7'],
+    condition: 'He which soweth SPARINGLY — and he which soweth BOUNTIFULLY; each gives as he purposeth in his heart, not grudgingly, for God loveth a CHEERFUL giver.',
+    consequence: 'Reap sparingly, or reap bountifully — the harvest is denominated in the sowing; who gives little is given little.',
+    threeD: 'You choose your own return rate at planting time — in money, in mercy, in the Body. Set the purpose in the heart first, then sow like someone who believes the equation.',
+    outcome: 'A bountiful harvest on purpose — and the cheerfulness that turns giving from tax into worship.',
+    psyche: 'Grudging giving rehearses scarcity; cheerful purposed giving rehearses abundance and agency — the giver\'s own posture is the first thing the sowing changes.',
+    tags: ['sowing', 'giving', 'harvest', 'cheerful'],
+  },
+  {
+    // "the Tribe appreciation is shown each Sunday and Wednesday we congregate
+    // ... Forsake not the brethren — they need you and you may need them one day."
+    id: 'gh-assembling', section: 'epistles', name: 'Forsake Not the Assembling (the Tribe congregates)',
+    refs: ['Hebrews 10:24-25'],
+    condition: 'CONSIDER one another — and do NOT forsake the assembling of yourselves together, as the manner of some is.',
+    consequence: 'Provoked unto love and to good works, exhorting one another — and SO MUCH THE MORE as ye see the day approaching. The gathering compounds as the clock runs down.',
+    threeD: 'Sunday and Wednesday the Tribe congregates — that is the algorithm running, not a routine. They need you, and you may need them one day; the connection with the Body is where the love gets shown and the strength gets traded.',
+    outcome: 'A Body that holds — provoked to love, stocked with good works, and nobody standing alone when their day comes.',
+    psyche: 'Isolation corrodes conviction and health alike; regular embodied gathering is among the most protective rhythms a person can keep. The command and the psychology agree: do not skip the assembling.',
+    tags: ['assembly', 'church', 'body', 'brethren', 'tribe'],
   },
 
   // ── REVELATION ────────────────────────────────────────────────────────────
