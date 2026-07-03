@@ -87,4 +87,43 @@ describe('ReactionBar aggregates + displays like social media', () => {
     expect(pill).toBeTruthy();
     expect(pill.textContent).toMatch(/2/);
   });
+
+  // ---------------------------------------------------------------------------
+  // Touch-first (Darrell 2026-07-03: "they don't feel intuitive yet"). On a
+  // no-hover device the meaning must be REACHABLE (hover doesn't exist there):
+  // first tap previews meaning + Scripture and arms the tile; second tap reacts.
+  // And every tile carries its visible NAME — nobody reacts blind.
+  // ---------------------------------------------------------------------------
+  it('every palette tile shows its name visibly (meaning never hides behind hover)', async () => {
+    await render(createElement(ReactionBar, { entry: { counts: {}, total: 0, myKey: null, score: 0, top: [] }, onReact: async () => ({}) }));
+    await click(container.querySelector('button[aria-haspopup="menu"]'));
+    const lamb = paletteItem('Lamb of God');
+    expect(lamb, 'Lamb of God tile missing').toBeTruthy();
+    expect(lamb.textContent).toMatch(/Lamb of God/); // visible label, not just a title attr
+  });
+
+  it('on a no-hover (touch) device: first tap previews + arms, second tap reacts', async () => {
+    // jsdom has no matchMedia; installing one that reports (hover: none) = true
+    // simulates a phone/tablet. Removed after the test.
+    window.matchMedia = (q) => ({ matches: q === '(hover: none)', media: q, addListener: () => {}, removeListener: () => {} });
+    try {
+      let sent = null;
+      await render(createElement(ReactionBar, {
+        entry: { counts: {}, total: 0, myKey: null, score: 0, top: [] },
+        onReact: async (k) => { sent = k; return { added: true }; },
+      }));
+      await click(container.querySelector('button[aria-haspopup="menu"]'));
+      const lamb = paletteItem('Lamb of God');
+      await click(lamb);                          // first tap: preview + arm
+      expect(sent).toBe(null);                    // did NOT react blind
+      expect(menuOpen()).toBe(true);              // palette stays open
+      expect(container.textContent).toMatch(/John 1:29|Lamb of God/); // meaning is visible
+      expect(container.textContent).toMatch(/again to react/i);      // the arming prompt
+      await click(paletteItem('Lamb of God'));    // second tap: confirm
+      expect(sent).toBe('lamb');
+      expect(menuOpen()).toBe(false);
+    } finally {
+      delete window.matchMedia;
+    }
+  });
 });

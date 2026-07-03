@@ -50,20 +50,28 @@ function Player({ idea }) {
   const embed = ideaEmbedUrl(idea);
 
   if (embed) {
+    // Opening must always be closable (Darrell 2026-07-03: "Can't close the
+    // YouTube video after opening it"): the toggle stays visible above the
+    // player instead of being replaced by it — same pattern as Pulpit/Choir.
     return open ? (
-      <div className="relative w-full mt-2" style={{ aspectRatio: '16 / 9' }}>
-        <iframe
-          className="absolute inset-0 w-full h-full border border-[#1A1815]"
-          src={embed}
-          title={`Play: ${idea.title}`}
-          loading="lazy"
-          allow="encrypted-media; picture-in-picture; fullscreen"
-          referrerPolicy="strict-origin-when-cross-origin"
-          allowFullScreen
-        />
+      <div className="mt-2">
+        <button type="button" onClick={() => setOpen(false)} aria-expanded={true} className={`${BTN} mb-1 border border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]`}>
+          ▾ Close player
+        </button>
+        <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
+          <iframe
+            className="absolute inset-0 w-full h-full border border-[#1A1815]"
+            src={embed}
+            title={`Play: ${idea.title}`}
+            loading="lazy"
+            allow="encrypted-media; picture-in-picture; fullscreen"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
+        </div>
       </div>
     ) : (
-      <button type="button" onClick={() => setOpen(true)} className={`${BTN} mt-2 bg-[#1A1815] text-white font-semibold hover:bg-[#B85838]`}>
+      <button type="button" onClick={() => setOpen(true)} aria-expanded={false} className={`${BTN} mt-2 bg-[#1A1815] text-white font-semibold hover:bg-[#B85838]`}>
         ▶ Play in app
       </button>
     );

@@ -179,3 +179,20 @@ describe('toSongCommentShape / toVoteShape', () => {
     expect(toVoteShape({ id: 'v', song_id: 's', user_id: 'u' }, 'me').mine).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// No dead ends (Darrell 2026-07-03: "Can't close the YouTube video after
+// opening it"). The inline player's toggle must SURVIVE opening — a close
+// control rendered alongside the iframe, never replaced by it.
+// ---------------------------------------------------------------------------
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+describe('song workshop player stays closable', () => {
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/ChoirSongWorkshop.jsx'), 'utf8');
+  it('renders a close control with the open iframe', () => {
+    expect(src).toMatch(/Close player/);
+    expect(src).toMatch(/setOpen\(false\)/);
+  });
+});
