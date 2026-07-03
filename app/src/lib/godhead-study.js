@@ -60,6 +60,7 @@ export const BOOK_MASTERPIECES = {
   'Romans':        'The legal masterpiece — the whole case of the Gospel argued to a verdict: no condemnation.',
   '1 Corinthians': 'The Body\'s house rules — gifts, order, love, and resurrection, written to a messy real church.',
   '2 Corinthians': 'Strength in the cracked jar — treasure in earthen vessels, grace sufficient, the cheerful sower.',
+  'Ephesians':     'The seated-in-heavenly-places letter — chosen before the foundation of the world, the Body one, the armour on.',
   'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
   'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
@@ -498,6 +499,19 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'A clean slate on demand — forgiveness with a service-level guarantee signed in His character.',
     psyche: 'Named faults lose their power to fester; confession moves shame out of the dark loop and into a relationship where it is answered — the healthiest possible error-handling.',
     tags: ['confession', 'forgiveness', 'cleansing'],
+  },
+  {
+    // Darrell 2026-07-03: "He knew us before the foundation of the earth and
+    // gave us His Spirit when we open the doors of our hearts to Him — and
+    // another voice we won't hear. I SEE YOU YAHWEH."
+    id: 'gh-sheep-voice', section: 'gospels', name: 'My Sheep Hear My Voice (another voice they will not follow)',
+    refs: ['John 10:27', 'John 10:5', 'Ephesians 1:4'],
+    condition: 'Belong to the Shepherd — chosen in Him BEFORE the foundation of the world, His Spirit given when the door of the heart opens.',
+    consequence: 'My sheep HEAR My voice, and I know them, and they follow Me — and a stranger will they NOT follow, for they know not the voice of strangers. The discernment is built into the belonging.',
+    threeD: 'Voice recognition is trained by exposure: the more of His Word in you, the more instantly a strange voice registers as strange — the feeds, the philosophies, the fear all sound off-key. Some of us are not from here originally; the accent of Home gives it away.',
+    outcome: 'Un-deceivable ears — a life steered by one Voice, with the strangers automatically flagged.',
+    psyche: 'Recognition beats analysis: the trained ear rejects the counterfeit before the mind finishes arguing about it — which is why saturation in the true Voice outperforms cataloguing every false one.',
+    tags: ['voice', 'sheep', 'discernment', 'foundation', 'spirit'],
   },
   {
     // "In a closet so He Will Teach you... it's His Will."
