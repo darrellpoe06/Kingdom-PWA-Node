@@ -18,6 +18,20 @@ export const LISTENING_TAGLINE = 'Not the destination — it\'s the journey that
 
 const yt = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
 
+// Specific tracks the Governor has vouched for by name — the shelf's deep
+// cuts, each with why it's here (distilled from his words when he shared it).
+// Same honest-link rule: YouTube SEARCH, never a guessed video URL.
+export const FAMILY_PICKS = [
+  {
+    id: 'pick-round-of-applause',
+    title: 'Round of Applause',
+    artist: 'Lecrae',
+    album: 'Church Clothes 2',
+    why: 'An anthem for everyone who beat the odds — living proof of what is possible. Lecrae\'s own road out (jail-or-death expectations broken by faith and education), and the single mother who worked her way to graduating with honors, dignity intact. Nobody dictates your potential. Shared by Darrell 2026-07-03.',
+    searchUrl: yt('Lecrae Round of Applause Church Clothes 2'),
+  },
+];
+
 export const FAMILY_ARTISTS = [
   { id: 'lecrae',   name: 'Lecrae',        tag: '116 · Reach Records', note: 'The flagship — Word-heavy, real-life honest. Fire.', searchUrl: yt('Lecrae') },
   { id: 'reach116', name: '116 / Reach Records', tag: 'the collective', note: 'The whole crew — Romans 1:16, unashamed.', searchUrl: yt('116 Reach Records') },

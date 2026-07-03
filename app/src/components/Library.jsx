@@ -26,7 +26,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
-import { FAMILY_ARTISTS, LISTENING_TAGLINE } from '../lib/family-listening.js';
+import { FAMILY_ARTISTS, FAMILY_PICKS, LISTENING_TAGLINE } from '../lib/family-listening.js';
 import { triggerDownload, exportFilename } from '../lib/creation-workspace.js';
 import { bookStats } from '../lib/book-engine.js';
 import { toMarkdown, bookToReaderHtml, bookToEpubBytes } from '../lib/book-formats.js';
@@ -371,8 +371,29 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
               </div>
             ))}
           </div>
+          {/* The picks — specific tracks vouched by name, with the why. */}
+          {FAMILY_PICKS.length > 0 && (
+            <div className="mt-4">
+              <div className="text-[0.5625rem] uppercase tracking-[0.25em] font-semibold mb-1.5" style={{ color: PALETTE.muted }}>The picks · vouched by name</div>
+              <div className="space-y-2">
+                {FAMILY_PICKS.map((p) => (
+                  <div key={p.id} className="bg-white border-l-2 border p-3" style={{ borderColor: PALETTE.line, borderLeftColor: '#B85838' }}>
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <span style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</span>
+                      <span className="text-[0.5625rem] uppercase tracking-wider" style={{ color: PALETTE.muted }}>{p.artist} · {p.album}</span>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>{p.why}</p>
+                    <a href={p.searchUrl} target="_blank" rel="noopener noreferrer"
+                      className="inline-block mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]">
+                      Listen on YouTube ↗
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="text-[0.625rem] mt-3 italic" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>
-            Curated by the family — name an artist and the shelf carries them.
+            Curated by the family — name an artist or a track and the shelf carries them.
           </p>
         </div>
       )}

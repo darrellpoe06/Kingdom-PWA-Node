@@ -491,6 +491,20 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'Everlasting life — the outcome all the other outcomes exist to serve.',
     tags: ['gospel', 'salvation', 'belief', 'soul'],
   },
+  {
+    // Darrell 2026-07-03: "Never focus on self more than Yahweh's Word... He
+    // matters more than anything... understand and overstand or stand on His
+    // Word like He walked on water — you will walk on serpents and scorpions
+    // etc, corporations and haters etc... His Word ARE Amazing!!!"
+    id: 'gh-stand-on-word', section: 'gospels', name: 'Stand On His Word (walk on water, tread on serpents)',
+    refs: ['Luke 10:19', 'Matthew 14:29', 'John 3:30'],
+    condition: 'The self is never the focus — He must increase, I must decrease. Stand ON the Word the way He walked ON the water: the footing is His, not yours.',
+    consequence: 'Power to tread on serpents and scorpions, and over ALL the power of the enemy — and nothing shall by any means hurt you. Peter walked on the water WHILE his eyes held the Word who called him.',
+    threeD: 'Understand it, overstand it, then STAND on it. The serpents and scorpions come dressed as corporations and haters now — same enemy, same authority over them. Keep the focus off self and on the Word; the moment Peter looked at the wind instead of the Word, the footing went. His Word ARE amazing.',
+    outcome: 'Footing that holds where nothing should hold — over the water, over the serpents, over the corporations and the haters — because the ground you stand on is Him.',
+    psyche: 'Self-focus under threat amplifies the threat (the spotlight turns inward and the wind looks bigger); attention anchored on something sturdier than the self is what steadies the walker. The Word is the sturdiest attention anchor there is.',
+    tags: ['authority', 'word', 'focus', 'faith', 'footing'],
+  },
 
   // ── THE EPISTLES ──────────────────────────────────────────────────────────
   {
