@@ -49,6 +49,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'Choosing life means you AND your seed live — the choice compounds down the bloodline.',
     threeD: 'Every day is a ballot. It is all your choices, not just one — each one either eats at His table or another. Choose like your children inherit the choice, because they do.',
     outcome: 'A life — and a family line — pointed Home on purpose instead of by drift.',
+    psyche: 'Deciding once at the identity level (we serve the LORD) collapses a thousand daily willpower battles into one settled commitment — the psychology of pre-decision.',
     tags: ['choice', 'covenant', 'family', 'bloodline'],
   },
   {
@@ -96,6 +97,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'He directs thy paths — the routing is His problem once the trust is total.',
     threeD: 'Bring every decision — money, work, family — under acknowledgment before acting. Partial trust gets partial routing.',
     outcome: 'Direction you did not have to manufacture — the path straightens under your feet.',
+    psyche: 'Leaning on your own understanding under uncertainty breeds rumination; surrendered trust offloads the unknowns and measurably lowers the anxiety load of decision-making.',
     tags: ['trust', 'guidance', 'decisions'],
   },
   {
@@ -105,6 +107,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'Planted by rivers, fruit in season, leaf that does not wither — and whatsoever he doeth shall PROSPER.',
     threeD: 'Curate your counsel and your feed. Meditation on the Word is the root system; prosperity is fruit, not a target you aim at directly.',
     outcome: 'Rooted stability and seasonal fruit — productivity that does not dry up when conditions do.',
+    psyche: 'What you meditate on day and night becomes your automatic thought pattern — attention is the soil; the mind grows what it is planted by.',
     tags: ['meditation', 'word', 'prosperity', 'roots'],
   },
   {
@@ -123,6 +126,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'They inherit the earth and delight themselves in abundance of peace.',
     threeD: 'Power submitted beats power spent. Hold the strength, take the orders — in the argument, the negotiation, the injustice. The inheritance goes to strength under command, in both dimensions.',
     outcome: 'The earth, and peace in abundance — what the unrestrained fight for and lose, the commanded inherit.',
+    psyche: 'Self-control under provocation is strength regulated, not suppressed — the discipline psychologists call emotional regulation, submitted here to a Commander instead of a technique.',
     tags: ['meekness', 'holy-spirit', 'strength', 'peace'],
   },
   {
@@ -132,6 +136,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'Destruction follows pride as mechanically as honour follows humility.',
     threeD: 'Audit for haughtiness the way you audit for debt — it is the earliest warning light on the dashboard. Stay low, stay humble, stay where you are supposed to be.',
     outcome: 'Falls you never took, and honour you never had to demand.',
+    psyche: 'Pride is confirmation bias about yourself: it filters out the warning signals until the fall arrives suddenly. Humility keeps the feedback loop open.',
     tags: ['pride', 'humility', 'warning'],
   },
   {
@@ -141,6 +146,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'Strength RENEWED: mount up as eagles, run and not be weary, walk and not faint.',
     threeD: 'Burnout is running on self-strength past its expiry. Build the waiting — prayer, sabbath, stillness — into the operating rhythm as the recharge cycle, not a luxury.',
     outcome: 'Endurance that outlasts your natural tank, because the tank is no longer yours.',
+    psyche: 'The nervous system was not built for unbroken striving; the waiting rhythms (stillness, sabbath, prayer) are where recovery actually happens — burnout is the receipt for skipping them.',
     tags: ['waiting', 'strength', 'endurance', 'rest'],
   },
   {
@@ -150,6 +156,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'Soft turns wrath away; grievous stirs anger up — the conversation obeys the input.',
     threeD: 'In the heated text thread, the tenant dispute, the family argument: your reply is the thermostat. Run the algorithm before you hit send.',
     outcome: 'De-escalation on demand — conflicts that die at your door instead of in your house.',
+    psyche: 'De-escalation is contagious the same way anger is — a lowered voice lowers the room. The first calm reply resets what the whole exchange mirrors.',
     tags: ['speech', 'peace', 'conflict'],
   },
 
@@ -208,6 +215,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'Your heavenly Father forgives you — or does not. The channel you extend is the channel you receive through.',
     threeD: 'Unforgiveness is a self-inflicted outage on your own forgiveness supply. Release the debt today; the account it unfreezes is yours.',
     outcome: 'A clear line to the Father — and a heart that carries no one else\'s prison keys.',
+    psyche: 'Unforgiveness keeps the offense on replay — rumination that re-injures the rememberer. Release the debt and the mind stops serving the sentence with the offender.',
     tags: ['forgiveness', 'mercy', 'relationships'],
   },
   {
@@ -235,6 +243,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'The storm comes either way; the house on the rock FELL NOT.',
     threeD: 'Every system in the family — money, marriage, ministry — is either poured on done-Word or on heard-Word. The storm is the audit; schedule the doing now.',
     outcome: 'A house that is still standing after the same storm that flattened the shortcut next door.',
+    psyche: 'Knowledge that is never acted on decays; practiced obedience becomes procedural memory — the storm meets reflexes, not intentions.',
     tags: ['obedience', 'foundation', 'storm', 'doing'],
   },
   {
@@ -282,6 +291,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'A follower who is ready at ANY time — because the dying is already done today, going Home holds no terror.',
     threeD: 'Every morning, put the old man down before he runs the day: preferences, offense, the right to yourself. This 3rd-dimensional space is not Home; live packed.',
     outcome: 'Readiness as a way of life — nothing left to settle when the call comes, see you when you get there.',
+    psyche: 'Daily surrender is exposure practice against the fear of death itself — rehearsed release, so the final letting-go is a practiced motion, not a first attempt.',
     tags: ['death-to-self', 'daily', 'readiness', 'home'],
   },
   {
@@ -309,6 +319,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'You PROVE — test and demonstrate — that good, acceptable, perfect will of God.',
     threeD: 'The mind is the module where transformation is installed. Feed it the Word, starve the conforming feeds, and God\'s will stops being a mystery and starts being your lived test result.',
     outcome: 'Discernment upgraded from guessing His will to proving it.',
+    psyche: 'Transformation runs through thought patterns — the mind can be re-trained (the Word in, the conforming feeds out) until the new pattern is the default. Renewal is neuroplasticity under the Spirit\'s direction.',
     tags: ['mind', 'transformation', 'discernment'],
   },
   {
@@ -336,7 +347,20 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'He is FAITHFUL and JUST to forgive and to cleanse from ALL unrighteousness — His character is the guarantee.',
     threeD: 'Confession is the family\'s error-correction protocol: fast, specific, and safe, because the response is fixed by His faithfulness, not your performance.',
     outcome: 'A clean slate on demand — forgiveness with a service-level guarantee signed in His character.',
+    psyche: 'Named faults lose their power to fester; confession moves shame out of the dark loop and into a relationship where it is answered — the healthiest possible error-handling.',
     tags: ['confession', 'forgiveness', 'cleansing'],
+  },
+  {
+    // Darrell 2026-07-03: "not just die — suffer for righteousness' sake:
+    // they Will Be Filled."
+    id: 'gh-filled-righteousness', section: 'gospels', name: 'Hunger and Suffer for Righteousness → Filled, and the Kingdom',
+    refs: ['Matthew 5:6', 'Matthew 5:10', '1 Peter 3:14'],
+    condition: 'Hunger and THIRST after righteousness — and when it costs you, be persecuted FOR RIGHTEOUSNESS\' SAKE, not for foolishness.',
+    consequence: 'They SHALL BE FILLED; theirs IS the kingdom of heaven; and suffering for righteousness\' sake, ye are HAPPY — the filling and the Kingdom are attached to the hunger and the cost.',
+    threeD: 'Aim the appetite: want what He calls righteous, not whatever else — our souls are on the line. When standing for it draws fire, that is not the algorithm failing; it is the algorithm running. Only in the wilderness does He set the table in front of your enemies.',
+    outcome: 'Filled — not just enduring. The hunger satisfied, the Kingdom yours, and a happiness the persecution cannot repossess.',
+    psyche: 'Appetite is trainable: what you repeatedly seek rewires what you crave. Naming persecution as expected cost (not personal failure) is the reframe that keeps conviction from collapsing into shame under social pressure.',
+    tags: ['righteousness', 'hunger', 'persecution', 'filled', 'kingdom'],
   },
   {
     id: 'gh-tested-soul', section: 'epistles', name: 'Every Soul Gets Its Turn (the testing)',
@@ -345,6 +369,7 @@ export const GODHEAD_ALGORITHMS = [
     consequence: 'The crown of life, promised to them that love Him; faith found unto praise and honour and glory at His appearing.',
     threeD: 'The test is not a malfunction — it is the qualification round, and no one skips it. No more lucifers inside Heaven: the Kingdom seats the tested. Suffer like someone who knows a crown is on the other side.',
     outcome: 'A crown — and a faith with a fire-tested assay mark no one can dispute.',
+    psyche: 'Tested strength is the only strength you can trust under load — and knowing the test is universal (everyone gets their turn) strips the isolation out of suffering.',
     tags: ['testing', 'crown', 'endurance', 'faith'],
   },
 

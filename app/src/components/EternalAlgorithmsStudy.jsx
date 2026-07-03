@@ -172,6 +172,12 @@ function GodheadEntry({ entry }) {
             );
           })}
           <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{entry.threeD}</p>
+          {entry.psyche && (
+            <div className="mt-1.5 border-l-2 border-[#5A5751] pl-3 pr-2 py-1">
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">How the mind runs it — the psychological perspective</div>
+              <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{entry.psyche}</p>
+            </div>
+          )}
           <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
             <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
             <p className="text-sm text-[#1A1815]" style={serif}>{entry.outcome}</p>
@@ -191,7 +197,10 @@ function GodheadStudyView() {
           The Bible's deterministic algorithms — the if/then patterns the Living Godhead states in His own words. Forever Eternal Beings inviting us into a bloodline family: every soul gets its turn to be tested, even the Son came off the Throne of Glory, and the meek — strength under the control of the Holy Spirit, The General — inherit. {GODHEAD_ALGORITHMS.length} patterns, every verse rendered verbatim (KJV, public domain).
         </p>
         <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
-          Die daily. This 3rd-dimensional space is not Home. It is all your choices — see you when you get there.
+          Pattern recognition is how Yahweh helps us — blind 3rd-dimensional sheep, lions and lambs — understand the Knowledge of the Most Holy. Each entry carries the practice AND, where it helps, how the mind runs it (the psychological perspective of His Word). Not the destination — the journey molds you.
+        </p>
+        <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
+          Die daily. This 3rd-dimensional space is not Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. See you when you get there.
         </p>
       </div>
       {godheadBySection().map((s) => (
