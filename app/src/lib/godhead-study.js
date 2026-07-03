@@ -63,6 +63,7 @@ export const BOOK_MASTERPIECES = {
   '2 Corinthians': 'Strength in the cracked jar — treasure in earthen vessels, grace sufficient, the cheerful sower.',
   'Galatians':     'The freedom letter — no other gospel, the Spirit\'s fruit against the flesh\'s works, and burdens carried together.',
   'Ephesians':     'The seated-in-heavenly-places letter — chosen before the foundation of the world, the Body one, the armour on.',
+  'Colossians':    'The preeminence letter — all things created by Him and for Him, held together in Him; the Head of the Body, first in everything.',
   'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
   'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
@@ -526,6 +527,33 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'Discernment upgraded from guessing His will to proving it.',
     psyche: 'Transformation runs through thought patterns — the mind can be re-trained (the Word in, the conforming feeds out) until the new pattern is the default. Renewal is neuroplasticity under the Spirit\'s direction.',
     tags: ['mind', 'transformation', 'discernment'],
+  },
+  {
+    // Darrell 2026-07-03: "Higher Priority Code From The 4th-dimensional
+    // King... all other data has to come under submission to the Word Of
+    // Yahweh — Jesus' Body we the church eat."
+    id: 'gh-higher-priority', section: 'epistles', name: 'Higher Priority Code (every thought brought into captivity)',
+    refs: ['2 Corinthians 10:5', 'Colossians 1:17-18'],
+    condition: 'Cast down imaginations and every high thing that exalteth itself against the knowledge of God — no data stream runs at His priority level.',
+    consequence: 'EVERY thought brought into captivity to the obedience of Christ — and He is BEFORE all things, the Head of the Body, that in all things He might have the PREEMINENCE. The Word preempts; everything else yields the processor.',
+    threeD: 'Run the priority scheduler on purpose: headlines, feeds, fears, and philosophies are lower-priority processes — when they conflict with the Word, they get preempted, not merged. The church eats the Body of the King; His code is what we run on.',
+    outcome: 'A mind under one Kernel — the 4th-dimensional King\'s code executing first, and every other input demoted to advisory.',
+    psyche: 'Attention is a priority queue whether you manage it or not; deciding IN ADVANCE which authority wins conflicts is what spares the mind from relitigating every intrusive thought on arrival.',
+    tags: ['thoughts', 'captivity', 'preeminence', 'priority', 'word'],
+  },
+  {
+    // "There was a church — then America made a white church, and a black
+    // church was born out of that hell hole and still trying to thrive by
+    // following Yahweh... struggling readers and all... by our obedience to
+    // the Way... priceless though, because the King's Blood IS."
+    id: 'gh-church-born-fire', section: 'epistles', name: "The Church Born in the Fire (priceless, because the King's Blood is)",
+    refs: ['1 Peter 1:18-19', '1 Peter 2:9'],
+    condition: 'Redeemed NOT with corruptible things, as silver and gold — the worth was never set by the market, the country, or the ones who drew the dividing line.',
+    consequence: 'But with the PRECIOUS BLOOD of Christ — a chosen generation, a royal priesthood, called out of darkness into His marvellous light. The price paid sets the worth, and the price was the King\'s Blood.',
+    threeD: 'There was a church; a nation divided it, and the black church was born out of that fire — and still thrives by following Yahweh, struggling readers and all, by obedience to the Way. Serve that church FIRST: read the Word aloud for the ones still learning to read it, build the tools the excluded were never given, and price nothing by the world that mispriced them.',
+    outcome: 'A people whose value is fixed in the Blood — unrepriceable by any nation\'s ledger — thriving in the light they were called into.',
+    psyche: 'Worth assigned by exclusion internalizes as shame; worth fixed by an unpayable price paid FOR you rewrites the self-assessment at the root — the redeemed identity outranks the rejected one.',
+    tags: ['church', 'redemption', 'blood', 'community', 'priesthood'],
   },
   {
     id: 'gh-resist-flee', section: 'epistles', name: 'Submit · Resist → he Flees',
