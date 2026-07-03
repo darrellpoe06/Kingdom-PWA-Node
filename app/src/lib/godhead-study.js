@@ -246,6 +246,20 @@ export const GODHEAD_ALGORITHMS = [
   },
 
   {
+    // Darrell 2026-07-03: "My mother woke me up every day at 6am to discuss
+    // the Word... I love her eternally and 3rd-dimensionally... my earthly
+    // father wasn't there so life was obviously hard... Yahweh made a Way...
+    // He's my Father and family... Forever."
+    id: 'gh-train-child', section: 'wisdom', name: 'Train Up a Child (the 6am inheritance)',
+    refs: ['Proverbs 22:6', 'Deuteronomy 6:6-7', 'Psalms 27:10'],
+    condition: 'TRAIN UP a child in the way he should go — teach the words DILIGENTLY, talking of them when thou liest down and when thou RISEST UP; and where a parent is missing, the LORD takes the child up Himself.',
+    consequence: 'When he is OLD, he will not depart from it — the 6am deposits compound for a lifetime; and the fathered-by-Yahweh child gets a Father and a family, Forever.',
+    threeD: 'The proof is a living man: a mother who woke her son every day at 6am to discuss the Word, in a house where the earthly father was absent — and decades later that son has not departed from it; he is building The Way into a platform for his own children and his church. Rise up and teach; the hour you choose over sleep is the inheritance.',
+    outcome: 'A child who cannot be argued out of what was trained into them — carried by the Father who never misses a morning, loved eternally and 3rd-dimensionally.',
+    psyche: 'Daily rhythm at a fixed hour is the deepest form of learning — it becomes identity, not information; and one devoted, consistent caregiver is the single strongest protective factor a hard childhood can have. The 6am mother is both at once.',
+    tags: ['training', 'children', 'mother', 'inheritance', 'the-way'],
+  },
+  {
     // Darrell 2026-07-03: the man-in-the-house wound — the law paid mothers to
     // keep fathers out, and the father is priceless, an amazing asset to a
     // family's future even at 10%. Yahweh's counter-pattern was already
