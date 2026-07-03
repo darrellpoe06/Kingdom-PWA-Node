@@ -37,6 +37,59 @@ export const GODHEAD_SECTIONS = [
   { key: 'revelation', label: 'Revelation',       blurb: 'The end states — the overcomer\'s throne, the crown for the faithful, and what can never enter the City.' },
 ];
 
+// =============================================================================
+// EACH BOOK IS ITS OWN MASTERPIECE (Darrell 2026-07-03: "Proverbs Algorithms
+// are for the kings of The Eternal King and simultaneously for the Way...
+// Psalms — each book is its own masterpiece.") One identity line per book the
+// catalog currently draws from; the study surfaces it and filters by book.
+// =============================================================================
+export const BOOK_MASTERPIECES = {
+  'Exodus':        'The rescue masterpiece — the Blood, the passover, and a people walked out of what owned them.',
+  'Deuteronomy':   'The covenant restated on the doorstep — the choice set before every generation about to cross over.',
+  'Joshua':        'The taking of what was promised — allegiance declared out loud, house by house.',
+  '2 Chronicles':  'The kings measured by one question — did the house seek Him? Humility heals the land.',
+  'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
+  'Proverbs':      'The kings\' algorithm book — written for the kings of The Eternal King and simultaneously for The Way; wisdom as executable one-liners.',
+  'Isaiah':        'The masterpiece of majesty and the Servant — the throne room and the wounds, in one scroll.',
+  'Ezekiel':       'The watchman\'s book — every soul answers for itself, and dead bones learn to stand.',
+  'Daniel':        'The furnace-and-throne book — allegiance under empire, and the Kingdom that outlasts them all.',
+  'Malachi':       'The last word before the silence — prove Me now, and the Sun of righteousness rising.',
+  'Matthew':       'The King\'s gospel — the Kingdom\'s constitution preached from a mountain.',
+  'Luke':          'The physician\'s gospel — the meticulous mercy of God, table by table.',
+  'John':          'The eternal gospel — in the beginning was the Word; belief unto life, written that ye might believe.',
+  'Romans':        'The legal masterpiece — the whole case of the Gospel argued to a verdict: no condemnation.',
+  '1 Corinthians': 'The Body\'s house rules — gifts, order, love, and resurrection, written to a messy real church.',
+  '2 Corinthians': 'Strength in the cracked jar — treasure in earthen vessels, grace sufficient, the cheerful sower.',
+  'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
+  'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
+  'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
+  '1 Peter':       'The furnace letter — tried gold, a royal priesthood, and hope that suffering cannot repossess.',
+  '1 John':        'Inside LOVE — God is love, and the dwelling is mutual; assurance written in family language.',
+  'Revelation':    'The unveiling — the Lamb wins, the overcomers are seated, and nothing unclean enters the City.',
+};
+
+// "1 Corinthians 15:31" -> "1 Corinthians"
+export function bookOf(ref) {
+  const m = String(ref || '').match(/^([1-3]?\s?[A-Za-z ]+?)\s+\d/);
+  return m ? m[1].trim() : '';
+}
+
+// Books actually present in the catalog, in canon-ish encounter order.
+export function booksInCatalog() {
+  const seen = [];
+  for (const a of GODHEAD_ALGORITHMS) {
+    for (const r of a.refs) {
+      const b = bookOf(r);
+      if (b && !seen.includes(b)) seen.push(b);
+    }
+  }
+  return seen;
+}
+
+export function algorithmsForBook(book) {
+  return GODHEAD_ALGORITHMS.filter((a) => a.refs.some((r) => bookOf(r) === book));
+}
+
 // Every entry: refs (KJV text resolved from the verified JSON), condition (the
 // IF as the verse states it), consequence (the THEN), threeD (the practice),
 // outcome (what you win with it), tags.
@@ -199,6 +252,38 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['generations', 'curses', 'family', 'turning', 'the-way'],
   },
 
+  {
+    // "Proverbs Algorithms are for the kings of The Eternal King and
+    // simultaneously for the Way."
+    id: 'gh-honour-kings', section: 'wisdom', name: 'The Honour of Kings (search out the matter)',
+    refs: ['Proverbs 25:2'],
+    condition: 'It is the glory of God to CONCEAL a thing — the treasure is deliberately hidden, not withheld.',
+    consequence: 'The honour of KINGS is to SEARCH OUT a matter — the digging itself is the royalty.',
+    threeD: 'You are kings of The Eternal King: study is not homework, it is coronation behavior. Dig the Word, dig the problem, dig the pattern — the concealment is the invitation.',
+    outcome: 'The honour — found treasure, and a king formed by the searching.',
+    psyche: 'Discovered knowledge binds deeper than delivered knowledge — the effort of the search is what writes it into you. He conceals precisely because finding transforms the finder.',
+    tags: ['kings', 'search', 'study', 'glory'],
+  },
+  {
+    id: 'gh-throne-established', section: 'wisdom', name: 'Judge the Poor Faithfully → the Throne Established',
+    refs: ['Proverbs 29:14'],
+    condition: 'The king that FAITHFULLY judgeth the POOR — justice measured at the bottom, where there is nothing to gain.',
+    consequence: 'His throne shall be ESTABLISHED FOR EVER — the durability of the seat is set by the treatment of the least.',
+    threeD: 'Whatever you govern — a family, a business, a platform — its permanence is priced by how it treats the people with no leverage. Build for the overlooked first (the community the mainstream failed) and the throne holds.',
+    outcome: 'An establishment that outlasts you — because it was founded on the ones who could never repay it.',
+    psyche: 'Power is most honestly measured where it is least accountable; integrity toward the powerless is the one signal that cannot be faked — to others or to yourself.',
+    tags: ['kings', 'justice', 'poor', 'throne', 'community'],
+  },
+  {
+    id: 'gh-secret-place', section: 'wisdom', name: 'Dwell in the Secret Place → Abide Under the Shadow',
+    refs: ['Psalms 91:1-2'],
+    condition: 'DWELL in the secret place of the most High — residence, not visits; and SAY it: "He is my refuge and my fortress."',
+    consequence: 'Abide under the SHADOW of the Almighty — the covering tracks the dwelling.',
+    threeD: 'The shadow only falls on what stays close. Make the secret place the permanent address (the closet, the Word, the abiding) and the protection of Psalm 91 is the climate you live in, not a verse you grab in emergencies.',
+    outcome: 'Life under the shadow — covered as a way of being, with a confession that matches the address.',
+    psyche: 'Security that is dwelt in, not summoned, changes baseline vigilance — the difference between visiting safety and living from it.',
+    tags: ['secret-place', 'dwelling', 'refuge', 'psalm91'],
+  },
   {
     // Darrell 2026-07-03: "Give Him Your Heart not just your money — your
     // subconscious... eat the Word."

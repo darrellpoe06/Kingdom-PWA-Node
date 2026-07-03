@@ -17,6 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   GODHEAD_ALGORITHMS, GODHEAD_SECTIONS, godheadBySection, godheadVerse, godheadToGameCards,
+  BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook,
 } from '../lib/godhead-study.js';
 import { AXES, scoreRound } from '../lib/eternal-algorithms-studies.js';
 import { withStudyDeck } from '../lib/games/generations.js';
@@ -88,5 +89,19 @@ describe('the game — the whole catalog deals on the same eight axes', () => {
     const def = withStudyDeck(null, godheadToGameCards());
     expect(def.decks.study).toHaveLength(GODHEAD_ALGORITHMS.length);
     expect(def.decks.life?.length).toBeGreaterThan(0);
+  });
+});
+
+describe('each book is its own masterpiece (Darrell 2026-07-03)', () => {
+  it('every book the catalog draws from carries its identity line', () => {
+    const missing = booksInCatalog().filter((b) => !BOOK_MASTERPIECES[b]);
+    expect(missing, `books with no masterpiece line: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('Proverbs carries the kings framing, and filtering by book returns its algorithms', () => {
+    expect(BOOK_MASTERPIECES.Proverbs).toMatch(/kings of The Eternal King/);
+    const provs = algorithmsForBook('Proverbs');
+    expect(provs.length).toBeGreaterThanOrEqual(4);
+    for (const a of provs) expect(a.refs.some((r) => r.startsWith('Proverbs'))).toBe(true);
   });
 });
