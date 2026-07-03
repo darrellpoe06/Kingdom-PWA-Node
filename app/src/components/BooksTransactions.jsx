@@ -20,6 +20,8 @@ import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
 import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
+import { compressImageFile } from '../lib/image.js';
+import { receiptShape, loadPending, addPending, removePending, suggestMatches } from '../lib/receipts.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -45,6 +47,114 @@ function TxHistory({ recordEvents, txId }) {
               : <span>{v.summary}</span>}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ReceiptModal (DR-0090) — snap or pick a receipt photo on a STILL screen
+// (overlay, never a scroll-jump). Two modes: attachTo set = attach straight to
+// that transaction; attachTo null = save to the pending pool ("snap now,
+// match later") where each waiting receipt shows its suggested bank-row
+// matches (amount + settlement-window date) for one-tap pairing.
+// ---------------------------------------------------------------------------
+function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending, onDeletePending, onClose }) {
+  const [src, setSrc] = useState('');
+  const [amount, setAmount] = useState(attachTo ? String(Math.abs(Number(attachTo.amount) || 0) || '') : '');
+  const [merchant, setMerchant] = useState('');
+  const [capturedAt, setCapturedAt] = useState(new Date().toISOString().slice(0, 10));
+  const [busy, setBusy] = useState('');
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const onPhoto = async (file) => {
+    if (!file) return;
+    if (!(file.type || '').startsWith('image/')) { setBusy(`"${file.name}" is not a photo.`); return; }
+    setBusy('Compressing…');
+    try { setSrc(await compressImageFile(file, 1280, 0.6)); setBusy(''); }
+    catch (e) { setBusy(`Could not read the photo: ${e.message || 'unknown error'}`); }
+  };
+
+  const buildReceipt = () => receiptShape({ src, amount, merchant, capturedAt });
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#1A1815]/60 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white border-2 border-[#1A1815] max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={attachTo ? 'Attach a receipt' : 'Receipts'}>
+        <div className="p-5 space-y-4" style={{ fontFamily: '"Fraunces", serif' }}>
+          <div className="flex items-baseline justify-between gap-2">
+            <div>
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Receipts</div>
+              <h3 className="text-lg text-[#1A1815] font-semibold">{attachTo ? `Attach to: ${attachTo.description}` : 'Snap a receipt'}</h3>
+              <p className="text-xs text-[#5A5751]">{attachTo ? 'The photo stores on this transaction and follows it to every device.' : 'No matching charge yet? Save it here — when the bank row lands, match it with one tap.'}</p>
+            </div>
+            <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">× Close</button>
+          </div>
+
+          <div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">1. The photo</div>
+            <input type="file" accept="image/*" capture="environment" onChange={(e) => onPhoto(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
+            {src && <img src={src} alt="Receipt preview" className="mt-2 max-h-48 border border-[#E8E4DC]" />}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" htmlFor="rcpt-amt">Total (optional)</label>
+              <input id="rcpt-amt" type="number" step="0.01" inputMode="decimal" className="w-full border border-[#E8E4DC] px-2 py-1.5 text-sm" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="48.59" />
+            </div>
+            <div>
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" htmlFor="rcpt-mer">Merchant (optional)</label>
+              <input id="rcpt-mer" className="w-full border border-[#E8E4DC] px-2 py-1.5 text-sm" value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder="Aspen Tap House" />
+            </div>
+            <div>
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" htmlFor="rcpt-date">Date</label>
+              <input id="rcpt-date" type="date" className="w-full border border-[#E8E4DC] px-2 py-1.5 text-sm" value={capturedAt} onChange={(e) => setCapturedAt(e.target.value)} />
+            </div>
+          </div>
+
+          {busy && <p className="text-xs text-[#B85838]" aria-live="polite">{busy}</p>}
+
+          {attachTo ? (
+            <button type="button" disabled={!src} onClick={() => { onAttach(attachTo, buildReceipt()); onClose(); }} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40">
+              {src ? 'Attach receipt to this transaction' : 'Add the photo first (step 1)'}
+            </button>
+          ) : (
+            <button type="button" disabled={!src} onClick={() => { const r = onSavePending(buildReceipt()); setBusy(r.skipped ? r.message : ''); if (!r.skipped) { setSrc(''); setMerchant(''); setAmount(''); } }} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40">
+              {src ? 'Save — match when the charge lands' : 'Add the photo first (step 1)'}
+            </button>
+          )}
+
+          {!attachTo && pending.length > 0 && (
+            <div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Waiting to match ({pending.length}) — on this device until paired</div>
+              <div className="space-y-2">
+                {pending.map((r) => {
+                  const matches = suggestMatches(r, transactions);
+                  return (
+                    <div key={r.id} className="border border-[#E8E4DC] p-2 flex gap-2">
+                      {r.src && <img src={r.src} alt={`Pending receipt${r.merchant ? ` from ${r.merchant}` : ''}`} className="h-16 border border-[#E8E4DC]" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-[#1A1815]">{r.merchant || 'Receipt'} · {r.amount != null ? fmt(-r.amount) : 'no total'} · {r.capturedAt}</div>
+                        {matches.length === 0 ? (
+                          <p className="text-[0.625rem] text-[#5A5751] italic">No matching charge in the ledger yet — it usually lands within a few days.</p>
+                        ) : matches.map((t) => (
+                          <button key={t.id} type="button" onClick={() => { onAttach(t, { ...r }); onDeletePending(r.id); }} className="block text-left text-[0.6875rem] text-[#5A6E3D] hover:text-[#1A1815] underline">
+                            Attach → {t.description} · {fmt(t.amount)} · {t.date}
+                          </button>
+                        ))}
+                        <button type="button" onClick={() => onDeletePending(r.id)} className="mt-0.5 text-[0.625rem] text-[#991B1B] hover:underline">Delete</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -144,6 +254,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const [transferContext, setTransferContext] = useState(null); // { targetAccountId, shortfall, occasion }
   const [transferAmount, setTransferAmount] = useState(0);
   const [transferSourceId, setTransferSourceId] = useState('');
+
+  // Receipts (DR-0090): the snap/attach modal + the per-device pending pool.
+  const [receiptOpen, setReceiptOpen] = useState(null);       // null | { attachTo: txn|null }
+  const [pendingReceipts, setPendingReceipts] = useState(() => loadPending());
+  const [receiptViewId, setReceiptViewId] = useState(null);   // txn id whose receipt image is expanded
 
   // v28+ CSV import state
   const [csvOpen, setCsvOpen] = useState(false);
@@ -724,7 +839,30 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 {t._status}
               </span>
             )}
+            {/* Receipt evidence (DR-0090): view the attached photo, or attach one. */}
+            {t.receipt && t.receipt.src ? (
+              <button type="button"
+                onClick={() => setReceiptViewId(receiptViewId === t.id ? null : t.id)}
+                className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                aria-expanded={receiptViewId === t.id}
+                title={`Receipt attached${t.receipt.merchant ? ` — ${t.receipt.merchant}` : ''} (${t.receipt.capturedAt || ''})`}>
+                {receiptViewId === t.id ? '▾ receipt' : '▸ receipt'}
+              </button>
+            ) : (
+              <button type="button"
+                onClick={() => setReceiptOpen({ attachTo: t })}
+                className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] hover:text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                title="Attach a receipt photo to this transaction">
+                +receipt
+              </button>
+            )}
           </div>
+          {receiptViewId === t.id && t.receipt && t.receipt.src && (
+            <div className="mt-2">
+              <img src={t.receipt.src} alt={`Receipt${t.receipt.merchant ? ` from ${t.receipt.merchant}` : ''} for ${t.description}`} className="max-h-64 border border-[#E8E4DC]" />
+              <button type="button" onClick={() => { if (confirm('Remove this receipt from the transaction?')) { updateTransaction(t.id, { receipt: null }); setReceiptViewId(null); } }} className="block mt-1 text-[0.625rem] text-[#991B1B] hover:underline">Remove receipt</button>
+            </div>
+          )}
           {/* Invoice rollup (migration 0036): one bank debit, several merchant
               invoices. Shows that the parts sum to the whole so the single
               ledger amount is never mistaken for triple-counting. */}
@@ -906,6 +1044,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setCsvOpen(true)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">📤 Import CSV</button>
+            <button type="button" onClick={() => setReceiptOpen({ attachTo: null })} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">+ Receipt{pendingReceipts.length ? ` (${pendingReceipts.length} waiting)` : ''}</button>
             <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
           </div>
         </div>
@@ -1274,6 +1413,18 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             </div>
           </div>
         </div>
+      )}
+
+      {receiptOpen && (
+        <ReceiptModal
+          attachTo={receiptOpen.attachTo}
+          transactions={data.transactions || []}
+          pending={pendingReceipts}
+          onAttach={(txn, receipt) => updateTransaction(txn.id, { receipt })}
+          onSavePending={(receipt) => { const r = addPending(receipt); if (r.added) setPendingReceipts(r.pending); return r; }}
+          onDeletePending={(id) => setPendingReceipts(removePending(id).pending)}
+          onClose={() => setReceiptOpen(null)}
+        />
       )}
 
       {transferContext && (() => {

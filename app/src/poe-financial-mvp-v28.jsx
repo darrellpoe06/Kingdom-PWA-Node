@@ -3850,6 +3850,7 @@ export default function PoeFinancialSystem() {
         if (updates.description !== undefined)    patch.description = updates.description;
         if (updates.category !== undefined)       patch.category = updates.category;
         if (updates.isTransfer !== undefined)     patch.is_transfer = !!updates.isTransfer;
+        if (updates.receipt !== undefined)        patch.receipt = updates.receipt;
         transactionsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[transactions-sync] update failed', e));
       }
     }
