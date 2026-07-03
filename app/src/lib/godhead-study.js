@@ -166,6 +166,21 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['meditation', 'word', 'prosperity', 'roots'],
   },
   {
+    // Darrell 2026-07-03: "our pain is in our epidemic and in our bloodline —
+    // epigenetics is the data I want to study — how we have been born in
+    // iniquities... Yahweh IS GOOD even when I'm not." Pairs with the
+    // therapeutic mission (Christina's practice) and the generational break
+    // point (gh-break-generational).
+    id: 'gh-shapen-iniquity', section: 'wisdom', name: 'Shapen in Iniquity → Truth in the Inward Parts',
+    refs: ['Psalms 51:5-6'],
+    condition: 'Born already carrying it — "shapen in iniquity" — the bloodline\'s pain arrives pre-installed, before a single choice was yours.',
+    consequence: 'Yet He desires TRUTH in the INWARD PARTS and makes you to know WISDOM in the hidden part — the rewrite happens exactly where the inheritance lives.',
+    threeD: 'Take the inherited data seriously: the pain in our epidemic and in our bloodline is real, measurable, and not your fault — AND it is addressable, which makes therapeutics holy work. Bring the hidden part to Him and to honest help; the inward parts are where He works.',
+    outcome: 'A bloodline\'s pre-installed pain met with truth in the exact place it was written — healing that goes as deep as the inheritance did.',
+    psyche: 'The science echoes the Psalm: inherited stress leaves marks on how the bloodline\'s data expresses (the field called epigenetics), and environment, care, and practice can change that expression. Born-in does not mean locked-in — the hidden part can learn wisdom.',
+    tags: ['iniquity', 'bloodline', 'healing', 'therapeutics', 'inward'],
+  },
+  {
     id: 'gh-delight-desires', section: 'wisdom', name: 'Delight → Desires',
     refs: ['Psalms 37:4'],
     condition: 'DELIGHT thyself in the LORD — He becomes the enjoyment, not the vending machine.',
