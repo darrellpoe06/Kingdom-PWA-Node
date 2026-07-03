@@ -482,6 +482,18 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['warfare', 'submission', 'resistance', 'nearness'],
   },
   {
+    // Darrell 2026-07-03: "YAHWEH got it — revenge and all... no thoughts
+    // until I do... We Eternal anyway... forgive..."
+    id: 'gh-vengeance-his', section: 'epistles', name: "Vengeance Is His (we're eternal anyway — forgive)",
+    refs: ['Romans 12:19-21'],
+    condition: 'Avenge NOT yourselves — give place unto wrath; feed the hungry enemy; be not overcome of evil.',
+    consequence: '"Vengeance is Mine; I will repay, saith the Lord" — the repaying is already assigned, at a higher court than yours; and good OVERCOMES evil.',
+    threeD: "Drop the case — Yahweh's got it, revenge and all, so spend no thoughts on it. We are eternal anyway: a grudge is a 3rd-dimensional expense an eternal being does not need to carry. Forgive, feed the enemy if he's hungry, and let the Judge keep His own docket.",
+    outcome: 'A free head and clean hands — the offense handed to a Court that cannot be bribed, and evil overcome by the good you did instead.',
+    psyche: 'Revenge planning is rumination with a scheduled relapse — it keeps the injury live. Transferring the case to a trusted higher justice is the one release that satisfies the fairness instinct without re-injuring you.',
+    tags: ['forgiveness', 'vengeance', 'release', 'eternal'],
+  },
+  {
     id: 'gh-humble-exalt', section: 'epistles', name: 'Humble Yourself Under His Hand → Exalted',
     refs: ['1 Peter 5:6'],
     condition: 'Humble yourselves under the MIGHTY HAND of God — the placement is voluntary.',
