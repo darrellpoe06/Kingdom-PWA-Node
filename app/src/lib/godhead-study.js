@@ -160,6 +160,45 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['speech', 'peace', 'conflict'],
   },
 
+  {
+    // Darrell 2026-07-03: the man-in-the-house wound — the law paid mothers to
+    // keep fathers out, and the father is priceless, an amazing asset to a
+    // family's future even at 10%. Yahweh's counter-pattern was already
+    // written: He Himself fathers the fatherless.
+    id: 'gh-father-fatherless', section: 'wisdom', name: 'A Father of the Fatherless (He sets the solitary in families)',
+    refs: ['Psalms 68:5-6'],
+    condition: 'The fatherless and the solitary exist — a wound the world manufactures (systems have literally paid fathers out of the house) and cannot heal.',
+    consequence: 'GOD in His holy habitation IS a father of the fatherless and a judge of the widows; He setteth the solitary IN FAMILIES.',
+    threeD: 'Where the earthly father was priced out, the Eternal Father steps in — and He works through a Body that adopts: the church as the family the system broke. A present father is a priceless asset to a family\'s future, even at 10 percent; and where he is absent, the Tribe closes the gap on purpose.',
+    outcome: 'No child in the house of God is actually fatherless — the solitary get placed in families, and the generational wound meets the Father who never leaves.',
+    psyche: 'Father-absence wounds attachment and identity; a stable fathering presence — natural or the Body standing in — is one of the strongest protective factors a child can have. Yahweh names Himself into exactly that role.',
+    tags: ['father', 'fatherless', 'family', 'adoption', 'community'],
+  },
+  {
+    // "we will See with our Hearts — subconsciousness now can See Yahweh's
+    // Heart and we are literally inside LOVE."
+    id: 'gh-inside-love', section: 'epistles', name: 'Dwell in Love → Dwell in God (literally inside LOVE)',
+    refs: ['1 John 4:16'],
+    condition: 'Believe the love God hath to us — and DWELL in love, as a residence, not a visit.',
+    consequence: 'God IS love; he that dwelleth in love dwelleth IN GOD, and God in him — the address is mutual.',
+    threeD: 'Cold-heartedness is what undermined paths, psychological war, and economies not built for your future produce. The counter-move is relocation: live inside LOVE and the heart re-warms, because you are literally inside Him.',
+    outcome: 'A warm heart in a cold system — seeing with the heart, because the heart now lives where Love lives.',
+    psyche: 'What surrounds you shapes you: a nervous system that dwells in hostility stays armored; one that dwells in secure love softens and can see again. Dwelling in God\'s love is the deepest version of a secure base.',
+    tags: ['love', 'dwelling', 'heart', 'warmth'],
+  },
+  {
+    // "a mother to those following The Way Of The Word Will Break
+    // Generational Curses."
+    id: 'gh-break-generational', section: 'prophets', name: 'The Son Who Sees and Turns (generational curses break)',
+    refs: ['Ezekiel 18:14', 'Ezekiel 18:20'],
+    condition: 'A son SEES all his father\'s sins — considers them — and does NOT do likewise; he follows The Way of the Word instead.',
+    consequence: 'The soul that sinneth, IT shall die — but the son shall NOT bear the iniquity of the father. The inherited pattern has no legal claim on the one who turned.',
+    threeD: 'Generational curses break at the person who SEES the pattern and refuses it — a mother or father raising children in The Way is running the break in real time. Name the family pattern out loud, take it to the Word, and end its run in your generation.',
+    outcome: 'A bloodline rerouted — what ran for generations stops at you, and what you plant runs forward instead.',
+    psyche: 'Intergenerational patterns transmit through modeling and unexamined normalcy; the documented break point is the one who consciously SEES the pattern and chooses different — exactly the mechanism Ezekiel names.',
+    tags: ['generations', 'curses', 'family', 'turning', 'the-way'],
+  },
+
   // ── THE PROPHETS ──────────────────────────────────────────────────────────
   {
     id: 'gh-tithe-windows', section: 'prophets', name: 'Prove Me in the Tithe (windows of Heaven)',
@@ -371,6 +410,19 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'A crown — and a faith with a fire-tested assay mark no one can dispute.',
     psyche: 'Tested strength is the only strength you can trust under load — and knowing the test is universal (everyone gets their turn) strips the isolation out of suffering.',
     tags: ['testing', 'crown', 'endurance', 'faith'],
+  },
+
+  {
+    // "the Tribe appreciation is shown each Sunday and Wednesday we congregate
+    // ... Forsake not the brethren — they need you and you may need them one day."
+    id: 'gh-assembling', section: 'epistles', name: 'Forsake Not the Assembling (the Tribe congregates)',
+    refs: ['Hebrews 10:24-25'],
+    condition: 'CONSIDER one another — and do NOT forsake the assembling of yourselves together, as the manner of some is.',
+    consequence: 'Provoked unto love and to good works, exhorting one another — and SO MUCH THE MORE as ye see the day approaching. The gathering compounds as the clock runs down.',
+    threeD: 'Sunday and Wednesday the Tribe congregates — that is the algorithm running, not a routine. They need you, and you may need them one day; the connection with the Body is where the love gets shown and the strength gets traded.',
+    outcome: 'A Body that holds — provoked to love, stocked with good works, and nobody standing alone when their day comes.',
+    psyche: 'Isolation corrodes conviction and health alike; regular embodied gathering is among the most protective rhythms a person can keep. The command and the psychology agree: do not skip the assembling.',
+    tags: ['assembly', 'church', 'body', 'brethren', 'tribe'],
   },
 
   // ── REVELATION ────────────────────────────────────────────────────────────
