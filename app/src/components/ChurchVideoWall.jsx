@@ -71,7 +71,7 @@ const SPEC = {
 // never in this public file. The dates/labels here are non-financial narrative.
 const TIMELINE = [
   { when: '2024', title: 'First estimate', body: 'A smaller 9.8 x 6.6 ft / 24-panel build was quoted. Later superseded by the current purchase.', tone: 'idle' },
-  { when: 'Jun 2026', title: 'Purchased', body: 'The full P2.97mm wall ordered from LED Nation USA; invoice forwarded 2026-06-08. Figures in the gated budget below.', tone: 'good' },
+  { when: 'Jun 2026', title: 'Purchased', body: 'The wall ordered from LED Nation USA (final panels measured P1.99mm on-site); invoice forwarded 2026-06-08. Figures in the gated budget below.', tone: 'good' },
   { when: 'Jun 2026', title: 'Delivered + staged', body: 'Hardware delivered and staged BEHIND THE STAGE CURTAIN.', tone: 'good' },
   { when: 'Jun 22, 2026', title: 'Installation started', body: 'On-site assembly began: ground-support / box-truss towers erected to mount and stack the wall; modular LED cabinet panels laid out for assembly; crew on site sizing the stage. In progress.', tone: 'good' },
   { when: 'Jun 29, 2026', title: 'Stacking + wiring', body: 'Confirmed-spec install + power + data runbook produced on site: 8 x 6 = 48 cabinets (P1.99mm, 640x480mm), 4,800 W peak across 6 power chains, 6 of 10 VX1000 data ports. Cabinets stacking; data + power daisy-chains being dressed.', tone: 'good' },
@@ -103,7 +103,7 @@ const INSTALL = {
 const OPPORTUNITIES = [
   'Full-brightness Scripture, lyrics, and sermon points in a lit room — projection can’t match fine-pitch LED for the congregation in the back rows.',
   'Live program output for the media-team broadcast course: the same wall feeds the in-room view and the stream graphics, so trainees learn on the real signal chain.',
-  'Carries The Word — Migdal: BG’s study notes, the passage, and the message title can present from the app straight to the wall during service.',
+  'Will carry The Word — Migdal: once the OBS/NDI bridge is commissioned, BG’s study notes, the passage, and the message title present from the app to the wall during service.',
   'A sovereign in-house display the church owns outright — no recurring projector lamps, no rental, content stays on church-controlled machines.',
   'Reusable for the Conference / Event Center: breakout rooms and main-service sessions can mirror to the wall when the sanctuary hosts the assembly.',
 ];
@@ -943,7 +943,7 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
         <div className={labelCls}>Connected to</div>
         <ul className="mt-2 space-y-1.5 text-[0.8125rem] text-[#1A1815]">
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>Media-team broadcast course</b> &mdash; trainees learn the real signal chain that drives this wall.</span></li>
-          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>The Word &mdash; Migdal</b> &mdash; BG&rsquo;s study notes and the passage present from the app to the wall during service.</span></li>
+          <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>The Word &mdash; Migdal</b> &mdash; BG&rsquo;s study notes and the passage will present from the app to the wall once the OBS/NDI bridge is commissioned (render route built; commissioning pending).</span></li>
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>Sovereign media pipeline (NDI / CUDA)</b> &mdash; this wall is the physical front end the NDI + CUDA encode/playback chain drives.</span></li>
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>COLG NAS build</b> &mdash; church-owned storage + playback the wall reads from; this CapEx record seeds the church-infrastructure accounting that gates the media-pipeline build.</span></li>
         </ul>

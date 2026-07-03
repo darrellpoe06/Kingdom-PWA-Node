@@ -33,7 +33,6 @@ import {
   landlordView, tenantView, rentSafetyNote,
 } from '../lib/tenant-portal.js';
 import {
-  loadChildCapabilities, configFromRows,
   loadTenancies, loadTenancyWorkflows, insertRow,
 } from '../lib/relationships-sync.js';
 // The setting palette lives with the guardian panel now (its one home); this
@@ -64,14 +63,20 @@ function Panel({ title, icon, children, note }) {
 // ---------------------------------------------------------------------------
 // Matrix panel — the live can/can't grid for every relationship + role.
 // ---------------------------------------------------------------------------
-function MatrixPanel({ childConfig }) {
+function MatrixPanel() {
   const [type, setType] = useState(RELATIONSHIP_TYPES.GUARDIAN_CHILD);
   const rel = relationshipByType[type];
-  const rows = useMemo(() => buildMatrix(childConfig), [childConfig]);
+  // The matrix previews the MODEL — the child-safe defaults and ceilings every
+  // role starts from. Per-child grants are set AND shown on the Family Roster
+  // (Center → Serve). The 2026-07-03 claims audit found the old live-config
+  // feed here FLATTENED settings across siblings (configFromRows ignores
+  // child_persona), so the preview showed a blend no real child actually has —
+  // the defaults are the honest thing this panel can claim.
+  const rows = useMemo(() => buildMatrix({}), []);
 
   return (
     <Panel title="What each relationship grants" icon="users"
-      note="Derived live from the permission model — this is the real rule each surface and the database enforce, not a description of one.">
+      note="Derived live from the permission model — the defaults and safety ceilings each role starts from. Per-child grants are made and shown on the Family Roster (Center → Serve).">
       <TabScroll>
         <div className="flex gap-2 mb-4">
           {RELATIONSHIPS.map((r) => (
@@ -252,23 +257,20 @@ function LandlordPanel({ tenancies, selected, onSelect, workflows, onAction, bus
 // ---------------------------------------------------------------------------
 export function Relationships({ isGovernor = false, currentUserId = null }) {
   const [tab, setTab] = useState('matrix');
-  const [childConfig, setChildConfig] = useState({});
   const [tenancies, setTenancies] = useState([]);
   const [selectedTenancy, setSelectedTenancy] = useState(null);
   const [workflows, setWorkflows] = useState({ maintenance: [], rent: [], notices: [], messages: [] });
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState('');
 
-  // Load real config (for the read-only matrix) + tenancies on mount (fail-soft).
-  // The guardian↔child INPUT surface (set capabilities + the approval queue)
-  // moved to its one home — the Family Roster in the Center's Serve faculty
-  // (DR-0095 consolidation; the hardcoded twin placeholder personas died with
-  // the move — the roster drives it with the REAL family_member_profiles rows).
+  // Load tenancies on mount (fail-soft). The guardian↔child INPUT surface
+  // (set capabilities + the approval queue) moved to its one home — the Family
+  // Roster in the Center's Serve faculty (DR-0095 consolidation; the hardcoded
+  // twin placeholder personas died with the move). The matrix here previews
+  // the model's DEFAULTS only — per-child live config is roster territory.
   useEffect(() => {
     let live = true;
     (async () => {
-      const caps = await loadChildCapabilities();
-      if (live && caps.ok) setChildConfig(configFromRows(caps.data));
       const tn = await loadTenancies();
       if (live && tn.ok) setTenancies(tn.data);
     })();
@@ -353,7 +355,7 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
 
       {flash ? <div className="mb-3 text-xs px-3 py-2 border border-[#5A6E3D] text-[#1A1815] bg-[#F2F4EC]">{flash}</div> : null}
 
-      {tab === 'matrix' && <MatrixPanel childConfig={childConfig} />}
+      {tab === 'matrix' && <MatrixPanel />}
       {tab === 'guardian' && (
         <Panel title="Guardian & Child — moved to its one home" icon="users"
           note="One place for the family, not four similar ones (DR-0095).">

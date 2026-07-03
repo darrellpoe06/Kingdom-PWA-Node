@@ -44,6 +44,7 @@ export const DEVICE_TYPE_IDS = DEVICE_TYPES.map((t) => t.id);
 // Operational status. `tone` is a KpiDot tone (idle/good/attention/problem).
 export const DEVICE_STATUSES = [
   { id: 'online',      label: 'Online',      tone: 'good' },
+  { id: 'assumed',     label: 'Assumed on',  tone: 'idle' }, // seed baseline: believed on, never measured (no heartbeat yet)
   { id: 'standby',     label: 'Standby',     tone: 'idle' },
   { id: 'offline',     label: 'Offline',     tone: 'idle' },
   { id: 'maintenance', label: 'Maintenance', tone: 'attention' },
@@ -227,7 +228,7 @@ export const SEED_DEVICES = [
     deviceType: 'nas',
     makeModel: 'Synology DS1621xs',
     location: 'TO CONFIRM (home / church rack)',
-    status: 'online',
+    status: 'assumed',
     steward: 'Darrell',
     ipAddress: '192.168.1.26',
     specs: {
@@ -247,7 +248,7 @@ export const SEED_DEVICES = [
     deviceType: 'gpu-node',
     makeModel: 'RTX 4070 (12 GB) host — TO CONFIRM box make/model',
     location: 'Church (sanctuary AV / media)',
-    status: 'online',
+    status: 'assumed',
     steward: 'COLG media team',
     specs: {
       gpu: 'NVIDIA RTX 4070, 12 GB VRAM',
@@ -284,7 +285,7 @@ export const SEED_DEVICES = [
     deviceType: 'led-processor',
     makeModel: 'NovaStar VX1000 all-in-one controller',
     location: 'Sanctuary AV booth',
-    status: 'online',
+    status: 'assumed',
     steward: 'COLG media team',
     specs: {
       capacity: '6.5 Mpx (10240x8192 max)',
@@ -323,7 +324,7 @@ export const SEED_DEVICES = [
     deviceType: 'audio-console',
     makeModel: 'Yamaha QL (QL1 vs QL5 TO CONFIRM)',
     location: 'Sanctuary FOH production desk',
-    status: 'online',
+    status: 'assumed',
     steward: 'COLG sound team',
     specs: { control: 'Software-controllable; per-voice EQ-assist lane (staged: assistive -> supervised -> autonomous, three-brakes).' },
     capabilities: ['audio-mix'],
@@ -338,7 +339,7 @@ export const SEED_DEVICES = [
     deviceType: 'network',
     makeModel: 'TO CONFIRM (switches, Cat6 runs, router, Tailscale node)',
     location: 'Church',
-    status: 'online',
+    status: 'assumed',
     steward: 'COLG media team',
     specs: { note: 'Cat6 runs feed the LED receiving cards; Tailscale overlay links home<->church. Switch make/model + topology to document.' },
     capabilities: ['networking'],
@@ -353,7 +354,7 @@ export const SEED_DEVICES = [
     deviceType: 'camera',
     makeModel: 'TO CONFIRM (camera feeds + switcher + streaming PC)',
     location: 'Sanctuary',
-    status: 'online',
+    status: 'assumed',
     steward: 'COLG media team',
     specs: { note: 'Booth = switcher + camera feeds + streaming PC + 2 side screens (from Presenter research). Models to confirm.' },
     capabilities: ['capture'],

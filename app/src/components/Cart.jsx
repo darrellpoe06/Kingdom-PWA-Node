@@ -8,6 +8,17 @@ const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Ma
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
 
 const SUB_CATEGORIES = ['software', 'streaming', 'music', 'news', 'business', 'productivity', 'fitness', 'family', 'education', 'cloud-storage', 'other'];
+
+// The true monthly cost of a subscription: the entered amount divided by its
+// billing cycle. The cycle options always PROMISED "(÷3 for monthly)" /
+// "(÷12 for monthly)" but no division existed anywhere — an annual charge was
+// counted at full value every month, overstating the headline "monthly bleed"
+// by up to 12x (caught by the 2026-07-03 claims audit). Exported for tests.
+export const CYCLE_MONTHS = { monthly: 1, quarterly: 3, annual: 12 };
+export function monthlyOf(s) {
+  const amount = Number(s && s.monthly) || 0;
+  return amount / (CYCLE_MONTHS[(s && s.billingCycle) || 'monthly'] || 1);
+}
 const STATUS_OPTIONS = [
   { key: 'keep',      label: '✓ Keep',      desc: 'Worth it · necessary' },
   { key: 'review',    label: '⚠ Review',    desc: 'Not sure · check usage' },
@@ -56,9 +67,9 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
 
   const filtered = subscriptions.filter(s => filterStatus === 'all' || s.status === filterStatus);
   const active = subscriptions.filter(s => s.status !== 'cancelled');
-  const totalMonthly = active.reduce((sum, s) => sum + (s.monthly || 0), 0);
-  const reviewTotal = subscriptions.filter(s => s.status === 'review').reduce((sum, s) => sum + (s.monthly || 0), 0);
-  const cancelTotal = subscriptions.filter(s => s.status === 'cancel').reduce((sum, s) => sum + (s.monthly || 0), 0);
+  const totalMonthly = active.reduce((sum, s) => sum + monthlyOf(s), 0);
+  const reviewTotal = subscriptions.filter(s => s.status === 'review').reduce((sum, s) => sum + monthlyOf(s), 0);
+  const cancelTotal = subscriptions.filter(s => s.status === 'cancel').reduce((sum, s) => sum + monthlyOf(s), 0);
   const potentialSavings = reviewTotal + cancelTotal;
   const annualSpend = totalMonthly * 12;
   const potentialAnnualSavings = potentialSavings * 12;
@@ -114,7 +125,7 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
             <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Name (e.g., Netflix, Spotify, QuickBooks, Adobe)" value={newSub.name} onChange={e => setNewSub({...newSub, name: e.target.value})} />
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly cost</label>
+                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cost per billing cycle</label>
                 <input type="number" min="0" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="0.00" value={newSub.monthly} onChange={e => setNewSub({...newSub, monthly: e.target.value})} />
               </div>
               <div>
@@ -163,7 +174,7 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
               No subscriptions tracked yet. Start with the obvious ones — Netflix, Spotify, software, gym, news, cloud storage. Add them as you find them in bank statements. The audit becomes valuable when you see them all together.
             </p>
             <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-              The average American family pays $273/mo across 12 subscriptions according to recent surveys — and 84% underestimate by 50%. The first audit is always eye-opening.
+              Most families are surprised by their own total the first time they add everything up — the background charges are easy to forget one at a time. The first audit is always eye-opening.
             </p>
           </div>
         )}
@@ -181,8 +192,8 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(s.monthly)}<span className="text-xs text-[#5A5751]">/mo</span></div>
-                    <div className="text-[10px] text-[#5A5751]">{fmt((s.monthly || 0) * 12)}/yr</div>
+                    <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(monthlyOf(s))}<span className="text-xs text-[#5A5751]">/mo</span></div>
+                    <div className="text-[10px] text-[#5A5751]">{fmt(monthlyOf(s) * 12)}/yr{s.billingCycle === 'quarterly' || s.billingCycle === 'annual' ? ` · ${fmt(s.monthly)} billed ${s.billingCycle === 'quarterly' ? 'quarterly' : 'annually'}` : ''}</div>
                   </div>
                 </div>
                 <div className="flex gap-1 mt-2 flex-wrap">

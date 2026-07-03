@@ -81,6 +81,12 @@ describe('errorJournalSummary — the board roll-up', () => {
       .toMatchObject({ status: 'good', label: 'None in 24h', total: 1 });
     expect(errorJournalSummary([], NOW)).toMatchObject({ total: 0, label: 'None recorded' });
   });
+  it('an error STORM in 24h reads red, not amber (red must be reachable — 2026-07-03 audit)', () => {
+    const storm = [{ at: '2026-07-03T11:30:00Z', source: 'surface:Voice', message: 'boom', count: 12 }];
+    expect(errorJournalSummary(storm, NOW).status).toBe('problem');
+    const few = [{ at: '2026-07-03T11:30:00Z', source: 'surface:Voice', message: 'boom', count: 2 }];
+    expect(errorJournalSummary(few, NOW).status).toBe('attention');
+  });
 });
 
 describe('installGlobalErrorCapture — window + promise wiring', () => {

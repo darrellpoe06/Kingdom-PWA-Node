@@ -190,7 +190,7 @@ export default function DeviceInventory() {
             <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 ['Devices', summary.total],
-                ['Online', summary.online],
+                ['Online (steward-set)', summary.online],
                 ['Compute nodes', summary.computeNodes],
                 ['Need confirmation', summary.smeNeeded],
               ].map(([k, v]) => (

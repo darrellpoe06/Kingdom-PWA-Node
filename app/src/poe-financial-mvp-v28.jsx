@@ -13,6 +13,10 @@ import Calendar from './components/Calendar.jsx';
 import BooksAccounts from './components/BooksAccounts.jsx';
 import { relativeWhen, REMINDER_OPTIONS } from './lib/calendar-shared.js';
 import { fmt, fmtCompact, monthLabel } from './lib/format.js';
+import { recordError } from './lib/error-journal.js';
+// Sync failures must be SEEN: console for diagnosis + the error journal for the
+// steward board (a 'saved' row that never reached the cloud is a trust break).
+const syncWarn = (label, e) => { console.warn(label, e); try { recordError({ source: 'sync', kind: 'runtime', message: `${label}: ${(e && e.message) || e}` }); } catch (_) { /* watcher never throws */ } };
 import {
   traceNetCashFlow,
   traceCollectionRate,
@@ -2437,7 +2441,7 @@ export default function PoeFinancialSystem() {
         if (p.debtSnowballExtra != null) setDebtSnowballExtra(p.debtSnowballExtra);
         if (p.theme) setTheme(p.theme);
       } catch (e) {
-        console.warn('[snapshot-sync] pull failed', e);
+        syncWarn('[snapshot-sync] pull failed', e);
       }
     })();
     return () => { cancelled = true; };
@@ -2737,7 +2741,7 @@ export default function PoeFinancialSystem() {
                 try { localStorage.setItem('poe-snapshot-marker', pushedAt); } catch (_) { /* non-fatal */ }
               }
             })
-            .catch((e) => console.warn('[snapshot-sync] push failed', e));
+            .catch((e) => syncWarn('[snapshot-sync] push failed', e));
         }
       } catch (e) {
         console.error('Storage failed', e);
@@ -2775,7 +2779,7 @@ export default function PoeFinancialSystem() {
       try {
         await ensureTenantMembership();
       } catch (e) {
-        console.warn('[auth] tenant join failed', e);
+        syncWarn('[auth] tenant join failed', e);
         return;
       }
       // Access-governance heartbeat: this session reports the build it runs +
@@ -2819,7 +2823,7 @@ export default function PoeFinancialSystem() {
             });
           }
         } catch (e) {
-          console.warn('[auth] entities initial sync failed', e);
+          syncWarn('[auth] entities initial sync failed', e);
         }
         unsubscribeEntities = entitiesSync.subscribe((items) => {
           setData(d => {
@@ -3009,7 +3013,7 @@ export default function PoeFinancialSystem() {
           });
         }
       } catch (e) {
-        console.warn('[rentals-sync] initial sync failed', e);
+        syncWarn('[rentals-sync] initial sync failed', e);
       }
       if (cancelled) return;
       cleanups.push(rentalsSync.subscribe((items) => {
@@ -3118,7 +3122,7 @@ export default function PoeFinancialSystem() {
         if (res && res.remoteId) {
           setData(d => ({ ...d, incidents: (d.incidents || []).map(i => i.id === id ? { ...i, remoteUuid: res.remoteId } : i) }));
         }
-      }).catch(e => console.warn('[incidents-sync] upload failed', e));
+      }).catch(e => syncWarn('[incidents-sync] upload failed', e));
     }
     return id;
   };
@@ -3195,7 +3199,7 @@ export default function PoeFinancialSystem() {
       if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
         const updated = next.find(i => i.id === id);
         if (updated && updated.remoteUuid) {
-          incidentsSync.updateRow(updated.remoteUuid, incidentColumns(updated)).catch(e => console.warn('[incidents-sync] update failed', e));
+          incidentsSync.updateRow(updated.remoteUuid, incidentColumns(updated)).catch(e => syncWarn('[incidents-sync] update failed', e));
         }
       }
       return { ...d, incidents: next };
@@ -3265,7 +3269,7 @@ export default function PoeFinancialSystem() {
             setData(d => ({ ...d, projects: (d.projects || []).map(p => (p.id === localId ? { ...p, remoteUuid: res.remoteId } : p)) }));
           }
         })
-        .catch(e => console.warn('[projects-sync] add upload failed', e));
+        .catch(e => syncWarn('[projects-sync] add upload failed', e));
     }
   };
   const updateProject = (id, updates) => setData(d => {
@@ -3313,7 +3317,7 @@ export default function PoeFinancialSystem() {
         if (updates.conversationLog !== undefined) patch.conversation_log = updates.conversationLog;
         if (updates.contractorIds !== undefined) patch.contractor_ids = updates.contractorIds;
         if (Object.keys(patch).length > 0) {
-          projectsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[projects-sync] project update failed', e));
+          projectsSync.updateRow(updated.remoteUuid, patch).catch(e => syncWarn('[projects-sync] project update failed', e));
         }
       }
     }
@@ -3323,7 +3327,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.projects || []).find(p => p.id === id);
       if (local && local.remoteUuid) {
-        projectsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[projects-sync] delete failed', e));
+        projectsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[projects-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, projects: (d.projects || []).filter(p => p.id !== id) }));
@@ -3345,7 +3349,7 @@ export default function PoeFinancialSystem() {
             setData(d => ({ ...d, discussions: (d.discussions || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
           }
         })
-        .catch(e => console.warn('[discussions-sync] add upload failed', e));
+        .catch(e => syncWarn('[discussions-sync] add upload failed', e));
     }
   };
   const updateDiscussion = (id, updates) => setData(d => {
@@ -3358,7 +3362,7 @@ export default function PoeFinancialSystem() {
           if (updates[localKey] !== undefined) patch[column] = updates[localKey];
         }
         if (Object.keys(patch).length > 0) {
-          discussionsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[discussions-sync] update failed', e));
+          discussionsSync.updateRow(updated.remoteUuid, patch).catch(e => syncWarn('[discussions-sync] update failed', e));
         }
       }
     }
@@ -3368,7 +3372,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.discussions || []).find(x => x.id === id);
       if (local && local.remoteUuid) {
-        discussionsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[discussions-sync] delete failed', e));
+        discussionsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[discussions-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, discussions: (d.discussions || []).filter(x => x.id !== id) }));
@@ -3391,7 +3395,7 @@ export default function PoeFinancialSystem() {
             setData(d => ({ ...d, concerns: (d.concerns || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
           }
         })
-        .catch(e => console.warn('[concerns-sync] add upload failed', e));
+        .catch(e => syncWarn('[concerns-sync] add upload failed', e));
     }
   };
   const updateConcern = (id, updates) => setData(d => {
@@ -3414,7 +3418,7 @@ export default function PoeFinancialSystem() {
               setData(dd => ({ ...dd, concerns: (dd.concerns || []).map(x => (x.id === id ? { ...x, remoteUuid: res.remoteId } : x)) }));
             }
           })
-          .catch(e => console.warn('[concerns-sync] seed-promote upload failed', e));
+          .catch(e => syncWarn('[concerns-sync] seed-promote upload failed', e));
       }
       return { ...d, concerns: [...(d.concerns || []), promoted] };
     }
@@ -3427,7 +3431,7 @@ export default function PoeFinancialSystem() {
           if (updates[localKey] !== undefined) patch[column] = updates[localKey];
         }
         if (Object.keys(patch).length > 0) {
-          concernsSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[concerns-sync] update failed', e));
+          concernsSync.updateRow(updated.remoteUuid, patch).catch(e => syncWarn('[concerns-sync] update failed', e));
         }
       }
     }
@@ -3437,7 +3441,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.concerns || []).find(x => x.id === id);
       if (local && local.remoteUuid) {
-        concernsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[concerns-sync] delete failed', e));
+        concernsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[concerns-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, concerns: (d.concerns || []).filter(x => x.id !== id) }));
@@ -3459,7 +3463,7 @@ export default function PoeFinancialSystem() {
             setData(d => ({ ...d, workspaces: (d.workspaces || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
           }
         })
-        .catch(e => console.warn('[workspaces-sync] add upload failed', e));
+        .catch(e => syncWarn('[workspaces-sync] add upload failed', e));
     }
     return localId;
   };
@@ -3474,7 +3478,7 @@ export default function PoeFinancialSystem() {
           if (updates[localKey] !== undefined) patch[column] = updates[localKey];
         }
         if (Object.keys(patch).length > 0) {
-          workspacesSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[workspaces-sync] update failed', e));
+          workspacesSync.updateRow(updated.remoteUuid, patch).catch(e => syncWarn('[workspaces-sync] update failed', e));
         }
       }
     }
@@ -3484,7 +3488,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.workspaces || []).find(x => x.id === id);
       if (local && local.remoteUuid) {
-        workspacesSync.deleteRow(local.remoteUuid).catch(e => console.warn('[workspaces-sync] delete failed', e));
+        workspacesSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[workspaces-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, workspaces: (d.workspaces || []).filter(x => x.id !== id) }));
@@ -3507,7 +3511,7 @@ export default function PoeFinancialSystem() {
     });
     setData(d => ({ ...d, recordEvents: [...(d.recordEvents || []), ev] }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      recordEventsSync.upload(ev).catch(e => console.warn('[record-events-sync] upload failed', e));
+      recordEventsSync.upload(ev).catch(e => syncWarn('[record-events-sync] upload failed', e));
     }
     return ev;
   };
@@ -3524,7 +3528,7 @@ export default function PoeFinancialSystem() {
             setData(d => ({ ...d, inventoryItems: (d.inventoryItems || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
           }
         })
-        .catch(e => console.warn('[inventory-items-sync] add upload failed', e));
+        .catch(e => syncWarn('[inventory-items-sync] add upload failed', e));
     }
     recordHistoryEvent({ recordKind: 'inventory_item', recordId: localId, action: 'create', after: seeded, summary: `Item created: ${seeded.name}` });
     return localId;
@@ -3542,7 +3546,7 @@ export default function PoeFinancialSystem() {
           if (updates[localKey] !== undefined) patch[column] = updates[localKey];
         }
         if (Object.keys(patch).length > 0) {
-          inventoryItemsSync.updateRow(after.remoteUuid, patch).catch(e => console.warn('[inventory-items-sync] update failed', e));
+          inventoryItemsSync.updateRow(after.remoteUuid, patch).catch(e => syncWarn('[inventory-items-sync] update failed', e));
         }
       }
     }
@@ -3574,7 +3578,7 @@ export default function PoeFinancialSystem() {
               setData(d => ({ ...d, inventoryMovements: (d.inventoryMovements || []).map(x => (x.id === mv.id ? { ...x, remoteUuid: res.remoteId } : x)) }));
             }
           })
-          .catch(e => console.warn('[inventory-movements-sync] upload failed', e));
+          .catch(e => syncWarn('[inventory-movements-sync] upload failed', e));
       }
     }
     return stamped.map(m => m.id);
@@ -3612,7 +3616,7 @@ export default function PoeFinancialSystem() {
             setData(d => ({ ...d, recipes: (d.recipes || []).map(x => (x.id === localId ? { ...x, remoteUuid: res.remoteId } : x)) }));
           }
         })
-        .catch(e => console.warn('[recipes-sync] add upload failed', e));
+        .catch(e => syncWarn('[recipes-sync] add upload failed', e));
     }
     return localId;
   };
@@ -3627,7 +3631,7 @@ export default function PoeFinancialSystem() {
           if (updates[localKey] !== undefined) patch[column] = updates[localKey];
         }
         if (Object.keys(patch).length > 0) {
-          recipesSync.updateRow(updated.remoteUuid, patch).catch(e => console.warn('[recipes-sync] update failed', e));
+          recipesSync.updateRow(updated.remoteUuid, patch).catch(e => syncWarn('[recipes-sync] update failed', e));
         }
       }
     }
@@ -3637,7 +3641,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.recipes || []).find(x => x.id === id);
       if (local && local.remoteUuid) {
-        recipesSync.deleteRow(local.remoteUuid).catch(e => console.warn('[recipes-sync] delete failed', e));
+        recipesSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[recipes-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, recipes: (d.recipes || []).filter(x => x.id !== id) }));
@@ -3668,7 +3672,7 @@ export default function PoeFinancialSystem() {
         if (res && res.remoteId) {
           setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).map(c => c.id === seeded.id ? { ...c, remoteUuid: res.remoteId } : c) }));
         }
-      }).catch(e => console.warn('[contractors-sync] upload failed', e));
+      }).catch(e => syncWarn('[contractors-sync] upload failed', e));
     }
   };
   const updateContractor = (id, updates) => {
@@ -3678,7 +3682,7 @@ export default function PoeFinancialSystem() {
       if (authSession && d.numericSyncVerifiedAt && !isAnyDemoMode) {
         const updated = next.find(c => c.id === id);
         if (updated && updated.remoteUuid) {
-          contractorsSync.updateRow(updated.remoteUuid, contractorColumns(updated)).catch(e => console.warn('[contractors-sync] update failed', e));
+          contractorsSync.updateRow(updated.remoteUuid, contractorColumns(updated)).catch(e => syncWarn('[contractors-sync] update failed', e));
         }
       }
       return { ...d, contractors1099: next };
@@ -3688,7 +3692,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const current = (data.contractors1099 || []).find(c => c.id === id);
       if (current && current.remoteUuid) {
-        contractorsSync.deleteRow(current.remoteUuid).catch(e => console.warn('[contractors-sync] delete failed', e));
+        contractorsSync.deleteRow(current.remoteUuid).catch(e => syncWarn('[contractors-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, contractors1099: (d.contractors1099 || []).filter(c => c.id !== id) }));
@@ -3705,7 +3709,7 @@ export default function PoeFinancialSystem() {
       if (updates.name !== undefined) patch.display_name = updates.name;
       if (updates.type !== undefined) patch.entity_type = updates.type;
       if (updates.notes !== undefined) patch.notes = updates.notes;
-      entitiesSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[entities-sync] update failed', e));
+      entitiesSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[entities-sync] update failed', e));
     }
   };
   const deleteSubscription = (id) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).filter(s => s.id !== id) }));
@@ -3757,7 +3761,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.incidents || []).find(i => i.id === id);
       if (local && local.remoteUuid) {
-        incidentsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[incidents-sync] delete failed', e));
+        incidentsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[incidents-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, incidents: (d.incidents || []).filter(i => i.id !== id) }));
@@ -3773,7 +3777,7 @@ export default function PoeFinancialSystem() {
       // realtime refetch backfills it). Matches the incidents pattern.
       accountsSync.upload(seeded).then((res) => {
         if (res && res.remoteId) setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === seeded.id ? { ...a, remoteUuid: res.remoteId } : a) }));
-      }).catch(e => console.warn('[accounts-sync] upload failed', e));
+      }).catch(e => syncWarn('[accounts-sync] upload failed', e));
     }
   };
   // 2026-05-24 — Move-to-Legal toggle: flips inLegal on an account, which
@@ -3799,7 +3803,7 @@ export default function PoeFinancialSystem() {
         if (updates.inLegal !== undefined)     patch.in_legal = !!updates.inLegal;
         if (updates.isPrimary !== undefined)   patch.is_primary = !!updates.isPrimary;
         if (updates.entityId !== undefined)    patch.entity_slug = updates.entityId;
-        accountsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[accounts-sync] update failed', e));
+        accountsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[accounts-sync] update failed', e));
       }
     }
   };
@@ -3807,7 +3811,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.accounts || []).find(a => a.id === id);
       if (local && local.remoteUuid) {
-        accountsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[accounts-sync] delete failed', e));
+        accountsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[accounts-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, accounts: (d.accounts || []).filter(a => a.id !== id) }));
@@ -3820,7 +3824,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       transactionsSync.upload(seeded).then((res) => {
         if (res && res.remoteId) setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === seeded.id ? { ...t, remoteUuid: res.remoteId } : t) }));
-      }).catch(e => console.warn('[transactions-sync] upload failed', e));
+      }).catch(e => syncWarn('[transactions-sync] upload failed', e));
     }
   };
   // Verified-ledger sync (DR-0083) — INACTIVE unless VITE_VERIFIED_LEDGER_URL is set (armed). Pulls the sovereign NAS verified ledger into the durable cloud ledger on sign-in: idempotent (FITID), fail-safe (unreachable=no-op), authenticated write (correct instance/RLS). The balance always derives from the durable ledger, never a live fetch.
@@ -3851,7 +3855,7 @@ export default function PoeFinancialSystem() {
         if (updates.category !== undefined)       patch.category = updates.category;
         if (updates.isTransfer !== undefined)     patch.is_transfer = !!updates.isTransfer;
         if (updates.receipt !== undefined)        patch.receipt = updates.receipt;
-        transactionsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[transactions-sync] update failed', e));
+        transactionsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[transactions-sync] update failed', e));
       }
     }
     if (before && after) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'update', before, after });
@@ -3872,7 +3876,7 @@ export default function PoeFinancialSystem() {
     }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       for (const t of changed) {
-        if (t.remoteUuid) transactionsSync.updateRow(t.remoteUuid, { category }).catch(e => console.warn('[transactions-sync] recategorize failed', e));
+        if (t.remoteUuid) transactionsSync.updateRow(t.remoteUuid, { category }).catch(e => syncWarn('[transactions-sync] recategorize failed', e));
       }
     }
     for (const t of changed) {
@@ -3885,7 +3889,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.transactions || []).find(t => t.id === id);
       if (local && local.remoteUuid) {
-        transactionsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[transactions-sync] delete failed', e));
+        transactionsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[transactions-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
@@ -3912,7 +3916,7 @@ export default function PoeFinancialSystem() {
         if (res && res.remoteId) {
           setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === seeded.id ? { ...r, remoteUuid: res.remoteId } : r) } }));
         }
-      }).catch(e => console.warn('[rentals-sync] upload failed', e));
+      }).catch(e => syncWarn('[rentals-sync] upload failed', e));
     }
   };
   const updateRental = (id, updates) => {
@@ -3945,7 +3949,7 @@ export default function PoeFinancialSystem() {
         // Device-local edits (rooms, equipment, logs, lease/tenant/market
         // sub-objects) produce an empty patch — skip the network round-trip.
         if (Object.keys(patch).length) {
-          rentalsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[rentals-sync] update failed', e));
+          rentalsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[rentals-sync] update failed', e));
         }
       }
     }
@@ -3954,7 +3958,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
       if (local && local.remoteUuid) {
-        rentalsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[rentals-sync] delete failed', e));
+        rentalsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[rentals-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).filter(r => r.id !== id) } }));
@@ -3972,7 +3976,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       inquiriesSync.upload(seeded).then((res) => {
         if (res && res.remoteId) setData(d => ({ ...d, inquiries: (d.inquiries || []).map(q => q.id === seeded.id ? { ...q, remoteUuid: res.remoteId } : q) }));
-      }).catch(e => console.warn('[inquiries-sync] upload failed', e));
+      }).catch(e => syncWarn('[inquiries-sync] upload failed', e));
     }
   };
   // v28+ Session C: checkout intent logging
@@ -4005,7 +4009,7 @@ export default function PoeFinancialSystem() {
           patch.status_history = nextHistory;
         }
         if (updates.conversationLog !== undefined)   patch.conversation_log   = updates.conversationLog;
-        inquiriesSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[inquiries-sync] update failed', e));
+        inquiriesSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[inquiries-sync] update failed', e));
       }
     }
   };
@@ -4013,7 +4017,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inquiries || []).find(i => i.id === id);
       if (local && local.remoteUuid) {
-        inquiriesSync.deleteRow(local.remoteUuid).catch(e => console.warn('[inquiries-sync] delete failed', e));
+        inquiriesSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[inquiries-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, inquiries: (d.inquiries || []).filter(i => i.id !== id) }));
@@ -4025,7 +4029,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       practiceLeadsSync.upload(lead).then((res) => {
         if (res && res.remoteId) setData(d => ({ ...d, practiceLeads: (d.practiceLeads || []).map(q => q.id === lead.id ? { ...q, remoteUuid: res.remoteId } : q) }));
-      }).catch(e => console.warn('[practice-leads-sync] upload failed', e));
+      }).catch(e => syncWarn('[practice-leads-sync] upload failed', e));
     }
   };
   const updateLead = (id, updates) => {
@@ -4037,7 +4041,7 @@ export default function PoeFinancialSystem() {
         for (const [localKey, column] of Object.entries(LEAD_COLUMN_OF)) {
           if (updates[localKey] !== undefined) patch[column] = updates[localKey];
         }
-        if (Object.keys(patch).length) practiceLeadsSync.updateRow(local.remoteUuid, patch).catch(e => console.warn('[practice-leads-sync] update failed', e));
+        if (Object.keys(patch).length) practiceLeadsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[practice-leads-sync] update failed', e));
       }
     }
   };
@@ -4045,7 +4049,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.practiceLeads || []).find(l => l.id === id);
       if (local && local.remoteUuid) {
-        practiceLeadsSync.deleteRow(local.remoteUuid).catch(e => console.warn('[practice-leads-sync] delete failed', e));
+        practiceLeadsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[practice-leads-sync] delete failed', e));
       }
     }
     setData(d => ({ ...d, practiceLeads: (d.practiceLeads || []).filter(l => l.id !== id) }));
@@ -5348,7 +5352,7 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <BigPictureDashboard data={data} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} />}
+        {view === 'overview' && <SectionBoundary name="Overview"><BigPictureDashboard data={data} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')}>
           {/* Router-level backstop (2026-06-25): every Books sub-tab degrades to a
@@ -5376,7 +5380,7 @@ html{scroll-padding-bottom:280px}
           </SectionBoundary>
           </PrivateGate>
         )}
-        {view === 'inbound' && <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />}
+        {view === 'inbound' && <SectionBoundary name="Inbound"><Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} /></SectionBoundary>}
         {view === 'rentals' && (() => {
           // Real Estate: Foundation tier = READ-ONLY PREVIEW of one seed property.
           // PoeTech+ and above = full editor over the user's actual rentals.
@@ -5419,7 +5423,7 @@ html{scroll-padding-bottom:280px}
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && churchView === 'home' && <Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
+        {view === 'church' && churchView === 'home' && <SectionBoundary name="Church"><Church church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} /></SectionBoundary>}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
         {/* Order of Service: ONE master program per Sunday; the component derives
@@ -5909,14 +5913,14 @@ html{scroll-padding-bottom:280px}
             </div>
           ))}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
-          ? <ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} transactions={data.transactions || []} debts={data.debts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
+          ? <SectionBoundary name="Projects"><ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} transactions={data.transactions || []} debts={data.debts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
               loopData={data} loopDecisions={data.loopDecisions || {}} onLoopDecision={onLoopDecision}
               discussions={data.discussions || []} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion}
               concerns={data.concerns || []} feedback={[...(data.feedback || []), ...remoteFeedback]} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern}
               financialDocAt={(() => { const ms = latestFinancialDocMs(ingestData); return ms ? new Date(ms).toISOString() : null; })()}
               onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
-            />
+            /></SectionBoundary>
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
         {view === 'practice' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.practice)

@@ -88,6 +88,11 @@ export function clearErrorJournal(win) {
 // Roll-up for the Quality & Throughput board. `total` counts occurrences
 // (dedupe counts included), `recent` counts occurrences in the last 24h of
 // `nowMs` — the "is it happening NOW" signal that drives the status dot.
+// A few recent errors read amber; a STORM (>= RECENT_PROBLEM_THRESHOLD in
+// 24h) reads red — the 2026-07-03 claims audit found red was unreachable,
+// which made an error storm indistinguishable from one hiccup.
+export const RECENT_PROBLEM_THRESHOLD = 10;
+
 export function errorJournalSummary(entries, nowMs) {
   const list = Array.isArray(entries) ? entries : [];
   const now = Number.isFinite(nowMs) ? nowMs : Date.now();
@@ -100,7 +105,7 @@ export function errorJournalSummary(entries, nowMs) {
     if (Number.isFinite(t) && now - t < 24 * 60 * 60 * 1000) recent += n;
   }
   const last = list[0] || null;
-  const status = recent > 0 ? 'attention' : total > 0 ? 'good' : 'good';
+  const status = recent >= RECENT_PROBLEM_THRESHOLD ? 'problem' : recent > 0 ? 'attention' : 'good';
   const label = recent > 0
     ? `${recent} in 24h`
     : total > 0 ? 'None in 24h' : 'None recorded';

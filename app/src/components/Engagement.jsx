@@ -191,6 +191,7 @@ function MessageThread({ signedIn }) {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(null);
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -214,14 +215,21 @@ function MessageThread({ signedIn }) {
     if (!text || sending) return;
     setSending(true);
     const result = await sendMessage(text);
-    if (result?.uploaded || result?.skipped) setDraft('');
+    // Clear the draft ONLY on a real upload. The old `|| result?.skipped`
+    // branch also cleared on insert-error/no-church, silently swallowing the
+    // person's words (2026-07-03 claims audit). A signed-out skip keeps the
+    // draft too — the sign-in note below the box already explains why.
+    if (result?.uploaded) { setDraft(''); setSendError(null); }
+    else setSendError(result?.skipped === 'signed-out'
+      ? 'Sign in with your church account to send — your message is still here.'
+      : `Could not send (${result?.skipped || 'error'}) — your message is still here.`);
     setSending(false);
   }
 
   return (
     <section aria-labelledby="thread-heading" className="bg-white border border-[#1A1815] p-5">
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
-        Family Thread &middot; Live
+        Church Family Thread &middot; Live
       </div>
       <h3
         id="thread-heading"
@@ -295,6 +303,9 @@ function MessageThread({ signedIn }) {
               {sending ? 'Sending…' : 'Send'}
             </button>
           </form>
+          {sendError && (
+            <p role="status" className="mt-2 text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{sendError}</p>
+          )}
         </>
       )}
     </section>

@@ -94,7 +94,7 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
                   </>
                 ) : (
                   <>
-                    <p className="text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{n.pinned ? '📌 ' : ''}{n.spiritualSource ? '📖 ' : ''}{n.text} {n.sentToPoeTech && <span className="text-[9px] uppercase tracking-wider text-[#B85838]">· told PoeTech</span>}</p>
+                    <p className="text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{n.pinned ? '📌 ' : ''}{n.spiritualSource ? '📖 ' : ''}{n.text} {n.sentToPoeTech && <span className="text-[9px] uppercase tracking-wider text-[#B85838]">· on the build list</span>}</p>
                     {(n.links || []).length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {(n.links || []).map(l => (

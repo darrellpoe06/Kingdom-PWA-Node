@@ -292,7 +292,7 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
   const addGoal = useCallback(async (goal) => {
     setGoals((prev) => [goal, ...prev]); // optimistic
     setAdding(false);
-    try { await goalsSync.upload(goal); } catch (e) { /* localStorage still holds it */ }
+    try { await goalsSync.upload(goal); } catch (e) { /* upload failed; the on-screen row remains this session (no local fallback for goals yet) */ }
   }, []);
 
   // updateRow/deleteRow key on the DB uuid (remoteUuid), not the local slug —
