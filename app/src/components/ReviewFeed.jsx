@@ -23,9 +23,22 @@
 import React, { useEffect, useState } from 'react';
 import { N8N_BASE } from '../lib/n8n-base.js';
 
-// Build-time shared token (Vite inlines VITE_-prefixed vars). NOT a per-user
-// secret — a speed-bump paired with the Governor gate. See the header note.
-const REVIEW_TOKEN = (import.meta.env?.VITE_REVIEW_TOKEN || '').trim();
+// Review token — PER-DEVICE first (typed once, localStorage, never in the
+// bundle), VITE_ build var only as a transition fallback (2026-07-03: a VITE_
+// var is inlined into the PUBLIC bundle, so it was extractable by any visitor;
+// same fix as the n8n bearer — once family devices carry the device token,
+// delete VITE_REVIEW_TOKEN from the Vercel project and rotate). Resolved at
+// call time so pasting the token takes effect without a reload.
+export const REVIEW_DEVICE_TOKEN_KEY = 'poetech-review-token';
+const REVIEW_TOKEN_FALLBACK = (import.meta.env?.VITE_REVIEW_TOKEN || '').trim();
+export function resolveReviewToken(win) {
+  try {
+    const w = win || (typeof window !== 'undefined' ? window : null);
+    const device = (w && w.localStorage && w.localStorage.getItem(REVIEW_DEVICE_TOKEN_KEY)) || '';
+    if (device.trim()) return device.trim();
+  } catch { /* private mode — fall through */ }
+  return REVIEW_TOKEN_FALLBACK;
+}
 
 // Pure shape-normalizer (exported for tests): tolerate a missing/garbled
 // response so the surface degrades gracefully instead of throwing on bad data.
@@ -102,14 +115,15 @@ export default function ReviewFeed() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!REVIEW_TOKEN) {
+      const token = resolveReviewToken();
+      if (!token) {
         if (!cancelled) setState({ status: 'unconfigured', data: null, error: null });
         return;
       }
       try {
         const res = await fetch(`${N8N_BASE}/webhook/review-feed`, {
           method: 'GET',
-          headers: { 'X-Review-Token': REVIEW_TOKEN },
+          headers: { 'X-Review-Token': token },
           cache: 'no-store',
         });
         const json = await res.json().catch(() => null);
@@ -127,13 +141,14 @@ export default function ReviewFeed() {
   }, []);
 
   const onAction = async (id, action) => {
-    if (!REVIEW_TOKEN || acting[id]) return;
+    const token = resolveReviewToken();
+    if (!token || acting[id]) return;
     setActionError(null);
     setActing((a) => ({ ...a, [id]: true }));
     try {
       const res = await fetch(`${N8N_BASE}/webhook/review-action`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'X-Review-Token': REVIEW_TOKEN },
+        headers: { 'content-type': 'application/json', 'X-Review-Token': token },
         body: JSON.stringify({ id, action }),
       });
       const json = await res.json().catch(() => null);
@@ -176,7 +191,7 @@ export default function ReviewFeed() {
       {status === 'unconfigured' && (
         <div className="bg-white border border-[#8B6F47] p-4">
           <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-            The review feed isn&apos;t wired up in this build yet (no <code className="text-xs">VITE_REVIEW_TOKEN</code>). Once it&apos;s set in the deploy environment, staged proposals will appear here automatically.
+            The review feed isn&apos;t wired up on this device yet — paste the review token in the Admin console (Security &amp; tokens) and staged proposals appear here. No token ships in the public bundle.
           </p>
         </div>
       )}
