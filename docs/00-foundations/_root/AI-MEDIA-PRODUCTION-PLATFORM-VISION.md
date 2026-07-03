@@ -201,6 +201,12 @@ This sequence assumes the data-dump release ships first, the family-feedback cad
 - **PERPETUAL-PIPELINE-HEALTH** — the media production pipelines follow the thirteen rules. Unbreakable. Family can rely on them.
 - **THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW** — the worldview is the lens through which every piece is conceived. Not a tag; the actual frame.
 
+## The 2026-07-03 word (declared by Darrell)
+
+> "Eventually movies and production using the LLMs we build... coming when we can... life-like movies with characters who we know, also series for each and vice versa."
+
+Recorded as declared: FEATURE-LENGTH and SERIES production, generated with the family's OWN models (the LLMs we build — sovereign generation, pillar 1), with PERSISTENT CHARACTERS the audience knows — a character can carry a movie and spin into a series, and a series character can step up into a film ("series for each and vice versa"). The pacing is his own: "coming when we can" — this ships on capability and readiness, never on hype; it waits for the GPU box, the model maturity, and the theological-review pipeline (pillar 3) to be real. Every character, story, and frame still passes the Test and serves the six purposes above. Nothing about this word changes the order of operations — it sharpens the destination.
+
 ## Closing
 
 The Media Production Platform is the long arc. Today's work is the foundation it rises from. Years from now, the family is producing content that lifts up the King, supported by a system built on the same principles as the daily-cadence stewardship app — sovereign, family-first, faith-grounded, perpetual.
