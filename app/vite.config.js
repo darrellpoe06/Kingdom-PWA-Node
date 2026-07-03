@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 import { buildQualityManifest } from '../scripts/quality-manifest.mjs';
 import { buildInterconnectManifest } from '../scripts/interconnect-manifest.mjs';
 import { buildConflictManifest } from '../scripts/orchestration/conflict-analytics.mjs';
+import { buildTestCensus } from '../scripts/test-census.mjs';
+import { buildLessonsManifest } from '../scripts/lessons-manifest.mjs';
 
 // DR-0061 (surfaces are live views of real flow): the Build board's automation
 // count must be a REAL number, not hand-typed. Count the actual n8n workflow
@@ -224,6 +226,20 @@ let conflictLoop;
 try { conflictLoop = buildConflictManifest(); }
 catch (e) { conflictLoop = { ok: false, error: (e && e.message) || 'manifest unavailable', eventCount: 0, hotFiles: [], contendedAreas: [], rate: { buckets: [], trend: 'baseline' }, decomposition: [], problems: [] }; }
 
+// Test census + LESSONS-LEARNED principles (DR-0089, the Quality & Throughput
+// board). The census MEASURES the verification suite's size from the real test
+// tree (any hand-typed count would be painted the moment it landed, DR-0076);
+// the lessons manifest parses the REAL foundation doc so the extracted
+// principles surface in-app beside the numbers they explain (same build-time
+// single-source pattern as the DR ledger). Best-effort: either degrades to an
+// honest empty, never a crashed build.
+let testCensus;
+try { testCensus = buildTestCensus(); }
+catch (e) { testCensus = { ok: false, files: 0, callSites: 0, eachSuites: 0, source: '', error: (e && e.message) || 'census unavailable' }; }
+let lessonsPrinciples;
+try { lessonsPrinciples = buildLessonsManifest(); }
+catch (e) { lessonsPrinciples = { ok: false, principles: [], incidents: [], source: '', error: (e && e.message) || 'manifest unavailable' }; }
+
 // Interconnection loops (Darrell, 2026-06-29: "make sure all the loops of
 // interconnected modules are actually moving LIVE data"). File-verified at build:
 // which module-to-module loops are wired live, which are honestly still building.
@@ -333,6 +349,8 @@ export default defineConfig({
     __INTERCONNECT_LOOPS__: JSON.stringify(interconnectLoops),
     __CONFLICT_LOOP__: JSON.stringify(conflictLoop),
     __UIUX_REVIEWS__: JSON.stringify(uiuxReviews),
+    __TEST_CENSUS__: JSON.stringify(testCensus),
+    __LESSONS_PRINCIPLES__: JSON.stringify(lessonsPrinciples),
   },
   server: {
     proxy: {
