@@ -8,15 +8,15 @@
 // verse verbatim from the verified fetch (never model memory), every pair
 // carrying both sides of the intertwine.
 import { describe, it, expect } from 'vitest';
-import { WITNESS_SOURCES, WITNESS_TAGLINE, WITNESS_MODES, witnessVerse, witnessClientModule } from '../lib/third-witness.js';
+import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessClientModule } from '../lib/third-witness.js';
 import { TLC_LESSON_TRACKS } from '../lib/tlc-lessons.js';
 
 const allPairs = WITNESS_SOURCES.flatMap((s) => s.pairs);
 
-// The separation is only real if it is machine-checked in BOTH directions:
-// Word-only lessons carry no science jargon; the Practice module carries no
-// Scripture. A leak either way fails the build.
-const SCIENCE_TERMS = /dopamine|cortex|amygdala|neuro|prefrontal|default mode|psycholog|biolog/i;
+// The separation lives in the Practice ONLY (the study room stays mixed, per
+// Darrell): the clinical module must carry NO Scripture marks. A leak fails
+// the build. (Case-insensitive on purpose — proven-to-catch found capitalized
+// names slipping a case-sensitive draft.)
 const SCRIPTURE_MARKS = /KJV|verse|scripture|yahweh|jesus|christ|bible|\b(?:[1-3]\s)?[a-z]+\s\d+:\d+/i;
 
 describe('third-witness: citation integrity (honour to whom honour)', () => {
@@ -80,27 +80,16 @@ describe('third-witness: shape (both sides of the intertwine present)', () => {
   });
 });
 
-describe('third-witness: the separation (same content, no mixture, all learners)', () => {
-  it('both modes exist: intertwined and Word only', () => {
-    expect(WITNESS_MODES.map((m) => m.id)).toEqual(['mix', 'word']);
-  });
-
-  it('every pair carries Word-only lessons at teen and standard levels', () => {
+describe('third-witness: the separation is for the Practice ONLY (the study room stays mixed)', () => {
+  it('the study room content is the mixture: every pair keeps its claim AND its bridge', () => {
     for (const p of allPairs) {
-      expect(p.word?.teen, `${p.id} missing word.teen`).toBeTruthy();
-      expect(p.word?.standard, `${p.id} missing word.standard`).toBeTruthy();
+      expect(p.claim, p.id).toBeTruthy();
+      expect(p.bridge, p.id).toBeTruthy();
+      expect(p.word, `${p.id} carries a word-only rendering — the study room stays mixed; the separation lives in Practice`).toBeUndefined();
     }
   });
 
-  it('Word-only lessons contain NO science jargon — the mixture is truly separated', () => {
-    for (const p of allPairs) {
-      for (const [lvl, text] of Object.entries(p.word)) {
-        expect(text, `${p.id} word.${lvl} leaks science terms`).not.toMatch(SCIENCE_TERMS);
-      }
-    }
-  });
-
-  it('the Practice client module carries NO Scripture — the other direction of the separation', () => {
+  it('the Practice client module carries NO Scripture — the separation for those who don\'t want the mixture', () => {
     const mod = witnessClientModule();
     for (const [lvl, text] of Object.entries(mod.levels)) {
       expect(text, `client module ${lvl} leaks Scripture into the clinical space`).not.toMatch(SCRIPTURE_MARKS);

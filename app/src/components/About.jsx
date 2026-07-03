@@ -97,6 +97,16 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
     <div className="space-y-10 w-full">
       <section>
         <SectionTitle>What you actually get</SectionTitle>
+        {/* The purpose, in the Governor's own words (Darrell 2026-07-03):
+            "Family Operating System... PoeTech App... for the purpose of
+            building the Family Of Yahweh The Kingdom Of Yahweh Jesus's Father
+            and My Yahweh." The what below serves this why. */}
+        <div className="bg-[#1A1815] text-[#FAF8F4] p-4 sm:p-5 mb-4">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B89838] mb-2 font-semibold">The purpose · a Family Operating System</div>
+          <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+            PoeTech is a <strong>Family Operating System</strong> — built for the purpose of building the Family of Yahweh, the Kingdom of Yahweh: Jesus&rsquo;s Father, and ours. The tools below — the finances, the portals, the studies, the church rails — are how a household gets ordered; the Kingdom is why.
+          </p>
+        </div>
         <div className="bg-white border-2 border-[#1A1815] p-4 sm:p-5 mb-4">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-semibold">Why people switch</div>
           <p className="text-base leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
