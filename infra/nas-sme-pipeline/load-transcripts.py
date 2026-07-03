@@ -32,8 +32,19 @@ PLATFORM = "youtube"
 #                     instead of it hanging silently.
 #
 # THREE BRAKES (CLAUDE.md autonomous-automation rule): (1) --max budget; (2) a
-# single-instance lock file (a second run SKIPS); (3) ships MANUAL/inactive --
-# arm the DSM schedule only with someone watching. No autostart in this file.
+# single-instance lock file (a second run SKIPS); (3) a kill-switch: after 3
+# consecutive all-blocked runs the loader writes out/.transcripts-paused and
+# refuses to run until a human deletes it -- a scheduled task can never grind
+# against a blocked IP unattended. Ships MANUAL/inactive -- arm the DSM
+# schedule only with someone watching. No autostart in this file.
+#
+# TRICKLE MODE (Darrell 2026-07-03, after YouTube IP-blocked the NAS at ~50
+# fetches in one burst): a small daily budget at randomized times, sized to
+# finish the backfill in days-to-weeks and then keep pace with the channel's
+# ~2-3 uploads/week forever. Recommended DSM Task Scheduler daily command:
+#   python3 /volume1/PoeTech/load-transcripts-fixed.py --slug colg \
+#     --max 10 --sleep-min 20 --sleep-max 60 --start-jitter 900
+# --max is the pace knob: 10/day clears 89 gaps in ~9 days; 3/day in ~a month.
 #
 # Requires: pip install youtube-transcript-api   (stdlib for everything else)
 #
@@ -50,6 +61,7 @@ PLATFORM = "youtube"
 import argparse
 import json
 import os
+import random
 import re
 import sys
 import time
@@ -57,7 +69,10 @@ import urllib.request
 import urllib.parse
 
 CHANNEL_RSS = "https://www.youtube.com/feeds/videos.xml?channel_id={}"
-LOCK_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", ".load-transcripts.lock")
+_OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
+LOCK_PATH = os.path.join(_OUT_DIR, ".load-transcripts.lock")
+PAUSE_FLAG = os.path.join(_OUT_DIR, ".transcripts-paused")
+BLOCKED_RUNS = os.path.join(_OUT_DIR, ".transcripts-blocked-runs")
 DEFAULT_SECRETS = "/volume1/PoeTech/secrets/supabase.json"
 
 # Exception class names that are durable verdicts about the video itself
@@ -248,6 +263,38 @@ def release_lock():
         pass
 
 
+# Kill-switch (brake 3): 3 consecutive all-blocked runs -> auto-pause. A
+# scheduled task must never grind against a blocked IP unattended; a human
+# deletes the flag to resume once the block has cleared.
+
+def _consecutive_blocked():
+    try:
+        with open(BLOCKED_RUNS, "r", encoding="utf-8") as fh:
+            return int(fh.read().strip() or 0)
+    except (OSError, ValueError):
+        return 0
+
+
+def record_blocked_run():
+    n = _consecutive_blocked() + 1
+    os.makedirs(_OUT_DIR, exist_ok=True)
+    with open(BLOCKED_RUNS, "w", encoding="utf-8") as fh:
+        fh.write(str(n))
+    log(f"All-blocked run #{n} in a row.")
+    if n >= 3:
+        with open(PAUSE_FLAG, "w", encoding="utf-8") as fh:
+            fh.write(f"auto-paused after {n} consecutive all-blocked runs\n")
+        log(f"KILL-SWITCH: {n} consecutive all-blocked runs -> auto-paused.")
+        log(f"To resume once the block clears: rm {PAUSE_FLAG}")
+
+
+def clear_blocked_runs():
+    try:
+        os.remove(BLOCKED_RUNS)
+    except OSError:
+        pass
+
+
 # --- main -------------------------------------------------------------------
 
 def main():
@@ -260,7 +307,22 @@ def main():
     ap.add_argument("--refetch", action="store_true", help="re-fetch ids already loaded")
     ap.add_argument("--dry-run", action="store_true", help="fetch + report, write nothing")
     ap.add_argument("--secrets", default=DEFAULT_SECRETS, help="path to Supabase secrets JSON")
+    ap.add_argument("--sleep-min", type=float, default=1.0,
+                    help="min seconds between fetches (trickle pacing; default 1)")
+    ap.add_argument("--sleep-max", type=float, default=4.0,
+                    help="max seconds between fetches (trickle pacing; default 4)")
+    ap.add_argument("--start-jitter", type=int, default=0,
+                    help="sleep a random 0..N seconds before starting, so a fixed "
+                         "daily schedule fires at a different time each day "
+                         "(recommend 900; capped at 1800 to stay under the lock's "
+                         "stale threshold)")
     args = ap.parse_args()
+
+    # Kill-switch gate: refuse to run while auto-paused (see record_blocked_run).
+    if os.path.exists(PAUSE_FLAG):
+        log(f"PAUSED: {PAUSE_FLAG} exists (kill-switch: repeated all-blocked runs).")
+        log(f"Once the IP block has cleared, resume with: rm {PAUSE_FLAG}")
+        sys.exit(4)
 
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
@@ -292,6 +354,11 @@ def main():
 
     acquire_lock()
     try:
+        if args.start_jitter > 0:
+            wait = random.uniform(0, min(args.start_jitter, 1800))
+            log(f"Start jitter: sleeping {int(wait)}s (of --start-jitter {args.start_jitter}).")
+            time.sleep(wait)
+
         state = existing_state(url, key, instance_id)
         api = build_api(YouTubeTranscriptApi)
         fetched = no_caption = blocked = skipped = 0
@@ -324,6 +391,11 @@ def main():
                 blocked += 1
                 log(f"    BLOCKED ({err}) -> not recorded; will retry next run")
 
+            # Trickle pacing: a slow, jittered gap between fetches keeps the
+            # request pattern under the burst threshold that got the IP blocked.
+            if args.sleep_max > 0:
+                time.sleep(random.uniform(max(args.sleep_min, 0), max(args.sleep_max, args.sleep_min)))
+
         # STALL-GUARD: coverage after this run. Non-zero exit if we advanced 0 while
         # gaps remain, so a scheduler flags the stall instead of it hanging silent.
         after = existing_state(url, key, instance_id) if not args.dry_run else state
@@ -333,8 +405,12 @@ def main():
         log(f"This run: {fetched} fetched, {no_caption} no-caption verdicts, "
             f"{blocked} blocked (will retry), {skipped} already resolved.")
         log(f"Coverage: {with_text}/{total} videos transcribed ({gaps} still owe a transcript).")
+        if fetched > 0:
+            clear_blocked_runs()  # real progress resets the kill-switch counter
         if blocked > 0 and fetched == 0:
             log(f"BLOCKED: all {blocked} attempts were rejected (YouTube is blocking this IP). Nothing advanced.")
+            if not args.dry_run:
+                record_blocked_run()
             sys.exit(3)
         if fetched == 0 and no_caption == 0 and gaps > 0 and not args.refetch:
             log("STALL: 0 videos advanced while gaps remain. Check credentials / caption availability.")
