@@ -10,7 +10,7 @@
     "trackedDebtPages": 16,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 123
+    "debtViolations": 124
   },
   "pages": [
     {
@@ -52,7 +52,7 @@
     {
       "page": "components/HarvestLedger.jsx",
       "status": "TRACKED-DEBT",
-      "violations": 7,
+      "violations": 8,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
