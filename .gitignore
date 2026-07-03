@@ -105,3 +105,7 @@ infra/supabase/seeds/
 # YouTube-caption transcript corpus (sourced on the NAS; not committed — sovereign,
 # rebuilt incrementally by youtube-captions.py).
 infra/nas-sme-pipeline/out/
+
+# Python bytecode (left behind by any run/import of the pipeline scripts)
+__pycache__/
+*.pyc

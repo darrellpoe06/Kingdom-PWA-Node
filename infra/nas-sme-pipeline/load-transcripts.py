@@ -60,6 +60,47 @@ CHANNEL_RSS = "https://www.youtube.com/feeds/videos.xml?channel_id={}"
 LOCK_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", ".load-transcripts.lock")
 DEFAULT_SECRETS = "/volume1/PoeTech/secrets/supabase.json"
 
+# Exception class names that are durable verdicts about the video itself
+# (mirrors transcript-backfill-ci.py; verified against youtube-transcript-api's
+# _errors module). Everything else -- RequestBlocked, IpBlocked, network
+# failures -- is environmental: write NOTHING, retry next run (DR-0076: a
+# blocked request is a fact about the runner, not the video).
+VERDICT_ERRORS = (
+    "TranscriptsDisabled", "NoTranscriptFound", "VideoUnavailable",
+    "InvalidVideoId", "AgeRestricted", "VideoUnplayable",
+    "NotTranslatable", "TranslationLanguageNotAvailable",
+)
+
+
+def is_verdict(err):
+    """True when a stored/new error string is a durable no-caption verdict."""
+    return bool(err) and err.split(":", 1)[0].strip() in VERDICT_ERRORS
+
+
+def build_api(YouTubeTranscriptApi):
+    """YouTubeTranscriptApi, routed through a residential proxy when configured.
+
+    2026-07-03 reality check: YouTube IP-blocked the NAS's own residential IP
+    after ~180 requests in a day (IpBlocked on every fetch), so even the NAS
+    route needs either patience (rate-limit cool-off + small --max) or a proxy.
+    Set WEBSHARE_PROXY_USERNAME + WEBSHARE_PROXY_PASSWORD (rotating residential)
+    or YT_PROXY_URL (any http(s) proxy URL) in the environment.
+    """
+    ws_user = (os.environ.get("WEBSHARE_PROXY_USERNAME") or "").strip()
+    ws_pass = (os.environ.get("WEBSHARE_PROXY_PASSWORD") or "").strip()
+    proxy_url = (os.environ.get("YT_PROXY_URL") or "").strip()
+    if ws_user and ws_pass:
+        from youtube_transcript_api.proxies import WebshareProxyConfig
+        log("Proxy: Webshare rotating residential")
+        return YouTubeTranscriptApi(proxy_config=WebshareProxyConfig(
+            proxy_username=ws_user, proxy_password=ws_pass))
+    if proxy_url:
+        from youtube_transcript_api.proxies import GenericProxyConfig
+        log("Proxy: generic (YT_PROXY_URL)")
+        return YouTubeTranscriptApi(proxy_config=GenericProxyConfig(
+            http_url=proxy_url, https_url=proxy_url))
+    return YouTubeTranscriptApi()
+
 
 def log(msg):
     print(msg, file=sys.stderr, flush=True)
@@ -110,12 +151,18 @@ def resolve_instance(url, key, slug):
 
 
 def existing_state(url, key, instance_id):
-    """video_id -> {'has_text': bool, 'has_error': bool} for what's already loaded."""
+    """video_id -> {'has_text': bool, 'has_verdict': bool} for what's already loaded.
+
+    has_verdict is True only for durable no-caption verdicts (VERDICT_ERRORS).
+    A row holding a transient error (RequestBlocked etc., recorded before the
+    verdict/transient split) reads as neither -> it gets retried this run.
+    """
     rows = rest(url, key, "GET",
                 "video_transcripts?select=video_id,words,error&instance_id=eq." + instance_id) or []
     out = {}
     for r in rows:
-        out[r["video_id"]] = {"has_text": (r.get("words") or 0) > 0, "has_error": bool(r.get("error"))}
+        out[r["video_id"]] = {"has_text": (r.get("words") or 0) > 0,
+                              "has_verdict": is_verdict(r.get("error"))}
     return out
 
 
@@ -166,8 +213,10 @@ def fetch_caption(api, vid):
     try:
         segs = list(api.fetch(vid, languages=["en"]))
         text = " ".join(s.text.replace("\n", " ").strip() for s in segs if s.text.strip())
+        if not text:  # fetch succeeded but the track is empty: a durable verdict
+            return "", 0, "NoTranscriptFound: empty caption track"
         return text, len(text.split()), None
-    except Exception as e:  # noqa: BLE001 -- any failure = no usable caption; record it
+    except Exception as e:  # noqa: BLE001 -- classified verdict-vs-transient by caller
         return "", 0, f"{type(e).__name__}: {str(e)[:180]}"
 
 
@@ -244,15 +293,15 @@ def main():
     acquire_lock()
     try:
         state = existing_state(url, key, instance_id)
-        api = YouTubeTranscriptApi()
-        fetched = no_caption = skipped = 0
+        api = build_api(YouTubeTranscriptApi)
+        fetched = no_caption = blocked = skipped = 0
         total = len(ordered)
         for i, vid in enumerate(ordered, 1):
             prior = state.get(vid)
-            if prior and not args.refetch and (prior["has_text"] or prior["has_error"]):
+            if prior and not args.refetch and (prior["has_text"] or prior["has_verdict"]):
                 skipped += 1
                 continue
-            if args.max and (fetched + no_caption) >= args.max:
+            if args.max and (fetched + no_caption + blocked) >= args.max:
                 log(f"--max {args.max} reached; stopping (re-run to continue).")
                 break
             log(f"[{i}/{total}] fetching captions for {vid} ...")
@@ -263,12 +312,17 @@ def main():
                                    "lang": "en", "error": None}, args.dry_run)
                 fetched += 1
                 log(f"    ok  {words} words -> video_transcripts")
-            else:
+            elif is_verdict(err):
                 upsert_transcript(url, key, instance_id, vid,
                                   {"text": "", "words": 0, "source": "youtube-asr",
-                                   "error": err or "no-captions"}, args.dry_run)
+                                   "error": err}, args.dry_run)
                 no_caption += 1
-                log(f"    MISS ({err}) -> recorded; Whisper-on-NAS fallback")
+                log(f"    MISS ({err}) -> verdict recorded; Whisper-on-NAS fallback")
+            else:
+                # Environmental failure (IP block, network). NOT a fact about
+                # the video: write nothing so the next run retries it.
+                blocked += 1
+                log(f"    BLOCKED ({err}) -> not recorded; will retry next run")
 
         # STALL-GUARD: coverage after this run. Non-zero exit if we advanced 0 while
         # gaps remain, so a scheduler flags the stall instead of it hanging silent.
@@ -276,12 +330,17 @@ def main():
         with_text = sum(1 for v in after.values() if v.get("has_text"))
         gaps = total - with_text
         log("")
-        log(f"This run: {fetched} fetched, {no_caption} no-caption, {skipped} already had.")
+        log(f"This run: {fetched} fetched, {no_caption} no-caption verdicts, "
+            f"{blocked} blocked (will retry), {skipped} already resolved.")
         log(f"Coverage: {with_text}/{total} videos transcribed ({gaps} still owe a transcript).")
+        if blocked > 0 and fetched == 0:
+            log(f"BLOCKED: all {blocked} attempts were rejected (YouTube is blocking this IP). Nothing advanced.")
+            sys.exit(3)
         if fetched == 0 and no_caption == 0 and gaps > 0 and not args.refetch:
             log("STALL: 0 videos advanced while gaps remain. Check credentials / caption availability.")
             sys.exit(3)
-        log("Done. The served Harvest ledger derives these transcripts live -- the % climbs.")
+        if fetched > 0:
+            log("Done. The served Harvest ledger derives these transcripts live -- the % climbs.")
     finally:
         release_lock()
 

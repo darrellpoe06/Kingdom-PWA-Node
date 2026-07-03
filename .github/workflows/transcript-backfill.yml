@@ -11,6 +11,15 @@
 # a repo secret). Direct psql connection bypasses RLS -- no service-role JWT
 # needed. youtube-transcript-api fetches public auto-captions; no OAuth.
 #
+# PROXY (required in practice): YouTube blocks GitHub-hosted runner IPs
+# (RequestBlocked on every fetch -- observed run #2, 2026-07-02). Caption
+# fetches only succeed from CI through a residential proxy. Set ONE of:
+#   WEBSHARE_PROXY_USERNAME + WEBSHARE_PROXY_PASSWORD  (rotating residential)
+#   YT_PROXY_URL  (any http(s) proxy URL with credentials inline)
+# as repo secrets. Without a proxy the run exits non-zero (honest red) and
+# writes nothing; the reliable no-proxy path is load-transcripts.py on the
+# NAS, whose residential IP YouTube does not block.
+#
 # THREE BRAKES (CLAUDE.md autonomous-automation rule):
 #   (1) Budget  -- --max 50 per run (inputs.max overrides).
 #   (2) Lock    -- concurrency group below (cancel-in-progress: false);
@@ -67,6 +76,10 @@ jobs:
       - name: Phase 1 + 2 — channel sync + transcript backfill
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          # Residential proxy (see PROXY note above); absent secrets = empty = direct.
+          WEBSHARE_PROXY_USERNAME: ${{ secrets.WEBSHARE_PROXY_USERNAME }}
+          WEBSHARE_PROXY_PASSWORD: ${{ secrets.WEBSHARE_PROXY_PASSWORD }}
+          YT_PROXY_URL: ${{ secrets.YT_PROXY_URL }}
         run: |
           ARGS="--slug colg --max ${{ inputs.max || '50' }}"
           if [ "${{ inputs.dry_run }}"          = "true" ]; then ARGS="$ARGS --dry-run";            fi
