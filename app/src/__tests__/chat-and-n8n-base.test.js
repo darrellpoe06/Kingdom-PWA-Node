@@ -7,7 +7,7 @@ import {
   formatFeedbackMessage, formatProjectCreatedMessage,
   formatChangeRequestMessage, formatCycleItemCompletedMessage,
 } from '../lib/synology-chat.js';
-import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
+import { N8N_BASE, n8nAuthHeaders, resolveN8nBearer, N8N_DEVICE_TOKEN_KEY } from '../lib/n8n-base.js';
 
 describe('synology-chat formatters', () => {
   it('feedback message: leads with first name, encodes sentiment + tab', () => {
@@ -47,5 +47,21 @@ describe('n8n base resolver', () => {
   it('n8nAuthHeaders sends nothing when unauthorized or no bearer is configured', () => {
     expect(n8nAuthHeaders(false)).toEqual({});
     expect(n8nAuthHeaders(true)).toEqual({}); // no VITE_N8N_BEARER in the test env -> deny
+  });
+
+  // 2026-07-03: the bearer's PRIMARY source is the per-device bridge token
+  // (never in the public bundle); the VITE_ var is a transition fallback only.
+  it('the per-device bridge token authorizes, and unauthorized callers still send nothing', () => {
+    const win = { localStorage: { getItem: (k) => (k === N8N_DEVICE_TOKEN_KEY ? '  device-tok-9  ' : null) } };
+    expect(resolveN8nBearer(win)).toBe('device-tok-9'); // trimmed
+    expect(n8nAuthHeaders(true, win)).toEqual({ Authorization: 'Bearer device-tok-9' });
+    expect(n8nAuthHeaders(false, win)).toEqual({}); // authorization gate still holds
+  });
+
+  it('a blocked/absent localStorage falls back honestly (no token in the test env -> deny)', () => {
+    const blocked = { localStorage: { getItem() { throw new Error('private mode'); } } };
+    expect(resolveN8nBearer(blocked)).toBe('');
+    expect(n8nAuthHeaders(true, blocked)).toEqual({});
+    expect(resolveN8nBearer({ localStorage: { getItem: () => null } })).toBe('');
   });
 });

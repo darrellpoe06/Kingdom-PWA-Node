@@ -197,11 +197,14 @@ describe('resolveWhy pairs numbers with the real record', () => {
 });
 
 describe('cross-seam guards — the pairing and the mount stay wired', () => {
-  it('every WHY decision-record id resolves in the REAL ledger (docs/decisions/INDEX.md)', () => {
+  it('every WHY decision-record id resolves to a LEDGER ROW (not just a prose mention) in INDEX.md', () => {
     const index = readFileSync(join(REPO_ROOT, 'docs/decisions/INDEX.md'), 'utf8');
     for (const key of Object.keys(WHY)) {
       for (const id of WHY[key].drs) {
-        expect(index, `${key} cites ${id}, which is not in the decision ledger`).toContain(id);
+        // A real row links its per-DR file: "| [DR-xxxx](DR-xxxx-..." — a prose
+        // mention elsewhere must NOT satisfy this (2026-07-03 audit tightening).
+        const row = new RegExp(`\\|\\s*\\[${id}\\]\\(${id}-`);
+        expect(row.test(index), `${key} cites ${id}, which has no ledger ROW in INDEX.md`).toBe(true);
       }
     }
   });

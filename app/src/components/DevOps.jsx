@@ -197,12 +197,20 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
         </p>
       </section>
 
-      {/* MY ACTIVE PIPELINE — kept from prior version */}
+      {/* MY ACTIVE PIPELINE — kept from prior version. Seed rows (ids o1..oN)
+          are the SEED-DATA-AS-ASPIRATION starter picture; the 2026-07-03 claims
+          audit found them rendering unlabeled under "actively in motion" — a
+          painted list. They now carry the sample banner until real rows exist. */}
       <section aria-labelledby="pipeline-h">
         <SectionTitle eyebrow="Pipeline">My Active Pipeline · Near-term opportunities</SectionTitle>
         <p id="pipeline-h" className="text-sm text-[#5A5751] leading-relaxed max-w-prose mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           What's actively in motion this year. Each row compounds into the household projection. Active conversations get priority.
         </p>
+        {opportunities.length > 0 && opportunities.every((o) => /^o\d+$/.test(String(o.id))) && (
+          <p className="text-xs text-[#B85838] border border-[#B85838] bg-[#FAF8F4] px-3 py-2 mb-3 max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
+            <strong>Sample pipeline.</strong> These rows are the starter picture of what a working pipeline looks like — not your live deals. They&apos;re replaced as your real opportunities land.
+          </p>
+        )}
         {Object.entries(grouped).map(([person, items]) => (
           <section key={person} className="mb-4">
             <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">{person}</h3>

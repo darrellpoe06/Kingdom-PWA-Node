@@ -10,6 +10,8 @@ import {
   normalizeMainRuns,
   landOrder,
   fetchOps,
+  OPS_TTL_MS,
+  __resetEtagCacheForTests,
   MONOLITH_PATH,
 } from '../lib/github-ops.js';
 
@@ -88,5 +90,64 @@ describe('fetchOps — honest degradation on rate limit (injected fetch)', () =>
     expect(out.ok).toBe(false);
     expect(out.pulls).toEqual([]);
     expect(out.notice).toMatch(/rate limit/i);
+  });
+});
+
+describe('rate-budget discipline (2026-07-03 "GitHub capped us")', () => {
+  // A window-like localStorage is present under jsdom; clear the etag cache
+  // between assertions so each starts from a known state.
+  const ETAG_KEY = 'poe-gh-etag-cache';
+  const okJson = (body, etag) => ({
+    status: 200, ok: true,
+    headers: { get: (k) => (k.toLowerCase() === 'etag' ? etag : null) },
+    json: async () => body,
+  });
+
+  it('caches ETags and serves the cached body on a 304 (a free request)', async () => {
+    localStorage.removeItem(ETAG_KEY);
+    __resetEtagCacheForTests();
+    const calls = [];
+    // First pass: everything 200s with an etag. Second pass: pulls endpoint
+    // 304s — the cached body must come back, not an error, not a refetch body.
+    let pass = 1;
+    const fakeFetch = async (url, init) => {
+      calls.push({ url, inm: init.headers['If-None-Match'] || null });
+      if (pass === 2 && url.includes('/pulls?state=open')) return { status: 304, ok: false, headers: { get: () => null }, json: async () => { throw new Error('304 has no body'); } };
+      if (url.includes('/pulls?state=open')) return okJson([{ number: 7, title: 'cached-pr', head: { ref: 'b', sha: 's' }, base: { ref: 'main' }, labels: [] }], 'W/"pulls-v1"');
+      if (url.includes('/commits?sha=main')) return okJson([], 'W/"commits-v1"');
+      if (url.includes('/actions/runs')) return okJson({ workflow_runs: [] }, null);
+      return okJson([], null);
+    };
+    const first = await fetchOps({ fetch: fakeFetch });
+    expect(first.pulls[0].title).toBe('cached-pr');
+    pass = 2;
+    const second = await fetchOps({ fetch: fakeFetch });
+    expect(second.pulls[0].title).toBe('cached-pr'); // served from the 304 cache
+    // And the second pulls request actually carried the stored ETag.
+    const pullsCalls = calls.filter((c) => c.url.includes('/pulls?state=open'));
+    expect(pullsCalls[1].inm).toBe('W/"pulls-v1"');
+  });
+
+  it('the etag cache prunes to its cap instead of growing forever', () => {
+    const big = {};
+    for (let i = 0; i < 40; i++) big[`u${i}`] = { etag: `e${i}`, body: [], at: i };
+    localStorage.setItem(ETAG_KEY, JSON.stringify(big));
+    __resetEtagCacheForTests(); // hydrate the seeded 40-entry cache
+    // Trigger a write through the public path: one fetch that stores an etag.
+    return fetchOps({ fetch: async (url) => okJson([], 'W/"x"') }).then(() => {
+      const cache = JSON.parse(localStorage.getItem(ETAG_KEY) || '{}');
+      expect(Object.keys(cache).length).toBeLessThanOrEqual(24);
+      // Oldest entries were pruned first (u0 gone, newest survivors present).
+      expect(cache.u0).toBeUndefined();
+    });
+  });
+
+  it('exposes the share seam: OPS_TTL_MS is a real bound and injected-fetch calls bypass the share', async () => {
+    expect(OPS_TTL_MS).toBeGreaterThan(0);
+    // Two injected-fetch calls must NOT share results (fixtures stay isolated).
+    const a = await fetchOps({ fetch: async () => okJson([], null) });
+    const b = await fetchOps({ fetch: async () => ({ status: 403, ok: false, headers: { get: () => null }, json: async () => ({}) }) });
+    expect(a.ok).toBe(true);
+    expect(b.ok).toBe(false); // the 403 was not masked by a shared cache
   });
 });

@@ -596,8 +596,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const openTransfer = (t) => {
     const short = shortfallFor(t);
     if (short <= 0) return;
-    const otherAccounts = (accounts || []).filter(a => a.id !== t.accountId && a.balance > 0);
-    const best = otherAccounts.sort((a, b) => b.balance - a.balance)[0];
+    const otherAccounts = (accounts || []).filter(a => a.id !== t.accountId && liveBalance(a) > 0);
+    const best = otherAccounts.sort((a, b) => liveBalance(b) - liveBalance(a))[0];
     setTransferContext({ targetAccountId: t.accountId, shortfall: short, txDescription: t.description, txAmount: t.amount });
     setTransferAmount(Math.ceil(short));
     setTransferSourceId(best ? best.id : '');
@@ -849,13 +849,20 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 {receiptViewId === t.id ? '▾ receipt' : '▸ receipt'}
               </button>
             ) : (
+              // Only a REAL ledger row can hold a receipt: a recurring preview
+              // ('ro-preview-…') or ingest-overlay row has no data.transactions
+              // match, so updateTransaction silently no-ops and the photo would
+              // be DISCARDED while the modal reported success (2026-07-03
+              // claims audit). The toolbar "+ Receipt" snap-now-match-later
+              // pool is the designed path for not-yet-settled charges.
+              (t._source === undefined || t._source === 'transaction') && (
               <button type="button"
                 onClick={() => setReceiptOpen({ attachTo: t })}
                 className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] hover:text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
                 title="Attach a receipt photo to this transaction">
                 +receipt
               </button>
-            )}
+            ))}
           </div>
           {receiptViewId === t.id && t.receipt && t.receipt.src && (
             <div className="mt-2">
@@ -989,7 +996,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Transactions · Upcoming · History · Add</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Every dollar in. Every dollar out. Every dollar coming.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Add transactions as they happen. See what is already cleared (History) and what is expected to hit next (Upcoming, including the next instance of each enabled recurring obligation). Filters carry through from Entities. Projections, funds-available checks, and the transfer-from popup come in the next pass.
+          Add transactions as they happen. See what is already cleared (History) and what is expected to hit next (Upcoming, including the next instance of each enabled recurring obligation). Filters carry through from Entities. The 30/60/90 projection, the funds-available check, and the cover-with-transfer popup all run from this same ledger below.
         </p>
       </section>
 
@@ -1465,12 +1472,12 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                     {candidates.length === 0 && <p className="p-3 text-xs text-[#5A5751] italic">No other accounts available.</p>}
                     {candidates.map(a => {
                       const selected = a.id === transferSourceId;
-                      const after = a.balance - (parseFloat(transferAmount) || 0);
+                      const after = liveBalance(a) - (parseFloat(transferAmount) || 0);
                       return (
                         <button key={a.id} type="button" onClick={() => setTransferSourceId(a.id)} className={`w-full text-left p-3 border-b border-[#E8E4DC] last:border-b-0 ${selected ? 'bg-[#1A1815] text-white' : 'bg-white hover:bg-[#FAF8F4]'}`}>
                           <div className="flex items-baseline justify-between gap-2">
                             <span style={{ fontFamily: '"Fraunces", serif', fontWeight: selected ? 600 : 500 }}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</span>
-                            <span className={`text-sm ${!selected && a.balance < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(a.balance)}</span>
+                            <span className={`text-sm ${!selected && liveBalance(a) < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(liveBalance(a))}</span>
                           </div>
                           {selected && (
                             <div className={`text-[0.625rem] mt-1 ${after < 0 ? 'text-[#B85838]' : 'opacity-75'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -1578,7 +1585,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   <div className="text-[0.625rem] text-[#5A5751] truncate flex-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</div>
                   {a.isPrimary && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold shrink-0">★</span>}
                 </div>
-                <div className={`text-base ${a.balance < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(a.balance)}</div>
+                <div className={`text-base ${liveBalance(a) < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(liveBalance(a))}</div>
               </div>
             ))}
           </div>

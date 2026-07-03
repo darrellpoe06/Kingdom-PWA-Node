@@ -203,7 +203,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
       <section>
         <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Outbound · {outbound.length}</h3>
         {outbound.length === 0 ? (
-          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-4 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None yet. Add a contractor above to track YTD payments and tax-doc readiness.</div>
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-4 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None yet. Add a contractor above to keep their contact, role, and the YTD amounts you record here in one place.</div>
         ) : (
           <div className="bg-white border border-[#1A1815]">
             {outbound.map((c, i) => (

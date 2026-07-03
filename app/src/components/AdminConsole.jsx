@@ -41,6 +41,68 @@ import {
   INTERNAL_SURFACES,
   previewAction,
 } from '../lib/admin-console.js';
+import { N8N_DEVICE_TOKEN_KEY } from '../lib/n8n-base.js';
+import { REVIEW_DEVICE_TOKEN_KEY } from './ReviewFeed.jsx';
+
+// Device tokens (2026-07-03: close the shipped-bearer exposure). These live in
+// THIS DEVICE's localStorage only — typed once by a steward, never present in
+// the public bundle the way the old VITE_ vars were. The NAS bridges + the
+// review feed resolve them at call time, so saving here takes effect at once.
+const DEVICE_TOKENS = [
+  { key: N8N_DEVICE_TOKEN_KEY, label: 'NAS bridge token', what: 'Authorizes this device to the NAS bridges (n8n webhooks, photo/history import, thought relay).' },
+  { key: REVIEW_DEVICE_TOKEN_KEY, label: 'Review-feed token', what: 'Authorizes this device to the freshness review feed.' },
+];
+
+function DeviceTokensCard() {
+  const read = (k) => { try { return (localStorage.getItem(k) || '').trim(); } catch { return ''; } };
+  const [values, setValues] = useState(() => Object.fromEntries(DEVICE_TOKENS.map((t) => [t.key, read(t.key)])));
+  const [drafts, setDrafts] = useState({});
+  const save = (k) => {
+    const v = (drafts[k] || '').trim();
+    try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch { /* private mode — the status line stays honest */ }
+    setValues((m) => ({ ...m, [k]: read(k) }));
+    setDrafts((d) => ({ ...d, [k]: '' }));
+  };
+  return (
+    <section className="bg-white border border-[#1A1815] p-4">
+      <div className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Device tokens (this device only)</div>
+      <p className="text-xs text-[#5A5751] mt-0.5 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+        These stay in this device&apos;s local storage — they never ship in the public app bundle, so a visitor
+        can&apos;t extract them from the site&apos;s code. Paste each once per family device; saving an empty field removes it.
+      </p>
+      <ul className="mt-3 space-y-3">
+        {DEVICE_TOKENS.map((t) => (
+          <li key={t.key}>
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t.label}</span>
+              <span className={`text-[0.5625rem] uppercase tracking-wider font-semibold ${values[t.key] ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`}>
+                {values[t.key] ? '● set on this device' : '○ not set'}
+              </span>
+            </div>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{t.what}</p>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="password"
+                value={drafts[t.key] || ''}
+                onChange={(e) => setDrafts((d) => ({ ...d, [t.key]: e.target.value }))}
+                placeholder={values[t.key] ? 'paste a new value to replace, or save empty to remove' : 'paste the token'}
+                className="flex-1 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] min-h-[40px]"
+                aria-label={`${t.label} value`}
+              />
+              <button
+                type="button"
+                onClick={() => save(t.key)}
+                className="text-xs uppercase tracking-wider px-3 py-2 min-h-[40px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                Save
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -260,6 +322,8 @@ export default function AdminConsole({
               <p className="text-xs mt-2 text-[#7A1F1F]" style={serif}>Couldn’t read your role: {roleState.error}</p>
             )}
           </section>
+
+          <DeviceTokensCard />
 
           <section className="bg-white border border-[#1A1815] p-4">
             <div className="text-sm font-semibold text-[#1A1815]" style={serif}>People who’ve asked for access</div>

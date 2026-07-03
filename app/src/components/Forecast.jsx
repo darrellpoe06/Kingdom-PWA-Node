@@ -105,7 +105,7 @@ function CashTrajectory({ timeline }) {
   );
 }
 
-function Outlook({ data, currentDate, scopeOptions, scope, setScope, months, setMonths, onRecord, recording }) {
+function Outlook({ data, currentDate, scopeOptions, scope, setScope, months, setMonths, onRecord, recording, recordError }) {
   const p = useMemo(
     () => buildProjection(data, { currentDate, months, scope }),
     [data, currentDate, months, scope],
@@ -205,6 +205,9 @@ function Outlook({ data, currentDate, scopeOptions, scope, setScope, months, set
           </button>
           <span className="text-[10px] text-[#5A5751] leading-snug">Freezes today’s prediction so it can be scored against what really happens — tracked under Track.</span>
         </div>
+        {recordError && (
+          <p role="status" className="mt-2 text-[0.625rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{recordError}</p>
+        )}
       </div>
     </div>
   );
@@ -374,6 +377,7 @@ export default function Forecast({ data, currentDate, isOwner = false }) {
   const [months, setMonths] = useState(12);
   const [snapshots, setSnapshots] = useState([]);
   const [recording, setRecording] = useState(false);
+  const [recordError, setRecordError] = useState(null);
   const cd = useMemo(() => (currentDate instanceof Date ? currentDate : new Date()), [currentDate]);
 
   const scopeOptions = useMemo(() => ([
@@ -398,8 +402,18 @@ export default function Forecast({ data, currentDate, isOwner = false }) {
       });
       const withId = { ...snap, id: localId() };
       setSnapshots((prev) => [withId, ...prev]); // optimistic
-      await forecastSync.upload(withId);
-      setTab('track');
+      // A failed upload must not look recorded (2026-07-03 claims audit: this
+      // await had no catch — an unhandled rejection while the optimistic row
+      // sat on screen as if saved). Signed-out upload is a silent {skipped}
+      // no-op by design; a real error rolls the optimistic row back and says so.
+      const res = await forecastSync.upload(withId).catch((e) => ({ error: e }));
+      if (res && res.error) {
+        setSnapshots((prev) => prev.filter((s) => s.id !== withId.id));
+        setRecordError(`Could not record the snapshot: ${res.error.message || res.error}`);
+      } else {
+        setRecordError(null);
+        setTab('track');
+      }
     } finally {
       setRecording(false);
     }
@@ -448,7 +462,7 @@ export default function Forecast({ data, currentDate, isOwner = false }) {
             data={data} currentDate={cd}
             scopeOptions={scopeOptions} scope={scope} setScope={setScope}
             months={months} setMonths={setMonths}
-            onRecord={onRecord} recording={recording}
+            onRecord={onRecord} recording={recording} recordError={recordError}
           />
         )}
         {tab === 'goals' && <BudgetPlanner data={data} currentDate={cd} scope={scope} months={months} />}

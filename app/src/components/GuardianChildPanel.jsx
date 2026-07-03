@@ -14,10 +14,9 @@
 //      granted" — contradicting the Governor's standing decision (DR-0094).
 //      Money VISIBILITY is the guardian's call (No / Ask / Yes); spending and
 //      security stay locked because they ACT.
-//   2. Personas were hardcoded placeholders ('Twin A'/'Twin B') and the config
-//      was flattened across children. Personas now come from the REAL roster
-//      rows and the config is per-persona — one child's grant never bleeds
-//      onto another.
+//   2. Personas were hardcoded twin placeholders and the config was flattened
+//      across children. Personas now come from the REAL roster rows and the
+//      config is per-persona — one child's grant never bleeds onto another.
 //
 // Presentational: personas, per-persona config, and handlers are props, so the
 // panel is fully testable with injected IO and can never self-fetch stale data.

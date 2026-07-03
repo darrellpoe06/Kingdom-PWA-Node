@@ -435,7 +435,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Quarterly newsletter co-branding</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 2 active Foundation Sponsors at any time</span></li>
             </ul>
-            <button type="button" onClick={() => openCart({ name: 'Foundation Sponsor', tagline: 'Featured placement · max 2 active', monthly: '25000', annual: '25000', features: ['Featured "Brought to you by..." placement on Foundation tier','Prominent "PoeTech Picks" directory listing','Sponsor of a specific module\'s free-tier content','Quarterly newsletter co-branding'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
+            <button type="button" onClick={() => openCart({ name: 'Foundation Sponsor', tagline: 'Featured placement · max 2 active', monthly: '25000', annual: '25000', features: ['Featured "Brought to you by..." placement on Foundation tier','Prominent "PoeTech Picks" directory listing','Sponsor of a specific module\'s free-tier content','Quarterly newsletter co-branding'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Reserve a slot (email) →</button>
           </div>
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
@@ -448,7 +448,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Annual co-branded educational content</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 3 active Module Sponsors at any time</span></li>
             </ul>
-            <button type="button" onClick={() => openCart({ name: 'Module Sponsor', tagline: 'Standard placement · max 3 active', monthly: '10000', annual: '10000', features: ['Standard placement on Foundation tier','Directory listing in "PoeTech Picks"','Annual co-branded educational content'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
+            <button type="button" onClick={() => openCart({ name: 'Module Sponsor', tagline: 'Standard placement · max 3 active', monthly: '10000', annual: '10000', features: ['Standard placement on Foundation tier','Directory listing in "PoeTech Picks"','Annual co-branded educational content'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Reserve a slot (email) →</button>
           </div>
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
@@ -460,7 +460,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Annual mission-alignment review</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 5 active Directory Partners</span></li>
             </ul>
-            <button type="button" onClick={() => openCart({ name: 'Directory Partner', tagline: 'Directory listing · max 5 active', monthly: '3000', annual: '3000', features: ['"PoeTech Picks" directory listing','Annual mission-alignment review'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
+            <button type="button" onClick={() => openCart({ name: 'Directory Partner', tagline: 'Directory listing · max 5 active', monthly: '3000', annual: '3000', features: ['"PoeTech Picks" directory listing','Annual mission-alignment review'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Reserve a slot (email) →</button>
           </div>
         </div>
         <div className="mt-4 p-3 bg-[#FAF8F4] border-l-2 border-[#5A6E3D]">
@@ -512,7 +512,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       <section className="bg-white border-2 border-[#B85838] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">How Sponsorship Works · Pay First, Vet in Parallel</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Pick a tier above and click <strong>Sponsor</strong>. Payment authorizes the slot reservation; vetting against the 8-criterion framework runs in parallel and typically completes in <strong>15 business days</strong>. If your sponsorship doesn't clear vetting, <strong>full refund within 5 business days</strong> — no questions, no friction. This protects both sides: you get a fast yes/no, and we keep the platform trustworthy.
+          Pick a tier above and click <strong>Sponsor</strong> — today that opens a pre-filled email that reserves your slot request (in-app payment is not wired yet; terms are settled in the handshake). Vetting against the 8-criterion framework typically completes in <strong>15 business days</strong>, and once payments open: if a sponsorship doesn't clear vetting, <strong>full refund within 5 business days</strong> — no questions, no friction. This protects both sides: you get a fast yes/no, and we keep the platform trustworthy.
         </p>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           Read the 8-criterion framework above and the never-allowed list before sponsoring — if your business doesn't fit, the vetting will return your money. Saves everyone time.
@@ -525,7 +525,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The Integration Promise</div>
         <p className="text-sm leading-relaxed mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Every module shares data with every other. When the home module detects an HVAC failure, the financial module sees the incident in the cash flow. When the health module measures stress, the financial module shows correlation with pressure. When the spiritual module marks a fast week, the financial module sees the grocery spend pattern.
+          Every module is being built to share data with every other. As each one ships: the home module detecting an HVAC failure will land the incident in the cash flow; the health module measuring stress will show its correlation with pressure; the spiritual module marking a fast week will show up in the grocery spend pattern. The church and financial modules already run this way today.
         </p>
         <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           One family. One picture. All the granular detail when you need it.
@@ -582,7 +582,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
                       <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${(parseFloat(cartTier.annual) || 0).toLocaleString()}<span className="text-sm text-[#5A5751]">/yr</span></div>
                     </div>
                     <p className="text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
-                      <strong>Pay first, vet after.</strong> Vetting against the 8 PoeTech criteria runs in parallel — typically 15 business days. If your sponsorship doesn't pass vetting, <strong>full refund within 5 business days</strong>. Limited slots; placement begins after vetting clears.
+                      <strong>Reserve first, vet in parallel.</strong> This sends your reservation by email (no payment is taken in-app today). Vetting against the 8 PoeTech criteria typically takes 15 business days; limited slots; placement begins after vetting clears and terms are settled.
                     </p>
                   </div>
                 </>
@@ -627,7 +627,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
 
               {cartError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{cartError}</div>}
               <button onClick={() => submitCart(cartTier.isSponsor ? 'sponsor' : cartTier.monthly === '0' ? 'claim' : 'subscribe')} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
-                {cartTier.isSponsor ? 'Sponsor · Pay now, vet in parallel' : cartTier.monthly === '0' ? 'Claim it · Send confirmation email' : 'Subscribe · Send confirmation email'}
+                {cartTier.isSponsor ? 'Sponsor · Reserve via email' : cartTier.monthly === '0' ? 'Claim it · Send confirmation email' : 'Subscribe · Send confirmation email'}
               </button>
               <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
                 Opens your email client to finish the request. Logged locally in Checkout Intents below.

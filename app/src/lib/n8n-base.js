@@ -71,21 +71,37 @@ export const N8N_BASE = RAW ? RAW.replace(/\/+$/, '') : FUNNEL;
 // client gate were ever bypassed. Defense in depth: either gate alone fails
 // closed.
 //
-// VITE_N8N_BEARER is a build-time Vite var, set in the Vercel project env to
-// the SAME value the NAS apply script writes to /data/secrets/n8n-webhook-
-// bearer.txt. IMPORTANT: VITE_-prefixed vars are inlined into the public client
-// bundle and are therefore NOT a true secret -- this is a shared-secret speed
-// bump that pairs with the D17 gate, not per-user cryptographic auth. True
-// per-session secrecy arrives with the multi-user auth layer (L12 / Layer B),
-// which will mint a per-session token fetched at runtime instead of a build-
-// time constant. Full rationale + rotation steps: N8N-WEBHOOK-AUTH-PATTERN.md.
-const N8N_BEARER = (import.meta.env?.VITE_N8N_BEARER || '').trim();
+// TOKEN SOURCE ORDER (2026-07-03, Darrell: close the shipped-bearer exposure).
+// The old source was ONLY VITE_N8N_BEARER — a build-time var inlined into the
+// PUBLIC client bundle, so any visitor could extract the NAS webhook bearer
+// from the site's JS (the old comment itself admitted "NOT a true secret").
+// The PRIMARY source is now the PER-DEVICE bridge token — localStorage
+// 'poetech-chat-bridge-token', the same token the NAS photo/history bridges
+// already use: typed once on a family device, never present in the bundle.
+// VITE_N8N_BEARER remains ONLY as a transition fallback; once every family
+// device carries the bridge token, delete the var from the Vercel project and
+// ROTATE the bearer on the NAS — the bundle-extractable value then dies.
+// Rotation steps: N8N-WEBHOOK-AUTH-PATTERN.md.
+const N8N_BEARER_FALLBACK = (import.meta.env?.VITE_N8N_BEARER || '').trim();
+export const N8N_DEVICE_TOKEN_KEY = 'poetech-chat-bridge-token';
 
-// Returns the Authorization header object ONLY when a bearer is configured AND
+// Resolve the bearer at CALL time (not module load) so pasting the token into
+// a device takes effect without a reload. Injectable win for tests; never throws.
+export function resolveN8nBearer(win) {
+  try {
+    const w = win || (typeof window !== 'undefined' ? window : null);
+    const device = (w && w.localStorage && w.localStorage.getItem(N8N_DEVICE_TOKEN_KEY)) || '';
+    if (device.trim()) return device.trim();
+  } catch { /* private mode — fall through to the transition fallback */ }
+  return N8N_BEARER_FALLBACK;
+}
+
+// Returns the Authorization header object ONLY when a bearer is available AND
 // the caller is authorized to fetch PII. Otherwise returns {} so the demo /
 // profileless path sends nothing and the server gate denies it. Always spread
 // the result into an existing headers object: { ...n8nAuthHeaders(allowed) }.
-export function n8nAuthHeaders(authorized) {
-  if (authorized && N8N_BEARER) return { Authorization: `Bearer ${N8N_BEARER}` };
+export function n8nAuthHeaders(authorized, win) {
+  const bearer = resolveN8nBearer(win);
+  if (authorized && bearer) return { Authorization: `Bearer ${bearer}` };
   return {};
 }
