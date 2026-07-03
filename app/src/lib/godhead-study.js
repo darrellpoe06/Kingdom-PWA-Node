@@ -60,6 +60,7 @@ export const BOOK_MASTERPIECES = {
   'Romans':        'The legal masterpiece — the whole case of the Gospel argued to a verdict: no condemnation.',
   '1 Corinthians': 'The Body\'s house rules — gifts, order, love, and resurrection, written to a messy real church.',
   '2 Corinthians': 'Strength in the cracked jar — treasure in earthen vessels, grace sufficient, the cheerful sower.',
+  'Galatians':     'The freedom letter — no other gospel, the Spirit\'s fruit against the flesh\'s works, and burdens carried together.',
   'Ephesians':     'The seated-in-heavenly-places letter — chosen before the foundation of the world, the Body one, the armour on.',
   'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
@@ -480,6 +481,19 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'The order matters: submission powers the resistance. Unsubmitted resistance is noise; submitted resistance routs the adversary every time it is run.',
     outcome: 'An enemy in retreat and a God drawing near — the battlefield rearranged by two obediences.',
     tags: ['warfare', 'submission', 'resistance', 'nearness'],
+  },
+  {
+    // Darrell 2026-07-03: "Seated inside Heavenly Places right now — we souls
+    // are eternally blessed of Yahweh, just have to support each other while
+    // we grow."
+    id: 'gh-seated-heavenly', section: 'epistles', name: 'Seated in Heavenly Places (right now — support each other while we grow)',
+    refs: ['Ephesians 2:6', 'Ephesians 1:3', 'Galatians 6:2'],
+    condition: 'In Christ — raised up TOGETHER and made to sit TOGETHER; the seating is His past-tense act, not your future achievement.',
+    consequence: 'Seated in heavenly places IN CHRIST JESUS, already blessed with ALL spiritual blessings there — souls eternally blessed of Yahweh, right now, while still walking the 3rd dimension.',
+    threeD: 'Live FROM the seat, not TOWARD it: the position is settled, so the remaining work is each other — bear ye one another\'s burdens while we grow. The seat is singularly yours; the growing is done together.',
+    outcome: 'Identity that does not wobble with circumstances — already seated, already blessed — and a Body that carries each other up the growth curve.',
+    psyche: 'Striving FOR a status and living FROM a status run on different fuel: the settled seat removes the performance anxiety, which is exactly what frees a person to spend themselves supporting someone else\'s growth.',
+    tags: ['seated', 'heavenly-places', 'identity', 'burdens', 'growth'],
   },
   {
     // Darrell 2026-07-03: "YAHWEH got it — revenge and all... no thoughts
