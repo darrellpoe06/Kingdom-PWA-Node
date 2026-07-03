@@ -65,6 +65,7 @@ export const BOOK_MASTERPIECES = {
   'Ephesians':     'The seated-in-heavenly-places letter — chosen before the foundation of the world, the Body one, the armour on.',
   'Colossians':    'The preeminence letter — all things created by Him and for Him, held together in Him; the Head of the Body, first in everything.',
   'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
+  '1 Timothy':     'The house-conduct letter — how to behave in the house of God; godliness with contentment is great gain, and the good fight of faith is fought, not felt.',
   '2 Timothy':     'The baton letter — study approved, endure hardness, commit the Word to faithful men who teach others also; a crown laid up at the finish.',
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
   'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
@@ -609,6 +610,23 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'A conqueror-and-then-some: wounds that could not reach the love, a separation that could not separate, and a planted Word still compounding decades past the door that shut.',
     psyche: 'Parental rejection cuts identity at the root; healing holds two truths at once — the gift was real AND the wound was real — and reframes the rejection as redirection without excusing the harm. That double-truth is what makes forgiveness possible without self-erasure.',
     tags: ['conquerors', 'separation', 'rejection', 'word-not-void', 'love'],
+  },
+  {
+    // Darrell 2026-07-03: "I've always felt loved because of the Word... no
+    // depression, just fighting the good fight... enduring the world... Yahweh
+    // IS GOOD AND OUR JOY IS OUR STRENGTH — NOT happiness, that's reliable
+    // based on situations, not Joy... we would laugh after getting beat up
+    // inside and outside our home, then we learned how to fight, and the Word
+    // used that as exercise... amazing." The joy-vs-happiness distinction plus
+    // Hebrews 12:11's own word for it: EXERCISED thereby.
+    id: 'gh-good-fight-exercise', section: 'epistles', name: 'The Good Fight (joy is strength — happiness is weather)',
+    refs: ['1 Timothy 6:12', 'James 1:2-3', 'Hebrews 12:11'],
+    condition: 'The fight comes — inside the home and outside it; the chastening "for the present seemeth to be joyous" to no one; the world must be endured, not escaped.',
+    consequence: 'Fight the GOOD fight of faith and lay hold on eternal life; count it ALL joy — the trying of your faith worketh patience — and the grievous season yields the peaceable fruit of righteousness to them which are EXERCISED thereby.',
+    threeD: 'Do not wait on happiness — it is weather, indexed to the situation. Joy is indexed to Yahweh, so it holds while the situation swings. Laugh after the beating (that is not denial, that is the anchor holding), learn to fight, and let the Word run the beating as a training set: exercised thereby.',
+    outcome: 'Loved because of the Word regardless of the day\'s score — no depression, a good fight being fought, and every past beating repurposed as the exercise that built the fighter.',
+    psyche: 'Happiness is situation-indexed; joy is identity-indexed — an anchor, not weather. Laughter after trauma from a soul anchored outside the trauma is resilience, not repression; what research later named post-traumatic growth, Hebrews named first: exercised thereby.',
+    tags: ['joy', 'good-fight', 'exercise', 'endurance', 'strength'],
   },
   {
     // Darrell 2026-07-03: "Seated inside Heavenly Places right now — we souls
