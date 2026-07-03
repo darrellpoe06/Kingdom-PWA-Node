@@ -40,6 +40,7 @@ const HARVEST_ABOUT = aboutFor('church:harvest');
 // video's YouTube captions, no GPU) vs. derived from the row the instant it lands.
 const FROM_TRANSCRIPT = new Set(TRANSCRIPT_DERIVED_KEYS);
 import { subscribeLedger, recordHarvest, markHarvestNotApplicable } from '../lib/harvest-ledger.js';
+import { OPS_JOBS, queueCommand, cancelCommand, subscribeOpsCommands, runnerHint } from '../lib/ops-commands.js';
 
 const fmtDate = (d) => {
   if (!d) return 'undated';
@@ -159,6 +160,107 @@ function VideoRow({ video, canEdit, onRecord, onNa }) {
           )}
           {!canEdit && <p className="mt-2 text-[11px] text-[#5A5751] italic">A church steward records harvests as each recording is mined.</p>}
         </div>
+      )}
+    </div>
+  );
+}
+
+// Command status -> AA-on-light visual (inline), same palette discipline as
+// STATUS_STYLE above.
+const CMD_STYLE = {
+  queued:  { color: '#5A5751', border: '#E8E4DC', bg: '#FAF8F4', label: 'queued' },
+  running: { color: '#92400E', border: '#B8893B', bg: '#FBF6EC', label: 'running…' },
+  done:    { color: '#166534', border: '#166534', bg: '#F0FAF1', label: 'done' },
+  error:   { color: '#991B1B', border: '#991B1B', bg: '#FCEDEC', label: 'error' },
+  skipped: { color: '#8A857C', border: '#E8E4DC', bg: '#FFFFFF', label: 'skipped' },
+};
+
+const fmtTime = (iso) => {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); }
+  catch { return ''; }
+};
+
+function CommandRow({ cmd, onCancel }) {
+  const [open, setOpen] = useState(false);
+  const st = CMD_STYLE[cmd.status] || CMD_STYLE.queued;
+  const meta = OPS_JOBS[cmd.job];
+  return (
+    <div className="border border-[#E8E4DC] bg-white mb-1">
+      <div className="px-2 py-1.5 flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[0.625rem] px-1.5 py-0.5 border rounded" style={{ color: st.color, borderColor: st.border, background: st.bg }}>{st.label}</span>
+          <span className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{meta?.label || cmd.job}</span>
+          <span className="text-[0.625rem] text-[#5A5751]">{fmtTime(cmd.createdAt)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {cmd.status === 'queued' && (
+            <button type="button" onClick={() => onCancel(cmd.id)} className="text-[0.625rem] text-[#991B1B] underline hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+          )}
+          {cmd.log && (
+            <button type="button" onClick={() => setOpen((o) => !o)} className="text-[0.625rem] text-[#B85838] underline hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-expanded={open}>
+              {open ? 'Hide output' : 'Output'}
+            </button>
+          )}
+        </div>
+      </div>
+      {open && cmd.log && (
+        <pre className="px-2 pb-2 text-[0.625rem] text-[#5A5751] whitespace-pre-wrap break-words max-h-48 overflow-y-auto border-t border-[#E8E4DC] bg-[#FAF8F4]">{cmd.log.slice(-1500)}</pre>
+      )}
+    </div>
+  );
+}
+
+// The stewards' pipeline controls (DR-0088): trigger + observe the transcript
+// loader from INSIDE the app. Renders only for owner/admin (RLS 0068 is the
+// real wall). A command row is picked up by the NAS ops-runner within ~1 min.
+function OpsAdminCard() {
+  const [commands, setCommands] = useState(null);
+  const [note, setNote] = useState('');
+
+  useEffect(() => subscribeOpsCommands(setCommands), []);
+
+  const queue = async (job) => {
+    setNote('Queuing…');
+    const r = await queueCommand(job, {}, '');
+    setNote(r.queued ? 'Queued — the NAS runner picks it up within a minute.' : `Could not queue (${r.skipped}).`);
+  };
+  const onCancel = async (id) => { await cancelCommand(id); };
+
+  const hint = runnerHint(commands || [], Date.now());
+  return (
+    <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+        <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Transcript pipeline — steward controls</p>
+        {hint === 'queued-stale' && (
+          <span className="text-[0.625rem] px-1.5 py-0.5 border rounded" style={{ color: '#92400E', borderColor: '#B8893B', background: '#FBF6EC' }}>
+            Still queued — is the NAS runner armed?
+          </span>
+        )}
+      </div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        Buttons queue a command the NAS runner executes (within about a minute) and report back here live — no shell, no NAS screens.
+      </p>
+      <div className="flex flex-wrap gap-2 mb-2">
+        {Object.entries(OPS_JOBS).map(([job, meta]) => (
+          <button
+            key={job}
+            type="button"
+            onClick={() => queue(job)}
+            title={meta.description}
+            className="text-[0.6875rem] px-2.5 py-1.5 border border-[#1A1815] bg-[#FAF8F4] text-[#1A1815] hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            {meta.label}
+          </button>
+        ))}
+      </div>
+      {note && <p className="text-[0.6875rem] text-[#B85838] mb-2" aria-live="polite">{note}</p>}
+      {commands === null ? (
+        <p className="text-[0.6875rem] text-[#5A5751] italic">Loading recent commands…</p>
+      ) : commands.length === 0 ? (
+        <p className="text-[0.6875rem] text-[#5A5751] italic">No commands yet — the first one you queue appears here with live status.</p>
+      ) : (
+        <div>{commands.map((c) => <CommandRow key={c.id} cmd={c} onCancel={onCancel} />)}</div>
       )}
     </div>
   );
@@ -284,6 +386,8 @@ export default function HarvestLedger() {
               })}
             </div>
           </div>
+
+          {access?.canEdit && <OpsAdminCard />}
 
           {busy && <div className="text-[11px] text-[#B85838] mb-2" aria-live="polite">Saving…</div>}
 
