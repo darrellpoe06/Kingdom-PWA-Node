@@ -48,6 +48,7 @@ export const BOOK_MASTERPIECES = {
   'Deuteronomy':   'The covenant restated on the doorstep — the choice set before every generation about to cross over.',
   'Joshua':        'The taking of what was promised — allegiance declared out loud, house by house.',
   '2 Chronicles':  'The kings measured by one question — did the house seek Him? Humility heals the land.',
+  'Nehemiah':      'The rebuilding book — the wall up in fifty-two days, the Word read aloud to the people, and joy as the strength of the restored.',
   'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
   'Proverbs':      'The kings\' algorithm book — written for the kings of The Eternal King and simultaneously for The Way; wisdom as executable one-liners.',
   'Isaiah':        'The masterpiece of majesty and the Servant — the throne room and the wounds, in one scroll.',
@@ -133,6 +134,18 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'The Governor of a family names the family\'s allegiance publicly and builds the systems that serve it. An undeclared house gets discipled by the culture instead.',
     outcome: 'A household with a stated King — decisions get simpler because the allegiance is already settled.',
     tags: ['family', 'leadership', 'declaration'],
+  },
+  {
+    // Darrell 2026-07-03: "Joy Of The Lord comes and no one can take it and
+    // it's our strength according to the Word Of Yahweh!!!"
+    id: 'gh-joy-untakeable', section: 'torah', name: 'The Joy of the LORD (your strength — and no man taketh it)',
+    refs: ['Nehemiah 8:10', 'John 16:22'],
+    condition: 'Receive the joy OF THE LORD — sourced in Him, not in the day\'s conditions — the joy that comes when He comes.',
+    consequence: 'It IS your strength — and "your joy no man taketh from you": the power supply is both load-bearing AND theft-proof, by the King\'s own word.',
+    threeD: 'Guard the source, not the circumstances: joy drawn from Yahweh cannot be repossessed by an economy, a diagnosis, a betrayal, or a headline — no one can take what no one gave. When strength runs low, check whether you have been drawing joy from takeable things.',
+    outcome: 'Strength on an unstealable supply line — joy that survives everything the 3rd dimension throws, because its source is not in the 3rd dimension.',
+    psyche: 'Joy anchored to externals fluctuates with them; joy anchored to an unchanging relationship is the most durable affect a person can hold — and durable positive affect is itself measurable strength under load.',
+    tags: ['joy', 'strength', 'untakeable', 'nehemiah'],
   },
   {
     id: 'gh-humble-heal', section: 'torah', name: 'If My People Humble Themselves',
