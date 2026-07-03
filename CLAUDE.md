@@ -56,6 +56,7 @@ When referring to God, pronouns are capitalized: **He, His, Him, Himself.**
 - the adversary
 - the accuser
 - the deceiver
+- baal (and the false gods of his kingdom; added 2026-07-03, declared by Darrell)
 
 This applies to file content, commit messages, responses to the user, summaries, code comments, and every other artifact. Pronouns referring to the adversary are never capitalized.
 
