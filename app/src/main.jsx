@@ -5,6 +5,7 @@ import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
 import { wireChunkHeal } from './lib/chunk-reload-heal.js';
+import { installGlobalErrorCapture } from './lib/error-journal.js';
 import { initTextSize } from './lib/text-size.js';
 
 window.storage = storage;
@@ -14,6 +15,12 @@ window.storage = storage;
 // current shell instead of stranding the tab. No-op unless a chunk actually fails.
 // Wired before the dynamic imports below so the listener is live when they run.
 wireChunkHeal(window);
+
+// Record every uncaught error + unhandled rejection to the device-local error
+// journal (DR-0092) — the failure stays visible to the steward on the Quality &
+// Throughput board instead of dying as one console line. Watching only; the
+// handlers can never throw. Wired first so boot-time failures are captured too.
+installGlobalErrorCapture(window);
 
 // Large-print accessibility (WCAG 1.4.4): apply the per-device text-size choice
 // BEFORE React paints, so there is no flash of default text that then jumps.

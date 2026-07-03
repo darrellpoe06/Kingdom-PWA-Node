@@ -4,6 +4,10 @@
 # The app/ subproject has its own .gitignore for node_modules, dist, .vite.
 # This file covers the repo root.
 
+# A root-level node_modules was never covered here (only app/'s), so a vitest
+# .vite results cache leaked into a 2026-07-03 commit. Closed for good:
+node_modules/
+
 # ----------------------------------------------------------------------------
 # Sensitive / PII / PHI material — never commit
 # ----------------------------------------------------------------------------

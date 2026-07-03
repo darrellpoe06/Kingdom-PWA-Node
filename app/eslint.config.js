@@ -40,6 +40,8 @@ export default [
         __INTERCONNECT_LOOPS__: 'readonly',
         __CONFLICT_LOOP__: 'readonly',
         __UIUX_REVIEWS__: 'readonly',
+        __TEST_CENSUS__: 'readonly',
+        __LESSONS_PRINCIPLES__: 'readonly',
       },
     },
     plugins: {

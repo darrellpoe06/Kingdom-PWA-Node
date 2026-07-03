@@ -35,6 +35,8 @@
 import React, { useState } from 'react';
 import OpsBoard from './OpsBoard.jsx';
 import QualityProof from './QualityProof.jsx';
+import QualityThroughput from './QualityThroughput.jsx';
+import FamilyRoster from './FamilyRoster.jsx';
 import ConflictLoop from './ConflictLoop.jsx';
 import WakeOrchestrator from './WakeOrchestrator.jsx';
 import ProjectMgmtPulse from './ProjectMgmtPulse.jsx';
@@ -189,10 +191,14 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
         <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{ready[activeFaculty.key]?.note}</p>
       </section>
 
-      {/* SEE — real system + quality state. */}
+      {/* SEE — real system + quality state. The Quality & Throughput board
+          (DR-0091) leads as the roll-up: every gate/coverage/ops number read
+          live from its real artifact with the governing DR + principle beside
+          it; OpsBoard and QualityProof carry the per-area detail below. */}
       {tab === 'see' && (
         <div className="space-y-4">
           <KpiLegend />
+          <QualityThroughput />
           <OpsBoard />
           <QualityProof />
         </div>
@@ -233,9 +239,12 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
         </div>
       )}
 
-      {/* SERVE — the ontology the seat operates within. */}
+      {/* SERVE — the ontology the seat operates within, and the household it
+          serves first: the Family Roster (DR-0093) provisions children through
+          the 0055/0057 safety rails — never through the email allowlist. */}
       {tab === 'serve' && (
         <div className="space-y-3">
+          <FamilyRoster currentUserId={currentUserId} />
           <section className="bg-white border border-[#1A1815] p-4">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🕊 Command in order to serve</div>
             <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>

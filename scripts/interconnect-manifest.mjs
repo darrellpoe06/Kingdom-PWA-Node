@@ -159,6 +159,22 @@ export const INTERCONNECT_REGISTRY = [
     links: [],
     awaiting: 'Built + tested but not mounted: no component renders the worship set-list through <Presenter> (6 other surfaces do). Needs a lyrics→sections mapper + a worship surface. The pure machinery and NDI output already exist.',
   },
+
+  // ---- The system watching itself (DR-0091) ----
+  {
+    id: 'quality-throughput', name: 'Verification artifacts → Quality & Throughput board', status: 'live',
+    from: 'legibility-health.json + audit-findings.json + ops_commands + _schema_migrations + the live harvest join', to: 'Quality & Throughput board (C2S See faculty)',
+    proves: 'The steward board reads every quality/throughput number live from its real artifact — the vitest-synced legibility scan, the re-audit diff, the ops rows with timing+outcome, the migration ledger RPC, the harvest corpus join — with the governing DR + LESSONS principle resolved beside each number.',
+    source: { file: 'app/src/lib/quality-throughput.js', token: 'resolveWhy' },
+    links: [
+      { file: 'app/src/components/QualityThroughput.jsx', token: 'legibilitySummaryLine' },
+      { file: 'app/src/components/QualityThroughput.jsx', token: 'audit-findings.json' },
+      { file: 'app/src/components/QualityThroughput.jsx', token: 'subscribeOpsCommands' },
+      { file: 'app/src/components/QualityThroughput.jsx', token: 'fetchSchemaHealth' },
+      { file: 'app/src/components/QualityThroughput.jsx', token: 'fetchLedger' },
+      { file: 'app/src/components/CommandServeCenter.jsx', token: 'QualityThroughput' },
+    ],
+  },
 ];
 
 // --- verification (the only source of truth for a loop's status) ---------------
