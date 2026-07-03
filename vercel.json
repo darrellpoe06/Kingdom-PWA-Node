@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_comment": "REPO-ROOT git config ONLY. The 2026-06-16 preview-churn fix (deploy main only — the preview fan-out blew Vercel's 100/day cap) was placed in app/vercel.json, but branch filtering is evaluated against the vercel.json at the REPOSITORY ROOT, not the project Root Directory — measured 2026-07-03: previews still fired on every branch push. Serving config (rewrites/headers/caching) stays in app/vercel.json, which the Root Directory setting reads. Proven-to-catch: the push that added this file is the live test — it must produce NO preview deployment.",
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "main": true
+    }
+  }
+}
