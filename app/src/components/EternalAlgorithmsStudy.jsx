@@ -29,6 +29,7 @@ import {
 } from '../lib/eternal-algorithms-studies.js';
 import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
+import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards } from '../lib/godhead-study.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -125,6 +126,83 @@ function ForgeFramework({ alg }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// THE GODHEAD STUDY (Darrell 2026-07-03) — the Bible's deterministic algorithms,
+// Torah through Revelation. Each entry states the IF/THEN in the verse's own
+// logic, renders the verse VERBATIM (KJV from the verified fetch — never from
+// memory), then the 3D practice and the outcome. Collapsible per entry so the
+// study reads as exploration, not a wall ("Real study is fun and exploration").
+// -----------------------------------------------------------------------------
+function GodheadEntry({ entry }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={CARD}>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+        className="w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838]">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+          <span className="text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>✦ {entry.name}</span>
+          <span className="text-[0.625rem] text-[#5A6E3D]" style={mono}>{entry.refs.join(' · ')} {open ? '▾' : '▸'}</span>
+        </div>
+        <p className="text-[0.75rem] text-[#5A5751] mt-0.5" style={serif}>
+          <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] font-semibold">If</span> {entry.condition}
+        </p>
+      </button>
+      {open && (
+        <div className="mt-1.5">
+          <p className="text-[0.75rem] text-[#1A1815]" style={serif}>
+            <span className="uppercase tracking-wider text-[0.5625rem] text-[#5A6E3D] font-semibold">Then</span> {entry.consequence}
+          </p>
+          {entry.refs.map((r) => {
+            const text = godheadVerse(r);
+            return (
+              <div key={r} className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-1.5 my-1.5">
+                {text
+                  ? <p className="text-sm text-[#1A1815]" style={serif}>“{text}”<span className="text-[0.625rem] text-[#5A5751] ml-1" style={mono}>KJV</span></p>
+                  : <p className="text-xs text-[#5A5751] italic" style={serif}>{r} — read it in your Bible.</p>}
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{r}</span>
+                  <a href={readOnline(r, 'ESV')} target="_blank" rel="noopener noreferrer"
+                    className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Read ESV ↗</a>
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{entry.threeD}</p>
+          <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
+            <p className="text-sm text-[#1A1815]" style={serif}>{entry.outcome}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GodheadStudyView() {
+  return (
+    <div>
+      <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
+        <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">The Godhead Study · Torah → Revelation</p>
+        <p className="text-sm leading-relaxed" style={serif}>
+          The Bible's deterministic algorithms — the if/then patterns the Living Godhead states in His own words. Forever Eternal Beings inviting us into a bloodline family: every soul gets its turn to be tested, even the Son came off the Throne of Glory, and the meek — strength under the control of the Holy Spirit, The General — inherit. {GODHEAD_ALGORITHMS.length} patterns, every verse rendered verbatim (KJV, public domain).
+        </p>
+        <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
+          Die daily. This 3rd-dimensional space is not Home. It is all your choices — see you when you get there.
+        </p>
+      </div>
+      {godheadBySection().map((s) => (
+        <div key={s.key} className="mb-4">
+          <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>{s.label} · {s.entries.length}</h3>
+          <p className="text-[0.75rem] text-[#5A5751] mb-2" style={serif}>{s.blurb}</p>
+          <div className="space-y-2">
+            {s.entries.map((e) => <GodheadEntry key={e.id} entry={e} />)}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -232,14 +310,18 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
     });
   };
 
-  // The full deck: the study's belief-vs-action items PLUS every framework
-  // published from the family forge (Darrell 2026-07-03: "All eternal
-  // algorithms going into the game so they can be further aware of the Word.
-  // Real study is fun and exploration."). Same axes, one engine.
+  // The full deck: the study's belief-vs-action items, every framework
+  // published from the family forge, AND the whole-Bible Godhead Study catalog
+  // (Darrell 2026-07-03: "All eternal algorithms going into the game so they
+  // can be further aware of the Word. Real study is fun and exploration.").
+  // Same axes, one engine.
   const cards = useMemo(
-    () => [...studyToGameCards(study, responses), ...algorithmsToGameCards(forge)],
+    () => [...studyToGameCards(study, responses), ...algorithmsToGameCards(forge), ...godheadToGameCards()],
     [study, responses, forge],
   );
+  // Which room of the surface is open: the study series, or the whole-Bible
+  // Godhead Study (deterministic algorithms, Torah → Revelation).
+  const [room, setRoom] = useState('series');
   // Persist the generated deck so a Game Night (Generations) can pick it up, and
   // go to the games hub. withStudyDeck proves the deck injects into a real def.
   const toGameNight = () => {
@@ -261,6 +343,22 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
         </span>
       </SectionTitle>
 
+      {/* Two rooms, one surface: the interactive study series, and the
+          whole-Bible Godhead Study (Darrell 2026-07-03). */}
+      <div className="flex gap-2 flex-wrap mb-3" role="tablist" aria-label="Eternal Algorithms rooms">
+        <button type="button" role="tab" aria-selected={room === 'series'} onClick={() => setRoom('series')}
+          className={`${BTN} border ${room === 'series' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
+          Study series
+        </button>
+        <button type="button" role="tab" aria-selected={room === 'godhead'} onClick={() => setRoom('godhead')}
+          className={`${BTN} border ${room === 'godhead' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
+          The Godhead Study · whole Bible
+        </button>
+      </div>
+
+      {room === 'godhead' && <GodheadStudyView />}
+
+      {room === 'series' && (<>
       {/* The series frame — reverent, humble-seeking. */}
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
         <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">{SERIES.kicker}</p>
@@ -320,6 +418,8 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
           ))}
         </div>
       </div>
+
+      </>)}
 
       {/* The game hook — belief-vs-action round + Game Night hand-off. */}
       <div className="border-t-2 border-[#1A1815] pt-3">
