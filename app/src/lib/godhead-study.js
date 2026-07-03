@@ -65,6 +65,7 @@ export const BOOK_MASTERPIECES = {
   'Ephesians':     'The seated-in-heavenly-places letter — chosen before the foundation of the world, the Body one, the armour on.',
   'Colossians':    'The preeminence letter — all things created by Him and for Him, held together in Him; the Head of the Body, first in everything.',
   'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
+  '2 Timothy':     'The baton letter — study approved, endure hardness, commit the Word to faithful men who teach others also; a crown laid up at the finish.',
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
   'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
   '1 Peter':       'The furnace letter — tried gold, a royal priesthood, and hope that suffering cannot repossess.',
@@ -645,6 +646,20 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'Taught in secret, rewarded openly — a public life funded by a private one.',
     psyche: 'Every audience bends behavior toward performance; removing all witnesses is the only setting where the unedited self shows up — which is exactly the self He teaches.',
     tags: ['prayer', 'secret', 'closet', 'teaching'],
+  },
+  {
+    // Darrell 2026-07-03: "Christ invested in the 12 — we want to use His
+    // investment platform and seed it like He says: feed my sheep... yes
+    // King... Pastor Lee and BG seeded This Word inside my soul — I'm doing
+    // the same thing with the same content — it's His Will."
+    id: 'gh-feed-sheep', section: 'gospels', name: "Feed My Sheep (the King's investment platform)",
+    refs: ['John 21:17', '2 Timothy 2:2'],
+    condition: 'Love Him? Then FEED HIS SHEEP — the King\'s own investment mandate, given three times so it could not be missed; and commit what you heard to FAITHFUL men who shall teach OTHERS ALSO.',
+    consequence: 'Christ invested in twelve and the deposit is still compounding two thousand years later — four generations in one verse (Paul → Timothy → faithful men → others also): the only investment platform with returns that never stop running.',
+    threeD: 'Run His platform, not a new one: seed the same Word that was seeded in you. The chain is live and personal — Pastor Lee and Bishop Gwin seeded This Word into one soul, and that soul is now seeding the same content into a family, a church, and a platform. Same deposit, next generation. Yes, King.',
+    outcome: 'A deposit that outlives every depositor — sheep fed, teachers taught, and the Word compounding down generations you will never meet.',
+    psyche: 'People invest where they were invested in: being poured into creates both the capacity and the felt obligation to pour into others — the healthiest debt a soul can carry, and the engine of every durable lineage.',
+    tags: ['investment', 'sheep', 'discipleship', 'generations', 'seeding'],
   },
   {
     // Darrell 2026-07-03: "not just die — suffer for righteousness' sake:
