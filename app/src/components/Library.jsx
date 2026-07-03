@@ -26,6 +26,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import { FAMILY_ARTISTS, LISTENING_TAGLINE } from '../lib/family-listening.js';
 import { triggerDownload, exportFilename } from '../lib/creation-workspace.js';
 import { bookStats } from '../lib/book-engine.js';
 import { toMarkdown, bookToReaderHtml, bookToEpubBytes } from '../lib/book-formats.js';
@@ -297,6 +298,7 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
       <div className="flex gap-1 border-b mb-4" style={{ borderColor: PALETTE.line }}>
         {tabBtn('store', 'Store')}
         {tabBtn('shelf', `My shelf${shelf.length ? ` (${shelf.length})` : ''}`)}
+        {tabBtn('listening', 'Listening')}
         {isFamilyMember && tabBtn('studio', 'Studio — build a book')}
       </div>
 
@@ -345,6 +347,34 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
 
       {mode === 'studio' && isFamilyMember && (
         <Studio ctx={ctx} preview={preview} setPreview={setPreview} onSave={onSave} canPublish={isFamilyMember} />
+      )}
+
+      {/* LISTENING — the family-curated artist shelf (Darrell 2026-07-03:
+          Lecrae + the 116 crew). Links are honest YouTube SEARCHES, never a
+          guessed channel handle (DR-0076); swap in verified channel URLs per
+          artist as the family pins them (lib/family-listening.js). */}
+      {mode === 'listening' && (
+        <div>
+          <p className="text-sm mb-3" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>{LISTENING_TAGLINE}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {FAMILY_ARTISTS.map((a) => (
+              <div key={a.id} className="bg-white border p-3" style={{ borderColor: PALETTE.line }}>
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{a.name}</span>
+                  <span className="text-[0.5625rem] uppercase tracking-wider" style={{ color: PALETTE.muted }}>{a.tag}</span>
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>{a.note}</p>
+                <a href={a.searchUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-block mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  Listen on YouTube ↗
+                </a>
+              </div>
+            ))}
+          </div>
+          <p className="text-[0.625rem] mt-3 italic" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>
+            Curated by the family — name an artist and the shelf carries them.
+          </p>
+        </div>
       )}
     </div>
   );
