@@ -77,6 +77,31 @@ def is_verdict(err):
     return bool(err) and err.split(":", 1)[0].strip() in VERDICT_ERRORS
 
 
+def build_api(YouTubeTranscriptApi):
+    """YouTubeTranscriptApi, routed through a residential proxy when configured.
+
+    2026-07-03 reality check: YouTube IP-blocked the NAS's own residential IP
+    after ~180 requests in a day (IpBlocked on every fetch), so even the NAS
+    route needs either patience (rate-limit cool-off + small --max) or a proxy.
+    Set WEBSHARE_PROXY_USERNAME + WEBSHARE_PROXY_PASSWORD (rotating residential)
+    or YT_PROXY_URL (any http(s) proxy URL) in the environment.
+    """
+    ws_user = (os.environ.get("WEBSHARE_PROXY_USERNAME") or "").strip()
+    ws_pass = (os.environ.get("WEBSHARE_PROXY_PASSWORD") or "").strip()
+    proxy_url = (os.environ.get("YT_PROXY_URL") or "").strip()
+    if ws_user and ws_pass:
+        from youtube_transcript_api.proxies import WebshareProxyConfig
+        log("Proxy: Webshare rotating residential")
+        return YouTubeTranscriptApi(proxy_config=WebshareProxyConfig(
+            proxy_username=ws_user, proxy_password=ws_pass))
+    if proxy_url:
+        from youtube_transcript_api.proxies import GenericProxyConfig
+        log("Proxy: generic (YT_PROXY_URL)")
+        return YouTubeTranscriptApi(proxy_config=GenericProxyConfig(
+            http_url=proxy_url, https_url=proxy_url))
+    return YouTubeTranscriptApi()
+
+
 def log(msg):
     print(msg, file=sys.stderr, flush=True)
 
@@ -268,7 +293,7 @@ def main():
     acquire_lock()
     try:
         state = existing_state(url, key, instance_id)
-        api = YouTubeTranscriptApi()
+        api = build_api(YouTubeTranscriptApi)
         fetched = no_caption = blocked = skipped = 0
         total = len(ordered)
         for i, vid in enumerate(ordered, 1):
