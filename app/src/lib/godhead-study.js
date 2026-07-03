@@ -52,6 +52,7 @@ export const BOOK_MASTERPIECES = {
   'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
   'Proverbs':      'The kings\' algorithm book — written for the kings of The Eternal King and simultaneously for The Way; wisdom as executable one-liners.',
   'Isaiah':        'The masterpiece of majesty and the Servant — the throne room and the wounds, in one scroll.',
+  'Jeremiah':      'The weeping prophet\'s book — the Word found and EATEN as the heart\'s joy, fire shut up in the bones, and a new covenant written on hearts.',
   'Ezekiel':       'The watchman\'s book — every soul answers for itself, and dead bones learn to stand.',
   'Daniel':        'The furnace-and-throne book — allegiance under empire, and the Kingdom that outlasts them all.',
   'Malachi':       'The last word before the silence — prove Me now, and the Sun of righteousness rising.',
@@ -793,6 +794,22 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'Heaven\'s access control is the reason the testing matters: no more lucifers inside the Kingdom of Yahweh. Get in the Book — and live like someone whose name is in it.',
     outcome: 'A City that can never be corrupted again — and your name written where it counts forever.',
     tags: ['holiness', 'book-of-life', 'city', 'kingdom'],
+  },
+  {
+    // Darrell 2026-07-03: "Freedom by the word of their testimony... If they
+    // eat the Word their word and testimonies will align... Give credit to
+    // the person who deserves it... Eternal Algorithms — Yahweh's Perspectives
+    // And Will, as high above our thoughts as the heavens are from the earth."
+    // The last line is his own definition of the Eternal Algorithms space —
+    // Isaiah 55:8-9 is why the study exists at all.
+    id: 'gh-word-of-testimony', section: 'revelation', name: 'The Word of Their Testimony (eat the Word and the testimony aligns)',
+    refs: ['Revelation 12:11', 'Jeremiah 15:16', 'Isaiah 55:8-9', 'Romans 13:7'],
+    condition: 'The accuser is overcome by the blood of the Lamb AND by the word of their testimony — and a testimony only carries weight when the mouth and the life run the same Word.',
+    consequence: 'EAT the Word — "Thy words were found, and I did eat them" — and it becomes the joy and rejoicing of the heart: the word and the testimony ALIGN, and the aligned testimony overcomes.',
+    threeD: 'Freedom comes by the word of your testimony, so feed the testimony: eat the Word daily until what you say and what you lived are the same record. And render honour to whom honour is due — credit the person who deserves it, starting with the Author whose thoughts are as high above ours as the heavens are above the earth. That gap is why these are His algorithms, not ours.',
+    outcome: 'A testimony the accuser cannot cross-examine — Word eaten, word spoken, life lived, all one aligned record; and the credit flowing to the One who wrote it.',
+    psyche: 'Integrity is the mind\'s load-bearing wall: when the spoken word and the lived record match, there is nothing to defend and no second story to maintain — the alignment itself is the freedom, and giving credit where it is due keeps the self honest about what was received versus achieved.',
+    tags: ['testimony', 'overcoming', 'eat-the-word', 'honour', 'alignment'],
   },
 ];
 
