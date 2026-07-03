@@ -176,6 +176,11 @@ export const WHY = {
     principles: ['P10'],
     note: 'Watching is read-only and separate from doing — observing a loop can never break it.',
   },
+  errors: {
+    drs: ['DR-0090'],
+    principles: ['P3', 'P6'],
+    note: 'Every surface is boundary-contained (one crash = one inline card, never a white screen) and every caught error lands here — the failure stays visible, not lost to a console line.',
+  },
 };
 
 // Resolve one metric's why-refs against the real records. Every returned entry

@@ -4,6 +4,7 @@
 // render/lifecycle errors anywhere below it and degrades to a visible card the
 // person can recover from, while still logging the error for diagnosis.
 import React from 'react';
+import { recordError } from '../lib/error-journal.js';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -18,6 +19,9 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, info) {
     // Keep the console signal for diagnosis; the boundary handles the UI.
     console.error('App error caught by ErrorBoundary:', error, info?.componentStack);
+    // And the durable signal: the journal keeps the failure visible afterward
+    // on the Quality & Throughput board (DR-0090). Recording never throws.
+    recordError({ source: 'app-boundary', kind: 'render', message: error?.message || String(error) });
   }
 
   reset = () => this.setState({ error: null });

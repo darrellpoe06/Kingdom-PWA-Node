@@ -21,6 +21,7 @@
 // modules never import each other — they talk via core sync + the Events spine.
 
 import { lazy } from 'react';
+import { withSurfaceBoundary } from './lib/surface-boundary.jsx';
 
 // Adapt a module whose component is a NAMED export to the default-shaped module
 // React.lazy expects. `name` omitted ⇒ the module's default export is used.
@@ -86,7 +87,11 @@ export const SURFACES = [
 // Derive each lazy component ONCE from its loader and hang it on the entry.
 // `lazy(s.load)` is referentially stable across renders because SURFACES is a
 // module-level constant (same identity every render — no remount thrash).
-for (const s of SURFACES) s.component = lazy(s.load);
+// Every surface is wrapped in a per-surface error boundary at the mount layer
+// (lib/surface-boundary.jsx): one broken surface degrades to one inline card
+// and records to the error journal — it can never white-screen the app
+// (DR-0090; the 2026-06-25 Books>Tx class, contained structurally).
+for (const s of SURFACES) s.component = withSurfaceBoundary(lazy(s.load), s.label);
 
 // Lookup by id (for the shell + future data-driven render).
 export const surfaceById = Object.fromEntries(SURFACES.map((s) => [s.id, s]));

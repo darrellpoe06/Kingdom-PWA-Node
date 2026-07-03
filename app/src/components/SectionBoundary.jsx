@@ -11,6 +11,7 @@
 // Pairs with the app-wide ErrorBoundary (defense in depth) and the break-it ship
 // gate. Logs to console for diagnosis like the app-wide one.
 import React from 'react';
+import { recordError } from '../lib/error-journal.js';
 
 class SectionBoundary extends React.Component {
   constructor(props) {
@@ -24,6 +25,8 @@ class SectionBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     console.error(`Section error caught (${this.props.name || 'section'}):`, error, info?.componentStack);
+    // Durable signal for the Quality & Throughput board (DR-0090); never throws.
+    recordError({ source: `section:${this.props.name || 'section'}`, kind: 'render', message: error?.message || String(error) });
   }
 
   reset = () => this.setState({ error: null });

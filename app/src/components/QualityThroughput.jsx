@@ -37,6 +37,7 @@ import { fetchSchemaHealth, summary as migrationSummary, healthKpiStatus, health
 import { subscribeOpsCommands } from '../lib/ops-commands.js';
 import { fetchLedger } from '../lib/harvest-ledger.js';
 import { normalizeInterconnect, interconnectHeadline } from '../lib/interconnect-loops.js';
+import { readErrorJournal, errorJournalSummary } from '../lib/error-journal.js';
 
 const CENSUS = normalizeCensus(typeof __TEST_CENSUS__ !== 'undefined' ? __TEST_CENSUS__ : null);
 const LESSONS = normalizeLessons(typeof __LESSONS_PRINCIPLES__ !== 'undefined' ? __LESSONS_PRINCIPLES__ : null);
@@ -118,6 +119,9 @@ export default function QualityThroughput() {
 
   const verdict = ciVerdict(ci.data ? ci.data.mainCi : null, BUILD_SHA);
   const ops = opsThroughput(commands || []);
+  // Read fresh each render: the journal is device-local and cheap, and the
+  // Refresh button re-renders — so a just-caught error shows without wiring.
+  const errs = errorJournalSummary(readErrorJournal());
   const audit = auditTile(auditArtifact);
   const harvest = harvestTile(ledger);
   const mig = migrations && migrations.status === 'ok' ? migrationSummary(migrations.data) : null;
@@ -206,6 +210,16 @@ export default function QualityThroughput() {
           label={ops.label}
           source="ops_commands (DR-0088, realtime)"
           metric="ops"
+        />
+        <Metric
+          name="Runtime errors (this device)"
+          value={errs.total === 0
+            ? 'None recorded — every surface is boundary-contained, and any catch would land here.'
+            : `${errs.total} recorded (${errs.distinct} distinct) · last: ${errs.last ? `${(errs.last.at || '').slice(0, 16).replace('T', ' ')} · ${errs.last.source} — ${errs.last.message.slice(0, 80)}` : '—'}`}
+          status={errs.status}
+          label={errs.label}
+          source="poe-error-journal (localStorage, device-local — boundaries + window capture)"
+          metric="errors"
         />
         <Metric
           name="Interconnection loops"
