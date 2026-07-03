@@ -160,10 +160,16 @@ export const CHILD_CAPABILITY_POLICY = Object.freeze({
   // Outbound: a guardian may UP TO approval-gate it, never free-allow it.
   'message.outbound':  { default: SETTING.DENY,     maxGrant: SETTING.APPROVAL },
   'share.outbound':    { default: SETTING.DENY,     maxGrant: SETTING.APPROVAL },
+  // Money VISIBILITY is the guardian's decision (DR-0092; Darrell 2026-07-03:
+  // "I do want the guardian to make that decision — I want to make sure my
+  // kids can see how money actually works, education before they need it").
+  // Default stays child-safe DENY (a per-child, deliberate opt-in), but the
+  // guardian may raise it to approval-gated or allow. SEEING is not SPENDING:
+  // purchase.any below stays locked-deny regardless of this grant.
+  'finance.view':      { default: SETTING.DENY,     maxGrant: SETTING.ALLOW },
   // Locked-deny: child-safety floor the guardian cannot remove.
   'content.unrated':   { default: SETTING.DENY,     maxGrant: SETTING.DENY },
   'purchase.any':      { default: SETTING.DENY,     maxGrant: SETTING.DENY },
-  'finance.view':      { default: SETTING.DENY,     maxGrant: SETTING.DENY },
   'account.security':  { default: SETTING.DENY,     maxGrant: SETTING.DENY },
 });
 

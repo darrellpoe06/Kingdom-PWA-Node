@@ -174,6 +174,7 @@ export default function FamilyRoster({ io = DEFAULT_IO }) {
           <li>When they need their own sign-in: create their account as the guardian in the Supabase dashboard (Authentication → Users → Add user). There is no child self-signup, on purpose.</li>
           <li>Copy the new account&apos;s UUID and re-add the same name here with the UUID filled in — the roster row updates and the account gets the protected <strong>child</strong> role.</li>
           <li>Their email is never added to the family sign-in allowlist — that is the protection, not an omission.</li>
+          <li>What each child can see and do — including <strong>See family finances</strong> for money education (DR-0092: the guardian&apos;s call, so they learn how money actually works before they need it) — is set per child on the <strong>Relationships</strong> tab. Seeing is not spending: buy/spend stays locked off for a child no matter what.</li>
         </ol>
       </details>
     </section>

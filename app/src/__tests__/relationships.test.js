@@ -73,18 +73,30 @@ describe('guardian <-> child: child-safety is structural', () => {
   it('a guardian CANNOT grant a locked capability past its safety ceiling', () => {
     const reckless = {
       'purchase.any': SETTING.ALLOW,
-      'finance.view': SETTING.ALLOW,
       'content.unrated': SETTING.ALLOW,
       'account.security': SETTING.ALLOW,
     };
     // Every one is clamped back to deny — the guardian cannot configure unsafe.
     expect(can(REL.GUARDIAN_CHILD, 'child', 'purchase.any', reckless)).toBe(false);
-    expect(can(REL.GUARDIAN_CHILD, 'child', 'finance.view', reckless)).toBe(false);
     expect(can(REL.GUARDIAN_CHILD, 'child', 'content.unrated', reckless)).toBe(false);
     expect(can(REL.GUARDIAN_CHILD, 'child', 'account.security', reckless)).toBe(false);
-    for (const cap of ['purchase.any', 'finance.view', 'content.unrated', 'account.security']) {
+    for (const cap of ['purchase.any', 'content.unrated', 'account.security']) {
       expect(isChildCapabilityLocked(cap)).toBe(true);
     }
+  });
+
+  it("money VISIBILITY is the guardian's decision (DR-0092): default deny, grantable — spending stays locked", () => {
+    // Darrell 2026-07-03: "I do want the guardian to make that decision — I
+    // want to make sure my kids can see how money actually works, education
+    // before they need it." The default is still the child-safe deny (a
+    // per-child, deliberate opt-in)…
+    expect(can(REL.GUARDIAN_CHILD, 'child', 'finance.view')).toBe(false);
+    expect(isChildCapabilityLocked('finance.view')).toBe(false);
+    // …but the guardian's grant now HOLDS instead of being clamped away:
+    expect(can(REL.GUARDIAN_CHILD, 'child', 'finance.view', { 'finance.view': SETTING.ALLOW })).toBe(true);
+    expect(resolveChildCapability('finance.view', { 'finance.view': SETTING.APPROVAL })).toBe(SETTING.APPROVAL);
+    // Seeing is not spending — the same grant does NOT loosen purchase.any:
+    expect(can(REL.GUARDIAN_CHILD, 'child', 'purchase.any', { 'finance.view': SETTING.ALLOW, 'purchase.any': SETTING.ALLOW })).toBe(false);
   });
 
   it('outbound message can be UP TO approval-gated, never free-allowed', () => {
