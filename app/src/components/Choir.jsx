@@ -16,7 +16,7 @@
 // Accessibility: white cards / #1A1815 body (>= 16:1), #5A5751 secondary (~7:1),
 // labelled inputs, visible #B85838 focus outline, aria-live on the thread.
 // =============================================================================
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle, TabScroll } from './shared.jsx';
 import ChoirSongWorkshop from './ChoirSongWorkshop.jsx';
 import ChoirSongbook from './ChoirSongbook.jsx';
@@ -26,7 +26,7 @@ import {
   sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups,
   subscribeSongs, subscribeSchedule, subscribeSermons, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
   subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, openTeamDocument,
-  saveSong, deleteSong, reuseSong, saveService, deleteService, addMember, removeMember, sendChoirMessage,
+  saveSong, deleteSong, reuseSong, distinctSongCatalog, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveResource, deleteResource,
   inviteToChurch,
@@ -216,6 +216,35 @@ function ServiceForm({ initial, onSave, onCancel, busy }) {
 // -----------------------------------------------------------------------------
 const WEEK_GROUPS = [['this', 'This week'], ['next', 'Next week'], ['later', 'Coming up']];
 
+// Pick a song already imported under the Songs tab and add it to THIS date —
+// "so you are not doing double duty" (Christina 2026-07-04). Uses the existing
+// reuseSong pipeline (onReuse), so the chosen song is scheduled with its video,
+// lyrics, and scripture intact. No retyping.
+function SongPicker({ songs, onPick }) {
+  const [open, setOpen] = useState(false);
+  const [pick, setPick] = useState('');
+  const catalog = useMemo(() => distinctSongCatalog(songs), [songs]);
+  if (!catalog.length) return null;
+  if (!open) {
+    return <button type="button" onClick={() => setOpen(true)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Choose from imported songs</button>;
+  }
+  return (
+    <div className="mt-2 flex items-end gap-2 flex-wrap bg-[#FAF8F4] border border-[#5A6E3D] p-2">
+      <div className="min-w-[12rem]">
+        <label className={LABEL} htmlFor="pick-song">Choose an imported song</label>
+        <select id="pick-song" className={FIELD} value={pick} onChange={(e) => setPick(e.target.value)}>
+          <option value="">Select a song…</option>
+          {catalog.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
+        </select>
+      </div>
+      <button type="button" disabled={!pick}
+        onClick={() => { const s = catalog.find((x) => String(x.id) === String(pick)); if (s) onPick(s); setPick(''); setOpen(false); }}
+        className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Add to this date</button>
+      <button type="button" onClick={() => { setOpen(false); setPick(''); }} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:bg-white`}>Cancel</button>
+    </div>
+  );
+}
+
 function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse, past }) {
   const list = songsForService(songs, svc.serviceDate, svc.serviceType);
   const out = (absences || []).filter((a) => isOutOnDate(a, svc.serviceDate));
@@ -237,6 +266,9 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
           onReuse={onReuse} />
       ))
         : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No songs {past ? 'recorded' : 'assigned'} yet.</p>}
+      {canEdit && !past && onReuse && (
+        <div className="mt-1"><SongPicker songs={songs} onPick={(s) => onReuse(s, svc.serviceDate, svc.serviceType)} /></div>
+      )}
       {!past && out.length > 0 && (
         <p className="text-[0.6875rem] text-[#991B1B] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Out this day: {out.map((a) => a.memberName + (a.backupName ? ` (backup: ${a.backupName}${a.backupStatus === 'confirmed' ? ' ✓' : ''})` : '')).join(', ')}
@@ -299,23 +331,24 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
   );
 }
 
-function SchedulePanel({ schedule, canEdit, onAdd, onEdit, onDelete }) {
+// The schedule: each date shows its SONG LIST right inside it (Christina 2026-07-04:
+// "inside the date… a place for each song we are singing"), where songs are added
+// new OR chosen from the already-imported Songs. Edit/Delete manage the date itself.
+function SchedulePanel({ schedule, songs, absences, canEdit, onAdd, onEdit, onDelete, onAddSong, onEditSong, onDeleteSong, onReuse }) {
   const ordered = sortServices(schedule, todayIso());
   return (
     <div>
       {canEdit && <button type="button" onClick={onAdd} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mb-2`}>+ Add date</button>}
       {ordered.length ? (
-        <div className="bg-white border border-[#1A1815]">
+        <div className="space-y-3">
           {ordered.map((svc) => (
-            <div key={svc.id} className="flex items-baseline justify-between gap-2 flex-wrap p-3 border-b border-[#E8E4DC]">
-              <div>
-                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtDate(svc.serviceDate)}</span>
-                <span className="text-[0.6875rem] text-[#5A5751] ml-2">{serviceDayLabel(svc.serviceType, svc.serviceDate)}{svc.title ? ` · ${svc.title}` : ''}</span>
-              </div>
+            <div key={svc.id}>
+              <ServiceCard svc={svc} songs={songs} absences={absences} canEdit={canEdit}
+                onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} />
               {canEdit && (
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => onEdit(svc)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>
-                  <button type="button" onClick={() => onDelete(svc)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>
+                <div className="flex justify-end gap-3 px-1 pt-1">
+                  <button type="button" onClick={() => onEdit(svc)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit date</button>
+                  <button type="button" onClick={() => onDelete(svc)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete date</button>
                 </div>
               )}
             </div>
@@ -709,10 +742,14 @@ export default function Choir() {
           {serviceForm && access.canEdit && <ServiceForm initial={serviceForm.initial} busy={busy} onSave={onSaveService} onCancel={() => setServiceForm(null)} />}
           {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
           <SchedulePanel
-            schedule={schedule} canEdit={access.canEdit}
+            schedule={schedule} songs={songs} absences={absences} canEdit={access.canEdit}
             onAdd={() => setServiceForm({ initial: null })}
             onEdit={(svc) => setServiceForm({ initial: svc })}
             onDelete={async (svc) => { reportSkip(await deleteService(svc.id)); }}
+            onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
+            onEditSong={(s) => setSongForm({ initial: s })}
+            onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
+            onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
           />
         </>
       )}

@@ -9,7 +9,7 @@ import {
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService, buildPastServices,
   weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
-  selectNewSermonImports, isValidInviteEmail, isExternalUrl,
+  selectNewSermonImports, isValidInviteEmail, isExternalUrl, distinctSongCatalog,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -371,5 +371,26 @@ describe('toSongShape carries the timestamp + lyrics', () => {
     const out = toSongShape({ id: 's', title: 'x', start_seconds: 740, lyrics: 'Holy, holy, holy' });
     expect(out.startSeconds).toBe(740);
     expect(out.lyrics).toBe('Holy, holy, holy');
+  });
+});
+
+describe('distinctSongCatalog (pick from imported songs — no double duty)', () => {
+  it('dedupes by title (case-insensitive), keeps the richest record, sorts by title', () => {
+    const songs = [
+      { id: '1', title: 'way maker', youtubeUrl: 'y' },                    // sparser dup
+      { id: '2', title: 'Way Maker', lyrics: 'Words', youtubeUrl: 'y2' },  // richer (has lyrics) → wins
+      { id: '3', title: 'Amazing Grace' },
+      { id: '4', title: '' },        // no title → dropped
+      { id: '5', title: 'Goodness of God', lyrics: 'L' },
+    ];
+    const cat = distinctSongCatalog(songs);
+    expect(cat.map((s) => s.title)).toEqual(['Amazing Grace', 'Goodness of God', 'Way Maker']);
+    // the richer "Way Maker" (with lyrics) is the one kept
+    expect(cat.find((s) => /way maker/i.test(s.title)).id).toBe('2');
+  });
+  it('is safe on empty / non-array input', () => {
+    expect(distinctSongCatalog([])).toEqual([]);
+    expect(distinctSongCatalog(null)).toEqual([]);
+    expect(distinctSongCatalog(undefined)).toEqual([]);
   });
 });
