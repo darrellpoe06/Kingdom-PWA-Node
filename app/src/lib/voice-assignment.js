@@ -97,22 +97,37 @@ export function buildStandInAssignments(catalog, available) {
 
   const norm = (g) => (g === 'male' || g === 'female' ? g : 'unknown');
 
-  // Candidate device voices for a wanted gender: same-gender first, then the
-  // gender-ambiguous voices. Cross-gender voices are used ONLY when the device has
-  // none of the wanted gender at all (so a man never gets a clearly-female voice
-  // while a male voice exists). Gender correctness is the hard rule; distinctness is
-  // achieved by cycling within the pool.
+  // Candidate device voices for a wanted gender. THE ANDROID FIX (Darrell 2026-07-04:
+  // "my voice has never worked on android and the male voices never worked"): when a
+  // real gender (male/female) is wanted but the device exposes NO voice of that
+  // gender, we do NOT fall back to a gender-ambiguous web voice — on Android Chrome
+  // the "neutral" Google voices READ FEMALE, so a man got a female voice. Instead we
+  // route to the OS DEFAULT voice (PHONE_DEFAULT_VOICE) — the one the user can set to
+  // male in Android's Text-to-speech settings, and the only male-capable path when
+  // the web layer has no male voice. Returning `null` signals "use the phone default".
   const candidatesFor = (g) => {
     const same = g === 'female' ? female : g === 'male' ? male : neutral;
+    // A MAN with no male web voice → OS default (null). Android's gender-ambiguous
+    // Google voices read FEMALE, so a neutral fallback gives a man a female voice —
+    // the exact bug. A woman with no female voice can still use those neutral (female-
+    // sounding) voices, so only 'male' escapes to the OS default here.
+    if (g === 'male' && same.length === 0) return null;
     const pool = dedupeByUri([...same, ...neutral]);
-    return pool.length ? pool : voices; // device lacks this gender → best-effort, still labeled stand-in
+    return pool.length ? pool : voices; // best-effort, still labeled stand-in
   };
+
+  // The pseudo-voice that means "leave the utterance voice unset so the OS default
+  // speaks" — the play paths already treat PHONE_DEFAULT_VOICE this way.
+  const phoneDefault = { voiceURI: PHONE_DEFAULT_VOICE, name: 'Phone default (OS voice)' };
 
   // Assign a group of same-gender people across the pool, cycling so different people
   // get different voices. Start one past the System voice when possible, so the first
-  // person doesn't echo the System voice.
+  // person doesn't echo the System voice. A null pool means the device has no voice of
+  // this gender → everyone in the group reads in the (gender-settable) OS default.
   const assignGroup = (items, pool) => {
-    if (!items.length || !pool.length) return;
+    if (!items.length) return;
+    if (pool === null) { items.forEach((item) => { out[item.id] = phoneDefault; }); return; }
+    if (!pool.length) return;
     const start = pool.length > 1 && pool[0] && pool[0].voiceURI === sysUri ? 1 : 0;
     items.forEach((item, i) => { out[item.id] = pool[(start + i) % pool.length]; });
   };
