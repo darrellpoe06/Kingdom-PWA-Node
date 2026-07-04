@@ -9,10 +9,19 @@ import {
   PV_META, PV_MODULES, PV_SESSION_MINUTES,
   PV_CONFIRMED_COHORT, PV_PROPOSED_COHORT_START,
   buildPvSchedule, pvProgressSummary, exportPvCurriculumMarkdown,
-  resolvePvCohort, pvSources,
+  resolvePvCohort, pvSources, propheticVoicesToGameCards, PV_ROAD_STATIONS,
 } from '../lib/prophetic-voices.js';
 import { defaultCourses } from '../lib/book-corpus.js';
+import { withStudyDeck } from '../lib/games/generations.js';
 import { resolveForAge } from '../lib/learn-framework.js';
+
+// Refs verified verbatim against the public-domain KJV during this session
+// (DR-0076) — the game deck may only cite from this set.
+const VERIFIED_REFS = new Set([
+  'Psalm 43:3', 'Revelation 13:7', 'Revelation 13:14', 'Proverbs 22:22-23',
+  'Genesis 16:13', 'Matthew 13:57', 'Luke 8:17', 'Hosea 4:6', 'Revelation 12:11',
+  'Daniel 7:25', 'Mark 3:25', 'Acts 7:52',
+]);
 
 describe('shape', () => {
   it('seeds the preachers AND the scientists who weren’t heard, each fully formed', () => {
@@ -24,6 +33,8 @@ describe('shape', () => {
     expect(ids).toContain('pv-diop');
     expect(ids).toContain('pv-obenga');
     expect(ids).toContain('pv-williams');
+    // the theft of Black inventions (Darrell 2026-07-04)
+    expect(ids).toContain('pv-inventions');
     for (const m of PV_MODULES) {
       expect(m.title && m.bigIdea && m.anchor?.ref && m.anchor?.theme, m.id).toBeTruthy();
       expect(m.voice?.name, m.id).toBeTruthy();
@@ -100,5 +111,39 @@ describe('the prophetic frame + registration', () => {
   });
   it('is registered as a real corpus study', () => {
     expect(defaultCourses().map((c) => c.key)).toContain('prophetic-voices');
+  });
+});
+
+describe('the inventions module + the game weave the whole road', () => {
+  it('the inventions module is sourced and labels the contested cotton-gin "Sam" claim', () => {
+    const inv = PV_MODULES.find((m) => m.id === 'pv-inventions');
+    expect(inv).toBeTruthy();
+    expect(pvSources().some((s) => s.moduleId === 'pv-inventions' && /patent/i.test(s.claim))).toBe(true);
+    expect(inv.honestNote.toLowerCase()).toMatch(/contested|cotton gin|sam/);
+    expect(`${inv.lesson} ${inv.levels.senior}`).toMatch(/1793|1836|1858|patent/);
+  });
+  it('"The Road of His Children" game weaves the study and builds a real Generations def', () => {
+    const cards = propheticVoicesToGameCards();
+    expect(cards.length).toBeGreaterThanOrEqual(8);
+    // the road runs Source -> Beast -> Theft -> Covering -> Witnesses -> Exposure -> Recovery -> Kingdom
+    expect(PV_ROAD_STATIONS).toEqual([
+      'road-light', 'road-beast', 'road-theft', 'road-covering',
+      'road-witnesses', 'road-exposure', 'road-recovery', 'road-kingdom',
+    ]);
+    const def = withStudyDeck(null, cards); // same wiring the study component uses
+    expect(def).toBeTruthy();
+    expect(def.decks?.study?.length).toBe(cards.length);
+  });
+  it('every game card cites a VERIFIED KJV ref and offers a redemptive choice (DR-0076)', () => {
+    for (const c of propheticVoicesToGameCards()) {
+      expect(c.scripture?.ref, `${c.id} ref`).toBeTruthy();
+      expect(VERIFIED_REFS.has(c.scripture.ref), `${c.id} ref "${c.scripture.ref}" is verified`).toBe(true);
+      expect(c.choices.some((ch) => ch.redemption), `${c.id} has a redemptive choice`).toBe(true);
+    }
+  });
+  it('the beast station ties Daniel 7 to Revelation 13 (the 4th beast, both testaments)', () => {
+    const beast = propheticVoicesToGameCards().find((c) => c.id === 'road-beast');
+    expect(`${beast.lens} ${beast.body}`).toMatch(/Daniel 7/);
+    expect(`${beast.lens} ${beast.body} ${beast.scripture.ref}`).toMatch(/Revelation 13/);
   });
 });

@@ -35,7 +35,7 @@ export const PV_META = {
   tagline: 'A prophet is not without honour, save in his own country. Keep the record of the ones who told the truth.',
   format: 'Self-paced · one voice at a time · listen to the primary source, weigh it by the Word (the Test)',
   cadenceDays: 7,
-  weeks: 5,
+  weeks: 6,
   handsOnLabel: 'Hands-on: hear the primary source',
   blurb: 'The Body’s own overlooked voices — preachers who named America’s sins and the Church’s complicity (Dr. Frederick K.C. Price, Pastor Stephen Darby), and scientists/scholars who recovered the truth of Nile Valley civilization against imperial revisionism (Dr. Cheikh Anta Diop, Dr. Théophile Obenga, Dr. Chancellor Williams). Each voice is cited to its real work and cross-referenced with the Word; the study holds the record and points you to the source to weigh with discernment (the Test). Yahweh is the Light of Truth.',
   footer: '_Compiled by Darrell Poe · The Church of the Living God + PoeTech. We keep the record of the Body’s own prophets — cited, not endorsed wholesale — and we weigh every teaching by the Word (the Test). Honour to whom honour is due (Romans 13:7)._',
@@ -252,6 +252,45 @@ export const PV_MODULES = [
       ],
     },
   },
+  {
+    id: 'pv-inventions',
+    title: 'The stolen record — Black inventions and the theft of credit',
+    voice: { name: 'The uncredited inventors', ministry: 'Enslaved and free Black inventors whose work was taken, blocked, or credited to others', era: 'Patent Acts of 1793/1836 through the 20th century' },
+    bigIdea: 'The same beast-work that altered the historical record also stole the record of invention: U.S. patent law barred enslaved people (as non-citizens) from holding patents, so their inventions were claimed by enslavers or credited to white men. This is not grievance — it is documented patent history, and it is exactly the robbery of the poor’s due that God says He will avenge.',
+    inApp: 'Read the documented cases; separate what is court/patent record from what is contested tradition; and weigh it by the Word — the beast that steals and deceives, and the God who pleads the cause of the robbed.',
+    anchor: { ref: 'Proverbs 22:22-23; Revelation 13:14; Luke 8:17', theme: 'Rob not the poor, for the LORD will plead their cause and spoil the soul of those that spoiled them; the beast deceiveth them that dwell on the earth; nothing hid shall not be known. The theft of credit is robbery God avenges — and the truth comes to light.' },
+    sources: [
+      { claim: 'U.S. Patent Acts of 1793 and 1836 barred enslaved people from holding patents (defined as non-citizens); an 1858 ruling held an enslaved man’s invention could be patented by neither the slave nor the enslaver — so enslavers claimed their inventions. Free Black inventors were further hindered by Dred Scott and social barriers.', title: 'With Patents or Without, Black Inventors Reshaped American Industry / The Colorblind Patent System and Black Inventors', publisher: 'Smithsonian Magazine; American Bar Association', url: 'https://www.smithsonianmag.com/innovation/with-patents-or-without-black-inventors-reshaped-american-industry-180962201/', asOf: '2026-07-04' },
+      { claim: 'Documented cases: Benjamin Montgomery (enslaved) invented a shallow-water steamboat propeller, patent rejected due to his slave status; Lewis Latimer patented a longer-lasting carbon filament though Edison is popularly credited with the lightbulb; Thomas Jennings (1821) was among the first Black U.S. patent holders; Granville T. Woods held many patents and prevailed when Edison litigated.', title: 'America’s always had Black inventors — even when the patent system explicitly excluded them', publisher: 'The Conversation', url: 'https://theconversation.com/americas-always-had-black-inventors-even-when-the-patent-system-explicitly-excluded-them-72619', asOf: '2026-07-04' },
+    ],
+    honestNote: 'Verified: the patent-law exclusion (1793/1836 Acts, the 1858 ruling, Dred Scott), and the named cases (Montgomery, Latimer, Jennings, Woods). Held as CONTESTED tradition, not asserted as proven: the popular claim that Eli Whitney’s cotton gin was actually conceived by an enslaved man named "Sam" — it is a long-standing account without a settled documentary record, and this study labels it as such rather than teaching it as fact (the Test).',
+    levels: {
+      child: 'Long ago, when Black people were enslaved, the law said they were not "citizens," so they were not allowed to put their name on their own inventions — even brilliant ones! So the person who "owned" them, or someone else, would take the credit. That is stealing. One man, Lewis Latimer, made the light bulb last much longer, but a different man usually gets all the credit for the bulb. God sees every theft, and He says He will take the side of the robbed. Your job: say what the law wrongly said Black inventors were NOT allowed to get for their inventions (their name on a ___).',
+      senior: 'The revisionism that altered the ancient record has a modern twin in the record of INVENTION, and it is documented in patent law itself. The Patent Acts of 1793 and 1836 tied patent rights to citizenship, and because enslaved people were defined as non-citizens, they could not hold patents; an 1858 federal ruling made it explicit that an enslaved man’s invention could be patented by neither the enslaved inventor nor his enslaver — with the practical result that enslavers simply took the credit and the profit. Free Black inventors were further blocked by the Dred Scott decision and by social barriers. The consequences are named cases: Benjamin Montgomery’s shallow-water steamboat propeller, rejected because he was enslaved; Lewis Latimer’s carbon-filament improvement that made the electric light practical, while Edison is popularly credited with the bulb itself; Thomas Jennings, among the first Black patent holders (1821); Granville T. Woods, who held dozens of patents and won when Edison litigated against him. We keep the study’s discipline: these are patent-record and court facts, while the popular claim that Eli Whitney’s cotton gin was really conceived by an enslaved man named "Sam" is a contested tradition, labeled as such. The frame is the beast that "deceiveth them that dwell on the earth" (Revelation 13:14) and robs — and against it, the promise: "Rob not the poor... for the LORD will plead their cause, and spoil the soul of those that spoiled them" (Proverbs 22:22-23). The theft of credit is robbery, God avenges the robbed, and "nothing hid... shall not be known" (Luke 8:17) — the true record returns to the light.',
+    },
+    quiz: {
+      questions: [
+        { q: 'Why could enslaved inventors not hold patents?', options: ['They invented nothing', 'U.S. patent law tied patents to citizenship, and they were defined as non-citizens — so enslavers took the credit', 'They chose not to'], answer: 1, explain: 'The 1793/1836 Acts + the 1858 ruling — documented patent law, not grievance.' },
+        { q: 'How does the study hold the cotton-gin "Sam" claim?', options: ['As proven fact', 'As a contested tradition, labeled — not taught as fact (the Test)', 'By ignoring the theft entirely'], answer: 1, explain: 'Verified patent history is stated plainly; the contested tradition is labeled honestly.' },
+        { q: 'What does God say about the theft of the poor’s due?', options: ['He ignores it', 'He pleads their cause and spoils the soul of those that spoiled them (Proverbs 22:22-23)', 'He blames the robbed'], answer: 1, explain: 'The theft of credit is robbery God avenges; the truth comes to light (Luke 8:17).' },
+      ],
+    },
+    lesson: 'The revisionism that rewrote the ancient record has a modern twin, and it is written into patent law itself. The U.S. Patent Acts of 1793 and 1836 tied the right to a patent to citizenship. Because enslaved people were defined as non-citizens, they were legally barred from holding patents on their own inventions — and in 1858 a federal ruling made it explicit that an enslaved man’s invention could be patented by neither the inventor nor the man who "owned" him. The practical result was theft with the law’s blessing: enslavers took the credit and the profit for inventions they did not create, and even free Black inventors were blocked by the Dred Scott decision and by raw social prejudice. The documented cases are many. Benjamin Montgomery, enslaved, designed a steamboat propeller for shallow water; his patent was rejected because of his status. Lewis Latimer, the son of formerly enslaved parents, invented the longer-lasting carbon filament that made electric light practical and drafted the drawings for Bell’s telephone patent — yet Edison is the name the world attaches to the bulb. Thomas Jennings was among the first Black Americans to hold a U.S. patent, in 1821; Granville T. Woods held dozens and beat Edison in court when Edison tried to claim his work. We keep this study’s discipline here too: those are patent-record and court facts, plainly stated — while the popular claim that Eli Whitney’s cotton gin was actually conceived by an enslaved man named "Sam" is a long-standing tradition without a settled documentary record, and we label it as contested rather than preach it as proven. The biblical frame is the same beast that runs through this whole study — the power that "deceiveth them that dwell on the earth" (Revelation 13:14) and robs the weak of their due. And against it stands God’s own oath: "Rob not the poor, because he is poor... For the LORD will plead their cause, and spoil the soul of those that spoiled them" (Proverbs 22:22-23). The theft of a person’s invention is robbery, God Himself takes the side of the robbed, and because "there is nothing secret, that shall not be made manifest; neither any thing hid, that shall not be known" (Luke 8:17), the true record of who built what keeps returning to the light.',
+    facilitator: {
+      talkingPoints: [
+        'Patent law barred enslaved inventors: the 1793/1836 Acts + the 1858 ruling tied patents to citizenship — enslavers took the credit.',
+        'Documented: Montgomery (propeller, rejected), Latimer (carbon filament; Edison credited the bulb), Jennings (1821), Woods (beat Edison in court).',
+        'Honest note: the cotton-gin "Sam" claim is CONTESTED tradition, labeled — not taught as fact (the Test).',
+        'Frame: the beast that deceives and robs (Revelation 13:14); God pleads the cause of the robbed (Proverbs 22:22-23); the truth returns to light (Luke 8:17).',
+      ],
+      howToRun: 'Prayer + the anchor (5): pray; read Proverbs 22:22-23. | Who this voice is (10): the uncredited inventors and the patent law that blocked them. | Hear the primary source (25): read the documented cases (Smithsonian / ABA / The Conversation). | Weigh it by the Word (20): patent record vs contested tradition; God’s oath to the robbed. | Discussion (15): why is stealing credit a form of robbery God avenges?',
+      discussionPrompts: [
+        'How was the theft of invention written into the law itself?',
+        'Why do we label the "Sam"/cotton-gin claim as contested rather than teach it as fact?',
+        'What does it mean that God pleads the cause of the robbed and brings hidden things to light?',
+      ],
+    },
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -283,3 +322,35 @@ export function exportPvCurriculumMarkdown(startISO = null) {
 export function pvSources() {
   return PV_MODULES.flatMap((m) => (m.sources || []).map((s) => ({ moduleId: m.id, ...s })));
 }
+
+// ---------------------------------------------------------------------------
+// THE GAME — "The Road of His Children" (Darrell 2026-07-04: "a game at the end
+// for those who may want to understand the road of His children"). A deck that
+// WEAVES the whole study into one road: the Source (Yahweh, the Light of Truth)
+// → the Beast's work that alters the record (Daniel 7 AND Revelation 13) → the
+// theft (history + inventions) → the covering in bondage → the overlooked
+// witnesses (the preachers and the scientists) → the exposure → recovery
+// (knowledge + unity + restitution) → the Kingdom (overcomers of all nations).
+// Each station cross-references verified KJV Scripture (every ref below was
+// checked verbatim against the public-domain source, DR-0076). The deck plugs
+// into the shared Generations game via withStudyDeck(null, cards), exactly like
+// godheadToGameCards — so it rides the real engine, not a fork.
+// ---------------------------------------------------------------------------
+export function propheticVoicesToGameCards() {
+  const carry = { label: 'Carry it — tell someone the road', body: 'The record kept and handed on — teach one person this station of the road.', effects: { family: 1, souls: 2, service: 1 } };
+  const ignore = { label: 'Look away', body: 'The record stays buried; the beast’s work stands unanswered.', effects: { faith: -1, wisdom: -1 } };
+  const walk = (body) => ({ label: 'Walk it — receive the truth', body, effects: { faith: 2, wisdom: 1, provision: 1 }, redemption: true });
+  return [
+    { id: 'road-light', type: 'card', title: 'The Source — the Light of Truth', lens: 'The road begins at the unaltered record; Yahweh is the Light of Truth', body: 'Before the theft and the revisionism, there is a true record and a true Source. The road of His children begins in the light, not the lie.', scripture: { ref: 'Psalm 43:3' }, choices: [walk('Ask God to send out His light and His truth to lead you into the real record.'), ignore, carry] },
+    { id: 'road-beast', type: 'card', title: 'The Beast’s Work — the record altered', lens: 'Daniel 7 and Revelation 13: the empire that changes times, deceives, and wars on the saints', body: 'A power "thinks to change times and laws" (Daniel 7:25) and "deceiveth them that dwell on the earth" (Revelation 13:14) — rewriting the record and making war on the saints.', scripture: { ref: 'Revelation 13:7' }, choices: [walk('Name the revisionism for what it is — the beast’s work — and refuse the altered record.'), ignore, carry] },
+    { id: 'road-theft', type: 'card', title: 'The Theft — history and invention taken', lens: 'The stolen record: patents denied, credit taken, the poor robbed', body: 'The same work steals the record of invention — enslaved inventors barred from patents, credit taken by others. But God pleads the cause of the robbed.', scripture: { ref: 'Proverbs 22:22-23' }, choices: [walk('Trust that God avenges the robbed, and give credit back where it was stolen.'), ignore, carry] },
+    { id: 'road-covering', type: 'card', title: 'The Covering — seen in the bondage', lens: 'El Roi: the God who saw the enslaved and covered His children', body: 'On the hardest stretch of the road — bondage — the God who sees (El Roi) saw a fugitive slave woman and covered her. He knew, and He covered His children.', scripture: { ref: 'Genesis 16:13' }, choices: [walk('Receive it: you are seen, not forsaken — He covered a people who should not have survived.'), ignore, carry] },
+    { id: 'road-witnesses', type: 'card', title: 'The Witnesses — the overlooked ones', lens: 'Preachers (Price, Darby) and scientists (Diop, Obenga, Williams) the world would not hear', body: 'God kept witnesses on the road — preachers and scientists who told the truth at cost and were overlooked, for "a prophet is not without honour, save in his own country."', scripture: { ref: 'Matthew 13:57' }, choices: [walk('Keep the record of the overlooked — hear them, and weigh them by the Word.'), ignore, carry] },
+    { id: 'road-exposure', type: 'card', title: 'The Exposure — God brings it to light', lens: 'Nothing hidden stays hidden — the exposure is His doing', body: 'The road turns toward the light: "there is nothing secret, that shall not be made manifest." God Himself is bringing the buried record up.', scripture: { ref: 'Luke 8:17' }, choices: [walk('Join what God is doing — bring the truth into the light instead of burying it.'), ignore, carry] },
+    { id: 'road-recovery', type: 'card', title: 'Recovery — knowledge, unity, restitution', lens: 'Rebuild: recover the knowledge, refuse the division, make it right', body: '"My people are destroyed for lack of knowledge" — so recover it; "a house divided cannot stand" — so refuse division; and reconciliation comes through restitution (Zacchaeus).', scripture: { ref: 'Hosea 4:6' }, choices: [walk('Recover the knowledge, choose unity over division, and make right what you can.'), ignore, carry] },
+    { id: 'road-kingdom', type: 'card', title: 'The Kingdom — overcomers of every nation', lens: 'The road ends in the one-new-man Body: overcomers of all nations and tongues', body: 'The road of His children ends where "they overcame him by the blood of the Lamb, and by the word of their testimony" — a great multitude of all nations and tongues.', scripture: { ref: 'Revelation 12:11' }, choices: [walk('Take your place among the overcomers — by the blood of the Lamb and the word of your testimony.'), ignore, carry] },
+  ];
+}
+
+// The road stations, in order — used by the game and testable as the through-line.
+export const PV_ROAD_STATIONS = propheticVoicesToGameCards().map((c) => c.id);
