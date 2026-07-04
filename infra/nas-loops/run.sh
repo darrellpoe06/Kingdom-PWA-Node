@@ -9,16 +9,20 @@
 # runs ONCE per DSM fire and exits (the June-6 runaway rule; a script that exits
 # holds no RAM and cannot wedge a shared process).
 #
+# Governance is the PARAMETERS + humans, not a --run ceremony (DR-0096). The single
+# arm is LOOPS_ARMED (env or infra/nas-loops/.env); once armed, a fire RUNS the loop
+# behind the three brakes. Disarmed => it stays inert. --dry-run previews only.
+#
 # DSM examples (register by hand in the DSM UI — see README.md):
-#   Scheduled Task, every 10 min, root:
-#     bash /volume1/PoeTech/<repo>/infra/nas-loops/run.sh health-check
-#   Add --run only AFTER arming (touch state/LOOPS_ARMED); without it the runner
-#   stays plan-only and executes nothing.
+#   Scheduled Task, every 10 min, root (arm persistently via .env first):
+#     bash /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-loops/run.sh health-check
+#   Put LOOPS_ARMED=1 in infra/nas-loops/.env to arm; remove it (or touch
+#   state/KILL_SWITCH) to stop. No --run needed.
 #
 # Usage:
-#   ./run.sh <loop-name>           # plan-only (logs what it WOULD do)
-#   ./run.sh <loop-name> --run     # LIVE (runner gates it on all brakes)
-#   ./run.sh --list                # show the registry + brake state
+#   ./run.sh <loop-name>            # runs it if armed + brakes GO; inert if disarmed
+#   ./run.sh <loop-name> --dry-run  # preview the decision, execute nothing
+#   ./run.sh --list                 # show the registry + brake state
 # =============================================================================
 set -euo pipefail
 
