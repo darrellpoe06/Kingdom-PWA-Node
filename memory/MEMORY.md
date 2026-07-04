@@ -48,6 +48,14 @@ relying on it; memories reflect what was true when written.
   404s). The in-app DB Health panel reads the `_schema_migrations` ledger the
   lane writes. So: put SQL in a migration file and let the lane run it; read the
   run log / ledger for the receipt — do NOT improvise a manual apply path.
+- **feedback_timelines_concrete_eta** — when Darrell asks for a timeline / "when
+  will I see it," always give BOTH (a) the grounded status (what's actually
+  happening, reality-traced) AND (b) a CONCRETE single-number ETA — an actual
+  amount of time, e.g. "~10 minutes," with a confidence and the one variable that
+  could move it — never a vague "soon." Then report actual-vs-estimate afterward
+  so he can measure the forecast. Declared 2026-07-04: "When I ask for a timeline
+  can you give this information and also an actual amount of time every time. I
+  want to measure your ability to time the output rate."
 
 ## Session-learned additions (append per session, newest first)
 
