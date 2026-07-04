@@ -83,6 +83,18 @@ If the user pastes source text that capitalizes any of the lowercase-only terms,
 - **Where the Word itself is reticent, stay with what it says.** Teach what is written and stop; never invent beyond the text.
 - **This does NOT relax verification (DR-0076).** Still never fabricate; fetch every verse verbatim; still flag genuine uncertainty about *system claims* and about *the Word's own silence*. The distinction that must be kept: "scholars debate the interpretation" (man-agreement — not a reason to withhold the Word) is NOT the same as "honest uncertainty" (the Word's silence, or an unverified system claim — a real reason to flag). DR-0076 keeps us from lying; DR-0098 keeps us from debating. They are complements.
 
+## Speak Established Fact — False Skepticism Is Not Discernment (added 2026-07-04, declared by Darrell; DR-0100)
+
+**We speak the truth. Established fact and real, documented damage are stated plainly — not hedged into "contested / can't verify / no one knows," and not dressed up as "discernment."** This is the DATA-side of the same posture DR-0098 sets for Scripture: the both-sides-for-ratings gaslight is removed from how we handle real-world information, too. Declared by Darrell 2026-07-04 correcting the Game Changers handling: *"You keep debating statistically truthful data... ignoring real damage for 'no one knows'... we'd lose credibility for not seeing the truth or for gaslighting. We speak truth. Calling it discernment and not knowing what to do — based on experience and statistical analysis and the Word of Yahweh."*
+
+Process every real-world input (health, science, statistics, documented harm) in **three tiers**, and treat each correctly:
+
+1. **Established fact / documented damage → STATE IT PLAINLY as truth.** Name the basis; never soften real harm into "some say." Under-claiming a verified truth is as much a failure of truth as over-claiming an unverified one.
+2. **Genuinely open / unsettled → flag honestly, NARROWLY.** Reserve "uncertain / contested" for where the science truly is unsettled or a *specific* claim is unproven — named precisely, never a blanket smeared over the whole topic.
+3. **Ideological over-reach / contradicts the Word → the Word corrects THAT claim; the true data under it still stands.** (e.g. "plant-only-as-doctrine / meat is evil" ← Genesis 9:3; 1 Timothy 4:3-4; Romans 14 — while the real ultra-processed-food + heart-disease harm is untouched, and the Word affirms tending the temple, 1 Corinthians 6:19-20; Daniel 1:15.)
+
+**"Discernment" is never a hedge.** Calling something a discernment issue and then staging both-sides-you-decide is the failure. Real discernment is grounded — experience + statistical analysis + the Word — and it **commits to what is true.** DR-0076 keeps us from lying by over-claiming; DR-0100 keeps us from lying by under-claiming; DR-0098 keeps us from debating the Word; DR-0100 keeps us from debating the facts.
+
 ## Authoritative Reference
 
 The canonical statement of these rules lives in [`docs/00-foundations/14-naming-conventions.md`](docs/00-foundations/14-naming-conventions.md). If that document and this one drift, the binding rules in this file govern until the foundation doc is updated.
