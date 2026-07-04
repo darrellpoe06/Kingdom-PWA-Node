@@ -20,7 +20,13 @@
 // =============================================================================
 
 export const TV_SOURCE = { name: 'TVmaze', url: 'https://www.tvmaze.com', license: 'CC BY-SA' };
+// Movies too (Darrell 2026-07-04: "movies too?"). TVmaze is TV-only, so movies use
+// the iTunes Search API — FREE, NO API KEY (nothing to leak, unlike TMDb/OMDb),
+// CORS-enabled, with a poster + year + genre. A movie is a single-watch item (no
+// seasons); the same keyless / fail-soft / device-local posture as TVmaze.
+export const MOVIE_SOURCE = { name: 'iTunes Search', url: 'https://itunes.apple.com', license: 'Apple public search API' };
 const BASE = 'https://api.tvmaze.com';
+const MOVIE_BASE = 'https://itunes.apple.com';
 
 // Injectable fetcher (defaults to window.fetch). Tests set a disk/sample fetcher.
 let _fetch = (typeof fetch === 'function') ? ((...a) => fetch(...a)) : null;
@@ -46,6 +52,7 @@ export function showBrief(s) {
   const img = s.image || {};
   return {
     id: String(s.id),
+    kind: 'show',
     title: String(s.name),
     year: String(s.premiered || '').slice(0, 4),
     network: (s.network && s.network.name) || (s.webChannel && s.webChannel.name) || '',
@@ -99,4 +106,50 @@ export async function loadShow(id) {
 // Total episodes across a show's seasons (for the "0 / N watched" progress).
 export function totalEpisodes(seasons) {
   return (Array.isArray(seasons) ? seasons : []).reduce((n, s) => n + (s.episodes ? s.episodes.length : 0), 0);
+}
+
+// --- Movies (iTunes Search API) ----------------------------------------------
+// A movie is a single-watch item: no seasons, just a poster + year + genre. The
+// search result already carries everything (unlike a show, no second fetch).
+
+// Upscale iTunes' tiny artwork (…/100x100bb.jpg) to a card-sized poster. Pure.
+function bigArt(url) {
+  return String(url || '').replace(/\/[0-9]+x[0-9]+bb(\.(jpg|png))?$/i, '/600x600bb$1');
+}
+
+// One iTunes result -> our brief shape (kind:'movie'). Pure.
+export function movieBrief(r) {
+  if (!r || r.trackId == null || !r.trackName) return null;
+  return {
+    id: `mv-${r.trackId}`,          // 'mv-' prefix so a movie id never collides with a TVmaze show id
+    kind: 'movie',
+    title: String(r.trackName),
+    year: String(r.releaseDate || '').slice(0, 4),
+    network: '',                    // movies have no network; the studio isn't reliably in the payload
+    poster: bigArt(r.artworkUrl100 || r.artworkUrl60 || ''),
+    genre: String(r.primaryGenreName || 'Movie'),
+    summary: plain(r.longDescription || r.shortDescription || ''),
+  };
+}
+
+// GET /search?media=movie&term= -> { results:[...] } -> [brief]. Pure parser.
+export function parseMovieResults(json) {
+  const rows = json && Array.isArray(json.results) ? json.results : [];
+  return rows.map(movieBrief).filter(Boolean);
+}
+export async function searchMovies(query) {
+  const q = String(query || '').trim();
+  if (q.length < 2) return [];
+  const json = await getJson(`${MOVIE_BASE}/search?media=movie&limit=12&term=${encodeURIComponent(q)}`);
+  return parseMovieResults(json);
+}
+
+// One search box, both worlds: look up shows AND movies at once, shows first
+// (they carry the seasons the group checks off). Fail-soft — either side that
+// errors just contributes nothing. Returns kind-tagged briefs.
+export async function searchTitles(query) {
+  const q = String(query || '').trim();
+  if (q.length < 2) return [];
+  const [shows, movies] = await Promise.all([searchShows(q), searchMovies(q)]);
+  return [...shows, ...movies];
 }

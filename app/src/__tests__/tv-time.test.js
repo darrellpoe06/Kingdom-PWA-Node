@@ -12,6 +12,7 @@ import {
   addComment, getComments, toggleReaction, reactionCount, bucketShows, discernmentPromptFor,
   addCustomShow, customCatalog,
   addShowFromCatalog, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress, epKey,
+  addMovieFromCatalog, toggleMovieWatched, isMovieWatched, itemKind,
 } from '../lib/tv-time.js';
 
 // A looked-up show (tv-catalog shape) with 2 seasons / 3 episodes total.
@@ -151,6 +152,47 @@ describe('episodes — bring in the seasons, check off what you watched', () => 
     expect(isEpisodeWatched(st, '82', 2, 1)).toBe(false);       // false value dropped
     expect(Object.keys(st.shows['82'].watched)).toEqual(['1x1']); // bogus key dropped
     expect(epKey(3, 7)).toBe('3x7');
+  });
+});
+
+// A looked-up movie (tv-catalog shape) — a single-watch item, no seasons.
+const MOVIE = { id: 'mv-1337364561', kind: 'movie', title: 'Black Panther', genre: 'Action & Adventure', poster: 'bp.jpg', year: '2018', network: '' };
+
+describe('movies — a single watch, then rate + talk ("movies too?")', () => {
+  it('adds a movie as "want", with no seasons, kind movie', () => {
+    const s = addMovieFromCatalog(emptyTv(), MOVIE);
+    const meta = customCatalog(s).find((x) => x.id === 'mv-1337364561');
+    expect(meta.kind).toBe('movie');
+    expect(meta.title).toBe('Black Panther');
+    expect(meta.seasons).toEqual([]);
+    expect(itemKind(s, 'mv-1337364561')).toBe('movie');
+    expect(getStatus(s, 'mv-1337364561')).toBe('want');
+    expect(showProgress(s, 'mv-1337364561')).toEqual({ watched: 0, total: 1 });
+  });
+  it('one tap marks a movie watched (and back), reflected in progress + status', () => {
+    let s = addMovieFromCatalog(emptyTv(), MOVIE);
+    s = toggleMovieWatched(s, 'mv-1337364561');
+    expect(isMovieWatched(s, 'mv-1337364561')).toBe(true);
+    expect(getStatus(s, 'mv-1337364561')).toBe('watched');
+    expect(showProgress(s, 'mv-1337364561')).toEqual({ watched: 1, total: 1 });
+    s = toggleMovieWatched(s, 'mv-1337364561');   // back to want
+    expect(isMovieWatched(s, 'mv-1337364561')).toBe(false);
+    expect(getStatus(s, 'mv-1337364561')).toBe('want');
+  });
+  it('toggleMovieWatched only acts on a tracked movie (not a show, not unknown)', () => {
+    const s = addShowFromCatalog(emptyTv(), { id: 82, title: 'GoT', seasons: [] });
+    expect(toggleMovieWatched(s, '82')).toEqual(s);            // a show is untouched
+    expect(toggleMovieWatched(emptyTv(), 'nope')).toEqual(emptyTv());
+  });
+  it('a movie kind survives a save/load round-trip and rating works', () => {
+    installStorage();
+    let s = addMovieFromCatalog(emptyTv(), MOVIE);
+    s = rateShow(s, 'mv-1337364561', 5);
+    saveTv('m@x.co', s);
+    const st = loadTv('m@x.co');
+    expect(itemKind(st, 'mv-1337364561')).toBe('movie');
+    expect(customCatalog(st)[0].seasons).toEqual([]);
+    expect(bucketShows(st, customCatalog(st)).want[0].rating).toBe(5);
   });
 });
 
