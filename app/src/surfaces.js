@@ -57,6 +57,7 @@ export const SURFACES = [
   { id: 'access',       label: 'Access',           nav: 'top', view: 'access',       sub: null,          gate: 'family/governor',                            load: () => import('./components/AccessUsageMetrics.jsx') },
   { id: 'recipes',      label: "Chef's Corner",    nav: 'top', view: 'recipes',      sub: null,          load: () => import('./components/ChefCorner.jsx') },
   { id: 'games',        label: 'Games',            nav: 'top', view: 'games',        sub: null,          load: () => import('./components/Games.jsx') },
+  { id: 'tvtime',       label: 'TV Time',          nav: 'top', view: 'tvtime',       sub: null,          load: () => import('./components/TVTime.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
   { id: 'church-home',      label: 'Church Home',   nav: 'church', view: 'church', sub: 'home',       load: pick(() => import('./components/ChurchHome.jsx'), 'ChurchHome') },
@@ -117,6 +118,7 @@ export const AdminConsole     = surfaceById['admin'].component;
 export const AccessUsageMetrics = surfaceById['access'].component;
 export const ChefCorner       = surfaceById['recipes'].component;
 export const Games            = surfaceById['games'].component;
+export const TVTime           = surfaceById['tvtime'].component;
 export const ChurchHome       = surfaceById['church-home'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
