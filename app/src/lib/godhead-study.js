@@ -1097,6 +1097,40 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['thy-will-be-done', 'suffering', 'surrender', 'soul-prosper', 'his-word-not-mine'],
   },
   {
+    // ── GROW TOGETHER, THEN THE HARVEST SORTS THE CHOICE; THE WORD IS ALREADY IN ─
+    // Darrell 2026-07-04: "wheat and tare, or goat and sheep, grow together...
+    // their choices exposed to the Truth and they choose to follow Him or not,
+    // simply being or not being a liar. Yahweh's Word is already in all our
+    // subconscious or hearts; we have to renew our minds with the Holy Word of
+    // Yahweh." Taught, not debated (DR-0098); verses verbatim (DR-0076).
+    id: 'gh-wheat-and-tares', section: 'gospels', name: 'Let Both Grow Together (the field is mixed until the harvest)',
+    refs: ['Matthew 13:30', 'Matthew 13:38-39'],
+    condition: '"Let both grow together until the harvest" (Matthew 13:30). The field is the world; the good seed are the children of the Kingdom, the tares the children of the wicked one sown by the enemy; the harvest is the end, and the reapers are the angels (Matthew 13:38-39).',
+    consequence: 'Wheat and tares grow in the same field, side by side, until the end — the sorting is not now, it is at the harvest. You cannot always tell them apart, and you are not the reaper.',
+    threeD: 'Do not appoint yourself the harvester — you will uproot wheat pulling tares. Live as visible wheat, let the field be mixed for now, and trust the King\'s harvest to sort what your eyes cannot. Your job is to be good seed, not to burn the field.',
+    outcome: 'Peace in a mixed field — freed from the burden of judging every soul, faithful as wheat, leaving the harvest to Him.',
+    tags: ['wheat-and-tares', 'harvest', 'judgment', 'mixed-field', 'patience'],
+  },
+  {
+    id: 'gh-sheep-and-goats', section: 'gospels', name: 'Sheep and Goats (the growing-together ends in a separating)',
+    refs: ['Matthew 25:32-33', 'Matthew 25:46'],
+    condition: 'At the end "He shall separate them one from another, as a shepherd divideth his sheep from the goats" (Matthew 25:32-33) — sheep to the right, goats to the left; "these shall go away into everlasting punishment: but the righteous into life eternal" (Matthew 25:46).',
+    consequence: 'The growing-together ends in a separating. Exposed to the Truth, each soul\'s choice is revealed — followed Him, or not — and the two destinies are eternal and opposite. There is no third pen.',
+    threeD: 'Live now as a sheep who hears the Shepherd\'s voice, because the separation is real and final. Let the certainty of that day make today\'s following serious — the line between sheep and goat is walked in a thousand small obediences before it is drawn at the end.',
+    outcome: 'A settled place at His right hand — because you followed the Shepherd here, the separation there holds no fear.',
+    tags: ['sheep-and-goats', 'separation', 'two-destinies', 'the-shepherd', 'judgment'],
+  },
+  {
+    id: 'gh-word-written-on-the-heart', section: 'prophets', name: 'The Word Is Already Written on the Heart (renew the mind to it)',
+    refs: ['Jeremiah 31:33', 'Romans 2:15'],
+    condition: '"I will put my law in their inward parts, and write it in their hearts" (Jeremiah 31:33); the work of the law is "written in their hearts, their conscience also bearing witness" (Romans 2:15). His Word is already inside — in the heart, the conscience, the deep places.',
+    consequence: 'No one meets the Word as a total stranger — Yahweh already wrote it on the heart, so the conscience recognizes the Truth the moment it is exposed to it. The choice is not to LEARN a foreign law but to OWN or reject the one already witnessing inside — simply, to be or not to be a liar about what you already know.',
+    threeD: 'Renew the mind with the Holy Word (the Mind of Christ) until your conscious thinking agrees with what the heart already knows. Stop arguing with the witness inside; feed it the written Word until your thoughts match the law already engraved on you.',
+    outcome: 'A mind renewed into agreement with the Word already on the heart — no longer at war with the Truth it was made to hold.',
+    psyche: 'Aligning conscious belief with a deeply-held internal standard, instead of suppressing it, resolves the dissonance that fuels self-deception — integrity is the mind matching the heart.',
+    tags: ['written-on-the-heart', 'conscience', 'renew-the-mind', 'new-covenant', 'truth-within'],
+  },
+  {
     id: 'gh-word-of-testimony', section: 'revelation', name: 'The Word of Their Testimony (eat the Word and the testimony aligns)',
     refs: ['Revelation 12:11', 'Jeremiah 15:16', 'Isaiah 55:8-9', 'Romans 13:7'],
     condition: 'The accuser is overcome by the blood of the Lamb AND by the word of their testimony — and a testimony only carries weight when the mouth and the life run the same Word.',
