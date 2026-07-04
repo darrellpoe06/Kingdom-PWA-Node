@@ -22,6 +22,8 @@ import { crossRefsFor, XREF_SOURCE } from '../lib/bible-xref.js';
 import { THEMES, themeMarkerStyle } from '../lib/scripture-themes.js';
 import { scanThemeSpans, themesPresent } from '../lib/scripture-theme-scan.js';
 import { VOICES, cssForVoice, voiceSpansFor, voicesPresent } from '../lib/scripture-voices.js';
+import { castScript } from '../lib/scripture-voice-cast.js';
+import { useCastRead } from '../lib/use-cast-read.js';
 
 // The character offsets [start,end) of the current text selection WITHIN a verse
 // container (its textContent), or null. Uses a Range measured from the container
@@ -171,6 +173,9 @@ export default function BibleReader({ email = null }) {
   //     the Father gold…) so the eye comes to know the voice by its color.
   // 'off' reads plain. The mode stays on as you read chapter to chapter.
   const [autoMode, setAutoMode] = useState('off'); // 'off' | 'themes' | 'voices'
+  // Dramatized reading: play the chapter with each speaker in their own voice
+  // (Darrell 2026-07-04). Cast from the same verified attribution that colors it.
+  const cast = useCastRead();
 
   const chapters = chapterCount(book);
 
@@ -439,6 +444,15 @@ export default function BibleReader({ email = null }) {
               })}
             </div>
             <p className="text-[0.5625rem] text-[#5A5751] mt-1" style={serif}>Red-letter: Jesus in red (the Blood), the tempter cold. Only verified speakers are colored — the set grows verse by verse; the rest reads plain.</p>
+            {/* Dramatized read — hear each speaker in their own voice. */}
+            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+              <button type="button" disabled={!cast.supported}
+                onClick={() => (cast.playing ? cast.stop() : cast.play(castScript(verses, (vv) => `${book} ${chapter}:${vv}`)))}
+                className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40 ${cast.playing ? 'bg-[#B85838] text-white border-[#B85838]' : 'bg-white text-[#B85838] border-[#B85838] hover:bg-[#FAF8F4]'}`}>
+                {cast.playing ? 'Stop the reading' : 'Play the voices — dramatized read'}
+              </button>
+              {!cast.supported && <span className="text-[0.5625rem] text-[#5A5751]" style={serif}>This device can’t read aloud.</span>}
+            </div>
           </div>
         )}
       </div>

@@ -177,6 +177,15 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     expect(tempter, 'the tempter cold + italic').toBeTruthy();
   });
 
+  it('Voices mode offers the dramatized "Play the voices" control', async () => {
+    await mount();
+    setValue(container.querySelector('#bible-jump'), 'Matthew 4');
+    await clickText(/^Go$/);
+    await clickText(/voices/i);
+    const btn = [...container.querySelectorAll('button')].find((b) => /Play the voices/.test(b.textContent || ''));
+    expect(btn, 'the dramatized-read button renders in voices mode').toBeTruthy();
+  });
+
   it('rejects an unfindable reference without leaving the app', async () => {
     await mount();
     setValue(container.querySelector('#bible-jump'), 'Hezekiah 3:1');
