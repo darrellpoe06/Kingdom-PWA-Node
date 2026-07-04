@@ -66,7 +66,7 @@ export const LIVING_LESSONS_META = {
   tagline: 'You were never made to be flawless. You were made to be whole.',
   format: 'Self-paced · read it alone, as a family, or in a group · paced to your age',
   cadenceDays: 7,
-  weeks: 5, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought; grows as Darrell teaches more
+  weeks: 7, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire; grows as Darrell teaches more
   handsOnLabel: 'Take it with you',
   // The label layer that lets the shared engine render this honestly as a
   // self-paced lesson series rather than a weekly cohort class.
@@ -549,6 +549,192 @@ export const LIVING_LESSONS_MODULES = [
         'Jesus points to the birds and says your Father feeds them — where is it hard for you to believe He sees and will provide for YOU?',
         '"God hath not given us the spirit of fear, but... a sound mind." What would change if you truly believed the dread is not from Him?',
         'What is one burden you could cast on the Lord this week (Psalm 55:22) — and one ordinary thing you could do fully present, trusting Him for the morning?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // LESSON 6 — "Think on These Things" — Darrell 2026-07-04, the capstone of the
+  // arc: the eternal, UNSEEN substances (faith, hope, love — 1 Cor 13:13) that
+  // ABIDE, ours through a redemption foreordained before the foundation of the
+  // world (1 Peter 1:19-20; Ephesians 1:4). Where the previous lessons showed the
+  // mind reallocating the body's energy (fear → survival), here Yahweh tells us
+  // exactly where to put the mind: Philippians 4:8 — the platform's "the Test" /
+  // Mind of Christ, in lesson form. Verses KJV, VERBATIM from the in-app Bible
+  // (DR-0076). Well-being-positive; grace-centered.
+  {
+    id: 'll6-think-on-these-things',
+    title: 'Think on These Things',
+    bigIdea: 'The lessons before this showed a startling truth: where your mind goes, your body\'s very energy follows — dread reallocates your whole being toward a temporal, unseen threat. So the most important question you can ask is not "what will happen?" but "what will I set my mind on?" And Yahweh does not leave that vague. He hands you the list: "whatsoever things are true... honest... just... pure... lovely... of good report... think on these things" (Philippians 4:8). The greatest realities are UNSEEN and eternal — faith, hope, and love, which abide (1 Corinthians 13:13) — and they are yours through a redemption He decided "before the foundation of the world." Fear gives the mind\'s substance to a passing shadow; faith gives it to the eternal. He tells you what to think about because He loves you — and because what you behold, you become.',
+    inApp: 'Catch one thought that has been running you today — a fear, an offense, a lust, a dread — and hold it up to His list: Is it TRUE? honest? just? pure? lovely? of good report? (This is "the Test," Philippians 4:8.) If it fails, set it down. Then deliberately THINK ON one thing that passes — a real promise, a mercy He\'s shown you, His love, something genuinely good and lovely. "Set your affection on things above, not on things on the earth" (Colossians 3:2). What you think on today, you are becoming.',
+    anchor: {
+      ref: 'Philippians 4:8; 2 Corinthians 4:18',
+      theme: 'God tells us what to think on — the true, honest, just, pure, lovely, of good report. And He points our gaze past the seen and temporal to the unseen and eternal. What fills the mind shapes the whole person.',
+    },
+    benefits: [
+      'Freedom + authority over your own mind — you are not at the mercy of every thought; you get to choose the substance you dwell on.',
+      'A clear, given list (not vague willpower) — the true, honest, just, pure, lovely, of good report: the Father tells you exactly where to look.',
+      'Peace that guards the heart — a mind fixed on the eternal is not tossed by every temporal shadow (Isaiah 26:3; Philippians 4:7-8).',
+      'Deep security — the love and redemption you rest in were decided "before the foundation of the world," not this morning and not by your performance.',
+      'Real transformation — what you behold, you become; setting the mind on things above renews the whole person (Romans 12:2; Colossians 3:2).',
+    ],
+    levels: {
+      child: 'Your mind is like a garden, and your thoughts are like seeds. Whatever you keep thinking about is what grows! So if you keep planting scary or mean thoughts, those grow big. But God gave us a wonderful gardening rule for our minds — He tells us exactly which seeds to plant: "whatsoever things are true... lovely... of good report... think on these things" (Philippians 4:8). That means think about things that are TRUE, KIND, PURE, and BEAUTIFUL — like how much God loves you, the good things He\'s done, and people you can be thankful for. And guess what? The best things of all are things you cannot even see — like faith, and hope, and LOVE (1 Corinthians 13:13). You cannot hold love in your hand, but it is the realest, strongest thing there is, and it lasts forever! God even loved YOU and made a way for you before He made the whole world. So when a yucky thought comes, you can say "no thank you" and plant a good one instead. Think on the good things — and watch your garden grow beautiful.',
+      teen: 'Here\'s the through-line of everything: where your mind goes, your energy and your whole self follow. You literally become what you dwell on. That\'s why the most powerful move you can make is choosing what you think about — and the incredible thing is God does not make you guess. He gives you the exact filter: "Finally, brethren, whatsoever things are true, whatsoever things are honest, whatsoever things are just, whatsoever things are pure, whatsoever things are lovely, whatsoever things are of good report; if there be any virtue, and if there be any praise, think on these things" (Philippians 4:8). Run your thoughts through that. Most of what the world feeds you — outrage, comparison, lust, dread — fails every test. And here\'s the deep part that connects to the last lesson: the BIGGEST realities are invisible. "We look not at the things which are seen, but at the things which are not seen: for the things which are seen are temporal; but the things which are not seen are eternal" (2 Corinthians 4:18). Faith, hope, love — "these three; but the greatest of these is charity [love]" (1 Corinthians 13:13) — you can\'t see them, but they outlast everything you can. And you got access to all of it through Jesus, whose rescue of you was planned "before the foundation of the world" (Ephesians 1:4; 1 Peter 1:20) — before you existed, before earth existed, you were loved. So stop letting your feed program your mind. "Set your affection on things above" (Colossians 3:2). Think on these things. You\'re becoming them.',
+      senior: 'This lesson gathers the whole series into a single, practical charge, and it is the heart of the Mind of Christ. The prior lessons traced how the mind governs the body\'s energy — how fear reallocates our very substance toward a dreaded, unseen future. Here the Word turns that same power to glory: since the mind shapes the whole person, God tells us precisely what to set it on. "Finally, brethren, whatsoever things are true, whatsoever things are honest, whatsoever things are just, whatsoever things are pure, whatsoever things are lovely, whatsoever things are of good report; if there be any virtue, and if there be any praise, think on these things" (Philippians 4:8). It is not vague self-help; it is a given, testable list — a filter for every thought that comes. And it rests on the deep truth Darrell named: the greatest substances are unseen and eternal. "While we look not at the things which are seen, but at the things which are not seen: for the things which are seen are temporal; but the things which are not seen are eternal" (2 Corinthians 4:18). "And now abideth faith, hope, charity, these three; but the greatest of these is charity" (1 Corinthians 13:13) — the abiding realities are precisely the ones no eye can see, and they are ours not by our striving but by a grace settled before time began: we were chosen "in him before the foundation of the world, that we should be holy and without blame before him in love" (Ephesians 1:4), redeemed "with the precious blood of Christ, as of a lamb without blemish and without spot: who verily was foreordained before the foundation of the world, but was manifest in these last times for you" (1 Peter 1:19-20). Read that last phrase slowly — "for you." Before the foundation of the world, the Lamb\'s blood was appointed, for you. That is the eternal, unseen substance faith lays hold of (Hebrews 11:1), and it is the surest ground a mind can stand on. So the instruction "set your affection on things above, not on things on the earth" (Colossians 3:2) is not escapism; it is realism — fixing the mind on what is most real and most lasting. For the seasoned saint, this is both discipline and rest: the discipline of testing each thought against Philippians 4:8 (the practiced habit — notice a thought, test it, keep or release it), and the rest of knowing the outcome was secured before the world was made. What you behold, you become; behold Him, and His peace will keep your heart and mind (Philippians 4:7). Think on these things.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'What does God tell us to think about (Philippians 4:8)?',
+          options: [
+            'Whatever the world puts in front of you',
+            'Whatsoever things are true, honest, just, pure, lovely, of good report, virtuous, praiseworthy',
+            'Mostly your problems, so you stay prepared',
+          ],
+          answer: 1,
+          explain: 'He gives an exact, testable list — not vague willpower. This filter (often called "the Test") is how a renewed mind sorts every thought that comes.',
+        },
+        {
+          q: 'According to 2 Corinthians 4:18, which things are eternal?',
+          options: [
+            'The things which are seen',
+            'The things which are NOT seen — "the things which are seen are temporal; but the things which are not seen are eternal"',
+            'Both equally',
+          ],
+          answer: 1,
+          explain: 'The greatest substances — faith, hope, love (1 Corinthians 13:13) — are unseen, and they outlast everything visible. Faith is how we lay hold of them (Hebrews 11:1).',
+        },
+        {
+          q: 'When was your redemption in Christ decided?',
+          options: [
+            'When you finally got your life together',
+            '"Before the foundation of the world" — the Lamb was "foreordained before the foundation of the world... for you" (1 Peter 1:20; Ephesians 1:4)',
+            'It is still undecided',
+          ],
+          answer: 1,
+          explain: 'Your acceptance rests on a grace settled before time began and before you existed — not on your performance. That is the surest ground a mind can stand on.',
+        },
+        {
+          q: 'Why does what you think about matter so much?',
+          options: [
+            'It does not really matter',
+            'Because what you behold, you become — the mind shapes the whole person, so "set your affection on things above" (Colossians 3:2)',
+            'Only actions matter, never thoughts',
+          ],
+          answer: 1,
+          explain: 'The mind governs the person (Romans 12:2). Fixing it on the true and eternal renews you and guards your heart with God\'s peace (Philippians 4:7).',
+        },
+      ],
+    },
+    lesson: 'This lesson gathers the whole journey into one charge. We saw across these lessons how the mind rules the body — how fear reallocates our very energy toward a dreaded, unseen future, and how faith is "the substance of things hoped for, the evidence of things not seen" (Hebrews 11:1). If the mind holds that much power over the whole person, then the most consequential decision you make all day is not what you do but what you dwell on — and here is the mercy: Yahweh does not leave you to guess. He tells you exactly what to set your mind on. "Finally, brethren, whatsoever things are true, whatsoever things are honest, whatsoever things are just, whatsoever things are pure, whatsoever things are lovely, whatsoever things are of good report; if there be any virtue, and if there be any praise, think on these things" (Philippians 4:8). That is not a vague suggestion to "be positive"; it is a precise, testable filter for every thought that comes knocking. Is it true? honest? just? pure? lovely? of good report? Most of what the world pours into you — outrage, comparison, lust, dread, offense — fails on the first question and never even reaches the last. You are not obligated to think it. You can hold it up to the list, and if it fails, set it down. Now hear the deep thing Darrell saw, because it is the ground under the whole command: the greatest, realest substances cannot be seen. "While we look not at the things which are seen, but at the things which are not seen: for the things which are seen are temporal; but the things which are not seen are eternal" (2 Corinthians 4:18). "And now abideth faith, hope, charity, these three; but the greatest of these is charity" (1 Corinthians 13:13). Faith, hope, love — you cannot hold one of them in your hand, and yet they are the substances that outlast the sun. And they are yours, not because you earned them this morning, but because of a grace decided before you or the world existed: God "hath chosen us in him before the foundation of the world, that we should be holy and without blame before him in love" (Ephesians 1:4), redeemed "with the precious blood of Christ, as of a lamb without blemish and without spot: who verily was foreordained before the foundation of the world, but was manifest in these last times for you" (1 Peter 1:19-20). Slow down on those two words — "for you." Before the foundation of the world, the Lamb\'s precious blood was already appointed, for you. That is the eternal, unseen substance your faith lays hold of, and it is the most solid thing a mind can rest on: your acceptance was settled outside of time, and no failing tomorrow can un-decide it. This is why the instruction "set your affection on things above, not on things on the earth" (Colossians 3:2) is not escape from reality — it is a return to it, fixing the mind on what is most real and most lasting. And it is a practice, not a one-time feeling: notice a thought, test it by Philippians 4:8, keep the true and lovely, release the rest — again and again, until the renewed mind becomes your default (Romans 12:2). Here is the promise that crowns it: what you behold, you become. Give your mind to fear, and you will be anxious; give it to offense, and you will be bitter; but give it to the true, the pure, the lovely, and to Him, and "the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus" (Philippians 4:7 — the verse just before the list). He tells you what to think on, not to burden you, but because He loves you, and because He knows that the mind fixed on Him is the mind at rest. Think on these things.',
+    facilitator: {
+      talkingPoints: [
+        'The charge (the SOURCE): Philippians 4:8 — a given, TESTABLE list (true / honest / just / pure / lovely / of good report / virtue / praise). Not vague positivity; a filter for every thought. This is the platform\'s "the Test" and the Mind of Christ, in lesson form.',
+        'The through-line (the WITNESS from the series): the mind governs the whole person\'s energy — fear reallocates it toward a temporal shadow; so the highest-leverage choice is WHAT you dwell on. What you behold, you become (Romans 12:2; Colossians 3:2).',
+        'The eternal, UNSEEN substances: "the things which are not seen are eternal" (2 Corinthians 4:18); "now abideth faith, hope, charity... the greatest of these is charity" (1 Corinthians 13:13). Faith lays hold of the unseen (Hebrews 11:1). The realest things cannot be seen.',
+        'The ground of security: chosen "in him before the foundation of the world" (Ephesians 1:4); the Lamb "foreordained before the foundation of the world... for you" (1 Peter 1:19-20). Acceptance was settled outside time — not by performance. Say "for you" slowly.',
+        'Well-being bright line: this is FREEDOM and rest, not thought-policing pressure. He tells us what to think on because He loves us; the mind fixed on Him is guarded by peace (Philippians 4:7). If anyone leaves feeling condemned for their thoughts, it was taught wrong — it is grace, and a practice, not a performance.',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read Philippians 4:6-8 aloud — note that the peace-that-guards (v.7) comes right before the list (v.8). | The big idea, in your own words (10): what you dwell on, you become; God hands you the exact list of what to think on. | Go deeper (10): run real thoughts through the Test (true/honest/just/pure/lovely/good report); then the unseen-eternal (2 Corinthians 4:18; 1 Corinthians 13:13) and the before-the-foundation grace (Ephesians 1:4; 1 Peter 1:20) — land "for you." | Reflect together (10): use the prompts. | Take it with you (2): each person names one recurring thought to release and one true/lovely thing to think on instead.',
+      discussionPrompts: [
+        'What thought have you let run you lately? Run it through Philippians 4:8 out loud — does it pass?',
+        '"The things which are not seen are eternal." Which unseen substance — faith, hope, or love — do you most need to fix your mind on right now?',
+        'Sit with "foreordained... for you." How does it change your day to know your acceptance was decided before the world was made, not by today\'s performance?',
+        '"What you behold, you become." Looking honestly at what you dwell on most, what are you becoming — and what would you rather?',
+        'What is one practical way you could "set your affection on things above" this week when a failing thought comes knocking?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // LESSON 7 — "Let Peace Be the Umpire" — Darrell 2026-07-04, from Picard's
+  // "mitoception": feeling into your own energy to discern what supports vs
+  // drains you, trusting cultivated INTERNAL awareness over external data alone.
+  // The witness to spiritual discernment — the peace of God ruling (umpiring) the
+  // heart (Colossians 3:15), the Spirit bearing witness within (Romans 8:16),
+  // knowing by fruit (Matthew 7:20; Galatians 5:22-23). GUARDRAIL: the inner
+  // witness works WITH the Word, never against it (test the spirits). Verses KJV,
+  // VERBATIM from the in-app Bible (DR-0076). Well-being-positive; grace-centered.
+  {
+    id: 'll7-let-peace-be-the-umpire',
+    title: 'Let Peace Be the Umpire',
+    bigIdea: 'The science offers a lovely word — "mitoception": learning to FEEL INTO your own energy, to notice from the inside whether a food, a habit, or even a relationship is supporting you or quietly draining you, instead of trusting outside data alone. That inward listening is a faint echo of a gift Yahweh already gave His people: an inner witness. He says, "let the peace of God RULE in your hearts" — the word means let peace be the UMPIRE, the one who makes the call. His Spirit "beareth witness with our spirit," and the fruit of a Spirit-led life (love, joy, peace) is a real, felt readout. So you are not left to guess or to run on rules alone: you can notice, when facing a choice, whether His peace is present or absent, whether the fruit is life or the opposite. (One guardrail: this inner witness always agrees with His Word — it never overrides Scripture; feelings alone are not the judge, His peace and His Word together are.)',
+    inApp: 'Bring one real choice to God right now — a habit, a commitment, a relationship you keep saying yes to. Get quiet and "feel into" it before Him: is His peace present when you consider it, or a persistent unrest? What FRUIT does it grow in you over time — love, joy, peace... or agitation, drain, compromise (Galatians 5:22; Matthew 7:20)? Then "prove all things; hold fast that which is good" (1 Thessalonians 5:21) — keep what His peace and His Word both confirm, and prayerfully release what neither does.',
+    anchor: {
+      ref: 'Colossians 3:15; Romans 8:16',
+      theme: 'Let the peace of God act as umpire in your heart, and know that His Spirit bears witness with your spirit. God gave you an inner witness — tested by His Word — to discern what gives life from what drains it.',
+    },
+    benefits: [
+      'A God-given inner compass — you are not left to run on external rules and data alone; His peace can help make the call.',
+      'Discernment for real life — food, habits, commitments, relationships: you can notice by fruit and by peace what supports you and what drains you.',
+      'Freedom from anxious over-analysis — when peace rules as umpire, you can stop endlessly debating and rest in the call.',
+      'Protection — a persistent lack of peace is often a mercy, a check before a wrong turn; you learn to honor it (tested by the Word).',
+      'Intimacy — the Spirit bearing witness with your spirit is relationship, not technique; you learn His voice and His peace.',
+    ],
+    levels: {
+      child: 'God gave you a special helper INSIDE you — like a peaceful feeling that helps you know what is good. The Bible says, "let the peace of God rule in your hearts" (Colossians 3:15). "Rule" is like being the referee in a game who makes the call! So when you are deciding something, you can get quiet and notice: do I feel God\'s peace about this, or a yucky, unsettled feeling? And you can look at the FRUIT — when you spend time with a certain friend or do a certain thing, does it grow good things in you like love and joy and kindness, or grumpy and mean things? Jesus said, "by their fruits ye shall know them" (Matthew 7:20). (Important: this peaceful feeling always agrees with what God SAYS in the Bible — it never tells you to do something the Bible says is wrong.) So talk to God, feel His peace, watch the fruit, and He will help you choose well!',
+      teen: 'There\'s a cool idea in the science called "mitoception" — basically learning to feel into your own body\'s energy so you can tell whether something (a food, a habit, even a relationship) is fueling you or secretly draining you, instead of only trusting outside numbers. Here\'s the thing: God gave His people an even deeper version of that — an inner witness. "Let the peace of God rule in your hearts" (Colossians 3:15) — "rule" literally means be the UMPIRE, the one who makes the call. "The Spirit itself beareth witness with our spirit" (Romans 8:16). So when you\'re deciding something, you don\'t just weigh pros and cons on paper; you can get honest before God and notice: is His peace here, or is there a persistent unrest? And you check the FRUIT: "the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith, meekness, temperance" (Galatians 5:22-23) — does this thing grow that in you, or the opposite? "By their fruits ye shall know them" (Matthew 7:20). Real talk on the guardrail, because feelings can lie: this inner witness ALWAYS lines up with God\'s Word — peace never green-lights what Scripture calls sin. So it\'s the Spirit AND the Word together, not just vibes. "Prove all things; hold fast that which is good" (1 Thessalonians 5:21). That relationship that keeps draining and unsettling you? That habit you can\'t have peace about? Pay attention. God is speaking from the inside.',
+      senior: 'Dr. Martin Picard offers the term "mitoception" — a cultivated interoceptive awareness of one\'s own energy, learning to sense from within whether a diet, a practice, or a relationship supports or depletes one\'s capacity, rather than depending on external metrics alone. For the believer this rings a deep bell, because Yahweh long ago gave His people an inner witness — never to replace His Word, but to walk with it. Paul writes, "And let the peace of God rule in your hearts, to the which also ye are called in one body; and be ye thankful" (Colossians 3:15). The verb rendered "rule" (brabeuō) is drawn from the arbiter or umpire who awards the prize and settles the contest — that is, let God\'s peace ARBITRATE your decisions. This is not mysticism; it is relationship: "The Spirit itself beareth witness with our spirit, that we are the children of God" (Romans 8:16), and "The spirit of man is the candle of the LORD, searching all the inward parts" (Proverbs 20:27) — God illuminates our interior. The felt readout of a Spirit-governed life is nameable: "the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith, meekness, temperance" (Galatians 5:22-23), and our Lord\'s own test for discerning any tree — a teacher, an influence, a course of life — is fruit: "by their fruits ye shall know them" (Matthew 7:20). There is even the promise of an interior teacher: "the anointing which ye have received of him abideth in you... and as the same anointing teacheth you of all things, and is truth, and is no lie" (1 John 2:27). Now the essential guardrail, held firmly, especially for the mature: this inner witness is subordinate to Scripture and confirmed by it — the Spirit never contradicts the Word He inspired, and subjective peace is not a license to bless what God has forbidden (hence "prove all things; hold fast that which is good," 1 Thessalonians 5:21, and "try the spirits," 1 John 4:1). Feelings can be swayed; God\'s peace, tested against His revealed will, is trustworthy. With that anchor, the practice is rich and freeing: bring the matter to God, get still, and notice whether His peace umpires a "yes" or withholds it; observe over time the fruit a thing produces in you; keep what His peace and His Word together confirm, and release what neither does. A seasoned saint has often felt this for decades without a name — the unrest that turned out to be protection, the settled peace that steadied a hard obedience. That was not superstition; it was the candle of the LORD. Learn to honor it, under the Word.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'What does it mean that we should "let the peace of God RULE in your hearts" (Colossians 3:15)?',
+          options: [
+            'Ignore peace and just follow rules',
+            'Let God\'s peace act as the UMPIRE — the one who helps make the call in your decisions',
+            'Only trust outside data and never your inner sense',
+          ],
+          answer: 1,
+          explain: 'The word "rule" is the umpire/arbiter who settles the contest. God gave an inner witness — His peace, tested by His Word — to help you discern.',
+        },
+        {
+          q: 'How can you tell whether a habit, influence, or relationship is good for you?',
+          options: [
+            'You cannot know until it is too late',
+            'By its FRUIT — "by their fruits ye shall know them" (Matthew 7:20); does it grow love, joy, peace, or the opposite?',
+            'Only by what other people say',
+          ],
+          answer: 1,
+          explain: 'The fruit of the Spirit (Galatians 5:22-23) is a real readout. A thing that consistently drains peace and grows agitation is telling you something — pay attention.',
+        },
+        {
+          q: 'What is the essential guardrail on this "inner witness"?',
+          options: [
+            'There is none — follow every feeling',
+            'It always agrees with God\'s WORD and is tested by it — "prove all things; hold fast that which is good" (1 Thessalonians 5:21)',
+            'Feelings always override Scripture',
+          ],
+          answer: 1,
+          explain: 'The Spirit never contradicts the Word He inspired. Peace is not a license to bless what God forbade; it is the Spirit AND the Word together (1 John 4:1).',
+        },
+        {
+          q: 'Who bears witness with our spirit that we belong to God?',
+          options: [
+            'No one; you just have to hope',
+            '"The Spirit itself beareth witness with our spirit, that we are the children of God" (Romans 8:16)',
+            'Only your own willpower',
+          ],
+          answer: 1,
+          explain: 'It is relationship, not technique — the Holy Spirit within, "the candle of the LORD, searching all the inward parts" (Proverbs 20:27), leading His children.',
+        },
+      ],
+    },
+    lesson: 'The science gives us a gentle, useful word: "mitoception." Dr. Martin Picard uses it for the practice of feeling INTO your own energy — learning to sense from the inside whether a food, a rhythm, a habit, or even a relationship is truly supporting you or quietly draining you, rather than trusting only external numbers and data. It is an invitation to cultivate internal awareness. And for the believer, that faint, good instinct points to something far deeper and older: Yahweh gave His people an inner witness. Not to replace His written Word — never that — but to walk alongside it. Listen to how directly He puts it: "And let the peace of God rule in your hearts, to the which also ye are called in one body; and be ye thankful" (Colossians 3:15). That word "rule" is a striking one — it is the picture of the UMPIRE, the arbiter at the games who makes the call and awards the prize. Let God\'s peace umpire your heart. When you face a decision and bring it honestly before Him, His peace either settles on it or it does not, and that is meant to help you make the call. This is not mysticism or superstition; it is relationship: "The Spirit itself beareth witness with our spirit, that we are the children of God" (Romans 8:16). It is God lighting up your interior so you can see: "The spirit of man is the candle of the LORD, searching all the inward parts" (Proverbs 20:27). He even gives you a nameable readout of a Spirit-led life, so you are not guessing in the dark: "the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith, meekness, temperance" (Galatians 5:22-23). Does a thing grow that in you over time — or does it grow agitation, compromise, and drain? Jesus made fruit the very test for discerning any tree, whether a teacher, an influence, or a whole course of life: "by their fruits ye shall know them" (Matthew 7:20). There is even the promise of an inward Teacher: "the anointing which ye have received of him abideth in you... and as the same anointing teacheth you of all things, and is truth, and is no lie" (1 John 2:27). Now, hold the guardrail firmly, because it is what keeps this holy instead of flaky: this inner witness is ALWAYS under Scripture and confirmed by it. The Spirit never contradicts the Word He inspired, and a subjective feeling of peace is not permission to bless what God has plainly forbidden. That is exactly why the Word pairs the inner sense with a sober test — "Prove all things; hold fast that which is good" (1 Thessalonians 5:21), and "try the spirits whether they are of God" (1 John 4:1). Feelings can be swayed by appetite or fear; but God\'s peace, held up against His revealed will, is a faithful guide. With that anchor set, the practice becomes rich and freeing. Bring the matter to Him. Get still. Notice whether His peace umpires a yes, or quietly withholds it. Watch, over time, the fruit a thing bears in you. Keep what His peace and His Word together confirm; prayerfully release what neither does. Many a seasoned saint has felt this for years without a name for it — the unsettled feeling that turned out to be protection before a wrong turn, the deep steadiness that carried them through a hard but right obedience. That was never superstition. It was the candle of the LORD, searching the inward parts, and the peace of God doing exactly what He said it would do: ruling the heart. Learn to listen for it — under His Word — and let His peace make the call.',
+    facilitator: {
+      talkingPoints: [
+        'The science (the WITNESS, attributed): Dr. Martin Picard\'s "mitoception" — a cultivated internal awareness of your own energy, sensing what supports vs drains you, rather than trusting external data alone. A faint echo of the God-given inner witness.',
+        'The Word (the SOURCE): "let the peace of God RULE [umpire, brabeuō] in your hearts" (Colossians 3:15); "the Spirit itself beareth witness with our spirit" (Romans 8:16); "the candle of the LORD, searching all the inward parts" (Proverbs 20:27). All KJV, verbatim.',
+        'The readout is nameable: "the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith, meekness, temperance" (Galatians 5:22-23), and "by their fruits ye shall know them" (Matthew 7:20). Discern a habit/influence/relationship by the fruit it grows and the peace it keeps or steals.',
+        'THE GUARDRAIL (say it clearly): the inner witness is under Scripture and confirmed by it — the Spirit never contradicts the Word; peace is not a license to bless sin. "Prove all things; hold fast that which is good" (1 Thessalonians 5:21); "try the spirits" (1 John 4:1). Spirit AND Word together, never feelings alone.',
+        'Well-being bright line: this is a gift and a rest, not anxious over-analysis. When peace umpires, you can stop endlessly debating. A persistent lack of peace is often a mercy, a protective check. Intimacy with the Spirit, not a technique to master.',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read Colossians 3:15 and Romans 8:16 aloud — explain "rule" = umpire. | The big idea, in your own words (10): mitoception (feel into your energy) points to the inner witness God gave — His peace as umpire, the Spirit witnessing, fruit as readout. | Go deeper (10): discern by peace + fruit (Galatians 5:22-23; Matthew 7:20), then set the GUARDRAIL firmly (1 Thessalonians 5:21; 1 John 4:1) — always under the Word. | Reflect together (10): use the prompts; invite honesty about a draining habit or relationship. | Take it with you (2): each person brings one real choice to God, feels into His peace + the fruit, and names one thing to hold fast or release.',
+      discussionPrompts: [
+        'Where in your life is His peace clearly present — and where is there a persistent unrest you have been ignoring?',
+        'Look at the FRUIT: what habit or relationship consistently grows love/joy/peace in you, and what consistently drains it?',
+        'Have you ever felt a check of peace that later proved to be protection? What happened?',
+        'Why does the guardrail matter — that the inner witness always agrees with the Word? Where could "just follow your peace" go wrong without it?',
+        'What is one choice you can bring to God this week — to "prove" it by His peace and His Word, and hold fast or release accordingly?',
       ],
     },
   },
