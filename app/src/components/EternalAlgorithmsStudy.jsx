@@ -30,7 +30,7 @@ import {
 import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
 import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook } from '../lib/godhead-study.js';
-import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse } from '../lib/third-witness.js';
+import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessScienceOnly } from '../lib/third-witness.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -295,10 +295,14 @@ function WitnessPair({ pair }) {
 }
 
 function WitnessView() {
-  // Stays MIXED, on purpose (Darrell 2026-07-03: "separates for the practice
-  // only, stays mixed for those of us who need that"). The separated,
-  // science-only rendering of the same content lives in the Practice's client
-  // lessons (witnessClientModule) — not here.
+  // MIXED is the default (Darrell 2026-07-03: "stays mixed for those of us who
+  // need that"). The separation is an opt-in toggle — a CHOICE, not a wall
+  // (Darrell 2026-07-04: "knowledgeable is the goal... inform... we only let
+  // people choose what they want but why guard anything except training videos
+  // explicitly for the msw workers"). On = science only, every expert still
+  // cited, no Scripture riding along. Medical topics inform and point to a
+  // physician; nothing here is withheld.
+  const [sciOnly, setSciOnly] = useState(false);
   return (
     <div>
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
@@ -308,21 +312,48 @@ function WitnessView() {
           So we can see this trauma from the 3rd dimension better, as a Body of Christ. Every expert is cited — honour to whom honour is due — and every verse is rendered verbatim. The science describes the frame Yahweh made; His Word governs. This room helps the Body see; it does not diagnose or treat.
         </p>
         <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
-          This room stays mixed — for those of us who need the Word and the witness together. The same content, separated (science only, expert cited), lives in the Practice&rsquo;s client lessons for those who don&rsquo;t want the mixture.
+          Knowledgeable is the goal — so the full, Architect-quality information is here, and you choose the view. Mixed keeps the Word and the witness together; science-only shows the same cited experts with no Scripture. Nothing is guarded either way. The medical and fasting topics inform, they do not prescribe — always consult your physician.
         </p>
-      </div>
-      {WITNESS_SOURCES.map((src) => (
-        <div key={src.id} className="mb-4">
-          <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>{src.topic}</h3>
-          <p className="text-[0.75rem] text-[#5A5751]" style={serif}>{src.summary}</p>
-          <p className="text-[0.6875rem] text-[#5A6E3D] mb-2" style={mono}>
-            Source: {src.source.expert} ({src.source.credential}) — {src.source.work}
-          </p>
-          <div className="space-y-2">
-            {src.pairs.map((p) => <WitnessPair key={p.id} pair={p} />)}
-          </div>
+        <div className="mt-3 inline-flex rounded overflow-hidden border border-[#5A6E3D]" role="group" aria-label="Witness view mode">
+          <button type="button" onClick={() => setSciOnly(false)} aria-pressed={!sciOnly}
+            className={`px-3 py-1 text-[0.6875rem] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838] ${sciOnly ? 'text-[#D8D4CC]' : 'bg-[#5A6E3D] text-[#FAF8F4] font-semibold'}`}>
+            Mixed (Word + witness)
+          </button>
+          <button type="button" onClick={() => setSciOnly(true)} aria-pressed={sciOnly}
+            className={`px-3 py-1 text-[0.6875rem] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838] ${sciOnly ? 'bg-[#5A6E3D] text-[#FAF8F4] font-semibold' : 'text-[#D8D4CC]'}`}>
+            Science only (Practice)
+          </button>
         </div>
-      ))}
+      </div>
+      {WITNESS_SOURCES.map((src) => {
+        const sci = witnessScienceOnly(src);
+        return (
+          <div key={src.id} className="mb-4">
+            <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>{src.topic}</h3>
+            <p className="text-[0.75rem] text-[#5A5751]" style={serif}>{src.summary}</p>
+            <p className="text-[0.6875rem] text-[#5A6E3D] mb-2" style={mono}>
+              Source: {src.source.expert} ({src.source.credential}) — {src.source.work}
+            </p>
+            {sciOnly ? (
+              <ul className="space-y-1.5">
+                {sci.points.map((pt) => (
+                  <li key={pt.id} className={CARD}>
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] font-semibold">3rd dimension</span>
+                      <span className="text-[0.625rem] text-[#5A6E3D]" style={mono}>at {pt.cite}</span>
+                    </div>
+                    <p className="text-[0.8rem] text-[#1A1815] mt-0.5" style={serif}>{pt.claim}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="space-y-2">
+                {src.pairs.map((p) => <WitnessPair key={p.id} pair={p} />)}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
