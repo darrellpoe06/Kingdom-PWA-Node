@@ -27,6 +27,7 @@ import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '..
 import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
 import { POPULAR_SHOWS, popularByGenre, popularCount } from '../lib/tv-popular.js';
 import { AUDIENCES, shareFlags, setShowShare } from '../lib/tv-sharing.js';
+import TVCircle from './TVCircle.jsx';
 import { createDebouncer } from '../lib/table-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -590,6 +591,12 @@ export default function TVTime({ email = null }) {
 
       {/* What's getting watched — dynamic, from real activity. */}
       <TrendingStrip items={trending} />
+
+      {/* Family/circle sharing — GATED (TV_SHARING_ENABLED, off until the live NAS
+          isolation smoke test passes). Renders null while off, so production is
+          unchanged. state + a light catalog let it publish only your tagged shows. */}
+      <TVCircle state={state} email={me}
+        catalog={Object.fromEntries(tracked.map((s) => [s.id, { id: s.id, title: s.title, poster: s.poster, genre: s.genre, kind: s.kind }]))} />
 
       {/* Browse by genre — a chip filters BOTH your tracked list AND the Popular
           picks below (Darrell 2026-07-04: pick a genre and it shows all in that
