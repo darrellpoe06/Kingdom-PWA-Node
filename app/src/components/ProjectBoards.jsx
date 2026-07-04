@@ -215,7 +215,7 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
               label="Monolith line-count"
               value={liveMetric.ledger.monolithLines != null ? `${liveMetric.ledger.monolithLines.toLocaleString()} lines` : '—'}
               sub={liveMetric.ledger.frozenBudget != null
-                ? `frozen ${liveMetric.ledger.frozenBudget.toLocaleString()} · may only go DOWN`
+                ? `frozen ${liveMetric.ledger.frozenBudget.toLocaleString()} · may only go DOWN${liveMetric.ledger.measuredAt ? ` · measured ${new Date(liveMetric.ledger.measuredAt).toLocaleDateString()}` : ''}`
                 : 'may only go DOWN'}
             />
           </div>
