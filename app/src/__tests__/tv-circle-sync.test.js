@@ -1,15 +1,18 @@
 // tv-circle-sync — the PURE parts of the circle sharing client (invite codes +
 // bucketing shares into views + the community feed). The supabase I/O is fail-soft
-// and proven by the live NAS isolation smoke test (0074), not a mock. Also pins
-// the enablement GATE stays OFF until that test passes (DR-0076).
+// and proven by the live isolation smoke test (0074), not a mock. Also pins the
+// enablement GATE — now ON, since that test passed (DR-0076).
 import { describe, it, expect } from 'vitest';
 import {
   TV_SHARING_ENABLED, makeInviteCode, bucketShares, feedForBucket,
 } from '../lib/tv-circle-sync.js';
 
 describe('the enablement gate', () => {
-  it('is OFF until the live NAS isolation smoke test passes (0074)', () => {
-    expect(TV_SHARING_ENABLED).toBe(false);
+  it('is ON — the 0074 isolation smoke test passed GREEN against the real DB (2026-07-04)', () => {
+    // Flipped from false to true only AFTER tv-sharing-isolation ran green on main
+    // (run 28722936533, head a893dee): kids never read 'us', spouse reads 'us',
+    // parent oversight, friend-scope, cross-family isolation — all asserted. DR-0076.
+    expect(TV_SHARING_ENABLED).toBe(true);
   });
 });
 
