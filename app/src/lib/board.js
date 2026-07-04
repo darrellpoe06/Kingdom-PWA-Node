@@ -281,16 +281,42 @@ export const SEED_BOARDS = [
     title: 'Church LED wall + infrastructure',
     domain: 'church',
     blurb: 'COLG sanctuary build: the Mirackle P1.99mm LED video wall and the sovereign church compute/AV stack. Grounded in the church-infra program + the LED signal-chain record.',
-    groupOrder: ['LED video wall', 'Compute + AV stack'],
+    groupOrder: ['LED video wall', 'Compute + AV stack', 'Network project'],
     items: [
-      { key: 'led-layout', group: 'LED video wall', title: 'Confirm 8 columns × 6 rows = 48 Mirackle P1.99mm panels', status: 'done', owner: 'Darrell', notes: 'Layout recorded in-app (led-wall-signal-chain.js) + SVG on the wall record. PRs #407/#418/#453.' },
-      { key: 'led-signal', group: 'LED video wall', title: 'LED data path — 8 lines per COLUMN, direct (no switch)', status: 'done', owner: 'Darrell', notes: 'Recorded: LED data = 8 lines per column direct; ATEM = production, VX1000 = source switch.' },
-      { key: 'led-videoin', group: 'LED video wall', title: 'Video-in via owned KEQINX HDMI-over-Cat6', status: 'in-progress', owner: 'Darrell', notes: 'Owned KEQINX HDMI-over-Cat6 for video-in. Confirm runs + terminations on the finish checklist.' },
-      { key: 'led-finish', group: 'LED video wall', title: 'Finish checklist — mounting, alignment, calibration', status: 'not-started', owner: 'Darrell', notes: 'In-app finish-checklist on the video-wall record; walk it on-site.' },
-      { key: 'led-teach', group: 'LED video wall', title: 'Teaching card so staff can run the wall', status: 'done', owner: 'Ari', notes: 'In-app doc + teaching card shipped with the signal-chain record.' },
+      { key: 'led-layout', group: 'LED video wall', title: 'Confirm 8 columns × 6 rows = 48 Mirackle P1.99mm panels', status: 'done', owner: 'Darrell', notes: 'Layout recorded in-app (led-wall-signal-chain.js) + SVG on the wall record. PRs #407/#418/#453. Pixel map MEASURED 2026-07-03: 320x240/cabinet, wall 2560x1440.' },
+      { key: 'led-signal', group: 'LED video wall', title: 'LED data path — 8 lines per COLUMN, direct (no switch)', status: 'done', owner: 'Darrell', notes: 'CONFIRMED AS BUILT 2026-07-03: 8 of 10 VX1000 Pro ports, one per column, cable enters the TOP cabinet, chains down.' },
+      { key: 'led-videoin', group: 'LED video wall', title: 'Video-in — booth laptop on VX HDMI-3, one layer Full Screen', status: 'done', owner: 'Darrell', notes: 'COMMISSIONED 2026-07-03: first light + live sermon video full-wall same night. Screen saved to receiving cards; Preset 1 = service state. Runbook: 2026-07-03-led-wall-commissioning.md.' },
+      { key: 'led-finish', group: 'LED video wall', title: 'Punch list — warranty modules + EDID 2560x1440 + NovaLCT backup to NAS', status: 'in-progress', owner: 'Darrell', notes: 'A few dark modules (vendor warranty swap, positions photographed); input EDID nicety for 1:1 pixels; copy the NovaLCT config export to the NAS share.' },
+      { key: 'led-teach', group: 'LED video wall', title: 'Teaching card so staff can run the wall', status: 'done', owner: 'Ari', notes: 'In-app doc + teaching card with the signal-chain record; booth CLAUDE.md carries the full runbook. Sunday = PRESET 1, one button.' },
       { key: 'inf-nas', group: 'Compute + AV stack', title: 'Church NAS — the brain + barn (storage, services, backup)', status: 'in-progress', owner: 'Darrell', notes: 'Sovereign church stack. 3-2-1 backup incl. encrypted sealed-blob offsite. Ties infrastructure-class.js.' },
-      { key: 'inf-towers', group: 'Compute + AV stack', title: 'Two compute towers next to the NovaStar (Ollama / XTTS / whisper, LAN-only)', status: 'not-started', owner: 'Darrell', notes: 'TWO tower PCs, specs SME/TBD; compose local AI + voice + transcription, LAN-only. Parallel sovereign local-coder workers (mesh nodes.json).' },
-      { key: 'inf-network', group: 'Compute + AV stack', title: 'UniFi gateway + VLAN walls (family · COLG · TLC · Properties · PoeTech)', status: 'not-started', owner: 'Darrell', notes: 'One door to the internet; separate walled VLAN rooms per domain.' },
+      { key: 'inf-towers', group: 'Compute + AV stack', title: 'Two compute towers (RTX 4070 pair) — Claude residents + Python pipelines', status: 'in-progress', owner: 'Darrell', notes: 'Tower 1 VERIFIED 2026-07-03: livestream-main-pc, RTX 4070 12GB, driver 595.95, Claude Code resident (Claude Max), faster-whisper install in flight, RustDesk-over-Tailscale chosen (Win11 Home = no native RDP host). Tower 2: repeat the recipe (~1 hr); it runs Proclaim + ATEM control Sundays, AI batch in the quiet window.' },
+      { key: 'inf-tailnet', group: 'Network project', title: 'Tailnet verified — the sovereign overlay is live', status: 'done', owner: 'Ari', notes: 'Verified 2026-07-03 from the tower: livestream-main-pc 100.72.5.90, poetech (NAS), kingdom-home, z-fold7, tlcrackstation (offline 23d). Seed doc: 2026-07-03-network-infrastructure-seed.md.' },
+      { key: 'inf-walkthrough', group: 'Network project', title: 'Walk-through inventory — rack/closet photos, switches, APs, ISP/modem', status: 'not-started', owner: 'Darrell', notes: 'Photos of the rack/closet + switch make/models feed the device register; the network-map command on each machine fills the subnet/ARP picture.' },
+      { key: 'inf-rmm', group: 'Network project', title: 'Identify the Tactical RMM agent operator (found on tower 1)', status: 'not-started', owner: 'Darrell', notes: 'Third-party remote-management agent on livestream-main-pc (observed updating Tailscale via winget). Who operates it? Security-posture answer required before the VLAN design.' },
+      { key: 'inf-network', group: 'Network project', title: 'UniFi gateway + VLAN walls (family · COLG · TLC · Properties · PoeTech)', status: 'not-started', owner: 'Darrell', notes: 'One door to the internet; separate walled VLAN rooms per domain. Designed AFTER the walk-through inventory.' },
+    ],
+  },
+
+  // ── 2b. Church media go-live (weekly) ──────────────────────────────────────
+  // Declared by Darrell 2026-07-04: "start the project for the church
+  // infrastructure and this media scripts for our go lives each week - add it
+  // to the PoeTech App build so we can run these projects as a team."
+  {
+    slug: 'board-media-golive',
+    title: 'Church media go-live — weekly pipeline',
+    domain: 'church',
+    blurb: 'The weekly rhythm as braked Python (DR-0083 — no n8n): BG\'s Wednesday PROCLAIM email into the app; Sunday pre-service checks + wall Preset 1; the YouTube program feed (the exact camera switches) into whisper harvest on the towers. Scripts live in infra/church-media-golive/.',
+    groupOrder: ['Ingest (Wednesday)', 'Go-live (Sunday)', 'Harvest (after service)'],
+    items: [
+      { key: 'med-docx', group: 'Ingest (Wednesday)', title: 'Index the local Proclaim docx archive (tower 2)', status: 'not-started', owner: 'Darrell', notes: 'proclaim_docx_index.py — stdlib-only; reads the docx folder the Proclaim team already keeps; extracts date/title/scripture/preacher + segments into proclaim-index.json. One instruction to tower 2\'s Claude runs it.' },
+      { key: 'med-gmail', group: 'Ingest (Wednesday)', title: 'Gmail ingest — BG\'s weekly PROCLAIM email + .docx attachments (NAS Python)', status: 'not-started', owner: 'Ari', notes: 'gmail_ingest.py per DR-0083: full-history pagination (200+ threads verified in the mailbox 2026-07-03), attachment scope, three brakes, run-state to the Loops surface. The one human piece is the Gmail OAuth credential only Darrell holds.' },
+      { key: 'med-oos', group: 'Ingest (Wednesday)', title: 'Order of Service tab — wire to the real BG format', status: 'not-started', owner: 'Ari', notes: 'The tab exists and waits (church-program). The first indexed docx defines the standard-order template; the ingest keeps it fresh weekly.' },
+      { key: 'med-precheck', group: 'Go-live (Sunday)', title: 'Pre-service check — GO/NO-GO an hour before service', status: 'not-started', owner: 'Ari', notes: 'preservice_check.py on booth/tower: disk, GPU, tailnet peers, targets reachable. Problems surface at 9am, not 10:05. A human runs it; the script only reports.' },
+      { key: 'med-preset', group: 'Go-live (Sunday)', title: 'Wall go-live = PRESET 1 (one button) — staff-runnable', status: 'done', owner: 'Darrell', notes: 'Saved during commissioning 2026-07-03: one layer, HDMI-3, Full Screen, brightness standard. Teaching card + booth CLAUDE.md carry it.' },
+      { key: 'med-atem', group: 'Go-live (Sunday)', title: 'ATEM CLI tools — scripted switcher controls, weekday-tested, human-pressed', status: 'not-started', owner: 'Ari', notes: 'The ATEM speaks a network protocol with solid libraries; build cut/macro/stream CLI per AI-FOUNDATION (a click today = an API call tomorrow). ASSISTIVE only — never autonomous during live service (three brakes; human hands on Sunday).' },
+      { key: 'med-youtube', group: 'Harvest (after service)', title: 'YouTube channel index → whisper queue (the videos ARE the camera switches)', status: 'not-started', owner: 'Ari', notes: 'youtube_index.py lists the channel uploads into the tower whisper queue. The published program output is also the switching ground truth for future assistive-ATEM training.' },
+      { key: 'med-whisper', group: 'Harvest (after service)', title: 'faster-whisper transcription on the towers — no video lost', status: 'in-progress', owner: 'Darrell', notes: 'Pipeline install started on tower 1 (2026-07-03): Python 3.12 + ffmpeg + faster-whisper (no PyTorch needed — CTranslate2 wheel). Paused at an approval prompt; resumes on next touch. Then the back-catalog becomes a batch job.' },
+      { key: 'med-library', group: 'Harvest (after service)', title: 'One linked record per sermon: video + transcript + points + order', status: 'not-started', owner: 'Ari', notes: 'The rails exist (sermon-points, sermon-library-sync, harvest-ledger). This task is the join once ingest + harvest both land.' },
     ],
   },
 
