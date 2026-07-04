@@ -19,9 +19,11 @@ import {
   loadTv, saveTv, bucketShows, customCatalog, addCustomShow, addShowFromCatalog, addMovieFromCatalog, toggleMovieWatched,
   setStatus, untrack, rateShow, addComment, getComments, toggleReaction, reactionCount,
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
-  trendingWatches, exportTv, importTvJson,
+  trendingWatches, exportTv, importTvJson, touchTv, tvUpdatedAt,
 } from '../lib/tv-time.js';
 import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE } from '../lib/tv-catalog.js';
+import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
+import { createDebouncer } from '../lib/table-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const BTN = 'text-[0.6875rem] uppercase tracking-wider px-2 py-1 focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -235,7 +237,41 @@ export default function TVTime({ email = null }) {
   const catalog = useMemo(() => [...customCatalog(state)], [state]);
   const buckets = useMemo(() => bucketShows(state, catalog), [state, catalog]);
   const trending = useMemo(() => trendingWatches(state, catalog, 5), [state, catalog]);
-  const persist = (next) => { saveTv(email, next); setState(next); };
+
+  // Cross-device sync (owner-only; fail-soft — offline degrades to device-local).
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const pushCloud = useRef(null);
+  if (!pushCloud.current) pushCloud.current = createDebouncer((st) => { pushTvCloud(st, tvUpdatedAt(st) || safeNowIso()); }, 900);
+
+  // A local change: stamp it (newest-wins), save on-device, render, and (signed
+  // in) write it up to the family server for the owner's other devices.
+  const persist = (next) => {
+    const stamped = touchTv(next, safeNowIso());
+    saveTv(email, stamped);
+    setState(stamped);
+    if (email) pushCloud.current(stamped);
+  };
+
+  // On sign-in: pull the owner's cloud list, merge (newest-wins / union), and
+  // subscribe so a change on another device shows up here live.
+  useEffect(() => {
+    if (!email) return undefined;
+    let alive = true;
+    const pull = async () => {
+      const cloud = await fetchTvCloud();
+      if (!alive || !cloud) return;
+      const { state: merged, push } = mergeTvCloud(stateRef.current, cloud);
+      const at = tvUpdatedAt(merged) || safeNowIso();
+      const stamped = push ? touchTv(merged, at) : merged;
+      saveTv(email, stamped);
+      if (alive) setState(stamped);
+      if (push) pushTvCloud(stamped, at);
+    };
+    pull();
+    const unsub = subscribeTvRealtime(pull);
+    return () => { alive = false; if (unsub) unsub(); };
+  }, [email]);
 
   // Live search — shows AND movies as you type (debounced). The reason typing didn't
   // populate before (Darrell 2026-07-04) — now it does, and "movies too?".
@@ -334,7 +370,7 @@ export default function TVTime({ email = null }) {
         Keep up with your shows and movies and talk about them with your people. Look one up — a show’s seasons come in and you check off each episode; a movie is a single tap to mark watched. It lives in the PoeTech App (a website you install on any phone or computer), so it’s not going anywhere.
       </p>
       <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={serif}>
-        Your circle: {SEED_CIRCLE.join(' · ')}. <span className="text-[#B85838]">Live group sync is coming next</span> — for now your list is saved on your device, private to you. Show info + posters: {TV_SOURCE.name}; movies: {MOVIE_SOURCE.name}.
+        Your circle: {SEED_CIRCLE.join(' · ')}. {email ? <span className="text-[#5A6E3D]">Your list follows your sign-in across your devices</span> : <span>Your list is saved on this device</span>}; <span className="text-[#B85838]">live group sync is coming next</span>. Show info + posters: {TV_SOURCE.name}; movies: {MOVIE_SOURCE.name}.
       </p>
 
       {/* Look up a show — live search. */}
@@ -419,6 +455,10 @@ export default function TVTime({ email = null }) {
 
 function safeNow() {
   try { return typeof Date !== 'undefined' && Date.now ? Date.now() : 0; } catch { return 0; }
+}
+
+function safeNowIso() {
+  try { return new Date().toISOString(); } catch { return ''; }
 }
 
 export { TVTime };
