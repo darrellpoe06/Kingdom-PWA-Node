@@ -825,6 +825,30 @@ export const GODHEAD_ALGORITHMS = [
     // runs Torah -> Revelation: He knows the soul BEFORE the meeting, tells them
     // what to expect, sets the exact appointment, and keeps it to the letter — and
     // (Judas) His foreknowledge never cancels the soul's own accountable choice.
+    // ── THE WORD IS THE 4TH-DIMENSIONAL FRAME ──────────────────────────────────
+    // Darrell 2026-07-04 (DR-0097): capitalize "the Word" because He is the
+    // higher-priority, pre-temporal reality — the Programmer who framed the worlds
+    // before time, the Outside Agent the sciences see in the design and will not
+    // honor. Two algorithms carry the teaching (verses verbatim, DR-0076).
+    id: 'gh-word-framed-worlds', section: 'gospels', name: 'The Word Framed the Worlds (the Outside Agent before time)',
+    refs: ['John 1:1-3', 'Hebrews 11:3', 'Colossians 1:16-17'],
+    condition: 'In the beginning was the Word, and the Word was God; the worlds were FRAMED by the word of God, and by Him all things were created and consist — He is before all things.',
+    consequence: 'Reality is authored, not accidental. The One who wrote the code of the worlds stands OUTSIDE and BEFORE them — the 4th-dimensional Author, not a 3rd-dimensional part of the system He made.',
+    threeD: 'Read Scripture as the Programmer\'s own word about the world He wrote, not as one more 3D data source. Order your operational life UNDER the higher frame: the Author\'s intent outranks the system\'s defaults. Give Him the Honor the design is screaming for.',
+    outcome: 'A life lived inside the true frame — creature to Creator, aligned to the Author\'s purpose instead of drifting inside the machine as if it made itself.',
+    psyche: 'Treating the cosmos as authored rather than accidental reorders every lesser priority under one ultimate one — the most coherent, load-bearing frame a mind can stand on.',
+    tags: ['the-word', 'creation', 'logos', '4d', 'outside-agent'],
+  },
+  {
+    id: 'gh-clearly-seen-without-excuse', section: 'epistles', name: 'Clearly Seen, Without Excuse (they knew God and glorified Him not)',
+    refs: ['Romans 1:20-21'],
+    condition: 'His eternal power and Godhead are CLEARLY SEEN in the things He made — the design testifies to the Designer, so every observer is without excuse.',
+    consequence: 'The verdict falls not on ignorance but on WITHHELD honor: "when they knew God, they glorified Him not as God, neither were thankful" — and the heart that will not give the glory is darkened.',
+    threeD: 'When you see the fingerprints of the Author — in the cell, the cosmos, the conscience — GIVE the glory out loud; do not admire the design and rob the Designer. The sciences that map His handiwork and refuse His name model the exact refusal Paul names; you do the opposite.',
+    outcome: 'A mind kept from darkening because it returns the honor the evidence demands — thankful, undimmed, giving Yahweh the Glory the wise withhold.',
+    tags: ['the-word', 'romans', 'without-excuse', 'honor-and-glory', 'accountability'],
+  },
+  {
     id: 'gh-known-before-formed', section: 'prophets', name: 'Known Before You Were Formed (the purpose predates you)',
     refs: ['Jeremiah 1:5'],
     condition: 'Before He formed you in the belly He KNEW you; before you came out of the womb He set you apart and ordained your purpose.',
