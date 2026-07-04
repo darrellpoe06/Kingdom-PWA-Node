@@ -66,7 +66,7 @@ export const LIVING_LESSONS_META = {
   tagline: 'You were never made to be flawless. You were made to be whole.',
   format: 'Self-paced · read it alone, as a family, or in a group · paced to your age',
   cadenceDays: 7,
-  weeks: 4, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live; grows as Darrell teaches more
+  weeks: 5, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought; grows as Darrell teaches more
   handsOnLabel: 'Take it with you',
   // The label layer that lets the shared engine render this honestly as a
   // self-paced lesson series rather than a weekly cohort class.
@@ -455,6 +455,100 @@ export const LIVING_LESSONS_MODULES = [
         '"Whosoever will save his life shall lose it." Where has clinging to your own way, comfort, or reputation actually cost you life?',
         'Christ "made himself of no reputation" and served. What is one reputation or right you sense Him inviting you to lay down for the body?',
         'What is one small, specific death-to-self you can plant this week — and who would it bear fruit for?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // LESSON 5 — "Take No Thought for Tomorrow" (fear vs faith / out of survival
+  // mode) — Darrell 2026-07-04, from the Picard interview: stress hormones
+  // (cortisol) signal DANGER and force the body to reallocate its finite energy
+  // budget away from long-term maintenance toward immediate survival; chronic
+  // fear releases GDF-15, a "sickness response" of fatigue and lost motivation.
+  // The antidote is Jesus\' "take no thought" — faith that frees you from survival
+  // mode. Verses KJV, VERBATIM from the in-app Bible (DR-0076). "Take no thought"
+  // means do not be consumed by anxious dread — NOT be careless or refuse to plan
+  // (Scripture also commends foresight); it frees, never shames.
+  {
+    id: 'll5-take-no-thought-for-tomorrow',
+    title: 'Take No Thought for Tomorrow',
+    bigIdea: 'Your body has a survival switch. When stress hormones like cortisol sense DANGER, the body reallocates its finite energy away from long-term maintenance and repair and toward immediate survival — a brilliant design for a real emergency. The problem is that chronic worry keeps that switch flipped for dangers that are mostly imagined, so you spend your future fighting a threat that never comes; science even names a "sickness response" (via a stress marker called GDF-15) that drains motivation and energy when fear runs long. Yahweh knew this survival wiring, and Jesus speaks straight to it: "Take no thought for your life... Take therefore no thought for the morrow." That is not a command to be careless — it is an invitation OUT of survival mode. Your Father feeds the birds and clothes the fields; He knows what you need. Fear reallocates your energy to a danger that is not real; faith gives it back for today, for repair, and for the Kingdom.',
+    inApp: 'Name the "tomorrow" you have been living in — the what-if you keep rehearsing that has you in survival mode today. Then hand today\'s portion of it to your Father and refuse to carry the rest: "Take therefore no thought for the morrow... Sufficient unto the day is the evil thereof" (Matthew 6:34). Do ONE ordinary thing right now — a meal, a walk, a task, a rest — fully present, trusting Him for the morning. Fear spends tomorrow\'s strength today; faith lets you actually live now.',
+    anchor: {
+      ref: 'Matthew 6:25-34; Hebrews 11:1; 2 Timothy 1:7',
+      theme: 'Take no thought for your life or the morrow — your Father knows what you need. Fear and faith both work on the unseen: faith is "the substance of things hoped for, the evidence of things not seen" (Hebrews 11:1). Give your substance to Him, not to dread — the way out of survival mode.',
+    },
+    benefits: [
+      'A way OUT of survival mode — you can stop burning tomorrow\'s strength on dangers that never arrive.',
+      'Relief for the anxious body — chronic fear is exhausting by design; trust gives your energy back for living and repair.',
+      'A truer picture of God — a Father who feeds the birds and knows your needs, not a distant judge you must out-worry.',
+      'Freedom from the tyranny of "tomorrow" — you get to actually live TODAY, present and unhurried.',
+      'A settled mind — not the spirit of fear, but "power, and of love, and of a sound mind" (2 Timothy 1:7).',
+    ],
+    levels: {
+      child: 'Your body has an alarm inside it. When something scary happens, the alarm goes off and gives you fast energy to run or get safe — that is a GOOD thing when there is a real lion! But here is the tricky part: if you WORRY about scary things that are not even happening (What if tomorrow goes bad? What if...?), your alarm keeps ringing and ringing and wears you out for nothing. So Jesus said something kind: "Take no thought for your life... Behold the fowls of the air: for they sow not, neither do they reap... yet your heavenly Father feedeth them. Are ye not much better than they?" (Matthew 6:25-26). Look at the birds — God feeds them, and He loves YOU even more! He knows everything you need. So you do not have to be scared about tomorrow. Jesus said, "Take therefore no thought for the morrow" (6:34) — just love God and be here today, and let Him take care of tomorrow. God even says, "Fear thou not; for I am with thee" (Isaiah 41:10). You are safe with Him.',
+      teen: 'Actual science: when you\'re stressed, cortisol tells your body "DANGER," and your body reallocates its energy away from long-term repair toward instant survival — great for a real emergency, terrible as a lifestyle. If you stay in worry mode, you\'re basically running your fight-or-flight system on a threat that isn\'t even here, and researchers describe a "sickness response" that tanks your motivation and energy when stress runs chronic. Now hear Jesus, who understood this two thousand years early: "Take no thought for your life... Which of you by taking thought can add one cubit unto his stature?" (Matthew 6:25,27) — worrying literally cannot add a thing. "Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof" (6:34). He\'s not saying don\'t plan or be lazy; He\'s saying don\'t let dread of tomorrow rob today. Why can you? Because "your heavenly Father knoweth that ye have need of all these things" (6:32). And this is huge: "God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7). Anxiety is not your assignment. Living in survival mode is not strength — it\'s a battery drain over a threat that isn\'t real. Faith is what lets you actually live.',
+      senior: 'Dr. Martin Picard describes a mechanism the anxious heart knows well: stress hormones such as cortisol signal external danger and force the body to reallocate its finite energy budget away from long-term maintenance and repair toward immediate survival — an adaptive response for a genuine emergency, but corrosive when sustained. His research quantifies the cost (the psychological stress response can raise energy expenditure by as much as 60%), and he highlights GDF-15, an "energy stress marker" that, when mitochondrial strain runs high, travels to the brain stem and triggers a "sickness response" — fatigue, suppressed motivation, altered metabolism — with chronic stress becoming a prognostic marker for metabolic, cardiovascular, and mental illness. In other words, unrelenting fear is metabolically expensive and self-harming. This is exactly the human condition Jesus addresses in the Sermon on the Mount, and He does not scold the anxious; He reasons with them tenderly. "Take no thought for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on... Behold the fowls of the air: for they sow not, neither do they reap, nor gather into barns; yet your heavenly Father feedeth them. Are ye not much better than they?" (Matthew 6:25-26). He exposes the futility of it: "Which of you by taking thought can add one cubit unto his stature?" (6:27) — anxiety adds nothing, though it costs everything. He locates the cure in the Father\'s knowledge and care: "your heavenly Father knoweth that ye have need of all these things" (6:32), and He gives the plain command with its gentle reason: "Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof" (6:34). Note carefully what "take no thought" does NOT mean: Scripture elsewhere commends foresight and diligent planning (Proverbs), so this is not a call to carelessness — the Greek is the anxious, dividing worry that scatters the soul, not wise preparation. The rest of the canon supplies the same medicine: "There is no fear in love; but perfect love casteth out fear" (1 John 4:18); "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7); "Fear thou not; for I am with thee: be not dismayed; for I am thy God" (Isaiah 41:10); "Cast thy burden upon the LORD, and he shall sustain thee: he shall never suffer the righteous to be moved" (Psalm 55:22). For a saint who has carried decades of cares, the pastoral word is permission to come down off high alert. The survival switch was a mercy for real danger; it was never meant to be your permanent home. Your Father sees, your Father knows, your Father feeds even the birds — and you are much better than they. Faith is not denial of tomorrow; it is entrusting tomorrow to the One who already holds it, so your strength is freed for today.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'What does the body do under stress/fear, according to the science?',
+          options: [
+            'Nothing changes',
+            'It reallocates its finite energy AWAY from long-term repair toward immediate survival — costly when the "danger" is only worry',
+            'It permanently increases its total energy',
+          ],
+          answer: 1,
+          explain: 'Cortisol signals danger and shifts the budget to survival mode; chronic fear keeps it flipped for threats that never come — exactly the anxious over-thought Jesus addresses in Matthew 6.',
+        },
+        {
+          q: 'What did Jesus say worrying can accomplish?',
+          options: [
+            'It can fix the future if you do it hard enough',
+            'Nothing — "Which of you by taking thought can add one cubit unto his stature?" (Matthew 6:27)',
+            'It is required to be responsible',
+          ],
+          answer: 1,
+          explain: 'Anxiety adds nothing though it costs everything. "Take no thought" means do not let dread rob today — not that we cannot plan wisely.',
+        },
+        {
+          q: 'Why can we "take no thought for the morrow"?',
+          options: [
+            'Because nothing bad ever happens',
+            'Because "your heavenly Father knoweth that ye have need of all these things" (Matthew 6:32) — He sees and provides',
+            'Because tomorrow does not matter',
+          ],
+          answer: 1,
+          explain: 'The ground of freedom from fear is the Father\'s knowledge and care — He feeds the birds and knows your needs. "Sufficient unto the day is the evil thereof" (6:34).',
+        },
+        {
+          q: 'What spirit has God given His people?',
+          options: [
+            'A spirit of fear, to keep them careful',
+            '"Power, and of love, and of a sound mind" — "not... the spirit of fear" (2 Timothy 1:7)',
+            'No spirit at all',
+          ],
+          answer: 1,
+          explain: 'Fear is not your assignment. "There is no fear in love; but perfect love casteth out fear" (1 John 4:18). Faith is the way out of survival mode.',
+        },
+      ],
+    },
+    lesson: 'God built you with a survival switch, and it is a mercy. When real danger appears, stress hormones like cortisol sound the alarm and the body instantly reallocates its finite energy — pulling it away from slow, long-term work like repair and maintenance and pouring it into immediate survival: sharpen the senses, tense the muscles, run or fight. For a genuine emergency, this is genius. Dr. Martin Picard\'s research shows how expensive it is — the psychological stress response can raise energy expenditure by as much as 60%, all of it borrowed from the future — and he describes a stress marker called GDF-15 that, when the strain runs high, signals the brain stem and triggers a "sickness response": fatigue, sunken motivation, an altered metabolism. Sustained, this becomes a marker for metabolic, heart, and mental illness. Here is the trap in one sentence: the survival switch cannot tell the difference between a lion and a worry. So a mind that rehearses tomorrow\'s what-ifs keeps the alarm ringing for dangers that never arrive, and spends its future strength fighting phantoms. Long before anyone measured cortisol, Jesus walked straight into this exact wiring — and notice, He does not scold the anxious; He reasons with them, gently, like a good Father. "Therefore I say unto you, Take no thought for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on. Is not the life more than meat, and the body than raiment?" (Matthew 6:25). Then He points to the birds: "Behold the fowls of the air: for they sow not, neither do they reap, nor gather into barns; yet your heavenly Father feedeth them. Are ye not much better than they?" (6:26). He exposes how useless the worry is: "Which of you by taking thought can add one cubit unto his stature?" (6:27) — anxiety cannot add a single inch, though it drains the whole tank. He names the ground of our peace, and it is not that nothing bad ever happens, but that we are seen: "for your heavenly Father knoweth that ye have need of all these things" (6:32). And then the plain command, with its kind reason attached: "Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof" (6:34). Hear carefully what "take no thought" does NOT mean — it is not a call to be careless or to refuse to plan, for the same Scriptures praise foresight and diligence. The thing Jesus forbids is the anxious, dividing DREAD that scatters the soul and burns tomorrow\'s energy today; He is not against wise preparation, He is against fear ruling you. And the rest of the Word hands you the same medicine. "There is no fear in love; but perfect love casteth out fear: because fear hath torment" (1 John 4:18) — fear is torment, and love is its cure. "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7) — that churning dread is not from Him; a sound mind is your inheritance. He says it as a Father to a frightened child: "Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee" (Isaiah 41:10). And He tells you exactly what to do with the weight: "Cast thy burden upon the LORD, and he shall sustain thee: he shall never suffer the righteous to be moved" (Psalm 55:22). So come down off high alert. The survival switch was given for the real lion, not for a lifetime of imagined ones. Every hour you spend dreading a tomorrow that is not here, you are spending strength you were meant to live on today — and your Father, who feeds the sparrows and clothes the fields and already holds your tomorrow, is asking you, kindly, to let Him carry it. Faith is not pretending there is no tomorrow; it is entrusting tomorrow to the One who is already there. And here is the key that unlocks the whole lesson — it is astonishing in this context: fear and faith BOTH operate on the unseen. Worry hands its strength to a tomorrow you cannot see, making a dreaded, imagined future feel present and real so that your body spends itself on it. Now read how the Word defines faith: "Now faith is the substance of things hoped for, the evidence of things not seen" (Hebrews 11:1). Faith works in the very same unseen realm as fear — the not-yet, the invisible, the tomorrow that has not come — but it gives its substance to what is HOPED for instead of what is dreaded. Fear is substance handed to the worst unseen thing; faith is substance handed to the best: to the Father who is there, who feeds the birds, who already holds the morning ("he that cometh to God must believe that he is, and that he is a rewarder of them that diligently seek him," Hebrews 11:6). So the question your survival switch is really asking is: which unseen thing will you give your substance to? Give it to dread, and you live in torment, spending tomorrow\'s strength today. Give it to Him, and that same energy is set free to live. Faith is not the absence of the unseen — it is the substance of the RIGHT unseen. Take no thought for the morrow. Your Father knows. You are much better than the birds.',
+    facilitator: {
+      talkingPoints: [
+        'The science (the WITNESS, attributed): Dr. Martin Picard — cortisol/stress signals DANGER and reallocates the finite energy budget from long-term maintenance to immediate survival; the stress response can cost up to ~60% more energy; the GDF-15 "sickness response" (fatigue, lost motivation) sets in under chronic stress. The survival switch cannot tell a lion from a worry.',
+        'The Word (the SOURCE): Jesus reasons tenderly with the anxious — "Take no thought for your life... Behold the fowls of the air... your heavenly Father feedeth them" (Matthew 6:25-26); worry adds nothing (6:27); the Father knows your needs (6:32); "Take therefore no thought for the morrow... Sufficient unto the day is the evil thereof" (6:34). All KJV, verbatim.',
+        'What "take no thought" does NOT mean: not carelessness, not a ban on planning (Scripture praises foresight) — it forbids anxious, dividing DREAD that rules you, not wise preparation. Say this plainly so no diligent person feels condemned.',
+        'The medicine: "perfect love casteth out fear... fear hath torment" (1 John 4:18); "not... the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7); "Fear thou not; for I am with thee" (Isaiah 41:10); "Cast thy burden upon the LORD, and he shall sustain thee" (Psalm 55:22).',
+        'Well-being bright line: this FREES the anxious out of survival mode; it is invitation, not more pressure. If anyone leaves more afraid (or ashamed of being afraid), it was taught wrong. The word is "your Father knows," and "you are much better than the birds."',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read Matthew 6:25-34 aloud — ask, "what \'tomorrow\' do you keep rehearsing?" | The big idea, in your own words (10): explain the survival switch (fear reallocates energy for a danger that may not be real), then land it — worry cannot add a cubit, but the Father feeds the birds and knows your needs. | Go deeper (10): clarify "take no thought" (not carelessness — anxious dread), then walk 2 Timothy 1:7, 1 John 4:18, Isaiah 41:10, Psalm 55:22. | Reflect together (10): use the prompts; be gentle with the fearful. | Take it with you (2): each person names one "tomorrow" to hand to the Father and one ordinary thing to do fully present today.',
+      discussionPrompts: [
+        'What "tomorrow" do you keep living in — the what-if you rehearse that keeps you on high alert today?',
+        '"Which of you by taking thought can add one cubit?" Where has worry cost you a lot and changed nothing?',
+        'Jesus points to the birds and says your Father feeds them — where is it hard for you to believe He sees and will provide for YOU?',
+        '"God hath not given us the spirit of fear, but... a sound mind." What would change if you truly believed the dread is not from Him?',
+        'What is one burden you could cast on the Lord this week (Psalm 55:22) — and one ordinary thing you could do fully present, trusting Him for the morning?',
       ],
     },
   },
