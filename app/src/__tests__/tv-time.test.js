@@ -13,7 +13,7 @@ import {
   addCustomShow, customCatalog,
   addShowFromCatalog, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress, epKey,
   addMovieFromCatalog, toggleMovieWatched, isMovieWatched, itemKind,
-  watchSignal, trendingWatches,
+  watchSignal, trendingWatches, exportTv, importTvJson, EXPORT_TAG,
 } from '../lib/tv-time.js';
 
 // A looked-up show (tv-catalog shape) with 2 seasons / 3 episodes total.
@@ -240,6 +240,41 @@ describe('what\'s getting watched — real-data activity ranking', () => {
     expect(a).toEqual(['a2', 'a1']);                     // tie broken by title asc (Alpha before Zed)
   });
 });
+
+describe('your data is yours — export + restore (DATA-AS-EMPOWERMENT)', () => {
+  it('exports the whole list at full fidelity and restores it round-trip', () => {
+    let s = addShowFromCatalog(emptyTv(), GOT);
+    s = toggleEpisode(s, '82', 1, 1);
+    s = rateShow(s, '82', 4);
+    s = addComment(s, '82', { author: 'Lady D', text: 'iconic' }, 5, 0);
+    s = addMovieFromCatalog(s, MOVIE);
+    s = toggleMovieWatched(s, 'mv-1337364561');
+
+    const backup = exportTv(s);
+    expect(backup.app).toBe(EXPORT_TAG);
+    // a full-fidelity restore onto an EMPTY list reproduces every detail
+    const restored = importTvJson(emptyTv(), JSON.parse(JSON.stringify(backup)));
+    expect(isEpisodeWatched(restored, '82', 1, 1)).toBe(true);
+    expect(getComments(restored, '82')[0].text).toBe('iconic');
+    expect(itemKind(restored, 'mv-1337364561')).toBe('movie');
+    expect(isMovieWatched(restored, 'mv-1337364561')).toBe(true);
+  });
+  it('restore merges into a non-empty list (restore-wins per id) and keeps others', () => {
+    const mine = addShowFromCatalog(emptyTv(), { id: 'keep', title: 'My Show', seasons: [] });
+    const backup = exportTv(addShowFromCatalog(emptyTv(), GOT));
+    const merged = importTvJson(mine, backup);
+    expect(getStatus(merged, 'keep')).not.toBe('want');   // my existing show survives
+    expect(customCatalog(merged).some((x) => x.id === '82')).toBe(true); // backup's show came in
+  });
+  it('a malformed backup file cannot corrupt the list', () => {
+    const mine = addShowFromCatalog(emptyTv(), GOT);
+    expect(importTvJson(mine, 'not an object')).toEqual(normalizeRoundtrip(mine));
+    expect(importTvJson(mine, { shows: { evil: { status: 'bogus' } } }).shows.evil.status).toBe('want');
+  });
+});
+
+// helper: what `mine` looks like after a no-op normalize (import of {} merges nothing)
+function normalizeRoundtrip(s) { return importTvJson(s, {}); }
 
 describe('discernment prompt is deterministic per show', () => {
   it('same show -> same prompt, from the list', () => {
