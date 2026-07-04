@@ -121,10 +121,18 @@ function PlatformSignups() {
 
       {res.status === 'loading' && !data ? (
         <p className={note}>Loading platform signups…</p>
-      ) : res.status === 'unavailable' ? (
+      ) : res.status === 'unauthorized' ? (
         <p className={note + ' italic'}>
-          Couldn't load platform signups right now — the admin_signup_metrics function may not be on
-          the cloud database yet (the migration applies it). The rest of this surface is unaffected.
+          Only poe-family governors can see platform signups. If this should be you, your sign-in
+          isn't in the poe-family circle at the database level (not just the UI).
+        </p>
+      ) : res.status === 'unavailable' ? (
+        // Show the REAL error, not a guess (DR-0076) — so the exact cause is
+        // visible: "function does not exist" (migration not applied) vs a SQL /
+        // permission error. The rest of this surface is unaffected.
+        <p className={note + ' italic'}>
+          Couldn't load platform signups: {(res.error && res.error.message) || 'unknown error'}
+          {res.error && res.error.code ? ` (code ${res.error.code})` : ''}.
         </p>
       ) : (
         <>
