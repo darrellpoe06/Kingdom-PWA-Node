@@ -536,22 +536,24 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
     [activeTheme, orderedThemes],
   );
   const toggleInterest = (id) => setInterests((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-  // Curated, depth-adaptive study vs. the WHOLE KJV, read in-app (Darrell
-  // 2026-07-04: a Logos-type Bible inside PoeTech, no link-out).
-  const [readerMode, setReaderMode] = useState('study');
+  // The WHOLE KJV read in-app vs. the curated, depth-adaptive study (Darrell
+  // 2026-07-04: a Logos-type Bible inside PoeTech, no link-out). The Word leads —
+  // opening Scripture lands on the Bible itself, curated study is the second tab
+  // (Darrell 2026-07-04: "the Word tab should be first under the Scripture tab").
+  const [readerMode, setReaderMode] = useState('bible');
 
   return (
     <div className="max-w-3xl">
       <SectionTitle eyebrow="Word-first · KJV public domain · His perspective + His love">Scripture</SectionTitle>
 
       <div className="flex gap-2 mb-3 flex-wrap" role="tablist" aria-label="Scripture mode">
+        <button type="button" role="tab" aria-selected={readerMode === 'bible'} onClick={() => setReaderMode('bible')}
+          className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${readerMode === 'bible' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
+          The Word · Full Bible KJV
+        </button>
         <button type="button" role="tab" aria-selected={readerMode === 'study'} onClick={() => setReaderMode('study')}
           className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${readerMode === 'study' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
           Curated study
-        </button>
-        <button type="button" role="tab" aria-selected={readerMode === 'bible'} onClick={() => setReaderMode('bible')}
-          className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${readerMode === 'bible' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-          Full Bible · KJV
         </button>
       </div>
 
