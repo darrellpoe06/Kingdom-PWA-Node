@@ -66,7 +66,7 @@ export const LIVING_LESSONS_META = {
   tagline: 'You were never made to be flawless. You were made to be whole.',
   format: 'Self-paced · read it alone, as a family, or in a group · paced to your age',
   cadenceDays: 7,
-  weeks: 3, // L1 (the Perfect you were made for) + L2 (the Energy you were given) + L3 (Bodybuilding Christ); grows as Darrell teaches more
+  weeks: 4, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live; grows as Darrell teaches more
   handsOnLabel: 'Take it with you',
   // The label layer that lets the shared engine render this honestly as a
   // self-paced lesson series rather than a weekly cohort class.
@@ -361,6 +361,100 @@ export const LIVING_LESSONS_MODULES = [
         '"The eye cannot say to the hand, I have no need of thee." Where is it hard for you to admit you need others — and why?',
         '"When one member suffers, all suffer... when one is honored, all rejoice." Who in the body is suffering right now that you could suffer-with?',
         'If the body grows only as "every joint supplieth... in love," what is one joint you could start supplying instead of holding back?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // LESSON 4 — "Dying to Live" (the grain of wheat) — Darrell 2026-07-04, the
+  // shadow side of the Body-of-Christ teaching from the same Picard interview:
+  // the cancer cell ditches its mitochondria to EVADE the programmed death
+  // (apoptosis) that serves the whole body, breaks the social contract, and lives
+  // only to multiply — the inverse of the grain of wheat that falls and dies to
+  // bear fruit. BRIGHT LINE (non-negotiable, John 9:1-3): this is a SPIRITUAL
+  // analogy about self-will, NOT a claim that cancer is caused by personal sin or
+  // that the sick are guilty. Jesus rejected that outright. Verses KJV, VERBATIM
+  // from the in-app Bible (DR-0076). Well-being-positive; grace-centered.
+  {
+    id: 'll4-dying-to-live',
+    title: 'Dying to Live',
+    bigIdea: 'The science shows something sobering: your mitochondria hold a kind of veto over a cell\'s life and death — a healthy cell will undergo programmed death (apoptosis) for the good of the whole body when it should. A cancer cell does the opposite: it ditches or reprograms its mitochondria precisely to EVADE that death, breaks its social contract with the body, and lives only to multiply itself — and in refusing to die for the whole, it destroys the whole. Hear this first and clearly: this is a SPIRITUAL PICTURE about self-will, NOT a claim that anyone\'s cancer is caused by their sin — Jesus flatly rejected that idea ("Neither hath this man sinned, nor his parents," John 9:3). But the SHAPE of it preaches the deepest paradox Jesus taught: the life that clings only to itself is lost, and the life that falls like a grain of wheat and dies bears much fruit. Self-preservation at the body\'s expense is death; dying to self for the Body is how you — and it — truly live.',
+    inApp: 'Name one place you have been the "cell that will not die" — quietly protecting your own comfort, reputation, or way at the cost of the people around you. Then, like a grain of wheat, let it fall: choose ONE small death-to-self today — yield an argument, serve unseen, forgive, give something up — for the good of someone else. Say it: "I am crucified with Christ: nevertheless I live; yet not I, but Christ liveth in me" (Galatians 2:20). Watch what your dying brings forth.',
+    anchor: {
+      ref: 'John 12:24-25; Luke 9:23-24',
+      theme: 'Except a grain of wheat fall into the ground and die, it stays alone; but if it dies, it bears much fruit. Whoever would save his life loses it; whoever loses it for Christ\'s sake saves it. Dying to self is the doorway to real life.',
+    },
+    benefits: [
+      'Freedom from the exhausting, endless work of self-protection — you can stop defending "you" at all costs.',
+      'The great paradox as good news: what you yield is not lost; the grain that falls "bringeth forth much fruit."',
+      'A clean, freeing NO to the selfishness that quietly harms the people around you — and a way back into the body.',
+      'Deep comfort + a bright line: suffering and sickness are NOT God\'s punishment for sin (John 9:3); this lesson never shames the hurting.',
+      'The pattern of Christ Himself — who "humbled himself, and became obedient unto death" for the body; you follow, you do not earn.',
+    ],
+    levels: {
+      child: 'Here is a secret about seeds. If you keep a seed in your pocket to protect it, it just stays a lonely little seed forever. But if you put it in the ground — where it looks like it is dying — it grows into a big plant with LOTS of new seeds! Jesus said it is like that with us: "Except a corn of wheat fall into the ground and die... it bringeth forth much fruit" (John 12:24). It means the happiest way to live is NOT to only think about yourself — "me first, me first" — but to share, and help, and let others go first sometimes. That feels like a tiny "dying" (it is hard to give up your turn!), but it grows something beautiful. (One important thing: when people get sick, it is NOT because they did something bad — Jesus said that is not true, John 9:3. God loves them very much.) So today, do one kind "seed" thing: let someone go first, share your toy, or say sorry. You are planting a seed that grows.',
+      teen: 'Real science, then the real point. Your mitochondria basically hold a "veto" over whether a cell lives or dies — a healthy cell will actually undergo programmed death (apoptosis) when that is what is best for the whole body. Cancer cells do the opposite: they ditch or hijack their mitochondria to DODGE that death, break their "social contract" with the body, and just multiply for themselves — and by refusing to die for the whole, they wreck the whole. (Serious note, do not skip it: this is a spiritual metaphor about SELFISHNESS, not a claim that anyone\'s cancer is their fault. Jesus shut that idea down hard — "Neither hath this man sinned, nor his parents," John 9:3. Sickness is not punishment.) Now the metaphor lands, because it is exactly the paradox Jesus taught: "Except a corn of wheat fall into the ground and die, it abideth alone: but if it die, it bringeth forth much fruit" (John 12:24). "Whosoever will save his life shall lose it: but whosoever will lose his life for my sake, the same shall save it" (Luke 9:24). The move everyone tells you to make — protect yourself, look out for number one, never let anyone win — is literally the cancer move: self at the expense of the body. The Jesus move is the opposite: "let him deny himself, and take up his cross daily, and follow me" (Luke 9:23). Dying to yourself is not losing; it is the only way anything real grows.',
+      senior: 'This lesson pairs the previous one\'s wonder with its solemn shadow, and it must be handled with a pastor\'s care. Dr. Martin Picard describes the mitochondria as effectively holding a veto over cell fate — a healthy cell will undergo apoptosis, programmed death, for the greater good of the organism. Cancer, in this frame, is a cell that reverts to an ancestral, "asocial" state (the Warburg effect — abandoning oxidative mitochondrial energy even when oxygen is present), ditching or reprogramming its mitochondria precisely to evade that death, abandoning its social contract with the body to multiply for itself. FIRST, the bright line, because a lifetime of bad theology has wounded many: sickness is NOT divine punishment, and cancer is NOT evidence of personal sin. When the disciples asked, "Master, who did sin, this man, or his parents, that he was born blind?" Jesus answered, "Neither hath this man sinned, nor his parents: but that the works of God should be made manifest in him" (John 9:2-3). Hold that firmly for every suffering saint. With that guarded, the SHAPE of the biology witnesses to the central paradox of the gospel. "Verily, verily, I say unto you, Except a corn of wheat fall into the ground and die, it abideth alone: but if it die, it bringeth forth much fruit" (John 12:24). "He that loveth his life shall lose it; and he that hateth his life in this world shall keep it unto life eternal" (12:25). "If any man will come after me, let him deny himself, and take up his cross daily, and follow me. For whosoever will save his life shall lose it: but whosoever will lose his life for my sake, the same shall save it" (Luke 9:23-24). The self-preserving cell that will not die for the body is the very portrait of the flesh; the crucified life is its cure — "I am crucified with Christ: nevertheless I live; yet not I, but Christ liveth in me" (Galatians 2:20). Even the reprogramming has a redemptive echo: where cancer reprograms metabolism toward selfish multiplication, the believer is re-programmed toward God — "be not conformed to this world: but be ye transformed by the renewing of your mind" (Romans 12:2). And the pattern is Christ Himself, the anti-cancer, who did for the body the exact opposite of the tumor: He did not cling to His life or reputation — "Let nothing be done through strife or vainglory... Look not every man on his own things, but every man also on the things of others. Let this mind be in you, which was also in Christ Jesus... he humbled himself, and became obedient unto death, even the death of the cross" (Philippians 2:3-8). He fell like the grain of wheat, and behold the much fruit. For the seasoned believer, the pastoral word is neither shame nor striving but invitation: the long habit of self-protection can finally be laid down, because the One who loved you and gave Himself for you (Galatians 2:20) has already made the dying safe. What you yield to Him is never lost — it is planted.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'First and most important: is sickness (like cancer) God\'s punishment for a person\'s sin?',
+          options: [
+            'Yes — the sick must have done something wrong',
+            'No — Jesus said plainly, "Neither hath this man sinned, nor his parents" (John 9:3); this lesson is a spiritual analogy, not a verdict on the sick',
+            'Only sometimes',
+          ],
+          answer: 1,
+          explain: 'Jesus rejected the who-sinned assumption outright (John 9:1-3). This lesson uses the biology as a picture of SELFISHNESS versus dying-to-self; it never blames the suffering.',
+        },
+        {
+          q: 'In the metaphor, what makes a cancer cell destructive?',
+          options: [
+            'It works too hard for the body',
+            'It evades the death that serves the whole and lives only to multiply itself — breaking its social contract with the body',
+            'It shares too much energy',
+          ],
+          answer: 1,
+          explain: 'The cell refuses the apoptosis that would serve the body, and self-preserves at the body\'s expense — the very shape of the flesh Jesus contrasts with the grain of wheat that falls and dies (John 12:24).',
+        },
+        {
+          q: 'What did Jesus say happens to the grain of wheat that falls into the ground and dies?',
+          options: [
+            'It is wasted and gone',
+            'It "bringeth forth much fruit" (John 12:24) — dying is the doorway to life',
+            'It stays exactly the same',
+          ],
+          answer: 1,
+          explain: 'The seed that clings to itself "abideth alone"; the one that falls and dies bears much fruit. Losing your life for His sake is how you save it (Luke 9:24).',
+        },
+        {
+          q: 'Who is the perfect pattern of dying-to-self for the body?',
+          options: [
+            'No one has ever done it',
+            'Christ Himself — He "humbled himself, and became obedient unto death, even the death of the cross" (Philippians 2:8)',
+            'Only very strong people',
+          ],
+          answer: 1,
+          explain: 'Jesus is the anti-cancer: He did not cling to His life or reputation but poured Himself out for the body. We follow His pattern by grace — "yet not I, but Christ liveth in me" (Galatians 2:20).',
+        },
+      ],
+    },
+    lesson: 'This lesson is the solemn shadow of the last one, and it must be held with care. In the same interview, Dr. Martin Picard describes something remarkable about the mitochondria: they hold a kind of VETO over a cell\'s fate. A healthy cell, when it is damaged or no longer serving the whole, will undergo apoptosis — programmed death — for the greater good of the body. That built-in willingness of a part to die for the whole is part of what makes a body a body. Cancer, in his frame, is the betrayal of exactly that. A tumor cell reverts to an ancestral, "asocial" state — the Warburg effect, abandoning normal mitochondrial energy production even when oxygen is available — and it ditches or reprograms its mitochondria precisely to EVADE the death signal, so that it can go on multiplying for itself. It breaks its social contract with the body. And here is the tragedy in one line: by refusing to die for the whole, the cancer cell destroys the whole — and itself with it. Now, before we draw the spiritual lesson, we must set a bright line and never cross it: this is a PICTURE of self-will, not a diagnosis of anyone\'s soul. Sickness is NOT God\'s punishment, and cancer is NOT evidence of secret sin. Jesus was asked this exact question — "Master, who did sin, this man, or his parents, that he was born blind?" — and He answered, "Neither hath this man sinned, nor his parents: but that the works of God should be made manifest in him" (John 9:2-3). Hold that tenderly over every person who is suffering. With that guarded, hear how precisely the SHAPE of the biology echoes the deepest paradox Jesus ever taught. He said: "Verily, verily, I say unto you, Except a corn of wheat fall into the ground and die, it abideth alone: but if it die, it bringeth forth much fruit" (John 12:24). A seed that protects itself — that refuses to fall and die — "abideth alone," fruitless, exactly like the self-preserving cell. But the seed that dies brings forth much fruit. He pressed it further: "He that loveth his life shall lose it; and he that hateth his life in this world shall keep it unto life eternal" (John 12:25); "If any man will come after me, let him deny himself, and take up his cross daily, and follow me. For whosoever will save his life shall lose it: but whosoever will lose his life for my sake, the same shall save it" (Luke 9:23-24). Read those with the cancer cell in mind and they land with new force: the instinct the whole world calls wisdom — protect yourself, look out for number one, never yield, multiply your own — is, spiritually, the cancer move: self at the expense of the body. And the cure is a death: "I am crucified with Christ: nevertheless I live; yet not I, but Christ liveth in me: and the life which I now live in the flesh I live by the faith of the Son of God, who loved me, and gave himself for me" (Galatians 2:20). There is even a redemptive echo in the "reprogramming": where the tumor reprograms its metabolism toward selfish multiplication, the believer is re-programmed the other way — "be not conformed to this world: but be ye transformed by the renewing of your mind" (Romans 12:2). And the whole pattern is embodied in Christ, who is the very anti-cancer of the universe: He did for the body the exact opposite of the tumor. He did not cling to His life, His rights, or His reputation. "Let nothing be done through strife or vainglory; but in lowliness of mind let each esteem other better than themselves. Look not every man on his own things, but every man also on the things of others. Let this mind be in you, which was also in Christ Jesus... [who] made himself of no reputation, and took upon him the form of a servant... he humbled himself, and became obedient unto death, even the death of the cross" (Philippians 2:3-8). He fell like the grain of wheat — and behold the much fruit: a whole Body, redeemed. So this is the invitation, and it is freeing, not crushing: you can finally stop the exhausting labor of self-protection. Dying to self is not the end of you; it is the doorway to real life and real fruit, and the One who asks it of you went first, "who loved me, and gave himself for me." What you yield to Him is never wasted. It is planted.',
+    facilitator: {
+      talkingPoints: [
+        'BRIGHT LINE FIRST (say it out loud, every time): this lesson is a SPIRITUAL analogy about self-will, NOT a claim that cancer/sickness is caused by sin or is God\'s punishment. Jesus rejected that flatly — "Neither hath this man sinned, nor his parents" (John 9:2-3). Never let a suffering person hear condemnation here. If the room includes someone sick or grieving, lead with this and mean it.',
+        'The science (the WITNESS, attributed): Dr. Martin Picard — mitochondria hold a "veto" on cell fate; a healthy cell undergoes apoptosis (programmed death) for the good of the whole. Cancer ditches/reprograms its mitochondria to EVADE that death (the Warburg effect — reverting to ancestral, asocial self-multiplication), breaking its social contract with the body.',
+        'The paradox (the SOURCE): the grain of wheat — "Except a corn of wheat fall into the ground and die... if it die, it bringeth forth much fruit" (John 12:24); "whosoever will save his life shall lose it" (Luke 9:24); "deny himself, and take up his cross daily" (Luke 9:23). Self-preservation at the body\'s expense is the flesh; dying to self is the doorway to life.',
+        'The cure + the pattern: "I am crucified with Christ... yet not I, but Christ liveth in me" (Galatians 2:20); re-programmed not by self but by renewal (Romans 12:2); and Christ Himself as the anti-cancer — He "humbled himself, and became obedient unto death" for the body (Philippians 2:3-8). We follow by grace, we do not earn.',
+        'Well-being bright line: this FREES from the exhausting work of self-protection; it is invitation, not shame. If anyone leaves feeling condemned (for selfishness OR for being sick), it was taught wrong. The word is "the grain that falls bears much fruit," and "He loved me, and gave Himself for me."',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read John 12:24-25 aloud — and IMMEDIATELY set the bright line (John 9:3): sickness is not punishment; this is a picture of self-will. | The big idea, in your own words (10): tell the cell story (a healthy cell will die for the body; cancer evades that death to multiply for itself), then land the paradox — the seed that clings stays alone; the seed that dies bears fruit. | Go deeper (10): walk Luke 9:23-24 (deny self / save-lose your life), Galatians 2:20 (crucified with Christ), Romans 12:2 (renewed, not conformed), and Christ\'s own pattern (Philippians 2:3-8). | Reflect together (10): use the prompts; be gentle, especially with anyone hurting. | Take it with you (2): each person names one small death-to-self to plant this week.',
+      discussionPrompts: [
+        'Before anything else: where have you (or the church) treated suffering as punishment? What changes when you hear Jesus say "Neither hath this man sinned"?',
+        'Where are you the "seed in the pocket" — protecting yourself so carefully that nothing new can grow? What would it look like to let it fall?',
+        '"Whosoever will save his life shall lose it." Where has clinging to your own way, comfort, or reputation actually cost you life?',
+        'Christ "made himself of no reputation" and served. What is one reputation or right you sense Him inviting you to lay down for the body?',
+        'What is one small, specific death-to-self you can plant this week — and who would it bear fruit for?',
       ],
     },
   },
