@@ -66,7 +66,7 @@ export const LIVING_LESSONS_META = {
   tagline: 'You were never made to be flawless. You were made to be whole.',
   format: 'Self-paced · read it alone, as a family, or in a group · paced to your age',
   cadenceDays: 7,
-  weeks: 10, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart · L10 Strength and Honour Are Her Clothing; grows as Darrell teaches more
+  weeks: 11, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart · L10 Strength and Honour Are Her Clothing · L11 Fearfully and Wonderfully Made; grows as Darrell teaches more
   handsOnLabel: 'Take it with you',
   // The label layer that lets the shared engine render this honestly as a
   // self-paced lesson series rather than a weekly cohort class.
@@ -1017,6 +1017,102 @@ export const LIVING_LESSONS_MODULES = [
         'Where have you treated sleep as expendable instead of the gift God calls it (Psalm 127:2)?',
         'Have you ever been dismissed about your own health? What would it mean to "open your mouth with wisdom" and advocate?',
         'Why do the guardrails matter -- that this isn\'t about appearance, and that illness/aging isn\'t punishment? Where do you need to receive grace about your body?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // L11 — the SECOND spine of the women's-health roundtable (Darrell, 2026-07-04,
+  // fed in fuller): (1) medical/sport science generalized MALE data onto women,
+  // leaving them without guidance for their distinct physiology; and (2) endocrine-
+  // disrupting toxins (plastics, BPA receipts) + ultra-processed foods defile the
+  // body. The science is the WITNESS; the SOURCE is two truths: you are FEARFULLY
+  // AND WONDERFULLY MADE, distinctly designed (not a copy) -- and the body is God's
+  // TEMPLE, to be guarded and not defiled. GUARDRAILS lead: "wonderfully made" is
+  // EVERY body/ability, not a standard of perfection (John 9:3 -- born blind, yet
+  // God's works shown); and guarding from toxins is WISDOM/stewardship, never fear,
+  // purity-legalism, or condemnation (no anxiety -- ties L5). Verses KJV, VERBATIM
+  // (DR-0076). For women especially; the design + temple truth is everyone's.
+  {
+    id: 'll11-fearfully-and-wonderfully-made',
+    title: 'Fearfully and Wonderfully Made',
+    bigIdea: 'The experts name a quiet injustice: most medical and sport-science research was built on MEN, then handed to women -- so women were coached on a body that isn\'t theirs, left without guidance for their own distinct physiology. Scripture answered that long ago. You are not a copy or a generic template; you were formed on purpose, uniquely: "For thou hast possessed my reins: thou hast covered me in my mother\'s womb. I will praise thee; for I am fearfully and wonderfully made" (Psalm 139:13-14). "Male and female created he them" (Genesis 1:27) -- distinct by design, BOTH in the image of God. So honor the body you were actually given: train it, feed it, and understand it as YOURS, not as a lesser version of someone else\'s. And there is a second truth the experts brush up against when they warn about toxins in plastics and receipts and the harm of ultra-processed food: this body is not just yours to do with as you please -- "Know ye not that ye are the temple of God, and that the Spirit of God dwelleth in you? ... for the temple of God is holy, which temple ye are" (1 Corinthians 3:16-17). So guarding it wisely -- from what defiles it, toward what nourishes it -- is a form of reverence: "whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God" (1 Corinthians 10:31). (Guardrail: "wonderfully made" is EVERY body and ability -- not a standard of perfection or beauty; a body that is disabled, ill, or aging is still His workmanship [John 9:3]. And guarding against toxins is wisdom, never fear or a new law to condemn you -- do what you can and rest in Him.)',
+    inApp: 'Say it over yourself, out loud, and mean it: "I am fearfully and wonderfully made" (Psalm 139:14). Then pick ONE act of reverence for the temple this week -- one small swap toward what nourishes (a whole food, water, real rest) or away from what defiles (heating food in plastic, a habit you know drains you) -- not from fear or to earn anything, but "to the glory of God" (1 Corinthians 10:31). You are honoring your Maker\'s workmanship, in the body He designed just for you.',
+    anchor: {
+      ref: 'Psalm 139:13-14; 1 Corinthians 3:16-17',
+      theme: 'You are fearfully and wonderfully made -- distinctly designed, not a copy or a male template. And the body is God\'s holy temple: guard it from what defiles and nourish it well, as reverence, not fear. Every body and ability is His workmanship.',
+    },
+    benefits: [
+      'A God-given answer to being overlooked -- you were designed distinctly and on purpose; you are not a lesser copy or an afterthought to anyone else\'s data.',
+      'Freedom to steward YOUR body -- understanding and caring for the physiology you were actually given, not chasing a template made for someone else.',
+      'The body honored as holy -- "the temple of God is holy, which temple ye are"; caring for it (nourishment, guarding from harm) becomes reverence, not vanity.',
+      'Wisdom without fear -- reducing what defiles (toxins, junk) and choosing what nourishes is stewardship "to the glory of God," never anxiety or a new law.',
+      'Dignity for every body -- "fearfully and wonderfully made" covers the disabled, ill, and aging body too; worth is in the Maker\'s workmanship, not in perfection.',
+    ],
+    levels: {
+      child: 'Did you know God made YOU on purpose, and there is nobody else exactly like you? The Bible says God "covered me in my mother\'s womb" -- He was making you before you were even born! -- and "I am fearfully and wonderfully made" (Psalm 139:13-14). "Fearfully" here means AMAZING and awesome, like a wonder! God made boys and girls each special and different (Genesis 1:27), and He didn\'t make a mistake with you. And here is something big: your body is like a special house where God\'s Spirit can live -- the Bible calls it "the temple of God... which temple ye are" (1 Corinthians 3:16-17). So we take good care of it -- eat good food, drink water, sleep well -- not to look a certain way, but because it\'s a gift from God and we love Him. "Whatsoever ye do, do all to the glory of God" (1 Corinthians 10:31). You are wonderfully made!',
+      teen: 'Real thing the experts pointed out: almost all the health and workout research was done on GUYS, then handed to girls -- so women got advice for a body that isn\'t even theirs. Now hear what God said way before any lab: "For thou hast possessed my reins: thou hast covered me in my mother\'s womb. I will praise thee; for I am fearfully and wonderfully made" (Psalm 139:13-14). You are not a copy, not a template, not an afterthought -- "male and female created he them" (Genesis 1:27), distinct and both in God\'s image, designed on purpose. So learn and honor YOUR body, not somebody else\'s stats. And there\'s a second level: your body isn\'t just yours to trash -- "Know ye not that ye are the temple of God, and that the Spirit of God dwelleth in you?... for the temple of God is holy, which temple ye are" (1 Corinthians 3:16-17). That\'s why choosing real food over ultra-processed junk, or not microwaving food in plastic, actually matters -- not as a guilt-trip, but as reverence: "whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God" (1 Corinthians 10:31). Two guardrails, because this could get twisted: "wonderfully made" is EVERY body -- disabled, sick, big, small, aging -- your worth is God\'s workmanship, not a look (Jesus said the man born blind wasn\'t a mistake or a punishment -- John 9:3). And guarding against toxins is wisdom, NOT fear or a new set of rules to feel bad about. Do what you can. Rest in Him. You are wonderfully made.',
+      senior: 'The panel surfaces a real and costly gap: because medical and sport-science research was built overwhelmingly on male subjects, women were handed guidance for a physiology that was never theirs -- their distinct hormonal design studied late, if at all. Scripture dignified that distinctness from the first pages. "So God created man in his own image, in the image of God created he him; male and female created he them" (Genesis 1:27) -- two distinct expressions, equally image-bearing; and the woman was fashioned by God\'s own hand, deliberately (Genesis 2:22). The Psalmist makes the personal wonder explicit: "For thou hast possessed my reins: thou hast covered me in my mother\'s womb. I will praise thee; for I am fearfully and wonderfully made: marvellous are thy works" (Psalm 139:13-14) -- fashioned intricately, purposefully, uniquely. "For we are his workmanship, created in Christ Jesus unto good works" (Ephesians 2:10). So a woman honoring her own physiology -- learning it, training and feeding it as HERS rather than by a borrowed male template -- is not vanity; it is reverence for the Maker\'s intentional design. And there is the second, weightier truth the experts approach when they warn of endocrine-disrupting toxins in plastics and thermal receipts and the harm of ultra-processed foods: this body is holy ground. "Know ye not that ye are the temple of God, and that the Spirit of God dwelleth in you? If any man defile the temple of God, him shall God destroy; for the temple of God is holy, which temple ye are" (1 Corinthians 3:16-17). To guard the temple from what defiles it and to nourish it well is therefore an act of worship, ordinary and daily: "whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God" (1 Corinthians 10:31). Now hold the guardrails firmly, seasoned saint, for this truth is easily distorted. First, "fearfully and wonderfully made" is not a cult of the perfect body; it covers the frail, the disabled, the ill, and the aging with equal wonder -- our Lord said plainly of the man born blind that neither he nor his parents had sinned, "but that the works of God should be made manifest in him" (John 9:3). Worth is anchored in the Maker\'s workmanship, never in an appearance or a capacity. Second, guarding against toxins is wisdom and stewardship, not a new legalism of purity, and never a cause for fear or condemnation -- we live in a fallen world we cannot fully control; do the good you can, and rest. The invitation is quiet and freeing: receive your body as the intricate, purposeful, holy gift it is; steward it with reverence and without anxiety; and let even eating and drinking be done to the glory of the One who wonderfully made you.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'How does Psalm 139:13-14 answer the fact that women were given male-based health data?',
+          options: [
+            'It says everyone is basically the same',
+            'It declares each person distinctly, purposefully formed -- "thou hast covered me in my mother\'s womb... I am fearfully and wonderfully made"',
+            'It says the body doesn\'t matter',
+          ],
+          answer: 1,
+          explain: 'You are not a copy or a template. God fashioned you uniquely and on purpose (Genesis 1:27; Ephesians 2:10) -- so honor and steward the body He actually designed for you.',
+        },
+        {
+          q: 'Why does guarding the body from what harms it matter (1 Corinthians 3:16-17)?',
+          options: [
+            'It doesn\'t; the body is disposable',
+            'Because "ye are the temple of God... for the temple of God is holy" -- caring for it is reverence, "to the glory of God" (1 Corinthians 10:31)',
+            'Only so you can look good',
+          ],
+          answer: 1,
+          explain: 'The body is holy ground where God\'s Spirit dwells. Nourishing it and guarding it from what defiles is worship -- ordinary, daily, to His glory.',
+        },
+        {
+          q: 'Does "fearfully and wonderfully made" mean a perfect or ideal body?',
+          options: [
+            'Yes -- it\'s about physical perfection',
+            'No -- it covers EVERY body and ability (disabled, ill, aging); worth is God\'s workmanship, not a look (John 9:3)',
+            'Only for the young and healthy',
+          ],
+          answer: 1,
+          explain: 'Jesus said the man born blind was neither sinning nor punished, "but that the works of God should be made manifest in him" (John 9:3). Every body is His wonderful workmanship.',
+        },
+        {
+          q: 'What is the right posture toward avoiding toxins and eating well?',
+          options: [
+            'Fear and strict rules, with guilt when you fail',
+            'Wisdom and stewardship "to the glory of God" -- do what you can, without fear or condemnation, resting in Him',
+            'Ignore it entirely',
+          ],
+          answer: 1,
+          explain: 'This is reverence, not a new legalism. We live in a fallen world we can\'t fully control; steward wisely and rest -- "take no thought" fear has no place here (Matthew 6).',
+        },
+      ],
+    },
+    lesson: 'Lead with the guardrails, because this lesson can be twisted two ways and must heal, not wound. First: "fearfully and wonderfully made" is NOT a cult of the perfect body -- it covers the frail, the disabled, the ill, and the aging with the very same wonder; worth is anchored in the Maker\'s workmanship, never in an appearance or an ability. Our Lord said it flatly of the man born blind: neither he nor his parents sinned, "but that the works of God should be made manifest in him" (John 9:3). Second: guarding the body from toxins and junk is wisdom and stewardship, never a new legalism of purity, and never a reason for fear or condemnation. Now the science. The panel of experts names a real and costly gap: medical and sport-science research was built overwhelmingly on MEN, then handed to women -- so women were coached on a body that was never theirs, left without guidance for their own distinct physiology. And they warn about a second harm: endocrine-disrupting toxins in plastics and thermal receipts, and the inflammation of ultra-processed food. Scripture speaks straight into both. To the first -- you are not a copy, a template, or an afterthought. "For thou hast possessed my reins: thou hast covered me in my mother\'s womb. I will praise thee; for I am fearfully and wonderfully made: marvellous are thy works" (Psalm 139:13-14). God fashioned you intricately, purposefully, uniquely; "male and female created he them" (Genesis 1:27) -- two distinct expressions, both bearing His image, and the woman formed by His deliberate hand (Genesis 2:22). "For we are his workmanship, created in Christ Jesus unto good works" (Ephesians 2:10). So a woman learning and honoring HER own body -- training it and feeding it as hers, not by a borrowed male template -- is not vanity; it is reverence for the Designer\'s intent. And to the second harm, Scripture goes deeper still: this body is not merely yours to spend as you please -- it is holy ground. "Know ye not that ye are the temple of God, and that the Spirit of God dwelleth in you? If any man defile the temple of God, him shall God destroy; for the temple of God is holy, which temple ye are" (1 Corinthians 3:16-17). That is why the ordinary choices -- real food over ultra-processed, not heating your food in plastic, guarding your rest -- actually matter: not as a guilt-trip, and not to earn anything, but as daily reverence for the One who dwells there. "Whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God" (1 Corinthians 10:31). So receive the whole of it as freedom, not pressure. You were designed, distinctly and wonderfully, on purpose, by a God who knew you in the womb. Your body is His temple, holy and indwelt. Steward it with reverence and without anxiety -- learn it, feed it, guard it, rest it -- and let even your eating and drinking be worship to the One who fearfully and wonderfully made you.',
+    facilitator: {
+      talkingPoints: [
+        'LEAD WITH THE GUARDRAILS: "wonderfully made" is EVERY body/ability, not a perfect-body standard (John 9:3 -- born blind, not sin, but God\'s works shown); and guarding from toxins is WISDOM, not fear, legalism, or condemnation. Grace + dignity, especially for the women.',
+        'The witness (the science, attributed): the roundtable (Haver, Wright, Crawford, Sims) -- research built on MALE data left women without guidance for their distinct physiology; and endocrine-disrupting toxins (plastics, BPA receipts) + ultra-processed food harm the body.',
+        'The Word (SOURCE 1 -- distinctly designed): "thou hast covered me in my mother\'s womb... I am fearfully and wonderfully made" (Psalm 139:13-14); "male and female created he them" (Genesis 1:27); "we are his workmanship" (Ephesians 2:10). You are no copy -- honor YOUR design. All KJV, verbatim.',
+        'The Word (SOURCE 2 -- guard the temple): "ye are the temple of God... the temple of God is holy, which temple ye are" (1 Corinthians 3:16-17); so nourish it + guard it from what defiles, "to the glory of God" (1 Corinthians 10:31). Reverence, not vanity.',
+        'The freeing posture: receive the body as an intricate, purposeful, holy gift; steward it without anxiety; let even eating and drinking be worship. Do the good you can; rest in Him.',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read Psalm 139:13-14 and 1 Corinthians 3:16-17 aloud. STATE THE GUARDRAILS up front (every body is wonderful; wisdom not fear). | The big idea, in your own words (10): women were handed male data -- but you were designed distinctly and wonderfully; and the body is God\'s holy temple to steward. | Go deeper (10): SOURCE 1 (Ps 139; Gen 1:27; Eph 2:10 -- honor your own design) and SOURCE 2 (1 Cor 3:16-17; 10:31 -- guard + nourish the temple as reverence), holding both guardrails. | Reflect together (10): use the prompts; make room for those who\'ve felt overlooked or ashamed of their bodies. | Take it with you (2): each person says Psalm 139:14 over themselves and names one act of reverence for the temple this week.',
+      discussionPrompts: [
+        'Where have you felt like an afterthought -- given advice or a standard made for someone else? How does "fearfully and wonderfully made" (Psalm 139:14) speak to that?',
+        'What would change if you truly received your body as God\'s holy temple (1 Corinthians 3:16-17) rather than something to fix or punish?',
+        'Name one small act of reverence -- toward nourishment or away from what defiles -- you could do "to the glory of God" this week, without fear or guilt.',
+        'Why do the guardrails matter -- that every body/ability is wonderfully made, and that this is wisdom, not a new law? Where do you need grace about your body?',
+        'How does knowing God formed you distinctly, on purpose, in the womb change how you see yourself today?',
       ],
     },
   },
