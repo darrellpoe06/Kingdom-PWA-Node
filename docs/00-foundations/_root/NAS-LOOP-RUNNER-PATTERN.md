@@ -49,8 +49,11 @@ AI class never escapes its heavier gate by riding the lighter one.
 2. **Concurrency lock** — atomic **lockdir** per loop; a second fire that finds it
    held **skips**, never stacks.
 3. **Kill-switch** — a `KILL_SWITCH` file → every loop **inert** (one touch halts the
-   fleet). PLUS a class **arm flag** (`LOOPS_ARMED` here; `RESUME_ARMED` for the AI
-   class) that **ships ABSENT** → the runner ships inert and is armed once, by hand.
+   fleet). PLUS a class **arm parameter** (`LOOPS_ARMED` here; `RESUME_ARMED` for the
+   AI class) that **ships UNSET** → the runner ships inert and is armed once,
+   deliberately, via one parameter (DR-0096: governance is the coded parameters + the
+   humans who hold the kill-switch; no redundant second `--run` gate — once armed, a
+   fire runs, bounded by the brakes).
 4. **Observability** — one append-only JSONL line per run to the **event reel**
    (`_reel.jsonl`, the Dispatch Status data source) + an events log; **ntfy** on
    failure. Silence is not success; every run leaves a trace.
