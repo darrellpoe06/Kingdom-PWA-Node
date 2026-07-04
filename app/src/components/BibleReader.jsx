@@ -24,6 +24,8 @@ import { scanThemeSpans, themesPresent } from '../lib/scripture-theme-scan.js';
 import { VOICES, cssForVoice, voiceSpansFor, voicesPresent } from '../lib/scripture-voices.js';
 import { castScript } from '../lib/scripture-voice-cast.js';
 import { useCastRead } from '../lib/use-cast-read.js';
+import { momentsForChapter, personOf } from '../lib/scripture-godhead-moments.js';
+import { useReadAloud } from '../lib/use-read-aloud.js';
 
 // The character offsets [start,end) of the current text selection WITHIN a verse
 // container (its textContent), or null. Uses a Range measured from the container
@@ -103,6 +105,55 @@ function segCss(style) {
   return Object.keys(hi).length ? hi : cssForVoice(style);
 }
 
+// The Godhead together — where the Father, the Son (the Word / the Light), and the
+// Holy Spirit are shown working as One in this chapter (Darrell 2026-07-04: "we
+// should be able to see when the GodHead is working together... in the beginning
+// Let there be Light... Jesus is the Light of the World, the Spirit and the Father
+// right from the beginning verses"). Each Person wears the voices color (the Son in
+// red — the Blood); every union reference opens verbatim in the reader. Taught, not
+// debated (DR-0098); anchors verified (scripture-godhead-moments).
+function GodheadTogether({ moments, onOpenRef }) {
+  const [open, setOpen] = useState(true);
+  if (!moments || !moments.length) return null;
+  return (
+    <div className="mb-3 border border-[#5A6E3D] bg-[#FAF8F4]">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-[#F2F4EC] focus:outline focus:outline-2 focus:outline-[#B85838]">
+        <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">The Godhead together — the Father, the Son &amp; the Spirit, at work</span>
+        <span className="text-sm text-[#5A5751] leading-none" style={mono}>{open ? '−' : '+'}</span>
+      </button>
+      {open && moments.map((m) => (
+        <div key={m.id} className="px-3 pb-3">
+          <p className="text-[0.8125rem] text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>{m.title}</p>
+          <p className="text-[0.75rem] text-[#5A5751] mb-2 leading-relaxed" style={serif}>{m.lead}</p>
+          <div className="space-y-2">
+            {m.roles.map((r, i) => {
+              const p = personOf(r.person);
+              const color = cssForVoice(p ? p.voice : '').color || '#5A6E3D';
+              return (
+                <div key={`${m.id}-${i}`} className="pl-2 border-l-2" style={{ borderColor: color }}>
+                  <p className="text-[0.75rem]" style={serif}>
+                    <span style={cssForVoice(p ? p.voice : '')} className="font-semibold">{p ? p.label : r.person}</span>
+                    <span className="text-[#5A5751]"> — {r.role}</span>
+                  </p>
+                  <p className="text-[0.75rem] text-[#1A1815] leading-relaxed" style={serif}>{r.note}</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {r.refs.map((ref) => (
+                      <button key={ref} type="button" onClick={() => onOpenRef(ref)} title={`Open ${ref}`}
+                        className="text-[0.625rem] px-1.5 py-0.5 border border-[#E8E4DC] bg-white text-[#5A6E3D] hover:text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={serif}>{ref}</button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[0.5625rem] text-[#5A5751] mt-2" style={serif}>The Word explains the Word — taught, not debated. Every reference verified against the KJV.</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Study by theme — the Inductive / Precept THEMATIC MARKERS (Darrell 2026-07-04,
 // from his Logos "Inductive / Precept" screenshots). Each theme runs through the
 // whole Word in one consistent marker color (scripture-themes); tap a theme to
@@ -176,6 +227,9 @@ export default function BibleReader({ email = null }) {
   // Dramatized reading: play the chapter with each speaker in their own voice
   // (Darrell 2026-07-04). Cast from the same verified attribution that colors it.
   const cast = useCastRead();
+  // Plain read-aloud: hear the whole chapter in your chosen voice (Darrell 2026-07-04:
+  // "No play button for the reader?"). Uses the one global voice preference.
+  const reader = useReadAloud();
 
   const chapters = chapterCount(book);
 
@@ -190,6 +244,10 @@ export default function BibleReader({ email = null }) {
     () => (autoMode === 'voices' ? voicesPresent(verses.map((x) => `${book} ${chapter}:${x.v}`)) : []),
     [autoMode, verses, book, chapter],
   );
+  // The whole chapter as one utterance for the plain read-aloud.
+  const chapterText = useMemo(() => verses.map((x) => x.text).join(' '), [verses]);
+  // Where the Godhead is shown working together in THIS chapter (Darrell 2026-07-04).
+  const godheadMoments = useMemo(() => momentsForChapter(book, chapter), [book, chapter]);
 
   useEffect(() => {
     let on = true;
@@ -344,6 +402,15 @@ export default function BibleReader({ email = null }) {
       <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
         <h3 className="text-xl text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>{book} {chapter}</h3>
         <div className="flex items-center gap-1.5">
+          {/* Read the whole chapter aloud in your chosen voice (Darrell 2026-07-04:
+              "No play button for the reader?"). */}
+          <button type="button" disabled={!reader.supported || !chapterText}
+            onClick={() => (reader.isReading ? reader.stop() : reader.read(chapterText))}
+            title={reader.supported ? 'Read this chapter aloud in your voice' : 'This device can’t read aloud'}
+            aria-label={reader.isReading ? 'Stop reading' : 'Play — read this chapter aloud'}
+            className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838] ${reader.isReading ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#B85838] text-[#B85838] hover:bg-[#FAF8F4]'}`}>
+            {reader.isReading ? 'Stop' : '▶ Play'}
+          </button>
           <button type="button" disabled={chapter <= 1} onClick={() => openAt(book, chapter - 1)}
             className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] disabled:opacity-40 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">‹ Prev</button>
           <span className="text-[0.6875rem] text-[#5A5751]" style={mono}>ch {chapter} / {chapters}</span>
@@ -456,6 +523,9 @@ export default function BibleReader({ email = null }) {
           </div>
         )}
       </div>
+
+      {/* The Godhead together — the Trinity at work in this chapter. */}
+      <GodheadTogether moments={godheadMoments} onOpenRef={goToRef} />
 
       {/* The verses. */}
       {loading ? (
