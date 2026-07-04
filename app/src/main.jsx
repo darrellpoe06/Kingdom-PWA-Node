@@ -5,6 +5,7 @@ import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
 import { wireChunkHeal } from './lib/chunk-reload-heal.js';
+import { showBootFallback } from './lib/boot-fallback.js';
 import { installGlobalErrorCapture } from './lib/error-journal.js';
 import { initTextSize } from './lib/text-size.js';
 
@@ -83,7 +84,7 @@ if (__params.get('oauth_popup') === '1') {
   // monolith) — not on every visit via an eagerly-imported boot. See header.
   import('./components/AppInterestCapture.jsx').then(({ default: AppInterestCapture }) => {
     __root.render(<React.StrictMode><ErrorBoundary><div className="min-h-screen p-4 sm:p-8"><AppInterestCapture source="join-link" /></div></ErrorBoundary></React.StrictMode>);
-  });
+  }).catch((err) => { console.warn('join boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('invites') === '1') {
   import('./components/AppInterestAdmin.jsx').then(({ default: AppInterestAdmin }) => {
     __root.render(<React.StrictMode><ErrorBoundary><AppInterestAdmin /></ErrorBoundary></React.StrictMode>);
@@ -123,7 +124,7 @@ if (__params.get('oauth_popup') === '1') {
         </ErrorBoundary>
       </React.StrictMode>
     );
-  });
+  }).catch((err) => { console.warn('login boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('request-space') === '1') {
   import('./components/VenueRequest.jsx').then(({ default: VenueRequest }) => {
     __root.render(<React.StrictMode><ErrorBoundary><VenueRequest /></ErrorBoundary></React.StrictMode>);
@@ -154,6 +155,13 @@ if (__params.get('oauth_popup') === '1') {
         </ErrorBoundary>
       </React.StrictMode>
     );
+  }).catch((err) => {
+    // The main bundle failed to load (a skewed/partial deploy the chunk-heal
+    // couldn't recover). React never mounted, so there is no ErrorBoundary —
+    // show the plain-DOM retry screen instead of a blank white page. The
+    // chunk-heal may still reload underneath us; whichever lands first wins.
+    console.warn('PoeTech main bundle failed to boot:', err);
+    showBootFallback(document.getElementById('root'), { error: err });
   });
 }
 
