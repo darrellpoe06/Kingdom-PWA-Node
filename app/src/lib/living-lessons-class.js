@@ -66,7 +66,7 @@ export const LIVING_LESSONS_META = {
   tagline: 'You were never made to be flawless. You were made to be whole.',
   format: 'Self-paced · read it alone, as a family, or in a group · paced to your age',
   cadenceDays: 7,
-  weeks: 7, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire; grows as Darrell teaches more
+  weeks: 9, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart; grows as Darrell teaches more
   handsOnLabel: 'Take it with you',
   // The label layer that lets the shared engine render this honestly as a
   // self-paced lesson series rather than a weekly cohort class.
@@ -735,6 +735,192 @@ export const LIVING_LESSONS_MODULES = [
         'Have you ever felt a check of peace that later proved to be protection? What happened?',
         'Why does the guardrail matter — that the inner witness always agrees with the Word? Where could "just follow your peace" go wrong without it?',
         'What is one choice you can bring to God this week — to "prove" it by His peace and His Word, and hold fast or release accordingly?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // L8 — capstone of the Picard arc (Darrell, 2026-07-04, spoken in): the flesh's
+  // astonishing machinery (L2 energy, L3 the body, L4 dying) is REAL but weak and
+  // dying; the power was never our might but His Spirit (Zech 4:6); a NEW,
+  // incorruptible body is coming in the twinkling of an eye. Guardrail: this is
+  // HOPE, not body-hatred or a death-wish — the body is God's temple, honoring it
+  // is good stewardship; "flesh is weak / no good thing in flesh" is the flesh as
+  // self-will and mortality, NOT the physical body as evil (the Gnostic error).
+  // Verses KJV, VERBATIM from the in-app Bible (DR-0076). Well-being-positive.
+  {
+    id: 'll8-not-by-might-a-new-body-coming',
+    title: 'Not by Might — A New Body Is Coming',
+    bigIdea: 'The science is honest about what this body is: an astonishing machine that still ages, tires, and one day fails — "the outward man perish[es]." The Word never denies it: "the spirit indeed is willing, but the flesh is weak" (Matthew 26:41); "in me (that is, in my flesh,) dwelleth no good thing" (Romans 7:18); this body is a "tabernacle" that will be "dissolved" (2 Corinthians 5:1). But that is not despair — it is the doorway to two enormous comforts. FIRST: your real power was never the flesh\'s strength — "Not by might, nor by power, but by my spirit, saith the LORD of hosts" (Zechariah 4:6). We are enlisted in His host — soldiers under the LORD of hosts — but the victory is won by His Spirit, not our muscle. SECOND: a NEW body is already promised — "in a moment, in the twinkling of an eye... the dead shall be raised incorruptible, and we shall be changed" (1 Corinthians 15:52), "fashioned like unto his glorious body" (Philippians 3:21). This weak, wearing-out tent is not the end; a house "not made with hands, eternal in the heavens" is waiting (2 Corinthians 5:1). (Guardrail: this is HOPE, not hatred of the body — it is God\'s temple, and honoring it is good stewardship; "the flesh is weak" speaks of self-will and mortality, never that the body itself is evil.)',
+    inApp: 'Put your hand over your heart and feel it beat — an amazing gift, and a borrowed, temporary one. Name one place you have been trusting your OWN might, power, or willpower (your health, your hustle, your strength) to carry something only His Spirit can. Then pray it out loud: "Not by might, nor by power, but by Thy Spirit, LORD of hosts" (Zechariah 4:6). And rest in the promise — this body that tires and ages is not the end: a new, incorruptible one is coming "in the twinkling of an eye" (1 Corinthians 15:52), and the same Spirit that raised Jesus "shall also quicken your mortal bodies" (Romans 8:11).',
+    anchor: {
+      ref: 'Zechariah 4:6; 1 Corinthians 15:52',
+      theme: 'The power was never the flesh\'s might but the Spirit of the LORD of hosts; and the weak, dying body is not the end — a new, incorruptible one comes in the twinkling of an eye. Hope, not body-hatred.',
+    },
+    benefits: [
+      'Freedom from self-reliance — the pressure to win by your own might/willpower lifts when the victory is "by my spirit, saith the LORD of hosts."',
+      'Hope in the face of aging and death — the outward man perishing is real, but a new incorruptible body is promised; grief has an answer.',
+      'Comfort for the grieving — "absent from the body... present with the Lord"; the loved one in Christ is not lost but changed.',
+      'Right stewardship of THIS body — held as God\'s temple and an earthen vessel to honor, without idolizing it or fearing its decline.',
+      'Courage as His enlisted host — a "good soldier of Jesus Christ" whose warfare is spiritual, fought and won by the Spirit, not by flesh.',
+    ],
+    levels: {
+      child: 'Your body is amazing — God made it! But even the strongest, healthiest body gets tired and old, and one day it stops. That is not scary news, because God has TWO wonderful promises. First, you do not win by being the strongest or the toughest. The Bible says, "Not by might, nor by power, but by my spirit, saith the LORD of hosts" (Zechariah 4:6) — that means God\'s Spirit is the real power, not our muscles! Second, when someone who loves Jesus dies, God gives them a brand-new body that never gets sick or old, and it happens super fast — "in the twinkling of an eye" (1 Corinthians 15:52), quicker than a blink! So we take good care of this body because it is God\'s special temple, AND we are not afraid, because Jesus has a new one waiting.',
+      teen: 'Real talk: this body is an incredible machine — but it ages, it tires, and one day it quits. "The outward man perish[es]" (2 Corinthians 4:16). The Bible is completely honest about it: "the spirit indeed is willing, but the flesh is weak" (Matthew 26:41). But here is what changes everything. One — your power was NEVER supposed to come from the flesh\'s strength or your own hustle: "Not by might, nor by power, but by my spirit, saith the LORD of hosts" (Zechariah 4:6). The same Spirit that raised Jesus lives in you and "shall also quicken your mortal bodies" (Romans 8:11). Two — a NEW body is coming, and fast: "in a moment, in the twinkling of an eye... the dead shall be raised incorruptible, and we shall be changed" (1 Corinthians 15:52), "like unto his glorious body" (Philippians 3:21). So we DO take care of this body — it is God\'s temple, an "earthen vessel" carrying His treasure (2 Corinthians 4:7) — but we don\'t worship it or panic when it gets weak. One guardrail: "the flesh is weak" does NOT mean your body is evil or that you should neglect it — it means your self-will and this mortal frame can\'t save you; only the Spirit can. You\'re enlisted in the army of the LORD of hosts. Fight by His Spirit.',
+      senior: 'The science honestly documents the limit of the flesh — even the healthiest cellular machinery ages, its energy wanes, "the outward man perish[es]" (2 Corinthians 4:16). Scripture agreed long before the microscope: "the spirit indeed is willing, but the flesh is weak" (Matthew 26:41), and "I know that in me (that is, in my flesh,) dwelleth no good thing" (Romans 7:18) — the flesh named here is the seat of self-will and mortality, not a claim that the body God fashioned is evil (that Gnostic error is refused; the body is His temple and an "earthen vessel" bearing His treasure, 2 Corinthians 4:7). Into that honest limit the Word speaks two great comforts. First, the power was never ours to muster: "Not by might, nor by power, but by my spirit, saith the LORD of hosts" (Zechariah 4:6) — Yahweh Sabaoth, the LORD of armies, in whose host His people are enlisted as a "good soldier of Jesus Christ" (2 Timothy 2:3), yet for whom "we wrestle not against flesh and blood" (Ephesians 6:12) and whose triumph is by His Spirit. And that Spirit is life-giving even now: "if the Spirit of him that raised up Jesus from the dead dwell in you, he that raised up Christ from the dead shall also quicken your mortal bodies by his Spirit that dwelleth in you" (Romans 8:11); "it is the spirit that quickeneth; the flesh profiteth nothing" (John 6:63). Second, the dissolution of this tent is not the end but the threshold: "we know that if our earthly house of this tabernacle were dissolved, we have a building of God, an house not made with hands, eternal in the heavens" (2 Corinthians 5:1); we are "willing rather to be absent from the body, and to be present with the Lord" (2 Corinthians 5:8). And the change is instantaneous and glorious: "in a moment, in the twinkling of an eye, at the last trump: for the trumpet shall sound, and the dead shall be raised incorruptible, and we shall be changed. For this corruptible must put on incorruption, and this mortal must put on immortality... then shall be brought to pass the saying that is written, Death is swallowed up in victory" (1 Corinthians 15:52-54); He "shall change our vile body, that it may be fashioned like unto his glorious body" (Philippians 3:21); "as we have borne the image of the earthy, we shall also bear the image of the heavenly" (1 Corinthians 15:49). So the seasoned saint may hold two truths at once without contradiction: steward this failing tent with honor and gratitude — it is God\'s temple — while refusing to fear its decline, for the power to live is His Spirit and the body to come is incorruptible. "For which cause we faint not; but though our outward man perish, yet the inward man is renewed day by day" (2 Corinthians 4:16).',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'Where does our real power come from, according to Zechariah 4:6?',
+          options: [
+            'From our own might and strength',
+            'Neither by might nor by power, but "by my spirit, saith the LORD of hosts"',
+            'From how healthy or strong the body is',
+          ],
+          answer: 1,
+          explain: 'The victory belongs to the LORD of hosts and is won by His Spirit, not by the flesh\'s strength. We are enlisted in His host, but the battle is His.',
+        },
+        {
+          q: 'When Scripture says "the flesh is weak" and "no good thing" is in the flesh, what does it mean?',
+          options: [
+            'The physical body is evil and should be neglected',
+            'The flesh — self-will and this mortal frame — cannot save us; only the Spirit can. The body itself is still God\'s temple to honor',
+            'We should hate our bodies and long to die',
+          ],
+          answer: 1,
+          explain: 'The bright line: this is not the Gnostic error that the body is evil. The body is God\'s temple, an "earthen vessel" bearing His treasure (2 Corinthians 4:7) — steward it. "Flesh" here is self-will and mortality.',
+        },
+        {
+          q: 'What does the Word promise happens to the believer\'s body after death?',
+          options: [
+            'Nothing — it simply ends',
+            'A new, incorruptible body — "in the twinkling of an eye... raised incorruptible, and we shall be changed" (1 Corinthians 15:52), "like unto his glorious body" (Philippians 3:21)',
+            'We stay as we are forever',
+          ],
+          answer: 1,
+          explain: 'This tent is "dissolved," but "we have a building of God... eternal in the heavens" (2 Corinthians 5:1). The change is instant and glorious — "Death is swallowed up in victory."',
+        },
+        {
+          q: 'How should this hope change the way we treat THIS current body?',
+          options: [
+            'Neglect it, since we get a new one anyway',
+            'Steward it with honor as God\'s temple, WITHOUT idolizing it or fearing its decline — the power is His Spirit and a new body is coming',
+            'Worship it and fear every sign of aging',
+          ],
+          answer: 1,
+          explain: 'Both truths held at once: honor the earthen vessel (the whole health-stewardship arc) AND do not fear its perishing — "though our outward man perish, yet the inward man is renewed day by day" (2 Corinthians 4:16).',
+        },
+      ],
+    },
+    lesson: 'This lesson is the capstone of everything the mitochondria teaching showed us. We have marveled at the body\'s astonishing energy machinery — the borrowed power that runs every heartbeat, every thought, every repair. And the science is honest about its limit: even at its healthiest, this machine ages, its energy wanes, and one day it fails. "The outward man perish[es]" (2 Corinthians 4:16). The Word said it plainly long before any microscope: "the spirit indeed is willing, but the flesh is weak" (Matthew 26:41), and "I know that in me (that is, in my flesh,) dwelleth no good thing" (Romans 7:18). Now hold this carefully, because it is where people stumble: "the flesh is weak" is NOT a claim that your body is evil or that you should neglect it. That is an old error the Word refuses — your body is God\'s temple, "this treasure in earthen vessels, that the excellency of the power may be of God, and not of us" (2 Corinthians 4:7). The "flesh" named here is self-will and this mortal frame — what cannot save you. And into that honest limit the Word speaks two enormous comforts. First: your power was never meant to come from the flesh\'s strength or your own hustle. "Not by might, nor by power, but by my spirit, saith the LORD of hosts" (Zechariah 4:6). Yahweh is the LORD of hosts — the LORD of armies — and His redeemed people are enlisted in that host as a "good soldier of Jesus Christ" (2 Timothy 2:3). We ARE the hosts, His army. But "we wrestle not against flesh and blood" (Ephesians 6:12); the triumph is by His Spirit, not our muscle. And that Spirit gives life even now: "if the Spirit of him that raised up Jesus from the dead dwell in you, he that raised up Christ from the dead shall also quicken your mortal bodies by his Spirit that dwelleth in you" (Romans 8:11); "it is the spirit that quickeneth; the flesh profiteth nothing" (John 6:63). Second: the wearing-out of this body is not the end but the doorway. "For we know that if our earthly house of this tabernacle were dissolved, we have a building of God, an house not made with hands, eternal in the heavens" (2 Corinthians 5:1). To leave this tent is to be "present with the Lord" (2 Corinthians 5:8). And the change is instant and glorious — as soon as we go, in less than a blink: "in a moment, in the twinkling of an eye, at the last trump: for the trumpet shall sound, and the dead shall be raised incorruptible, and we shall be changed. For this corruptible must put on incorruption, and this mortal must put on immortality... then shall be brought to pass the saying that is written, Death is swallowed up in victory" (1 Corinthians 15:52-54). He "shall change our vile body, that it may be fashioned like unto his glorious body" (Philippians 3:21); "as we have borne the image of the earthy, we shall also bear the image of the heavenly" (1 Corinthians 15:49). So the whole arc lands here in peace, not fear. Steward this amazing, temporary body with honor and gratitude — it is God\'s temple, and caring for it is faithful. But do not build your hope on it, do not win by its might, and do not dread its decline. Your power is His Spirit. Your future is a body that cannot corrupt. "For which cause we faint not; but though our outward man perish, yet the inward man is renewed day by day" (2 Corinthians 4:16).',
+    facilitator: {
+      talkingPoints: [
+        'The witness (the science, attributed): the mitochondria arc showed the body\'s borrowed, finite energy — even the healthiest machinery ages and fails. The science is honest about the limit of the flesh; the Word answers it with hope.',
+        'The Word (the SOURCE): "the flesh is weak" (Matthew 26:41); "in my flesh dwelleth no good thing" (Romans 7:18); "the outward man perish[es]" (2 Corinthians 4:16). All KJV, verbatim.',
+        'COMFORT ONE — the power is His Spirit, not our might: "Not by might, nor by power, but by my spirit, saith the LORD of hosts" (Zechariah 4:6); "he... shall also quicken your mortal bodies by his Spirit" (Romans 8:11). We are enlisted in His host (2 Timothy 2:3), but "we wrestle not against flesh and blood" (Ephesians 6:12) and the win is by the Spirit.',
+        'COMFORT TWO — a new body, in the twinkling of an eye: this "tabernacle... dissolved," but "a building of God... eternal in the heavens" (2 Corinthians 5:1); "in the twinkling of an eye... raised incorruptible, and we shall be changed" (1 Corinthians 15:52-54); "fashioned like unto his glorious body" (Philippians 3:21). Instant, glorious, "Death is swallowed up in victory."',
+        'THE GUARDRAIL (say it clearly): this is HOPE, not body-hatred and not a death-wish. The body is God\'s temple, an "earthen vessel" bearing His treasure (2 Corinthians 4:7); "flesh is weak" means self-will and mortality, NOT that the physical body is evil. Steward this body with honor AND do not fear its decline — hold both.',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read Zechariah 4:6 and 1 Corinthians 15:52 aloud. | The big idea, in your own words (10): the body is amazing but weak and dying (the science agrees) — and the Word answers with two comforts: the power is His Spirit, and a new incorruptible body is coming. | Go deeper (10): walk Comfort One (Zech 4:6; Rom 8:11; John 6:63 — we are His enlisted host) and Comfort Two (2 Cor 5:1,8; 1 Cor 15:52-54; Phil 3:21), then set the GUARDRAIL firmly (2 Cor 4:7 — the body is God\'s temple, not evil; steward it AND don\'t fear its decline). | Reflect together (10): use the prompts; make room for grief and for the comfort of "present with the Lord." | Take it with you (2): each person names one place they\'ve trusted their own might, prays Zechariah 4:6 over it, and rests in the new-body promise.',
+      discussionPrompts: [
+        'Where have you been trying to win by your own might, power, or willpower — something only His Spirit can carry?',
+        'How does "a new body in the twinkling of an eye" change the way you face aging, sickness, or the loss of someone you love?',
+        'Why is the guardrail important — that "flesh is weak" does NOT mean the body is evil? How do we honor this body AND not fear its decline at the same time?',
+        'What does it mean to you that we are enlisted in the host of the LORD of hosts, yet the battle is won by His Spirit, not our strength?',
+        'Name one worry about your body or your future you can hand to Him this week, resting in "Death is swallowed up in victory."',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // L9 — the "skinny fat" witness (Darrell, 2026-07-04, spoken in): a lean body
+  // can LOOK fit while excess energy lodges ectopically (muscle/liver/brain) and
+  // does hidden damage — appearance deceives, in BOTH directions. Witness to the
+  // deeper truth: "man looketh on the outward appearance, but the LORD looketh on
+  // the heart" (1 Sam 16:7). GUARDRAILS lead (like L4): NOT body-shaming thin or
+  // heavy, and hidden trouble is NEVER proof of hidden sin (John 9:3). About where
+  // the TRUE measure lies — the interior God tends — not a moral verdict on any
+  // body. Verses KJV, VERBATIM from the in-app Bible (DR-0076). Grace-centered.
+  {
+    id: 'll9-the-lord-looks-on-the-heart',
+    title: 'The LORD Looks on the Heart',
+    bigIdea: 'The science gives a startling example. Some lean people are what researchers call "skinny fat": the body LOOKS fit on the outside, but because it cannot store the excess energy as fat, that energy lodges in the muscle, the liver, or the brain and quietly does damage — the same internal harm seen in obesity, hidden under a slim frame. The lean look tells you almost nothing about the real, internal health. Appearance deceives — in BOTH directions. And that is exactly the deeper thing God has always said about us: "man looketh on the outward appearance, but the LORD looketh on the heart" (1 Samuel 16:7). Jesus named the danger sharply — the "whited sepulchre," which is "beautiful outward, but... within full of dead men\'s bones" (Matthew 23:27) — an outward performance of righteousness over an untended heart. The invitation is not shame; it is care for the real thing: "Keep thy heart with all diligence; for out of it are the issues of life" (Proverbs 4:23). (Guardrail, held firmly: this is NOT about judging anyone\'s body — thin or heavy — and hidden trouble is NEVER proof of hidden sin. It is only about where the TRUE measure lies: the interior God tends, not the surface people see.)',
+    inApp: 'Ask God to show you one place where the "outside" looks fine — a role you play well, a face you keep composed — while the inside has gone untended: a worry, a resentment, an exhaustion you have been performing past. You do not have to fix it or hide it. Bring it into the light and pray, "Keep my heart, Lord — search the hidden parts" (Proverbs 4:23; Psalm 139:23-24 refers). His measure is not your performance; it is the "hidden man of the heart... which is in the sight of God of great price" (1 Peter 3:4). Tend the inside. That is where life comes from.',
+    anchor: {
+      ref: '1 Samuel 16:7; Proverbs 4:23',
+      theme: 'Appearance deceives — a body can look lean and healthy while hidden damage grows within. So it is with us: God has always measured the heart, not the outward show. The invitation is to tend the hidden interior, not perform an outside.',
+    },
+    benefits: [
+      'Freedom from performance — you are measured by the heart God tends, not the outside you keep composed for people.',
+      'Honesty about the hidden interior — permission to bring an untended worry, resentment, or exhaustion into the light instead of performing past it.',
+      'A steadier care for real health — of body AND heart: the real work is internal, not the appearance others applaud.',
+      'Protection from judging by looks — you stop assuming the put-together person is fine or the struggling one is failing; only God sees the heart.',
+      'Grace, not shame — hidden trouble is never proof of hidden sin; the LORD searches the interior to heal it, not to condemn.',
+    ],
+    levels: {
+      child: 'Here is something surprising: a person can LOOK really healthy and skinny on the outside, but still have hidden trouble on the inside where you cannot see it. So you cannot tell how healthy someone really is just by looking! God taught us this a long time ago about our HEARTS. When Samuel was picking a king, God said, "man looketh on the outward appearance, but the LORD looketh on the heart" (1 Samuel 16:7). That means God does not care most about how we LOOK on the outside — He cares about what is really inside us: are we kind, honest, loving? The Bible says, "Keep thy heart with all diligence" (Proverbs 4:23) — that means take really good care of your heart, the inside part, because that is where the good things (and the not-so-good things) come from. (And remember: this does NOT mean sick people did something bad — that is never true. It just means the inside matters most to God, and He loves to help us with our hearts!)',
+      teen: 'Real science fact: there\'s a thing called "skinny fat." Someone can look lean and fit, but because their body can\'t store extra energy as fat, it gets shoved into their muscles, liver, or brain and quietly does the SAME kind of damage as obesity — hidden under a slim frame. Translation: you genuinely cannot judge someone\'s health by how they look. Appearance lies, both ways. And that\'s a mirror of something way deeper God has always said: "man looketh on the outward appearance, but the LORD looketh on the heart" (1 Samuel 16:7). We spend so much energy on the outside — the feed, the fit, the image — but Jesus called out the exact trap: the "whited sepulchre," gorgeous on the outside, "within full of dead men\'s bones" (Matthew 23:27) — looking righteous to people while the heart goes untended. The move isn\'t shame, it\'s care: "Keep thy heart with all diligence; for out of it are the issues of life" (Proverbs 4:23). What God treasures isn\'t the highlight reel; it\'s "the hidden man of the heart... which is in the sight of God of great price" (1 Peter 3:4). Two real guardrails: one, this is NOT permission to judge anyone\'s body, thin or heavy; two, hidden struggle is NEVER proof someone sinned (Jesus shut that down flat in John 9:3). It just means: tend the inside. That\'s where life actually comes from.',
+      senior: 'The science offers a sobering illustration: the "skinny fat" phenomenon, in which a congenitally lean person — unable to store surplus energy as adipose tissue — accumulates it ectopically in muscle, liver, or brain, sustaining the same internal metabolic injury seen in obesity, all beneath a slender, "healthy-looking" exterior. The lesson is that outward appearance is a poor and often deceptive witness to inward reality — and it deceives in both directions. Scripture built its whole anthropology on precisely this truth. When Samuel would have crowned the tall and handsome, the LORD corrected him: "Look not on his countenance, or on the height of his stature... for the LORD seeth not as man seeth; for man looketh on the outward appearance, but the LORD looketh on the heart" (1 Samuel 16:7). Our Lord reserved His sharpest woe for the inversion of this — the cultivated exterior over a rotted interior: "ye are like unto whited sepulchres, which indeed appear beautiful outward, but are within full of dead men\'s bones, and of all uncleanness. Even so ye also outwardly appear righteous unto men, but within ye are full of hypocrisy and iniquity" (Matthew 23:27-28). And He warned that the world\'s scale and God\'s are not the same: "that which is highly esteemed among men is abomination in the sight of God" (Luke 16:15). The remedy is not cosmetic but interior and diligent: "Keep thy heart with all diligence; for out of it are the issues of life" (Proverbs 4:23); the adorning that endures is "the hidden man of the heart, in that which is not corruptible, even the ornament of a meek and quiet spirit, which is in the sight of God of great price" (1 Peter 3:3-4). Now hold the guardrails, for a mature teacher must: this is never license to appraise another\'s body, whether spare or full, and it is emphatically NOT the lie that hidden affliction reveals hidden sin — the Lord Himself repudiated that reasoning outright (John 9:3). The point is singular and freeing: the true measure of a life is the interior that God alone fully sees and faithfully tends. A seasoned saint knows the temptation to keep the outside composed long after the inside has gone unwatched — the maintained appearance while grief, or bitterness, or fear quietly lodges within, doing its ectopic damage. The invitation of this lesson is to stop performing the exterior and let the Physician of the heart tend the hidden man, which He calls "of great price." "Search me, O God, and know my heart" is not exposure to dread; it is healing to welcome.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'What does the "skinny fat" example teach about judging health by appearance?',
+          options: [
+            'Thin people are always healthy',
+            'You cannot judge internal health by the outside — a lean body can carry the same hidden damage as obesity; appearance deceives both ways',
+            'Only heavy people have health problems',
+          ],
+          answer: 1,
+          explain: 'The lean look can hide ectopic energy damage in muscle, liver, or brain. Appearance is a poor witness to the real, internal reality — which is exactly the mirror of the spiritual truth.',
+        },
+        {
+          q: 'What did the LORD tell Samuel about how God measures a person (1 Samuel 16:7)?',
+          options: [
+            'God looks at height and appearance like people do',
+            '"The LORD seeth not as man seeth; for man looketh on the outward appearance, but the LORD looketh on the heart"',
+            'God cannot see the heart',
+          ],
+          answer: 1,
+          explain: 'God\'s measure has always been the interior, not the outward show — the heart, not the countenance or the stature.',
+        },
+        {
+          q: 'What is the "whited sepulchre" Jesus warned about (Matthew 23:27)?',
+          options: [
+            'A beautiful building to admire',
+            'Something "beautiful outward, but... within full of dead men\'s bones" — a fine exterior over an untended, corrupt interior',
+            'A command to look more polished',
+          ],
+          answer: 1,
+          explain: 'It is the danger of performing righteousness on the outside while the heart goes untended within. The remedy is to "keep thy heart with all diligence" (Proverbs 4:23).',
+        },
+        {
+          q: 'What is the essential guardrail on this lesson?',
+          options: [
+            'Hidden sickness or struggle proves someone secretly sinned',
+            'It is NOT about judging any body (thin or heavy), and hidden trouble is NEVER proof of hidden sin — it is about where the true measure lies: the heart God tends',
+            'We should judge people harder by their appearance',
+          ],
+          answer: 1,
+          explain: 'Jesus flatly rejected the idea that affliction reveals sin (John 9:3). This lesson is grace, not condemnation: God searches the interior to heal it, and calls "the hidden man of the heart" of great price (1 Peter 3:4).',
+        },
+      ],
+    },
+    lesson: 'Begin with the guardrails, because this lesson could be misheard, and it must not be. Nothing here judges anyone\'s body — lean or full — and nothing here says that hidden trouble reveals hidden sin. Jesus rejected that reasoning flatly (John 9:3). This is grace, not condemnation. Now, the science gives us a startling and humbling picture. Researchers describe a "skinny fat" reality: some naturally lean people, whose bodies cannot store surplus energy as fat, end up with that excess energy lodged in the muscle, the liver, or the brain — doing the very same internal, metabolic damage seen in obesity, all hidden beneath a slim, "healthy-looking" frame. The striking lesson is that the outward appearance is a poor, often deceptive witness to the inward reality. It deceives in both directions: the fit-looking may be unwell within, and we simply cannot read a person\'s true health off their surface. And here is where it opens straight into the Word, because God built His whole way of seeing on this very truth. When the prophet Samuel went to anoint a king and was impressed by the tall, handsome eldest son, the LORD stopped him: "Look not on his countenance, or on the height of his stature... for the LORD seeth not as man seeth; for man looketh on the outward appearance, but the LORD looketh on the heart" (1 Samuel 16:7). God has never been fooled by the exterior, and He has never been most interested in it. Our Lord reserved some of His sharpest words for the inversion of this — the polished outside over the rotted inside: "ye are like unto whited sepulchres, which indeed appear beautiful outward, but are within full of dead men\'s bones, and of all uncleanness. Even so ye also outwardly appear righteous unto men, but within ye are full of hypocrisy and iniquity" (Matthew 23:27-28). It is the spiritual "skinny fat" — an impressive surface with hidden damage accumulating underneath. He even warned that the world\'s scoreboard and God\'s are not the same: "that which is highly esteemed among men is abomination in the sight of God" (Luke 16:15). But the point is not to send us into shame or self-inspection driven by fear. It is to move our care to where it actually counts — the interior. "Keep thy heart with all diligence; for out of it are the issues of life" (Proverbs 4:23). The beauty God treasures is not the one the world photographs; it is "the hidden man of the heart, in that which is not corruptible, even the ornament of a meek and quiet spirit, which is in the sight of God of great price" (1 Peter 3:3-4). So let this land as an invitation, not an indictment. Just as the wise steward of the body learns to care about the real internal health rather than the mirror, the wise steward of the soul learns to stop performing an exterior and to let God tend the hidden man of the heart. Many of us have kept the outside composed long after the inside went unwatched — the maintained face while grief or bitterness or fear quietly lodged within and did its damage. To such a heart the Word says: bring it into the light. "Keep thy heart." The One who looks past every appearance and straight to the heart is not looking to shame you; He is the Physician who tends the hidden man He calls of great price.',
+    facilitator: {
+      talkingPoints: [
+        'LEAD WITH THE GUARDRAILS (like L4): this judges NO body, thin or heavy; and hidden trouble is NEVER proof of hidden sin — Jesus rejected that in John 9:3. Grace, not condemnation. Say it before anything else.',
+        'The witness (the science, attributed): "skinny fat" — a lean body can lodge excess energy ectopically (muscle/liver/brain) and carry the same hidden damage as obesity. Appearance is a deceptive witness to internal reality, in BOTH directions.',
+        'The Word (the SOURCE): "man looketh on the outward appearance, but the LORD looketh on the heart" (1 Samuel 16:7). God has always measured the interior. All KJV, verbatim.',
+        'The danger named: the "whited sepulchre" — "beautiful outward, but... within full of dead men\'s bones" (Matthew 23:27-28); the world\'s esteem vs God\'s (Luke 16:15). A fine exterior over an untended heart.',
+        'The invitation (not shame): "Keep thy heart with all diligence; for out of it are the issues of life" (Proverbs 4:23); the treasured beauty is "the hidden man of the heart... of great price" (1 Peter 3:3-4). Move care to the interior; let the Physician tend it.',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read 1 Samuel 16:7 and Proverbs 4:23 aloud. STATE THE GUARDRAILS up front. | The big idea, in your own words (10): "skinny fat" shows appearance deceives about internal health — a mirror of God measuring the heart, not the outside. | Go deeper (10): the whited sepulchre (Matthew 23:27-28) + the world\'s scale vs God\'s (Luke 16:15), then the invitation: keep the heart (Proverbs 4:23; 1 Peter 3:4) — care for the interior, without shame. | Reflect together (10): use the prompts gently; make room for honesty about a composed outside over an untended inside. | Take it with you (2): each person names one untended interior place to bring into the light and prays "keep my heart, Lord."',
+      discussionPrompts: [
+        'Where have you kept the "outside" looking fine while something inside went untended — a worry, a weariness, a resentment?',
+        'Why is it freeing that God measures the heart and not the outward performance? Where does that lift pressure off you?',
+        'Have you ever wrongly judged someone\'s health, faith, or worth by their appearance? What did you miss?',
+        'Why do the guardrails matter — that this judges no body and that hidden struggle is not proof of sin? How could this lesson go wrong without them?',
+        'What is one interior place you can bring into the light this week, asking God to "keep" and tend your heart?',
       ],
     },
   },
