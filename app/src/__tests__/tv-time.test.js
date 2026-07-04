@@ -11,7 +11,17 @@ import {
   tvKey, emptyTv, loadTv, saveTv, getStatus, setStatus, untrack, rateShow,
   addComment, getComments, toggleReaction, reactionCount, bucketShows, discernmentPromptFor,
   addCustomShow, customCatalog,
+  addShowFromCatalog, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress, epKey,
 } from '../lib/tv-time.js';
+
+// A looked-up show (tv-catalog shape) with 2 seasons / 3 episodes total.
+const GOT = {
+  id: 82, title: 'Game of Thrones', genre: 'Drama', poster: 'p.jpg', year: '2011', network: 'HBO',
+  seasons: [
+    { season: 1, episodes: [{ number: 1, name: 'Winter Is Coming' }, { number: 2, name: 'The Kingsroad' }] },
+    { season: 2, episodes: [{ number: 1, name: 'The North Remembers' }] },
+  ],
+};
 
 function installStorage(throwing = false) {
   const map = new Map();
@@ -92,6 +102,55 @@ describe('custom shows (add your own, no double duty)', () => {
   });
   it('a blank title is ignored', () => {
     expect(customCatalog(addCustomShow(emptyTv(), { title: '  ' }))).toEqual([]);
+  });
+});
+
+describe('episodes — bring in the seasons, check off what you watched', () => {
+  it('adds a looked-up show with its seasons and tracks it', () => {
+    const s = addShowFromCatalog(emptyTv(), GOT);
+    const meta = customCatalog(s).find((x) => x.id === '82');
+    expect(meta.title).toBe('Game of Thrones');
+    expect(meta.poster).toBe('p.jpg');
+    expect(meta.seasons.length).toBe(2);
+    expect(getStatus(s, '82')).toBe('watching');
+    expect(showProgress(s, '82')).toEqual({ watched: 0, total: 3 });
+  });
+  it('toggles a single episode and reflects it in progress', () => {
+    let s = addShowFromCatalog(emptyTv(), GOT);
+    s = toggleEpisode(s, '82', 1, 1);
+    expect(isEpisodeWatched(s, '82', 1, 1)).toBe(true);
+    expect(showProgress(s, '82')).toEqual({ watched: 1, total: 3 });
+    s = toggleEpisode(s, '82', 1, 1);              // untoggle
+    expect(isEpisodeWatched(s, '82', 1, 1)).toBe(false);
+  });
+  it('marks a whole season at once, and season progress is exact', () => {
+    let s = addShowFromCatalog(emptyTv(), GOT);
+    s = setSeasonWatched(s, '82', 1, true);
+    expect(seasonProgress(s, '82', 1)).toEqual({ watched: 2, total: 2 });
+    expect(showProgress(s, '82')).toEqual({ watched: 2, total: 3 });
+    s = setSeasonWatched(s, '82', 1, false);       // clear the season
+    expect(seasonProgress(s, '82', 1)).toEqual({ watched: 0, total: 2 });
+  });
+  it('re-adding refreshes the catalog but keeps your checkmarks', () => {
+    let s = addShowFromCatalog(emptyTv(), GOT);
+    s = toggleEpisode(s, '82', 2, 1);
+    s = addShowFromCatalog(s, { ...GOT, poster: 'new.jpg' });  // refresh
+    expect(customCatalog(s).find((x) => x.id === '82').poster).toBe('new.jpg');
+    expect(isEpisodeWatched(s, '82', 2, 1)).toBe(true);         // checkmark kept
+  });
+  it('watched checkmarks survive a save/load round-trip; a corrupt key is dropped', () => {
+    installStorage();
+    let s = addShowFromCatalog(emptyTv(), GOT);
+    s = toggleEpisode(s, '82', 1, 2);
+    saveTv('ep@x.co', s);
+    expect(isEpisodeWatched(loadTv('ep@x.co'), '82', 1, 2)).toBe(true);
+    const map = installStorage();
+    map.set(tvKey('c@x.co'), JSON.stringify({ shows: { '82': { status: 'watching', watched: { '1x1': true, 'bogus': true, '2x1': false } } } }));
+    const st = loadTv('c@x.co');
+    expect(isEpisodeWatched(st, '82', 1, 1)).toBe(true);
+    expect(isEpisodeWatched(st, '82', 2, 1)).toBe(false);       // false value dropped
+    expect(Object.keys(st.shows['82'].watched)).toEqual(['1x1']); // bogus key dropped
+    expect(epKey(3, 7)).toBe('3x7');
   });
 });
 
