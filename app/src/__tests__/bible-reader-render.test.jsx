@@ -150,16 +150,31 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     expect(text).toContain('For God so loved the world');
   });
 
-  it('one-click patterns: auto-colors theme words across the chapter (Highlighted Bible)', async () => {
+  it('Highlighted Bible — patterns mode auto-colors theme words across the chapter', async () => {
     await mount(); // Genesis 1 — "the Spirit of God moved" (Gen 1:2) carries a theme word.
-    await clickText(/Show Yahweh/);
+    await clickText(/Yahweh.s patterns/);
     const text = container.textContent || '';
-    expect(text).toMatch(/Patterns on/);
     expect(text).toMatch(/In this chapter/);
     // "Spirit" renders as its own auto-colored span under the pattern view.
     const styled = [...container.querySelectorAll('span')].find(
       (s) => s.textContent === 'Spirit' && s.style && (s.style.backgroundColor || s.style.color));
     expect(styled, 'the theme word "Spirit" is auto-colored one-click').toBeTruthy();
+  });
+
+  it('Highlighted Bible — voices (red-letter): Jesus in red, the tempter cold (Matthew 4)', async () => {
+    await mount();
+    setValue(container.querySelector('#bible-jump'), 'Matthew 4');
+    await clickText(/^Go$/);
+    await clickText(/voices/i);
+    expect(container.textContent).toMatch(/Voices here/);
+    // Jesus' answer (Mt 4:4) renders red — the Blood / the Son.
+    const jesus = [...container.querySelectorAll('span')].find(
+      (s) => /Man shall not live by bread alone/.test(s.textContent || '') && s.style && s.style.color);
+    expect(jesus, 'Jesus red-letter').toBeTruthy();
+    // the tempter's words (Mt 4:3) render italic — the cold, dishonored voice.
+    const tempter = [...container.querySelectorAll('span')].find(
+      (s) => /command that these stones be made bread/.test(s.textContent || '') && s.style && s.style.fontStyle === 'italic');
+    expect(tempter, 'the tempter cold + italic').toBeTruthy();
   });
 
   it('rejects an unfindable reference without leaving the app', async () => {
