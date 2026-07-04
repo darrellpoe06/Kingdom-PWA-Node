@@ -66,7 +66,7 @@ export const LIVING_LESSONS_META = {
   tagline: 'You were never made to be flawless. You were made to be whole.',
   format: 'Self-paced · read it alone, as a family, or in a group · paced to your age',
   cadenceDays: 7,
-  weeks: 9, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart; grows as Darrell teaches more
+  weeks: 10, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart · L10 Strength and Honour Are Her Clothing; grows as Darrell teaches more
   handsOnLabel: 'Take it with you',
   // The label layer that lets the shared engine render this honestly as a
   // self-paced lesson series rather than a weekly cohort class.
@@ -921,6 +921,102 @@ export const LIVING_LESSONS_MODULES = [
         'Have you ever wrongly judged someone\'s health, faith, or worth by their appearance? What did you miss?',
         'Why do the guardrails matter — that this judges no body and that hidden struggle is not proof of sin? How could this lesson go wrong without them?',
         'What is one interior place you can bring into the light this week, asking God to "keep" and tend your heart?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // L10 — the women's-health roundtable (Darrell, 2026-07-04, spoken in): four
+  // experts (Haver, Wright, Crawford, Sims) on "strong not skinny" -- resistance
+  // training for bone/metabolism/against frailty, tissues malleable at any age,
+  // HIIT over volume, protein/plant-forward, sleep as the pillar, self-advocacy.
+  // The science is the WITNESS; the SOURCE is the Proverbs 31 woman -- strength
+  // and honour her clothing. GUARDRAILS lead: this is NOT vanity/appearance
+  // (beauty is vain -- Prov 31:30; it's capability + honoring the temple), and
+  // frailty/menopause/illness are NOT punishment or a moral failing (John 9:3).
+  // For women especially, but the temple/strength truth is everyone's. Verses
+  // KJV, VERBATIM from the in-app Bible (DR-0076). Well-being-positive; grace.
+  {
+    id: 'll10-strength-and-honour-are-her-clothing',
+    title: 'Strength and Honour Are Her Clothing',
+    bigIdea: 'The science has a rallying cry for women: "strong, not skinny." Four women\'s-health experts make the case that lifting weights and building muscle -- at ANY age, because tissue stays malleable -- is a survival strategy: it guards bone density and metabolism and holds off the frailty and osteoporosis that steal a woman\'s later years. Short, high-quality intensity beats endless cardio; enough protein matters; sleep is the pillar under all of it; and a woman must advocate for her own body in rooms that too often dismiss her. Hear how squarely that lands on a Scripture written millennia ago about the woman of valor: "She girdeth her loins with strength, and strengtheneth her arms" (Proverbs 31:17); "Strength and honour are her clothing; and she shall rejoice in time to come" (Proverbs 31:25). Not skinny -- STRONG. And the same passage guards the heart of it: "Favour is deceitful, and beauty is vain: but a woman that feareth the LORD, she shall be praised" (Proverbs 31:30). So this is never about a mirror or a dress size; it is about being made able -- in a body that is "the temple of the Holy Ghost" (1 Corinthians 6:19) -- to carry, serve, work, and "rejoice in time to come." (Guardrail: aging, menopause, and illness are seasons, not punishments or a moral failing -- Jesus rejected that reasoning [John 9:3]; stewarding your health is wisdom, never a way to earn your worth.)',
+    inApp: 'Pick ONE thing this week that makes you stronger, not smaller: carry something heavy, take the stairs, hold a plank, lift what\'s in the house -- your body is malleable at any age, so start where you are. Then guard the pillar: protect your sleep tonight as a gift, not a luxury ("he giveth his beloved sleep," Psalm 127:2). And pray Proverbs 31:25 over yourself out loud: "Strength and honour are my clothing; and I shall rejoice in time to come." You are being made able for what God has next.',
+    anchor: {
+      ref: 'Proverbs 31:17, 25; 1 Corinthians 6:19-20',
+      theme: 'The woman of valor is strong, not skinny -- she girds herself with strength and is clothed with strength and honour. Steward the body as God\'s temple: build strength, guard sleep, honor your health -- not for the mirror (beauty is vain) but to be made able and to rejoice in time to come.',
+    },
+    benefits: [
+      'A holy reframe of fitness -- "strong, not skinny": strength for capability and longevity, not a body measured for the mirror (favour is deceitful, beauty is vain).',
+      'Permission and power to start at ANY age -- tissue stays malleable; "she girdeth her loins with strength" is written for the woman you are now, not the one you were.',
+      'The body honored as God\'s temple -- caring for it (strength, protein, sleep) is worship and stewardship, "glorify God in your body."',
+      'Sleep restored to its place -- the pillar God Himself gives ("he giveth his beloved sleep"), not the thing you sacrifice.',
+      'Courage to advocate -- a woman "openeth her mouth with wisdom"; knowing and speaking up for your own body is wise stewardship, not vanity or complaint.',
+      'Freedom from shame -- aging, menopause, and illness are seasons under God\'s care, never a verdict on your worth.',
+    ],
+    levels: {
+      child: 'Did you know God wants you to be STRONG? Not to look a certain way -- to be able to do good things! The Bible describes an amazing woman and says, "Strength and honour are her clothing" (Proverbs 31:25) -- like she\'s wearing strength! It says "she girdeth her loins with strength, and strengtheneth her arms" (Proverbs 31:17) -- she made her arms strong! So it\'s good to move your body, run and play and get strong, because your body is a special gift -- the Bible calls it "the temple of the Holy Ghost" (1 Corinthians 6:19). And God gives us something wonderful for being strong and healthy: sleep! "He giveth his beloved sleep" (Psalm 127:2). So move a lot, sleep well, and thank God for your strong, growing body!',
+      teen: 'Real talk, especially for the girls: the culture screams "skinny." The science -- and the Bible -- say something better: "strong." Health experts say building actual muscle (lifting, real strength) protects your bones, your energy, and your future, and you can start at any age. Now hear Scripture, written way before any gym: the woman of valor "girdeth her loins with strength, and strengtheneth her arms" (Proverbs 31:17), and "strength and honour are her clothing; and she shall rejoice in time to come" (Proverbs 31:25). STRONG, not skinny. And the same chapter drops the mic on the whole appearance game: "Favour is deceitful, and beauty is vain: but a woman that feareth the LORD, she shall be praised" (Proverbs 31:30). So this isn\'t about a dress size or a filter -- it\'s about being made ABLE, in a body that is "the temple of the Holy Ghost, which is in you... therefore glorify God in your body" (1 Corinthians 6:19-20). Two more: sleep is not weakness, it\'s the pillar -- "he giveth his beloved sleep" (Psalm 127:2); and it\'s wise, not rude, to speak up about your own health -- she "openeth her mouth with wisdom" (Proverbs 31:26). Get strong. Rest. Know your body. Rejoice in time to come.',
+      senior: 'This lesson meets women at exactly the season the experts say is most dismissed and most decisive -- perimenopause, menopause, and the years beyond, when bone thins and muscle quietly leaves. Dr. Mary Claire Haver, Dr. Vonda Wright, Dr. Natalie Crawford, and Dr. Stacy Sims press a single reframe: "strong, not skinny." Resistance training -- lifting, loading the muscle -- is not vanity but a survival strategy against osteoporosis and frailty; tissue remains malleable, so strength can be built at any age; short, well-chosen intensity serves better than endless cardio; protein must be adequate; sleep is "the pillar of everything," non-negotiable (and sleep apnea in women is too often missed); and a woman must advocate for her own physiology in a medical culture prone to dismiss her. Scripture wrote the portrait long ago. The woman of valor is defined by capability, not slightness: "She girdeth her loins with strength, and strengtheneth her arms" (Proverbs 31:17), and gloriously, "Strength and honour are her clothing; and she shall rejoice in time to come" (Proverbs 31:25) -- clothed in strength, unafraid of the years ahead. The same passage severs the whole enterprise from appearance: "Favour is deceitful, and beauty is vain: but a woman that feareth the LORD, she shall be praised" (Proverbs 31:30). Her strength is stewardship of a sacred trust: "your body is the temple of the Holy Ghost which is in you, which ye have of God, and ye are not your own... therefore glorify God in your body" (1 Corinthians 6:19-20). Rest is not a failure of discipline but a gift from the Giver: "It is vain for you to rise up early, to sit up late, to eat the bread of sorrows: for so he giveth his beloved sleep" (Psalm 127:2). Advocacy is wisdom, the same mouth that "openeth... with wisdom" (Proverbs 31:26), for the diligent woman is called to "know the state" of what God entrusted to her (Proverbs 27:23). And where strength wanes -- as it will in every honest body -- the promise is not self-sufficiency but supply: "He giveth power to the faint; and to them that have no might he increaseth strength... they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint" (Isaiah 40:29-31). Hold the guardrails firmly, seasoned saint: this is not a return to the mirror, and the frailty or diagnosis that comes with age is no verdict on your worth or your faith -- our Lord refused that reasoning (John 9:3). It is, rather, the loving wish the Word speaks over you: "Beloved, I wish above all things that thou mayest prosper and be in health, even as thy soul prospereth" (3 John 1:2). Build the strength you can, guard your sleep, honor the temple, speak up for your body -- and rejoice in time to come.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'What does Scripture clothe the woman of valor in (Proverbs 31:25)?',
+          options: [
+            'Beauty and a small figure',
+            '"Strength and honour" -- "and she shall rejoice in time to come"',
+            'Nothing that lasts',
+          ],
+          answer: 1,
+          explain: 'She "girdeth her loins with strength, and strengtheneth her arms" (Proverbs 31:17). Strong, not skinny -- built for capability and for the years ahead.',
+        },
+        {
+          q: 'How does Proverbs 31:30 guard this lesson from becoming about appearance?',
+          options: [
+            'It says beauty is what matters most',
+            '"Favour is deceitful, and beauty is vain: but a woman that feareth the LORD, she shall be praised"',
+            'It says never care for your body',
+          ],
+          answer: 1,
+          explain: 'The bright line: this is not the mirror or a dress size. It\'s capability and reverence for God, in a body that is His temple (1 Corinthians 6:19-20).',
+        },
+        {
+          q: 'Where does sleep fit, according to the Word (Psalm 127:2)?',
+          options: [
+            'It\'s a luxury to sacrifice for hustle',
+            'It\'s a gift God gives -- "he giveth his beloved sleep" -- the pillar, not the thing you cut',
+            'It doesn\'t matter',
+          ],
+          answer: 1,
+          explain: 'The experts call sleep "the pillar of everything"; Scripture calls it a gift of the Giver. Rest is stewardship, not weakness.',
+        },
+        {
+          q: 'What is the essential guardrail when a body ages or gets sick?',
+          options: [
+            'Frailty or illness proves a lack of faith or a hidden sin',
+            'Aging, menopause, and illness are seasons under God\'s care, never a verdict on worth -- and He renews the strength of those who wait on Him (Isaiah 40:31)',
+            'You failed to steward well enough',
+          ],
+          answer: 1,
+          explain: 'Jesus rejected the "affliction = sin" reasoning (John 9:3). Steward your health as wisdom, not to earn worth; and "they that wait upon the LORD shall renew their strength."',
+        },
+      ],
+    },
+    lesson: 'Lead with the guardrails, because this lesson touches a tender place -- a woman\'s body, aging, and worth -- and it must heal, not wound. Nothing here is about the mirror, a dress size, or a number on a scale; Scripture itself says "beauty is vain" (Proverbs 31:30). And nothing here says that frailty, menopause, or a diagnosis is a punishment or a failure of faith -- our Lord flatly refused that reasoning (John 9:3). This is grace, and it is empowerment. Now, the science. Four women\'s-health experts -- Dr. Mary Claire Haver, Dr. Vonda Wright, Dr. Natalie Crawford, and Dr. Stacy Sims -- press one reframe with urgency: "strong, not skinny." Building actual muscle through resistance training is not vanity; it is a survival strategy that guards bone density and metabolism and holds off the frailty and osteoporosis that rob a woman\'s later decades. Tissue stays malleable, so strength can be built at ANY age -- it is never too late to begin. Short, well-chosen intensity serves the body better than endless punishing cardio; adequate protein matters; and undergirding all of it, sleep is "the pillar of everything," non-negotiable. And a woman must learn to advocate for her own body in rooms that too often dismiss her. Now hear how precisely that lands on a Scripture written millennia before any gym or lab. The woman of valor in Proverbs 31 is defined not by slightness but by strength: "She girdeth her loins with strength, and strengtheneth her arms" (Proverbs 31:17). And the crown of it: "Strength and honour are her clothing; and she shall rejoice in time to come" (Proverbs 31:25). Clothed in strength -- and therefore unafraid of the years ahead. That is "strong, not skinny," inspired long ago. Why build that strength? Not for applause, but because the body is a sacred trust: "know ye not that your body is the temple of the Holy Ghost which is in you, which ye have of God, and ye are not your own?... therefore glorify God in your body" (1 Corinthians 6:19-20). Caring for this temple -- strength, nourishment, rest -- is a form of worship. And rest, so easily despised as weakness, is restored by the Word to its true place as a GIFT: "It is vain for you to rise up early, to sit up late, to eat the bread of sorrows: for so he giveth his beloved sleep" (Psalm 127:2). Guarding your sleep is not laziness; it is receiving what the Giver gives. The call to advocate, too, is biblical: the same woman "openeth her mouth with wisdom" (Proverbs 31:26), and the wise steward is charged to "know the state" of what God entrusted to her (Proverbs 27:23) -- so learning your own physiology and speaking up for it is diligence, not vanity or complaint. And here is the deepest comfort, for the season every honest body eventually meets, when strength wanes despite our best stewardship: the promise is not endless self-sufficiency but endless supply. "He giveth power to the faint; and to them that have no might he increaseth strength. Even the youths shall faint and be weary, and the young men shall utterly fall: but they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint" (Isaiah 40:29-31). So build the strength you can -- lift, carry, load the muscle, at whatever age you are. Guard your sleep as the gift it is. Nourish and honor the temple. Speak up for your body with wisdom. And over all of it, receive the tender wish the Word itself speaks over you: "Beloved, I wish above all things that thou mayest prosper and be in health, even as thy soul prospereth" (3 John 1:2). Strength and honour are your clothing. Rejoice in time to come.',
+    facilitator: {
+      talkingPoints: [
+        'LEAD WITH THE GUARDRAILS: not the mirror or a dress size (beauty is vain, Prov 31:30); and aging/menopause/illness are NOT punishment or weak faith -- Jesus rejected that (John 9:3). Grace + empowerment, especially for the women in the room.',
+        'The witness (the science, attributed): Drs. Haver, Wright, Crawford, Sims -- "strong, not skinny." Resistance training guards bone/metabolism against frailty + osteoporosis; tissue is malleable at ANY age; quality intensity over volume; protein matters; sleep is the pillar; advocate for your own body.',
+        'The Word (the SOURCE): the woman of valor is STRONG -- "she girdeth her loins with strength, and strengtheneth her arms" (Prov 31:17); "Strength and honour are her clothing; and she shall rejoice in time to come" (Prov 31:25). All KJV, verbatim.',
+        'Why steward the body: it is "the temple of the Holy Ghost... glorify God in your body" (1 Cor 6:19-20). Sleep is a GIFT -- "he giveth his beloved sleep" (Ps 127:2). Advocacy is wisdom -- she "openeth her mouth with wisdom" (Prov 31:26); "know the state of thy flocks" (Prov 27:23).',
+        'The comfort when strength wanes: "they that wait upon the LORD shall renew their strength... run, and not be weary" (Isa 40:29-31); and the Word\'s own wish over you: "I wish above all things that thou mayest prosper and be in health" (3 John 1:2).',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read Proverbs 31:17, 25 and 1 Corinthians 6:19-20 aloud. STATE THE GUARDRAILS up front (not the mirror; not punishment). | The big idea, in your own words (10): "strong not skinny" -- the science reframe, and how Proverbs 31 wrote it first (strength + honour as clothing, capability for the years ahead). | Go deeper (10): the body as temple (1 Cor 6:19-20); sleep as gift (Ps 127:2); advocacy as wisdom (Prov 31:26; Prov 27:23); and the comfort when strength fails (Isa 40:29-31; 3 John 1:2). | Reflect together (10): use the prompts; make space for honesty about aging, health fears, and being dismissed. | Take it with you (2): each person names one strength habit + guards their sleep tonight, praying Proverbs 31:25 over themselves.',
+      discussionPrompts: [
+        'Where has the culture\'s "skinny" script cost you -- and how does "strong, not skinny" (Proverbs 31:25) reframe it?',
+        'What would it look like this week to build strength where you are -- knowing tissue is malleable at any age?',
+        'Where have you treated sleep as expendable instead of the gift God calls it (Psalm 127:2)?',
+        'Have you ever been dismissed about your own health? What would it mean to "open your mouth with wisdom" and advocate?',
+        'Why do the guardrails matter -- that this isn\'t about appearance, and that illness/aging isn\'t punishment? Where do you need to receive grace about your body?',
       ],
     },
   },
