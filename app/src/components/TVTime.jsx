@@ -25,6 +25,7 @@ import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches }
 import { relatedTitles, franchiseOf, titleKey } from '../lib/tv-franchises.js';
 import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
 import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
+import { POPULAR_SHOWS, popularByGenre, popularCount } from '../lib/tv-popular.js';
 import { createDebouncer } from '../lib/table-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -246,6 +247,80 @@ function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, on
   );
 }
 
+// A single "Popular pick" card in the browse grid. The poster + real genre
+// resolve lazily from the catalog when the card mounts (only once the Popular
+// section is open, so it's not fetched on every TV Time load). Tapping Add runs
+// the SAME add-by-title flow as search; a show already on your list shows ✓.
+function PopularCard({ title, genre, tracked, onAdd, busy }) {
+  const [poster, setPoster] = useState('');
+  useEffect(() => {
+    let live = true;
+    searchTitles(title).then((hits) => {
+      const h = hits && hits[0];
+      if (live && h && h.poster) setPoster(h.poster);
+    }).catch(() => { /* no poster — the titled placeholder still shows */ });
+    return () => { live = false; };
+  }, [title]);
+  const adding = busy === `u:${title}`;
+  return (
+    <div className="bg-white border border-[#1A1815] p-2 flex flex-col gap-1.5">
+      <Poster url={poster} title={title} className="w-full aspect-[2/3]" />
+      <div className="min-w-0">
+        <div className="text-[0.75rem] font-semibold text-[#1A1815] leading-tight" style={serif}>{title}</div>
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{genre}</div>
+      </div>
+      {tracked ? (
+        <span className="mt-auto inline-flex items-center gap-1 text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">
+          <UiIcon name="check" /> On your list
+        </span>
+      ) : (
+        <button type="button" onClick={() => onAdd(title)} disabled={adding}
+          className={`${BTN} mt-auto border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50`}>
+          {adding ? 'Adding…' : '+ Add'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// The "Popular picks" browse grid, grouped by genre (Darrell 2026-07-04: "click a
+// tab and it will sort what we have inside as a list already under drama etc" +
+// "it should be able to show all below" — so a genre chip surfaces the popular
+// shows in that genre instead of dead-ending on "none in your list"). A curated
+// starter set (honest — not a live chart); already-tracked shows are hidden so it
+// reads as "what you don't have yet". When `genre` is set, shows just that genre.
+function PopularBrowse({ trackedKeys, onAddByTitle, busy, genre = '' }) {
+  const exclude = useMemo(() => new Set(POPULAR_SHOWS
+    .filter((s) => trackedKeys.has(titleKey(s.title)))
+    .map((s) => s.title.toLowerCase().trim())), [trackedKeys]);
+  const groups = useMemo(() => {
+    const all = popularByGenre(POPULAR_SHOWS, undefined, exclude);
+    return genre ? all.filter((grp) => genreMatches(grp.genre, genre)) : all;
+  }, [exclude, genre]);
+  if (!groups.length) {
+    return (
+      <p className="text-sm text-[#5A5751]" style={serif}>
+        No {genre ? `${genre} ` : ''}picks here yet — look one up above and it comes right in.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      {groups.map((grp) => (
+        <section key={grp.genre} aria-labelledby={`pop-${grp.genre}`}>
+          {!genre && <h4 id={`pop-${grp.genre}`} className="text-[0.625rem] uppercase tracking-[0.25em] text-[#1A1815] font-semibold mb-2">{grp.genre}</h4>}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {grp.shows.map((s) => (
+              <PopularCard key={s.title} title={s.title} genre={s.genre}
+                tracked={trackedKeys.has(titleKey(s.title))} onAdd={onAddByTitle} busy={busy} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export default function TVTime({ email = null }) {
   const [state, setState] = useState(() => loadTv(email));
   const [query, setQuery] = useState('');
@@ -266,6 +341,7 @@ export default function TVTime({ email = null }) {
   const tracked = useMemo(() => STATUSES.flatMap((st) => buckets[st.key]), [buckets]);
   const trackedKeys = useMemo(() => new Set(tracked.map((s) => titleKey(s.title || s.id))), [tracked]);
   const [genreFilter, setGenreFilter] = useState('');
+  const [popularOpen, setPopularOpen] = useState(false);
 
   // Cross-device sync (owner-only; fail-soft — offline degrades to device-local).
   const stateRef = useRef(state);
@@ -486,22 +562,21 @@ export default function TVTime({ email = null }) {
       {/* What's getting watched — dynamic, from real activity. */}
       <TrendingStrip items={trending} />
 
-      {/* Browse by genre — filters your tracked list (honest: your shows in that
-          genre; the free APIs have no global by-genre catalog). */}
-      {tracked.length > 0 && (
-        <section className="mb-4" aria-labelledby="tv-genres">
-          <h3 id="tv-genres" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Browse by genre {genreFilter && <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline normal-case tracking-normal">· clear “{genreFilter}”</button>}</h3>
-          <div className="flex flex-wrap gap-1">
-            {GENRES.map((g) => {
-              const on = genreFilter === g;
-              return (
-                <button key={g} type="button" onClick={() => setGenreFilter(on ? '' : g)} aria-pressed={on}
-                  className={`text-[0.625rem] px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>{g}</button>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* Browse by genre — a chip filters BOTH your tracked list AND the Popular
+          picks below (Darrell 2026-07-04: pick a genre and it shows all in that
+          genre, never a dead end). Always shown, so an empty list still browses. */}
+      <section className="mb-4" aria-labelledby="tv-genres">
+        <h3 id="tv-genres" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Browse by genre <span className="text-[#B85838] normal-case tracking-normal font-normal">· your list + popular picks</span>{genreFilter && <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline normal-case tracking-normal ml-1 font-normal">clear “{genreFilter}”</button>}</h3>
+        <div className="flex flex-wrap gap-1">
+          {GENRES.map((g) => {
+            const on = genreFilter === g;
+            return (
+              <button key={g} type="button" onClick={() => setGenreFilter(on ? '' : g)} aria-pressed={on}
+                className={`text-[0.625rem] px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>{g}</button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* The four sections (genre-filtered when a genre is picked). */}
       {STATUSES.map((st) => {
@@ -522,8 +597,32 @@ export default function TVTime({ email = null }) {
         );
       })}
 
-      {!anyTracked && <p className="text-sm text-[#5A5751]" style={serif}>Nothing tracked yet — look up a show above (or import your old list) and you’re off.</p>}
-      {genreEmpty && <p className="text-sm text-[#5A5751]" style={serif}>No {genreFilter} in your list yet — <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline">show all</button>.</p>}
+      {genreEmpty && <p className="text-sm text-[#5A5751] mb-3" style={serif}>Nothing {genreFilter} on your list yet — here are popular {genreFilter} picks to add:</p>}
+
+      {/* Popular picks — a curated starter catalog so the app opens to a FULL,
+          browsable list (Darrell 2026-07-04) instead of empty, and a genre chip
+          shows all picks in that genre "below". Grouped by genre when browsing
+          all; filtered to the chosen genre when one is picked. Expanded by default
+          for an empty list or when a genre is picked; collapsible otherwise (so we
+          don't fetch ~30 posters for someone happily in their own list). Tap to
+          add; already-tracked picks are hidden. */}
+      {(() => {
+        const show = popularOpen || !anyTracked || !!genreFilter;
+        return (
+          <section className="mb-4" aria-labelledby="tv-popular">
+            <button type="button" onClick={() => setPopularOpen((v) => !v)} aria-expanded={show}
+              className="w-full flex items-center justify-between gap-2 text-left mb-2 focus:outline focus:outline-2 focus:outline-[#B85838]">
+              <h3 id="tv-popular" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">
+                {genreFilter ? `Popular ${genreFilter} picks` : 'Popular picks'} <span className="text-[#B85838] normal-case tracking-normal font-normal">· {genreFilter ? 'tap to add' : `${popularCount()} shows to browse & add, by genre`}</span>
+              </h3>
+              {!genreFilter && <span className="text-[0.6875rem] text-[#B85838] shrink-0">{show ? 'Hide' : 'Browse'}</span>}
+            </button>
+            {show && <PopularBrowse trackedKeys={trackedKeys} onAddByTitle={onAddByTitle} busy={busy} genre={genreFilter} />}
+          </section>
+        );
+      })()}
+
+      {!anyTracked && !genreFilter && <p className="text-sm text-[#5A5751]" style={serif}>Tip: look up any show above, or import your old list — your own shows land in the sections here.</p>}
     </div>
   );
 }
