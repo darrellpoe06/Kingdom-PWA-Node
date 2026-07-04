@@ -821,11 +821,35 @@ export function isExternalUrl(u) {
   return typeof u === 'string' && /^https?:\/\//i.test(u.trim());
 }
 
-// Resolve an openable URL for a document in a given bucket. External links pass
-// through; Storage paths get a short-lived signed URL (RLS gates who succeeds).
+// A stored document opens inline (no signed URL needed) when it's an external link
+// OR an UPLOADED data: URL (Christina 2026-07-04 — "I need to be able to upload
+// pictures or documents"). Uploads ride the app's proven data-URL pattern
+// (lib/image.js), so an uploaded file opens straight from its data URL.
+export function isInlineDocument(u) {
+  return isExternalUrl(u) || (typeof u === 'string' && /^data:/i.test(u.trim()));
+}
+
+// A team-doc UPLOAD is validated before it becomes a data URL: images are
+// compressed client-side (so no size cap), other files (PDF/doc/txt) must fit the
+// cap because they ride in the row as a data URL. Pure — unit-tested.
+export const TEAM_DOC_MAX_BYTES = 3 * 1024 * 1024; // 3 MB for a non-image upload
+export function classifyUpload(file, maxBytes = TEAM_DOC_MAX_BYTES) {
+  if (!file) return { ok: false, reason: 'no-file' };
+  const type = String(file.type || '');
+  const name = String(file.name || '');
+  const isImage = /^image\//i.test(type);
+  const isDoc = /pdf|msword|officedocument|text\/plain/i.test(type) || /\.(pdf|docx?|txt)$/i.test(name);
+  if (!isImage && !isDoc) return { ok: false, reason: 'unsupported-type' };
+  if (!isImage && Number(file.size) > maxBytes) return { ok: false, reason: 'too-large' };
+  return { ok: true, kind: isImage ? 'image' : 'document' };
+}
+
+// Resolve an openable URL for a document in a given bucket. External links and
+// uploaded data: URLs pass through; Storage paths get a short-lived signed URL
+// (RLS gates who succeeds).
 async function openDocument(bucket, documentUrl) {
   if (!documentUrl) return null;
-  if (isExternalUrl(documentUrl)) return documentUrl;
+  if (isInlineDocument(documentUrl)) return documentUrl;
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(documentUrl, 300);
   if (error) { console.warn(`[choir-sync] signed url (${bucket}) failed:`, error); return null; }
   return data?.signedUrl || null;

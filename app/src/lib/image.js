@@ -28,3 +28,15 @@ export function compressImageFile(file, maxWidth = 1280, quality = 0.7) {
     reader.readAsDataURL(file);
   });
 }
+
+// Read ANY file (PDF, doc, txt) to a data URL, unchanged — the non-image path for
+// uploads that ride in a row as a data URL (Christina 2026-07-04 team-doc uploads).
+// The caller size-caps first (choir-sync classifyUpload); this just reads.
+export function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
