@@ -77,6 +77,21 @@ describe('HONESTY: every attributed quote exists verbatim in the shipped KJV', (
   });
 });
 
+describe('every "God said" in Genesis 1 is the Father speaking (Darrell 2026-07-04)', () => {
+  it('colors each Father speech across the chapter, verbatim', async () => {
+    const godSaid = [3, 6, 9, 11, 14, 20, 22, 24, 26, 28, 29];
+    for (const v of godSaid) {
+      const ref = `Genesis 1:${v}`;
+      const text = await verseText(ref);
+      const spans = voiceSpansFor(ref, text);
+      expect(spans.length, `${ref} — no Father span`).toBeGreaterThan(0);
+      expect(spans.every((s) => s.style === 'father'), `${ref} — not all Father`).toBe(true);
+      // and the narration ("And God said,") is left plain — the span starts after it
+      expect(text.slice(0, spans[0].start)).toMatch(/God (said|blessed)/);
+    }
+  });
+});
+
 describe('the red-letter Temptation reads Jesus-red vs adversary-cold', () => {
   it('Matthew 4: the tempter is cold, Jesus is red', async () => {
     const t3 = await verseText('Matthew 4:3');
