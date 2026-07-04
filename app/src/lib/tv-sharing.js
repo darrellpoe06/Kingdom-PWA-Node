@@ -112,6 +112,15 @@ export function canReadShare(audience, viewer = {}) {
   return false;
 }
 
+// Immutable state setter: flip one audience flag on a show, returning a new state
+// (the caller persists, which normalizes). No-op if the show isn't tracked.
+export function setShowShare(state, showId, audience, on) {
+  const shows = state && typeof state.shows === 'object' && state.shows ? state.shows : {};
+  const entry = shows[showId];
+  if (!entry) return state;
+  return { ...state, shows: { ...shows, [showId]: withShare(entry, audience, on) } };
+}
+
 // Aggregate a "what everyone's watching" community feed from several members'
 // shared docs. Each entry: a title, how many people are watching it, and who.
 // Pure; `members` is [{ name, doc:{shows}, catalog }]. Titles resolve from the

@@ -26,6 +26,7 @@ import { relatedTitles, franchiseOf, titleKey } from '../lib/tv-franchises.js';
 import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
 import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
 import { POPULAR_SHOWS, popularByGenre, popularCount } from '../lib/tv-popular.js';
+import { AUDIENCES, shareFlags, setShowShare } from '../lib/tv-sharing.js';
 import { createDebouncer } from '../lib/table-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -131,7 +132,7 @@ function EpisodeList({ show, isWatched, onToggleEp, onToggleSeason, progressFor 
   );
 }
 
-function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, trackedKeys, busy }) {
+function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, onShare, trackedKeys, busy }) {
   const [tab, setTab] = useState(null); // 'episodes' | 'talk' | null
   const [draft, setDraft] = useState('');
   const comments = getComments(state, show.id);
@@ -179,6 +180,31 @@ function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, on
             <button type="button" onClick={() => setTab(tab === 'talk' ? null : 'talk')} aria-expanded={tab === 'talk'} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>Talk{comments.length ? ` (${comments.length})` : ''}</button>
             <button type="button" onClick={() => onUntrack(show.id)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
           </div>
+          {/* Who sees this? — per-show visibility (family-sharing model). PRIVATE by
+              default; you opt each show into independent audiences. This is the real,
+              saved control; the shared Family/Circle VIEWS turn on once your circle
+              is set up and the data-isolation test passes (nothing shared leaks). */}
+          {onShare && (() => {
+            const flags = shareFlags(state && state.shows ? state.shows[show.id] : null);
+            const priv = !flags.us && !flags.family && !flags.circle;
+            return (
+              <div className="mt-2 border-t border-[#F2EFE9] pt-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold inline-flex items-center gap-1"><UiIcon name="lock" /> Who sees this?</span>
+                  {AUDIENCES.map((a) => {
+                    const on = flags[a.key];
+                    return (
+                      <button key={a.key} type="button" onClick={() => onShare(show.id, a.key, !on)} aria-pressed={on} title={a.hint}
+                        className={`text-[0.625rem] px-1.5 py-0.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                  {priv && <span className="text-[0.5625rem] text-[#5A5751]">Just you</span>}
+                </div>
+              </div>
+            );
+          })()}
           {related.length > 0 && (
             <div className="mt-2 border-t border-[#F2EFE9] pt-1.5">
               <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">Same universe{universe ? ` · ${universe}` : ''}</span>
@@ -407,6 +433,9 @@ export default function TVTime({ email = null }) {
   const onStatus = (id, s) => persist(setStatus(state, id, s));
   const onRate = (id, n) => persist(rateShow(state, id, n));
   const onUntrack = (id) => persist(untrack(state, id));
+  // Per-show visibility: flip one audience (us/family/circle) on a show. Saves to
+  // your own list (and syncs across your devices); the shared views read it later.
+  const onShare = (id, audience, on) => persist(setShowShare(state, id, audience, on));
   const onAddComment = (id, text) => { seq.current += 1; persist(addComment(state, id, { author: me, text }, safeNow(), seq.current)); };
   const onReact = (id, cid, rk) => persist(toggleReaction(state, id, cid, rk, me));
   const onToggleEp = (id, se, nu) => persist(toggleEpisode(state, id, se, nu));
@@ -590,7 +619,7 @@ export default function TVTime({ email = null }) {
                 <ShowCard key={show.id} show={show} me={me} state={state}
                   onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
                   onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                  onAddByTitle={onAddByTitle} trackedKeys={trackedKeys} busy={busy} />
+                  onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
               ))}
             </div>
           </section>
