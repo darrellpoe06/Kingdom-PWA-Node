@@ -44,6 +44,7 @@ import { studySeedFromVerse } from '../lib/studyable.js';
 import { loadStudy, saveStudy, addSeedToStudy } from '../lib/study-space.js';
 import VerseHighlighter from './VerseHighlighter.jsx';
 import { loadHighlights, saveHighlights, getMark, setMark, cssForHighlight } from '../lib/scripture-highlights.js';
+import BibleReader from './BibleReader.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -535,10 +536,27 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
     [activeTheme, orderedThemes],
   );
   const toggleInterest = (id) => setInterests((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  // Curated, depth-adaptive study vs. the WHOLE KJV, read in-app (Darrell
+  // 2026-07-04: a Logos-type Bible inside PoeTech, no link-out).
+  const [readerMode, setReaderMode] = useState('study');
 
   return (
     <div className="max-w-3xl">
       <SectionTitle eyebrow="Word-first · KJV public domain · His perspective + His love">Scripture</SectionTitle>
+
+      <div className="flex gap-2 mb-3 flex-wrap" role="tablist" aria-label="Scripture mode">
+        <button type="button" role="tab" aria-selected={readerMode === 'study'} onClick={() => setReaderMode('study')}
+          className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${readerMode === 'study' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
+          Curated study
+        </button>
+        <button type="button" role="tab" aria-selected={readerMode === 'bible'} onClick={() => setReaderMode('bible')}
+          className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${readerMode === 'bible' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
+          Full Bible · KJV
+        </button>
+      </div>
+
+      {readerMode === 'bible' && <BibleReader email={email} />}
+      {readerMode === 'study' && (<>
 
       <blockquote className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-2 mb-3" style={serif}>
         <p className="text-sm text-[#1A1815] italic">“Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.”</p>
@@ -663,6 +681,7 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
       <p className="text-[0.625rem] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif}>
         King James Version — Public Domain, fetched verbatim and verified; other translations referenced, not reproduced (copyright). {ACCESSIBILITY.dyslexia} Truth in love, no condemnation — for the soul’s sake.
       </p>
+      </>)}
     </div>
   );
 }
