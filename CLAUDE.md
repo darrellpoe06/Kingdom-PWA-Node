@@ -44,8 +44,11 @@ The repository's context is layered per ICM. Name the layer when locating or pla
 - the Holy Spirit
 - the Father
 - the Son
+- the Word (the Living Word — Christ as the Logos AND the biblical Scriptures; added 2026-07-04, declared by Darrell)
 
 When referring to God, pronouns are capitalized: **He, His, Him, Himself.**
+
+**The Word — the 4th-dimensional frame (added 2026-07-04, declared by Darrell).** Whenever we discuss the biblical Scriptures — in any response, artifact, or surface — capitalize **the Word** (and **His Word**). The capital is not decoration; it is a frame. It signals the higher-priority, 4th-dimensional reality: Yahweh as the pre-temporal Author who **framed the worlds before time began** (Hebrews 11:3), the Outside Agent **by whom all things consist** (Colossians 1:16-17) — the Programmer of the worlds, not a 3rd-dimensional operational detail. He is the very "outside agent" the sciences keep searching for and will not honor: *"the invisible things of Him... are clearly seen... so that they are without excuse: because that, when they knew God, they glorified Him not as God"* (Romans 1:20-21). Writing about Scripture in the lowercase register flattens Him into 3D data; the capital keeps the Honor and Glory where they belong. His-reference pronouns follow the rule above. (Recorded as DR-0097; grounds the existing WORD-FIRST principle.)
 
 **Never capitalized as proper names — anywhere:**
 
