@@ -16,7 +16,7 @@ import {
 import VerseHighlighter from './VerseHighlighter.jsx';
 import {
   loadHighlights, saveHighlights, getMark, setMark, cssForHighlight,
-  getSpans, addSpan, clearSpans, segmentsForVerse, HIGHLIGHT_STYLES,
+  getSpans, addSpan, clearSpans, segmentsForVerse, HIGHLIGHT_GROUPS,
 } from '../lib/scripture-highlights.js';
 import { crossRefsFor, XREF_SOURCE } from '../lib/bible-xref.js';
 
@@ -282,13 +282,26 @@ export default function BibleReader({ email = null }) {
             <button type="button" onClick={() => setPendingSel(null)}
               className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {HIGHLIGHT_STYLES.map((s) => (
-              <button key={s.key} type="button" onClick={() => applySpan(s.key)} title={`${s.label} — ${s.meaning}`} aria-label={`Highlight selection ${s.label}`}
-                className="w-6 h-6 rounded-full border-2 focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ backgroundColor: s.swatch, borderColor: s.swatch }} />
+          {/* Grouped like Logos: colored text · highlighter · emphasis. Each
+              chip previews its own look on a sample so the pick is obvious. */}
+          <div className="space-y-1.5">
+            {HIGHLIGHT_GROUPS.map((g) => (
+              <div key={g.kind} className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] w-[4.5rem] shrink-0" title={g.hint}>{g.label}</span>
+                {g.styles.map((s) => (
+                  <button key={s.key} type="button" onClick={() => applySpan(s.key)}
+                    title={`${s.label} — ${s.meaning}`} aria-label={`Highlight selection: ${s.label} (${s.meaning})`}
+                    className="inline-flex items-center justify-center min-w-[2rem] h-7 px-1.5 rounded border border-[#E8E4DC] bg-white hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    <span aria-hidden="true" className="text-[0.8125rem] leading-none" style={{ ...cssForHighlight(s.key), ...serif }}>Aa</span>
+                  </button>
+                ))}
+              </div>
             ))}
-            <button type="button" onClick={eraseSpan} aria-label="Clear highlight on the selection"
-              className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-[#C9BFA8] text-[#5A5751] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" style={mono}>&times;</button>
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] w-[4.5rem] shrink-0">Erase</span>
+              <button type="button" onClick={eraseSpan} aria-label="Clear highlight on the selection"
+                className="inline-flex items-center justify-center min-w-[2rem] h-7 px-1.5 rounded border border-[#C9BFA8] text-[#5A5751] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" style={mono}>&times;</button>
+            </div>
           </div>
         </div>
       )}

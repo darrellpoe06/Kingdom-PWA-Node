@@ -10,7 +10,7 @@
 // swatches ARE colored chips; the control is labelled for screen readers. Sizes
 // are rem-based so the large-print primitive scales them.
 import React, { useState } from 'react';
-import { HIGHLIGHT_STYLES, styleFor } from '../lib/scripture-highlights.js';
+import { HIGHLIGHT_GROUPS, styleFor, cssForHighlight } from '../lib/scripture-highlights.js';
 
 const mono = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' };
 
@@ -49,31 +49,36 @@ export default function VerseHighlighter({ value = 'none', onPick, refLabel = 't
       {open && (
         <span
           role="menu"
-          aria-label={`Highlight colors for ${refLabel}`}
-          className="absolute right-0 top-full mt-1 z-10 flex flex-wrap items-center gap-1.5 bg-white border border-[#E8E4DC] shadow-md p-2 w-56"
+          aria-label={`Highlight styles for ${refLabel}`}
+          className="absolute right-0 top-full mt-1 z-10 flex flex-col gap-1.5 bg-white border border-[#E8E4DC] shadow-md p-2 w-64"
         >
-          {HIGHLIGHT_STYLES.map((s) => {
-            const active = s.key === value;
-            return (
-              <button
-                key={s.key}
-                type="button"
-                role="menuitemradio"
-                aria-checked={active}
-                onClick={() => pick(s.key)}
-                title={`${s.label} — ${s.meaning}`}
-                aria-label={`${s.label}: ${s.meaning}`}
-                className="inline-flex flex-col items-center gap-0.5 p-1 focus:outline focus:outline-2 focus:outline-[#B85838] hover:bg-[#FAF8F4]"
-              >
-                <span
-                  aria-hidden="true"
-                  className="inline-block w-6 h-6 rounded-full"
-                  style={{ backgroundColor: s.swatch, boxShadow: active ? '0 0 0 0.125rem #B85838' : '0 0 0 0.0625rem #C9BFA8' }}
-                />
-                <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" style={mono}>{s.label}</span>
-              </button>
-            );
-          })}
+          {/* Grouped the way Logos groups it: colored text · highlighter pens ·
+              emphasis markup. Each chip previews its own look on a sample "Aa". */}
+          {HIGHLIGHT_GROUPS.map((g) => (
+            <span key={g.kind} role="group" aria-label={g.label} className="flex flex-col gap-0.5">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" style={mono}>{g.label}</span>
+              <span className="flex flex-wrap items-center gap-1">
+                {g.styles.map((s) => {
+                  const active = s.key === value;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={active}
+                      onClick={() => pick(s.key)}
+                      title={`${s.label} — ${s.meaning}`}
+                      aria-label={`${s.label}: ${s.meaning}`}
+                      className="inline-flex items-center justify-center min-w-[2rem] h-7 px-1.5 rounded border focus:outline focus:outline-2 focus:outline-[#B85838] hover:border-[#1A1815]"
+                      style={{ borderColor: active ? '#B85838' : '#E8E4DC', borderWidth: active ? '0.125rem' : '0.0625rem' }}
+                    >
+                      <span aria-hidden="true" className="text-[0.8125rem] leading-none" style={cssForHighlight(s.key)}>Aa</span>
+                    </button>
+                  );
+                })}
+              </span>
+            </span>
+          ))}
           <button
             type="button"
             role="menuitemradio"
@@ -81,16 +86,10 @@ export default function VerseHighlighter({ value = 'none', onPick, refLabel = 't
             onClick={() => pick('none')}
             title="Clear this highlight"
             aria-label="Clear this highlight"
-            className="inline-flex flex-col items-center gap-0.5 p-1 focus:outline focus:outline-2 focus:outline-[#B85838] hover:bg-[#FAF8F4]"
+            className="inline-flex items-center gap-1.5 self-start px-1.5 py-1 rounded border border-[#C9BFA8] text-[#5A5751] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
           >
-            <span
-              aria-hidden="true"
-              className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-[#C9BFA8] text-[#5A5751]"
-              style={mono}
-            >
-              &times;
-            </span>
-            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" style={mono}>Clear</span>
+            <span aria-hidden="true" style={mono}>&times;</span>
+            <span className="text-[0.5625rem] uppercase tracking-wider" style={mono}>Clear highlight</span>
           </button>
         </span>
       )}
