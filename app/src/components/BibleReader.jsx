@@ -20,6 +20,7 @@ import {
 } from '../lib/scripture-highlights.js';
 import { crossRefsFor, XREF_SOURCE } from '../lib/bible-xref.js';
 import { THEMES, themeMarkerStyle } from '../lib/scripture-themes.js';
+import { scanThemeSpans, themesPresent } from '../lib/scripture-theme-scan.js';
 
 // The character offsets [start,end) of the current text selection WITHIN a verse
 // container (its textContent), or null. Uses a Range measured from the container
@@ -154,8 +155,20 @@ export default function BibleReader({ email = null }) {
   const [focusVerse, setFocusVerse] = useState(null);
   const [openVerse, setOpenVerse] = useState(null); // verse whose unions panel is open
   const [marks, setMarks] = useState(() => loadHighlights(email));
+  // One-click "Highlighted Bible" (Darrell 2026-07-04): flip it on and every verse
+  // auto-colors by the theme key/color code so Yahweh's patterns show at a glance —
+  // no manual marking. It's a VIEW (scripture-theme-scan), computed on the fly; it
+  // never touches saved highlights, and it stays on as you read chapter to chapter.
+  const [patternsOn, setPatternsOn] = useState(false);
 
   const chapters = chapterCount(book);
+
+  // The themes actually present in THIS chapter — a live legend of what the
+  // pattern view is showing (real-data: reflects the text on screen, P15).
+  const chapterThemes = useMemo(
+    () => (patternsOn ? themesPresent(verses.map((x) => x.text).join(' ')) : []),
+    [patternsOn, verses],
+  );
 
   useEffect(() => {
     let on = true;
@@ -362,6 +375,31 @@ export default function BibleReader({ email = null }) {
         </div>
       )}
 
+      {/* One-click "Highlighted Bible" — auto-color the whole chapter by theme so
+          the patterns of the Word show at a glance (Darrell 2026-07-04). */}
+      <div className="mb-2">
+        <button type="button" onClick={() => setPatternsOn((v) => !v)} aria-pressed={patternsOn}
+          className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${patternsOn ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A6E3D] border-[#5A6E3D] hover:bg-[#FAF8F4]'}`}>
+          {patternsOn ? '✓ Patterns on — the Highlighted Bible' : 'Show Yahweh’s patterns — one click'}
+        </button>
+        {patternsOn && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In this chapter:</span>
+            {chapterThemes.length === 0 ? (
+              <span className="text-[0.6875rem] text-[#5A5751]" style={serif}>no theme words here — the pattern is the quiet.</span>
+            ) : chapterThemes.map((k) => {
+              const t = THEMES.find((x) => x.key === k);
+              return (
+                <span key={k} className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-[#E8E4DC]" title={t.definition}>
+                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={cssForHighlight(themeMarkerStyle(k))}>{t.abbr}</span>
+                  <span className="text-[0.625rem] text-[#1A1815]" style={serif}>{t.label}</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* The verses. */}
       {loading ? (
         <p className="text-sm text-[#5A5751]" style={serif}>Opening {book} {chapter}…</p>
@@ -383,8 +421,10 @@ export default function BibleReader({ email = null }) {
                     className="text-[0.625rem] text-[#5A6E3D] font-semibold mt-1 w-6 shrink-0 text-right hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]" style={mono}>{v}</button>
                   <p className="text-sm text-[#1A1815] leading-relaxed flex-1" style={serif}
                     onMouseUp={(e) => onSelect(ref, e.currentTarget)} onTouchEnd={(e) => onSelect(ref, e.currentTarget)}>
+                    {/* Auto theme spans (pattern view) render UNDER the reader's own
+                        spans — a personal highlight always wins on overlap. */}
                     <span style={cssForHighlight(mark)}>
-                      {segmentsForVerse(text, getSpans(marks, ref)).map((seg, i) => (
+                      {segmentsForVerse(text, patternsOn ? [...scanThemeSpans(text), ...getSpans(marks, ref)] : getSpans(marks, ref)).map((seg, i) => (
                         seg.style === 'none'
                           ? <React.Fragment key={i}>{seg.text}</React.Fragment>
                           : <span key={i} style={cssForHighlight(seg.style)}>{seg.text}</span>

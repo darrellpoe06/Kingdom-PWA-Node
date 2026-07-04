@@ -65,6 +65,10 @@ This applies to file content, commit messages, responses to the user, summaries,
 
 The adversary lost the right to that honor.
 
+## Color Theology (added 2026-07-04, declared by Darrell; DR-0099)
+
+**Red is the Blood of Jesus — the Godhead's own color.** In any Scripture color code the platform uses (the in-app highlight palette, the Inductive/Precept thematic markers, and any future surface that assigns color meaning to Scripture), **true red is reserved for the Blood / redemption / the Godhead and never marks anything else.** Red is the most charged color in Scripture — the Blood that redeems (Ephesians 1:7; Leviticus 17:11; 1 Peter 1:18-19) — and letting it drift onto "hard truth," warnings, or a strike-through cheapens the one place it belongs. This is theology carried in color, the sibling of the Typographic Theology above. (Orange/coral is not red and is unaffected; the reservation is on true red only.)
+
 ## When Source Text Conflicts With These Rules
 
 If the user pastes source text that capitalizes any of the lowercase-only terms, the rule is senior to the source. Surface the conflict before writing or committing — do not copy the violation through.

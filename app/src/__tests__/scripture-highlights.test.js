@@ -51,6 +51,15 @@ describe('palette', () => {
   it('the default is unmarked', () => {
     expect(DEFAULT_STYLE_KEY).toBe('none');
   });
+  it('reserves true red (#B01E1E) for the Blood — nothing else draws in red (DR-0099)', () => {
+    const RED = '#b01e1e';
+    const usesRed = (s) => (s.swatch || '').toLowerCase() === RED
+      || Object.values(s.css).some((v) => typeof v === 'string' && v.toLowerCase() === RED);
+    for (const s of HIGHLIGHT_STYLES) {
+      if (usesRed(s)) expect(s.key, `${s.key} draws in red but is not the Blood`).toBe('crimson');
+    }
+    expect(styleFor('crimson').label).toBe('The Blood');   // red is the Blood of Jesus
+  });
 });
 
 describe('the richer Logos palette — grouped by kind', () => {
