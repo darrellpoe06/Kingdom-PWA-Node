@@ -13,20 +13,25 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import BibleReader from '../components/BibleReader.jsx';
 import { __setBibleFetcher } from '../lib/bible-kjv.js';
+import { __setXrefFetcher } from '../lib/bible-xref.js';
 
-const ASSETS = join(dirname(fileURLToPath(import.meta.url)), '../../public/bible/kjv');
+const KJV_ASSETS = join(dirname(fileURLToPath(import.meta.url)), '../../public/bible/kjv');
+const XREF_ASSETS = join(dirname(fileURLToPath(import.meta.url)), '../../public/bible/xref');
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+const diskFetcher = (dir) => async (url) => {
+  const file = String(url).split('/').pop();
+  try {
+    const body = readFileSync(join(dir, file), 'utf8');
+    return { ok: true, json: async () => JSON.parse(body) };
+  } catch {
+    return { ok: false, json: async () => null };
+  }
+};
+
 beforeAll(() => {
-  __setBibleFetcher(async (url) => {
-    const file = String(url).split('/').pop();
-    try {
-      const body = readFileSync(join(ASSETS, file), 'utf8');
-      return { ok: true, json: async () => JSON.parse(body) };
-    } catch {
-      return { ok: false, json: async () => null };
-    }
-  });
+  __setBibleFetcher(diskFetcher(KJV_ASSETS));
+  __setXrefFetcher(diskFetcher(XREF_ASSETS));
 });
 
 let container, root;
@@ -100,6 +105,19 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     expect(text).toMatch(/Genesis/);
     expect(text).toMatch(/Revelation/);
     expect(text).toMatch(/Song of Solomon/);
+  });
+
+  it('tapping a verse number opens its unions — cross-references across the testaments', async () => {
+    await mount();
+    // Genesis 1:1's verse-number button (opens the study panel).
+    const verseBtn = [...container.querySelectorAll('button')].find((b) => (b.getAttribute('title') || '').startsWith('Genesis 1:1'));
+    expect(verseBtn).toBeTruthy();
+    await act(async () => { verseBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    await tick(); await tick();
+    const text = container.textContent || '';
+    expect(text).toMatch(/cross-references/i);
+    expect(text).toContain('John 1:1-3');           // the top OT->NT union for Genesis 1:1
+    expect(text).toMatch(/Copy/);
   });
 
   it('rejects an unfindable reference without leaving the app', async () => {

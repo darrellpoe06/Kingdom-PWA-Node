@@ -15,6 +15,54 @@ import {
 } from '../lib/bible-kjv.js';
 import VerseHighlighter from './VerseHighlighter.jsx';
 import { loadHighlights, saveHighlights, getMark, setMark, cssForHighlight } from '../lib/scripture-highlights.js';
+import { crossRefsFor, XREF_SOURCE } from '../lib/bible-xref.js';
+
+// The per-verse "study" panel — Copy the verse, and the UNIONS: its cross-
+// references across both testaments (Darrell 2026-07-04: "I love how the unions
+// connect the old and new testament"). Cross-refs lazy-load when opened.
+function VerseUnions({ refStr, text, onOpenRef }) {
+  const [xrefs, setXrefs] = useState(null); // null = loading, [] = none
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    let on = true;
+    crossRefsFor(refStr).then((x) => { if (on) setXrefs(x); });
+    return () => { on = false; };
+  }, [refStr]);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(`“${text}” — ${refStr} (KJV)`); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    catch { /* clipboard blocked; no-op */ }
+  };
+  return (
+    <div className="ml-8 mb-2 border-l-2 border-[#5A6E3D] pl-3 pr-1 py-1.5 bg-[#FAF8F4]">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold" style={mono}>{refStr}</span>
+        <button type="button" onClick={copy}
+          className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      {xrefs === null ? (
+        <p className="text-[0.75rem] text-[#5A5751]" style={serif}>Finding the unions…</p>
+      ) : xrefs.length === 0 ? (
+        <p className="text-[0.75rem] text-[#5A5751]" style={serif}>No cross-references indexed for this verse.</p>
+      ) : (
+        <>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">The unions — cross-references (OT ↔ NT)</div>
+          <div className="flex flex-wrap gap-1.5">
+            {xrefs.slice(0, 24).map((x) => (
+              <button key={x.ref} type="button" onClick={() => onOpenRef(x.ref)}
+                title={`Go to ${x.ref}`}
+                className="text-[0.6875rem] px-1.5 py-0.5 border border-[#E8E4DC] bg-white text-[#5A6E3D] hover:text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={serif}>
+                {x.ref}
+              </button>
+            ))}
+          </div>
+          <p className="text-[0.5625rem] text-[#5A5751] mt-1.5">{XREF_SOURCE.name} · {XREF_SOURCE.license}</p>
+        </>
+      )}
+    </div>
+  );
+}
 
 const serif = { fontFamily: 'Georgia, "Times New Roman", serif' };
 const mono = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' };
@@ -28,6 +76,7 @@ export default function BibleReader({ email = null }) {
   const [query, setQuery] = useState('');
   const [jumpError, setJumpError] = useState('');
   const [focusVerse, setFocusVerse] = useState(null);
+  const [openVerse, setOpenVerse] = useState(null); // verse whose unions panel is open
   const [marks, setMarks] = useState(() => loadHighlights(email));
 
   const chapters = chapterCount(book);
@@ -63,6 +112,12 @@ export default function BibleReader({ email = null }) {
     setQuery('');
     setJumpError('');
     openAt(b.name, ch, tail ? tail.verse : null);
+  };
+
+  // Jump to a cross-reference (the union chip) — parse it and open there.
+  const goToRef = (r) => {
+    const p = parseRef(r);
+    if (p) { setOpenVerse(null); openAt(p.book, p.chapter, p.v1); }
   };
 
   const jump = () => {
@@ -179,15 +234,22 @@ export default function BibleReader({ email = null }) {
           {verses.map(({ v, text }) => {
             const ref = `${book} ${chapter}:${v}`;
             const mark = getMark(marks, ref);
+            const open = openVerse === v;
             return (
-              <div key={v} id={`v-${v}`}
-                className={`flex items-start gap-2 py-0.5 ${focusVerse === v ? 'bg-[#F2F4EC]' : ''}`}>
-                <span className="text-[0.625rem] text-[#5A6E3D] font-semibold mt-1 w-6 shrink-0 text-right" style={mono}>{v}</span>
-                <p className="text-sm text-[#1A1815] leading-relaxed flex-1" style={serif}>
-                  <span style={cssForHighlight(mark)}>{text}</span>
-                </p>
-                <VerseHighlighter value={mark} onPick={(k) => pick(ref, k)} refLabel={ref} />
-              </div>
+              <React.Fragment key={v}>
+                <div id={`v-${v}`}
+                  className={`flex items-start gap-2 py-0.5 ${focusVerse === v ? 'bg-[#F2F4EC]' : ''}`}>
+                  {/* Tap the verse number for its study panel: Copy + the unions. */}
+                  <button type="button" onClick={() => setOpenVerse(open ? null : v)} aria-expanded={open}
+                    title={`${ref} — cross-references & copy`}
+                    className="text-[0.625rem] text-[#5A6E3D] font-semibold mt-1 w-6 shrink-0 text-right hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]" style={mono}>{v}</button>
+                  <p className="text-sm text-[#1A1815] leading-relaxed flex-1" style={serif}>
+                    <span style={cssForHighlight(mark)}>{text}</span>
+                  </p>
+                  <VerseHighlighter value={mark} onPick={(k) => pick(ref, k)} refLabel={ref} />
+                </div>
+                {open && <VerseUnions refStr={ref} text={text} onOpenRef={goToRef} />}
+              </React.Fragment>
             );
           })}
         </div>
