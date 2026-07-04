@@ -31,13 +31,15 @@ BEGIN;
 \set stranger '00000000-0000-4000-a000-0000000a0074'
 
 -- Minimal auth.users rows so the FKs resolve (superuser bypasses RLS for setup).
-INSERT INTO auth.users (id, email, aud, role)
+-- Include the columns GoTrue marks NOT NULL so the insert holds across schema
+-- versions (instance_id/encrypted_password/timestamps); the rest default.
+INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, created_at, updated_at)
 VALUES
-  (:'dad','dad074@test.local','authenticated','authenticated'),
-  (:'mom','mom074@test.local','authenticated','authenticated'),
-  (:'kid','kid074@test.local','authenticated','authenticated'),
-  (:'pal','pal074@test.local','authenticated','authenticated'),
-  (:'stranger','stranger074@test.local','authenticated','authenticated')
+  ('00000000-0000-0000-0000-000000000000', :'dad','authenticated','authenticated','dad074@test.local','', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', :'mom','authenticated','authenticated','mom074@test.local','', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', :'kid','authenticated','authenticated','kid074@test.local','', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', :'pal','authenticated','authenticated','pal074@test.local','', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', :'stranger','authenticated','authenticated','stranger074@test.local','', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 -- Circles.

@@ -1,0 +1,53 @@
+# tv-sharing-isolation — PROVE the 0074 family-sharing RLS isolates people, in CI,
+# against the real database, using the SAME SUPABASE_DB_URL secret the db-migrate
+# lane already uses. No docker, no Studio, no pasting SQL (Darrell: "you fix it
+# first, why me" / "find our ways, stop guessing"). This is the enablement GATE
+# for TV Time family sharing: TV_SHARING_ENABLED stays false until this is GREEN.
+#
+# What it does (self-contained + idempotent, safe against prod):
+#   1. Applies infra/supabase/migrations-auto/0074-tv-circle-sharing.sql (idempotent;
+#      db-migrate applies it on merge anyway, this just removes ordering doubt).
+#   2. Runs infra/supabase/tests/0074-isolation-smoke.sql, which sets up two
+#      families + a friend circle IN A TRANSACTION and asserts kids never read
+#      'us', a stranger's family reads nothing, a parent has oversight, etc., then
+#      ROLLS BACK (leaves no data). A leak RAISEs -> psql exits non-zero -> RED.
+#      'ISOLATION SMOKE: PASS' + exit 0 -> GREEN = clear to flip the flag.
+#
+# Manual (workflow_dispatch) or automatically after db-migrate finishes on main.
+# Deploy-path only; not self-arming (respects the Cage).
+name: tv-sharing-isolation
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [db-migrate]
+    types: [completed]
+
+concurrency:
+  group: tv-sharing-isolation
+  cancel-in-progress: false
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: Apply 0074 (idempotent) then run the isolation smoke test
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set (same secret db-migrate uses)."
+            exit 1
+          fi
+          echo "=== applying 0074-tv-circle-sharing.sql (idempotent) ==="
+          psql "$SUPABASE_DB_URL" --single-transaction -v ON_ERROR_STOP=1 \
+            -f infra/supabase/migrations-auto/0074-tv-circle-sharing.sql
+          echo "=== running the isolation smoke test (rolls back) ==="
+          # ON_ERROR_STOP so a RAISE from any assertion fails the job (red).
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 \
+            -f infra/supabase/tests/0074-isolation-smoke.sql
+          echo "isolation smoke test completed without a leak (see 'ISOLATION SMOKE: PASS' above)"
