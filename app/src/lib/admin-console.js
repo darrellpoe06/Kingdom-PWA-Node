@@ -26,22 +26,16 @@
 import { assessLoops } from './loop-health.js';
 import { ADMIN_EMAILS } from './admin-allowlist.js';
 
-// The four backend concerns a steward actually needs, in the order they matter.
-// icon = a UiIcon name (bundled SVG — never a device emoji, per consistency-guard).
-export const ADMIN_PANELS = [
-  { id: 'access',   label: 'People & Access', icon: 'users',
-    blurb: 'Who can get into the backend, and your live role in the system.' },
-  { id: 'data',     label: 'Data & Loops',    icon: 'chart',
-    blurb: 'Is your data actually flowing? Every tracked loop’s real freshness.' },
-  { id: 'system',   label: 'System & Build',  icon: 'sliders',
-    blurb: 'The live build, whether the backend is reachable, and the checks that guard it.' },
-  { id: 'internal', label: 'Internal Surfaces', icon: 'monitor',
-    blurb: 'The family NAS surfaces you reach over Tailscale / on the home network.' },
-];
-
-export function isAdminPanel(id) {
-  return ADMIN_PANELS.some((p) => p.id === id);
-}
+// 2026-07-04 (Darrell, looking at the Admin tab): "it should be one tab... a
+// report of users like the books financial reports, just data-driven KPIs" — and
+// "why does it have all this n8n information if I'm not using that." So Admin is
+// now ONE data-driven report (it absorbs the former Access users/usage report)
+// plus the essential System & Build controls, and the n8n/NAS surfaces — the NAS
+// bridge token, the Internal Surfaces dispatch-status-page webhook, the
+// n8n-sourced Data-&-Loops rows — are OFF the UI. The old four-sub-tab panel list
+// and INTERNAL_SURFACES that drove that structure are retired. The remaining
+// exports (roster, role meaning, system facts, preview actions) still back the
+// merged surface and stay unit-tested.
 
 // Access is IDENTITY-based, not a shareable password (servant-king ontology). The
 // canonical allowlist is interest-sync's ADMIN_EMAILS (mirrored by tenancy-guard);
@@ -107,17 +101,6 @@ export function systemFacts({ isPublicHost = true, buildSha = 'dev', buildTime =
       note: buildTime ? `Deployed ${String(buildTime).slice(0, 10)}.` : 'The exact version this device is running right now.' },
   ];
 }
-
-// The internal (NAS-hosted) surfaces, folded in from the old Admin() so nothing is
-// lost. Public identifiers only (Tailscale hostname + LAN IP are not secrets — they
-// are unreachable without being on the family network). No keys.
-export const INTERNAL_SURFACES = [
-  { key: 'dispatch',
-    label: 'Dispatch Status',
-    what: 'Live workflow reel + Code-Task snapshot + phone-alert QR. Always-on system visibility.',
-    tailscale: 'https://poetech.tail5a2f35.ts.net/webhook/dispatch-status-page',
-    lan: 'http://192.168.1.26:5678/webhook/dispatch-status-page' },
-];
 
 // Consequential / outbound actions get a PREVIEW before a deliberate execute
 // (wired-buttons + preview-then-execute rule). Each entry describes, in plain

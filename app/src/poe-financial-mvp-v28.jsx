@@ -142,7 +142,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AccessUsageMetrics, AdminConsole, ChefCorner, Games, TVTime,
+  Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime,
   EternalAlgorithmsStudy, ChurchHome, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -1400,6 +1400,9 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
+    // The former Access tab was merged into Admin (one users report, 2026-07-04);
+    // an old ?view=access deep-link lands on Admin rather than dead-ending.
+    if (v === 'access') return 'admin';
     const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','admin','center','crm','relationships','inventory','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
@@ -4908,11 +4911,6 @@ html{scroll-padding-bottom:280px}
                 // so the entry is absent from the DOM for everyone else (no-leak),
                 // and the component carries a locked fallback for any deep-link.
                 ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
-                // Access & Usage — WHO has access + counts/activity + build-
-                // freshness (rollout management). Family/Governor only (steward
-                // governance over real members); spread so the entry is absent
-                // from the DOM for everyone else (no-leak), like Center / CRM.
-                ...(isFamilyMember ? [['access', <><UiIcon name="monitor" /> Access</>]] : []),
                 // Admin — the real backend control surface. Shown to family
                 // stewards, and on the trusted NAS/home host (where being on the
                 // family network is itself the access control) — the SAME gate the
@@ -5653,24 +5651,9 @@ html{scroll-padding-bottom:280px}
 
         {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
 
-        {/* Access & Usage — access governance + aggregate usage + build-freshness.
-            Family/Governor only (real members, real build-freshness); own
-            SectionBoundary so a thrown error degrades just this surface. The
-            member_presence read is owner/admin-gated at the DB too (defense in
-            depth). Locked fallback for any deep-link by a non-steward. */}
-        {view === 'access' && (isFamilyMember
-          ? (
-            <SectionBoundary name="Access">
-              <AccessUsageMetrics />
-            </SectionBoundary>
-          ) : (
-            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
-              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="monitor" /></div>
-              <p className="text-sm text-[#1A1815] font-semibold">Access &amp; Usage is a stewardship space.</p>
-              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Who-has-access and rollout metrics are governor-only. Sign in with a steward account to view them.</p>
-            </div>
-          ))}
-
+        {/* Access & Usage was MERGED into Admin (one users report, 2026-07-04):
+            AdminConsole now renders the AccessUsageMetrics report itself, and a
+            ?view=access deep-link normalizes to 'admin'. No standalone block. */}
         {view === 'admin' && (
           <AdminConsole
             isGovernor={isFamilyMember || !isPublicHost()}

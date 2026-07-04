@@ -53,8 +53,10 @@ export const SURFACES = [
   { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
   { id: 'inventory',    label: 'Inventory',        nav: 'top', view: 'inventory',    sub: null,          gate: 'family/governor',                            load: () => import('./components/Inventory.jsx') },
   { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
+  // Admin absorbed the users/usage report (the former 'access' surface) into ONE
+  // report and retired the separate Access tab (Darrell 2026-07-04). AdminConsole
+  // now renders AccessUsageMetrics directly; there is no standalone 'access' route.
   { id: 'admin',        label: 'Admin',            nav: 'top', view: 'admin',        sub: null,          gate: 'family/governor',                            load: () => import('./components/AdminConsole.jsx') },
-  { id: 'access',       label: 'Access',           nav: 'top', view: 'access',       sub: null,          gate: 'family/governor',                            load: () => import('./components/AccessUsageMetrics.jsx') },
   { id: 'recipes',      label: "Chef's Corner",    nav: 'top', view: 'recipes',      sub: null,          load: () => import('./components/ChefCorner.jsx') },
   { id: 'games',        label: 'Games',            nav: 'top', view: 'games',        sub: null,          load: () => import('./components/Games.jsx') },
   { id: 'tvtime',       label: 'TV Time',          nav: 'top', view: 'tvtime',       sub: null,          load: () => import('./components/TVTime.jsx') },
@@ -115,7 +117,6 @@ export const Relationships    = surfaceById['relationships'].component;
 export const Inventory        = surfaceById['inventory'].component;
 export const Forecast         = surfaceById['forecast'].component;
 export const AdminConsole     = surfaceById['admin'].component;
-export const AccessUsageMetrics = surfaceById['access'].component;
 export const ChefCorner       = surfaceById['recipes'].component;
 export const Games            = surfaceById['games'].component;
 export const TVTime           = surfaceById['tvtime'].component;
