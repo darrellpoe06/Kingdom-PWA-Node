@@ -505,6 +505,13 @@ export const WITNESS_SOURCES = [
         refs: ['1 Corinthians 3:16-17', '2 Corinthians 7:1'],
         bridge: 'Know ye not that ye are the TEMPLE of God... If any man DEFILE the temple of God, him shall God destroy; for the temple of God is HOLY. If the body is a temple, then what we let into it and around it is not a small thing. Guarding it from needless defilement — the toxins we can reasonably keep out — is honoring the One whose Spirit dwells in it. (Compare 2 Corinthians 7:1: "let us cleanse ourselves from all filthiness of the flesh and spirit.")',
       },
+      {
+        id: 'w3p-women-faithful-least',
+        claim: 'You cannot avoid every toxin, and trying to is paralyzing — but small, consistent choices compound (swap plastic for glass, decline the thermal receipt, read a label). The cumulative effect of daily choices, over time, is the real lever; agency is an investment, not perfection.',
+        cite: '2:12:36-2:15:58',
+        refs: ['Luke 16:10', 'Zechariah 4:10'],
+        bridge: 'He that is FAITHFUL in that which is LEAST is faithful also in much. The Word does not ask for a toxin-free life it never promised; it honors faithfulness in the small, repeated thing — the one swap, the one label read today. And it forbids the despair that says a small step is pointless: "who hath DESPISED the day of small things?" (Zechariah 4:10). Little faithfulnesses, compounded, are how a temple is tended — never anxiety, never a law that condemns; a steady, hopeful stewardship.',
+      },
     ],
   },
 ];
