@@ -348,6 +348,12 @@ function TaskRow({ task, currentUserPersona, onPatch, onRemove, onCycle, onPush 
             rows={2}
             className="w-full rounded border border-[#E8E4DC] px-2 py-1 text-sm text-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
           />
+          {/* ANXIETY-CLARITY (Darrell 2026-07-04: "obvious issues like save
+              buttons"): edits DO save on every change — say so, so nobody hunts
+              for a Save button or fears losing work. */}
+          <p className="text-[0.6875rem] text-[#5A6E3D]" role="status">
+            ✓ Saves as you type — every change above is stored the moment you make it. No save button needed.
+          </p>
 
           <Handoff task={task} currentUserPersona={currentUserPersona} onPush={onPush} />
           <HandoffHistory task={task} />
