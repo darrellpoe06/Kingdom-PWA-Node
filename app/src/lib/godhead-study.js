@@ -44,7 +44,9 @@ export const GODHEAD_SECTIONS = [
 // catalog currently draws from; the study surfaces it and filters by book.
 // =============================================================================
 export const BOOK_MASTERPIECES = {
+  'Genesis':       'The book of beginnings — the Word speaking worlds into being, the garden, the fall, the giants in the earth, and the seed of the woman promised against the serpent.',
   'Exodus':        'The rescue masterpiece — the Blood, the passover, and a people walked out of what owned them.',
+  'Numbers':       'The wilderness-census book — a generation numbered and sifted between the promise and the land; the giants seen, and the report that believed them over God.',
   'Deuteronomy':   'The covenant restated on the doorstep — the choice set before every generation about to cross over.',
   'Joshua':        'The taking of what was promised — allegiance declared out loud, house by house.',
   '1 Samuel':      'The kingmaker\'s book — the LORD who looks on the heart, and tells His prophet in his ear a day before the man arrives; the appointment briefed before it walks in.',
@@ -75,7 +77,9 @@ export const BOOK_MASTERPIECES = {
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
   'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
   '1 Peter':       'The furnace letter — tried gold, a royal priesthood, and hope that suffering cannot repossess.',
+  '2 Peter':       'The last-testament letter — the sure Word of prophecy against the scoffers, the day of the Lord as a thief, and the angels that sinned not spared.',
   '1 John':        'Inside LOVE — God is love, and the dwelling is mutual; assurance written in family language.',
+  'Jude':          'The contend-for-the-faith letter — the angels who left their own estate reserved in chains, and the call to keep yourselves in the love of God.',
   'Revelation':    'The unveiling — the Lamb wins, the overcomers are seated, and nothing unclean enters the City.',
 };
 
@@ -975,9 +979,9 @@ export const GODHEAD_ALGORITHMS = [
     // this to be The Way because we left Him and went to His sworn enemy and he
     // became the father and god of this world... we all leave time / the 3rd-
     // dimensional space for the eternal 4th-dimensional space; where you go and
-    // why is what we are studying for that crown." The solid, non-contested spine
-    // of that teaching, verses verbatim (the debated cosmology is held honestly
-    // elsewhere, not asserted here as settled — DR-0076).
+    // why is what we are studying for that crown." Verses verbatim. (The Genesis 6
+    // cosmology is TAUGHT below as the Word shows it — DR-0098: we teach the Word,
+    // we do not stage a debate — not hedged as "contested.")
     id: 'gh-money-cannot-redeem', section: 'wisdom', name: 'Money Cannot Ransom a Soul (only Yahweh redeems)',
     refs: ['Psalms 49:6-8', 'Proverbs 11:4'],
     condition: 'Those who trust in wealth cannot ransom a soul: "None of them can by any means redeem his brother, nor give to God a ransom for him" — and "riches profit not in the day of wrath."',
@@ -1003,6 +1007,57 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'Live today as one certain to stand there: study for the crown, keep short accounts, and store where moth does not corrupt. Let the fixed appointment of death make you serious about the eternal instead of numb to it.',
     outcome: 'A life aimed past the doorway — ready to be absent from the body and present with the Lord, studying now for the crown then.',
     tags: ['death', 'judgment', 'eternity', 'crown', 'appointed'],
+  },
+  {
+    // ── THE UNSEEN WAR ON THE MIND, AND THE ONE WHO ACTUALLY KNOWS THE HEART ────
+    // Darrell 2026-07-04: "evil 4th-dimensional gods can introduce thoughts and
+    // watch us..." Taught as the Word shows it (DR-0098: teach the Word, do not
+    // stage a debate); verses verbatim (DR-0076). The counterfeit suggests and
+    // watches from OUTSIDE — but only Yahweh knows the heart. He is THE ONE.
+    id: 'gh-enemy-injects-thoughts', section: 'gospels', name: 'Not Every Thought Is Yours (the enemy injects; you take captive)',
+    refs: ['John 13:2', 'Acts 5:3', '2 Corinthians 10:5'],
+    condition: 'The enemy injects thoughts: "the devil having now put into the heart of Judas... to betray him" (John 13:2); "why hath satan filled thine heart to lie" (Acts 5:3). A suggestion arrives that did not originate with you.',
+    consequence: 'Not every thought in your head is from you — some are planted. But a planted thought is not a committed one: you can be "casting down imaginations... and bringing into captivity every thought to the obedience of Christ."',
+    threeD: 'NOTICE the thought, TEST it against the Word, CAPTURE it, REDIRECT it (the Mind of Christ). Stop treating every arriving thought as self and settled; inspect the mail before you sign for it. A suggestion refused at the door never becomes an act.',
+    outcome: 'A guarded mind — thoughts sorted at the gate, the enemy\'s injections refused, only the obedience of Christ let through.',
+    psyche: 'The gap between a thought arriving and a thought being acted on is where all freedom lives; naming an intrusive thought as not-me instead of fusing with it is exactly what breaks its grip.',
+    tags: ['thoughts', 'enemy', 'captive-thoughts', 'mind-of-christ', 'temptation'],
+  },
+  {
+    id: 'gh-only-he-knows-the-heart', section: 'torah', name: 'He Watches — but Only Yahweh Knows the Heart (the counterfeit is not omniscient)',
+    refs: ['1 Peter 5:8', '1 Kings 8:39', 'Jeremiah 17:10'],
+    condition: 'The adversary "walketh about... seeking whom he may devour" (1 Peter 5:8) — he watches and prowls. But "thou, even thou only, knowest the hearts of all the children of men" (1 Kings 8:39); "I the LORD search the heart" (Jeremiah 17:10).',
+    consequence: 'The counterfeit observes you from the outside and suggests — but he is NOT omniscient. Only Yahweh knows the heart. The enemy watches; God KNOWS. They are not equals, and that difference is your safety.',
+    threeD: 'Do not fear the watcher as though he were God — he is not. Guard the outside he can read (your eyes, words, company) AND bring the inside to the only One who actually knows it. Live for the Audience who knows your heart, not the accuser who is only guessing at it.',
+    outcome: 'Freedom from the fear of an all-seeing enemy — because the only One who truly sees the heart is the One who loves you and covers you.',
+    tags: ['watching', 'only-yahweh-knows', 'counterfeit', 'the-heart', 'not-omniscient'],
+  },
+  {
+    id: 'gh-sons-of-god-and-giants', section: 'torah', name: 'The Sons of God and the Giants (taught as the Word shows it)',
+    refs: ['Genesis 6:1-4', 'Job 1:6', 'Job 38:7', 'Numbers 13:33'],
+    condition: 'The Word shows it plainly: "the sons of God saw the daughters of men... and they took them wives," and "there were giants in the earth in those days; and also after that" (Genesis 6:2,4). The Word\'s own usage names the "sons of God" as heavenly beings before His throne (Job 1:6; 38:7).',
+    consequence: 'A real incursion left a real mark on the human timeline — mighty men, men of renown; giants before the flood, "and also after that" (the sons of Anak, Numbers 13:33). We teach it as it reads, worked the way the Word explains — not staged as a debate.',
+    threeD: 'Read the Word by the Word: let Job 1:6 and 38:7 define "sons of God" before any outside frame. Take the account seriously — the war over the human line is old and real — and stand in the line of the promised Seed who crushes the serpent.',
+    outcome: 'A sober, Word-grounded view of the unseen war on humanity — neither spooked by it nor explaining it away, standing under the Seed who already won.',
+    tags: ['sons-of-god', 'giants', 'genesis-6', 'the-word-explains-the-word'],
+  },
+  {
+    id: 'gh-angels-left-their-estate', section: 'epistles', name: 'The Angels That Left Their Estate (already sentenced)',
+    refs: ['Jude 1:6', '2 Peter 2:4'],
+    condition: '"The angels which kept not their first estate, but left their own habitation, He hath reserved in everlasting chains under darkness unto the judgment of the great day" (Jude 6); "God spared not the angels that sinned, but cast them down... to be reserved unto judgment" (2 Peter 2:4).',
+    consequence: 'Rebellion has already been judged and sentenced — the fallen are on a chain and a clock. Their end is fixed; they are not free agents but condemned prisoners awaiting the great day.',
+    threeD: 'Fight FROM victory, not FOR it. The powers arrayed against you are already sentenced; resist them (James 4:7) from the standing of a King whose enemies are in chains, not from the panic of an even fight.',
+    outcome: 'Courage grounded in a verdict already rendered — the enemy is a condemned prisoner, and you serve the Judge.',
+    tags: ['fallen-angels', 'judgment', 'chains', 'already-sentenced'],
+  },
+  {
+    id: 'gh-spirits-seek-a-body', section: 'gospels', name: 'Spirits Seek a House (empty is not enough — be filled)',
+    refs: ['Matthew 12:43-45'],
+    condition: '"When the unclean spirit is gone out of a man, he walketh through dry places, seeking rest, and findeth none. Then he saith, I will return into my house from whence I came out; and when he is come, he findeth it empty, swept, and garnished" (Matthew 12:43-44).',
+    consequence: 'Unclean spirits seek a "house" — they crave a body to occupy, and an empty, un-filled life invites a return worse than the first. Cleaned-out is not enough; the house must be OCCUPIED by the right Owner.',
+    threeD: 'Do not merely empty (stop a sin, quit a vice) — FILL. Be occupied by the Holy Spirit and the Word so there is no vacancy to return to. Give no place (Ephesians 4:27); a swept-but-empty house is an invitation.',
+    outcome: 'A filled, occupied life — no vacancy for the return, the rightful Owner in residence.',
+    tags: ['unclean-spirits', 'embodiment', 'empty-house', 'be-filled', 'give-no-place'],
   },
   {
     id: 'gh-word-of-testimony', section: 'revelation', name: 'The Word of Their Testimony (eat the Word and the testimony aligns)',
