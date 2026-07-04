@@ -30,6 +30,7 @@ import supabase from '../lib/supabase.js';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import {
   accessRoster,
   roleMeaning,
@@ -150,9 +151,112 @@ export default function AdminConsole({
 
   const facts = systemFacts({ isPublicHost, buildSha: BUILD_SHA, buildTime: BUILD_TIME, backendReachable });
 
+  // The long report, broken into swipeable sections (Darrell 2026-07-04: "sliding
+  // tabs instead of a long scroll"). Each section renders only when opened — so the
+  // users report and the quality self-check do their fetching lazily, on the tab you
+  // actually open. The intro card stays pinned above the strip for constant context.
+  const sections = [
+    {
+      id: 'users',
+      label: 'Users & usage',
+      icon: 'users',
+      // THE USERS REPORT — absorbed from the retired Access tab. Real KPIs, self-
+      // fetching, fail-soft, family/governor-gated at the DB.
+      render: () => <AccessUsageMetrics />,
+    },
+    {
+      id: 'system',
+      label: 'This device',
+      icon: 'monitor',
+      render: () => (
+        <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">This device, right now</div>
+          <ul className="mt-3 space-y-2.5">
+            {facts.map((f) => (
+              <li key={f.label} className="border-b border-[#E8E4DC] pb-2.5 last:border-0 last:pb-0">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span className="text-xs uppercase tracking-wider text-[#5A5751]">{f.label}</span>
+                  <span className="text-sm font-semibold text-[#1A1815] break-all" style={serif}>{f.value}</span>
+                </div>
+                <p className="text-xs text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>{f.note}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ),
+    },
+    {
+      id: 'actions',
+      label: 'Actions',
+      icon: 'tools',
+      render: () => (
+        <section className="bg-white border border-[#1A1815] p-4">
+          <div className="text-sm font-semibold text-[#1A1815]" style={serif}>Actions</div>
+          <div className="mt-2 space-y-2">
+            <GuardedAction actionId="reload-latest" onExecute={doReload} />
+            {onResetSeed && <GuardedAction actionId="reset-seed" onExecute={doResetSeed} />}
+          </div>
+        </section>
+      ),
+    },
+    {
+      id: 'role',
+      label: 'Role & stewards',
+      icon: 'lock',
+      // Your live backend role (a real RPC self-check) + who can administer.
+      render: () => (
+        <section className="bg-white border border-[#1A1815] p-4">
+          <div className="text-sm font-semibold text-[#1A1815]" style={serif}>Your live role in the backend</div>
+          <p className="text-xs text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
+            Ask the database what role your account actually holds in the family space, right now.
+          </p>
+          <button
+            type="button"
+            onClick={checkRole}
+            className="mt-2 inline-flex items-center text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            {roleState.status === 'loading' ? 'Checking…' : 'Check my role'} <span aria-hidden="true" className="ml-1">→</span>
+          </button>
+          {roleState.status === 'ok' && (
+            <p className="text-xs mt-2 text-[#1A1815]" style={serif}>
+              <strong className="uppercase tracking-wider text-[#5A6E3D]">{roleState.role || 'no role on record'}</strong>
+              {roleMeaning(roleState.role) && <> — {roleMeaning(roleState.role)}</>}
+            </p>
+          )}
+          {roleState.status === 'no-instance' && (
+            <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Not connected to the backend on this device — sign in / reconnect to check.</p>
+          )}
+          {roleState.status === 'error' && (
+            <p className="text-xs mt-2 text-[#7A1F1F]" style={serif}>Couldn’t read your role: {roleState.error}</p>
+          )}
+          <div className="mt-3 pt-3 border-t border-[#E8E4DC]">
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Who can administer</div>
+            <ul className="mt-1.5 space-y-1">
+              {roster.map((r) => (
+                <li key={r.email} className="flex items-baseline gap-2 text-xs text-[#1A1815]" style={serif}>
+                  <span aria-hidden="true" className="text-[#5A6E3D]">●</span>
+                  <span className="break-all">{r.email}</span>
+                  {r.isYou && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">you</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ),
+    },
+    {
+      id: 'quality',
+      label: 'Quality proof',
+      icon: 'check',
+      // The real, self-checking build + quality state (CI, deploy freshness,
+      // per-theme WCAG contrast). Composed, not reimplemented.
+      render: () => <QualityProof />,
+    },
+  ];
+
   return (
     <div className="space-y-4" data-talk-surface="admin">
-      {/* Header — the steward at the helm, plain framing. */}
+      {/* Header — the steward at the helm, plain framing. Pinned above the strip. */}
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold inline-flex items-center gap-1.5">
@@ -165,82 +269,11 @@ export default function AdminConsole({
         <p className="text-sm mt-1 text-[#1A1815]" style={serif}>
           One report: who’s using the app and how, then the live build and the controls to run it —
           without touching a database or a command line. Every number is real; anything with a real
-          consequence shows you exactly what will happen before it does.
+          consequence shows you exactly what will happen before it does. Slide between the sections below.
         </p>
       </section>
 
-      {/* THE USERS REPORT — absorbed from the retired Access tab. Real KPIs: who
-          has access + roles + activity + signups + most-used tabs. Self-fetching,
-          fail-soft, family/governor-gated at the DB. This is the "data-driven
-          report like the financial reports" Darrell asked Admin to be. */}
-      <AccessUsageMetrics />
-
-      {/* SYSTEM & BUILD — the live facts + the controls a steward needs. */}
-      <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">This device, right now</div>
-        <ul className="mt-3 space-y-2.5">
-          {facts.map((f) => (
-            <li key={f.label} className="border-b border-[#E8E4DC] pb-2.5 last:border-0 last:pb-0">
-              <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <span className="text-xs uppercase tracking-wider text-[#5A5751]">{f.label}</span>
-                <span className="text-sm font-semibold text-[#1A1815] break-all" style={serif}>{f.value}</span>
-              </div>
-              <p className="text-xs text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>{f.note}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="bg-white border border-[#1A1815] p-4">
-        <div className="text-sm font-semibold text-[#1A1815]" style={serif}>Actions</div>
-        <div className="mt-2 space-y-2">
-          <GuardedAction actionId="reload-latest" onExecute={doReload} />
-          {onResetSeed && <GuardedAction actionId="reset-seed" onExecute={doResetSeed} />}
-        </div>
-      </section>
-
-      {/* Your live backend role (a real RPC self-check) + who can administer. */}
-      <section className="bg-white border border-[#1A1815] p-4">
-        <div className="text-sm font-semibold text-[#1A1815]" style={serif}>Your live role in the backend</div>
-        <p className="text-xs text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
-          Ask the database what role your account actually holds in the family space, right now.
-        </p>
-        <button
-          type="button"
-          onClick={checkRole}
-          className="mt-2 inline-flex items-center text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
-        >
-          {roleState.status === 'loading' ? 'Checking…' : 'Check my role'} <span aria-hidden="true" className="ml-1">→</span>
-        </button>
-        {roleState.status === 'ok' && (
-          <p className="text-xs mt-2 text-[#1A1815]" style={serif}>
-            <strong className="uppercase tracking-wider text-[#5A6E3D]">{roleState.role || 'no role on record'}</strong>
-            {roleMeaning(roleState.role) && <> — {roleMeaning(roleState.role)}</>}
-          </p>
-        )}
-        {roleState.status === 'no-instance' && (
-          <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Not connected to the backend on this device — sign in / reconnect to check.</p>
-        )}
-        {roleState.status === 'error' && (
-          <p className="text-xs mt-2 text-[#7A1F1F]" style={serif}>Couldn’t read your role: {roleState.error}</p>
-        )}
-        <div className="mt-3 pt-3 border-t border-[#E8E4DC]">
-          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Who can administer</div>
-          <ul className="mt-1.5 space-y-1">
-            {roster.map((r) => (
-              <li key={r.email} className="flex items-baseline gap-2 text-xs text-[#1A1815]" style={serif}>
-                <span aria-hidden="true" className="text-[#5A6E3D]">●</span>
-                <span className="break-all">{r.email}</span>
-                {r.isYou && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">you</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* The real, self-checking build + quality state (CI, deploy freshness,
-          per-theme WCAG contrast). Composed, not reimplemented. */}
-      <QualityProof />
+      <SectionTabs sections={sections} ariaLabel="Admin sections" idBase="admin" defaultId="users" />
 
       <p className="text-[0.625rem] text-[#5A5751] italic" style={serif}>
         Every reading here is a live view of real system state. No secrets or keys are shown; anything with a
