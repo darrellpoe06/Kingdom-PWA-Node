@@ -24,6 +24,10 @@ import {
 import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
 import { relatedTitles, franchiseOf, titleKey } from '../lib/tv-franchises.js';
 import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
+import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
+import { POPULAR_SHOWS, popularByGenre, popularCount } from '../lib/tv-popular.js';
+import { AUDIENCES, shareFlags, setShowShare } from '../lib/tv-sharing.js';
+import TVCircle from './TVCircle.jsx';
 import { createDebouncer } from '../lib/table-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -129,7 +133,7 @@ function EpisodeList({ show, isWatched, onToggleEp, onToggleSeason, progressFor 
   );
 }
 
-function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, trackedKeys, busy }) {
+function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, onShare, trackedKeys, busy }) {
   const [tab, setTab] = useState(null); // 'episodes' | 'talk' | null
   const [draft, setDraft] = useState('');
   const comments = getComments(state, show.id);
@@ -177,6 +181,31 @@ function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, on
             <button type="button" onClick={() => setTab(tab === 'talk' ? null : 'talk')} aria-expanded={tab === 'talk'} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>Talk{comments.length ? ` (${comments.length})` : ''}</button>
             <button type="button" onClick={() => onUntrack(show.id)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
           </div>
+          {/* Who sees this? — per-show visibility (family-sharing model). PRIVATE by
+              default; you opt each show into independent audiences. This is the real,
+              saved control; the shared Family/Circle VIEWS turn on once your circle
+              is set up and the data-isolation test passes (nothing shared leaks). */}
+          {onShare && (() => {
+            const flags = shareFlags(state && state.shows ? state.shows[show.id] : null);
+            const priv = !flags.us && !flags.family && !flags.circle;
+            return (
+              <div className="mt-2 border-t border-[#F2EFE9] pt-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold inline-flex items-center gap-1"><UiIcon name="lock" /> Who sees this?</span>
+                  {AUDIENCES.map((a) => {
+                    const on = flags[a.key];
+                    return (
+                      <button key={a.key} type="button" onClick={() => onShare(show.id, a.key, !on)} aria-pressed={on} title={a.hint}
+                        className={`text-[0.625rem] px-1.5 py-0.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                  {priv && <span className="text-[0.5625rem] text-[#5A5751]">Just you</span>}
+                </div>
+              </div>
+            );
+          })()}
           {related.length > 0 && (
             <div className="mt-2 border-t border-[#F2EFE9] pt-1.5">
               <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">Same universe{universe ? ` · ${universe}` : ''}</span>
@@ -245,6 +274,80 @@ function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, on
   );
 }
 
+// A single "Popular pick" card in the browse grid. The poster + real genre
+// resolve lazily from the catalog when the card mounts (only once the Popular
+// section is open, so it's not fetched on every TV Time load). Tapping Add runs
+// the SAME add-by-title flow as search; a show already on your list shows ✓.
+function PopularCard({ title, genre, tracked, onAdd, busy }) {
+  const [poster, setPoster] = useState('');
+  useEffect(() => {
+    let live = true;
+    searchTitles(title).then((hits) => {
+      const h = hits && hits[0];
+      if (live && h && h.poster) setPoster(h.poster);
+    }).catch(() => { /* no poster — the titled placeholder still shows */ });
+    return () => { live = false; };
+  }, [title]);
+  const adding = busy === `u:${title}`;
+  return (
+    <div className="bg-white border border-[#1A1815] p-2 flex flex-col gap-1.5">
+      <Poster url={poster} title={title} className="w-full aspect-[2/3]" />
+      <div className="min-w-0">
+        <div className="text-[0.75rem] font-semibold text-[#1A1815] leading-tight" style={serif}>{title}</div>
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{genre}</div>
+      </div>
+      {tracked ? (
+        <span className="mt-auto inline-flex items-center gap-1 text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">
+          <UiIcon name="check" /> On your list
+        </span>
+      ) : (
+        <button type="button" onClick={() => onAdd(title)} disabled={adding}
+          className={`${BTN} mt-auto border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50`}>
+          {adding ? 'Adding…' : '+ Add'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// The "Popular picks" browse grid, grouped by genre (Darrell 2026-07-04: "click a
+// tab and it will sort what we have inside as a list already under drama etc" +
+// "it should be able to show all below" — so a genre chip surfaces the popular
+// shows in that genre instead of dead-ending on "none in your list"). A curated
+// starter set (honest — not a live chart); already-tracked shows are hidden so it
+// reads as "what you don't have yet". When `genre` is set, shows just that genre.
+function PopularBrowse({ trackedKeys, onAddByTitle, busy, genre = '' }) {
+  const exclude = useMemo(() => new Set(POPULAR_SHOWS
+    .filter((s) => trackedKeys.has(titleKey(s.title)))
+    .map((s) => s.title.toLowerCase().trim())), [trackedKeys]);
+  const groups = useMemo(() => {
+    const all = popularByGenre(POPULAR_SHOWS, undefined, exclude);
+    return genre ? all.filter((grp) => genreMatches(grp.genre, genre)) : all;
+  }, [exclude, genre]);
+  if (!groups.length) {
+    return (
+      <p className="text-sm text-[#5A5751]" style={serif}>
+        No {genre ? `${genre} ` : ''}picks here yet — look one up above and it comes right in.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      {groups.map((grp) => (
+        <section key={grp.genre} aria-labelledby={`pop-${grp.genre}`}>
+          {!genre && <h4 id={`pop-${grp.genre}`} className="text-[0.625rem] uppercase tracking-[0.25em] text-[#1A1815] font-semibold mb-2">{grp.genre}</h4>}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {grp.shows.map((s) => (
+              <PopularCard key={s.title} title={s.title} genre={s.genre}
+                tracked={trackedKeys.has(titleKey(s.title))} onAdd={onAddByTitle} busy={busy} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export default function TVTime({ email = null }) {
   const [state, setState] = useState(() => loadTv(email));
   const [query, setQuery] = useState('');
@@ -265,6 +368,7 @@ export default function TVTime({ email = null }) {
   const tracked = useMemo(() => STATUSES.flatMap((st) => buckets[st.key]), [buckets]);
   const trackedKeys = useMemo(() => new Set(tracked.map((s) => titleKey(s.title || s.id))), [tracked]);
   const [genreFilter, setGenreFilter] = useState('');
+  const [popularOpen, setPopularOpen] = useState(false);
 
   // Cross-device sync (owner-only; fail-soft — offline degrades to device-local).
   const stateRef = useRef(state);
@@ -330,6 +434,9 @@ export default function TVTime({ email = null }) {
   const onStatus = (id, s) => persist(setStatus(state, id, s));
   const onRate = (id, n) => persist(rateShow(state, id, n));
   const onUntrack = (id) => persist(untrack(state, id));
+  // Per-show visibility: flip one audience (us/family/circle) on a show. Saves to
+  // your own list (and syncs across your devices); the shared views read it later.
+  const onShare = (id, audience, on) => persist(setShowShare(state, id, audience, on));
   const onAddComment = (id, text) => { seq.current += 1; persist(addComment(state, id, { author: me, text }, safeNow(), seq.current)); };
   const onReact = (id, cid, rk) => persist(toggleReaction(state, id, cid, rk, me));
   const onToggleEp = (id, se, nu) => persist(toggleEpisode(state, id, se, nu));
@@ -384,20 +491,31 @@ export default function TVTime({ email = null }) {
     } catch { setImportMsg('Could not export here — try from the installed app.'); }
   };
 
-  // Restore from a previously-exported file (merges in, restore-wins).
-  const restoreFile = (file) => {
+  // Restore from a file (merges in, restore-wins). Two real shapes are accepted:
+  //   • a PoeTech backup (.json) — the file exportList() writes.
+  //   • a TV Time GDPR export (.zip) — the ~55-CSV archive TV Time actually hands
+  //     you (Christina 2026-07-04: the zip had nowhere to go). We detect the zip
+  //     by its magic bytes and map its real CSVs into the list. Anyone in the
+  //     friend group brings their OWN export in this way — their data, one tap.
+  const restoreFile = async (file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const before = STATUSES.reduce((n, st) => n + buckets[st.key].length, 0);
-        const next = importTvJson(state, JSON.parse(String(reader.result || '{}')));
-        persist(next);
-        const after = STATUSES.reduce((n, st) => n + bucketShows(next, customCatalog(next))[st.key].length, 0);
-        setImportMsg(`Restored — ${Math.max(0, after - before)} added from your backup.`);
-      } catch { setImportMsg('That file wasn’t a TV Time backup.'); }
-    };
-    reader.readAsText(file);
+    try {
+      const buf = await file.arrayBuffer();
+      const before = STATUSES.reduce((n, st) => n + buckets[st.key].length, 0);
+      if (looksLikeZip(buf)) {
+        setImportMsg('Reading your TV Time export…');
+        const { state: mapped, summary, ok } = await importTvTimeZip(buf);
+        if (!ok) { setImportMsg('That .zip didn’t look like a TV Time export (no shows found).'); return; }
+        persist(importTvJson(state, mapped));
+        setImportMsg(`Imported ${summary.shows} show${summary.shows === 1 ? '' : 's'}${summary.episodes ? ` and ${summary.episodes} watched episode${summary.episodes === 1 ? '' : 's'}` : ''} from your TV Time export.`);
+        return;
+      }
+      const text = new TextDecoder('utf-8').decode(buf);
+      const next = importTvJson(state, JSON.parse(text || '{}'));
+      persist(next);
+      const after = STATUSES.reduce((n, st) => n + bucketShows(next, customCatalog(next))[st.key].length, 0);
+      setImportMsg(`Restored — ${Math.max(0, after - before)} added from your backup.`);
+    } catch { setImportMsg('That file wasn’t a PoeTech backup or a TV Time export.'); }
   };
 
   const anyTracked = STATUSES.some((st) => buckets[st.key].length);
@@ -459,11 +577,14 @@ export default function TVTime({ email = null }) {
             <div className="flex items-center gap-2 flex-wrap mt-1">
               <button type="button" onClick={runImport} disabled={!importText.trim()} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Bring them in</button>
               <label className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white cursor-pointer`}>
-                Restore from a backup file
-                <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => { restoreFile(e.target.files && e.target.files[0]); e.target.value = ''; }} />
+                Import from a file (.zip or .json)
+                <input type="file" accept=".zip,.json,application/zip,application/json" className="sr-only" onChange={(e) => { restoreFile(e.target.files && e.target.files[0]); e.target.value = ''; }} />
               </label>
               {importMsg && <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{importMsg}</span>}
             </div>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-1.5 leading-relaxed" style={serif}>
+              Coming from TV&nbsp;Time? Download your data from their app (Settings → your export gives a <strong>.zip</strong>), then tap <strong>Import from a file</strong> above and pick that .zip — your shows and watched episodes come right in. It&apos;s your data.
+            </p>
           </div>
         )}
       </div>
@@ -471,22 +592,27 @@ export default function TVTime({ email = null }) {
       {/* What's getting watched — dynamic, from real activity. */}
       <TrendingStrip items={trending} />
 
-      {/* Browse by genre — filters your tracked list (honest: your shows in that
-          genre; the free APIs have no global by-genre catalog). */}
-      {tracked.length > 0 && (
-        <section className="mb-4" aria-labelledby="tv-genres">
-          <h3 id="tv-genres" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Browse by genre {genreFilter && <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline normal-case tracking-normal">· clear “{genreFilter}”</button>}</h3>
-          <div className="flex flex-wrap gap-1">
-            {GENRES.map((g) => {
-              const on = genreFilter === g;
-              return (
-                <button key={g} type="button" onClick={() => setGenreFilter(on ? '' : g)} aria-pressed={on}
-                  className={`text-[0.625rem] px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>{g}</button>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* Family/circle sharing — GATED (TV_SHARING_ENABLED, off until the live NAS
+          isolation smoke test passes). Renders null while off, so production is
+          unchanged. state + a light catalog let it publish only your tagged shows. */}
+      <TVCircle state={state} email={me}
+        catalog={Object.fromEntries(tracked.map((s) => [s.id, { id: s.id, title: s.title, poster: s.poster, genre: s.genre, kind: s.kind }]))} />
+
+      {/* Browse by genre — a chip filters BOTH your tracked list AND the Popular
+          picks below (Darrell 2026-07-04: pick a genre and it shows all in that
+          genre, never a dead end). Always shown, so an empty list still browses. */}
+      <section className="mb-4" aria-labelledby="tv-genres">
+        <h3 id="tv-genres" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Browse by genre <span className="text-[#B85838] normal-case tracking-normal font-normal">· your list + popular picks</span>{genreFilter && <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline normal-case tracking-normal ml-1 font-normal">clear “{genreFilter}”</button>}</h3>
+        <div className="flex flex-wrap gap-1">
+          {GENRES.map((g) => {
+            const on = genreFilter === g;
+            return (
+              <button key={g} type="button" onClick={() => setGenreFilter(on ? '' : g)} aria-pressed={on}
+                className={`text-[0.625rem] px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>{g}</button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* The four sections (genre-filtered when a genre is picked). */}
       {STATUSES.map((st) => {
@@ -500,15 +626,39 @@ export default function TVTime({ email = null }) {
                 <ShowCard key={show.id} show={show} me={me} state={state}
                   onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
                   onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                  onAddByTitle={onAddByTitle} trackedKeys={trackedKeys} busy={busy} />
+                  onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
               ))}
             </div>
           </section>
         );
       })}
 
-      {!anyTracked && <p className="text-sm text-[#5A5751]" style={serif}>Nothing tracked yet — look up a show above (or import your old list) and you’re off.</p>}
-      {genreEmpty && <p className="text-sm text-[#5A5751]" style={serif}>No {genreFilter} in your list yet — <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline">show all</button>.</p>}
+      {genreEmpty && <p className="text-sm text-[#5A5751] mb-3" style={serif}>Nothing {genreFilter} on your list yet — here are popular {genreFilter} picks to add:</p>}
+
+      {/* Popular picks — a curated starter catalog so the app opens to a FULL,
+          browsable list (Darrell 2026-07-04) instead of empty, and a genre chip
+          shows all picks in that genre "below". Grouped by genre when browsing
+          all; filtered to the chosen genre when one is picked. Expanded by default
+          for an empty list or when a genre is picked; collapsible otherwise (so we
+          don't fetch ~30 posters for someone happily in their own list). Tap to
+          add; already-tracked picks are hidden. */}
+      {(() => {
+        const show = popularOpen || !anyTracked || !!genreFilter;
+        return (
+          <section className="mb-4" aria-labelledby="tv-popular">
+            <button type="button" onClick={() => setPopularOpen((v) => !v)} aria-expanded={show}
+              className="w-full flex items-center justify-between gap-2 text-left mb-2 focus:outline focus:outline-2 focus:outline-[#B85838]">
+              <h3 id="tv-popular" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">
+                {genreFilter ? `Popular ${genreFilter} picks` : 'Popular picks'} <span className="text-[#B85838] normal-case tracking-normal font-normal">· {genreFilter ? 'tap to add' : `${popularCount()} shows to browse & add, by genre`}</span>
+              </h3>
+              {!genreFilter && <span className="text-[0.6875rem] text-[#B85838] shrink-0">{show ? 'Hide' : 'Browse'}</span>}
+            </button>
+            {show && <PopularBrowse trackedKeys={trackedKeys} onAddByTitle={onAddByTitle} busy={busy} genre={genreFilter} />}
+          </section>
+        );
+      })()}
+
+      {!anyTracked && !genreFilter && <p className="text-sm text-[#5A5751]" style={serif}>Tip: look up any show above, or import your old list — your own shows land in the sections here.</p>}
     </div>
   );
 }

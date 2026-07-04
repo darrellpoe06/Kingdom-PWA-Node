@@ -7,6 +7,9 @@
 # A root-level node_modules was never covered here (only app/'s), so a vitest
 # .vite results cache leaked into a 2026-07-03 commit. Closed for good:
 node_modules/
+# The .vite cache itself can also land at the repo root when vitest is run from
+# here (not app/) — ignore it at root too, closing the same leak fully.
+.vite/
 
 # ----------------------------------------------------------------------------
 # Sensitive / PII / PHI material — never commit

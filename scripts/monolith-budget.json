@@ -1,6 +1,6 @@
 {
   "file": "app/src/poe-financial-mvp-v28.jsx",
-  "budget": 5886,
-  "frozen": "2026-07-04 — raised +5 to wire the sovereign usage recorder",
-  "note": "Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN, EXCEPT a deliberate hand-raise (stated reason) when a NEW top-level surface must register its nav item + view-mount block until Stage 2 derives both from the registry. Raised 2026-07-04 from 5869 -> 5881 (+12) to wire in PoeTech TV Time (nav entry + view==='tvtime' SectionBoundary mount). Raised 2026-07-04 from 5881 -> 5886 (+5) to wire the sovereign usage recorder: an import + a single useEffect on `view` that records every tab open (measure-to-serve, Darrell's 'we have to know... most used tab'); the logic lives out in lib/usage-events.js — only the view-change hook must sit in the shell where the view state lives. Re-freeze LOWER with `node scripts/monolith-budget-guard.mjs --generate` after an extraction shrinks it. To RAISE again, edit by hand with a stated reason in the PR — --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md."
+  "budget": 5869,
+  "frozen": "2026-07-04 — ratcheted 5886 -> 5869 (-17) merging Access into Admin",
+  "note": "Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN. Ratcheted 2026-07-04 from 5886 -> 5869 when the Access tab was merged into Admin (one users report): the shell dropped the Access nav entry + its view-mount block (net -17), keeping only a one-line ?view=access -> admin alias. Re-freeze with `node scripts/monolith-budget-guard.mjs --generate` after an extraction shrinks it. To RAISE this number, edit by hand with a stated reason in the PR — --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md."
 }

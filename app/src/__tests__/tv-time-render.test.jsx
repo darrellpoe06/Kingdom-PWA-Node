@@ -63,6 +63,40 @@ describe('PoeTech TV Time', () => {
     expect(text).toMatch(/Look up a show/);
   });
 
+  it('opens to a populated "Popular picks" grid so an empty list is never blank', async () => {
+    await mount();
+    const text = container.textContent || '';
+    expect(text).toMatch(/Popular picks/);
+    expect(text).toContain('This Is Us');       // a curated pick renders as a card
+    expect(text).toContain('Abbott Elementary'); // across genres
+  });
+
+  it('a tracked show carries a per-show "Who sees this?" control, private by default', async () => {
+    await mount();
+    setValue(container.querySelector('#tv-search'), 'game of thrones');
+    await wait(450);
+    await click(btnByText(/\+ Add/));
+    const text = container.textContent || '';
+    expect(text).toMatch(/Who sees this/);
+    expect(text).toMatch(/Just you/);          // private by default
+    // flip Family on — the pressed state reflects the saved flag
+    const famBtn = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === 'Family' && b.getAttribute('aria-pressed') !== null);
+    expect(famBtn, 'a Family visibility toggle exists on the card').toBeTruthy();
+    await click(famBtn);
+    const after = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === 'Family' && b.getAttribute('aria-pressed') !== null);
+    expect(after.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('a genre chip surfaces the popular picks in that genre — never a dead end', async () => {
+    await mount();
+    const chip = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === 'Comedy');
+    expect(chip, 'the Comedy genre chip shows even with an empty list').toBeTruthy();
+    await click(chip);
+    const text = container.textContent || '';
+    expect(text).toMatch(/Popular Comedy picks/);
+    expect(text).toContain('Abbott Elementary'); // a curated Comedy pick shows below
+  });
+
   it('searches a show, adds it, brings in the seasons, and checks off an episode', async () => {
     await mount();
     setValue(container.querySelector('#tv-search'), 'game of thrones');
