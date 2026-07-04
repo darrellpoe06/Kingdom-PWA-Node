@@ -13,6 +13,7 @@ import BooksAccounts from './components/BooksAccounts.jsx';
 import { REMINDER_OPTIONS } from './lib/calendar-shared.js';
 import { fmt, monthLabel } from './lib/format.js';
 import { recordError } from './lib/error-journal.js';
+import { recordView } from './lib/usage-events.js';
 // Sync failures must be SEEN: console for diagnosis + the error journal for the
 // steward board (a 'saved' row that never reached the cloud is a trust break).
 const syncWarn = (label, e) => { console.warn(label, e); try { recordError({ source: 'sync', kind: 'runtime', message: `${label}: ${(e && e.message) || e}` }); } catch (_) { /* watcher never throws */ } };
@@ -1475,6 +1476,10 @@ export default function PoeFinancialSystem() {
   );
   const [pressure, setPressure] = useState(5);
   const [view, setView] = useState(getInitialView());
+  // Measure how the app is used, to make it better (Darrell 2026-07-04). One
+  // place captures every tab open (URL-driven + every nav button). Sovereign,
+  // fail-soft, signed-out no-op, aggregate-only to the governor (usage-events).
+  useEffect(() => { recordView(view); }, [view]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   // DR-0059 Phase 2 — a NEW non-family signed-in user gets a named welcome once,
   // instead of falling through to the family persona picker. Presentational only.
