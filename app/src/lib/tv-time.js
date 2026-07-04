@@ -131,12 +131,14 @@ function normalize(parsed) {
     if (!title) continue;
     custom[id] = {
       id,
+      // A movie is a single-watch item (no seasons); a show has seasons to check off.
+      kind: raw.kind === 'movie' ? 'movie' : 'show',
       title,
       genre: typeof raw.genre === 'string' && raw.genre.trim() ? raw.genre.trim() : 'Show',
       poster: typeof raw.poster === 'string' ? raw.poster : '',
       year: typeof raw.year === 'string' ? raw.year : '',
       network: typeof raw.network === 'string' ? raw.network : '',
-      seasons: normalizeSeasons(raw.seasons),
+      seasons: raw.kind === 'movie' ? [] : normalizeSeasons(raw.seasons),
     };
   }
   return { version: STORE_VERSION, shows, custom };
@@ -251,8 +253,9 @@ export function addShowFromCatalog(state, show, status = 'watching') {
   const base = normalize(state);
   if (!show || show.id == null || !show.title) return base;
   const id = String(show.id);
-  const meta = normalizeSeasons(show.seasons) && {
+  const meta = {
     id,
+    kind: 'show',
     title: String(show.title),
     genre: show.genre || 'Show',
     poster: typeof show.poster === 'string' ? show.poster : '',
@@ -264,6 +267,51 @@ export function addShowFromCatalog(state, show, status = 'watching') {
   const cur = base.shows[id] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
   const st = STATUS_KEYS.has(status) ? status : cur.status;
   return { version: STORE_VERSION, shows: { ...base.shows, [id]: { ...cur, status: st } }, custom };
+}
+
+// --- Movies: one watch, then rate + talk (Darrell 2026-07-04: "movies too?") ---
+// A movie has no seasons; being "watched" is simply its status. Add it (default
+// "want to watch"), then a single tap flips Watched. Re-adding refreshes the meta.
+
+export function addMovieFromCatalog(state, movie, status = 'want') {
+  const base = normalize(state);
+  if (!movie || movie.id == null || !movie.title) return base;
+  const id = String(movie.id);
+  const meta = {
+    id,
+    kind: 'movie',
+    title: String(movie.title),
+    genre: movie.genre || 'Movie',
+    poster: typeof movie.poster === 'string' ? movie.poster : '',
+    year: typeof movie.year === 'string' ? movie.year : '',
+    network: typeof movie.network === 'string' ? movie.network : '',
+    seasons: [],
+  };
+  const custom = { ...base.custom, [id]: meta };
+  const cur = base.shows[id] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
+  const st = STATUS_KEYS.has(status) ? status : cur.status;
+  return { version: STORE_VERSION, shows: { ...base.shows, [id]: { ...cur, status: st } }, custom };
+}
+
+// The kind of a tracked item ('movie' | 'show'); defaults to 'show'.
+export function itemKind(state, id) {
+  const meta = normalize(state).custom[id];
+  return meta && meta.kind === 'movie' ? 'movie' : 'show';
+}
+
+// A movie is "watched" when its status is 'watched' (its single checkbox).
+export function isMovieWatched(state, id) {
+  return getStatus(state, id) === 'watched';
+}
+
+// Flip a movie between Watched and Want. Only acts on a tracked movie.
+export function toggleMovieWatched(state, id) {
+  const base = normalize(state);
+  const cur = base.shows[id];
+  const meta = base.custom[id];
+  if (!cur || !meta || meta.kind !== 'movie') return base;
+  const status = cur.status === 'watched' ? 'want' : 'watched';
+  return { version: STORE_VERSION, shows: { ...base.shows, [id]: { ...cur, status } }, custom: base.custom };
 }
 
 export function isEpisodeWatched(state, showId, season, number) {
@@ -299,6 +347,8 @@ export function showProgress(state, showId) {
   const base = normalize(state);
   const meta = base.custom[showId];
   const cur = base.shows[showId];
+  // A movie is a single watch: 1/1 when its status is 'watched', else 0/1.
+  if (meta && meta.kind === 'movie') return { watched: cur && cur.status === 'watched' ? 1 : 0, total: 1 };
   const total = meta ? meta.seasons.reduce((n, s) => n + s.episodes.length, 0) : 0;
   const watched = cur ? Object.keys(cur.watched).length : 0;
   return { watched: total ? Math.min(watched, total) : watched, total };
@@ -374,6 +424,58 @@ export function bucketShows(state, catalog) {
     if (!byId.has(id)) buckets[e.status].push({ id, title: id, genre: 'Custom', status: e.status, rating: e.rating, commentCount: e.comments.length });
   }
   return buckets;
+}
+
+// --- What's getting watched: a real-data activity ranking -------------------
+// (Darrell 2026-07-04: "update the shows list dynamically based on what people
+// are watching".) Pure + deterministic + explainable — the concern-signals.js
+// precedent. Ranks the TRACKED items by an activity signal built from REAL local
+// state: how it's being watched (status), momentum (episodes checked), rating,
+// and discussion (comments). Circle-wide once live sync lands; today it reflects
+// this device's list — no fabricated other-people activity (DR-0076).
+
+const WATCH_WEIGHT = { watching: 40, watched: 20, stale: 10, want: 0 };
+
+function watchReason(e, eps, comments, meta) {
+  const isMovie = meta && meta.kind === 'movie';
+  if (e.status === 'watching' && eps > 0) return `Watching · ${eps} episode${eps === 1 ? '' : 's'} in`;
+  if (e.status === 'watching') return 'Watching now';
+  if (comments > 0) return `${comments} comment${comments === 1 ? '' : 's'} · people are talking`;
+  if (e.status === 'watched') return isMovie ? 'Watched' : 'Finished it';
+  if (e.rating) return `Rated ${e.rating} of 5`;
+  if (e.status === 'stale') return 'Picked up before';
+  return 'On the list';
+}
+
+// Ranked tracked items, most active first. `catalog` supplies title/poster/kind
+// (merge customCatalog + any seed). Deterministic: score desc, then title asc.
+export function watchSignal(state, catalog) {
+  const base = normalize(state);
+  const byId = new Map((Array.isArray(catalog) ? catalog : []).map((s) => [s.id, s]));
+  const rows = [];
+  for (const [id, e] of Object.entries(base.shows)) {
+    const meta = byId.get(id) || base.custom[id] || { id, title: id, kind: 'show' };
+    const eps = Object.keys(e.watched).length;
+    const comments = e.comments.length;
+    const score = (WATCH_WEIGHT[e.status] || 0) + Math.min(eps, 100) + (e.rating || 0) * 2 + comments * 4;
+    rows.push({
+      id,
+      title: meta.title || id,
+      poster: typeof meta.poster === 'string' ? meta.poster : '',
+      kind: meta.kind === 'movie' ? 'movie' : 'show',
+      year: typeof meta.year === 'string' ? meta.year : '',
+      status: e.status,
+      score,
+      reason: watchReason(e, eps, comments, meta),
+    });
+  }
+  return rows.sort((a, b) => (b.score - a.score) || a.title.localeCompare(b.title));
+}
+
+// The "trending" slice: the most active items with real activity (score > 0),
+// capped. What's actually getting watched — never a painted list.
+export function trendingWatches(state, catalog, limit = 5) {
+  return watchSignal(state, catalog).filter((r) => r.score > 0).slice(0, Math.max(0, limit));
 }
 
 // A stable discernment prompt for a show — deterministic from the id so the card

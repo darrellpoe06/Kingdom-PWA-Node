@@ -17,12 +17,16 @@ const SHOW = {
   id: 82, name: 'Game of Thrones', premiered: '2011-04-17', genres: ['Drama'], network: { name: 'HBO' }, image: null, summary: '<p>x</p>',
   _embedded: { episodes: [{ id: 1, name: 'Winter Is Coming', season: 1, number: 1, airdate: '2011-04-17' }, { id: 2, name: 'The Kingsroad', season: 1, number: 2 }] },
 };
+const MOVIES = { resultCount: 1, results: [{ trackId: 999, trackName: 'Black Panther', artworkUrl100: 'http://is/100x100bb.jpg', releaseDate: '2018-02-16T08:00:00Z', primaryGenreName: 'Action' }] };
 
 beforeAll(() => {
   __setCatalogFetcher(async (url) => {
     const u = String(url);
-    if (u.includes('/search/shows')) return { ok: true, json: async () => SEARCH };
+    // Query-aware so each test gets only its own hit: "game" → the show, "black"/
+    // "panther" → the movie. (searchTitles fetches both lanes for every query.)
+    if (u.includes('/search/shows')) return { ok: true, json: async () => (u.includes('game') || u.includes('thrones') ? SEARCH : []) };
     if (u.includes('/shows/')) return { ok: true, json: async () => SHOW };
+    if (u.includes('itunes')) return { ok: true, json: async () => (u.includes('black') || u.includes('panther') ? MOVIES : { results: [] }) };
     return { ok: false, json: async () => null };
   });
 });
@@ -72,6 +76,33 @@ describe('PoeTech TV Time', () => {
     await click(btnByText(/^Episodes$/));
     await click(btnByText(/Winter Is Coming/));
     expect(container.textContent, 'progress advances after a check').toMatch(/1 \/ 2 episodes watched/);
+  });
+
+  it('searches a movie, adds it as a single-watch item, and one tap marks it watched', async () => {
+    await mount();
+    setValue(container.querySelector('#tv-search'), 'black panther');
+    await wait(450);
+    expect(container.textContent).toContain('Black Panther');   // the movie populated
+    // add the movie (it's the only result for this query — shows side returns none)
+    await click(btnByText(/\+ Add/));
+    // a movie shows a single "Mark watched" control, not an episode list
+    const markBtn = btnByText(/Mark watched/);
+    expect(markBtn, 'movie shows a Mark watched control').toBeTruthy();
+    expect(btnByText(/^Episodes$/), 'no Episodes tab for a movie').toBeFalsy();
+    await click(markBtn);
+    expect(btnByText(/^Watched$/), 'one tap marks the movie watched').toBeTruthy();
+  });
+
+  it('surfaces a dynamic "what\'s getting watched" strip from real activity', async () => {
+    await mount();
+    // nothing tracked → no strip
+    expect(container.textContent).not.toMatch(/getting watched/);
+    setValue(container.querySelector('#tv-search'), 'game of thrones');
+    await wait(450);
+    await click(btnByText(/\+ Add/));
+    // adding a watching show makes it show up in the ranking with an honest reason
+    expect(container.textContent).toMatch(/getting watched/);
+    expect(container.textContent).toMatch(/Watching now|Watching ·/);
   });
 
   it('talks and laughs together on a tracked show', async () => {

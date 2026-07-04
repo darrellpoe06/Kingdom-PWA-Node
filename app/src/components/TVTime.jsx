@@ -16,11 +16,12 @@ import { SectionTitle } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import {
   STATUSES, REACTIONS, SEED_CIRCLE,
-  loadTv, saveTv, bucketShows, customCatalog, addCustomShow, addShowFromCatalog,
+  loadTv, saveTv, bucketShows, customCatalog, addCustomShow, addShowFromCatalog, addMovieFromCatalog, toggleMovieWatched,
   setStatus, untrack, rateShow, addComment, getComments, toggleReaction, reactionCount,
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
+  trendingWatches,
 } from '../lib/tv-time.js';
-import { searchShows, loadShow, TV_SOURCE } from '../lib/tv-catalog.js';
+import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE } from '../lib/tv-catalog.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const BTN = 'text-[0.6875rem] uppercase tracking-wider px-2 py-1 focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -45,6 +46,36 @@ function Stars({ value, onRate }) {
         </button>
       ))}
     </span>
+  );
+}
+
+// What's getting watched — a real-data activity ranking (Darrell 2026-07-04:
+// "update the shows list dynamically based on what people are watching"). Reads
+// the live list; honestly scoped to your device until circle sync lands.
+function TrendingStrip({ items }) {
+  if (!items.length) return null;
+  return (
+    <section className="bg-[#1A1815] text-white p-3 mb-3" aria-labelledby="tv-trending">
+      <div className="flex items-baseline justify-between gap-2 mb-2">
+        <h3 id="tv-trending" className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#E8B84B] font-semibold">What’s getting watched</h3>
+        <span className="text-[0.5625rem] text-[#C9BFA8]">Ranked by activity in your list · circle-wide when live sync lands</span>
+      </div>
+      <ol className="space-y-1.5">
+        {items.map((r, i) => (
+          <li key={r.id} className="flex items-center gap-2.5">
+            <span className="text-[0.6875rem] text-[#E8B84B] w-4 shrink-0 text-right" aria-hidden="true">{i + 1}</span>
+            <Poster url={r.poster} title={r.title} className="w-7 h-10" />
+            <span className="min-w-0">
+              <span className="text-sm text-white block truncate" style={{ ...serif, fontWeight: 600 }}>
+                {r.title}
+                {r.kind === 'movie' && <span className="text-[0.5rem] uppercase tracking-wider text-[#C9BFA8] border border-[#5A5751] px-1 py-0.5 ml-1.5 align-middle">Movie</span>}
+              </span>
+              <span className="text-[0.6875rem] text-[#C9BFA8]">{r.reason}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -95,11 +126,13 @@ function EpisodeList({ show, isWatched, onToggleEp, onToggleSeason, progressFor 
   );
 }
 
-function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason }) {
+function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie }) {
   const [tab, setTab] = useState(null); // 'episodes' | 'talk' | null
   const [draft, setDraft] = useState('');
   const comments = getComments(state, show.id);
   const prog = showProgress(state, show.id);
+  const isMovie = show.kind === 'movie';
+  const seen = show.status === 'watched';
   const send = () => { const t = draft.trim(); if (!t) return; onAddComment(show.id, t); setDraft(''); };
   return (
     <div className="bg-white border border-[#1A1815] p-3">
@@ -109,27 +142,39 @@ function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, on
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <div>
               <span style={{ ...serif, fontWeight: 600 }} className="text-[#1A1815]">{show.title}</span>
+              {isMovie && <span className="text-[0.5rem] uppercase tracking-wider text-[#5A6E3D] border border-[#C9BFA8] px-1 py-0.5 ml-2 align-middle">Movie</span>}
               <span className="text-[0.6875rem] text-[#5A5751] ml-2">{[show.year, show.network, show.genre].filter(Boolean).join(' · ')}</span>
             </div>
             <Stars value={show.rating || 0} onRate={(n) => onRate(show.id, n)} />
           </div>
-          {prog.total > 0 && (
+          {!isMovie && prog.total > 0 && (
             <p className="text-[0.6875rem] text-[#5A6E3D] mt-0.5" style={serif}>{prog.watched} / {prog.total} episodes watched{prog.watched === prog.total ? ' — all caught up!' : ''}</p>
           )}
           <div className="flex items-center gap-2 flex-wrap mt-1.5">
-            <label className="sr-only" htmlFor={`st-${show.id}`}>Status for {show.title}</label>
-            <select id={`st-${show.id}`} value={show.status} onChange={(e) => onStatus(show.id, e.target.value)}
-              className="text-[0.6875rem] border border-[#E8E4DC] bg-white text-[#1A1815] px-2 py-1 focus:outline focus:outline-2 focus:outline-[#B85838]">
-              {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
-            <button type="button" onClick={() => setTab(tab === 'episodes' ? null : 'episodes')} aria-expanded={tab === 'episodes'} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>Episodes</button>
+            {isMovie ? (
+              // A movie is a single watch — one tap marks it seen (moves it to Watched).
+              <button type="button" onClick={() => onToggleMovie(show.id)} aria-pressed={seen}
+                className={`${BTN} inline-flex items-center gap-1.5 border ${seen ? 'bg-[#2F6B33] border-[#2F6B33] text-white' : 'border-[#C9BFA8] text-[#5A6E3D] hover:text-[#1A1815]'}`}>
+                <span className={`inline-flex items-center justify-center w-3.5 h-3.5 border ${seen ? 'border-white text-white' : 'border-[#C9BFA8] text-transparent'}`} aria-hidden="true"><UiIcon name="check" /></span>
+                {seen ? 'Watched' : 'Mark watched'}
+              </button>
+            ) : (
+              <>
+                <label className="sr-only" htmlFor={`st-${show.id}`}>Status for {show.title}</label>
+                <select id={`st-${show.id}`} value={show.status} onChange={(e) => onStatus(show.id, e.target.value)}
+                  className="text-[0.6875rem] border border-[#E8E4DC] bg-white text-[#1A1815] px-2 py-1 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+                <button type="button" onClick={() => setTab(tab === 'episodes' ? null : 'episodes')} aria-expanded={tab === 'episodes'} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>Episodes</button>
+              </>
+            )}
             <button type="button" onClick={() => setTab(tab === 'talk' ? null : 'talk')} aria-expanded={tab === 'talk'} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>Talk{comments.length ? ` (${comments.length})` : ''}</button>
             <button type="button" onClick={() => onUntrack(show.id)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
           </div>
         </div>
       </div>
 
-      {tab === 'episodes' && (
+      {!isMovie && tab === 'episodes' && (
         <EpisodeList show={show}
           isWatched={(se, nu) => isEpisodeWatched(state, show.id, se, nu)}
           onToggleEp={(se, nu) => onToggleEp(show.id, se, nu)}
@@ -189,26 +234,33 @@ export default function TVTime({ email = null }) {
 
   const catalog = useMemo(() => [...customCatalog(state)], [state]);
   const buckets = useMemo(() => bucketShows(state, catalog), [state, catalog]);
+  const trending = useMemo(() => trendingWatches(state, catalog, 5), [state, catalog]);
   const persist = (next) => { saveTv(email, next); setState(next); };
 
-  // Live search — TVmaze lookup as you type (debounced). The reason typing didn't
-  // populate before (Darrell 2026-07-04) — now it does.
+  // Live search — shows AND movies as you type (debounced). The reason typing didn't
+  // populate before (Darrell 2026-07-04) — now it does, and "movies too?".
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) { setResults(null); setSearching(false); return undefined; }
     let alive = true;
     setSearching(true);
     const t = setTimeout(async () => {
-      const rows = await searchShows(q);
+      const rows = await searchTitles(q);
       if (alive) { setResults(rows); setSearching(false); }
     }, 350);
     return () => { alive = false; clearTimeout(t); };
   }, [query]);
 
+  // Add a result: a show brings in its seasons (a second fetch); a movie is a
+  // single-watch item and its search brief already has everything.
   const addFromResult = async (brief) => {
     setBusy(brief.id);
-    const full = await loadShow(brief.id);
-    persist(addShowFromCatalog(state, full || brief));
+    if (brief.kind === 'movie') {
+      persist(addMovieFromCatalog(state, brief));
+    } else {
+      const full = await loadShow(brief.id);
+      persist(addShowFromCatalog(state, full || brief));
+    }
     setBusy(''); setQuery(''); setResults(null);
   };
   const onStatus = (id, s) => persist(setStatus(state, id, s));
@@ -218,24 +270,28 @@ export default function TVTime({ email = null }) {
   const onReact = (id, cid, rk) => persist(toggleReaction(state, id, cid, rk, me));
   const onToggleEp = (id, se, nu) => persist(toggleEpisode(state, id, se, nu));
   const onToggleSeason = (id, se, on) => persist(setSeasonWatched(state, id, se, on));
+  const onToggleMovie = (id) => persist(toggleMovieWatched(state, id));
 
-  // Import your old TV Time list: paste titles (one per line); each is looked up
-  // and its seasons brought in.
+  // Import your old list: paste titles (one per line). Each is looked up (show or
+  // movie); a show brings in its seasons, a movie comes in as a single watch, and
+  // no match is kept as a plain title.
   const runImport = async () => {
     const titles = importText.split('\n').map((t) => t.trim()).filter(Boolean).slice(0, 40);
     if (!titles.length) return;
-    setImportMsg('Looking up your shows…');
+    setImportMsg('Looking up your list…');
     let next = state; let added = 0; let missed = 0;
     for (const title of titles) {
-      const hits = await searchShows(title);
-      if (hits && hits[0]) {
-        const full = await loadShow(hits[0].id);
-        next = addShowFromCatalog(next, full || hits[0]);
-        added += 1;
+      const hits = await searchTitles(title);
+      const hit = hits && hits[0];
+      if (hit && hit.kind === 'movie') {
+        next = addMovieFromCatalog(next, hit); added += 1;
+      } else if (hit) {
+        const full = await loadShow(hit.id);
+        next = addShowFromCatalog(next, full || hit); added += 1;
       } else { next = addCustomShow(next, { title }); missed += 1; }
     }
     persist(next);
-    setImportMsg(`Added ${added} show${added === 1 ? '' : 's'}${missed ? `, ${missed} kept as a plain title (no match)` : ''}.`);
+    setImportMsg(`Added ${added} title${added === 1 ? '' : 's'}${missed ? `, ${missed} kept as a plain title (no match)` : ''}.`);
     setImportText('');
   };
 
@@ -243,13 +299,13 @@ export default function TVTime({ email = null }) {
 
   return (
     <div className="max-w-3xl">
-      <SectionTitle eyebrow="Look it up · check off every episode · talk it · watch it through The Way">PoeTech TV Time</SectionTitle>
+      <SectionTitle eyebrow="Shows & movies · check off every episode · talk it · watch it through The Way">PoeTech TV Time</SectionTitle>
 
       <p className="text-sm text-[#1A1815] mb-2" style={serif}>
-        Keep up with your shows and talk about them with your people. Look one up, its seasons come in, and you check off each episode as you watch. It lives in the PoeTech App (a website you install on any phone or computer), so it’s not going anywhere.
+        Keep up with your shows and movies and talk about them with your people. Look one up — a show’s seasons come in and you check off each episode; a movie is a single tap to mark watched. It lives in the PoeTech App (a website you install on any phone or computer), so it’s not going anywhere.
       </p>
       <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={serif}>
-        Your circle: {SEED_CIRCLE.join(' · ')}. <span className="text-[#B85838]">Live group sync is coming next</span> — for now your list is saved on your device, private to you. Show info + posters: {TV_SOURCE.name}.
+        Your circle: {SEED_CIRCLE.join(' · ')}. <span className="text-[#B85838]">Live group sync is coming next</span> — for now your list is saved on your device, private to you. Show info + posters: {TV_SOURCE.name}; movies: {MOVIE_SOURCE.name}.
       </p>
 
       {/* Look up a show — live search. */}
@@ -275,7 +331,10 @@ export default function TVTime({ email = null }) {
                 className="w-full flex items-center gap-2 p-2 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">
                 <Poster url={r.poster} title={r.title} className="w-9 h-12" />
                 <span className="min-w-0">
-                  <span className="text-sm text-[#1A1815] block truncate" style={{ ...serif, fontWeight: 600 }}>{r.title}</span>
+                  <span className="text-sm text-[#1A1815] block truncate" style={{ ...serif, fontWeight: 600 }}>
+                    {r.title}
+                    {r.kind === 'movie' && <span className="text-[0.5rem] uppercase tracking-wider text-[#5A6E3D] border border-[#C9BFA8] px-1 py-0.5 ml-1.5 align-middle">Movie</span>}
+                  </span>
                   <span className="text-[0.6875rem] text-[#5A5751]">{[r.year, r.network, r.genre].filter(Boolean).join(' · ')}</span>
                 </span>
                 <span className="ml-auto text-[0.625rem] uppercase tracking-wider text-[#B85838] shrink-0">{busy === r.id ? 'Adding…' : '+ Add'}</span>
@@ -296,6 +355,9 @@ export default function TVTime({ email = null }) {
         )}
       </div>
 
+      {/* What's getting watched — dynamic, from real activity. */}
+      <TrendingStrip items={trending} />
+
       {/* The four sections. */}
       {STATUSES.map((st) => {
         const list = buckets[st.key];
@@ -307,7 +369,7 @@ export default function TVTime({ email = null }) {
               {list.map((show) => (
                 <ShowCard key={show.id} show={show} me={me} state={state}
                   onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
-                  onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} />
+                  onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie} />
               ))}
             </div>
           </section>
