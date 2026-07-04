@@ -62,6 +62,7 @@ export const BOOK_MASTERPIECES = {
   'Daniel':        'The furnace-and-throne book — allegiance under empire, and the Kingdom that outlasts them all.',
   'Malachi':       'The last word before the silence — prove Me now, and the Sun of righteousness rising.',
   'Matthew':       'The King\'s gospel — the Kingdom\'s constitution preached from a mountain.',
+  'Mark':          'The servant\'s gospel — the Son of man come not to be ministered unto but to minister; immediate and active, the Word done more than discussed.',
   'Luke':          'The physician\'s gospel — the meticulous mercy of God, table by table.',
   'John':          'The eternal gospel — in the beginning was the Word; belief unto life, written that ye might believe.',
   'Acts':          'The Body-in-motion book — the Spirit poured out and the Gospel walking to the ends of the earth; the God in whom we live, and move, and have our being.',
@@ -79,6 +80,7 @@ export const BOOK_MASTERPIECES = {
   '1 Peter':       'The furnace letter — tried gold, a royal priesthood, and hope that suffering cannot repossess.',
   '2 Peter':       'The last-testament letter — the sure Word of prophecy against the scoffers, the day of the Lord as a thief, and the angels that sinned not spared.',
   '1 John':        'Inside LOVE — God is love, and the dwelling is mutual; assurance written in family language.',
+  '3 John':        'The shortest letter with the widest wish — that thou mayest prosper and be in health, even as thy soul prospereth; walking in truth as the elder\'s joy.',
   'Jude':          'The contend-for-the-faith letter — the angels who left their own estate reserved in chains, and the call to keep yourselves in the love of God.',
   'Revelation':    'The unveiling — the Lamb wins, the overcomers are seated, and nothing unclean enters the City.',
 };
@@ -1058,6 +1060,41 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'Do not merely empty (stop a sin, quit a vice) — FILL. Be occupied by the Holy Spirit and the Word so there is no vacancy to return to. Give no place (Ephesians 4:27); a swept-but-empty house is an invitation.',
     outcome: 'A filled, occupied life — no vacancy for the return, the rightful Owner in residence.',
     tags: ['unclean-spirits', 'embodiment', 'empty-house', 'be-filled', 'give-no-place'],
+  },
+  {
+    // ── HAVING THE WORD IS NOT OBEYING IT; THE WORLD IS ENMITY; THY WILL BE DONE ─
+    // Darrell 2026-07-04: "American churches, governments, politicians, police...
+    // have the Word and purposefully use it to deceive and defend their ways even
+    // when the Word explains and gives the solutions... we want Truth for Yahweh's
+    // perspective and will. We want to suffer if that is what the King wants —
+    // however He wants our souls to prosper. His Word not mine. Those who love the
+    // world have enmity with Yahweh." Taught, not debated (DR-0098); verbatim.
+    id: 'gh-handling-word-deceitfully', section: 'epistles', name: 'Having the Word Is Not Obeying It (they wield it to defend their ways)',
+    refs: ['2 Corinthians 4:2', 'Mark 7:13', '2 Peter 3:16', '2 Timothy 2:15'],
+    condition: 'Those who hold the Word can wield it to defend themselves: "handling the word of God deceitfully" (2 Corinthians 4:2), "making the word of God of none effect through your tradition" (Mark 7:13), wresting the scriptures "unto their own destruction" (2 Peter 3:16).',
+    consequence: 'Possessing the Word is not submitting to it. The same text that gives the solution can be twisted to defend the sin — and the twisting destroys the twister. The line is not who HOLDS the Word but who OBEYS it.',
+    threeD: 'Do not use the Word to justify your way; let it judge your way. "Rightly dividing the word of truth" (2 Timothy 2:15) means reading it for Yahweh\'s will, not for permission — even when it corrects you, especially when it corrects you.',
+    outcome: 'A conscience under the Word instead of over it — using Scripture to find His will, never to defend your own.',
+    tags: ['handle-the-word', 'deceit', 'tradition', 'rightly-dividing', 'accountability'],
+  },
+  {
+    id: 'gh-friendship-world-enmity', section: 'epistles', name: 'Friendship With the World Is Enmity With Yahweh (no neutral middle)',
+    refs: ['James 4:4', '1 John 2:15-16'],
+    condition: '"The friendship of the world is enmity with God: whosoever therefore will be a friend of the world is the enemy of God" (James 4:4). "Love not the world... If any man love the world, the love of the Father is not in him" (1 John 2:15).',
+    consequence: 'There is no neutral middle. To love the world-system — the lust of the flesh, the lust of the eyes, and the pride of life — is to stand in enmity with Yahweh. You cannot befriend what rejected the Son and call it harmless.',
+    threeD: 'Audit your affections, not only your actions. Where the world has your love, the Father does not. Choose Him over the system on the specific things you are tempted to keep — the friendship is decided in the particulars.',
+    outcome: 'Undivided love — the Father\'s, not the world\'s — because you stopped trying to be a friend of both.',
+    tags: ['love-not-the-world', 'enmity', 'friendship-with-the-world', 'undivided'],
+  },
+  {
+    id: 'gh-not-my-will-but-thine', section: 'gospels', name: 'Not My Will but Thine (willing to suffer at the King\'s word)',
+    refs: ['Luke 22:42', '1 Peter 4:19', '3 John 1:2'],
+    condition: 'The King prayed it first: "nevertheless not my will, but thine, be done" (Luke 22:42). We commit our souls to Him even in suffering — "let them that suffer according to the will of God commit the keeping of their souls to Him" (1 Peter 4:19) — while He wills that our soul prosper (3 John 2).',
+    consequence: 'His Word, not mine. We will accept suffering IF that is what the King wants — and He is a faithful Creator who wills the soul to prosper, so even the suffering is safe in His hands. Surrender is not loss; it is trust placed in the One who cannot mishandle a committed soul.',
+    threeD: 'Pray the harder half of the King\'s own prayer: "not my will, but Thine." When His way costs you, commit your soul to the faithful Creator and keep doing good — His will over your comfort, His Word over your preference.',
+    outcome: 'A soul kept safe in surrender — willing to suffer at the King\'s word, and prospering under His will even through the cost.',
+    psyche: 'Surrendering the outcome to a trusted, faithful authority — instead of white-knuckling control — is what converts suffering from meaningless threat into bearable, even fruitful, trust.',
+    tags: ['thy-will-be-done', 'suffering', 'surrender', 'soul-prosper', 'his-word-not-mine'],
   },
   {
     id: 'gh-word-of-testimony', section: 'revelation', name: 'The Word of Their Testimony (eat the Word and the testimony aligns)',
