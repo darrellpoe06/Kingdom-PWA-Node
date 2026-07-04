@@ -191,6 +191,33 @@ export function saveTv(email, state) {
   } catch (e) { return { skipped: 'write-error', error: e }; }
 }
 
+// --- Your data is yours: export + restore (DATA-AS-EMPOWERMENT) --------------
+// The whole reason the friend group needs a new home is their old app is dying
+// and taking their lists with it. Here your list is exportable at full fidelity
+// (watched episodes, ratings, comments) and restorable — no lock-in, ever.
+
+export const EXPORT_TAG = 'poetech-tv-time';
+
+// A clean, JSON-serializable backup of the whole list. Pure (no clock — the
+// caller stamps exportedAt if it wants one).
+export function exportTv(state) {
+  const base = normalize(state);
+  return { app: EXPORT_TAG, version: STORE_VERSION, shows: base.shows, custom: base.custom };
+}
+
+// Restore from a backup (a parsed export object OR a raw state). Merges into the
+// current list, restore-wins per id, so it's safe to import onto a non-empty
+// list. Malformed input is dropped by normalize — a bad file can't corrupt you.
+export function importTvJson(state, incoming) {
+  const base = normalize(state);
+  const inc = normalize(incoming && typeof incoming === 'object' ? incoming : {});
+  return {
+    version: STORE_VERSION,
+    shows: { ...base.shows, ...inc.shows },
+    custom: { ...base.custom, ...inc.custom },
+  };
+}
+
 // --- Pure transforms (immutable) ---------------------------------------------
 
 function entry(state, showId) {

@@ -19,7 +19,7 @@ import {
   loadTv, saveTv, bucketShows, customCatalog, addCustomShow, addShowFromCatalog, addMovieFromCatalog, toggleMovieWatched,
   setStatus, untrack, rateShow, addComment, getComments, toggleReaction, reactionCount,
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
-  trendingWatches,
+  trendingWatches, exportTv, importTvJson,
 } from '../lib/tv-time.js';
 import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE } from '../lib/tv-catalog.js';
 
@@ -295,6 +295,35 @@ export default function TVTime({ email = null }) {
     setImportText('');
   };
 
+  // Your data is yours — download the whole list (full fidelity) as a file.
+  const exportList = () => {
+    try {
+      const blob = new Blob([JSON.stringify(exportTv(state), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'poetech-tv-time.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      setImportMsg('Downloaded your list — that file is yours to keep.');
+    } catch { setImportMsg('Could not export here — try from the installed app.'); }
+  };
+
+  // Restore from a previously-exported file (merges in, restore-wins).
+  const restoreFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const before = STATUSES.reduce((n, st) => n + buckets[st.key].length, 0);
+        const next = importTvJson(state, JSON.parse(String(reader.result || '{}')));
+        persist(next);
+        const after = STATUSES.reduce((n, st) => n + bucketShows(next, customCatalog(next))[st.key].length, 0);
+        setImportMsg(`Restored — ${Math.max(0, after - before)} added from your backup.`);
+      } catch { setImportMsg('That file wasn’t a TV Time backup.'); }
+    };
+    reader.readAsText(file);
+  };
+
   const anyTracked = STATUSES.some((st) => buckets[st.key].length);
 
   return (
@@ -312,7 +341,10 @@ export default function TVTime({ email = null }) {
       <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-3">
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Look up a show</div>
-          <button type="button" onClick={() => { setImportOpen((v) => !v); setImportMsg(''); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>{importOpen ? 'Close import' : 'Import my old list'}</button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={exportList} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>Export my list</button>
+            <button type="button" onClick={() => { setImportOpen((v) => !v); setImportMsg(''); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>{importOpen ? 'Close import' : 'Import my old list'}</button>
+          </div>
         </div>
         <label className="sr-only" htmlFor="tv-search">Search for a show</label>
         <input id="tv-search" value={query} onChange={(e) => setQuery(e.target.value)} autoComplete="off"
@@ -347,8 +379,12 @@ export default function TVTime({ email = null }) {
             <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" htmlFor="tv-import">Paste your shows — one per line</label>
             <textarea id="tv-import" rows={5} value={importText} onChange={(e) => setImportText(e.target.value)}
               placeholder={'Game of Thrones\nThe Real Housewives\nBreaking Bad'} className="w-full text-sm px-2 py-1 border border-[#E8E4DC] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] mt-1" style={serif} />
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 flex-wrap mt-1">
               <button type="button" onClick={runImport} disabled={!importText.trim()} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Bring them in</button>
+              <label className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white cursor-pointer`}>
+                Restore from a backup file
+                <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => { restoreFile(e.target.files && e.target.files[0]); e.target.value = ''; }} />
+              </label>
               {importMsg && <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{importMsg}</span>}
             </div>
           </div>
