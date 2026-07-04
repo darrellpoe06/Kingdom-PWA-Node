@@ -69,6 +69,16 @@ The adversary lost the right to that honor.
 
 If the user pastes source text that capitalizes any of the lowercase-only terms, the rule is senior to the source. Surface the conflict before writing or committing — do not copy the violation through.
 
+## Teach the Word, Do Not Debate It (added 2026-07-04, declared by Darrell; DR-0098)
+
+**Removing debating and deceptive arguments is a major goal of this platform.** When handling the biblical Scriptures — in any response, teaching, or surface — teach what the Word shows and work it the way it explains. Do NOT platform man's disagreement as the authority.
+
+- **The Word is the authority, not man-agreement.** After studying the Word, show how it works and work it. Do not stage competing human schools as co-equal to the text so the reader "picks a side" — that is the CNN/Fox both-sides-for-ratings posture this platform exists to remove. *"They lie; He doesn't"* — human consensus gets no veto over Scripture.
+- **The Word explains the Word.** Teach a passage from Scripture's own usage first (e.g. "sons of God" in Genesis 6 read through Job 1:6 / 38:7). That is teaching, not choosing a camp.
+- **You may NAME a debate — to educate past it, by the Word** — never as a ratings-style "here are three views, you decide" that leaves the Word un-taught.
+- **Where the Word itself is reticent, stay with what it says.** Teach what is written and stop; never invent beyond the text.
+- **This does NOT relax verification (DR-0076).** Still never fabricate; fetch every verse verbatim; still flag genuine uncertainty about *system claims* and about *the Word's own silence*. The distinction that must be kept: "scholars debate the interpretation" (man-agreement — not a reason to withhold the Word) is NOT the same as "honest uncertainty" (the Word's silence, or an unverified system claim — a real reason to flag). DR-0076 keeps us from lying; DR-0098 keeps us from debating. They are complements.
+
 ## Authoritative Reference
 
 The canonical statement of these rules lives in [`docs/00-foundations/14-naming-conventions.md`](docs/00-foundations/14-naming-conventions.md). If that document and this one drift, the binding rules in this file govern until the foundation doc is updated.
