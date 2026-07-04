@@ -7,12 +7,13 @@
 // others shared with you. WRITE is owner-only; READ is membership + role gated by
 // the RLS in 0074-tv-circle-sharing.sql, which mirrors lib/tv-sharing.js.
 //
-// ⚠ THE GATE (DR-0076 + 0072's own note). TV_SHARING_ENABLED is FALSE until the
-// data-isolation smoke test (infra/supabase/tests/0074-isolation-smoke.sql) has
-// PASSED on the live NAS Supabase. While false, the UI never mounts the circle
-// setup or the Family/Us/Circle views, so no cross-person read happens in
-// production — TV Time stays exactly as it is today (no painted "coming soon").
-// Flipping this one flag to true (after the PASS) turns the whole feature on.
+// (!!) THE GATE (DR-0076 + 0072's own note). TV_SHARING_ENABLED was FALSE until the
+// data-isolation smoke test (infra/supabase/tests/0074-isolation-smoke.sql) PASSED
+// against the real database (the tv-sharing-isolation CI lane, SUPABASE_DB_URL).
+// It has now PASSED (2026-07-04), so the flag is true and the circle setup +
+// Family/Us/Circle views mount. While it was false the UI mounted none of them, so
+// no cross-person read happened in production (no painted "coming soon"). This one
+// flag turns the whole feature on/off.
 //
 // PURE helpers (invite code shape, bucketing shares into views + a community feed)
 // are node-tested; the supabase I/O is fail-soft (null/false on any error) exactly
@@ -21,9 +22,13 @@
 import { supabase } from './supabase.js';
 import { publishDocFor, AUDIENCE_KEYS, communityFeed } from './tv-sharing.js';
 
-// THE ENABLEMENT GATE. Do not flip to true until 0074-isolation-smoke.sql prints
-// 'ISOLATION SMOKE: PASS' on the live NAS Supabase. One-line change, its own commit.
-export const TV_SHARING_ENABLED = false;
+// THE ENABLEMENT GATE — now OPEN. The isolation smoke test
+// (infra/supabase/tests/0074-isolation-smoke.sql) ran GREEN against the real
+// database via the tv-sharing-isolation CI lane (SUPABASE_DB_URL) on 2026-07-04
+// (run 28722936533, head a893dee): every assertion passed — kids never read 'us',
+// a spouse reads 'us', a parent has oversight, a friend reads only the circle, and
+// a different family reads nothing. Verified isolation (DR-0076), so the flag opens.
+export const TV_SHARING_ENABLED = true;
 
 // --- Pure -------------------------------------------------------------------
 

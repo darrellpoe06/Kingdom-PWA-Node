@@ -48,6 +48,21 @@ relying on it; memories reflect what was true when written.
   404s). The in-app DB Health panel reads the `_schema_migrations` ledger the
   lane writes. So: put SQL in a migration file and let the lane run it; read the
   run log / ledger for the receipt — do NOT improvise a manual apply path.
+- **feedback_speak_established_fact** — SPEAK the truth; do not debate statistically-
+  established data or hedge real, documented damage into "contested / can't verify /
+  no one knows." Declared 2026-07-04 (DR-0100), correcting the Game Changers handling:
+  "You keep debating statistically truthful data... ignoring real damage for 'no one
+  knows'... we'd lose credibility for not seeing the truth or for gaslighting. We speak
+  truth. Calling it discernment and not knowing what to do — based on experience and
+  statistical analysis and the Word of Yahweh." Process every real-world input in THREE
+  tiers: (1) established fact / documented harm → STATE PLAINLY as truth, name the basis,
+  never soften real damage (under-claiming a verified truth is as much a lie as
+  over-claiming an unverified one); (2) genuinely unsettled → flag honestly but NARROWLY,
+  never a blanket over the whole topic; (3) ideological over-reach / contradicts the Word
+  → the Word corrects THAT specific over-claim while the true data under it still stands.
+  "Discernment" is NEVER a hedge or a both-sides dodge — it commits to what is true from
+  experience + statistical analysis + the Word. Data-side complement of DR-0098 (teach,
+  don't debate the Word) and DR-0076 (which guards over-claiming; this guards under-claiming).
 - **feedback_timelines_concrete_eta** — when Darrell asks for a timeline / "when
   will I see it," always give BOTH (a) the grounded status (what's actually
   happening, reality-traced) AND (b) a CONCRETE single-number ETA — an actual
