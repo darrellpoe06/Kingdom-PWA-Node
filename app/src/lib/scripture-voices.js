@@ -69,8 +69,21 @@ export const VOICE_QUOTES = [
   { ref: 'Genesis 3:1', voice: 'adversary', quote: 'Yea, hath God said, Ye shall not eat of every tree of the garden?' },
   { ref: 'Genesis 3:4', voice: 'adversary', quote: 'Ye shall not surely die' },
   { ref: 'Genesis 3:5', voice: 'adversary', quote: 'For God doth know that in the day ye eat thereof, then your eyes shall be opened, and ye shall be as gods, knowing good and evil.' },
-  // Creation — the Father speaks the worlds into being (Genesis 1).
+  // Creation — the Father speaks the worlds into being (Genesis 1). EVERY "And God
+  // said…" is the Father's own voice (Darrell 2026-07-04: "all the God said should
+  // be highlighted in the correct color"). Only the spoken words are colored; the
+  // narration ("And God said," / "and it was so") stays plain. Verbatim (DR-0076).
   { ref: 'Genesis 1:3', voice: 'father', quote: 'Let there be light' },
+  { ref: 'Genesis 1:6', voice: 'father', quote: 'Let there be a firmament in the midst of the waters, and let it divide the waters from the waters.' },
+  { ref: 'Genesis 1:9', voice: 'father', quote: 'Let the waters under the heaven be gathered together unto one place, and let the dry land appear' },
+  { ref: 'Genesis 1:11', voice: 'father', quote: 'Let the earth bring forth grass, the herb yielding seed, and the fruit tree yielding fruit after his kind, whose seed is in itself, upon the earth' },
+  { ref: 'Genesis 1:14', voice: 'father', quote: 'Let there be lights in the firmament of the heaven to divide the day from the night; and let them be for signs, and for seasons, and for days, and years:' },
+  { ref: 'Genesis 1:20', voice: 'father', quote: 'Let the waters bring forth abundantly the moving creature that hath life, and fowl that may fly above the earth in the open firmament of heaven.' },
+  { ref: 'Genesis 1:22', voice: 'father', quote: 'Be fruitful, and multiply, and fill the waters in the seas, and let fowl multiply in the earth.' },
+  { ref: 'Genesis 1:24', voice: 'father', quote: 'Let the earth bring forth the living creature after his kind, cattle, and creeping thing, and beast of the earth after his kind' },
+  { ref: 'Genesis 1:26', voice: 'father', quote: 'Let us make man in our image, after our likeness: and let them have dominion over the fish of the sea, and over the fowl of the air, and over the cattle, and over all the earth, and over every creeping thing that creepeth upon the earth.' },
+  { ref: 'Genesis 1:28', voice: 'father', quote: 'Be fruitful, and multiply, and replenish the earth, and subdue it: and have dominion over the fish of the sea, and over the fowl of the air, and over every living thing that moveth upon the earth.' },
+  { ref: 'Genesis 1:29', voice: 'father', quote: 'Behold, I have given you every herb bearing seed, which is upon the face of all the earth, and every tree, in the which is the fruit of a tree yielding seed; to you it shall be for meat.' },
   // The Temptation — the tempter's voice COLD, Jesus' answers RED (Matthew 4).
   { ref: 'Matthew 4:3', voice: 'adversary', quote: 'If thou be the Son of God, command that these stones be made bread.' },
   { ref: 'Matthew 4:4', voice: 'jesus', quote: 'It is written, Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God.' },
