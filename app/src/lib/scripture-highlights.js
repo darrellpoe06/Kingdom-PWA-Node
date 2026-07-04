@@ -54,7 +54,9 @@ export const HIGHLIGHT_STYLES = [
     css: { color: '#C2410C', fontWeight: 600 },
   },
   {
-    key: 'crimson', label: 'Hard truth', kind: 'foreground', meaning: 'the word that cuts before it heals',
+    // RED IS RESERVED (Darrell 2026-07-04, binding): red is the Blood of Jesus —
+    // the Godhead's own color. It never marks anything else in this palette.
+    key: 'crimson', label: 'The Blood', kind: 'foreground', meaning: 'the Blood of Jesus — redemption; red belongs to the Godhead',
     swatch: '#B01E1E',
     css: { color: '#B01E1E', fontWeight: 600 },
   },
@@ -116,9 +118,11 @@ export const HIGHLIGHT_STYLES = [
     css: { color: '#1A1815', fontWeight: 800 },
   },
   {
+    // Neutral struck line — red is reserved for the Blood, so the strike is drawn
+    // in the muted body ink, never red.
     key: 'strike', label: 'Struck', kind: 'emphasis', meaning: 'what is cancelled, put away, made void',
     swatch: '#4A4640',
-    css: { color: '#4A4640', textDecorationLine: 'line-through', textDecorationColor: '#B01E1E', textDecorationThickness: '0.125rem' },
+    css: { color: '#4A4640', textDecorationLine: 'line-through', textDecorationColor: '#4A4640', textDecorationThickness: '0.125rem' },
   },
 ];
 
