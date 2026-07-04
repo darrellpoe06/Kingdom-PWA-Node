@@ -70,8 +70,10 @@ function Section({ section }) {
       <h4 className="text-[#1A1815] mb-1" style={{ ...serif, fontWeight: 600 }}>{section.heading}</h4>
       <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{section.plain}</p>
       {section.primaryRef && <Verse refStr={section.primaryRef} translationCited={(section.anchors?.[0]?.translation) || 'ESV'} />}
+      {/* Full-width tap target (Darrell 2026-07-04: reachable by a right thumb,
+          not just the left link) — the text stays small + left so it looks the same. */}
       <button type="button" onClick={() => setDeep((v) => !v)} aria-expanded={deep}
-        className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+        className="w-full text-left mt-1.5 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
         {deep ? '↑ Close' : '↓ Go deeper'}
       </button>
       {deep && (
@@ -117,7 +119,7 @@ function ForgeFramework({ alg }) {
       {alg.fourD && (
         <div className="mt-1.5">
           <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep}
-            className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            className="w-full text-left py-1.5 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
             {openDeep ? '↑ Close the deep layer' : '↓ Go deeper (the eternal expression)'}
           </button>
           {openDeep && (

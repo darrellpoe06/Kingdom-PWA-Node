@@ -232,7 +232,7 @@ function AlgorithmCard({ entry, onEdit, onDelete, onPin, onSetPublish, openByDef
       {/* 4D source — one click deeper (progressive disclosure). */}
       {(entry.fourD?.summary || entry.fourD?.scripture) && (
         <div className="mt-2">
-          <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep} className="w-full text-left py-1.5 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
             {openDeep ? '↑ Hide the 4D source' : '↓ Open the 4D source (eternal / scriptural)'}
           </button>
           {openDeep && (
