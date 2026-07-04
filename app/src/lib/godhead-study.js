@@ -51,6 +51,7 @@ export const BOOK_MASTERPIECES = {
   '1 Kings':       'The divided-kingdom book — fire on Carmel, the still small voice, and provision commanded ahead at a widow\'s door before the prophet ever arrives.',
   '2 Chronicles':  'The kings measured by one question — did the house seek Him? Humility heals the land.',
   'Nehemiah':      'The rebuilding book — the wall up in fifty-two days, the Word read aloud to the people, and joy as the strength of the restored.',
+  'Job':           'The suffering-and-sovereignty masterpiece — the righteous man stripped to nothing, and the Voice from the whirlwind; in whose hand is the soul of every living thing and the breath of all mankind.',
   'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
   'Proverbs':      'The kings\' algorithm book — written for the kings of The Eternal King and simultaneously for The Way; wisdom as executable one-liners.',
   'Isaiah':        'The masterpiece of majesty and the Servant — the throne room and the wounds, in one scroll.',
@@ -61,6 +62,7 @@ export const BOOK_MASTERPIECES = {
   'Matthew':       'The King\'s gospel — the Kingdom\'s constitution preached from a mountain.',
   'Luke':          'The physician\'s gospel — the meticulous mercy of God, table by table.',
   'John':          'The eternal gospel — in the beginning was the Word; belief unto life, written that ye might believe.',
+  'Acts':          'The Body-in-motion book — the Spirit poured out and the Gospel walking to the ends of the earth; the God in whom we live, and move, and have our being.',
   'Romans':        'The legal masterpiece — the whole case of the Gospel argued to a verdict: no condemnation.',
   '1 Corinthians': 'The Body\'s house rules — gifts, order, love, and resurrection, written to a messy real church.',
   '2 Corinthians': 'Strength in the cracked jar — treasure in earthen vessels, grace sufficient, the cheerful sower.',
@@ -912,6 +914,60 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'Do not presume on being known — Judas was known and still chose. Let "He knows me" produce reverence, not entitlement; the One who knows the betrayer knows you, and loves you toward repentance while there is still time.',
     outcome: 'A sober, grateful walk — fully known, still chosen, and warned in love that His foreknowledge never removes your accountability.',
     tags: ['foreknowledge', 'judas', 'accountability', 'choice'],
+  },
+  {
+    // ── HE DECLARES THE END FROM THE BEGINNING ─────────────────────────────────
+    // Darrell 2026-07-04: "Yahweh tells the end from the beginning because He IS
+    // THE ONE no one else can do that — He is in the past, present and future at
+    // the same time... our minds can't even comprehend that... look at our human
+    // bodies that are dying — we can't even keep them working without Yahweh; we
+    // are eternally doomed." He alone stands outside time (the 4D Author, DR-0097),
+    // is past finding out, and holds our very breath in His hand. Verses verbatim.
+    id: 'gh-end-from-beginning', section: 'prophets', name: 'He Declares the End From the Beginning (only Yahweh can)',
+    refs: ['Isaiah 46:9-10'],
+    condition: '"I am God, and there is none else; I am God, and there is none like me, Declaring the end from the beginning, and from ancient times the things that are not yet done." Only the One outside time can tell the end before the beginning arrives.',
+    consequence: 'What He purposes stands: "My counsel shall stand, and I will do all my pleasure." History is not up for grabs — the One who cannot be surprised already wrote its end, and no rival can.',
+    threeD: 'Anchor your peace to His declared end, not the day\'s headline. When the middle of the story is chaos, remember Who already published the last chapter — and that only He could. Live from the ending He announced, not the fear the moment sells.',
+    outcome: 'Steadiness in the middle of the story, because the One outside time has already secured the end.',
+    psyche: 'Certainty about the ultimate outcome is the strongest buffer a mind has against present uncertainty — and here that certainty rests on the only One who already inhabits the outcome.',
+    tags: ['end-from-beginning', 'sovereignty', 'only-yahweh', 'time', 'isaiah'],
+  },
+  {
+    id: 'gh-first-and-last', section: 'prophets', name: 'The First and the Last (past, present, and future at once)',
+    refs: ['Isaiah 44:6', 'Revelation 1:8'],
+    condition: '"I am the first, and I am the last; and beside me there is no God" — "I am Alpha and Omega... which is, and which was, and which is to come, the Almighty." He is in the past, the present, and the future at the same time.',
+    consequence: 'He bookends all of time and stands outside it — no moment of yours is behind Him or ahead of Him; He is already there. Nothing about your timeline is news to Him.',
+    threeD: 'Bring Him the thing you dread in the future AND the thing you regret in the past — He is Lord of both at once. Stop living as if your worst yesterday or scariest tomorrow is outside His reach; He is already standing in both.',
+    outcome: 'Rest that spans your whole timeline, because the First and the Last already holds every part of it.',
+    tags: ['first-and-last', 'alpha-omega', 'eternity', 'past-present-future'],
+  },
+  {
+    id: 'gh-past-finding-out', section: 'epistles', name: 'His Ways Past Finding Out (our minds cannot comprehend Him)',
+    refs: ['Romans 11:33', 'Isaiah 55:8-9'],
+    condition: '"O the depth of the riches both of the wisdom and knowledge of God! how unsearchable are His judgments, and His ways past finding out!" — "as the heavens are higher than the earth, so are My ways higher than your ways."',
+    consequence: 'His mind is not a bigger version of yours — it is categorically higher. What you cannot comprehend about Him is not a gap to be closed but the very evidence that He is God and you are not.',
+    threeD: 'Let the parts of Him you cannot figure out drive worship, not doubt. Trade the demand to understand everything for trust in the One who does. When His way makes no sense to your 3D logic, bow rather than shrink Him to your size.',
+    outcome: 'Humility that rests instead of frets — worshipping the unsearchable God instead of resenting a god small enough to fully explain.',
+    tags: ['unsearchable', 'higher-ways', 'humility', 'incomprehensible', 'romans'],
+  },
+  {
+    id: 'gh-breath-in-his-hand', section: 'wisdom', name: 'Your Breath Is in His Hand (we cannot keep ourselves alive)',
+    refs: ['Job 12:10', 'Acts 17:28', 'Psalms 103:15-16'],
+    condition: '"In whose hand is the soul of every living thing, and the breath of all mankind" — "in Him we live, and move, and have our being." Man\'s days are as grass; the wind passes over it, and it is gone.',
+    consequence: 'You do not keep yourself alive. Every heartbeat is on loan; the dying body you cannot repair is held together breath by breath by Him. Apart from Him you are dust and eternally doomed; in Him is your life.',
+    threeD: 'Receive each day as borrowed breath and spend it on what is eternal. Stop trusting the frail machine of the body as if it were self-sustaining; number your days, and give the Lender the life He is holding open. Depend on Him, out loud.',
+    outcome: 'A rightly-sized life — grateful, dependent, spent on the eternal — because you know Who is holding your breath.',
+    psyche: 'Honestly reckoning with mortality, rather than denying it, is what reorders a life toward what actually lasts — and here the reckoning ends in dependence on the One who holds the breath, not in despair.',
+    tags: ['breath', 'frailty', 'dependence', 'mortality', 'in-him-we-live'],
+  },
+  {
+    id: 'gh-wages-and-gift', section: 'epistles', name: 'The Wage and the Gift (doomed apart from Him, Life through the Son)',
+    refs: ['Romans 6:23'],
+    condition: '"For the wages of sin is death; but the gift of God is eternal life through Jesus Christ our Lord." Two ledgers: what sin PAYS, and what God GIVES.',
+    consequence: 'Left to our own account we are eternally doomed — death is the earned wage. But the gift cannot be earned, only received: eternal life, through the Son, is offered to the very ones who could never pay.',
+    threeD: 'Stop trying to earn what is a gift, and stop pretending the wage is not real. Receive the Son; then live as one who was doomed and got given Life instead — grateful, not entitled, and quick to hand the same gift to others.',
+    outcome: 'A settled eternity received, not achieved — doom exchanged for Life through Jesus, and a heart that gives the gift away.',
+    tags: ['wages-of-sin', 'gift-of-god', 'eternal-life', 'doom-and-rescue', 'romans'],
   },
   {
     id: 'gh-word-of-testimony', section: 'revelation', name: 'The Word of Their Testimony (eat the Word and the testimony aligns)',
