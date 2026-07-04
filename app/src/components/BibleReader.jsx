@@ -21,6 +21,7 @@ import {
 import { crossRefsFor, XREF_SOURCE } from '../lib/bible-xref.js';
 import { THEMES, themeMarkerStyle } from '../lib/scripture-themes.js';
 import { scanThemeSpans, themesPresent } from '../lib/scripture-theme-scan.js';
+import { VOICES, cssForVoice, voiceSpansFor, voicesPresent } from '../lib/scripture-voices.js';
 
 // The character offsets [start,end) of the current text selection WITHIN a verse
 // container (its textContent), or null. Uses a Range measured from the container
@@ -92,6 +93,14 @@ function VerseUnions({ refStr, text, onOpenRef }) {
 const serif = { fontFamily: 'Georgia, "Times New Roman", serif' };
 const mono = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' };
 
+// Resolve a rendered segment's style key to css. A key is either a highlight/theme
+// key (cssForHighlight) or a voice key (cssForVoice); the namespaces don't overlap,
+// so try highlight first and fall through to voice. 'none' resolves to {} (plain).
+function segCss(style) {
+  const hi = cssForHighlight(style);
+  return Object.keys(hi).length ? hi : cssForVoice(style);
+}
+
 // Study by theme — the Inductive / Precept THEMATIC MARKERS (Darrell 2026-07-04,
 // from his Logos "Inductive / Precept" screenshots). Each theme runs through the
 // whole Word in one consistent marker color (scripture-themes); tap a theme to
@@ -155,19 +164,26 @@ export default function BibleReader({ email = null }) {
   const [focusVerse, setFocusVerse] = useState(null);
   const [openVerse, setOpenVerse] = useState(null); // verse whose unions panel is open
   const [marks, setMarks] = useState(() => loadHighlights(email));
-  // One-click "Highlighted Bible" (Darrell 2026-07-04): flip it on and every verse
-  // auto-colors by the theme key/color code so Yahweh's patterns show at a glance —
-  // no manual marking. It's a VIEW (scripture-theme-scan), computed on the fly; it
-  // never touches saved highlights, and it stays on as you read chapter to chapter.
-  const [patternsOn, setPatternsOn] = useState(false);
+  // One-click "Highlighted Bible" (Darrell 2026-07-04). Two color codes the reader
+  // LEARNS over time, each a VIEW computed on the fly (never touches saved marks):
+  //   'themes' — every verse auto-colors by the theme key/color code (patterns).
+  //   'voices' — the red-letter code: who is SPEAKING (Jesus red, the tempter cold,
+  //     the Father gold…) so the eye comes to know the voice by its color.
+  // 'off' reads plain. The mode stays on as you read chapter to chapter.
+  const [autoMode, setAutoMode] = useState('off'); // 'off' | 'themes' | 'voices'
 
   const chapters = chapterCount(book);
 
-  // The themes actually present in THIS chapter — a live legend of what the
-  // pattern view is showing (real-data: reflects the text on screen, P15).
+  // A live legend of what the current view is showing on THIS chapter's real text
+  // (P15). Themes are scanned from the words; voices are the verified speakers of
+  // the verses on screen.
   const chapterThemes = useMemo(
-    () => (patternsOn ? themesPresent(verses.map((x) => x.text).join(' ')) : []),
-    [patternsOn, verses],
+    () => (autoMode === 'themes' ? themesPresent(verses.map((x) => x.text).join(' ')) : []),
+    [autoMode, verses],
+  );
+  const chapterVoices = useMemo(
+    () => (autoMode === 'voices' ? voicesPresent(verses.map((x) => `${book} ${chapter}:${x.v}`)) : []),
+    [autoMode, verses, book, chapter],
   );
 
   useEffect(() => {
@@ -375,14 +391,22 @@ export default function BibleReader({ email = null }) {
         </div>
       )}
 
-      {/* One-click "Highlighted Bible" — auto-color the whole chapter by theme so
-          the patterns of the Word show at a glance (Darrell 2026-07-04). */}
+      {/* One-click "Highlighted Bible" — two color codes the reader learns over
+          time: PATTERNS (by theme) and VOICES (red-letter, who is speaking). */}
       <div className="mb-2">
-        <button type="button" onClick={() => setPatternsOn((v) => !v)} aria-pressed={patternsOn}
-          className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${patternsOn ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A6E3D] border-[#5A6E3D] hover:bg-[#FAF8F4]'}`}>
-          {patternsOn ? '✓ Patterns on — the Highlighted Bible' : 'Show Yahweh’s patterns — one click'}
-        </button>
-        {patternsOn && (
+        <div className="inline-flex items-center gap-0 border border-[#5A6E3D]" role="group" aria-label="Highlighted Bible mode">
+          {[
+            { id: 'off', label: 'Plain' },
+            { id: 'themes', label: 'Yahweh’s patterns' },
+            { id: 'voices', label: 'The voices (red-letter)' },
+          ].map((m) => (
+            <button key={m.id} type="button" onClick={() => setAutoMode(m.id)} aria-pressed={autoMode === m.id}
+              className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 focus:outline focus:outline-2 focus:outline-[#B85838] ${autoMode === m.id ? 'bg-[#5A6E3D] text-white' : 'bg-white text-[#5A6E3D] hover:bg-[#FAF8F4]'}`}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+        {autoMode === 'themes' && (
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In this chapter:</span>
             {chapterThemes.length === 0 ? (
@@ -398,6 +422,25 @@ export default function BibleReader({ email = null }) {
             })}
           </div>
         )}
+        {autoMode === 'voices' && (
+          <div className="mt-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Voices here:</span>
+              {chapterVoices.length === 0 ? (
+                <span className="text-[0.6875rem] text-[#5A5751]" style={serif}>no voices verified in this chapter yet — only the narration.</span>
+              ) : chapterVoices.map((k) => {
+                const vc = VOICES.find((x) => x.key === k);
+                return (
+                  <span key={k} className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-[#E8E4DC]" title={vc.meaning}>
+                    <span aria-hidden="true" className="text-[0.6875rem] leading-none" style={cssForVoice(k)}>Aa</span>
+                    <span className="text-[0.625rem] text-[#1A1815]" style={serif}>{vc.label}</span>
+                  </span>
+                );
+              })}
+            </div>
+            <p className="text-[0.5625rem] text-[#5A5751] mt-1" style={serif}>Red-letter: Jesus in red (the Blood), the tempter cold. Only verified speakers are colored — the set grows verse by verse; the rest reads plain.</p>
+          </div>
+        )}
       </div>
 
       {/* The verses. */}
@@ -411,6 +454,11 @@ export default function BibleReader({ email = null }) {
             const ref = `${book} ${chapter}:${v}`;
             const mark = getMark(marks, ref);
             const open = openVerse === v;
+            // The auto color code for this view: theme words, or the verified
+            // speaker (voices), UNDER the reader's own spans (which win on overlap).
+            const autoSpans = autoMode === 'themes' ? scanThemeSpans(text)
+              : autoMode === 'voices' ? voiceSpansFor(ref, text) : [];
+            const spans = autoSpans.length ? [...autoSpans, ...getSpans(marks, ref)] : getSpans(marks, ref);
             return (
               <React.Fragment key={v}>
                 <div id={`v-${v}`}
@@ -421,13 +469,13 @@ export default function BibleReader({ email = null }) {
                     className="text-[0.625rem] text-[#5A6E3D] font-semibold mt-1 w-6 shrink-0 text-right hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]" style={mono}>{v}</button>
                   <p className="text-sm text-[#1A1815] leading-relaxed flex-1" style={serif}
                     onMouseUp={(e) => onSelect(ref, e.currentTarget)} onTouchEnd={(e) => onSelect(ref, e.currentTarget)}>
-                    {/* Auto theme spans (pattern view) render UNDER the reader's own
+                    {/* Auto spans (theme or voice) render UNDER the reader's own
                         spans — a personal highlight always wins on overlap. */}
                     <span style={cssForHighlight(mark)}>
-                      {segmentsForVerse(text, patternsOn ? [...scanThemeSpans(text), ...getSpans(marks, ref)] : getSpans(marks, ref)).map((seg, i) => (
+                      {segmentsForVerse(text, spans).map((seg, i) => (
                         seg.style === 'none'
                           ? <React.Fragment key={i}>{seg.text}</React.Fragment>
-                          : <span key={i} style={cssForHighlight(seg.style)}>{seg.text}</span>
+                          : <span key={i} style={segCss(seg.style)}>{seg.text}</span>
                       ))}
                     </span>
                   </p>
