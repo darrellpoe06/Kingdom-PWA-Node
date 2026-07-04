@@ -14,6 +14,7 @@ import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import EternalAlgorithmsStudy from '../components/EternalAlgorithmsStudy.jsx';
 import { kjvText } from '../lib/scriptures.js';
+import { GODHEAD_ALGORITHMS } from '../lib/godhead-study.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -72,6 +73,21 @@ describe('EternalAlgorithmsStudy — the public series surface renders faithfull
     expect(stored['doer-not-hearer'].probe).toBe('I avoided the hard conversation');
     // the mirror (mercy + accountability) is revealed once engaged
     expect(container.textContent).toMatch(/looking without forgetting|gap named/i);
+  });
+
+  it('the Godhead study shows the OUTCOME first — the end from the beginning (collapsed, before the mechanism)', async () => {
+    await mount();
+    const godheadTab = btn(/The Godhead Study/);
+    expect(godheadTab).toBeTruthy();
+    await clickEl(godheadTab);
+    const text = container.textContent || '';
+    const first = GODHEAD_ALGORITHMS[0];
+    // The win is surfaced up front — visible WITHOUT expanding any entry (Darrell
+    // 2026-07-04: "shows the outcome first... like Yahweh shows the end from the beginning").
+    expect(text).toMatch(/Outcome — you win with it/);
+    expect(text).toContain(first.outcome.slice(0, 40));
+    // ...while the IF/THEN mechanism (the consequence) stays folded until opened.
+    expect(text).not.toContain(first.consequence.slice(0, 40));
   });
 
   it('runs the belief-vs-action round and shows the Yahweh-axis mirror', async () => {
