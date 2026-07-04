@@ -117,7 +117,11 @@ function normalize(parsed) {
         at: Number.isFinite(c.at) ? c.at : 0,
         reactions: normalizeReactions(c.reactions),
       })) : [];
-    shows[id] = { status, rating, comments };
+    // Which episodes you've checked off: { "1x1": true, "1x2": true, ... }.
+    const watched = {};
+    const wsrc = raw.watched && typeof raw.watched === 'object' ? raw.watched : {};
+    for (const [k, v] of Object.entries(wsrc)) if (v === true && /^\d+x\d+$/.test(k)) watched[k] = true;
+    shows[id] = { status, rating, comments, watched };
   }
   const custom = {};
   const csrc = parsed && typeof parsed.custom === 'object' && parsed.custom ? parsed.custom : {};
@@ -125,10 +129,34 @@ function normalize(parsed) {
     if (typeof id !== 'string' || !id.trim() || !raw || typeof raw !== 'object') continue;
     const title = typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : null;
     if (!title) continue;
-    custom[id] = { id, title, genre: typeof raw.genre === 'string' && raw.genre.trim() ? raw.genre.trim() : 'Show' };
+    custom[id] = {
+      id,
+      title,
+      genre: typeof raw.genre === 'string' && raw.genre.trim() ? raw.genre.trim() : 'Show',
+      poster: typeof raw.poster === 'string' ? raw.poster : '',
+      year: typeof raw.year === 'string' ? raw.year : '',
+      network: typeof raw.network === 'string' ? raw.network : '',
+      seasons: normalizeSeasons(raw.seasons),
+    };
   }
   return { version: STORE_VERSION, shows, custom };
 }
+
+// The cached season/episode structure (from tv-catalog). Kept clean so a corrupt
+// blob can't inject junk episodes.
+function normalizeSeasons(seasons) {
+  return (Array.isArray(seasons) ? seasons : [])
+    .filter((s) => s && Number.isFinite(s.season) && Array.isArray(s.episodes))
+    .map((s) => ({
+      season: s.season,
+      episodes: s.episodes
+        .filter((e) => e && Number.isFinite(e.number))
+        .map((e) => ({ number: e.number, name: typeof e.name === 'string' ? e.name : `Episode ${e.number}`, airdate: typeof e.airdate === 'string' ? e.airdate : '' })),
+    }));
+}
+
+// The episode checkmark key.
+export function epKey(season, number) { return `${season}x${number}`; }
 
 function normalizeReactions(r) {
   const out = {};
@@ -165,7 +193,7 @@ export function saveTv(email, state) {
 
 function entry(state, showId) {
   const base = normalize(state);
-  return base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+  return base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
 }
 
 export function getStatus(state, showId) {
@@ -175,7 +203,7 @@ export function getStatus(state, showId) {
 export function setStatus(state, showId, status) {
   const base = normalize(state);
   if (!showId || !STATUS_KEYS.has(status)) return base;
-  const cur = base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+  const cur = base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
   return { version: STORE_VERSION, shows: { ...base.shows, [showId]: { ...cur, status } }, custom: base.custom };
 }
 
@@ -192,7 +220,7 @@ export function rateShow(state, showId, rating) {
   const base = normalize(state);
   const r = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
   if (!showId) return base;
-  const cur = base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+  const cur = base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
   return { version: STORE_VERSION, shows: { ...base.shows, [showId]: { ...cur, rating: r } }, custom: base.custom };
 }
 
@@ -203,13 +231,89 @@ export function addCustomShow(state, { title, genre } = {}) {
   const id = slugify(title);
   if (!id) return base;
   const custom = { ...base.custom, [id]: { id, title: String(title).trim(), genre: String(genre || 'Show').trim() || 'Show' } };
-  const cur = base.shows[id] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+  const cur = base.shows[id] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
   return { version: STORE_VERSION, shows: { ...base.shows, [id]: cur }, custom };
 }
 
 // The custom shows as a catalog array (merge with SEED_SHOWS for the surface).
 export function customCatalog(state) {
   return Object.values(normalize(state).custom);
+}
+
+// --- Episodes: look it up, bring in the seasons, check off what you watched ---
+// (Darrell 2026-07-04: "it'll bring in all the seasons... check off each show
+// you watched... so you know how many seasons of each show it is.")
+
+// Add a show from the lookup (tv-catalog) — caches its poster + every season, and
+// starts tracking it. Re-adding refreshes the cached seasons without losing your
+// checkmarks. Returns a NEW state.
+export function addShowFromCatalog(state, show, status = 'watching') {
+  const base = normalize(state);
+  if (!show || show.id == null || !show.title) return base;
+  const id = String(show.id);
+  const meta = normalizeSeasons(show.seasons) && {
+    id,
+    title: String(show.title),
+    genre: show.genre || 'Show',
+    poster: typeof show.poster === 'string' ? show.poster : '',
+    year: typeof show.year === 'string' ? show.year : '',
+    network: typeof show.network === 'string' ? show.network : '',
+    seasons: normalizeSeasons(show.seasons),
+  };
+  const custom = { ...base.custom, [id]: meta };
+  const cur = base.shows[id] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
+  const st = STATUS_KEYS.has(status) ? status : cur.status;
+  return { version: STORE_VERSION, shows: { ...base.shows, [id]: { ...cur, status: st } }, custom };
+}
+
+export function isEpisodeWatched(state, showId, season, number) {
+  const e = normalize(state).shows[showId];
+  return !!(e && e.watched && e.watched[epKey(season, number)]);
+}
+
+// Toggle one episode's checkmark. Returns a NEW state.
+export function toggleEpisode(state, showId, season, number) {
+  const base = normalize(state);
+  const cur = base.shows[showId];
+  if (!cur || !Number.isFinite(season) || !Number.isFinite(number)) return base;
+  const key = epKey(season, number);
+  const watched = { ...cur.watched };
+  if (watched[key]) delete watched[key]; else watched[key] = true;
+  return { version: STORE_VERSION, shows: { ...base.shows, [showId]: { ...cur, watched } }, custom: base.custom };
+}
+
+// Mark/clear a whole season at once ("finished season 1"). Returns a NEW state.
+export function setSeasonWatched(state, showId, season, on) {
+  const base = normalize(state);
+  const cur = base.shows[showId];
+  const meta = base.custom[showId];
+  const s = meta && meta.seasons.find((x) => x.season === season);
+  if (!cur || !s) return base;
+  const watched = { ...cur.watched };
+  for (const e of s.episodes) { const k = epKey(season, e.number); if (on) watched[k] = true; else delete watched[k]; }
+  return { version: STORE_VERSION, shows: { ...base.shows, [showId]: { ...cur, watched } }, custom: base.custom };
+}
+
+// Progress across a whole show: { watched, total } (total from the cached seasons).
+export function showProgress(state, showId) {
+  const base = normalize(state);
+  const meta = base.custom[showId];
+  const cur = base.shows[showId];
+  const total = meta ? meta.seasons.reduce((n, s) => n + s.episodes.length, 0) : 0;
+  const watched = cur ? Object.keys(cur.watched).length : 0;
+  return { watched: total ? Math.min(watched, total) : watched, total };
+}
+
+// Progress within one season: { watched, total }.
+export function seasonProgress(state, showId, season) {
+  const base = normalize(state);
+  const meta = base.custom[showId];
+  const cur = base.shows[showId];
+  const s = meta && meta.seasons.find((x) => x.season === season);
+  if (!s) return { watched: 0, total: 0 };
+  let w = 0;
+  for (const e of s.episodes) if (cur && cur.watched[epKey(season, e.number)]) w += 1;
+  return { watched: w, total: s.episodes.length };
 }
 
 export function getComments(state, showId) {
@@ -222,7 +326,7 @@ export function addComment(state, showId, { author, text } = {}, now = 0, seq = 
   const base = normalize(state);
   const body = String(text || '').trim();
   if (!showId || !body) return base;
-  const cur = base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+  const cur = base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
   const comment = {
     id: `c${now}-${seq}`,
     author: String(author || 'You').trim() || 'You',
