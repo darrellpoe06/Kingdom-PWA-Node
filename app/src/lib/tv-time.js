@@ -137,7 +137,18 @@ export function normalize(parsed) {
     const watched = {};
     const wsrc = raw.watched && typeof raw.watched === 'object' ? raw.watched : {};
     for (const [k, v] of Object.entries(wsrc)) if (v === true && /^\d+x\d+$/.test(k)) watched[k] = true;
-    shows[id] = { status, rating, comments, watched };
+    // Per-show sharing visibility (family-sharing model). A show is PRIVATE by
+    // default (no flags); the owner opts it in per audience. Only true flags are
+    // kept, and the whole `share` key is CONDITIONAL — absent on a private show —
+    // so an unshared list keeps its original shape + equality. Audience keys are
+    // fixed (us / family / circle); anything else is dropped. This is the safety
+    // root in the store: a show never carries a share flag it wasn't given.
+    const share = {};
+    const ssrc = raw.share && typeof raw.share === 'object' ? raw.share : {};
+    for (const k of ['us', 'family', 'circle']) if (ssrc[k] === true) share[k] = true;
+    shows[id] = Object.keys(share).length
+      ? { status, rating, comments, watched, share }
+      : { status, rating, comments, watched };
   }
   const custom = {};
   const csrc = parsed && typeof parsed.custom === 'object' && parsed.custom ? parsed.custom : {};
