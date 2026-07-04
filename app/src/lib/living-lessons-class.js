@@ -66,7 +66,7 @@ export const LIVING_LESSONS_META = {
   tagline: 'You were never made to be flawless. You were made to be whole.',
   format: 'Self-paced · read it alone, as a family, or in a group · paced to your age',
   cadenceDays: 7,
-  weeks: 12, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart · L10 Strength and Honour Are Her Clothing · L11 Fearfully and Wonderfully Made · L12 If One Member Suffers; grows as Darrell teaches more
+  weeks: 13, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart · L10 Strength and Honour Are Her Clothing · L11 Fearfully and Wonderfully Made · L12 If One Member Suffers · L13 A Sound Mind; grows as Darrell teaches more
   handsOnLabel: 'Take it with you',
   // The label layer that lets the shared engine render this honestly as a
   // self-paced lesson series rather than a weekly cohort class.
@@ -1204,6 +1204,103 @@ export const LIVING_LESSONS_MODULES = [
         'When has the whole "body" (family, church, friends) suffered because one member was hurting and unnoticed? When has it rejoiced together?',
         'What does it look like to "bear one another\'s burdens" without slipping into codependence -- keeping "the measure of every part"?',
         'Where do you need to stop saying (in muscle or in the Body) "I have no need of thee" -- and let yourself both need and be needed?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // L13 — the brain-health thread of the women's-health roundtable (Darrell,
+  // 2026-07-04; and his stated goal: "so we get sound minds" = 2 Tim 1:7): women's
+  // higher dementia risk; brain-metabolism missteps in perimenopause; high-intensity
+  // exercise -> lactate -> brain fuel (neuroprotection); neuroplasticity /
+  // cognitive reserve (new pathways); caregiving stress. The science is the WITNESS;
+  // the SOURCE is the God-given SOUND MIND ("not... fear; but... a sound mind", 2 Tim
+  // 1:7) and the RENEWABLE mind ("transformed by the renewing of your mind", Rom
+  // 12:2; Eph 4:23). GUARDRAILS LEAD (like L4/L9/L11): dementia is NOT punishment,
+  // moral failing, or lost faith (John 9:3); a believer whose memory fails is still
+  // held, still has "the mind of Christ" (1 Cor 2:16) -- God's grip doesn't depend
+  // on recall. Renewing is grace, not striving. Verses KJV, VERBATIM (DR-0076).
+  {
+    id: 'll13-a-sound-mind',
+    title: 'A Sound Mind',
+    bigIdea: 'Begin with the hard, tender truth up front, because this lesson touches dementia and it must comfort, not condemn: a failing memory is NOT a punishment, a moral failure, or a sign of lost faith. Jesus said of the man born blind, "Neither hath this man sinned, nor his parents: but that the works of God should be made manifest in him" (John 9:3). A believer whose mind fails is still held by God, still loved, still safe -- "we have the mind of Christ" (1 Corinthians 2:16) is true of the one in Christ even when their own memory does not hold, because His grip does not depend on their recall. Now the science, as witness: the experts show the brain is not fixed -- high-intensity movement fuels it (the body\'s lactate becomes brain fuel), and "cognitive reserve" and neuroplasticity mean new pathways can actually form; the mind can be protected and rebuilt. Scripture named the renewable mind long ago: "be ye transformed by the renewing of your mind" (Romans 12:2); "be renewed in the spirit of your mind" (Ephesians 4:23). And God\'s design for the mind is not fear but soundness: "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7). So steward the mind as the gift it is: move the body that fuels it, feed it truth, guard your sleep, keep it "stayed on" Him -- "Thou wilt keep him in perfect peace, whose mind is stayed on thee" (Isaiah 26:3) -- and cast the crushing care (the fear, the caregiving load) onto Him: "Casting all your care upon him; for he careth for you" (1 Peter 5:7).',
+    inApp: 'Do one thing today that guards the mind God gave you -- move your body, protect your sleep tonight, or set your mind deliberately on Him instead of the fear ("whose mind is stayed on thee," Isaiah 26:3). And name the one worry or heavy load you\'ve been carrying in your head -- caregiving, a diagnosis, a fear about the future -- and hand it over out loud: "I cast this care on You, for You care for me" (1 Peter 5:7). You were not given a spirit of fear, but of power, love, and a sound mind (2 Timothy 1:7).',
+    anchor: {
+      ref: '2 Timothy 1:7; Romans 12:2',
+      theme: 'God gave a SOUND MIND, not a spirit of fear -- and the mind is renewable ("transformed by the renewing of your mind"). Steward it: move, rest, feed it truth, stay it on Him, cast your care on Him. Guardrail: a failing memory is not punishment or lost faith; the one in Christ is still held.',
+    },
+    benefits: [
+      'Comfort in the face of dementia -- a failing mind is not a verdict; the believer is held by God whose grip does not depend on their memory (1 Corinthians 2:16).',
+      'Freedom from a spirit of fear -- what God gave is "power, and love, and a sound mind" (2 Timothy 1:7); fear is not your assignment.',
+      'Hope that the mind can change -- "the renewing of your mind" (Romans 12:2) is real; you are not stuck with the ruts you\'re in.',
+      'A reason to steward the body FOR the mind -- movement, sleep, and truth are not vanity; they guard the mind God gave you.',
+      'Peace by direction -- "whose mind is stayed on thee" (Isaiah 26:3): where you fix the mind changes everything; you can choose Him over the fear.',
+      'Relief for the weary caregiver -- "casting all your care upon him" (1 Peter 5:7) is permission to put the crushing load down, onto the One who carries it.',
+    ],
+    levels: {
+      child: 'God gave you an amazing brain -- and here\'s something cool: your brain can keep learning and growing new pathways your whole life! The Bible says God can change how we think: "be ye transformed by the renewing of your mind" (Romans 12:2) -- He helps our minds get new and good. And here\'s a big promise: "God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7). "Sound mind" means a good, steady, healthy mind -- that\'s His gift to you! So we take care of our brains -- we move and play, we sleep well, and we think about good and true things. And when you feel scared or worried, you can give it to God: "Casting all your care upon him; for he careth for you" (1 Peter 5:7) -- He wants to carry your worries. (And remember: if someone you love gets old and forgets things, that is NOT because they were bad -- God still loves them and holds them tight, always.)',
+      teen: 'Real science: your brain isn\'t fixed. High-intensity movement actually fuels it, and "neuroplasticity" means you can build NEW pathways -- your mind can literally change. The Bible said that forever ago: "be ye transformed by the renewing of your mind" (Romans 12:2); "be renewed in the spirit of your mind" (Ephesians 4:23). You are not stuck. And here\'s the anchor for the anxiety so many carry: "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7). Fear is loud, but it\'s not your assignment -- a SOUND MIND is the gift. So steward it: move your body (it fuels the brain), guard your sleep, and aim your thoughts on purpose -- "Thou wilt keep him in perfect peace, whose mind is stayed on thee" (Isaiah 26:3); where you fix your mind changes how you feel. And when the load gets heavy -- stress, a scary diagnosis in the family, the future -- you don\'t white-knuckle it: "Casting all your care upon him; for he careth for you" (1 Peter 5:7). One guardrail, and it matters: if someone you love loses their memory to dementia, that is NOT a punishment or a sign they lacked faith (Jesus shut that down -- John 9:3). They\'re still held by God, still "have the mind of Christ" (1 Corinthians 2:16) in Him, even when their own mind won\'t hold. God\'s grip doesn\'t depend on their memory. Take care of your mind -- and rest it in Him.',
+      senior: 'The panel turns, near the end, to the mind -- and it is sobering: women carry a higher lifetime risk of dementia and Alzheimer\'s, tied to real biological factors and, the researchers argue, to a misstep in brain metabolism as glucose handling shifts through perimenopause, compounded by the loss of the lactate-producing muscle fibers whose fuel the brain can use. They also name a quiet cruelty of the statistics: the caregiver of a parent with dementia carries a markedly higher risk herself, a burden that falls disproportionately on women. And yet the science is not without hope: high-intensity movement stimulates the very lactate the brain prefers, and "cognitive reserve" -- built through lifelong learning and neuroplasticity, the forming of new neural pathways -- measurably protects. The mind, in other words, is not simply fixed; it can be fueled, exercised, and in real measure renewed. Scripture, of course, spoke of a renewable mind two millennia before the imaging: "And be not conformed to this world: but be ye transformed by the renewing of your mind" (Romans 12:2); "and be renewed in the spirit of your mind" (Ephesians 4:23). And it named God\'s intended baseline for the mind, over against the anxiety that so besets these years: "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7). So the stewardship is holy and practical: move the body that fuels the brain; guard the sleep the panel calls non-negotiable; feed the mind on what is true; and above all fix its gaze -- "Thou wilt keep him in perfect peace, whose mind is stayed on thee: because he trusteth in thee" (Isaiah 26:3); "and the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus" (Philippians 4:7). For the weary one bearing a caregiver\'s load, there is express permission to lay it down: "Casting all your care upon him; for he careth for you" (1 Peter 5:7). Now hold the guardrail with both hands, for it is the tenderest point of the whole lesson: a mind that fails -- to dementia, to Alzheimer\'s, to age -- is NOT a punishment, a moral failure, or evidence of a faith that came up short. Our Lord refused that reasoning outright (John 9:3). The saint whose memory dissolves is not thereby dropped from the hand of God; "we have the mind of Christ" (1 Corinthians 2:16) is true of the one who is IN Christ even when their own recall is gone, for their standing rests on His grip, not theirs. Steward the mind you have been given, with gratitude and without fear -- and entrust the rest, including the day your own memory may thin, to the One who will keep you in perfect peace and never once forget your name.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'What did God give us instead of "the spirit of fear" (2 Timothy 1:7)?',
+          options: [
+            'Anxiety and striving',
+            '"Power, and love, and a sound mind"',
+            'Nothing -- we\'re on our own',
+          ],
+          answer: 1,
+          explain: 'Fear is not your assignment. A SOUND MIND -- steady, healthy, His -- is the gift; and you can steward and renew it (Romans 12:2).',
+        },
+        {
+          q: 'What does Scripture say about whether the mind can change (Romans 12:2; Ephesians 4:23)?',
+          options: [
+            'The mind is fixed and cannot change',
+            'It can be renewed -- "be ye transformed by the renewing of your mind" / "renewed in the spirit of your mind"',
+            'Only your feelings change, never your mind',
+          ],
+          answer: 1,
+          explain: 'The renewable mind Scripture named is what the science calls neuroplasticity -- new pathways can form. You are not stuck; God renews the mind by grace.',
+        },
+        {
+          q: 'How do you find peace for an anxious or overloaded mind (Isaiah 26:3; 1 Peter 5:7)?',
+          options: [
+            'Try harder to control everything yourself',
+            'Fix the mind on Him -- "whose mind is stayed on thee" -- and cast the care on Him: "casting all your care upon him; for he careth for you"',
+            'Ignore it until it goes away',
+          ],
+          answer: 1,
+          explain: 'Where you fix your mind changes everything, and the crushing load (caregiving, fear) is meant to be handed over, not white-knuckled. He carries it.',
+        },
+        {
+          q: 'What is the essential guardrail when someone\'s mind fails to dementia?',
+          options: [
+            'It shows they lacked faith or are being punished',
+            'It is NOT punishment or lost faith (John 9:3); the one in Christ is still held and still "has the mind of Christ" -- God\'s grip doesn\'t depend on their memory',
+            'They are no longer loved by God',
+          ],
+          answer: 1,
+          explain: 'The tenderest truth of the lesson: a failing memory is no verdict. Jesus rejected the affliction-equals-sin reasoning (John 9:3); the believer\'s standing rests on His grip (1 Corinthians 2:16), not their recall.',
+        },
+      ],
+    },
+    lesson: 'Lead with the tenderest truth, because this lesson touches dementia and must comfort before it instructs: a failing mind is NOT a punishment, a moral failure, or a sign of a faith that fell short. Our Lord said plainly of the man born blind, "Neither hath this man sinned, nor his parents: but that the works of God should be made manifest in him" (John 9:3). The saint whose memory dissolves is not thereby dropped from God\'s hand; "we have the mind of Christ" (1 Corinthians 2:16) remains true of the one who is IN Christ even when their own recall is gone -- because their standing rests on His grip, not theirs. Hold that first, for someone in the room is watching a parent or spouse fade, and they need the comfort before the counsel. Now the science, as witness. The experts turn to the mind and name a sobering pattern: women carry a higher lifetime risk of dementia, tied to real shifts in brain metabolism through perimenopause and the loss of the lactate-producing muscle fibers whose fuel the brain can use; and the caregiver of a parent with dementia carries a heightened risk herself -- a load that falls hard on women. Yet there is genuine hope in the findings: high-intensity movement supplies the very lactate the brain prefers, and "cognitive reserve," built by lifelong learning and neuroplasticity -- the forming of new neural pathways -- measurably protects. The mind is not simply fixed; it can be fueled, exercised, and in real measure renewed. And Scripture spoke of a renewable mind long before any brain scan: "be not conformed to this world: but be ye transformed by the renewing of your mind" (Romans 12:2); "and be renewed in the spirit of your mind" (Ephesians 4:23). It also named God\'s intended baseline for the mind, against the anxiety that besets these years: "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7). Fear is loud, but it is not your assignment; a sound mind is the gift. So the stewardship is holy and practical: move the body that fuels the brain; guard the sleep the experts call non-negotiable; feed the mind on what is true; and above all, aim its gaze -- "Thou wilt keep him in perfect peace, whose mind is stayed on thee: because he trusteth in thee" (Isaiah 26:3), and "the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus" (Philippians 4:7). And for the weary caregiver, carrying more in her head than anyone sees, there is express permission to set it down: "Casting all your care upon him; for he careth for you" (1 Peter 5:7). So steward the mind God gave you -- with gratitude and without fear -- and entrust the rest, including the day your own memory may thin, to the One who keeps you in perfect peace and will never once forget your name.',
+    facilitator: {
+      talkingPoints: [
+        'LEAD WITH THE GUARDRAIL (tenderest point): dementia/Alzheimer\'s is NOT punishment, moral failure, or lost faith (John 9:3). The one in Christ is still held; "we have the mind of Christ" (1 Cor 2:16) even when their recall is gone -- God\'s grip doesn\'t depend on memory. Comfort the caregiver first.',
+        'The witness (the science, attributed): women\'s higher dementia risk; perimenopausal brain-metabolism shifts; high-intensity movement -> lactate -> brain fuel (neuroprotection); "cognitive reserve" / neuroplasticity -> new pathways; caregiving raises the caregiver\'s own risk.',
+        'The Word (SOURCE): a SOUND MIND, not fear -- "God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Tim 1:7); and the RENEWABLE mind -- "transformed by the renewing of your mind" (Rom 12:2); "renewed in the spirit of your mind" (Eph 4:23). All KJV, verbatim.',
+        'The stewardship + peace: move / sleep / feed it truth; and aim it -- "whose mind is stayed on thee" (Isa 26:3); "the peace of God... shall keep your... minds" (Phil 4:7). For the caregiver: "casting all your care upon him; for he careth for you" (1 Pet 5:7).',
+        'Ties to the platform spine (Mind of Christ): Renewed Mind (Rom 12:2), Sound Mind (2 Tim 1:7) -- steward the mind as identity + discipline, by grace, not striving.',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read 2 Timothy 1:7 and Romans 12:2 aloud. STATE THE GUARDRAILS up front (dementia is not punishment; the one in Christ is held) -- gently, for anyone grieving a fading loved one. | The big idea, in your own words (10): God gave a sound mind, not fear; and the mind is renewable (neuroplasticity is Romans 12:2 in the lab). | Go deeper (10): steward it -- move/sleep/truth (the science witness); aim it (Isa 26:3; Phil 4:7); cast the care (1 Pet 5:7); then re-anchor the guardrail (John 9:3; 1 Cor 2:16). | Reflect together (10): use the prompts; make gentle room for caregivers and for fear about the future. | Take it with you (2): each person does one thing to guard the mind + casts one care on Him aloud.',
+      discussionPrompts: [
+        'Where has "the spirit of fear" been running your thoughts -- and what would it mean to receive "power, and love, and a sound mind" instead (2 Timothy 1:7)?',
+        'What is one rut in your thinking you\'ve believed you\'re stuck in? How does "the renewing of your mind" (Romans 12:2) offer real hope?',
+        'What does it look like this week to keep your mind "stayed on" Him (Isaiah 26:3) rather than on the fear?',
+        'If you are (or have been) a caregiver, what care do you need to "cast upon him" (1 Peter 5:7) -- and who could help carry it with you?',
+        'Why does the guardrail matter so much -- that a failing memory is not punishment or lost faith? How does 1 Corinthians 2:16 comfort you about a loved one who is fading?',
       ],
     },
   },
