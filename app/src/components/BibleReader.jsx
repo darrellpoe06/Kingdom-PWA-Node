@@ -19,6 +19,7 @@ import {
   getSpans, addSpan, clearSpans, segmentsForVerse, HIGHLIGHT_GROUPS,
 } from '../lib/scripture-highlights.js';
 import { crossRefsFor, XREF_SOURCE } from '../lib/bible-xref.js';
+import { THEMES, themeMarkerStyle } from '../lib/scripture-themes.js';
 
 // The character offsets [start,end) of the current text selection WITHIN a verse
 // container (its textContent), or null. Uses a Range measured from the container
@@ -89,6 +90,58 @@ function VerseUnions({ refStr, text, onOpenRef }) {
 
 const serif = { fontFamily: 'Georgia, "Times New Roman", serif' };
 const mono = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' };
+
+// Study by theme — the Inductive / Precept THEMATIC MARKERS (Darrell 2026-07-04,
+// from his Logos "Inductive / Precept" screenshots). Each theme runs through the
+// whole Word in one consistent marker color (scripture-themes); tap a theme to
+// see its meaning, then a reference to open that verse VERBATIM in the reader.
+// Collapsed by default so it never crowds the read. `onOpenRef` navigates.
+function ThemesIndex({ onOpenRef }) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(null);
+  const theme = active ? THEMES.find((t) => t.key === active) : null;
+  return (
+    <div className="mb-3 border border-[#E8E4DC]">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+        <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Study by theme — the markers that run through the whole Word</span>
+        <span className="text-sm text-[#5A5751] leading-none" style={mono}>{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3">
+          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={serif}>
+            Inductive marking: each theme wears one color everywhere it appears. Tap a theme for what it means, then a reference to open it here — verbatim, in the Word.
+          </p>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {THEMES.map((t) => {
+              const on = active === t.key;
+              return (
+                <button key={t.key} type="button" onClick={() => setActive(on ? null : t.key)} aria-pressed={on}
+                  aria-label={`${t.label} — ${t.definition}`} title={t.definition}
+                  className={`inline-flex items-center gap-1 px-2 py-1 border text-[0.6875rem] focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#FAF8F4]' : 'border-[#E8E4DC] hover:border-[#1A1815]'}`} style={serif}>
+                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={cssForHighlight(themeMarkerStyle(t.key))}>{t.abbr}</span>
+                  <span className="text-[#1A1815]">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          {theme && (
+            <div className="border-l-2 border-[#5A6E3D] pl-3 py-1">
+              <p className="text-[0.8125rem] text-[#1A1815] mb-1.5" style={serif}>{theme.definition}</p>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Anchors — tap to open</div>
+              <div className="flex flex-wrap gap-1.5">
+                {theme.anchors.map((r) => (
+                  <button key={r} type="button" onClick={() => onOpenRef(r)} title={`Open ${r}`}
+                    className="text-[0.6875rem] px-1.5 py-0.5 border border-[#E8E4DC] bg-white text-[#5A6E3D] hover:text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={serif}>{r}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function BibleReader({ email = null }) {
   const [book, setBook] = useState('Genesis');
@@ -249,6 +302,9 @@ export default function BibleReader({ email = null }) {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">{NEW_TESTAMENT.map((b) => <BookButton key={b.file} b={b} />)}</div>
         </div>
       )}
+
+      {/* Study by theme — the inductive markers across the whole Word. */}
+      <ThemesIndex onOpenRef={goToRef} />
 
       {/* Current book + chapter nav. */}
       <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">

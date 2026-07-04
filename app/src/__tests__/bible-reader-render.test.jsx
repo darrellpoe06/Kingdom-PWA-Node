@@ -131,6 +131,25 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     localStorage.removeItem('poetech.highlights.v1:reader@example.com');
   });
 
+  it('study-by-theme: opening a theme and tapping its anchor jumps to that verse', async () => {
+    await mount();
+    await clickText(/Study by theme/);
+    // Open the Love theme (found by its accessible label — the visible chip is "Aa"-style).
+    const loveBtn = [...container.querySelectorAll('button')].find(
+      (b) => /self-giving love/.test(b.getAttribute('aria-label') || ''));
+    expect(loveBtn, 'the Love theme chip renders').toBeTruthy();
+    await act(async () => { loveBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    await tick();
+    // Its anchors appear; tap John 3:16 to open that verse verbatim in the reader.
+    const anchor = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === 'John 3:16');
+    expect(anchor, 'the John 3:16 anchor chip renders').toBeTruthy();
+    await act(async () => { anchor.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    await tick();
+    const text = container.textContent || '';
+    expect(text).toMatch(/John 3/);
+    expect(text).toContain('For God so loved the world');
+  });
+
   it('rejects an unfindable reference without leaving the app', async () => {
     await mount();
     setValue(container.querySelector('#bible-jump'), 'Hezekiah 3:1');
