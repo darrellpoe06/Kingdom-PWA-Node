@@ -425,6 +425,88 @@ export const WITNESS_SOURCES = [
       },
     ],
   },
+  {
+    id: 'w-haver-midlife-fasting',
+    topic: 'The counter-witness, refined: for midlife women, fuel and rhythm over the long fast',
+    source: {
+      expert: 'Dr. Mary Claire Haver',
+      credential: 'OB-GYN & menopause specialist; author of The New Menopause',
+      work: 'Women\'s health roundtable (interview)',
+      kind: 'video',
+    },
+    summary: 'A second, named counter-witness on fasting for women in midlife. Men and women differ in how the hypothalamus reads energy: men often tolerate longer fasts, but for perimenopausal / menopausal women a long fast (water or multi-day) can be read as STARVATION — driving visceral fat storage, inflammation, hypothalamic / hormonal disruption toward a low-estrogen state, and (because women use more amino acids for fuel) breakdown of lean muscle, worsened by fasted exercise. Haver names her OWN reversal: she believed fasting helped until she realized she could not meet her protein goals for muscle and health-span within a restricted window, so she changed. The recommended pattern is a gentle, circadian ~12-hour eating window: eat within ~30 minutes of waking, stop 2-3 hours before bed, with protein + fiber at every meal — not fasting through breakfast, not training fasted.',
+    pairs: [
+      {
+        id: 'w3p-haver-due-season',
+        claim: 'For midlife women, a long fast can be read as starvation (visceral fat, inflammation, muscle breakdown, a low-estrogen state); fueling for strength is often the wiser move.',
+        cite: '1:45:34-1:49:09',
+        refs: ['Ecclesiastes 10:17'],
+        bridge: 'Thy princes eat IN DUE SEASON, FOR STRENGTH, and not for drunkenness. The Word tied eating to strength and to its right hour — not to extremity. For the midlife woman the strengthening move is to be fueled in due season, not to fast into a famine the body reads as danger.',
+      },
+      {
+        id: 'w3p-haver-circadian-window',
+        claim: 'Rather than long fasts, keep a gentle ~12-hour circadian window — eat within ~30 minutes of waking, stop 2-3 hours before bed — with protein and fiber at every meal.',
+        cite: '1:45:57-1:47:45',
+        refs: ['Psalms 104:23'],
+        bridge: 'Man goeth forth unto his work and to his labour UNTIL THE EVENING. The daily rhythm is written into creation: labor and eating by the light, rest through the night. The ~12/12 window keeps that ancient circadian order — fed for the day, at rest by evening.',
+      },
+      {
+        id: 'w3p-haver-prove-all',
+        claim: 'Haver changed her own practice when the evidence (protein needs for muscle and health-span) showed prolonged fasting was not serving her — following the data over the trend.',
+        cite: '1:44:11-1:45:13',
+        refs: ['1 Thessalonians 5:21'],
+        bridge: 'PROVE all things; hold fast that which is good. She held the practice up to the evidence and let go of what did not serve — the very posture the Word commends. A claim that fails the proving is released; only the good is held fast. Honest correction is not weakness; it is wisdom.',
+      },
+      {
+        id: 'w3p-haver-renewal',
+        claim: 'The cellular "cleaning" (autophagy) and the longer telomeres often credited to extreme fasting can, for midlife women, be reached through exercise as a beneficial stressor plus an anti-inflammatory life — without the hormonal cost of a prolonged fast.',
+        cite: '2:32:33-2:33:18',
+        refs: ['Psalms 103:5'],
+        bridge: 'Who satisfieth thy mouth with good things; so that THY YOUTH IS RENEWED LIKE THE EAGLE’S. The body cleaning and renewing its own worn parts is not a hack found in famine — it is a God-given renewal the Word already sang, and it answers to being SATISFIED with good things and to movement, not to being starved. (And the Word keeps the ordering: bodily exercise "profiteth little" — a real but lesser profit — under godliness, which "is profitable unto all things," 1 Timothy 4:8. Tend the body; do not worship it.)',
+      },
+      {
+        id: 'w3p-haver-inward-renewed',
+        claim: 'Worn-out "senescent" cells that stop working yet linger and release harmful signals are lowered by lifestyle (and by helpers such as fisetin) — the body clears what is dead so the living can thrive.',
+        cite: '3:27:37-3:28:11',
+        refs: ['2 Corinthians 4:16'],
+        bridge: 'Though our outward man perish, yet the INWARD MAN IS RENEWED DAY BY DAY. The body does wear — senescent cells are that outward perishing made visible at the cell — and clearing them is good stewardship of the tent we live in. But the Word sets the true hope where no supplement reaches: a renewal DAY BY DAY that outlasts the flesh. Clear the dead cells; keep the deeper renewal first.',
+      },
+    ],
+  },
+  {
+    id: 'w3-women-midlife-strength',
+    topic: 'Midlife women: muscle as survival, the right kind of stress, and a clean environment',
+    source: {
+      expert: 'Women\'s health roundtable (Sims, Wright, Haver, Crawford)',
+      credential: 'Exercise physiology, orthopedic sports medicine, OB-GYN & menopause medicine, reproductive endocrinology',
+      work: 'Women\'s health roundtable (interview)',
+      kind: 'video',
+    },
+    summary: 'Beyond fasting, the roundtable names three things standard (often male-derived) advice misses for perimenopausal / menopausal women. (1) MUSCLE is a survival organ, not an aesthetic: it drives glucose metabolism and brain health and defends against osteoporosis, inflammation, and cognitive decline — so building strength is stewardship, not vanity ("strong, not skinny"). (2) The RIGHT KIND of stress matters: high-volume moderate-intensity grinding raises cortisol and inflammation as estrogen\'s buffering falls; POLARIZED training — short high-intensity sprints or heavy resistance to signal positive adaptation, balanced with lots of low-intensity movement — is the better signal. (3) ENVIRONMENT counts: endocrine-disrupting chemicals (e.g. BPA in plastics) harm ovarian health and hormonal regulation, so reducing toxin exposure belongs in the plan.',
+    pairs: [
+      {
+        id: 'w3p-women-strength-organ',
+        claim: 'Muscle is a metabolic survival organ (glucose control, brain health, defense against osteoporosis and decline); building strength in midlife is stewardship, not vanity — "strong, not skinny."',
+        cite: '0:00:09-0:00:28, 0:32:00-0:32:38',
+        refs: ['Proverbs 31:17'],
+        bridge: 'She GIRDETH HER LOINS WITH STRENGTH, and STRENGTHENETH HER ARMS. The Word\'s portrait of the excellent woman is a strong one — arms made strong for the work set before her. Strength here is not vanity; it is capacity to serve and to endure. The science that names muscle a survival organ only underlines a strength the Word already honored in her.',
+      },
+      {
+        id: 'w3p-women-adaptive-stress',
+        claim: 'The right kind of stress builds; the wrong kind wears down. Short, hard efforts (sprints, heavy resistance) plus ample easy movement signal adaptation, while chronic moderate grinding raises cortisol and inflammation.',
+        cite: '0:12:06-0:14:31, 1:47:50-1:48:40',
+        refs: ['Hebrews 12:11'],
+        bridge: 'No chastening for the present seemeth to be joyous, but grievous: nevertheless afterward it yieldeth the PEACEABLE FRUIT of righteousness unto them which are EXERCISED thereby. The Word already knew that a rightly-borne, bounded stress yields fruit afterward — and its word is "exercised." The lesson is the same in the body: a short, honest hard effort that then RESTS produces growth; an unremitting grind with no rest only wears the temple down.',
+      },
+      {
+        id: 'w3p-women-clean-temple',
+        claim: 'Endocrine-disrupting chemicals (like BPA in plastics) harm ovarian and hormonal health; reducing toxin exposure is part of caring for the body.',
+        cite: '3:31:11-3:32:30',
+        refs: ['1 Corinthians 3:16-17', '2 Corinthians 7:1'],
+        bridge: 'Know ye not that ye are the TEMPLE of God... If any man DEFILE the temple of God, him shall God destroy; for the temple of God is HOLY. If the body is a temple, then what we let into it and around it is not a small thing. Guarding it from needless defilement — the toxins we can reasonably keep out — is honoring the One whose Spirit dwells in it. (Compare 2 Corinthians 7:1: "let us cleanse ourselves from all filthiness of the flesh and spirit.")',
+      },
+    ],
+  },
 ];
 
 // Verbatim verse text for a witness ref — same verified rail as the Godhead
