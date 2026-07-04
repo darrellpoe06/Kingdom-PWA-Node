@@ -24,6 +24,7 @@ import {
 import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
 import { relatedTitles, franchiseOf, titleKey } from '../lib/tv-franchises.js';
 import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
+import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
 import { createDebouncer } from '../lib/table-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -384,20 +385,31 @@ export default function TVTime({ email = null }) {
     } catch { setImportMsg('Could not export here — try from the installed app.'); }
   };
 
-  // Restore from a previously-exported file (merges in, restore-wins).
-  const restoreFile = (file) => {
+  // Restore from a file (merges in, restore-wins). Two real shapes are accepted:
+  //   • a PoeTech backup (.json) — the file exportList() writes.
+  //   • a TV Time GDPR export (.zip) — the ~55-CSV archive TV Time actually hands
+  //     you (Christina 2026-07-04: the zip had nowhere to go). We detect the zip
+  //     by its magic bytes and map its real CSVs into the list. Anyone in the
+  //     friend group brings their OWN export in this way — their data, one tap.
+  const restoreFile = async (file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const before = STATUSES.reduce((n, st) => n + buckets[st.key].length, 0);
-        const next = importTvJson(state, JSON.parse(String(reader.result || '{}')));
-        persist(next);
-        const after = STATUSES.reduce((n, st) => n + bucketShows(next, customCatalog(next))[st.key].length, 0);
-        setImportMsg(`Restored — ${Math.max(0, after - before)} added from your backup.`);
-      } catch { setImportMsg('That file wasn’t a TV Time backup.'); }
-    };
-    reader.readAsText(file);
+    try {
+      const buf = await file.arrayBuffer();
+      const before = STATUSES.reduce((n, st) => n + buckets[st.key].length, 0);
+      if (looksLikeZip(buf)) {
+        setImportMsg('Reading your TV Time export…');
+        const { state: mapped, summary, ok } = await importTvTimeZip(buf);
+        if (!ok) { setImportMsg('That .zip didn’t look like a TV Time export (no shows found).'); return; }
+        persist(importTvJson(state, mapped));
+        setImportMsg(`Imported ${summary.shows} show${summary.shows === 1 ? '' : 's'}${summary.episodes ? ` and ${summary.episodes} watched episode${summary.episodes === 1 ? '' : 's'}` : ''} from your TV Time export.`);
+        return;
+      }
+      const text = new TextDecoder('utf-8').decode(buf);
+      const next = importTvJson(state, JSON.parse(text || '{}'));
+      persist(next);
+      const after = STATUSES.reduce((n, st) => n + bucketShows(next, customCatalog(next))[st.key].length, 0);
+      setImportMsg(`Restored — ${Math.max(0, after - before)} added from your backup.`);
+    } catch { setImportMsg('That file wasn’t a PoeTech backup or a TV Time export.'); }
   };
 
   const anyTracked = STATUSES.some((st) => buckets[st.key].length);
@@ -459,11 +471,14 @@ export default function TVTime({ email = null }) {
             <div className="flex items-center gap-2 flex-wrap mt-1">
               <button type="button" onClick={runImport} disabled={!importText.trim()} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Bring them in</button>
               <label className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white cursor-pointer`}>
-                Restore from a backup file
-                <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => { restoreFile(e.target.files && e.target.files[0]); e.target.value = ''; }} />
+                Import from a file (.zip or .json)
+                <input type="file" accept=".zip,.json,application/zip,application/json" className="sr-only" onChange={(e) => { restoreFile(e.target.files && e.target.files[0]); e.target.value = ''; }} />
               </label>
               {importMsg && <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{importMsg}</span>}
             </div>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-1.5 leading-relaxed" style={serif}>
+              Coming from TV&nbsp;Time? Download your data from their app (Settings → your export gives a <strong>.zip</strong>), then tap <strong>Import from a file</strong> above and pick that .zip — your shows and watched episodes come right in. It&apos;s your data.
+            </p>
           </div>
         )}
       </div>
