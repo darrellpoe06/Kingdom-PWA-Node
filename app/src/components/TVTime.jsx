@@ -21,7 +21,8 @@ import {
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
   trendingWatches, exportTv, importTvJson, touchTv, tvUpdatedAt,
 } from '../lib/tv-time.js';
-import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE } from '../lib/tv-catalog.js';
+import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
+import { relatedTitles, franchiseOf, titleKey } from '../lib/tv-franchises.js';
 import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
 import { createDebouncer } from '../lib/table-sync.js';
 
@@ -128,13 +129,16 @@ function EpisodeList({ show, isWatched, onToggleEp, onToggleSeason, progressFor 
   );
 }
 
-function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie }) {
+function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, trackedKeys, busy }) {
   const [tab, setTab] = useState(null); // 'episodes' | 'talk' | null
   const [draft, setDraft] = useState('');
   const comments = getComments(state, show.id);
   const prog = showProgress(state, show.id);
   const isMovie = show.kind === 'movie';
   const seen = show.status === 'watched';
+  // Same-universe connections (curated; only real spinoffs — never guessed).
+  const related = relatedTitles(show.title);
+  const universe = related.length ? franchiseOf(show.title) : '';
   const send = () => { const t = draft.trim(); if (!t) return; onAddComment(show.id, t); setDraft(''); };
   return (
     <div className="bg-white border border-[#1A1815] p-3">
@@ -173,6 +177,25 @@ function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, on
             <button type="button" onClick={() => setTab(tab === 'talk' ? null : 'talk')} aria-expanded={tab === 'talk'} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>Talk{comments.length ? ` (${comments.length})` : ''}</button>
             <button type="button" onClick={() => onUntrack(show.id)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
           </div>
+          {related.length > 0 && (
+            <div className="mt-2 border-t border-[#F2EFE9] pt-1.5">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">Same universe{universe ? ` · ${universe}` : ''}</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {related.map((t) => {
+                  const have = trackedKeys && trackedKeys.has(titleKey(t));
+                  const loading = busy === `u:${t}`;
+                  return have ? (
+                    <span key={t} className="text-[0.625rem] px-1.5 py-0.5 border border-[#C9BFA8] text-[#5A6E3D] inline-flex items-center gap-1"><UiIcon name="check" /> {t}</span>
+                  ) : (
+                    <button key={t} type="button" disabled={loading} onClick={() => onAddByTitle(t)}
+                      className="text-[0.625rem] px-1.5 py-0.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">
+                      {loading ? 'Adding…' : `+ ${t}`}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -237,6 +260,11 @@ export default function TVTime({ email = null }) {
   const catalog = useMemo(() => [...customCatalog(state)], [state]);
   const buckets = useMemo(() => bucketShows(state, catalog), [state, catalog]);
   const trending = useMemo(() => trendingWatches(state, catalog, 5), [state, catalog]);
+  // Which titles are already tracked (by universe key) — so a "same universe"
+  // sibling shows as done rather than an add button. And the tracked list flat.
+  const tracked = useMemo(() => STATUSES.flatMap((st) => buckets[st.key]), [buckets]);
+  const trackedKeys = useMemo(() => new Set(tracked.map((s) => titleKey(s.title || s.id))), [tracked]);
+  const [genreFilter, setGenreFilter] = useState('');
 
   // Cross-device sync (owner-only; fail-soft — offline degrades to device-local).
   const stateRef = useRef(state);
@@ -308,6 +336,18 @@ export default function TVTime({ email = null }) {
   const onToggleSeason = (id, se, on) => persist(setSeasonWatched(state, id, se, on));
   const onToggleMovie = (id) => persist(toggleMovieWatched(state, id));
 
+  // Add a connected title (a "same universe" sibling) by name: look it up and
+  // bring it in — a show with its seasons, a movie as a single watch.
+  const onAddByTitle = async (title) => {
+    setBusy(`u:${title}`);
+    const hits = await searchTitles(title);
+    const hit = hits && hits[0];
+    if (hit && hit.kind === 'movie') persist(addMovieFromCatalog(state, hit));
+    else if (hit) { const full = await loadShow(hit.id); persist(addShowFromCatalog(state, full || hit)); }
+    else persist(addCustomShow(state, { title }));
+    setBusy('');
+  };
+
   // Import your old list: paste titles (one per line). Each is looked up (show or
   // movie); a show brings in its seasons, a movie comes in as a single watch, and
   // no match is kept as a plain title.
@@ -361,6 +401,7 @@ export default function TVTime({ email = null }) {
   };
 
   const anyTracked = STATUSES.some((st) => buckets[st.key].length);
+  const genreEmpty = genreFilter && !tracked.some((s) => genreMatches(s.genre, genreFilter));
 
   return (
     <div className="max-w-3xl">
@@ -430,9 +471,26 @@ export default function TVTime({ email = null }) {
       {/* What's getting watched — dynamic, from real activity. */}
       <TrendingStrip items={trending} />
 
-      {/* The four sections. */}
+      {/* Browse by genre — filters your tracked list (honest: your shows in that
+          genre; the free APIs have no global by-genre catalog). */}
+      {tracked.length > 0 && (
+        <section className="mb-4" aria-labelledby="tv-genres">
+          <h3 id="tv-genres" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Browse by genre {genreFilter && <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline normal-case tracking-normal">· clear “{genreFilter}”</button>}</h3>
+          <div className="flex flex-wrap gap-1">
+            {GENRES.map((g) => {
+              const on = genreFilter === g;
+              return (
+                <button key={g} type="button" onClick={() => setGenreFilter(on ? '' : g)} aria-pressed={on}
+                  className={`text-[0.625rem] px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>{g}</button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* The four sections (genre-filtered when a genre is picked). */}
       {STATUSES.map((st) => {
-        const list = buckets[st.key];
+        const list = genreFilter ? buckets[st.key].filter((s) => genreMatches(s.genre, genreFilter)) : buckets[st.key];
         if (!list.length) return null;
         return (
           <section key={st.key} className="mb-4" aria-labelledby={`sec-${st.key}`}>
@@ -441,7 +499,8 @@ export default function TVTime({ email = null }) {
               {list.map((show) => (
                 <ShowCard key={show.id} show={show} me={me} state={state}
                   onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
-                  onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie} />
+                  onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
+                  onAddByTitle={onAddByTitle} trackedKeys={trackedKeys} busy={busy} />
               ))}
             </div>
           </section>
@@ -449,6 +508,7 @@ export default function TVTime({ email = null }) {
       })}
 
       {!anyTracked && <p className="text-sm text-[#5A5751]" style={serif}>Nothing tracked yet — look up a show above (or import your old list) and you’re off.</p>}
+      {genreEmpty && <p className="text-sm text-[#5A5751]" style={serif}>No {genreFilter} in your list yet — <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline">show all</button>.</p>}
     </div>
   );
 }

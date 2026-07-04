@@ -108,6 +108,38 @@ export function totalEpisodes(seasons) {
   return (Array.isArray(seasons) ? seasons : []).reduce((n, s) => n + (s.episodes ? s.episodes.length : 0), 0);
 }
 
+// --- Browse by genre ---------------------------------------------------------
+// The genre set the friend group's app browses by (Darrell's screenshot). A
+// genre grid filters the tracked list — honest: it's YOUR shows in that genre
+// (the free APIs have no by-genre catalog endpoint, so we don't fake a global
+// discovery feed). Matching is loose (substring, case-insensitive) so a TVmaze
+// "Science-Fiction" and an iTunes "Sci-Fi & Fantasy" both land under it.
+export const GENRES = [
+  'Action', 'Adventure', 'Animation', 'Anime', 'Comedy', 'Crime', 'Documentary',
+  'Drama', 'Family', 'Fantasy', 'Food', 'Game show', 'History', 'Home and garden',
+  'Horror', 'Indie', 'Martial arts', 'Musical', 'Mystery', 'News', 'Reality',
+  'Romance', 'Science fiction', 'Soap', 'Sport', 'Suspense', 'Talk show',
+  'Thriller', 'Travel', 'War', 'Western',
+];
+
+// A few cross-vocabulary synonyms (TVmaze "Science-Fiction", iTunes "Sci-Fi &
+// Fantasy", the screenshot's "Science fiction"). Applied before the substring
+// compare so the browse grid catches the same shows across sources.
+const GENRE_SYNONYMS = { scifi: 'sciencefiction', sciencefictionfantasy: 'sciencefiction', sports: 'sport', kidsfamily: 'family', gameshows: 'gameshow' };
+function canonGenre(g) {
+  const x = String(g || '').toLowerCase().replace(/[^a-z]/g, '');
+  return GENRE_SYNONYMS[x] || x;
+}
+
+// Does an item's genre match a browse genre? Loose: normalized substring either
+// way, after synonym folding ("Sci-Fi" ~ "Science fiction", "Sports" ~ "Sport").
+export function genreMatches(itemGenre, browseGenre) {
+  const a = canonGenre(itemGenre);
+  const b = canonGenre(browseGenre);
+  if (!a || !b) return false;
+  return a.includes(b) || b.includes(a);
+}
+
 // --- Movies (iTunes Search API) ----------------------------------------------
 // A movie is a single-watch item: no seasons, just a poster + year + genre. The
 // search result already carries everything (unlike a show, no second fetch).

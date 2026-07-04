@@ -76,6 +76,9 @@ describe('PoeTech TV Time', () => {
     await click(btnByText(/^Episodes$/));
     await click(btnByText(/Winter Is Coming/));
     expect(container.textContent, 'progress advances after a check').toMatch(/1 \/ 2 episodes watched/);
+    // the curated spinoff connection surfaces (GoT -> House of the Dragon)
+    expect(container.textContent, 'same-universe link shows').toMatch(/Same universe/);
+    expect(btnByText(/\+ House of the Dragon/), 'spinoff is offered to add').toBeTruthy();
   });
 
   it('searches a movie, adds it as a single-watch item, and one tap marks it watched', async () => {
@@ -110,7 +113,7 @@ describe('PoeTech TV Time', () => {
     setValue(container.querySelector('#tv-search'), 'game of thrones');
     await wait(450);
     await click(btnByText(/\+ Add/));
-    await click(btnByText(/^Talk/));
+    await click(btnByText(/^Talk($| \()/)); // exact "Talk"/"Talk (N)" — not the "Talk show" genre chip
     setValue(container.querySelector('input[id^="cm-"]'), 'That finale!!');
     await click(btnByText(/^Post$/));
     expect(container.textContent).toContain('That finale!!');
