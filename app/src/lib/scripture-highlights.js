@@ -101,20 +101,33 @@ export function highlightsKey(email) {
 }
 
 export function emptyHighlights() {
-  return { version: STORE_VERSION, marks: {} };
+  return { version: STORE_VERSION, marks: {}, spans: {} };
 }
 
-// Normalize any parsed blob into a clean {version, marks} — marks is a plain
-// map of ref -> known style key; unknown keys and non-string refs are dropped so
-// a corrupt or hand-edited store can never inject a bogus mark into the render.
+// Normalize any parsed blob into a clean {version, marks, spans}. `marks` is a
+// map of ref -> known style key (whole-verse). `spans` is a map of ref -> array
+// of { start, end, style } WORD/PHRASE highlights (Darrell 2026-07-04: "I can't
+// highlight a word inside of a scripture only the whole verse"). Unknown styles,
+// non-string refs, and malformed ranges are dropped so a corrupt or hand-edited
+// store can never inject a bogus highlight into the render.
 function normalize(parsed) {
   const known = new Set(HIGHLIGHT_STYLES.map((s) => s.key));
   const marks = {};
-  const src = parsed && typeof parsed.marks === 'object' && parsed.marks ? parsed.marks : {};
-  for (const [ref, key] of Object.entries(src)) {
+  const msrc = parsed && typeof parsed.marks === 'object' && parsed.marks ? parsed.marks : {};
+  for (const [ref, key] of Object.entries(msrc)) {
     if (typeof ref === 'string' && ref.trim() && known.has(key)) marks[ref] = key;
   }
-  return { version: STORE_VERSION, marks };
+  const spans = {};
+  const ssrc = parsed && typeof parsed.spans === 'object' && parsed.spans ? parsed.spans : {};
+  for (const [ref, list] of Object.entries(ssrc)) {
+    if (typeof ref !== 'string' || !ref.trim() || !Array.isArray(list)) continue;
+    const clean = list
+      .filter((s) => s && Number.isInteger(s.start) && Number.isInteger(s.end)
+        && s.start >= 0 && s.end > s.start && known.has(s.style))
+      .map((s) => ({ start: s.start, end: s.end, style: s.style }));
+    if (clean.length) spans[ref] = clean;
+  }
+  return { version: STORE_VERSION, marks, spans };
 }
 
 export function loadHighlights(email) {
@@ -173,4 +186,71 @@ export function markCount(state) {
 
 export function clearAllMarks(state) {
   return emptyHighlights();
+}
+
+// --- Word / phrase spans (highlight part of a verse) -------------------------
+
+export function getSpans(state, ref) {
+  const base = normalize(state);
+  return base.spans[ref] ? base.spans[ref].slice() : [];
+}
+
+// Add a { start, end } highlight of `style` to a verse. Returns a NEW state.
+// A 'none'/unknown style, or an inverted/empty range, is a no-op.
+export function addSpan(state, ref, start, end, style) {
+  const base = normalize(state);
+  const known = new Set(HIGHLIGHT_STYLES.map((s) => s.key));
+  const s = Math.min(start, end);
+  const e = Math.max(start, end);
+  if (!ref || typeof ref !== 'string' || !ref.trim()) return base;
+  if (!known.has(style) || !Number.isInteger(s) || !Number.isInteger(e) || s < 0 || e <= s) return base;
+  const spans = { ...base.spans };
+  const list = (spans[ref] || []).filter((x) => !(x.start === s && x.end === e)); // replace exact dup
+  spans[ref] = [...list, { start: s, end: e, style }].sort((a, b) => a.start - b.start);
+  return { version: STORE_VERSION, marks: base.marks, spans };
+}
+
+// Remove every span overlapping [start,end) for a ref (an eraser gesture). With
+// no range given, clears ALL spans for the ref. Returns a NEW state.
+export function clearSpans(state, ref, start = null, end = null) {
+  const base = normalize(state);
+  if (!base.spans[ref]) return base;
+  const spans = { ...base.spans };
+  if (start == null || end == null) {
+    delete spans[ref];
+  } else {
+    const kept = base.spans[ref].filter((x) => x.end <= start || x.start >= end);
+    if (kept.length) spans[ref] = kept; else delete spans[ref];
+  }
+  return { version: STORE_VERSION, marks: base.marks, spans };
+}
+
+export function spanCount(state) {
+  const base = normalize(state);
+  return Object.values(base.spans).reduce((n, list) => n + list.length, 0);
+}
+
+// Break a verse's text into ordered, NON-overlapping segments for rendering:
+// [{ text, style }] where style is 'none' for plain runs. Later spans win on
+// overlap (last write on top), matching how a reader layers highlights. Pure —
+// unit-tested independently of the DOM.
+export function segmentsForVerse(text, spans) {
+  const str = String(text == null ? '' : text);
+  if (!str) return [];
+  const list = (Array.isArray(spans) ? spans : [])
+    .filter((s) => s && s.end > s.start && s.start < str.length)
+    .map((s) => ({ start: Math.max(0, s.start), end: Math.min(str.length, s.end), style: s.style }));
+  // Per-character winning style (later span overrides earlier on overlap).
+  const styleAt = new Array(str.length).fill('none');
+  for (const s of list) for (let i = s.start; i < s.end; i += 1) styleAt[i] = s.style;
+  const out = [];
+  let i = 0;
+  while (i < str.length) {
+    const cur = styleAt[i];
+    let j = i + 1;
+    while (j < str.length && styleAt[j] === cur) j += 1;
+    out.push({ text: str.slice(i, j), style: cur });
+    i = j;
+  }
+  return out;
 }

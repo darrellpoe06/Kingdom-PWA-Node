@@ -14,8 +14,31 @@ import {
   OLD_TESTAMENT, NEW_TESTAMENT, chapterVerses, chapterCount, parseRef, parseLoose, searchBooks,
 } from '../lib/bible-kjv.js';
 import VerseHighlighter from './VerseHighlighter.jsx';
-import { loadHighlights, saveHighlights, getMark, setMark, cssForHighlight } from '../lib/scripture-highlights.js';
+import {
+  loadHighlights, saveHighlights, getMark, setMark, cssForHighlight,
+  getSpans, addSpan, clearSpans, segmentsForVerse, HIGHLIGHT_STYLES,
+} from '../lib/scripture-highlights.js';
 import { crossRefsFor, XREF_SOURCE } from '../lib/bible-xref.js';
+
+// The character offsets [start,end) of the current text selection WITHIN a verse
+// container (its textContent), or null. Uses a Range measured from the container
+// start, so it is correct even when the verse is already split into highlighted
+// segments (concatenated text === the verse text).
+function selectionSpanIn(containerEl) {
+  try {
+    const sel = (typeof window !== 'undefined') && window.getSelection && window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+    const range = sel.getRangeAt(0);
+    if (!containerEl.contains(range.startContainer) || !containerEl.contains(range.endContainer)) return null;
+    const pre = range.cloneRange();
+    pre.selectNodeContents(containerEl);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const start = pre.toString().length;
+    const selected = range.toString();
+    if (!selected.trim()) return null;
+    return { start, end: start + selected.length, text: selected };
+  } catch { return null; }
+}
 
 // The per-verse "study" panel — Copy the verse, and the UNIONS: its cross-
 // references across both testaments (Darrell 2026-07-04: "I love how the unions
@@ -137,6 +160,31 @@ export default function BibleReader({ email = null }) {
     setMarks(next);
   };
 
+  // Word / phrase highlighting: capture a text selection within a verse, then
+  // color just that span (Darrell 2026-07-04: "I can't highlight a word inside
+  // of a scripture only the whole verse").
+  const [pendingSel, setPendingSel] = useState(null); // { ref, start, end, text }
+  const onSelect = (ref, el) => {
+    const sp = selectionSpanIn(el);
+    if (sp) setPendingSel({ ref, ...sp });
+  };
+  const applySpan = (style) => {
+    if (!pendingSel) return;
+    const next = addSpan(loadHighlights(email), pendingSel.ref, pendingSel.start, pendingSel.end, style);
+    saveHighlights(email, next);
+    setMarks(next);
+    setPendingSel(null);
+    try { window.getSelection().removeAllRanges(); } catch { /* noop */ }
+  };
+  const eraseSpan = () => {
+    if (!pendingSel) return;
+    const next = clearSpans(loadHighlights(email), pendingSel.ref, pendingSel.start, pendingSel.end);
+    saveHighlights(email, next);
+    setMarks(next);
+    setPendingSel(null);
+    try { window.getSelection().removeAllRanges(); } catch { /* noop */ }
+  };
+
   const BookButton = ({ b }) => (
     <button type="button" onClick={() => openAt(b.name, 1)}
       className={`text-[0.6875rem] px-2 py-1 border text-left focus:outline focus:outline-2 focus:outline-[#B85838] ${b.name === book ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815] hover:border-[#1A1815]'}`}
@@ -224,6 +272,27 @@ export default function BibleReader({ email = null }) {
         ))}
       </div>
 
+      {/* Selection palette — color the highlighted word/phrase. */}
+      {pendingSel && (
+        <div className="sticky top-0 z-20 bg-white border border-[#B85838] p-2 mb-2 shadow-sm">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="text-[0.6875rem] text-[#5A5751] truncate" style={serif}>
+              Color “{pendingSel.text.length > 34 ? `${pendingSel.text.slice(0, 34)}…` : pendingSel.text}” in {pendingSel.ref}
+            </span>
+            <button type="button" onClick={() => setPendingSel(null)}
+              className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {HIGHLIGHT_STYLES.map((s) => (
+              <button key={s.key} type="button" onClick={() => applySpan(s.key)} title={`${s.label} — ${s.meaning}`} aria-label={`Highlight selection ${s.label}`}
+                className="w-6 h-6 rounded-full border-2 focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ backgroundColor: s.swatch, borderColor: s.swatch }} />
+            ))}
+            <button type="button" onClick={eraseSpan} aria-label="Clear highlight on the selection"
+              className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-[#C9BFA8] text-[#5A5751] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" style={mono}>&times;</button>
+          </div>
+        </div>
+      )}
+
       {/* The verses. */}
       {loading ? (
         <p className="text-sm text-[#5A5751]" style={serif}>Opening {book} {chapter}…</p>
@@ -243,8 +312,15 @@ export default function BibleReader({ email = null }) {
                   <button type="button" onClick={() => setOpenVerse(open ? null : v)} aria-expanded={open}
                     title={`${ref} — cross-references & copy`}
                     className="text-[0.625rem] text-[#5A6E3D] font-semibold mt-1 w-6 shrink-0 text-right hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]" style={mono}>{v}</button>
-                  <p className="text-sm text-[#1A1815] leading-relaxed flex-1" style={serif}>
-                    <span style={cssForHighlight(mark)}>{text}</span>
+                  <p className="text-sm text-[#1A1815] leading-relaxed flex-1" style={serif}
+                    onMouseUp={(e) => onSelect(ref, e.currentTarget)} onTouchEnd={(e) => onSelect(ref, e.currentTarget)}>
+                    <span style={cssForHighlight(mark)}>
+                      {segmentsForVerse(text, getSpans(marks, ref)).map((seg, i) => (
+                        seg.style === 'none'
+                          ? <React.Fragment key={i}>{seg.text}</React.Fragment>
+                          : <span key={i} style={cssForHighlight(seg.style)}>{seg.text}</span>
+                      ))}
+                    </span>
                   </p>
                   <VerseHighlighter value={mark} onPick={(k) => pick(ref, k)} refLabel={ref} />
                 </div>

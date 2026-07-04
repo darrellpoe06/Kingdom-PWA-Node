@@ -120,6 +120,17 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     expect(text).toMatch(/Copy/);
   });
 
+  it('renders a WORD-level highlight for a saved span (part of a verse, not the whole)', async () => {
+    // Seed a span over "In" in Genesis 1:1 (offsets 0-2), then open the reader.
+    localStorage.setItem('poetech.highlights.v1:reader@example.com',
+      JSON.stringify({ spans: { 'Genesis 1:1': [{ start: 0, end: 2, style: 'gold' }] } }));
+    await mount();
+    const styled = [...container.querySelectorAll('span')].find(
+      (s) => s.textContent === 'In' && s.style && s.style.backgroundColor);
+    expect(styled, 'the highlighted word "In" renders as its own colored span').toBeTruthy();
+    localStorage.removeItem('poetech.highlights.v1:reader@example.com');
+  });
+
   it('rejects an unfindable reference without leaving the app', async () => {
     await mount();
     setValue(container.querySelector('#bible-jump'), 'Hezekiah 3:1');
