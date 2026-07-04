@@ -72,6 +72,25 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     expect(text).toContain('For God so loved the world');
   });
 
+  it('type-ahead: a single letter lists every book with that letter', async () => {
+    await mount();
+    setValue(container.querySelector('#bible-jump'), 'J');
+    await tick();
+    const text = container.textContent || '';
+    for (const name of ['James', 'Jeremiah', 'Job', 'John', 'Jonah', 'Joshua', 'Jude']) {
+      expect(text, `type-ahead should list ${name}`).toContain(name);
+    }
+  });
+
+  it('"John 3" (book + chapter, no verse) opens that chapter', async () => {
+    await mount();
+    setValue(container.querySelector('#bible-jump'), 'John 3');
+    await clickText(/^Go$/);
+    const text = container.textContent || '';
+    expect(text).toMatch(/John 3/);
+    expect(text).toContain('For God so loved the world'); // John 3:16 is in the chapter
+  });
+
   it('lists all 66 books in the picker (Genesis … Revelation)', async () => {
     await mount();
     await clickText(/All 66 books/);
@@ -87,6 +106,6 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     await mount();
     setValue(container.querySelector('#bible-jump'), 'Hezekiah 3:1');
     await clickText(/^Go$/);
-    expect(container.textContent).toMatch(/Not a reference I can find/);
+    expect(container.textContent).toMatch(/Not a book or reference I can find/);
   });
 });

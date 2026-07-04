@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import {
   BIBLE_INDEX, OLD_TESTAMENT, NEW_TESTAMENT, bookMeta, parseRef,
   verseText, chapterVerses, chapterCount, verseCount, __setBibleFetcher,
+  searchBooks, parseLoose,
 } from '../lib/bible-kjv.js';
 
 const ASSETS = join(dirname(fileURLToPath(import.meta.url)), '../../public/bible/kjv');
@@ -60,6 +61,40 @@ describe('reference parsing', () => {
   it('returns null for an unknown book', () => {
     expect(parseRef('Hezekiah 3:1')).toBeNull();
     expect(bookMeta('nope')).toBeNull();
+  });
+});
+
+describe('type-ahead book search (Darrell: "a J should list all J books")', () => {
+  it('a single initial letter lists every book starting with it', () => {
+    const j = searchBooks('J').map((b) => b.name);
+    for (const name of ['James', 'Jeremiah', 'Job', 'Joel', 'John', 'Jonah', 'Joshua', 'Jude', 'Judges']) {
+      expect(j, `J should include ${name}`).toContain(name);
+    }
+    expect(searchBooks('J').every((b) => /^J/i.test(b.name.replace(/^\d\s*/, '')) || /j/i.test(b.name))).toBe(true);
+  });
+  it('ignores a trailing chapter/verse so "John 3" still finds John', () => {
+    expect(searchBooks('John 3').map((b) => b.name)).toContain('John');
+    expect(searchBooks('Genesis 1:1').map((b) => b.name)).toContain('Genesis');
+  });
+  it('empty query returns nothing', () => {
+    expect(searchBooks('')).toEqual([]);
+  });
+});
+
+describe('forgiving parse for the reader (book / book+chapter / full ref)', () => {
+  it('"John 3" resolves to the chapter (no verse required)', () => {
+    expect(parseLoose('John 3')).toMatchObject({ book: 'John', chapter: 3, verse: null });
+  });
+  it('a full ref keeps its verse; a bare book opens chapter 1', () => {
+    expect(parseLoose('John 3:16')).toMatchObject({ book: 'John', chapter: 3, verse: 16 });
+    expect(parseLoose('Psalms')).toMatchObject({ book: 'Psalms', chapter: 1, verse: null });
+  });
+  it('clamps an out-of-range chapter and handles single-chapter books', () => {
+    expect(parseLoose('John 999').chapter).toBe(21);   // John has 21 chapters
+    expect(parseLoose('Jude 6')).toMatchObject({ book: 'Jude', chapter: 1, verse: 6 });
+  });
+  it('returns null when no book matches', () => {
+    expect(parseLoose('Hezekiah 3')).toBeNull();
   });
 });
 
