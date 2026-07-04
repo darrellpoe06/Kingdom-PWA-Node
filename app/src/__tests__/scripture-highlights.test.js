@@ -10,6 +10,7 @@ import {
   HIGHLIGHT_STYLES, styleFor, cssForHighlight,
   highlightsKey, emptyHighlights, loadHighlights, saveHighlights,
   getMark, setMark, cycleMark, markCount, clearAllMarks, DEFAULT_STYLE_KEY,
+  addSpan, getSpans, clearSpans, spanCount, segmentsForVerse,
 } from '../lib/scripture-highlights.js';
 
 // A minimal in-memory localStorage the module's safeStorage() will pick up.
@@ -84,6 +85,58 @@ describe('pure transforms (immutable)', () => {
     s = setMark(s, 'b 2:2', 'gold');
     expect(markCount(s)).toBe(2);
     expect(markCount(clearAllMarks(s))).toBe(0);
+  });
+});
+
+describe('word / phrase spans (highlight part of a verse)', () => {
+  it('adds, reads, and clears a span without mutating the input', () => {
+    const s0 = emptyHighlights();
+    const s1 = addSpan(s0, 'John 3:16', 4, 7, 'gold'); // "God" in "For God so loved"
+    expect(getSpans(s1, 'John 3:16')).toEqual([{ start: 4, end: 7, style: 'gold' }]);
+    expect(getSpans(s0, 'John 3:16')).toEqual([]);      // original untouched
+    expect(spanCount(s1)).toBe(1);
+    const s2 = clearSpans(s1, 'John 3:16');
+    expect(getSpans(s2, 'John 3:16')).toEqual([]);
+  });
+  it('normalizes an inverted range and rejects a bad style / empty range', () => {
+    expect(getSpans(addSpan(emptyHighlights(), 'a 1:1', 9, 3, 'sky'), 'a 1:1')).toEqual([{ start: 3, end: 9, style: 'sky' }]);
+    expect(spanCount(addSpan(emptyHighlights(), 'a 1:1', 3, 3, 'sky'))).toBe(0);   // empty
+    expect(spanCount(addSpan(emptyHighlights(), 'a 1:1', 1, 4, 'neon'))).toBe(0);  // unknown style
+  });
+  it('an eraser clears only the overlapping spans', () => {
+    let s = addSpan(emptyHighlights(), 'a 1:1', 0, 3, 'sky');
+    s = addSpan(s, 'a 1:1', 10, 15, 'gold');
+    s = clearSpans(s, 'a 1:1', 1, 2);                 // overlaps the first only
+    expect(getSpans(s, 'a 1:1')).toEqual([{ start: 10, end: 15, style: 'gold' }]);
+  });
+  it('segmentsForVerse splits into ordered runs; a later span wins on overlap', () => {
+    const text = 'For God so loved';
+    const segs = segmentsForVerse(text, [{ start: 4, end: 7, style: 'gold' }]);
+    expect(segs).toEqual([
+      { text: 'For ', style: 'none' },
+      { text: 'God', style: 'gold' },
+      { text: ' so loved', style: 'none' },
+    ]);
+    // overlap: the second (coral) overrides the first (sky) where they cross
+    const ov = segmentsForVerse('abcdef', [{ start: 0, end: 4, style: 'sky' }, { start: 2, end: 6, style: 'coral' }]);
+    expect(ov).toEqual([
+      { text: 'ab', style: 'sky' },
+      { text: 'cdef', style: 'coral' },
+    ]);
+    // clamps out-of-range and returns the whole text as one plain run when empty
+    expect(segmentsForVerse('abc', [])).toEqual([{ text: 'abc', style: 'none' }]);
+    expect(segmentsForVerse('abc', [{ start: 1, end: 99, style: 'gold' }])).toEqual([
+      { text: 'a', style: 'none' }, { text: 'bc', style: 'gold' },
+    ]);
+  });
+  it('spans survive a save/load round-trip; a corrupt span is dropped', () => {
+    installStorage();
+    saveHighlights('sp@x.co', addSpan(emptyHighlights(), 'John 3:16', 4, 7, 'gold'));
+    expect(getSpans(loadHighlights('sp@x.co'), 'John 3:16')).toEqual([{ start: 4, end: 7, style: 'gold' }]);
+    const map = installStorage();
+    map.set(highlightsKey('c@x.co'), JSON.stringify({ spans: { 'a 1:1': [{ start: 0, end: 2, style: 'sky' }, { start: 5, end: 3, style: 'gold' }, { start: 1, end: 4, style: 'neon' }] } }));
+    // only the valid span survives (inverted + unknown-style dropped)
+    expect(getSpans(loadHighlights('c@x.co'), 'a 1:1')).toEqual([{ start: 0, end: 2, style: 'sky' }]);
   });
 });
 
