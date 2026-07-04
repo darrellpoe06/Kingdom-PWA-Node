@@ -426,6 +426,58 @@ export function bucketShows(state, catalog) {
   return buckets;
 }
 
+// --- What's getting watched: a real-data activity ranking -------------------
+// (Darrell 2026-07-04: "update the shows list dynamically based on what people
+// are watching".) Pure + deterministic + explainable — the concern-signals.js
+// precedent. Ranks the TRACKED items by an activity signal built from REAL local
+// state: how it's being watched (status), momentum (episodes checked), rating,
+// and discussion (comments). Circle-wide once live sync lands; today it reflects
+// this device's list — no fabricated other-people activity (DR-0076).
+
+const WATCH_WEIGHT = { watching: 40, watched: 20, stale: 10, want: 0 };
+
+function watchReason(e, eps, comments, meta) {
+  const isMovie = meta && meta.kind === 'movie';
+  if (e.status === 'watching' && eps > 0) return `Watching · ${eps} episode${eps === 1 ? '' : 's'} in`;
+  if (e.status === 'watching') return 'Watching now';
+  if (comments > 0) return `${comments} comment${comments === 1 ? '' : 's'} · people are talking`;
+  if (e.status === 'watched') return isMovie ? 'Watched' : 'Finished it';
+  if (e.rating) return `Rated ${e.rating} of 5`;
+  if (e.status === 'stale') return 'Picked up before';
+  return 'On the list';
+}
+
+// Ranked tracked items, most active first. `catalog` supplies title/poster/kind
+// (merge customCatalog + any seed). Deterministic: score desc, then title asc.
+export function watchSignal(state, catalog) {
+  const base = normalize(state);
+  const byId = new Map((Array.isArray(catalog) ? catalog : []).map((s) => [s.id, s]));
+  const rows = [];
+  for (const [id, e] of Object.entries(base.shows)) {
+    const meta = byId.get(id) || base.custom[id] || { id, title: id, kind: 'show' };
+    const eps = Object.keys(e.watched).length;
+    const comments = e.comments.length;
+    const score = (WATCH_WEIGHT[e.status] || 0) + Math.min(eps, 100) + (e.rating || 0) * 2 + comments * 4;
+    rows.push({
+      id,
+      title: meta.title || id,
+      poster: typeof meta.poster === 'string' ? meta.poster : '',
+      kind: meta.kind === 'movie' ? 'movie' : 'show',
+      year: typeof meta.year === 'string' ? meta.year : '',
+      status: e.status,
+      score,
+      reason: watchReason(e, eps, comments, meta),
+    });
+  }
+  return rows.sort((a, b) => (b.score - a.score) || a.title.localeCompare(b.title));
+}
+
+// The "trending" slice: the most active items with real activity (score > 0),
+// capped. What's actually getting watched — never a painted list.
+export function trendingWatches(state, catalog, limit = 5) {
+  return watchSignal(state, catalog).filter((r) => r.score > 0).slice(0, Math.max(0, limit));
+}
+
 // A stable discernment prompt for a show — deterministic from the id so the card
 // doesn't flicker between renders. Pure (no randomness).
 export function discernmentPromptFor(showId) {

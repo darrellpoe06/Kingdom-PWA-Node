@@ -13,6 +13,7 @@ import {
   addCustomShow, customCatalog,
   addShowFromCatalog, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress, epKey,
   addMovieFromCatalog, toggleMovieWatched, isMovieWatched, itemKind,
+  watchSignal, trendingWatches,
 } from '../lib/tv-time.js';
 
 // A looked-up show (tv-catalog shape) with 2 seasons / 3 episodes total.
@@ -193,6 +194,50 @@ describe('movies — a single watch, then rate + talk ("movies too?")', () => {
     expect(itemKind(st, 'mv-1337364561')).toBe('movie');
     expect(customCatalog(st)[0].seasons).toEqual([]);
     expect(bucketShows(st, customCatalog(st)).want[0].rating).toBe(5);
+  });
+});
+
+describe('what\'s getting watched — real-data activity ranking', () => {
+  it('ranks actively-watched over want, momentum + discussion lift the score, explainable', () => {
+    // GoT: watching + an episode checked → should top the list.
+    let s = addShowFromCatalog(emptyTv(), GOT);          // status 'watching'
+    s = toggleEpisode(s, '82', 1, 1);                     // momentum
+    // A movie just added as 'want' (no activity) should sink below.
+    s = addMovieFromCatalog(s, MOVIE);                    // status 'want', score 0
+    // A talked-about, finished show.
+    s = addShowFromCatalog(s, { id: 90, title: 'Finale Talk', seasons: [] });
+    s = setStatus(s, '90', 'watched');
+    s = addComment(s, '90', { author: 'Tiffany', text: 'wow' }, 1, 0);
+
+    const ranked = watchSignal(s, customCatalog(s));
+    expect(ranked[0].id).toBe('82');                      // watching + momentum wins
+    expect(ranked[0].reason).toMatch(/Watching · 1 episode in/);
+    // the untouched 'want' movie is present but ranks last (score 0)
+    const movieRow = ranked.find((r) => r.id === 'mv-1337364561');
+    expect(movieRow.score).toBe(0);
+    expect(ranked[ranked.length - 1].id).toBe('mv-1337364561');
+    // discussion is surfaced as the reason on the finished show
+    const talk = ranked.find((r) => r.id === '90');
+    expect(talk.reason).toMatch(/1 comment · people are talking/);
+    expect(talk.kind).toBe('show');
+  });
+  it('trendingWatches keeps only real activity (score > 0) and caps the list', () => {
+    let s = addMovieFromCatalog(emptyTv(), MOVIE);        // want, score 0 → excluded
+    s = addShowFromCatalog(s, GOT);                       // watching → included
+    const top = trendingWatches(s, customCatalog(s), 5);
+    expect(top.map((r) => r.id)).toEqual(['82']);         // the 'want' movie is filtered out
+    expect(trendingWatches(s, customCatalog(s), 0)).toEqual([]);
+    // a watched movie earns its place
+    const s2 = toggleMovieWatched(s, 'mv-1337364561');
+    expect(trendingWatches(s2, customCatalog(s2), 5).some((r) => r.id === 'mv-1337364561')).toBe(true);
+  });
+  it('is deterministic — same state, same ranking (stable tiebreak by title)', () => {
+    let s = addShowFromCatalog(emptyTv(), { id: 'a1', title: 'Zed', seasons: [] });
+    s = addShowFromCatalog(s, { id: 'a2', title: 'Alpha', seasons: [] });   // both 'watching', equal score
+    const a = watchSignal(s, customCatalog(s)).map((r) => r.id);
+    const b = watchSignal(s, customCatalog(s)).map((r) => r.id);
+    expect(a).toEqual(b);
+    expect(a).toEqual(['a2', 'a1']);                     // tie broken by title asc (Alpha before Zed)
   });
 });
 

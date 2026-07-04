@@ -19,6 +19,7 @@ import {
   loadTv, saveTv, bucketShows, customCatalog, addCustomShow, addShowFromCatalog, addMovieFromCatalog, toggleMovieWatched,
   setStatus, untrack, rateShow, addComment, getComments, toggleReaction, reactionCount,
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
+  trendingWatches,
 } from '../lib/tv-time.js';
 import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE } from '../lib/tv-catalog.js';
 
@@ -45,6 +46,36 @@ function Stars({ value, onRate }) {
         </button>
       ))}
     </span>
+  );
+}
+
+// What's getting watched — a real-data activity ranking (Darrell 2026-07-04:
+// "update the shows list dynamically based on what people are watching"). Reads
+// the live list; honestly scoped to your device until circle sync lands.
+function TrendingStrip({ items }) {
+  if (!items.length) return null;
+  return (
+    <section className="bg-[#1A1815] text-white p-3 mb-3" aria-labelledby="tv-trending">
+      <div className="flex items-baseline justify-between gap-2 mb-2">
+        <h3 id="tv-trending" className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#E8B84B] font-semibold">What’s getting watched</h3>
+        <span className="text-[0.5625rem] text-[#C9BFA8]">Ranked by activity in your list · circle-wide when live sync lands</span>
+      </div>
+      <ol className="space-y-1.5">
+        {items.map((r, i) => (
+          <li key={r.id} className="flex items-center gap-2.5">
+            <span className="text-[0.6875rem] text-[#E8B84B] w-4 shrink-0 text-right" aria-hidden="true">{i + 1}</span>
+            <Poster url={r.poster} title={r.title} className="w-7 h-10" />
+            <span className="min-w-0">
+              <span className="text-sm text-white block truncate" style={{ ...serif, fontWeight: 600 }}>
+                {r.title}
+                {r.kind === 'movie' && <span className="text-[0.5rem] uppercase tracking-wider text-[#C9BFA8] border border-[#5A5751] px-1 py-0.5 ml-1.5 align-middle">Movie</span>}
+              </span>
+              <span className="text-[0.6875rem] text-[#C9BFA8]">{r.reason}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -203,6 +234,7 @@ export default function TVTime({ email = null }) {
 
   const catalog = useMemo(() => [...customCatalog(state)], [state]);
   const buckets = useMemo(() => bucketShows(state, catalog), [state, catalog]);
+  const trending = useMemo(() => trendingWatches(state, catalog, 5), [state, catalog]);
   const persist = (next) => { saveTv(email, next); setState(next); };
 
   // Live search — shows AND movies as you type (debounced). The reason typing didn't
@@ -322,6 +354,9 @@ export default function TVTime({ email = null }) {
           </div>
         )}
       </div>
+
+      {/* What's getting watched — dynamic, from real activity. */}
+      <TrendingStrip items={trending} />
 
       {/* The four sections. */}
       {STATUSES.map((st) => {

@@ -93,6 +93,18 @@ describe('PoeTech TV Time', () => {
     expect(btnByText(/^Watched$/), 'one tap marks the movie watched').toBeTruthy();
   });
 
+  it('surfaces a dynamic "what\'s getting watched" strip from real activity', async () => {
+    await mount();
+    // nothing tracked → no strip
+    expect(container.textContent).not.toMatch(/getting watched/);
+    setValue(container.querySelector('#tv-search'), 'game of thrones');
+    await wait(450);
+    await click(btnByText(/\+ Add/));
+    // adding a watching show makes it show up in the ranking with an honest reason
+    expect(container.textContent).toMatch(/getting watched/);
+    expect(container.textContent).toMatch(/Watching now|Watching ·/);
+  });
+
   it('talks and laughs together on a tracked show', async () => {
     await mount();
     setValue(container.querySelector('#tv-search'), 'game of thrones');
