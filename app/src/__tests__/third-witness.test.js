@@ -8,7 +8,7 @@
 // verse verbatim from the verified fetch (never model memory), every pair
 // carrying both sides of the intertwine.
 import { describe, it, expect } from 'vitest';
-import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessClientModule, witnessScienceOnly } from '../lib/third-witness.js';
+import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessClientModule, witnessWellnessModule, witnessClientModules, witnessScienceOnly } from '../lib/third-witness.js';
 import { TLC_LESSON_TRACKS } from '../lib/tlc-lessons.js';
 
 const allPairs = WITNESS_SOURCES.flatMap((s) => s.pairs);
@@ -161,5 +161,37 @@ describe('third-witness: the separation is for the Practice ONLY (the study room
   it('the client module actually ships in the TLC client track (same content for Practice)', () => {
     const ids = TLC_LESSON_TRACKS.client.modules.map((m) => m.id);
     expect(ids).toContain('cl4-bouncing-back-setbacks');
+  });
+});
+
+describe('third-witness: inform, don\'t guard (2026-07-04) — wellness is OFFERED to clients', () => {
+  it('the metabolic-wellness module carries NO Scripture and reaches all learner levels', () => {
+    const mod = witnessWellnessModule();
+    for (const lvl of ['child', 'teen', 'standard', 'senior']) {
+      expect(mod.levels[lvl], `wellness module missing ${lvl} level`).toBeTruthy();
+      expect(mod.levels[lvl], `wellness ${lvl} leaks Scripture into the clinical space`).not.toMatch(SCRIPTURE_MARKS);
+    }
+    expect(mod.bigIdea).not.toMatch(/Yahweh|Jesus|Scripture|KJV/);
+  });
+
+  it('safety is by INFORMING, not guarding: every level names the physician + the counter-view is present', () => {
+    const mod = witnessWellnessModule();
+    // consult-your-physician frame is on the module and reachable
+    expect(mod.bigIdea.toLowerCase()).toContain('physician');
+    for (const lvl of ['standard', 'senior']) {
+      expect(mod.levels[lvl].toLowerCase(), `${lvl} should point to a doctor/physician`).toMatch(/physician|doctor/);
+    }
+    // the counter-view (fueling can beat fasting) is carried so it is never one-size
+    const quizText = JSON.stringify(mod.quiz).toLowerCase();
+    expect(quizText).toMatch(/suboptimal|harmful|fuel/);
+  });
+
+  it('BOTH witness modules (setback + wellness) are offered in the TLC client track', () => {
+    expect(witnessClientModules().map((m) => m.id)).toEqual([
+      'cl4-bouncing-back-setbacks', 'cl5-metabolic-wellness-informed',
+    ]);
+    const ids = TLC_LESSON_TRACKS.client.modules.map((m) => m.id);
+    expect(ids).toContain('cl4-bouncing-back-setbacks');
+    expect(ids).toContain('cl5-metabolic-wellness-informed');
   });
 });

@@ -296,10 +296,12 @@ function WitnessPair({ pair }) {
 
 function WitnessView() {
   // MIXED is the default (Darrell 2026-07-03: "stays mixed for those of us who
-  // need that"). The separation is an opt-in toggle in the SAME room (Darrell
-  // 2026-07-04: the fasting cluster is medical — its clean-science rendering
-  // belongs here as a choice, not shoved into the therapy client track). On =
-  // science only, every expert still cited, no Scripture riding along.
+  // need that"). The separation is an opt-in toggle — a CHOICE, not a wall
+  // (Darrell 2026-07-04: "knowledgeable is the goal... inform... we only let
+  // people choose what they want but why guard anything except training videos
+  // explicitly for the msw workers"). On = science only, every expert still
+  // cited, no Scripture riding along. Medical topics inform and point to a
+  // physician; nothing here is withheld.
   const [sciOnly, setSciOnly] = useState(false);
   return (
     <div>
@@ -310,7 +312,7 @@ function WitnessView() {
           So we can see this trauma from the 3rd dimension better, as a Body of Christ. Every expert is cited — honour to whom honour is due — and every verse is rendered verbatim. The science describes the frame Yahweh made; His Word governs. This room helps the Body see; it does not diagnose or treat.
         </p>
         <p className="text-[0.75rem] leading-relaxed mt-2 text-[#D8D4CC]" style={serif}>
-          This room stays mixed — for those of us who need the Word and the witness together. For those who want the same content separated, switch to the science-only view: cited experts, no Scripture. The medical and fasting topics carry no prescription here — always consult your physician.
+          Knowledgeable is the goal — so the full, Architect-quality information is here, and you choose the view. Mixed keeps the Word and the witness together; science-only shows the same cited experts with no Scripture. Nothing is guarded either way. The medical and fasting topics inform, they do not prescribe — always consult your physician.
         </p>
         <div className="mt-3 inline-flex rounded overflow-hidden border border-[#5A6E3D]" role="group" aria-label="Witness view mode">
           <button type="button" onClick={() => setSciOnly(false)} aria-pressed={!sciOnly}

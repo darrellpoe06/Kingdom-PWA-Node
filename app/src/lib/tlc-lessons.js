@@ -41,8 +41,10 @@
 // The 3rd-Dimension Witness feeds the client track its science-only side
 // (Darrell 2026-07-03: "the separation is the same content for Practice for
 // those who don't want the mixture") — expert cited, no Scripture in the
-// clinical space, all learner levels.
-import { witnessClientModule } from './third-witness.js';
+// clinical space, all learner levels. Both modules (setback + metabolic
+// wellness) are OFFERED to the client (Darrell 2026-07-04: inform, don't guard
+// — the only access gate is the clinician CE track, not client information).
+import { witnessClientModules } from './third-witness.js';
 
 // Validation + reading-support flags carried by every track. Honest by default:
 // validated=false means "not yet specialist-signed-off — do not publish."
@@ -119,8 +121,10 @@ export const TLC_LESSON_TRACKS = {
         ] },
       },
       // Same content as the church study's 3rd-Dimension Witness, separated:
-      // science only for the clinical space, expert cited, all levels.
-      witnessClientModule(),
+      // science only for the clinical space, expert cited, all levels. Both the
+      // setback lesson AND the metabolic-wellness digest are offered here —
+      // informing the client, gating only the clinician CE track.
+      ...witnessClientModules(),
     ],
   },
 

@@ -434,13 +434,19 @@ export function witnessVerse(ref) {
 }
 
 // THE SEPARATION, rendered generally (Darrell 2026-07-03: "separates for the
-// practice only, stays mixed for those of us who need that"; 2026-07-04: the
-// fasting cluster is medical, so its clean-science view belongs in the SAME
-// room as an opt-in toggle — not shoved into the therapy client track where a
-// disordered-eating-vulnerable population lives). This strips the bridge and
-// the verses, leaving the cited claim + where-in-the-work + full expert credit
-// (honour to whom honour, Romans 13:7). No Scripture rides along — that is the
-// point of the separation — but the science is never anonymous.
+// practice only, stays mixed for those of us who need that"). This strips the
+// bridge and the verses, leaving the cited claim + where-in-the-work + full
+// expert credit (honour to whom honour, Romans 13:7). No Scripture rides along
+// — that is the point of the separation — but the science is never anonymous.
+//
+// INFORM, DON'T GUARD (Darrell 2026-07-04: "knowledgeable is the goal... being
+// informed is the best so we want to be informed and offer Architect quality
+// information... we only let people choose what they want but why guard anything
+// except training videos explicitly for the msw workers"). The separation is a
+// CHOICE the reader makes (mixed vs science-only), not a wall that withholds.
+// The one true access gate is the clinician CE / MSW-worker TRAINING track; the
+// wellness information itself is offered to everyone, with a plain consult-your-
+// physician note and the counter-witness so it is never a one-size directive.
 export function witnessScienceOnly(source) {
   return {
     id: `sci-${source.id}`,
@@ -459,9 +465,17 @@ export function witnessScienceOnly(source) {
 // that"). Two renderings of the same content, one per house:
 //   * the study room — ALWAYS intertwined: science + Word together, for those
 //     of us who need the mixture;
-//   * the Practice — this builder: a client-track psychoeducation module,
-//     expert cited, NO Scripture in the clinical space, differentiated child
-//     through senior so all learners can learn.
+//   * the Practice — this builder: client-track psychoeducation, expert cited,
+//     NO Scripture in the clinical space, differentiated child through senior.
+//
+// INFORM, DON'T GUARD (Darrell 2026-07-04: "knowledgeable is the goal... being
+// informed is the best... we only let people choose what they want but why
+// guard anything except training videos explicitly for the msw workers"). The
+// wellness information is OFFERED to clients, not withheld — the safety is in
+// informing (a plain consult-your-physician note + the counter-witness that it
+// is never one-size), not in hiding. The only access gate is the clinician CE /
+// MSW-worker TRAINING track. Every module still rides the track's publish-
+// validation gate (a quality gate applied equally to all lessons, not a wall).
 // -----------------------------------------------------------------------------
 // Engine-shaped module (learn-framework levels + quiz) for the TLC client
 // track: psychoeducation, not treatment; rides the track's LCSW validation
@@ -483,4 +497,38 @@ export function witnessClientModule() {
       { q: 'The most effective first move when motivation is gone is to…', options: ['Wait until motivation returns', 'Take one small structured action', 'Push through the biggest task on the list'], answer: 1, explain: 'Behavioral activation: small action jump-starts the dopamine system — motivation follows action, not the other way around.' },
     ] },
   };
+}
+
+// Metabolic-wellness INFORMATION for the client track — OFFERED, not withheld
+// (Darrell 2026-07-04: inform, don't guard). A plain-language digest of the
+// cited fasting/fueling/sleep experts, science-only (no Scripture in the
+// clinical space), age-differentiated, and safe by INFORMING: every level
+// carries the consult-your-physician frame and the Sims counter-witness so it
+// reads as an informed choice, never a directive to fast. The child/teen levels
+// teach the general body-rhythm concept and explicitly leave fasting to adults-
+// with-a-doctor; the deeper levels carry the actual science with the caveats.
+export function witnessWellnessModule() {
+  return {
+    id: 'cl5-metabolic-wellness-informed',
+    title: 'Metabolic wellness: fasting, fueling, and sleep (informed choice)',
+    bigIdea: 'A plain-language digest of what cited experts say about meal timing, fasting, whole foods, and sleep — offered as information so you can make an informed choice with your physician. Not a prescription: for many people (especially active women, anyone in perimenopause, and anyone with a history of disordered eating) fueling well matters more than fasting. Always consult your physician before changing how you eat. Sources: Huberman, Jamnadas, Fung, Goldhamer, Malthaner, Sims, Marcu.',
+    source: 'Cited experts (Huberman, Jamnadas, Fung, Goldhamer, Malthaner, Sims, Marcu) — full citations in the 3rd-Dimension Witness',
+    levels: {
+      child: 'Your body has two modes: eating time (build) and resting time (repair) — and sleep is when your brain saves what you learned that day. Whole foods and good sleep help your body do its jobs. Choices like skipping meals are for grown-ups to decide with a doctor, not for kids.',
+      teen: 'Experts describe the body running a build state when you eat and a repair state when you rest, with sleep locking in memory. Whole foods, regular meals, and real sleep support all of it. Fasting is an adults-with-a-doctor topic, and it is not right for everyone — so this is information to think about, not advice to act on.',
+      standard: 'Cited clinicians describe meal-timing and fasting acting on insulin, metabolic flexibility, autophagy (cellular cleanup), and brain factors like BDNF — while a deliberate counter-view (Dr. Stacy Sims) notes standard fasting can harm many active women and those in perimenopause, where fueling appropriately is wiser. Whole foods over processed, and sleep for memory consolidation, are broadly agreed. Offered as information to discuss with your physician — not a protocol, and not something to attempt with a history of disordered eating without medical guidance.',
+      senior: 'A synthesis offered as psychoeducation, not prescription: time-restricted eating and fasting appear in the cited literature as levers on insulin sensitivity, metabolic flexibility, autophagy, and neurotrophic factors, with strong individual variation — alongside an explicit counter-witness that prolonged fasting is often suboptimal or harmful for active and perimenopausal women. Whole-food quality and sleep-based memory consolidation are the low-controversy anchors. Any change is a decision to make with a physician, and the material is unsuitable as guidance for a disordered-eating history absent clinical oversight.',
+    },
+    quiz: { questions: [
+      { q: 'This wellness lesson is best understood as…', options: ['A fasting protocol to start now', 'Cited information to weigh with your physician', 'Medical treatment'], answer: 1, explain: 'It is cited information for an informed choice — not a prescription. Medical topics belong with your physician.' },
+      { q: 'The counter-view included here says prolonged fasting is…', options: ['Ideal for everyone', 'Often suboptimal or harmful for many active and perimenopausal women', 'Required for good health'], answer: 1, explain: 'Dr. Stacy Sims\' counter-witness: for many active women, fueling appropriately beats prolonged fasting. It is never one-size.' },
+    ] },
+  };
+}
+
+// Both client-track witness modules, in order. The TLC client track spreads
+// this — informing the client with the wellness digest too, not only the
+// setback lesson (inform, don't guard).
+export function witnessClientModules() {
+  return [witnessClientModule(), witnessWellnessModule()];
 }
