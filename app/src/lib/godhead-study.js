@@ -47,6 +47,8 @@ export const BOOK_MASTERPIECES = {
   'Exodus':        'The rescue masterpiece — the Blood, the passover, and a people walked out of what owned them.',
   'Deuteronomy':   'The covenant restated on the doorstep — the choice set before every generation about to cross over.',
   'Joshua':        'The taking of what was promised — allegiance declared out loud, house by house.',
+  '1 Samuel':      'The kingmaker\'s book — the LORD who looks on the heart, and tells His prophet in his ear a day before the man arrives; the appointment briefed before it walks in.',
+  '1 Kings':       'The divided-kingdom book — fire on Carmel, the still small voice, and provision commanded ahead at a widow\'s door before the prophet ever arrives.',
   '2 Chronicles':  'The kings measured by one question — did the house seek Him? Humility heals the land.',
   'Nehemiah':      'The rebuilding book — the wall up in fifty-two days, the Word read aloud to the people, and joy as the strength of the restored.',
   'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
@@ -816,6 +818,78 @@ export const GODHEAD_ALGORITHMS = [
     // And Will, as high above our thoughts as the heavens are from the earth."
     // The last line is his own definition of the Eternal Algorithms space —
     // Isaiah 55:8-9 is why the study exists at all.
+    // ── HE ALREADY KNOWS THE SOUL ──────────────────────────────────────────────
+    // Darrell 2026-07-04 (from the Luke 2 Simeon + Anna reading): "Study this
+    // based on Yahweh's Way of already knowing souls and what to expect. Look for
+    // these types of patterns across the whole biblical scriptures." The pattern
+    // runs Torah -> Revelation: He knows the soul BEFORE the meeting, tells them
+    // what to expect, sets the exact appointment, and keeps it to the letter — and
+    // (Judas) His foreknowledge never cancels the soul's own accountable choice.
+    id: 'gh-known-before-formed', section: 'prophets', name: 'Known Before You Were Formed (the purpose predates you)',
+    refs: ['Jeremiah 1:5'],
+    condition: 'Before He formed you in the belly He KNEW you; before you came out of the womb He set you apart and ordained your purpose.',
+    consequence: 'Your identity and calling are not invented by you under pressure — they are RECOGNIZED. You were known before you could perform.',
+    threeD: 'Stop auditioning for a purpose God assigned before your first breath. Ask what you were made for, not whether you qualify — the qualification predates you.',
+    outcome: 'A settled identity that circumstances cannot un-choose, because the choosing came before the circumstances.',
+    psyche: 'Grounding worth in a pre-existing, unearned belovedness rather than in performance is the most stable base for identity to bear stress on.',
+    tags: ['known', 'identity', 'calling', 'foreknowledge'],
+  },
+  {
+    id: 'gh-searched-and-known', section: 'wisdom', name: 'Searched and Known (every word before it is on your tongue)',
+    refs: ['Psalms 139:1-4'],
+    condition: 'He has SEARCHED you and known you — your downsitting and uprising, your thought afar off, every word before it is on your tongue.',
+    consequence: 'You are never unseen and never misread by Him. There is no version of you He has not already met.',
+    threeD: 'Live transparent before the One who already sees. Drop the mask in prayer — He is not gathering information, He is inviting honesty. Bring Him the very thought you were hiding.',
+    outcome: 'The rest of being fully known and not cast out — the end of performing for the Audience who already read the script.',
+    tags: ['known', 'searched', 'transparency', 'psalm'],
+  },
+  {
+    id: 'gh-appointment-kept', section: 'gospels', name: 'The Kept Appointment (Simeon and Anna, positioned at the very hour)',
+    refs: ['Luke 2:26', 'Luke 2:36-38'],
+    condition: 'To a waiting, devout soul the Holy Ghost revealed the appointment — Simeon would not see death before he saw the Lord\'s Christ — and brought him into the temple in the Spirit at the exact hour; Anna, who departed not from the temple, came in that same instant.',
+    consequence: 'God primes the prepared soul and KEEPS the appointment to the letter — the promise has a kept date, and He positions His witnesses at the very moment.',
+    threeD: 'Keep waiting IN the Spirit and stay where He leads — the temple, the prayer, the ready posture. Divine appointments are not luck: you show up prepared and He supplies the timing. Be a Simeon; be an Anna — positioned, and there at the instant.',
+    outcome: 'You meet the very thing you were promised — on time — because you kept the posture and He kept the clock.',
+    tags: ['appointment', 'simeon', 'anna', 'waiting', 'holy-ghost'],
+  },
+  {
+    id: 'gh-told-before-he-came', section: 'torah', name: 'Told a Day Before He Came (Behold the man)',
+    refs: ['1 Samuel 9:15-17'],
+    condition: 'The LORD told Samuel in his ear a DAY before Saul came — "To morrow about this time I will send thee a man" — and when Samuel saw him said, "Behold the man whom I spake to thee of."',
+    consequence: 'God briefs His servant ahead of the encounter and confirms it in the moment — the person in front of you may be a sent appointment you were prepared for.',
+    threeD: 'Trust the nudge that goes ahead of the meeting. When someone arrives "out of nowhere," ask whether Heaven sent them; steward the encounter as briefed, not random.',
+    outcome: 'You recognize the God-sent person at the door because you were told before they came.',
+    tags: ['appointment', 'samuel', 'saul', 'foreknowledge', 'sent'],
+  },
+  {
+    id: 'gh-no-guile-figtree', section: 'gospels', name: 'Seen Under the Fig Tree (He knew the man before the meeting)',
+    refs: ['John 1:47-48'],
+    condition: 'Before Philip called Nathanael, while he was yet under the fig tree, Jesus SAW him — and named his true heart: "an Israelite indeed, in whom is no guile."',
+    consequence: 'He knows what to expect from each soul — the private moment, the real character — before the first word. Pretense has nothing to work with.',
+    threeD: 'You cannot impress Him and you cannot fool Him — so stop trying. Be real; He already saw you under your fig tree. Let being fully known disarm the performance.',
+    outcome: 'The freedom of the seen: worship without a mask, because the One you meet already knows the person He is meeting.',
+    psyche: 'Being accurately known and still received is the exact opposite of shame — the one condition under which a person can finally stop hiding.',
+    tags: ['known', 'nathanael', 'figtree', 'no-guile'],
+  },
+  {
+    id: 'gh-provider-prepared', section: 'torah', name: 'The Provider Commanded Ahead (I have commanded a widow there)',
+    refs: ['1 Kings 17:9'],
+    condition: 'Before Elijah reached Zarephath, God had ALREADY commanded the provider: "behold, I have commanded a widow woman there to sustain thee."',
+    consequence: 'Your provision is pre-arranged at the OTHER end of the obedience — the supply is briefed before you go.',
+    threeD: 'Obey the "arise and go" before you can see the supply. God has often already spoken to the person who will sustain you; the going is your part, the commanding is His.',
+    outcome: 'You walk into provision that was set up before you left — because you moved on the word, not on the sight.',
+    tags: ['provision', 'elijah', 'widow', 'prepared'],
+  },
+  {
+    id: 'gh-foreknew-betrayer', section: 'gospels', name: 'He Knew the Betrayer (foreknown is not the same as faithful)',
+    refs: ['John 13:11'],
+    condition: '"For He knew who should betray Him" — He knew from the beginning who believed not and who would hand Him over, and washed his feet anyway.',
+    consequence: 'Being foreknown is NOT the same as being faithful: God\'s knowledge of a soul never cancels that soul\'s own choice, and each still answers for it. The pattern cuts both ways.',
+    threeD: 'Do not presume on being known — Judas was known and still chose. Let "He knows me" produce reverence, not entitlement; the One who knows the betrayer knows you, and loves you toward repentance while there is still time.',
+    outcome: 'A sober, grateful walk — fully known, still chosen, and warned in love that His foreknowledge never removes your accountability.',
+    tags: ['foreknowledge', 'judas', 'accountability', 'choice'],
+  },
+  {
     id: 'gh-word-of-testimony', section: 'revelation', name: 'The Word of Their Testimony (eat the Word and the testimony aligns)',
     refs: ['Revelation 12:11', 'Jeremiah 15:16', 'Isaiah 55:8-9', 'Romans 13:7'],
     condition: 'The accuser is overcome by the blood of the Lamb AND by the word of their testimony — and a testimony only carries weight when the mouth and the life run the same Word.',
