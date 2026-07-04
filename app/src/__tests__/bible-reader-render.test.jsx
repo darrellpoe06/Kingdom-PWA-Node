@@ -186,6 +186,27 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     expect(btn, 'the dramatized-read button renders in voices mode').toBeTruthy();
   });
 
+  it('the reader has a Play button to read the chapter aloud', async () => {
+    await mount();
+    const play = [...container.querySelectorAll('button')].find((b) => /Play/.test(b.textContent || ''));
+    expect(play, 'a Play button renders in the reader').toBeTruthy();
+  });
+
+  it('shows the Godhead together in Genesis 1 (Father, Son, Spirit) with a verified union link', async () => {
+    await mount(); // opens Genesis 1
+    const text = container.textContent || '';
+    expect(text).toMatch(/Godhead together/);
+    expect(text).toMatch(/The Father/);
+    expect(text).toMatch(/The Son/);       // "The Son — the Word"
+    expect(text).toMatch(/The Holy Spirit/);
+    // A union link out to John 8:12 (Jesus, the Light of the world) is tappable and opens the verse.
+    const john = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === 'John 8:12');
+    expect(john, 'the John 8:12 union chip renders').toBeTruthy();
+    await act(async () => { john.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    await tick();
+    expect(container.textContent).toContain('I am the light of the world');
+  });
+
   it('rejects an unfindable reference without leaving the app', async () => {
     await mount();
     setValue(container.querySelector('#bible-jump'), 'Hezekiah 3:1');
