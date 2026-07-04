@@ -22,6 +22,7 @@ import { SectionTitle } from './shared.jsx';
 import HelpButton from './HelpButton.jsx';
 import UiIcon from './UiIcon.jsx';
 import { kjvText, readOnline } from '../lib/scriptures.js';
+import { verseText as fullKjvVerse } from '../lib/bible-kjv.js';
 import {
   SERIES, listStudies, getStudy, AXES,
   studyToGameCards, algorithmsToGameCards, scoreRound,
@@ -38,11 +39,28 @@ const CARD = 'bg-white border border-[#E8E4DC] p-3';
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const AREA = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] leading-relaxed focus:outline focus:outline-2 focus:outline-[#B85838]';
 
-// A verse rendered from the public-domain KJV layer, with the ESV citation
-// LINKED (copyright — never reproduced). If a ref is not in the verified set the
-// reference shows alone (honest "look it up"), never a fabricated quote.
-function Verse({ refStr, translationCited = 'ESV' }) {
-  const text = kjvText(refStr);
+// The verbatim KJV text for a ref — curated set FIRST (instant, bundled), then
+// the WHOLE in-app KJV as a fallback (Darrell 2026-07-04: "are we linked
+// internally for all those scripture references"). So ANY reference resolves to
+// the Word inside the app; no ref dead-ends to "look it up" and no fabrication.
+export function useInAppKjv(refStr) {
+  const curated = kjvText(refStr);
+  const [full, setFull] = useState(null);
+  useEffect(() => {
+    if (curated) { setFull(null); return undefined; }
+    let on = true;
+    fullKjvVerse(refStr).then((t) => { if (on) setFull(t || null); });
+    return () => { on = false; };
+  }, [refStr, curated]);
+  return curated || full;
+}
+
+// A verse rendered from the in-app KJV (curated set or the whole Bible), with the
+// ESV citation LINKED as an OTHER-translation option (copyright — never
+// reproduced). Now that the whole KJV is hosted, the Word shows in-app for any
+// ref; the reference only shows alone if a malformed ref resolves to nothing.
+export function Verse({ refStr, translationCited = 'ESV' }) {
+  const text = useInAppKjv(refStr);
   return (
     <div className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-1.5 my-1.5">
       {text
@@ -51,9 +69,9 @@ function Verse({ refStr, translationCited = 'ESV' }) {
       <div className="flex items-center gap-2 mt-0.5">
         <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{refStr}</span>
         <a href={readOnline(refStr, translationCited)} target="_blank" rel="noopener noreferrer"
-          title={`Read ${refStr} in the ${translationCited} (opens BibleGateway)`}
+          title={`Read ${refStr} in the ${translationCited} (other translation, opens BibleGateway)`}
           className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
-          Read {translationCited} ↗
+          {translationCited} ↗
         </a>
       </div>
     </div>
