@@ -570,6 +570,24 @@ export async function reuseSong(song, newDate, newType, displayName) {
   return saveSong(buildReusedSong(song, newDate, newType), displayName);
 }
 
+// The distinct song CATALOG for the "pick from imported songs" picker (Christina
+// 2026-07-04: "link it to songs and be able to choose from the songs that have
+// already been imported... so you are not doing double duty"). Dedupes the full
+// song list by title (case-insensitive), keeping the richest record (one with
+// lyrics, then a video), sorted by title. Pure — the picker maps over it and the
+// existing reuseSong pipeline schedules the chosen song onto a date.
+export function distinctSongCatalog(songs) {
+  const byTitle = new Map();
+  const score = (x) => (x && x.lyrics ? 2 : 0) + (x && x.youtubeUrl ? 1 : 0);
+  for (const s of (Array.isArray(songs) ? songs : [])) {
+    const key = String((s && s.title) || '').trim().toLowerCase();
+    if (!key) continue;
+    const prev = byTitle.get(key);
+    if (!prev || score(s) > score(prev)) byTitle.set(key, s);
+  }
+  return [...byTitle.values()].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+}
+
 export async function saveService(item, displayName) {
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
