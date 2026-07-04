@@ -28,21 +28,22 @@ export default function VerseHighlighter({ value = 'none', onPick, refLabel = 't
 
   return (
     <span className="relative inline-flex items-center">
+      {/* A clean, quiet swatch dot — a hollow ring when unmarked, filled with the
+          highlight color when set (Darrell 2026-07-04: the boxed "MARK" was
+          clunky). No text; the label rides the aria-label + tooltip. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={marked ? `Highlight for ${refLabel}: ${current.label}. Change or clear.` : `Highlight ${refLabel}`}
-        title={marked ? `Highlighted: ${current.label} — tap to change` : 'Highlight this verse'}
-        className="inline-flex items-center gap-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838] hover:bg-[#FAF8F4]"
-        style={{ borderColor: marked ? (current.swatch || '#C9BFA8') : '#E8E4DC' }}
+        title={marked ? `${current.label} — tap to change` : 'Highlight'}
+        className="inline-flex items-center justify-center w-6 h-6 rounded-full focus:outline focus:outline-2 focus:outline-[#B85838] hover:bg-[#FAF8F4]"
       >
         <span
           aria-hidden="true"
-          className="inline-block w-3 h-3 rounded-full border border-[#C9BFA8]"
-          style={{ backgroundColor: marked ? (current.swatch || 'transparent') : 'transparent' }}
+          className="inline-block w-3.5 h-3.5 rounded-full border-2"
+          style={{ backgroundColor: marked ? (current.swatch || 'transparent') : 'transparent', borderColor: marked ? (current.swatch || '#C9BFA8') : '#C9BFA8' }}
         />
-        <span style={mono}>{marked ? current.label : 'Mark'}</span>
       </button>
 
       {open && (

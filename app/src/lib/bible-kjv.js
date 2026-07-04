@@ -71,6 +71,47 @@ export function parseRef(ref) {
   return null;
 }
 
+// Books whose name matches what's being typed — the reader's type-ahead
+// (Darrell 2026-07-04: "a J should list all J books"). Any trailing chapter /
+// verse is ignored for the match, so "John 3" still finds John. Prefix matches
+// come first, then contains; canonical order within each.
+export function searchBooks(query) {
+  const q = String(query || '').trim();
+  if (!q) return [];
+  const bookPart = q.replace(/\s*\d.*$/, '').trim() || q;
+  const n = normName(bookPart);
+  if (!n) return [];
+  const starts = [];
+  const contains = [];
+  for (const b of BIBLE_INDEX) {
+    const bn = normName(b.name);
+    if (bn.startsWith(n)) starts.push(b);
+    else if (bn.includes(n)) contains.push(b);
+  }
+  return [...starts, ...contains];
+}
+
+// A forgiving parse for the reader: "John", "John 3", "John 3:16", "1 John 2",
+// "Jude 6" -> { book, file, chapter, verse } with chapter/verse possibly null.
+// Returns null only when no book matches at all.
+export function parseLoose(query) {
+  const q = String(query || '').trim();
+  let m = q.match(/^(.+?)\s+(\d+):(\d+)$/);
+  if (m) { const b = bookMeta(m[1]); if (b) return { book: b.name, file: b.file, chapter: +m[2], verse: +m[3] }; }
+  m = q.match(/^(.+?)\s+(\d+)$/);
+  if (m) {
+    const b = bookMeta(m[1]);
+    if (b) {
+      if (b.chapters.length === 1) return { book: b.name, file: b.file, chapter: 1, verse: +m[2] };
+      const ch = Math.min(Math.max(1, +m[2]), b.chapters.length);
+      return { book: b.name, file: b.file, chapter: ch, verse: null };
+    }
+  }
+  const only = bookMeta(q);
+  if (only) return { book: only.name, file: only.file, chapter: 1, verse: null };
+  return null;
+}
+
 // --- Lazy per-book loading (the only I/O; fails soft) ------------------------
 
 const BASE = (() => {

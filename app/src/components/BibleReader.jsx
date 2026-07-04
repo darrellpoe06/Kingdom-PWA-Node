@@ -9,9 +9,9 @@
 // #5A5751 secondary, visible #B85838 focus outline (AA). Rem sizes; no device
 // emoji. The heavy book text lazy-loads (bible-kjv.loadBook); the picker uses the
 // tiny bundled index, so navigation is instant and only the opened book fetches.
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  OLD_TESTAMENT, NEW_TESTAMENT, chapterVerses, chapterCount, parseRef,
+  OLD_TESTAMENT, NEW_TESTAMENT, chapterVerses, chapterCount, parseRef, parseLoose, searchBooks,
 } from '../lib/bible-kjv.js';
 import VerseHighlighter from './VerseHighlighter.jsx';
 import { loadHighlights, saveHighlights, getMark, setMark, cssForHighlight } from '../lib/scripture-highlights.js';
@@ -50,12 +50,30 @@ export default function BibleReader({ email = null }) {
     setPickerOpen(false);
   };
 
-  const jump = () => {
-    const p = parseRef(query.trim());
-    if (!p) { setJumpError('Not a reference I can find — try like "John 3:16".'); return; }
-    setJumpError('');
+  // Type-ahead: what's typed lists matching books (Darrell 2026-07-04: "a J
+  // should list all J books"); a trailing chapter/verse is respected on select.
+  const matches = useMemo(() => searchBooks(query).slice(0, 12), [query]);
+  const tail = useMemo(() => {
+    const m = query.trim().match(/\s+(\d+)(?::(\d+))?$/);
+    return m ? { chapter: +m[1], verse: m[2] ? +m[2] : null } : null;
+  }, [query]);
+
+  const openBook = (b) => {
+    const ch = tail ? Math.min(Math.max(1, tail.chapter), chapterCount(b.name)) : 1;
     setQuery('');
-    openAt(p.book, p.chapter, p.v1);
+    setJumpError('');
+    openAt(b.name, ch, tail ? tail.verse : null);
+  };
+
+  const jump = () => {
+    const q = query.trim();
+    const p = parseRef(q);            // full verse, e.g. "John 3:16"
+    if (p) { setQuery(''); setJumpError(''); openAt(p.book, p.chapter, p.v1); return; }
+    const loose = parseLoose(q);      // "John", "John 3", "1 John 2"
+    if (loose) { setQuery(''); setJumpError(''); openAt(loose.book, loose.chapter, loose.verse); return; }
+    const ms = searchBooks(q);        // fall back to the first matching book
+    if (ms.length) { openBook(ms[0]); return; }
+    setJumpError('Not a book or reference I can find — try a book name, or "John 3:16".');
   };
 
   const pick = (ref, key) => {
@@ -89,11 +107,28 @@ export default function BibleReader({ email = null }) {
             <input id="bible-jump" type="text" value={query}
               onChange={(e) => { setQuery(e.target.value); setJumpError(''); }}
               onKeyDown={(e) => { if (e.key === 'Enter') jump(); }}
-              placeholder="Go to a reference — e.g. John 3:16"
+              placeholder="Type a book — e.g. J, John, or John 3:16"
+              autoComplete="off"
               className="flex-1 text-sm px-2 py-1 border border-[#E8E4DC] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={serif} />
             <button type="button" onClick={jump}
               className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Go</button>
           </div>
+          {/* Type-ahead book list — filtered by what you type (the initial letter
+              lists every book with that letter). */}
+          {query.trim() && matches.length > 0 && (
+            <ul className="mt-1 border border-[#E8E4DC] bg-white max-h-56 overflow-y-auto divide-y divide-[#F2EFE9]" aria-label="Matching books">
+              {matches.map((b) => (
+                <li key={b.file}>
+                  <button type="button" onClick={() => openBook(b)}
+                    className="w-full text-left px-2 py-1.5 text-sm text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" style={serif}>
+                    {b.name}
+                    {tail && <span className="text-[0.6875rem] text-[#5A6E3D] ml-1" style={mono}>{tail.chapter}{tail.verse ? `:${tail.verse}` : ''}</span>}
+                    <span className="text-[0.625rem] text-[#5A5751] ml-1">· {b.chapters.length} ch</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           {jumpError && <p className="text-[0.6875rem] text-[#B85838] mt-1" style={serif}>{jumpError}</p>}
         </div>
         <button type="button" onClick={() => setPickerOpen((v) => !v)} aria-expanded={pickerOpen}

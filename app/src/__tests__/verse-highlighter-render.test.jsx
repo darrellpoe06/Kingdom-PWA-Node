@@ -34,8 +34,8 @@ function click(el) {
 describe('VerseHighlighter', () => {
   it('opens the palette and shows every semantic color plus Clear', async () => {
     const c = await mount(createElement(VerseHighlighter, { value: 'none', onPick: () => {}, refLabel: 'Luke 2:26' }));
-    // closed: shows the "Mark" affordance
-    expect(c.textContent).toMatch(/Mark/);
+    // closed: a clean, quiet swatch trigger — labelled for a11y (no clunky text).
+    expect(c.querySelector('button').getAttribute('aria-label')).toMatch(/Highlight/);
     await click(c.querySelector('button'));
     for (const s of HIGHLIGHT_STYLES) {
       expect(c.textContent, `palette missing ${s.label}`).toContain(s.label);
@@ -59,9 +59,9 @@ describe('VerseHighlighter', () => {
     expect(picks).toEqual(['coral', 'none']);
   });
 
-  it('when a color is set, the button shows that color’s label (not "Mark")', async () => {
+  it('when a color is set, the trigger reflects that color (via its accessible label)', async () => {
     const c = await mount(createElement(VerseHighlighter, { value: 'emerald', onPick: () => {}, refLabel: 'Luke 2:40' }));
-    expect(c.textContent).toContain('Life');   // emerald's label
-    expect(c.textContent).not.toMatch(/\bMark\b/);
+    // The clean dot carries the color's meaning in its aria-label, not as clunky text.
+    expect(c.querySelector('button').getAttribute('aria-label')).toMatch(/Life/);
   });
 });
