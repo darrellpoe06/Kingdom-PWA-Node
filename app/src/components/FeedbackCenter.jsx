@@ -103,6 +103,7 @@ export const FEEDBACK_AREAS = [
     ['library', 'Library · books from the corpus + in-app reader (companion deep-links)'],
     ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
     ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],
+    ['tvtime', 'TV Time · the friend-group show tracker + discussion (track · talk · laugh together · watch it through The Way)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "Darrell's Study · reflections / processing / cultural research (device-local)"],

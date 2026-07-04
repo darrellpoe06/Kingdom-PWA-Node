@@ -141,7 +141,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AccessUsageMetrics, AdminConsole, ChefCorner, Games,
+  Inventory, Forecast, AccessUsageMetrics, AdminConsole, ChefCorner, Games, TVTime,
   EternalAlgorithmsStudy, ChurchHome, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -1399,7 +1399,7 @@ function getInitialView() {
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','admin','center','crm','relationships','inventory','forecast'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','admin','center','crm','relationships','inventory','forecast'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4867,6 +4867,10 @@ html{scroll-padding-bottom:280px}
                 // American life journey, measured by Yahweh. Persistence is
                 // instance-scoped and local-first.
                 ['games', <><UiIcon name="dice" /> Games</>],
+                // TV Time — the friend-group show tracker + discussion (Darrell
+                // 2026-07-04). Open to everyone; a PWA-native home for the circle
+                // when their old app shut down. Local-first, private to the device.
+                ['tvtime', <><UiIcon name="monitor" /> TV Time</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -5493,6 +5497,14 @@ html{scroll-padding-bottom:280px}
               updateSave={updateGameSave}
               deleteSave={deleteGameSave}
             />
+          </SectionBoundary>
+        )}
+        {/* TV Time — the friend-group show tracker + discussion (Darrell 2026-07-04).
+            Own SectionBoundary so a thrown error degrades just this surface.
+            Device-local, per-identity; live cross-device circle sync is the follow-up. */}
+        {view === 'tvtime' && (
+          <SectionBoundary name="TV Time">
+            <TVTime email={authSession?.user?.email || null} />
           </SectionBoundary>
         )}
         {/* Voice — "listen to anything" in a chosen voice; consent-gated personal

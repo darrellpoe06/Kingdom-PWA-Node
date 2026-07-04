@@ -1,0 +1,287 @@
+// =============================================================================
+// tv-time — PoeTech TV Time: track what you watch, talk about it, laugh together
+// (Darrell 2026-07-04). His wife's friend group needs a home now that the "TV
+// Time" app (com.tozelabs.tvshowtime) shuts down July 15, 2026 — and they asked
+// for OURS. This is the acquisition surface: they install the PoeTech App (a PWA,
+// iOS + Android + desktop, no store gate) to keep tracking their shows together.
+//
+// THE POETECH DIFFERENCE (mission): it is fun AND thoughtful. You track and joke,
+// and you can also watch it THROUGH THE WAY — a gentle discernment prompt drawn
+// from the Test (Philippians 4:8), never preachy. And because it is PoeTech, the
+// data serves the family/circle — never an ad model that "was no longer
+// sustainable" and disappears on you (DATA-AS-EMPOWERMENT-NOT-EXTRACTION).
+//
+// SOVEREIGN + PRIVATE + FAIL-SOFT: state is DEVICE-LOCAL (localStorage), keyed to
+// the signed-in identity, never sent anywhere (same posture as study-space /
+// scripture-highlights). A throwing/absent localStorage degrades to an in-memory
+// empty state and never throws into the render. PURE transforms; the live
+// cross-device circle feed is a documented follow-up (a DB table + RLS, Tier B).
+// =============================================================================
+
+const STORE_VERSION = 1;
+const KEY_PREFIX = 'poetech.tvtime.v1';
+
+// Where a show sits for you. The sections the friend group already thinks in
+// (their app had "Watch Next" and "Haven't watched for a while").
+export const STATUSES = [
+  { key: 'watching', label: 'Watching', hint: 'in it right now' },
+  { key: 'want', label: 'Want to watch', hint: 'on the list' },
+  { key: 'watched', label: 'Watched', hint: 'done — let’s talk' },
+  { key: 'stale', label: 'Haven’t watched in a while', hint: 'pick it back up?' },
+];
+const STATUS_KEYS = new Set(STATUSES.map((s) => s.key));
+export const DEFAULT_STATUS = 'want';
+
+// Reactions — "laugh together" is the whole point, so a laugh leads. Word-keyed
+// (the surface renders a labeled pill; no raw device emoji — consistency-guard).
+export const REACTIONS = [
+  { key: 'laugh', label: 'Laughed' },
+  { key: 'love', label: 'Loved' },
+  { key: 'wow', label: 'Wow' },
+  { key: 'sad', label: 'In my feelings' },
+  { key: 'real', label: 'So real' },
+  { key: 'side-eye', label: 'Side-eye' },
+];
+const REACTION_KEYS = new Set(REACTIONS.map((r) => r.key));
+
+// Watch it through The Way — gentle, relational discernment (the Test, Phil 4:8),
+// mixed with plain fun. Deterministically chosen per show so a card is stable.
+export const DISCERNMENT_PROMPTS = [
+  'What did this one stir in you — and is that worth feeding?',
+  'Anything TRUE or LOVELY in it worth keeping? Anything you’d put down?',
+  'Would you watch this with your kids in the room? Why, or why not?',
+  'What’s the story really teaching — and do you agree with it?',
+  'Made you laugh — good. What made you think?',
+  'Where did you see grace? Where did you see the opposite?',
+  'If a younger sister asked “should I watch this?”, what would you say?',
+];
+
+// A small, aspirational starter catalog (SEED-DATA-AS-ASPIRATION): shows the
+// circle would recognize by genre, no copyrighted art — titles are the reader's
+// own to add. Kept generic + varied so the surface looks alive on first open.
+export const SEED_SHOWS = [
+  { id: 'reality-housewives', title: 'The Real Housewives', genre: 'Reality', network: 'Bravo' },
+  { id: 'drama-crown', title: 'A Royal Drama', genre: 'Drama', network: 'Streaming' },
+  { id: 'comedy-office', title: 'Workplace Comedy', genre: 'Comedy', network: 'Sitcom' },
+  { id: 'fantasy-realm', title: 'The Fantasy Realm', genre: 'Fantasy', network: 'Streaming' },
+  { id: 'cooking-competition', title: 'Kitchen Showdown', genre: 'Competition', network: 'Food' },
+  { id: 'faith-testimony', title: 'Testimony Stories', genre: 'Faith', network: 'Faith & Family' },
+];
+
+// A seed circle so the surface shows a thriving conversation on first open (the
+// friends' voices are examples until live sync lands; clearly the aspiration).
+export const SEED_CIRCLE = ['Tiffany', 'Sister K', 'Lady D', 'You'];
+
+export function styleForStatus(key) {
+  return STATUSES.find((s) => s.key === key) || null;
+}
+
+// --- Per-identity device-local persistence (the only I/O; fails soft) --------
+
+function safeStorage() {
+  try {
+    if (typeof localStorage === 'undefined' || !localStorage) return null;
+    return localStorage;
+  } catch { return null; }
+}
+
+export function tvKey(email) {
+  const id = String(email || 'anon').trim().toLowerCase();
+  return `${KEY_PREFIX}:${id}`;
+}
+
+export function emptyTv() {
+  return { version: STORE_VERSION, shows: {}, custom: {} };
+}
+
+// Slug an id from a title so a custom show has a stable key.
+function slugify(title) {
+  return String(title || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+}
+
+// Normalize any parsed blob into a clean state. Unknown statuses/reactions and
+// malformed entries are dropped so a corrupt/hand-edited store can't inject junk.
+function normalize(parsed) {
+  const shows = {};
+  const src = parsed && typeof parsed.shows === 'object' && parsed.shows ? parsed.shows : {};
+  for (const [id, raw] of Object.entries(src)) {
+    if (typeof id !== 'string' || !id.trim() || !raw || typeof raw !== 'object') continue;
+    const status = STATUS_KEYS.has(raw.status) ? raw.status : DEFAULT_STATUS;
+    const rating = Number.isInteger(raw.rating) && raw.rating >= 0 && raw.rating <= 5 ? raw.rating : 0;
+    const comments = Array.isArray(raw.comments) ? raw.comments
+      .filter((c) => c && typeof c.id === 'string' && typeof c.text === 'string' && c.text.trim())
+      .map((c) => ({
+        id: c.id,
+        author: typeof c.author === 'string' && c.author.trim() ? c.author : 'You',
+        text: c.text,
+        at: Number.isFinite(c.at) ? c.at : 0,
+        reactions: normalizeReactions(c.reactions),
+      })) : [];
+    shows[id] = { status, rating, comments };
+  }
+  const custom = {};
+  const csrc = parsed && typeof parsed.custom === 'object' && parsed.custom ? parsed.custom : {};
+  for (const [id, raw] of Object.entries(csrc)) {
+    if (typeof id !== 'string' || !id.trim() || !raw || typeof raw !== 'object') continue;
+    const title = typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : null;
+    if (!title) continue;
+    custom[id] = { id, title, genre: typeof raw.genre === 'string' && raw.genre.trim() ? raw.genre.trim() : 'Show' };
+  }
+  return { version: STORE_VERSION, shows, custom };
+}
+
+function normalizeReactions(r) {
+  const out = {};
+  const src = r && typeof r === 'object' ? r : {};
+  for (const [k, who] of Object.entries(src)) {
+    if (REACTION_KEYS.has(k) && Array.isArray(who)) {
+      const people = [...new Set(who.filter((x) => typeof x === 'string' && x.trim()))];
+      if (people.length) out[k] = people;
+    }
+  }
+  return out;
+}
+
+export function loadTv(email) {
+  const ls = safeStorage();
+  if (!ls) return emptyTv();
+  try {
+    const raw = ls.getItem(tvKey(email));
+    if (!raw) return emptyTv();
+    return normalize(JSON.parse(raw));
+  } catch { return emptyTv(); }
+}
+
+export function saveTv(email, state) {
+  const ls = safeStorage();
+  if (!ls) return { skipped: 'no-storage' };
+  try {
+    ls.setItem(tvKey(email), JSON.stringify(normalize(state)));
+    return { saved: true };
+  } catch (e) { return { skipped: 'write-error', error: e }; }
+}
+
+// --- Pure transforms (immutable) ---------------------------------------------
+
+function entry(state, showId) {
+  const base = normalize(state);
+  return base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+}
+
+export function getStatus(state, showId) {
+  return entry(state, showId).status;
+}
+
+export function setStatus(state, showId, status) {
+  const base = normalize(state);
+  if (!showId || !STATUS_KEYS.has(status)) return base;
+  const cur = base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+  return { version: STORE_VERSION, shows: { ...base.shows, [showId]: { ...cur, status } }, custom: base.custom };
+}
+
+// Clear a show from your list entirely (untrack).
+export function untrack(state, showId) {
+  const base = normalize(state);
+  if (!base.shows[showId]) return base;
+  const shows = { ...base.shows };
+  delete shows[showId];
+  return { version: STORE_VERSION, shows, custom: base.custom };
+}
+
+export function rateShow(state, showId, rating) {
+  const base = normalize(state);
+  const r = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+  if (!showId) return base;
+  const cur = base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+  return { version: STORE_VERSION, shows: { ...base.shows, [showId]: { ...cur, rating: r } }, custom: base.custom };
+}
+
+// Add a custom show the catalog doesn't have (the reader's own), tracked as
+// "want to watch". Returns a NEW state; the id is slugged from the title.
+export function addCustomShow(state, { title, genre } = {}) {
+  const base = normalize(state);
+  const id = slugify(title);
+  if (!id) return base;
+  const custom = { ...base.custom, [id]: { id, title: String(title).trim(), genre: String(genre || 'Show').trim() || 'Show' } };
+  const cur = base.shows[id] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+  return { version: STORE_VERSION, shows: { ...base.shows, [id]: cur }, custom };
+}
+
+// The custom shows as a catalog array (merge with SEED_SHOWS for the surface).
+export function customCatalog(state) {
+  return Object.values(normalize(state).custom);
+}
+
+export function getComments(state, showId) {
+  return entry(state, showId).comments.slice();
+}
+
+// Add a comment (the discussion). `now` + `seq` make a stable id without a clock
+// dependency in the pure layer (the caller passes Date.now()).
+export function addComment(state, showId, { author, text } = {}, now = 0, seq = 0) {
+  const base = normalize(state);
+  const body = String(text || '').trim();
+  if (!showId || !body) return base;
+  const cur = base.shows[showId] || { status: DEFAULT_STATUS, rating: 0, comments: [] };
+  const comment = {
+    id: `c${now}-${seq}`,
+    author: String(author || 'You').trim() || 'You',
+    text: body,
+    at: Number(now) || 0,
+    reactions: {},
+  };
+  return { version: STORE_VERSION, shows: { ...base.shows, [showId]: { ...cur, comments: [...cur.comments, comment] } }, custom: base.custom };
+}
+
+// Toggle a reaction on a comment for `who` (laugh together). Adding removes on a
+// second tap by the same person, so a reaction is a set of people per key.
+export function toggleReaction(state, showId, commentId, reactionKey, who = 'You') {
+  const base = normalize(state);
+  if (!REACTION_KEYS.has(reactionKey)) return base;
+  const cur = base.shows[showId];
+  if (!cur) return base;
+  const person = String(who || 'You').trim() || 'You';
+  const comments = cur.comments.map((c) => {
+    if (c.id !== commentId) return c;
+    const reactions = { ...c.reactions };
+    const people = new Set(reactions[reactionKey] || []);
+    if (people.has(person)) people.delete(person); else people.add(person);
+    if (people.size) reactions[reactionKey] = [...people]; else delete reactions[reactionKey];
+    return { ...c, reactions };
+  });
+  return { version: STORE_VERSION, shows: { ...base.shows, [showId]: { ...cur, comments } }, custom: base.custom };
+}
+
+// Group the tracked shows into the four sections, resolving each id against the
+// catalog (seed + any custom shows the caller merges in). Untracked catalog
+// shows are offered under `untracked` so they can be added.
+export function bucketShows(state, catalog) {
+  const base = normalize(state);
+  const byId = new Map((Array.isArray(catalog) ? catalog : []).map((s) => [s.id, s]));
+  const buckets = { watching: [], want: [], watched: [], stale: [], untracked: [] };
+  for (const s of (Array.isArray(catalog) ? catalog : [])) {
+    const e = base.shows[s.id];
+    if (e) buckets[e.status].push({ ...s, status: e.status, rating: e.rating, commentCount: e.comments.length });
+    else buckets.untracked.push({ ...s });
+  }
+  // A tracked show that isn't in the catalog (custom-added but catalog missing it)
+  // still shows up under its status.
+  for (const [id, e] of Object.entries(base.shows)) {
+    if (!byId.has(id)) buckets[e.status].push({ id, title: id, genre: 'Custom', status: e.status, rating: e.rating, commentCount: e.comments.length });
+  }
+  return buckets;
+}
+
+// A stable discernment prompt for a show — deterministic from the id so the card
+// doesn't flicker between renders. Pure (no randomness).
+export function discernmentPromptFor(showId) {
+  const s = String(showId || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return DISCERNMENT_PROMPTS[h % DISCERNMENT_PROMPTS.length];
+}
+
+// Count of reactions on a comment (for the surface's little tally).
+export function reactionCount(comment, key) {
+  return comment && comment.reactions && Array.isArray(comment.reactions[key]) ? comment.reactions[key].length : 0;
+}
