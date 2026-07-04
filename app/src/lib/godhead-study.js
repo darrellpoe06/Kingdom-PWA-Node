@@ -970,6 +970,41 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['wages-of-sin', 'gift-of-god', 'eternal-life', 'doom-and-rescue', 'romans'],
   },
   {
+    // ── ONLY YAHWEH SAVES: MONEY CANNOT, THE WORLD IS OCCUPIED, DEATH IS A DOOR ─
+    // Darrell 2026-07-04: "money can't help us only Yahweh, and He engineered
+    // this to be The Way because we left Him and went to His sworn enemy and he
+    // became the father and god of this world... we all leave time / the 3rd-
+    // dimensional space for the eternal 4th-dimensional space; where you go and
+    // why is what we are studying for that crown." The solid, non-contested spine
+    // of that teaching, verses verbatim (the debated cosmology is held honestly
+    // elsewhere, not asserted here as settled — DR-0076).
+    id: 'gh-money-cannot-redeem', section: 'wisdom', name: 'Money Cannot Ransom a Soul (only Yahweh redeems)',
+    refs: ['Psalms 49:6-8', 'Proverbs 11:4'],
+    condition: 'Those who trust in wealth cannot ransom a soul: "None of them can by any means redeem his brother, nor give to God a ransom for him" — and "riches profit not in the day of wrath."',
+    consequence: 'Money buys nothing at the one border that matters. The redemption of a soul is too costly for any human currency; only Yahweh can pay it — and "righteousness delivereth from death," not riches.',
+    threeD: 'Stop asking money to do what only Yahweh can. Steward wealth for the Kingdom, but anchor your security in the Redeemer, not the balance. When the day of wrath is the question, the only sufficient answer is His righteousness applied to you.',
+    outcome: 'Security relocated from a number to the Redeemer — freed from the lie that enough money can save what only He can.',
+    tags: ['money', 'redemption', 'only-yahweh', 'day-of-wrath', 'psalm'],
+  },
+  {
+    id: 'gh-god-of-this-world', section: 'epistles', name: 'The God of This World (we left Him; the world is occupied, not neutral)',
+    refs: ['2 Corinthians 4:4', 'John 8:44', '1 John 5:19'],
+    condition: 'We left Him, and "the whole world lieth in wickedness": "the god of this world hath blinded the minds of them which believe not," and to those who follow the lie Jesus says, "Ye are of your father the devil."',
+    consequence: 'There are only two fathers and two kingdoms. Apart from the Light of the gospel, the usurper who became the god of this world keeps the mind blind — the default state is captivity, not neutrality.',
+    threeD: 'Do not mistake the world-system\'s default for neutral ground — it is occupied. Come under the Light deliberately: renounce the lie and its father, and let the gospel un-blind what the god of this world darkened. Choose your Father on purpose.',
+    outcome: 'Eyes opened out of the default blindness — transferred from the kingdom of the usurper into the Kingdom of the Son.',
+    tags: ['god-of-this-world', 'the-fall', 'two-fathers', 'blindness', 'light'],
+  },
+  {
+    id: 'gh-appointed-then-judgment', section: 'epistles', name: 'Appointed Once to Die (death is a doorway to the eternal, then the judgment)',
+    refs: ['Hebrews 9:27', '2 Corinthians 5:8'],
+    condition: '"It is appointed unto men once to die, but after this the judgment" — and to be "absent from the body" is to be "present with the Lord." Every soul leaves this life for the eternal, then gives account.',
+    consequence: 'Death is a doorway, not a wall: you leave the 3rd-dimensional body once, and what waits is the judgment and His presence. Where you go, and why, is settled by how you lived here — this is the exam the crown is offered for.',
+    threeD: 'Live today as one certain to stand there: study for the crown, keep short accounts, and store where moth does not corrupt. Let the fixed appointment of death make you serious about the eternal instead of numb to it.',
+    outcome: 'A life aimed past the doorway — ready to be absent from the body and present with the Lord, studying now for the crown then.',
+    tags: ['death', 'judgment', 'eternity', 'crown', 'appointed'],
+  },
+  {
     id: 'gh-word-of-testimony', section: 'revelation', name: 'The Word of Their Testimony (eat the Word and the testimony aligns)',
     refs: ['Revelation 12:11', 'Jeremiah 15:16', 'Isaiah 55:8-9', 'Romans 13:7'],
     condition: 'The accuser is overcome by the blood of the Lamb AND by the word of their testimony — and a testimony only carries weight when the mouth and the life run the same Word.',
