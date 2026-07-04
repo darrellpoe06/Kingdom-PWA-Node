@@ -18,6 +18,7 @@ import { LIVING_LESSONS_META, LIVING_LESSONS_MODULES } from './living-lessons-cl
 import { CLASS_META, MODULES as AI_CLASS_MODULES } from './church-classes.js';
 import { SOVEREIGN_AI_META, SOVEREIGN_AI_MODULES } from './sovereign-ai-class.js';
 import { ECON_META, ECON_MODULES } from './economics-class.js';
+import { PV_META, PV_MODULES } from './prophetic-voices.js';
 import { SEED_ALGORITHMS } from './eternal-algorithms.js';
 
 const asArr = (v) => (Array.isArray(v) ? v : []);
@@ -133,6 +134,7 @@ export function defaultCourses() {
     { key: 'learning-ai', meta: CLASS_META, modules: AI_CLASS_MODULES, businesses: ['church', 'poetech'] },
     { key: 'sovereign-ai', meta: SOVEREIGN_AI_META, modules: SOVEREIGN_AI_MODULES, businesses: ['poetech', 'church'] },
     { key: 'kingdom-economics', meta: ECON_META, modules: ECON_MODULES, businesses: ['church', 'poetech'] },
+    { key: 'prophetic-voices', meta: PV_META, modules: PV_MODULES, businesses: ['church'] },
   ];
 }
 
