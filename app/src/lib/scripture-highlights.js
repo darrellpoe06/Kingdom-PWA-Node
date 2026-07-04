@@ -31,43 +31,109 @@ const KEY_PREFIX = 'poetech.highlights.v1';
 // #1A1815); every text color clears WCAG AA (>= 4.5:1) on white, and the
 // background tints keep the dark body text well above AA. `swatch` is the chip
 // shown in the picker; `css` is spread straight onto the verse's text element.
+//
+// `kind` groups the palette the way Logos does (Darrell 2026-07-04 screenshots:
+// "this level is what we would like ... make it flow like the Logos app"):
+//   - 'foreground' — COLORED TEXT (the semantic teaching set: the word stands
+//      out by its ink color).
+//   - 'highlighter' — a HIGHLIGHTER PEN (a soft background tint behind the text,
+//      the classic marker).
+//   - 'emphasis' — MARKUP (bold / underline / a box / a strike-through) with no
+//      color change, for when the shape of the word is the point.
+// The reader mixes them: a whole-verse pen underneath, a word's own ink on top.
 export const HIGHLIGHT_STYLES = [
+  // --- Colored text (foreground) — the semantic set ---
   {
-    key: 'sky', label: 'Word', meaning: 'the narrative — what is happening',
+    key: 'sky', label: 'Word', kind: 'foreground', meaning: 'the narrative — what is happening',
     swatch: '#1F5AA6',
     css: { color: '#1F5AA6', fontWeight: 600 },
   },
   {
-    key: 'coral', label: 'Promise', meaning: 'the mission, the good news, the anointing',
+    key: 'coral', label: 'Promise', kind: 'foreground', meaning: 'the mission, the good news, the anointing',
     swatch: '#C2410C',
     css: { color: '#C2410C', fontWeight: 600 },
   },
   {
-    key: 'crimson', label: 'Hard truth', meaning: 'the word that cuts before it heals',
+    key: 'crimson', label: 'Hard truth', kind: 'foreground', meaning: 'the word that cuts before it heals',
     swatch: '#B01E1E',
     css: { color: '#B01E1E', fontWeight: 600 },
   },
   {
-    key: 'royal', label: 'Warning', meaning: 'rejection, wrath, the road not to take',
+    key: 'royal', label: 'Warning', kind: 'foreground', meaning: 'rejection, wrath, the road not to take',
     swatch: '#6D28A8',
     css: { color: '#6D28A8', fontWeight: 600 },
   },
   {
-    key: 'emerald', label: 'Life', meaning: 'growth, favor, the way that leads Home',
+    key: 'emerald', label: 'Life', kind: 'foreground', meaning: 'growth, favor, the way that leads Home',
     swatch: '#2F6B33',
     css: { color: '#2F6B33', fontWeight: 600 },
   },
   {
-    key: 'gold', label: 'Treasure', meaning: 'a verse to keep — the yellow marker',
+    key: 'slate', label: 'Note', kind: 'foreground', meaning: 'a quiet aside — context, a name, a place',
+    swatch: '#4A4640',
+    css: { color: '#4A4640', fontWeight: 600 },
+  },
+  // --- Highlighter pens (background tint) ---
+  {
+    key: 'gold', label: 'Treasure', kind: 'highlighter', meaning: 'a verse to keep — the yellow marker',
     swatch: '#E8B93A',
     css: { backgroundColor: '#FBEFC2', color: '#1A1815', borderRadius: '0.1875rem', padding: '0 0.125rem', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' },
   },
   {
-    key: 'anchor', label: 'Anchor', meaning: 'the boxed punchline — make it stand out',
+    key: 'rose', label: 'Mercy', kind: 'highlighter', meaning: 'love, mercy, tenderness — the softer word',
+    swatch: '#D6467F',
+    css: { backgroundColor: '#FBE0EA', color: '#1A1815', borderRadius: '0.1875rem', padding: '0 0.125rem', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' },
+  },
+  {
+    key: 'mint', label: 'Growth', kind: 'highlighter', meaning: 'fruit, increase, the green pasture',
+    swatch: '#2F9E54',
+    css: { backgroundColor: '#DCF0E0', color: '#1A1815', borderRadius: '0.1875rem', padding: '0 0.125rem', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' },
+  },
+  {
+    key: 'aqua', label: 'Living water', kind: 'highlighter', meaning: 'water, Spirit, cleansing, refreshing',
+    swatch: '#2C7FB8',
+    css: { backgroundColor: '#DAECF6', color: '#1A1815', borderRadius: '0.1875rem', padding: '0 0.125rem', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' },
+  },
+  {
+    key: 'lilac', label: 'Worship', kind: 'highlighter', meaning: 'praise, worship, the royal color',
+    swatch: '#7E5BC4',
+    css: { backgroundColor: '#ECE3FA', color: '#1A1815', borderRadius: '0.1875rem', padding: '0 0.125rem', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' },
+  },
+  // --- Emphasis (markup: shape, not color) ---
+  {
+    key: 'anchor', label: 'Box', kind: 'emphasis', meaning: 'the boxed punchline — make it stand out',
     swatch: '#1A1815',
     css: { color: '#1A1815', fontWeight: 700, border: '0.0625rem solid #C9BFA8', borderRadius: '0.1875rem', padding: '0 0.1875rem', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' },
   },
+  {
+    key: 'underline', label: 'Underline', kind: 'emphasis', meaning: 'a line to remember — mark, not recolor',
+    swatch: '#1A1815',
+    css: { color: '#1A1815', textDecorationLine: 'underline', textDecorationColor: '#B85838', textDecorationThickness: '0.125rem', textUnderlineOffset: '0.15em' },
+  },
+  {
+    key: 'bold', label: 'Bold', kind: 'emphasis', meaning: 'the strong word — weight, not color',
+    swatch: '#1A1815',
+    css: { color: '#1A1815', fontWeight: 800 },
+  },
+  {
+    key: 'strike', label: 'Struck', kind: 'emphasis', meaning: 'what is cancelled, put away, made void',
+    swatch: '#4A4640',
+    css: { color: '#4A4640', textDecorationLine: 'line-through', textDecorationColor: '#B01E1E', textDecorationThickness: '0.125rem' },
+  },
 ];
+
+// The palette grouped by kind for the pickers (Logos-style sections). Order is
+// the display order; only kinds that have styles appear. Pure data derived from
+// HIGHLIGHT_STYLES so the grouping can never drift from the palette.
+export const HIGHLIGHT_KINDS = [
+  { kind: 'foreground', label: 'Colored text', hint: 'the word stands out by its ink' },
+  { kind: 'highlighter', label: 'Highlighter', hint: 'a soft marker behind the text' },
+  { kind: 'emphasis', label: 'Emphasis', hint: 'bold, underline, a box — shape, not color' },
+];
+
+export const HIGHLIGHT_GROUPS = HIGHLIGHT_KINDS
+  .map((g) => ({ ...g, styles: HIGHLIGHT_STYLES.filter((s) => s.kind === g.kind) }))
+  .filter((g) => g.styles.length > 0);
 
 export const DEFAULT_STYLE_KEY = 'none';
 

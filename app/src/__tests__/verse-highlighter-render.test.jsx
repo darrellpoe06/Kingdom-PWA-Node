@@ -32,15 +32,23 @@ function click(el) {
 }
 
 describe('VerseHighlighter', () => {
-  it('opens the palette and shows every semantic color plus Clear', async () => {
+  it('opens the palette and offers every style (grouped) plus Clear', async () => {
     const c = await mount(createElement(VerseHighlighter, { value: 'none', onPick: () => {}, refLabel: 'Luke 2:26' }));
     // closed: a clean, quiet swatch trigger — labelled for a11y (no clunky text).
     expect(c.querySelector('button').getAttribute('aria-label')).toMatch(/Highlight/);
     await click(c.querySelector('button'));
+    // Each style is a menuitemradio whose accessible label carries its name +
+    // meaning (the chip itself previews the look on a sample "Aa").
+    const items = [...c.querySelectorAll('[role="menuitemradio"]')];
     for (const s of HIGHLIGHT_STYLES) {
-      expect(c.textContent, `palette missing ${s.label}`).toContain(s.label);
+      expect(items.some((b) => (b.getAttribute('aria-label') || '').startsWith(`${s.label}:`)),
+        `palette missing ${s.label}`).toBe(true);
     }
-    expect(c.textContent).toContain('Clear');
+    // The Logos-style groups are labelled sections.
+    expect(c.textContent).toMatch(/Colored text/);
+    expect(c.textContent).toMatch(/Highlighter/);
+    expect(c.textContent).toMatch(/Emphasis/);
+    expect(items.some((b) => /Clear/.test(b.getAttribute('aria-label') || ''))).toBe(true);
   });
 
   it('reports the picked color key, then reports none on Clear', async () => {

@@ -7,7 +7,7 @@
 // immutable, and a corrupt/hand-edited blob can never inject a bogus mark.
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  HIGHLIGHT_STYLES, styleFor, cssForHighlight,
+  HIGHLIGHT_STYLES, HIGHLIGHT_GROUPS, HIGHLIGHT_KINDS, styleFor, cssForHighlight,
   highlightsKey, emptyHighlights, loadHighlights, saveHighlights,
   getMark, setMark, cycleMark, markCount, clearAllMarks, DEFAULT_STYLE_KEY,
   addSpan, getSpans, clearSpans, spanCount, segmentsForVerse,
@@ -50,6 +50,40 @@ describe('palette', () => {
   });
   it('the default is unmarked', () => {
     expect(DEFAULT_STYLE_KEY).toBe('none');
+  });
+});
+
+describe('the richer Logos palette — grouped by kind', () => {
+  it('every style declares a known kind (foreground / highlighter / emphasis)', () => {
+    const kinds = new Set(HIGHLIGHT_KINDS.map((k) => k.kind));
+    expect(kinds).toEqual(new Set(['foreground', 'highlighter', 'emphasis']));
+    for (const s of HIGHLIGHT_STYLES) {
+      expect(kinds.has(s.kind), `${s.key} has an unknown kind ${s.kind}`).toBe(true);
+    }
+  });
+  it('offers all three Logos kinds with real styles in each', () => {
+    const byKind = Object.fromEntries(HIGHLIGHT_GROUPS.map((g) => [g.kind, g.styles]));
+    // colored text (the semantic teaching set)
+    expect(byKind.foreground.map((s) => s.key)).toEqual(expect.arrayContaining(['sky', 'coral', 'emerald']));
+    // highlighter pens — more than just the yellow marker now
+    expect(byKind.highlighter.map((s) => s.key)).toEqual(expect.arrayContaining(['gold', 'rose', 'mint', 'aqua']));
+    // emphasis markup — underline / bold / box / strike (shape, not color)
+    expect(byKind.emphasis.map((s) => s.key)).toEqual(expect.arrayContaining(['underline', 'bold', 'anchor', 'strike']));
+  });
+  it('groups partition the whole palette with no orphans or duplicates', () => {
+    const grouped = HIGHLIGHT_GROUPS.flatMap((g) => g.styles.map((s) => s.key)).sort();
+    const all = HIGHLIGHT_STYLES.map((s) => s.key).sort();
+    expect(grouped).toEqual(all);                 // every style is in exactly one group
+    expect(new Set(all).size).toBe(all.length);   // and every key is unique
+  });
+  it('emphasis styles carry markup css (weight / a line / a box), foreground carries ink', () => {
+    expect(cssForHighlight('bold').fontWeight).toBeGreaterThanOrEqual(700);
+    expect(cssForHighlight('underline').textDecorationLine).toBe('underline');
+    expect(cssForHighlight('strike').textDecorationLine).toBe('line-through');
+    expect(cssForHighlight('anchor').border).toBeTruthy();
+    // a highlighter pen paints a background; a foreground style paints the ink
+    expect(cssForHighlight('rose').backgroundColor).toBeTruthy();
+    expect(cssForHighlight('slate').color).toBeTruthy();
   });
 });
 
