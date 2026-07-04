@@ -8,7 +8,7 @@
 // verse verbatim from the verified fetch (never model memory), every pair
 // carrying both sides of the intertwine.
 import { describe, it, expect } from 'vitest';
-import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessClientModule } from '../lib/third-witness.js';
+import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessClientModule, witnessScienceOnly } from '../lib/third-witness.js';
 import { TLC_LESSON_TRACKS } from '../lib/tlc-lessons.js';
 
 const allPairs = WITNESS_SOURCES.flatMap((s) => s.pairs);
@@ -77,6 +77,55 @@ describe('third-witness: shape (both sides of the intertwine present)', () => {
     expect(seed).toBeTruthy();
     expect(seed.source.expert).toBe('Dr. Tracey Marks');
     expect(seed.pairs.length).toBeGreaterThanOrEqual(9);
+  });
+});
+
+describe('third-witness: the fasting cluster (2026-07-04) is present and balanced', () => {
+  const clusterIds = [
+    'w3-tre-circadian', 'w3-therapeutic-fasting', 'w3-fasting-brain',
+    'w3-water-fasting-supervised', 'w3-fasting-timeline', 'w3-fasting-as-discipline',
+    'w3-women-fueling-counter',
+  ];
+
+  it('all seven fasting sources are present, each fully cited and paired', () => {
+    for (const id of clusterIds) {
+      const s = WITNESS_SOURCES.find((x) => x.id === id);
+      expect(s, `${id} missing`).toBeTruthy();
+      expect(s.source.expert, id).toBeTruthy();
+      expect(s.pairs.length, id).toBeGreaterThan(0);
+    }
+  });
+
+  it('carries the Dr. Stacy Sims COUNTER-witness so the mixture is never a one-size law', () => {
+    const counter = WITNESS_SOURCES.find((s) => s.id === 'w3-women-fueling-counter');
+    expect(counter).toBeTruthy();
+    expect(counter.source.expert).toBe('Dr. Stacy Sims');
+    // The counter-witness must name fueling / eating as the wiser move for some
+    // bodies — Elijah's "arise and eat" is the anchor.
+    const arise = counter.pairs.find((p) => p.refs.includes('1 Kings 19:5-8'));
+    expect(arise, 'the arise-and-eat counter-pair').toBeTruthy();
+  });
+});
+
+describe('third-witness: witnessScienceOnly is the separation (science only, expert still cited)', () => {
+  it('every source renders a science-only view carrying NO Scripture, all claims + cites kept', () => {
+    for (const src of WITNESS_SOURCES) {
+      const sci = witnessScienceOnly(src);
+      // expert credit survives the separation (honour to whom honour)
+      expect(sci.source.expert, src.id).toBeTruthy();
+      expect(sci.points.length, src.id).toBe(src.pairs.length);
+      // no Scripture rides along — not in topic, summary, or any point
+      expect(sci.topic, `${src.id} topic leaks Scripture`).not.toMatch(SCRIPTURE_MARKS);
+      expect(sci.summary, `${src.id} summary leaks Scripture`).not.toMatch(SCRIPTURE_MARKS);
+      for (const pt of sci.points) {
+        expect(pt.claim, `${src.id}/${pt.id} claim`).toBeTruthy();
+        expect(pt.cite, `${src.id}/${pt.id} cite`).toBeTruthy();
+        expect(pt.claim, `${src.id}/${pt.id} claim leaks Scripture`).not.toMatch(SCRIPTURE_MARKS);
+        // the separation drops the bridge and the verses entirely
+        expect(pt.bridge, `${src.id}/${pt.id} keeps a bridge`).toBeUndefined();
+        expect(pt.refs, `${src.id}/${pt.id} keeps refs`).toBeUndefined();
+      }
+    }
   });
 });
 

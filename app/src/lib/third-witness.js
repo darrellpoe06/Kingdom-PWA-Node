@@ -100,12 +100,355 @@ export const WITNESS_SOURCES = [
       },
     ],
   },
+
+  // ---------------------------------------------------------------------------
+  // THE FASTING CLUSTER (Darrell 2026-07-04: five cited experts on fasting /
+  // time-restricted eating, intertwined with the Word). Fasting is one of the
+  // few places the 3rd dimension has circled all the way back to what Scripture
+  // named first: a body built with seasons of feeding and repair. The cluster
+  // is deliberately balanced — Sims is the COUNTER-witness (for some, the godly
+  // move is to EAT, not fast), so the mixture never becomes a one-size law. Any
+  // clinical / medical claim is a witness to Yahweh's design, never a
+  // prescription; the separated Practice rendering carries the physician-consult
+  // and the disordered-eating safe-side (see witnessClientModules).
+  // ---------------------------------------------------------------------------
+  {
+    id: 'w3-tre-circadian',
+    topic: 'Time-restricted eating and eating in due season',
+    source: {
+      expert: 'Dr. Andrew Huberman',
+      credential: 'Neuroscientist, Stanford School of Medicine',
+      work: 'The Science of Intermittent Fasting & Time-Restricted Feeding (Huberman Lab)',
+      kind: 'video',
+    },
+    summary: 'Consistent daily fasting windows align circadian rhythms and organ health, alternating a fed state of growth (mTOR) with a fasted state of repair (autophagy). An ~8-hour window, food stopped 2-3 hours before bed and delayed ~60 minutes after waking, narrowed gradually over days — and tuned to the individual\'s exercise and social life.',
+    pairs: [
+      {
+        id: 'w3p-due-season',
+        claim: 'Aligning eating to consistent daily windows tracks the body\'s circadian rhythm and optimizes organ health — WHEN you eat, not only what.',
+        cite: '12:00-15:20',
+        refs: ['Ecclesiastes 10:17'],
+        bridge: 'Princes that eat IN DUE SEASON, for strength, and not for drunkenness — the Word already tied the TIMING of the meal to strength. Due season is circadian language three thousand years early: food set to its right hour is fuel; food out of season is excess.',
+      },
+      {
+        id: 'w3p-growth-repair',
+        claim: 'Fed = a growth state (mTOR); fasted = a repair state (autophagy). Health depends on consistency in when each state runs.',
+        cite: '25:56-27:25',
+        refs: ['Ecclesiastes 3:1'],
+        bridge: 'To every thing there is a SEASON, and a time to every purpose under the heaven — a time to eat and a time to abstain is written into the design. The body was never meant to be always feeding; the alternation of build and repair is the seasoned pattern the Preacher named.',
+      },
+      {
+        id: 'w3p-individualize-tre',
+        claim: 'Protocols are backed by science, but individual needs vary — the window must fit the person\'s training and schedule, not a fixed rule.',
+        cite: '34:08-38:23',
+        refs: ['Mark 2:19'],
+        bridge: 'Can the children of the bridechamber fast, while the bridegroom is with them? Jesus Himself named that fasting has a season AND an exception — the practice bends to the moment and the person. The tool serves the life; the life does not serve the tool.',
+      },
+    ],
+  },
+  {
+    id: 'w3-therapeutic-fasting',
+    topic: 'Fasting to reset the body, and the whole-foods witness',
+    source: {
+      expert: 'Dr. Pradip Jamnadas',
+      credential: 'Cardiologist (FACC), Cardiovascular Interventions',
+      work: 'Fasting for Survival / therapeutic fasting lecture',
+      kind: 'video',
+    },
+    summary: 'Fasting as a tool to lower insulin and restore metabolic flexibility — 18/6 as a baseline, OMAD and supervised water fasts for harder cases — while addressing root causes in gut health and choosing whole foods over emulsifiers, processed items, and high-heat AGEs. Individualized, physician-guided.',
+    pairs: [
+      {
+        id: 'w3p-health-springs',
+        claim: 'Fasting resets hormonal health — lowering insulin, restoring metabolic flexibility — and can move blood pressure, diabetes, heart, and fatty-liver disease.',
+        cite: '11:07-33:13',
+        refs: ['Isaiah 58:6-8'],
+        bridge: 'This is the fast Yahweh CHOSE — and the promise attached to it is physiological: then shall thy light break forth as the morning, and thine HEALTH shall spring forth speedily. Health is literally in the fasting chapter. The cardiologist is a witness to a verse that put health and the chosen fast in the same breath.',
+      },
+      {
+        id: 'w3p-whole-foods',
+        claim: 'Root causes trace to gut health (leaky gut, SIBO); the fix is whole foods and the avoidance of emulsifiers and processed items.',
+        cite: '13:22-27:15',
+        refs: ['Daniel 1:12-15'],
+        bridge: 'Daniel asked for pulse to eat and water to drink for ten days — a whole-foods trial with a control group and a measurable endpoint. And the result: their countenances appeared FAIRER and fatter in flesh than all the children which did eat the portion of the king\'s meat. The whole-food witness ran its experiment in Babylon and published the finding.',
+      },
+      {
+        id: 'w3p-sufficient',
+        claim: 'When you do eat, favor real food and avoid the excess — high-heat AGEs and overconsumption drive the damage.',
+        cite: '1:02:00-1:06:37',
+        refs: ['Proverbs 25:16'],
+        bridge: 'Hast thou found honey? eat so much as is SUFFICIENT for thee, lest thou be filled therewith, and vomit it. Sufficiency, not excess, is the Word\'s measure at the table — even for the good thing, even for the sweet thing.',
+      },
+      {
+        id: 'w3p-body-temple',
+        claim: 'The specific protocol depends entirely on the person\'s health, goals, and history — always consult a physician before significant change.',
+        cite: 'passim',
+        refs: ['1 Corinthians 6:19-20'],
+        bridge: 'Your body is the TEMPLE of the Holy Ghost — ye are not your own, ye are bought with a price: therefore glorify God in your body. The why beneath every protocol: stewardship of a temple that is not merely yours. And stewardship of a temple is done with counsel, not alone.',
+      },
+    ],
+  },
+  {
+    id: 'w3-fasting-brain',
+    topic: 'Fasting, BDNF, and the renewed mind',
+    source: {
+      expert: 'Dr. Jason Fung',
+      credential: 'Nephrologist; author on fasting and metabolic health',
+      work: 'Intermittent Fasting and Brain Health (lecture)',
+      kind: 'video',
+    },
+    summary: 'The fasted, ketone-producing state stimulates BDNF in the hippocampus (nerve growth, learning, memory), triggers autophagy/mitophagy that clears damaged proteins ("cleaning the brain"), raises focus hormones like noradrenaline, and may increase neuron resistance while clearing toxic Tau and Amyloid — short-term sharpening and long-term neuro-protection.',
+    pairs: [
+      {
+        id: 'w3p-bdnf-renewal',
+        claim: 'Fasting stimulates BDNF (brain-derived neurotrophic factor) — critical for nerve-cell growth, learning, and memory.',
+        cite: '3:41-5:17',
+        refs: ['Romans 12:2'],
+        bridge: 'Be ye transformed by the RENEWING of your mind — the neuroscientist just named a mechanism of it. BDNF grows new nerve cells; the Word commanded the renewed mind before anyone could measure the factor that grows it. The command came first; the microscope caught up.',
+      },
+      {
+        id: 'w3p-autophagy-clean',
+        claim: 'Fasting triggers autophagy and mitophagy — a cellular recycling that clears old, damaged proteins, effectively cleaning the brain.',
+        cite: '5:17-6:13',
+        refs: ['Psalms 51:10'],
+        bridge: 'Create in me a CLEAN heart, O God; and RENEW a right spirit within me — cleansing and renewal in one breath, which is exactly the two things autophagy does: clear the damaged, renew the whole. David prayed the cellular process before there was a word for it.',
+      },
+      {
+        id: 'w3p-fasting-focus',
+        claim: 'Fasting increases focus hormones (noradrenaline); historically great thinkers fasted for mental clarity, and large meals induce lethargy.',
+        cite: '2:03-4:20',
+        refs: ['Matthew 6:16-18'],
+        bridge: 'When thou fastest, anoint thine head, and wash thy face — Jesus did not argue for fasting, He ASSUMED it: "when," not "if." The practice great minds reached for was already the ordinary discipline of The Way, done quietly, not for show.',
+      },
+    ],
+  },
+  {
+    id: 'w3-water-fasting-supervised',
+    topic: 'Supervised water-only fasting and the pleasure trap',
+    source: {
+      expert: 'Dr. Alan Goldhamer',
+      credential: 'Physician; founder, TrueNorth Health Center',
+      work: 'Medically supervised water-only fasting (interview)',
+      kind: 'video',
+    },
+    summary: 'Health as the result of healthful living, not "pills, potions, and powders" — water-only fasting (5-40 days, medically supervised, careful refeeding) mobilizes harmful visceral fat, normalizes blood pressure, reduces insulin resistance, induces autophagy, and protects the brain. The "pleasure trap": salt, oil, and sugar override satiety; the sustainable path is a whole-plant, SOS-free diet. Long fasts require professional oversight.',
+    pairs: [
+      {
+        id: 'w3p-rest-to-heal',
+        claim: 'Health results from healthful living, not from "pills, potions, and powders" — fasting gives the body the rest it needs to heal itself.',
+        cite: '1:11:43',
+        refs: ['Mark 6:31'],
+        bridge: 'Come ye yourselves apart into a desert place, and REST a while — Jesus prescribed rest to a body worn by demand. Fasting is a rest FROM the table, and the rest is where the healing runs. The remedy was never mainly in the potion; it was in the ceasing.',
+      },
+      {
+        id: 'w3p-pleasure-trap',
+        claim: 'Processed salt, oil, and sugar override the body\'s natural satiety, holding people in chronic overeating — the "pleasure trap."',
+        cite: '13:23-28:20',
+        refs: ['Proverbs 23:1-3'],
+        bridge: 'When thou sittest to eat... be not desirous of his dainties: for they are DECEITFUL MEAT. The Word named the pleasure trap in two words: deceitful meat — food engineered to promise what it will not give and to defeat the body\'s own "enough." Put a knife to thy throat, if thou be a man given to appetite.',
+      },
+      {
+        id: 'w3p-whole-plant',
+        claim: 'The sustainable path is a whole plant-food, SOS-free (salt/oil/sugar-free) diet that lets satiety work again.',
+        cite: '28:20',
+        refs: ['Genesis 1:29'],
+        bridge: 'Behold, I have given you every HERB bearing seed... and every tree, in the which is the fruit of a tree yielding seed; to you it shall be for meat — the first diet named in Scripture is the whole-plant one. Not a modern fad; the original provision, given in the garden before anything was processed.',
+      },
+      {
+        id: 'w3p-supervision',
+        claim: 'Extended fasting must be done safely with professional guidance — monitoring electrolytes and heart, and careful refeeding to avoid refeeding syndrome.',
+        cite: '21:08-1:10:26',
+        refs: ['Proverbs 11:14'],
+        bridge: 'Where no counsel is, the people fall: but in the multitude of COUNSELLORS there is safety. The physician\'s oversight is not a lack of faith; it is the Word\'s own safety pattern. A long fast at home without counsel is the fall the proverb warned of.',
+      },
+    ],
+  },
+  {
+    id: 'w3-fasting-timeline',
+    topic: 'The hour-by-hour fast, and reaping in due season',
+    source: {
+      expert: 'Kait Malthaner',
+      credential: 'Health coach',
+      work: 'What Happens In Your Body When You Fast (hour-by-hour)',
+      kind: 'video',
+    },
+    summary: 'An hour-by-hour map of the fast: insulin drops by 4-8 hours, HGH rises by 12, ketones and mental clarity by 16, autophagy ramping 18-20 and up ~300% by 36 hours, insulin sensitivity and stem-cell/immune regeneration in the longer windows. Benefits are not linear; a 12-18h daily window is sustainable, with 24+ hour fasts only quarterly or biannually.',
+    pairs: [
+      {
+        id: 'w3p-reap-in-season',
+        claim: 'Fasting benefits are not linear — they unfold in stages over hours and days (HGH, ketones, autophagy, stem-cell activity), rewarding patience.',
+        cite: '02:00-09:42',
+        refs: ['Galatians 6:9'],
+        bridge: 'Let us not be weary in well doing: for in DUE SEASON we shall reap, if we faint not. The staged, non-linear payoff is the harvest pattern the Word already gave — the reward is real but it is not instant, and fainting forfeits it. The clock in the body keeps the same law the field keeps.',
+      },
+      {
+        id: 'w3p-moderation-window',
+        claim: 'A 12-18 hour daily window is sustainable for most; longer 24+ hour fasts are best kept occasional (quarterly or biannual), tailored to the goal.',
+        cite: '07:14',
+        refs: ['Philippians 4:5'],
+        bridge: 'Let your MODERATION be known unto all men. The Lord is at hand. The sustainable window is the moderate one; the extreme fast has its rare place, but the daily practice the Word commends is measured, not severe. Moderation is the setting that lasts.',
+      },
+    ],
+  },
+  {
+    id: 'w3-fasting-as-discipline',
+    topic: 'The 24-hour fast as spiritual exercise',
+    source: {
+      expert: 'Fit Father Project',
+      credential: 'Men\'s health coaching program',
+      work: 'The 1-Meal-Per-Week 24-Hour Fast',
+      kind: 'video',
+    },
+    summary: 'A once-weekly dinner-to-dinner (24-hour) fast on water, coffee, or green tea: improved insulin sensitivity, autophagy, an HGH boost, and mental clarity for busy days — and, named explicitly, spiritual growth, since resisting cravings and making conscious choices is itself a form of exercised willpower. Flexible to any day; adaptable to fat-loss or muscle goals.',
+    pairs: [
+      {
+        id: 'w3p-subjection',
+        claim: 'Resisting cravings and making conscious dietary choices trains willpower — the coach names it a form of spiritual exercise.',
+        cite: '1:47-2:24',
+        refs: ['1 Corinthians 9:27'],
+        bridge: 'I keep under my body, and bring it into SUBJECTION — Paul made the body the servant and not the master, and called it training, like an athlete. The secular coach reached the same floor: the fast is a gym for the will. The Word named it discipline; discipline is worship in work clothes.',
+      },
+      {
+        id: 'w3p-not-under-power',
+        claim: 'The practice is mastery over appetite — a conscious choice to not be ruled by the craving.',
+        cite: '1:16-2:24',
+        refs: ['1 Corinthians 6:12'],
+        bridge: 'All things are lawful for me, but I will not be brought under the POWER of any. The freedom is real and the food is lawful — but the believer refuses to be governed by appetite. The fast is where that refusal is practiced until it is true.',
+      },
+    ],
+  },
+  {
+    id: 'w3-women-fueling-counter',
+    topic: 'The counter-witness: when the body\'s answer is "arise and eat"',
+    source: {
+      expert: 'Dr. Stacy Sims',
+      credential: 'Exercise physiologist & nutrition scientist, PhD',
+      work: 'Intermittent Fasting and Women\'s Physiology (interview)',
+      kind: 'video',
+    },
+    summary: 'The deliberate counter-witness: for most active women — especially in perimenopause — standard fasting protocols can harm metabolism and endocrine function. Fasting plus morning exercise raises cortisol; the kisspeptin/hypothalamic response can dysregulate the thyroid. Better to eat with the circadian rhythm, start the day fueled to blunt the cortisol peak, and not train fasted. Fueling, not fasting, is often the wiser move.',
+    pairs: [
+      {
+        id: 'w3p-arise-and-eat',
+        claim: 'Standard fasting can be detrimental to active women\'s metabolism and hormones; the better move is often to fuel appropriately, not to fast harder.',
+        cite: '1:24-3:37',
+        refs: ['1 Kings 19:5-8'],
+        bridge: 'When Elijah was emptied out under the juniper tree, Yahweh\'s remedy was not a longer fast — it was food, twice: Arise and EAT; because the journey is too great for thee. Sometimes the godly, obedient move is to eat. The counter-witness is in the Word too: the depleted body is told to be fed for the journey ahead.',
+      },
+      {
+        id: 'w3p-fully-persuaded',
+        claim: 'Women are more metabolically flexible and do not need prolonged fasting for its benefits — one protocol does not fit every body.',
+        cite: '1:24-1:53',
+        refs: ['Romans 14:5-6'],
+        bridge: 'Let every man be fully persuaded in his own mind... he that eateth, eateth to the Lord, for he giveth God thanks. The Word refuses to make eating a single law binding every body the same — freedom, conscience, and thanksgiving govern the table. The one-size fasting rule is exactly what Romans 14 declines to impose.',
+      },
+      {
+        id: 'w3p-eat-for-strength',
+        claim: 'Starting the day with nutrition blunts the post-waking cortisol peak; fasted training misses the intensity and load needed for results.',
+        cite: '3:40-8:59',
+        refs: ['Ecclesiastes 10:17'],
+        bridge: 'Princes eat in due season, FOR STRENGTH — the purpose of the well-timed meal is strength for the work. When the work is heavy (the training, the load), the meal is not indulgence; it is provision. Eating for strength is the Word\'s own frame, and it is the counter-witness\'s point exactly.',
+      },
+    ],
+  },
+  {
+    id: 'w3-sleep-memory',
+    topic: 'Sleep, memory, and the beloved\'s rest',
+    source: {
+      expert: 'Shai Marcu',
+      credential: 'Educator (TED-Ed lesson author)',
+      work: 'The Benefits of a Good Night\'s Sleep (TED-Ed)',
+      kind: 'video',
+    },
+    summary: 'Sleep is active, not lost time: the brain restructures, moving information from short-term to durable long-term memory. The hippocampus and cortex consolidate declarative memory (facts) during slow-wave sleep; REM consolidates procedural memory (skills). Neuroplasticity forms new synaptic buds overnight — so sleeping after studying beats cramming an all-nighter.',
+    pairs: [
+      {
+        id: 'w3p-beloved-sleep',
+        claim: 'Sleep is active and restorative, not wasted time — pulling an all-nighter to cram is worse for memory than resting.',
+        cite: '0:06-1:28',
+        refs: ['Psalms 127:2'],
+        bridge: 'It is vain for you to rise up early, to sit up late, to eat the bread of sorrows: for so He giveth His beloved SLEEP. The all-nighter is named and rebuked three thousand years early — rising early and sitting up late is called vain — and sleep is called a GIFT, not lost time. The educator caught up to the psalm.',
+      },
+      {
+        id: 'w3p-night-consolidation',
+        claim: 'Sleep moves information from temporary short-term memory into durable long-term memory — the brain consolidates overnight.',
+        cite: '1:46-3:26',
+        refs: ['Psalms 63:6'],
+        bridge: 'When I remember Thee upon my bed, and meditate on Thee in the NIGHT WATCHES — the psalmist knew the night is when what is held gets settled deep. Consolidation is the mechanism; meditation upon the bed is the practice. What you carry into sleep is what the night writes into you.',
+      },
+      {
+        id: 'w3p-sweet-sleep',
+        claim: 'Prioritizing sleep after learning lets the brain solidify it — rest is part of the design, not a failure of discipline.',
+        cite: '4:48-5:27',
+        refs: ['Proverbs 3:24'],
+        bridge: 'When thou liest down, thou shalt not be afraid: yea, thou shalt lie down, and thy SLEEP shall be SWEET. Rest is written into the design as a good thing, not a concession — the same wisdom that says work also says lie down. The one who sleeps after the study is obeying the design, not neglecting it.',
+      },
+    ],
+  },
+  {
+    id: 'w3-learning-mastery',
+    topic: 'The neurobiology of learning, and the diligently-taught word',
+    source: {
+      expert: 'Dr. Andrew Huberman',
+      credential: 'Neuroscientist, Stanford School of Medicine',
+      work: 'The Science of Learning & Memory (Huberman Lab)',
+      kind: 'video',
+    },
+    summary: 'Learning strengthens or weakens synaptic connections between existing neurons; it is not intuitive and requires alert, active engagement to flag new information as important. Self-testing shortly after exposure is the single best defense against forgetting; brief gap-effect pauses let the hippocampus replay at speed; interleaving folds new material into existing structures; sleep (especially REM) does the actual consolidation; and consistent, distraction-free time blocks separate the successful.',
+    pairs: [
+      {
+        id: 'w3p-active-engagement',
+        claim: 'Learning requires active, alert engagement and repetition to counter the brain\'s natural tendency to forget — passive exposure does not embed.',
+        cite: '16:09-19:44',
+        refs: ['Deuteronomy 6:6-7'],
+        bridge: 'These words... shall be in thine heart: and thou shalt teach them DILIGENTLY unto thy children, and shalt talk of them when thou sittest in thine house, and when thou walkest by the way. The Word\'s learning method was never passive: diligent, repeated, talked-about, woven through the whole day — active engagement across contexts, exactly what embeds a memory.',
+      },
+      {
+        id: 'w3p-self-testing',
+        claim: 'Testing is not only for evaluation — self-testing shortly after exposure is the single best way to inoculate against forgetting and find the gaps.',
+        cite: '42:54-55:29',
+        refs: ['2 Corinthians 13:5'],
+        bridge: 'Examine YOURSELVES, whether ye be in the faith; PROVE your own selves. The Word made self-examination the discipline — testing yourself, not only being tested — long before the neuroscience named it the strongest guard against forgetting. The gap you find in the test is the gap you close.',
+      },
+      {
+        id: 'w3p-give-wholly',
+        claim: 'The most successful learners are consistent — dedicated time blocks, minimized distraction, deep uninterrupted focus.',
+        cite: '28:29-36:21',
+        refs: ['1 Timothy 4:15'],
+        bridge: 'Meditate upon these things; give thyself WHOLLY to them; that thy profiting may appear to all. Undivided, consistent devotion is the Word\'s prescription for mastery, and it names the payoff the science measures: profiting that becomes visible. Distraction is the opposite of "wholly."',
+      },
+      {
+        id: 'w3p-interleave-build',
+        claim: 'Interleaving — folding new material into related examples and existing knowledge — helps the brain incorporate it into existing structures.',
+        cite: '1:33:28-1:36:00',
+        refs: ['2 Peter 1:5-8'],
+        bridge: 'Add to your faith virtue; and to virtue KNOWLEDGE; and to knowledge temperance... The Word builds by ADDING each new thing onto what is already set — a deliberate, layered interleave, never a single boring stream. Knowledge is stacked onto virtue onto faith; that is how it becomes neither barren nor unfruitful.',
+      },
+    ],
+  },
 ];
 
 // Verbatim verse text for a witness ref — same verified rail as the Godhead
 // Study, no second source of truth.
 export function witnessVerse(ref) {
   return godheadVerse(ref);
+}
+
+// THE SEPARATION, rendered generally (Darrell 2026-07-03: "separates for the
+// practice only, stays mixed for those of us who need that"; 2026-07-04: the
+// fasting cluster is medical, so its clean-science view belongs in the SAME
+// room as an opt-in toggle — not shoved into the therapy client track where a
+// disordered-eating-vulnerable population lives). This strips the bridge and
+// the verses, leaving the cited claim + where-in-the-work + full expert credit
+// (honour to whom honour, Romans 13:7). No Scripture rides along — that is the
+// point of the separation — but the science is never anonymous.
+export function witnessScienceOnly(source) {
+  return {
+    id: `sci-${source.id}`,
+    topic: source.topic,
+    source: source.source,
+    summary: source.summary,
+    points: source.pairs.map((p) => ({ id: p.id, claim: p.claim, cite: p.cite })),
+  };
 }
 
 // -----------------------------------------------------------------------------
