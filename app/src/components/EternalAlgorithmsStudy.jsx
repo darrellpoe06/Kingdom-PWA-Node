@@ -138,6 +138,10 @@ function ForgeFramework({ alg }) {
 // memory), then the 3D practice and the outcome. Collapsible per entry so the
 // study reads as exploration, not a wall ("Real study is fun and exploration").
 // -----------------------------------------------------------------------------
+// The END FROM THE BEGINNING (Darrell 2026-07-04): "it shows the outcome first
+// so the user can see what they will receive first — like Yahweh shows the end
+// from the beginning." The Outcome you win with it LEADS the card, visible even
+// collapsed; the IF/THEN mechanism, verses, and practice follow on expand.
 function GodheadEntry({ entry }) {
   const [open, setOpen] = useState(false);
   return (
@@ -148,8 +152,14 @@ function GodheadEntry({ entry }) {
           <span className="text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>✦ {entry.name}</span>
           <span className="text-[0.625rem] text-[#5A6E3D]" style={mono}>{entry.refs.join(' · ')} {open ? '▾' : '▸'}</span>
         </div>
-        <p className="text-[0.75rem] text-[#5A5751] mt-0.5" style={serif}>
+        {/* The end from the beginning — the outcome you win with it, first. */}
+        <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
+          <p className="text-sm text-[#1A1815]" style={serif}>{entry.outcome}</p>
+        </div>
+        <p className="text-[0.75rem] text-[#5A5751] mt-1.5" style={serif}>
           <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] font-semibold">If</span> {entry.condition}
+          {!open && <span className="text-[0.625rem] text-[#5A6E3D] ml-1">— open for the pattern ▸</span>}
         </p>
       </button>
       {open && (
@@ -179,10 +189,6 @@ function GodheadEntry({ entry }) {
               <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{entry.psyche}</p>
             </div>
           )}
-          <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
-            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
-            <p className="text-sm text-[#1A1815]" style={serif}>{entry.outcome}</p>
-          </div>
         </div>
       )}
     </div>
