@@ -59,7 +59,7 @@ describe('PoeTech TV Time', () => {
     await mount();
     const text = container.textContent || '';
     expect(text).toMatch(/PoeTech TV Time/);
-    expect(text).toMatch(/Live group sync/);
+    expect(text).toMatch(/live group sync is coming next/);
     expect(text).toMatch(/Look up a show/);
   });
 

@@ -94,6 +94,22 @@ export function emptyTv() {
   return { version: STORE_VERSION, shows: {}, custom: {} };
 }
 
+// Stamp the store's change time (ISO) — the cross-device sync uses it for
+// newest-wins. Pure; caller passes the clock (safeNow) so this layer stays pure.
+// updatedAt is CONDITIONAL in the store shape (only present once stamped), so it
+// never perturbs the equality of an untouched state.
+export function touchTv(state, nowIso) {
+  const base = normalize(state);
+  const at = typeof nowIso === 'string' && nowIso ? nowIso : base.updatedAt;
+  return at ? { ...base, updatedAt: at } : base;
+}
+
+// The store's change time, or '' if never stamped.
+export function tvUpdatedAt(state) {
+  const at = normalize(state).updatedAt;
+  return typeof at === 'string' ? at : '';
+}
+
 // Slug an id from a title so a custom show has a stable key.
 function slugify(title) {
   return String(title || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
@@ -101,7 +117,7 @@ function slugify(title) {
 
 // Normalize any parsed blob into a clean state. Unknown statuses/reactions and
 // malformed entries are dropped so a corrupt/hand-edited store can't inject junk.
-function normalize(parsed) {
+export function normalize(parsed) {
   const shows = {};
   const src = parsed && typeof parsed.shows === 'object' && parsed.shows ? parsed.shows : {};
   for (const [id, raw] of Object.entries(src)) {
@@ -141,7 +157,11 @@ function normalize(parsed) {
       seasons: raw.kind === 'movie' ? [] : normalizeSeasons(raw.seasons),
     };
   }
-  return { version: STORE_VERSION, shows, custom };
+  const out = { version: STORE_VERSION, shows, custom };
+  // Conditional: carried only when a blob was actually stamped (cross-device
+  // sync), so an untouched state keeps its original shape/equality.
+  if (typeof parsed?.updatedAt === 'string' && parsed.updatedAt) out.updatedAt = parsed.updatedAt;
+  return out;
 }
 
 // The cached season/episode structure (from tv-catalog). Kept clean so a corrupt
