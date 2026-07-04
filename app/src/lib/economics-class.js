@@ -1,0 +1,367 @@
+// =============================================================================
+// economics-class — "Kingdom Economics: Stewardship, Ownership & the Body's
+// Economic Witness"
+// =============================================================================
+// A PoeTech / COLG Learn course on economics taught through the reality of the
+// African American economic experience (declared by Darrell 2026-07-04: "course
+// on economics using reality of the African American experience and their
+// experiences"). It is the doctrinal course-form of the binding foundation
+// docs/00-foundations/_root/BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md — teaching the
+// economic powerhouse of the Body of Christ (a royal priesthood, 1 Peter 2:9),
+// with the Black Church's economic witness as the named exemplar inside that
+// whole-Body identity.
+//
+// GOVERNOR'S CORRECTION (Darrell 2026-07-04, binding): an earlier draft HEDGED —
+// it softened documented, measurable systemic barriers into "contested
+// allegations." That was wrong, and it muted the truth. "These are not
+// allegations, this is a real barrier... verify those facts and rewrite the
+// courses to reflect those realities. We need to understand Truth, period." And:
+// the course "has to account for the consequences of sin and the judgment of
+// Christ — no one gets away with anything... Jesus's perspective... He spoke
+// about the religious and governance." This rewrite obeys both. Verification
+// (DR-0076) cuts BOTH ways: we refuse a FALSE number (the 6-hour-dollar myth) AND
+// we state the TRUE, documented, quantified realities plainly — because muting
+// documented injustice is its own failure of the truth. And the prophetic spine
+// is restored: Scripture names economic injustice and God judges it (false
+// balances an abomination; He pleads the cause of the robbed poor; James on
+// defrauded wages; Jesus naming the powerful and cleansing the temple; no one
+// gets away — Galatians 6:7). Reconciliation (one-new-man, Ephesians 2:14-16) is
+// REAL, but it comes THROUGH truth, repentance, and restitution (Zacchaeus,
+// Luke 19:8), never around them.
+//
+// SAME SHARED FRAMEWORK as the sibling Learn courses (church-classes.js helpers,
+// learn-framework age bands + quiz, class-tutor). Age-adaptive: every module
+// carries levels.child / levels.senior.
+//
+// VERIFICATION / SOURCES (DR-0076): every documented, quantified fact carries a
+// real source with an as-of date (module `sources`). The statistics below were
+// verified by live web search 2026-07-04 against primary/reputable outlets
+// (Federal Reserve SCF; the American Economic Review / NBER; the U.S. DOJ
+// Combating Redlining Initiative; EPI/Pew for the unemployment ratio; MPR /
+// Beauty Independent / the "Black Hair" documentary for the beauty-supply
+// concentration). Scripture is anchored by REFERENCE + a plain-language theme
+// gloss, and every KJV fragment quoted in the lesson prose was checked verbatim
+// against the public-domain source — no verse from memory.
+// =============================================================================
+
+export const ECON_PROPOSED_COHORT_START = null;
+export const ECON_CONFIRMED_COHORT = { startDate: null, confirmed: false };
+
+export const ECON_META = {
+  key: 'kingdom-economics',
+  title: 'Kingdom Economics: Stewardship, Ownership & the Body’s Economic Witness',
+  audience: 'the whole Body and family learners at every age — taught through the African American economic experience as the named exemplar inside the one-new-man Body',
+  tagline: 'Prosper as your soul prospers. Tell the truth, own it, build it together, and hand it on — and know that God judges injustice.',
+  format: 'Self-paced or 7 sessions · ~75 min each (paced to your age) · Word-first, truth-telling, statistics-honest, tool-ready',
+  cadenceDays: 7,
+  weeks: 7,
+  handsOnLabel: 'Hands-on with the money tools',
+  blurb: 'Economics taught The Way: the soul prospers first, understanding before technique, and the Body of Christ as an economic powerhouse. Grounded in Scripture AND in the documented, measured African American economic reality — ownership, circulation, group economics, the real and quantified barriers (hiring, lending, distribution), the accountability God brings on injustice, and building institutions that outlast us.',
+  footer: '_Taught by Darrell Poe · The Church of the Living God + the Poe family · built on PoeTech. The soul first, then the finances. We tell the documented truth — no lies, no muting — and we know that God pleads the cause of the oppressed and judges injustice. Reconciliation comes through repentance and restitution, not around them. Built to be handed on, at every age._',
+};
+
+export const ECON_SESSION_FLOW = [
+  { minutes: 5, name: 'Prayer + the anchor' },
+  { minutes: 10, name: 'Recap last week' },
+  { minutes: 15, name: 'Teach the big idea' },
+  { minutes: 25, name: 'Hands-on with the money tools' },
+  { minutes: 15, name: 'Discussion' },
+  { minutes: 5, name: 'Send-off + solo task' },
+];
+export const ECON_SESSION_MINUTES = ECON_SESSION_FLOW.reduce((t, s) => t + s.minutes, 0); // 75
+
+export const ECON_MODULES = [
+  {
+    id: 'econ1-soul-first',
+    title: 'The order — prosper as your soul prospers, and love truth',
+    bigIdea: 'Money is a tool, never the master. The Kingdom order is the soul FIRST, then the finances. And because understanding is the deliverable, understanding must be TRUE — we face hard facts honestly, we do not flatter ourselves with myths, and we do not mute what is real.',
+    inApp: 'Open the in-app money surfaces (budget, tithe, buffer) and notice the order they invite: give first, save a buffer, then spend with purpose — soul-first stewardship, not get-rich pressure.',
+    anchor: { ref: '3 John 1:2; Proverbs 4:7; John 8:32', theme: 'That you may prosper even as your soul prospers; wisdom is the principal thing, get understanding; you shall know the truth, and the truth shall make you free. The soul sets the order; understanding is the deliverable; and understanding must be TRUE — truth, not comfort, is what frees.' },
+    levels: {
+      child: 'Money is a tool, like a hammer — good for building, but never the boss of your heart. God says the most important thing is that your SOUL grows healthy first; then money can help you do good. And to be wise you must love the TRUTH — even when it is hard — because Jesus said the truth is what makes us free. Your job: name one true thing about money, even if it is a hard truth.',
+      senior: 'The whole course rests on an order the culture inverts. The soul comes first — "that thou mayest prosper... even as thy soul prospereth" (3 John 1:2) — so prosperity is downstream of a healthy soul, never a substitute for one or the proof of God’s favor. The deliverable is UNDERSTANDING, not technique (Proverbs 4:7). And here is the hinge that a first draft of this course got wrong: understanding must be TRUE. "Ye shall know the truth, and the truth shall make you free" (John 8:32). That cuts two ways at once — we refuse the comfortable falsehood that flatters our own side (later we drop a popular but debunked statistic), AND we refuse to mute or soften a hard, documented reality just because it is uncomfortable to name. A course grounded in truth tells the whole truth: the encouraging and the damning, each held to the same standard of evidence. Money serves; it never rules (Matthew 6:24). Build on this footing, or build on sand.',
+    },
+    quiz: {
+      questions: [
+        { q: 'What is the Kingdom ORDER for prosperity?', options: ['Get the money first, then fix the soul', 'The soul prospers first, and the finances follow', 'They are unrelated'], answer: 1, explain: '3 John 1:2 — prosper "even as thy soul prospereth." Soul first.' },
+        { q: 'What must our understanding of money be?', options: ['Comfortable', 'TRUE — we face hard facts and refuse both flattering myths and the muting of real injustice', 'Whatever supports our side'], answer: 1, explain: 'John 8:32 — the truth makes us free. Truth cuts both ways: no flattering myths, no muted realities.' },
+      ],
+    },
+    lesson: 'Every economics course teaches technique. This one starts a step earlier, because the Word does. First, the ORDER: "Beloved, I wish above all things that thou mayest prosper and be in health, even as thy soul prospereth" (3 John 1:2). Prosperity follows a healthy soul; it is never a substitute for one, and it is never the proof of God’s favor. Second, the deliverable is UNDERSTANDING, not technique: "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding" (Proverbs 4:7). And third — the correction at the heart of this course — that understanding must be TRUE. "Ye shall know the truth, and the truth shall make you free" (John 8:32). Truth, not comfort, is what sets a people free, and truth cuts in both directions. It means we will not repeat a claim just because it flatters us (later in this course we drop a famous statistic that turns out to be a myth). And it means we will not soften, hedge, or mute a hard reality that is documented and measured, just because naming it is uncomfortable. To call a documented, court-proven, statistically-measured injustice a mere "allegation" is not neutrality — it is a failure to tell the truth, and it silences the very people the truth would free. So this course tells the whole truth: the encouraging parts and the damning parts, each held to the same standard of real evidence. Money is a magnificent tool and a terrible master (Matthew 6:24). Hold it as a servant, love the truth, and everything ahead — ownership, circulation, cooperation, the real barriers, God’s accountability, and building — stands on rock.',
+    facilitator: {
+      talkingPoints: [
+        'The order: soul first, finances follow (3 John 1:2) — never the inverse, never prosperity as proof of favor.',
+        'Understanding is the deliverable (Proverbs 4:7) — and it must be TRUE (John 8:32).',
+        'Truth cuts both ways: refuse flattering myths AND refuse to mute documented injustice. Calling a proven wrong a mere "allegation" is not neutral.',
+        'Money is a tool and a servant, never the master (Matthew 6:24).',
+      ],
+      howToRun: 'Prayer + the anchor (5): pray; read 3 John 1:2 and John 8:32. | Recap (10): first session — name + one hard true thing about money. | Teach (15): the order; understanding; truth that cuts both ways. | Hands-on (25): open the in-app budget/tithe/buffer and read the order they invite. | Discussion (15): where do we prefer comfort over truth — on either side? | Send-off (5): solo task — name one truth about money you have avoided.',
+      discussionPrompts: [
+        'What changes when the soul comes first instead of the finances?',
+        'Why is muting a documented injustice also a failure to tell the truth?',
+        'Where are we tempted to believe a comfortable myth instead of a hard fact?',
+      ],
+    },
+  },
+  {
+    id: 'econ2-ownership-vs-consumption',
+    title: 'Own and produce — not only consume',
+    bigIdea: 'A steward OWNS and TENDS what is entrusted (Genesis 2:15). The talents parable rewards the servants who put money to WORK and rebukes the one who only buried it. Producing and owning builds; consuming-only leaves nothing behind — and hands a community’s wealth to outside owners every day.',
+    inApp: 'Look at any asset the family or church OWNS (the NAS, a rental, a tool) versus a thing that is only consumed. Owning means it keeps serving; consuming means it is spent once and gone.',
+    anchor: { ref: 'Genesis 2:15; Matthew 25:14-30; Proverbs 13:22', theme: 'Put in the garden to work it and keep it; the servants who put the talents to work were called good and faithful, the one who buried his was rebuked; a good man leaves an inheritance to his children’s children. Ownership and productive work build; burying and consuming-only leave nothing behind.' },
+    levels: {
+      child: 'There are two ways to use money. One is to CONSUME — buy a treat, eat it, it is gone. The other is to OWN something that keeps helping — like a fruit tree that gives fruit every year. God put the first people in a garden to WORK it and KEEP it — to grow things, not just eat things. So we learn to own and make and grow, not only to spend. Your job: name one thing our family owns that keeps helping us.',
+      senior: 'From the first chapters, the human vocation is productive stewardship: "the Lord God took the man, and put him into the garden of Eden to dress it and to keep it" (Genesis 2:15) — to cultivate and make more, not merely consume. The talents parable (Matthew 25:14-30) makes it economic: the servants who PUT capital to work and multiplied it are "good and faithful"; the one who merely buried his — produced nothing out of fear — is rebuked and loses it. Not recklessness; productive deployment. And Proverbs 13:22 sets the horizon past one life: "a good man leaveth an inheritance to his children’s children." A community that only consumes transfers its wealth outward every single day; a community that owns and produces keeps and compounds it. This is the hinge the rest of the course turns on — and, as later modules show, one reason ownership was so hard to reach is not effort but engineered barriers to capital, hiring, and distribution.',
+    },
+    quiz: {
+      questions: [
+        { q: 'What was the human vocation in the garden?', options: ['To consume the fruit only', 'To WORK it and KEEP it — cultivate, make more', 'To leave it untouched'], answer: 1, explain: 'Genesis 2:15 — dress it and keep it. Productive stewardship.' },
+        { q: 'In the talents parable, who was rebuked?', options: ['The servants who put the money to work', 'The servant who buried it and produced nothing', 'The master'], answer: 1, explain: 'Matthew 25 — entrusted capital is meant to be productively deployed.' },
+      ],
+    },
+    lesson: 'Here is the hinge the whole course turns on: there are two fundamentally different ways to relate to money, and communities rise or fall on which one dominates. The first is CONSUMPTION — money spent once on something used up and gone. The second is OWNERSHIP and PRODUCTION — money put into things that keep producing: a business, a skill, a tool, a property, a share of something that grows. Scripture puts the human vocation on the productive side from the beginning: "the Lord God took the man, and put him into the garden of Eden to dress it and to keep it" (Genesis 2:15) — to cultivate and make MORE. Jesus’ parable of the talents makes it explicitly economic: a master entrusts capital; the two servants who put it to WORK and doubled it are "good and faithful," and the one who merely buried his — produced nothing — is rebuked and stripped of it. That is not a call to reckless risk; it is a warning that entrusted resources are meant to be productively deployed, not hoarded and not merely consumed. And Proverbs 13:22 sets the horizon past a single life: "a good man leaveth an inheritance to his children’s children." A community that only consumes hands its wealth to outside owners every single day; a community that OWNS and PRODUCES keeps and compounds it across generations. Hold this hinge — and then be honest, as the coming modules are, that for many Black Americans the barrier to reaching the owning side was never a lack of effort but a documented, engineered wall around capital, employment, and the channels of trade.',
+    facilitator: {
+      talkingPoints: [
+        'Two relations to money: consumption (spent once) vs ownership/production (keeps producing).',
+        'Genesis 2:15 — the vocation is to work it and keep it: make MORE, not just consume.',
+        'The talents parable rewards productive deployment, rebukes burying/hoarding.',
+        'Proverbs 13:22 — ownership that outlasts you. Consuming-only transfers wealth out daily; the barriers to owning were often engineered, not earned.',
+      ],
+      howToRun: 'Prayer + the anchor (5): pray; read Genesis 2:15. | Recap (10): a learner restates the soul-first + truth order. | Teach (15): consume vs own/produce; the talents; the generational horizon. | Hands-on (25): list what the family/church OWNS that keeps serving vs what is consumed once. | Discussion (15): what could we own instead of only consume? | Send-off (5): solo task — name one consumable habit that could become an owned asset.',
+      discussionPrompts: [
+        'What is the difference between money that is consumed and money that is owned?',
+        'Why is burying the talent — playing it safe — rebuked, not praised?',
+        'What could our family or church begin to OWN?',
+      ],
+    },
+  },
+  {
+    id: 'econ3-circulation',
+    title: 'Circulation and extraction — and why the real numbers beat the myth',
+    bigIdea: 'Money that circulates WITHIN a community multiplies its good; money extracted leaves and does not return. The circulation principle is biblical and true. And the extraction is REAL and measured: in 2022 the median white household held about $284,310 in wealth versus about $44,100 for the median Black household — roughly six to one. We do not need a myth; the documented numbers are stronger.',
+    inApp: 'Trace one dollar: spent again and again within the community it meets need several times; extracted after one purchase it does its good once and is gone. Then look at the real wealth-gap figures below.',
+    anchor: { ref: 'Deuteronomy 15:7-11; Acts 2:44-45; Acts 4:34', theme: 'Open your hand wide to your brother; the believers had all things common and parted them as any had need, and none among them lacked. Wealth circulating among the Body meets need; the early church is the pattern — and honesty about the real gap is part of the truth we steward.' },
+    sources: [
+      { claim: 'In 2022 the median white household held ~$284,310 in wealth vs ~$44,100 for the median Black household (~6x); the gap widened to ~$240,000.', title: 'Greater Wealth, Greater Uncertainty: Changes in Racial Inequality in the Survey of Consumer Finances', publisher: 'U.S. Federal Reserve (SCF, FEDS Notes)', url: 'https://www.federalreserve.gov/econres/notes/feds-notes/greater-wealth-greater-uncertainty-changes-in-racial-inequality-in-the-survey-of-consumer-finances-20231018.html', asOf: '2023-10-18' },
+      { claim: 'The "a dollar circulates only ~6 hours in the Black community" statistic is unverified / a myth — the government produces no data that could support such a per-group comparison.', title: 'Fact Check: The ‘Dollar Only Stays In Black Community 6 Hours’ Is Urban Myth', publisher: 'Moguldom / TruthBeTold.news (Howard University)', url: 'https://moguldom.com/454006/fact-check-the-dollar-only-stays-in-black-community-6-hours-is-urban-myth/', asOf: '2026-07-04' },
+    ],
+    levels: {
+      child: 'Imagine a dollar that stays and plays in our neighborhood: you buy bread from Miss Ann, Miss Ann buys nails from Mr. Lee, Mr. Lee buys milk from your mom — the SAME dollar helped three families! When the dollar leaves right away, it only helps once. So buying from each other builds us up. And here is a true, sad fact we do not hide: because of unfair things done for a long time, Black families as a whole have far less saved-up wealth than white families — about one dollar for every six. Naming what is true is how we fix it. And we always check our numbers — even the ones that sound good.',
+      senior: 'The circulation principle is sound: when money is spent WITHIN a community, each recipient spending again with a member, the same dollar meets need several times before it leaves — the local multiplier. Scripture’s picture is stronger than commerce: the early church "had all things common; and sold their possessions... and parted them to all men, as every man had need" (Acts 2:44-45), so that "neither was there any among them that lacked" (Acts 4:34). Now the truth about extraction, held to real evidence. The famous claim that "a dollar circulates only ~6 hours in the Black community" is a DEBUNKED MYTH — Howard University’s TruthBeTold.news found it unsubstantiated, because no federal data supports such a per-group comparison. We drop it (DR-0076). But dropping the myth is not muting the reality — the DOCUMENTED numbers are more damning than the myth ever was: per the Federal Reserve’s 2022 Survey of Consumer Finances, the median white household held about $284,310 in wealth versus about $44,100 for the median Black household — roughly six to one, about $15 for every $100, an absolute gap near a quarter-million dollars that WIDENED even as Black wealth grew. That is measured extraction and exclusion across generations, not a difference in effort. The lesson: never build a true cause on a false number when the real, sourced numbers are stronger — and never let the falseness of one statistic become an excuse to mute the whole documented reality.',
+    },
+    quiz: {
+      questions: [
+        { q: 'What is the true, documented Black-white wealth picture (2022)?', options: ['Roughly equal', 'Median white ~$284,310 vs median Black ~$44,100 — about six to one (Federal Reserve SCF)', 'Black wealth is higher'], answer: 1, explain: 'Federal Reserve 2022 SCF — roughly 6:1, about $15 per $100. The real numbers, sourced.' },
+        { q: 'Is the "dollar lasts only 6 hours in the Black community" statistic true?', options: ['Yes, well-documented', 'No — it is a debunked myth; but the REAL wealth-gap numbers are stronger and true', 'It is proven to be 6 hours'], answer: 1, explain: 'Drop the myth (DR-0076); the documented Fed numbers are more damning than the myth.' },
+      ],
+    },
+    lesson: 'This week teaches a true principle and, alongside it, how to steward the truth with rigor — because the two belong together. The principle is CIRCULATION: when a dollar is spent within a community and each person who receives it spends it again with another member, that same dollar meets need several times before it leaves. Scripture’s version is stronger than any market: the early believers "had all things common; and sold their possessions and goods, and parted them to all men, as every man had need," so that "neither was there any among them that lacked" (Acts 2:44-45; 4:34). Now the harder half — extraction — handled with total honesty. There is a famous statistic, repeated from pulpits and podcasts, that "a dollar circulates only about six hours in the Black community." It is a MYTH: Howard University’s own fact-checking project found it unsubstantiated, because the federal government produces no data that could yield such a per-group figure. Our rule is that we do not teach a number we cannot verify, so we drop it. But hear this clearly: dropping the myth is NOT muting the reality. The documented numbers are worse than the myth ever claimed. According to the Federal Reserve’s 2022 Survey of Consumer Finances, the median white household held about $284,310 in wealth, while the median Black household held about $44,100 — roughly six to one, about fifteen dollars for every hundred, and the absolute gap, near a quarter of a million dollars, actually WIDENED even in years when Black wealth was rising. That is not a story about effort. It is measured, generational extraction and exclusion — the accumulated result of the barriers the next module documents and the injustices the module after that names before God. So take two lessons together: never prop a true cause on a false number when the real, sourced numbers are stronger — and never let one debunked statistic become the excuse to silence a whole documented reality.',
+    facilitator: {
+      talkingPoints: [
+        'Circulation: money spent within a community meets need multiple times before it leaves (the local multiplier); the early church "none lacked" (Acts 2:44-45; 4:34).',
+        'The "6-hour Black dollar" stat is a DEBUNKED MYTH (Howard/TruthBeTold) — drop it (DR-0076).',
+        'But the REAL numbers are stronger: Fed 2022 SCF — median white ~$284,310 vs Black ~$44,100 (~6:1, ~$15 per $100), gap widening.',
+        'Two lessons: don’t build truth on a false number; and don’t let a debunked stat become an excuse to mute documented reality.',
+      ],
+      howToRun: 'Prayer + the anchor (5): pray; read Acts 2:44-45. | Recap (10): a learner restates own-vs-consume. | Teach (15): the circulation principle; the debunked myth; the real, sourced wealth-gap numbers. | Hands-on (25): trace one real dollar through community hands; then read the Fed figures together. | Discussion (15): why are the real numbers stronger than the myth? | Send-off (5): solo task — verify one economic claim you have repeated, on either side.',
+      discussionPrompts: [
+        'How is the early church’s "none lacked" more than economics?',
+        'Why drop the 6-hour number even though it supports reinvestment?',
+        'How can the real wealth-gap data be both more honest AND more powerful than the myth?',
+      ],
+    },
+  },
+  {
+    id: 'econ4-group-economics',
+    title: 'Group economics — the Body pools its strength',
+    bigIdea: 'Two are better than one; a threefold cord is not quickly broken. Pooled capital and cooperation — "group economics" — has deep roots in the Body of Christ and a long, documented history in the Black Church and community, developed largely because mainstream capital was closed: collective building, mutual-aid societies, rotating savings.',
+    inApp: 'Look at any shared, pooled effort — the church’s collective giving that built the 44,000 sq ft house, a shared tool, a group buy. Pooled strength does what no single person could.',
+    anchor: { ref: 'Ecclesiastes 4:9-12; Acts 4:32-35; Nehemiah 4:6', theme: 'Two are better than one; a threefold cord is not quickly broken; the believers held all things common and none lacked; the people built the wall together, for they had a mind to work. Pooled strength accomplishes what no one could alone.' },
+    levels: {
+      child: 'One stick breaks easily. Three sticks tied together are strong — the Bible says a cord of three strands is hard to break! When people put their money and work TOGETHER, they build big things no one could build alone — like our church, which the people built together. That is group economics: stronger together. Your job: name one big thing built because people worked TOGETHER.',
+      senior: 'Cooperation is a biblical economic strategy: "two are better than one... a threefold cord is not quickly broken" (Ecclesiastes 4:9-12). The early church pooled capital directly (Acts 4:32-35), and Nehemiah rebuilt the wall because the people "had a mind to work" (Nehemiah 4:6). What is popularly called "group economics" — pooling capital, buying and building collectively, banking together — has a long, DOCUMENTED history in the Black Church and community precisely because mainstream capital was so often closed: mutual-aid and benevolent societies that insured members when no insurer would; church building funds that raised large sums from congregations of modest earners; and rotating savings-and-credit associations (the "susu," "box hand," or "partnership hand" carried from West Africa and the Caribbean, where members contribute and take turns receiving the pot). The Black Church is itself a monument to pooled capital. For the whole Body, cooperation multiplies limited individual capital into institutional capacity (1 Corinthians 12, many members, one body) — a way to BUILD, and, as the next modules show, a righteous response to real barriers rather than a grievance.',
+    },
+    quiz: {
+      questions: [
+        { q: 'What does "a threefold cord is not quickly broken" teach economically?', options: ['Work alone', 'Pooled strength accomplishes what one person cannot', 'Avoid other people'], answer: 1, explain: 'Ecclesiastes 4:9-12 — cooperation multiplies capacity.' },
+        { q: 'What is a rotating savings association (susu / box hand)?', options: ['A modern bank invention', 'A long-standing pooled-savings tradition — members contribute and take turns receiving the pot', 'A loan shark'], answer: 1, explain: 'A documented cooperative-savings tradition — pooled capital when mainstream capital was closed.' },
+      ],
+    },
+    lesson: 'If ownership is the hinge and circulation keeps wealth home, group economics is how a community with limited individual capital — often because it was deliberately shut out of the mainstream kind — builds things far bigger than any member could alone. Scripture teaches cooperation as strategy: "Two are better than one... For if they fall, the one will lift up his fellow... and a threefold cord is not quickly broken" (Ecclesiastes 4:9-12). The early church pooled capital outright (Acts 4:32-35), and Nehemiah rebuilt a whole city wall because the people "had a mind to work" together (Nehemiah 4:6). What people call "group economics" today has a long, DOCUMENTED history in the Black Church and community, developed largely because banks, insurers, and lenders so often closed their doors: mutual-aid and benevolent societies that insured members when no company would; church building funds that raised enormous sums from congregations of ordinary earners; and rotating savings-and-credit associations — the "susu," "box hand," or "partnership hand" traditions carried from West Africa and the Caribbean, where members contribute regularly and take turns receiving the whole pot. The Black Church itself is a monument to pooled capital: ordinary people, together, financing institutions that shaped generations. For the whole Body, Paul’s picture of one body with many members (1 Corinthians 12) is the principle — cooperation turns limited individual strength into institutional capacity. It is offered as a way to BUILD, and as the coming modules make plain, it has often been the righteous, resourceful answer to very real, documented barriers.',
+    facilitator: {
+      talkingPoints: [
+        'Cooperation is a biblical strategy: two better than one; a threefold cord (Ecclesiastes 4:9-12).',
+        'The early church pooled capital (Acts 4:32-35); Nehemiah’s people built together (Nehemiah 4:6).',
+        'DOCUMENTED history: mutual-aid societies, church building funds, rotating savings (susu/box hand) — pooled capital when mainstream capital was closed.',
+        'The Body is built for it (1 Corinthians 12) — a way to BUILD and a righteous response to real barriers.',
+      ],
+      howToRun: 'Prayer + the anchor (5): pray; read Ecclesiastes 4:9-12. | Recap (10): a learner restates circulation + the real wealth gap. | Teach (15): cooperation in Scripture; the documented history; why it arose. | Hands-on (25): map one pooled effort (the church build, a group buy) and what it did that no one could alone. | Discussion (15): what could our community pool next? | Send-off (5): solo task — name one thing better done together.',
+      discussionPrompts: [
+        'How is the Body of Christ itself an argument for group economics?',
+        'Why did rotating-savings traditions arise, and what do they teach?',
+        'How is cooperation a response to barriers rather than a grievance?',
+      ],
+    },
+  },
+  {
+    id: 'econ5-the-real-barriers',
+    title: 'The real barriers — measured, documented, written into the law itself',
+    bigIdea: 'The deepest barrier for Black Americans has not been effort — it was engineered, written into deeds, federal manuals, and law, at four gates: HOUSING (racial covenants barred Black ownership; the FHA and banks redlined non-white areas — the "ghetto" was manufactured by policy, and Black borrowers still pay more regardless of credit), HIRING (white-sounding names get 50% more callbacks; Black unemployment ~2x white), LENDING (federal redlining settlements nearly every year), and DISTRIBUTION (~1/3 of ~9,000 beauty-supply stores are Black-owned). These are facts with sources — court records, federal documents, peer-reviewed studies — not accusations.',
+    inApp: 'Trace a Black family trying to build wealth: could they even BUY a home where value grew — or was it barred by covenant and redline? Could the founder get hired and paid to save capital? Get a loan at a fair rate? Get goods to stock a store? Each locked gate below is documented in the record.',
+    anchor: { ref: 'Proverbs 22:7; Isaiah 5:8; Proverbs 31:8-9', theme: 'The borrower is servant to the lender; woe to those who join house to house and field to field till there is no place left; open your mouth for the voiceless, plead the cause of the poor and needy. Access to housing, capital, work, and channel is the lever — and the Word commands us to name and plead against injustice, never to mute it.' },
+    sources: [
+      { claim: 'Racial restrictive covenants in property deeds barred sale/occupancy to non-white groups (Black and Asian); the federal HOLC and FHA redlined non-white neighborhoods, and the FHA’s 1938 Underwriting Manual stated "incompatible racial groups should not be permitted to live in the same communities" and encouraged covenants — engineering segregated, underfunded neighborhoods.', title: 'Racial Restrictive Covenants / the FHA Underwriting Manual and redlining', publisher: 'Univ. of Washington Racial Restrictive Covenants Project; Bill of Rights Institute (FHA 1938 manual)', url: 'https://depts.washington.edu/covenants/segregation.shtml', asOf: '2026-07-04' },
+      { claim: 'Alien Land Laws in a dozen-plus states barred "aliens ineligible for citizenship" (Chinese and Japanese immigrants, barred from naturalization) from owning land — a distinct legal bar on Asian ownership alongside covenants that excluded both Black and Asian buyers from white areas.', title: 'Alien land laws', publisher: 'Wikipedia (citing state statutes and Densho Encyclopedia)', url: 'https://en.wikipedia.org/wiki/Alien_land_laws', asOf: '2026-07-04' },
+      { claim: 'Black borrowers pay higher mortgage interest rates than white borrowers even controlling for credit score; high-income Black homeowners receive higher rates than low-income white homeowners.', title: 'High-Income Black Homeowners Receive Higher Interest Rates than Low-Income White Homeowners', publisher: 'Harvard Joint Center for Housing Studies', url: 'https://www.jchs.harvard.edu/blog/high-income-black-homeowners-receive-higher-interest-rates-low-income-white-homeowners', asOf: '2020-09-14' },
+      { claim: 'The U.S. DOJ’s Combating Redlining Initiative secured $150M+ across 13+ settlements since 2021 (City National Bank $31M — the largest ever; First National Bank of PA $13.5M in 2024) for avoiding lending in Black and Latino neighborhoods.', title: 'Justice Department Reaches Significant Milestone in Combating Redlining Initiative', publisher: 'U.S. Department of Justice', url: 'https://www.justice.gov/archives/opa/pr/justice-department-reaches-significant-milestone-combating-redlining-initiative-after', asOf: '2023-10-19' },
+      { claim: 'Résumés with white-sounding names received 50% more callbacks than identical résumés with Black-sounding names.', title: 'Are Emily and Greg More Employable Than Lakisha and Jamal?', publisher: 'Bertrand & Mullainathan, American Economic Review / NBER', url: 'https://www.nber.org/papers/w9873', asOf: '2004-09-01' },
+      { claim: 'The Black unemployment rate has run roughly twice the white rate consistently since such data began (avg ~2.2x since 1954) — "first fired, last hired."', title: 'Black unemployment is consistently double that of whites', publisher: 'Pew Research Center', url: 'https://www.pewresearch.org/short-reads/2013/08/21/through-good-times-and-bad-black-unemployment-is-consistently-double-that-of-whites/', asOf: '2013-08-21' },
+      { claim: 'Of ~9,000 U.S. beauty-supply stores serving a primarily Black customer base, only ~1/3 are Black-owned; a small number of central distributors gate wholesale access.', title: 'Roots of tension: race, hair, competition and black beauty stores', publisher: 'MPR News', url: 'https://www.mprnews.org/story/2017/04/25/black-beauty-shops-korean-suppliers-roots-of-tension-mn', asOf: '2017-04-25' },
+    ],
+    levels: {
+      child: 'Imagine doors kept getting locked in front of your family — not because you did anything wrong, but because someone WROTE the locks into the rules. The HOUSE door: long ago, the papers you sign to buy a house had rules that said a home could not be sold to Black families in many neighborhoods — and banks would not lend money in the areas where Black families COULD live, so those areas got less of everything. That is how the "hood" was made — on purpose, by rules. And even today, Black families are often charged MORE to borrow, even with good credit. The JOB door, the MONEY door, and the SUPPLY door were locked too. God tells us to SPEAK UP for people treated unfairly — and He sees all of it. Your job: name the door that was locked with WRITTEN rules.',
+      senior: 'The deepest barrier was not effort; it was engineered — and much of it was written down, in deeds, federal manuals, and statute, which is why we state it as documented fact. (1) HOUSING, the root of wealth, because a home is how most families build it. RACIAL RESTRICTIVE COVENANTS were clauses written into property deeds barring sale or occupancy to non-white people — often Black AND Asian in the same clause ("Ethiopian, Malay, or any Asiatic race"; "Negro, Mongolian... or African descent") — enforceable, running with the land "in perpetuity" until Shelley v. Kraemer (1948). Then the FEDERAL GOVERNMENT systematized it: the HOLC drew maps grading non-white neighborhoods as hazardous, and the FHA’s 1938 Underwriting Manual declared that "incompatible racial groups should not be permitted to live in the same communities" and encouraged covenants — so banks would not lend in redlined areas. The segregated, underfunded, disinvested neighborhood — the "ghetto" — was not an accident of culture; it was MANUFACTURED by written policy. (Asian immigrants faced a separate bar: Alien Land Laws in a dozen-plus states forbade "aliens ineligible for citizenship" from owning land at all.) And it is not merely history: Black borrowers still pay higher mortgage rates than white borrowers controlling for credit score — the Harvard Joint Center found high-income Black homeowners pay higher rates than LOW-income white homeowners — and the DOJ runs a standing redlining initiative ($150M+ across 13+ settlements since 2021; City National $31M — the largest ever). (2) HIRING: identical résumés with white-sounding names got 50% more callbacks (Bertrand-Mullainathan); Black unemployment ~2x white since the data began — "first fired, last hired." (3) DISTRIBUTION: in beauty supply, serving mostly Black customers, only ~1/3 of ~9,000 stores are Black-owned, gated by a few central distributors. None of this is "allegation" — it is deeds, the FHA’s own words, court settlements, and peer-reviewed studies. The one-new-man frame (Ephesians 2:14-16) governs the RESPONSE — build access, plead the cause of the wronged (Proverbs 31:8-9), war on no people — but it never licenses muting the record. Truth first; then the righteous response.',
+    },
+    quiz: {
+      questions: [
+        { q: 'How was the segregated "ghetto" created?', options: ['By chance or culture', 'Engineered by WRITTEN policy — racial covenants in deeds + federal redlining (HOLC/FHA) that barred lending in non-white areas', 'It was not real'], answer: 1, explain: 'Covenants ran with the land; the FHA manual required racial separation. The neighborhood was manufactured by law, not accident.' },
+        { q: 'Do Black borrowers still pay more even with good credit?', options: ['No, credit fixes it', 'Yes — controlling for credit score, Black borrowers pay higher rates; high-income Black homeowners pay more than low-income white ones (Harvard JCHS)', 'Only rarely'], answer: 1, explain: 'Credit score does not account for the disparity — it persists by race. Documented, not anecdotal.' },
+        { q: 'How should we hold these barriers?', options: ['As contested allegations to soften', 'As documented facts — deeds, the FHA’s own manual, court settlements, peer-reviewed studies — named plainly, with a build-and-plead response', 'By muting them'], answer: 1, explain: 'Truth first (it is in the record), then the righteous response (build access; plead the cause — Prov 31:8-9).' },
+      ],
+    },
+    lesson: 'People are told the barrier to getting ahead is effort. For Black Americans the deepest barriers were engineered — and much of it was written down, in deeds, in a federal manual, and in law — which is exactly why calling it a mere "allegation" would be a lie. Start with HOUSING, because a home is how most families in America build wealth at all, and this is the gate the Lord is exposing most plainly. RACIAL RESTRICTIVE COVENANTS were clauses written directly into property deeds that forbade selling or renting a home to Black people — and often Asian people in the very same sentence ("no part... shall ever be used or occupied by any person of the Ethiopian, Malay, or any Asiatic race"; "Negro, Mongolian, or African descent"). They were legally enforceable, they "ran with the land," and courts upheld them for decades, until the Supreme Court finally made them unenforceable in Shelley v. Kraemer in 1948. Then the federal government systematized the exclusion: in the 1930s the Home Owners’ Loan Corporation drew maps that graded non-white neighborhoods as hazardous for lending, and the Federal Housing Administration’s 1938 Underwriting Manual stated in plain print that "incompatible racial groups should not be permitted to live in the same communities" and encouraged the very covenants that barred Black families. Because banks would not lend inside the redlined areas, the neighborhoods where Black families were confined were starved of investment — and that is how the "hood," the "ghetto," was made: not by a failure of the people in it, but manufactured by written policy. (Asian immigrants were shut out a different way — Alien Land Laws in more than a dozen states barred "aliens ineligible for citizenship," meaning Chinese and Japanese immigrants who by law could not even naturalize, from owning land at all.) And none of this is safely in the past: Black borrowers today still pay higher mortgage interest rates than white borrowers even when their credit scores are the same — the Harvard Joint Center for Housing Studies found that high-income Black homeowners receive higher rates than LOW-income white homeowners — and the U.S. Department of Justice runs a standing Combating Redlining Initiative that has recovered more than $150 million across thirteen-plus settlements since 2021, including the largest in its history, $31 million against City National Bank. The other gates compound the first. HIRING: identical résumés with white-sounding names received 50% more callbacks than Black-sounding ones (Bertrand and Mullainathan), and the Black unemployment rate has run about twice the white rate for as long as the data has existed — "first fired, last hired." DISTRIBUTION: in the beauty-supply industry, serving mostly Black customers, only about a third of the roughly nine thousand stores are Black-owned, gated by a handful of central distributors. Deeds, the FHA’s own words, federal court settlements, peer-reviewed studies — this is the record, not an accusation. The one-new-man frame (Ephesians 2:14-16) governs our RESPONSE: we build access and we "open our mouth for the dumb... plead the cause of the poor and needy" (Proverbs 31:8-9), and we war on no people. But the frame that governs the response never licenses muting the facts. Truth first, plainly told — then the righteous response.',
+    facilitator: {
+      talkingPoints: [
+        'Four documented gates, stated as FACT: HOUSING (the root), HIRING, LENDING, DISTRIBUTION.',
+        'HOUSING: racial covenants written into deeds barred Black (and Asian) ownership; the FHA’s 1938 manual required racial separation; redlining starved non-white areas — the "ghetto" was MANUFACTURED by written policy (Shelley v. Kraemer ended enforceability, 1948).',
+        'Still today: Black borrowers pay higher rates controlling for credit (Harvard JCHS — high-income Black > low-income white); DOJ redlining $150M+/13+ settlements.',
+        'HIRING: 50% callback gap (Bertrand-Mullainathan); ~2x Black unemployment ("first fired, last hired"). DISTRIBUTION: ~1/3 of ~9,000 beauty-supply stores Black-owned.',
+        'One-new-man frame governs the RESPONSE (build access; plead the cause — Prov 31:8-9), never the muting of the record. Truth first.',
+      ],
+      howToRun: 'Prayer + the anchor (5): pray; read Isaiah 5:8 and Proverbs 31:8-9. | Recap (10): a learner restates group economics. | Teach (15): the four documented gates, starting with the WRITTEN housing exclusion (covenants + the FHA manual + redlining). | Hands-on (25): trace a family through the house, job, loan, and supply gates; mark where each is written in the record; name one way to build access at each. | Discussion (15): what changes when you learn the "ghetto" was written into policy, not chosen? | Send-off (5): solo task — pick one gate and one real way to build access through it.',
+      discussionPrompts: [
+        'How does it change things to know the segregated neighborhood was engineered by written law, not culture?',
+        'Why is "Black borrowers pay more even with the same credit" the clearest proof it is about race, not risk?',
+        'What does it look like to build access AND refuse to war on a people?',
+      ],
+    },
+  },
+  {
+    id: 'econ6-accountability-and-judgment',
+    title: 'God is exposing it — the individual account, and the covering of His children',
+    bigIdea: 'The Lord is bringing this evil to light — He is doing it, not us (nothing hidden stays hidden). And every actor gives an INDIVIDUAL account for how they served it: churches, governments, politicians, police, banks, corporations, and the news that chased ratings and money instead of truth. A false balance is an abomination; defrauded wages cry to His ears; no one gets away. And the same God who judges the oppressor SEES and COVERS the oppressed — He knew, and He covered His children. Reconciliation comes through repentance and restitution, like Zacchaeus.',
+    inApp: 'This module keeps the course honest and hopeful at once: injustice is sin under God’s exposure and judgment — and His children are seen and covered. Read the anchors slowly; they are God’s own verdict, and His own promise.',
+    anchor: { ref: 'Romans 14:12; James 5:1-6; Galatians 6:7; Genesis 16:13', theme: 'Every one of us shall give account of himself to God; the wages kept back by fraud cry into the ears of the Lord of hosts; God is not mocked — whatsoever a man sows he reaps; the God who sees (El Roi) saw the fugitive slave woman and provided. Each actor gives an individual account; God exposes and judges injustice — and He sees and covers His children.' },
+    sources: [
+      { claim: 'The American Church’s complicity in slavery and racism was taught fearlessly by a prominent Black pastor, Dr. Frederick K.C. Price (founder, Crenshaw Christian Center), in his 1997 series "Race, Religion & Racism" — "Slavery could never have existed without the consent of the Church."', title: 'Race, Religion & Racism (1997 teaching series; Vol. 1 "A Bold Encounter With Division in the Church"; Vol. 2 "Perverting the Gospel to Subjugate a People")', publisher: 'Dr. Frederick K.C. Price / Crenshaw Christian Center (video series + books, ISBN 1883798361 / 1883798485)', url: 'https://youtu.be/Nx44eoRK8z8', asOf: '2026-07-04' },
+    ],
+    levels: {
+      child: 'God is not just nice — He is JUST, and He is TRUTH. He is the one bringing all the hidden unfair things into the light — He is doing it. And one day everybody has to tell God, one by one, what THEY did — even leaders, even police, even banks, even the news people who cared about money more than the truth. God HATES cheating; the Bible says unfair scales are disgusting to Him, and when workers are cheated of their pay, that money "cries out" straight to His ears. Nobody gets away with anything. But hear the good part: God SEES His children — once a runaway slave named Hagar was all alone, and she said, "You are the God who SEES me." He saw her, and He took care of her. He knew His children would need Him, so He covers us like a bird covers her babies with her wings. And when a cheater named Zacchaeus met Jesus, he paid everyone back four times — that is how you make it right. Your job: say the name Hagar gave God — "the God who ___ me."',
+      senior: 'A reconciliation that skips accountability is not the gospel’s, and Scripture is emphatic that God’s justice reaches economic sin specifically — AND that the exposure of it is His own work. "For there is nothing covered, that shall not be revealed; neither hid, that shall not be known" (Luke 12:2); "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14). What is coming to light is being brought to light by Him. And the accounting is INDIVIDUAL: "every one of us shall give account of himself to God" (Romans 14:12); "we must all appear before the judgment seat of Christ" (2 Corinthians 5:10). Not "society" in the abstract, but each actor — every church that blessed or ignored it, every government and politician who wrote or upheld the covenants and the redlines, the police who enforced the line, every bank and corporation, and the news agencies whose staged back-and-forth chased ratings and revenue instead of truth (you cannot serve God and mammon — Matthew 6:24; money as the real god is itself the indictment). God’s verdict on the machinery: "a false balance is abomination to the LORD" (Proverbs 11:1; Micah 6:11; Deuteronomy 25:13-16); "rob not the poor... for the LORD will plead their cause, and spoil the soul of those that spoiled them" (Proverbs 22:22-23); "the hire of the labourers... kept back by fraud, crieth... into the ears of the Lord of sabaoth" (James 5:4); "woe unto them that decree unrighteous decrees... to take away the right from the poor" (Isaiah 10:1-2). This reaches the deliberate breaking of families — chattel slavery routinely sold parents from children, and God is the one who "setteth the solitary in families" and is "a father of the fatherless" (Psalm 68:5-6); to shatter what He gathers is to war on His own order. "God is not mocked: for whatsoever a man soweth, that shall he also reap" (Galatians 6:7) — no person, bank, corporation, or government gets away. AND here is the covering His people must hear: the same God who judges the oppressor SEES the oppressed. When Hagar, a fugitive enslaved woman, was cast out and alone, "she called the name of the LORD that spake unto her, Thou God seest me" (Genesis 16:13) — El Roi, the God who sees — and He provided for her and her son. "He shall cover thee with his feathers, and under his wings shalt thou trust" (Psalm 91:4). He knew His children would be pressed, and He covered them; the survival, the Church, the song, the family held together under crushing weight is itself the evidence of His covering. So the road home is Zacchaeus-shaped — "if I have taken any thing from any man by false accusation, I restore him fourfold" (Luke 19:8), and Jesus said, "This day is salvation come to this house." The one-new-man Body (Ephesians 2:14-16) is the destination; God’s exposure, individual repentance, and restitution are the road — and His covering is the assurance we walk it as seen, not forsaken.',
+    },
+    quiz: {
+      questions: [
+        { q: 'Who brings the hidden injustice to light, and who gives the account?', options: ['We do, out of grievance', 'GOD exposes it (nothing hidden stays hidden), and EACH actor gives an individual account (Romans 14:12)', 'No one is accountable'], answer: 1, explain: 'Luke 12:2 / Ecclesiastes 12:14 — He exposes it; Romans 14:12 / 2 Cor 5:10 — every one gives account of himself.' },
+        { q: 'What does the God who judges the oppressor also do for the oppressed?', options: ['Ignores them', 'SEES and COVERS them — El Roi saw Hagar (Genesis 16:13); He covers with His feathers (Psalm 91:4)', 'Blames them'], answer: 1, explain: 'He is the God who sees, a father of the fatherless — He knew, and He covered His children.' },
+        { q: 'What is the shape of true reconciliation?', options: ['Muting the wrong and moving on', 'Repentance AND restitution — Zacchaeus restored fourfold (Luke 19:8)', 'Only the victim forgiving'], answer: 1, explain: 'Reconciliation comes THROUGH repentance and restitution, not around them.' },
+      ],
+    },
+    lesson: 'This module keeps the whole course honest and hopeful at once, because in the Bible economics is never merely efficiency — it is righteousness, judgment, and mercy. First, the exposure is GOD’S doing, not ours. "There is nothing covered, that shall not be revealed; neither hid, that shall not be known" (Luke 12:2); "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14). What is being dragged into the light — the covenants, the redlines, the rigged terms — is being exposed by Him; we are only reading the record He is opening. Second, the account is INDIVIDUAL. "So then every one of us shall give account of himself to God" (Romans 14:12); "we must all appear before the judgment seat of Christ" (2 Corinthians 5:10). Not a vague "society," but each actor: every church that blessed the arrangement or looked away, every government and politician who wrote and upheld the covenants and the redlining, those who enforced the color line, every bank and corporation that profited, and the news agencies whose staged back-and-forth chased ratings and revenue rather than truth — for a people cannot serve God and mammon (Matthew 6:24), and making money the real god is itself the sin. That the American Church specifically must answer is not merely our charge: a prominent Black pastor, Dr. Frederick K.C. Price, founder of Crenshaw Christian Center, taught it fearlessly in his 1997 series "Race, Religion & Racism," charging the American Church with siding with evil rather than the Word of God — "Slavery could never have existed without the consent of the Church." God’s verdict on the machinery is not gentle: "a false balance is abomination to the LORD" (Proverbs 11:1; Micah 6:11; Deuteronomy 25:13-16); "rob not the poor... for the LORD will plead their cause, and spoil the soul of those that spoiled them" (Proverbs 22:22-23); "the hire of the labourers... kept back by fraud, crieth: and the cries of them which have reaped are entered into the ears of the Lord of sabaoth" (James 5:4); "woe unto them that decree unrighteous decrees... to take away the right from the poor of my people" (Isaiah 10:1-2). It reaches even the deliberate breaking of families: chattel slavery sold parents away from their children as a matter of routine, and our God is precisely the one who "setteth the solitary in families" and is "a father of the fatherless" (Psalm 68:5-6) — so to shatter what He gathers is to war against His own order, and He sees it. "Be not deceived; God is not mocked: for whatsoever a man soweth, that shall he also reap" (Galatians 6:7). No individual, no bank, no corporation, no government gets away with anything before the judgment of Christ. And now the word His people most need to hear, because judgment on the oppressor is only half of God’s justice. The same God who judges the powerful SEES the pressed-down. When Hagar — an enslaved woman, pregnant, cast out, alone in the wilderness — met God there, "she called the name of the LORD that spake unto her, Thou God seest me" (Genesis 16:13). El Roi: the God who sees. He saw a fugitive slave woman when no one else did, and He provided for her and her child. "He shall cover thee with his feathers, and under his wings shalt thou trust" (Psalm 91:4). He knew His children would be pressed beyond what looked survivable, and He covered them — and the very survival of a people, a faith, a song, and families held together under generations of crushing weight is itself the evidence of that covering. So the road home is Zacchaeus-shaped: the tax-collector who had defrauded his own people met Jesus and said, "if I have taken any thing from any man by false accusation, I restore him fourfold" (Luke 19:8), and Jesus answered, "This day is salvation come to this house." That is real reconciliation — not silence that pretends nothing happened, but exposure, repentance, and restitution. The one-new-man Body (Ephesians 2:14-16) is where we are going; God’s exposure, individual repentance, and restitution are the road; and His covering is the promise that His children walk it seen, not forsaken.',
+    facilitator: {
+      talkingPoints: [
+        'GOD is exposing the evil — He is doing it (Luke 12:2; Ecclesiastes 12:14). We read the record He opens; this is not our grievance.',
+        'The account is INDIVIDUAL (Romans 14:12; 2 Corinthians 5:10): each church, government, politician, police, bank, corporation — and the news that served ratings/mammon over truth (Matthew 6:24) — answers for itself.',
+        'The American Church’s account is not only our charge: Dr. Frederick K.C. Price’s 1997 series "Race, Religion & Racism" taught it fearlessly — "Slavery could never have existed without the consent of the Church." (Cited source.)',
+        'God’s verdict: false balances an abomination (Prov 11:1); He pleads the robbed poor’s cause (Prov 22:22-23); defrauded wages cry to Him (James 5:4); woe to unjust lawmakers (Isaiah 10:1-2). No one gets away (Galatians 6:7).',
+        'The breaking of families is judged too — He "setteth the solitary in families," a father of the fatherless (Psalm 68:5-6).',
+        'THE COVERING: the God who judges the oppressor SEES the oppressed — El Roi saw Hagar (Genesis 16:13); He covers with His feathers (Psalm 91:4). He knew, and He covered us.',
+        'Reconciliation = repentance + RESTITUTION (Zacchaeus, Luke 19:8) — the road to the one-new-man Body, walked as seen, not forsaken.',
+      ],
+      howToRun: 'Prayer + the anchor (5): pray; read Genesis 16:13 and James 5:1-6. | Recap (10): a learner restates the four documented gates (housing first). | Teach (15): God exposes it; the individual account; the covering of Hagar; Zacchaeus and restitution. | Hands-on (25): match each documented barrier to a Scripture that names God’s verdict; then name a place you have seen His covering. | Discussion (15): how does it change things to know God — not us — is exposing this, and that He sees His children? | Send-off (5): solo task — where might I owe restitution, and where has God shown you He sees you?',
+      discussionPrompts: [
+        'What changes when we know the Lord — not our anger — is the one exposing this?',
+        'Why does an individual account (not a vague "society") matter for justice AND for mercy?',
+        'Where have you seen the evidence of God’s covering on a people who should not have survived?',
+      ],
+    },
+  },
+  {
+    id: 'econ7-build-institutions',
+    title: 'Build what outlasts you — Greenwood, the engineered gap, and the commission',
+    bigIdea: 'The goal is not a paycheck; it is institutions and inheritance that outlast you (Proverbs 13:22). Greenwood — "Black Wall Street" — is a documented witness of what the Body can build AND a documented injustice never repaid: white mobs destroyed 35+ blocks in 1921 and no reparations were paid. We name the engineered wealth gap honestly and build sovereign tools to operate faithfully within and beyond it.',
+    inApp: 'Look at the institutions already standing — the church, the family’s tools, PoeTech itself — as things built to outlast their builders. The commission: build, own, circulate, cooperate, open access, and hand it on.',
+    anchor: { ref: 'Proverbs 13:22; 1 Chronicles 28:20; 1 Peter 2:9', theme: 'A good man leaves an inheritance to his children’s children; be strong and do the work, do not be afraid, for the Lord will be with you until it is finished; you are a chosen generation, a royal priesthood. Build what outlasts you; the Body is the economic powerhouse, and the work is God-backed.' },
+    sources: [
+      { claim: 'Greenwood ("Black Wall Street") in Tulsa was one of the wealthiest Black communities in the U.S.; in the 1921 massacre white mobs destroyed 35+ square blocks (~1,256 homes and hundreds of businesses), leaving ~10,000 homeless with up to ~300 dead; no reparations were paid.', title: 'Tulsa race massacre', publisher: 'Encyclopaedia Britannica', url: 'https://www.britannica.com/event/Tulsa-race-massacre-of-1921', asOf: '2026-07-04' },
+      { claim: 'Analysis of the long-run economic cost of the Tulsa massacre and destroyed Black wealth.', title: 'The true costs of the Tulsa race massacre, 100 years later', publisher: 'Brookings Institution', url: 'https://www.brookings.edu/articles/the-true-costs-of-the-tulsa-race-massacre-100-years-later/', asOf: '2021-06-28' },
+    ],
+    levels: {
+      child: 'The best thing you can build is one that keeps standing after you are gone — like our church! A good person leaves good things for their children AND their children’s children. Long ago, Black families in a place called Greenwood built a whole rich neighborhood — stores, doctors, theaters — people called it "Black Wall Street." In one terrible day in 1921 it was destroyed by an angry mob, and no one ever paid it back. That is real, and very sad. But it PROVES what the Body can build together — so we build again, wiser and stronger, and we hand something good to the kids who come next. Your job: name one thing we are building that should outlast us.',
+      senior: 'The finish line is not income; it is INSTITUTIONS and INHERITANCE that outlast the builder — "a good man leaveth an inheritance to his children’s children" (Proverbs 13:22). The clearest documented witness of what the Body can build is Greenwood, Tulsa — "Black Wall Street" — one of the wealthiest Black communities in the country, with its own stores, hotels, theaters, newspapers, doctors, and churches. It is also a documented injustice that ties directly to the accountability module: in the 1921 massacre, white mobs destroyed more than 35 square blocks — roughly 1,256 homes and hundreds of businesses — leaving about 10,000 people homeless, with historians estimating up to ~300 dead, and NO reparations were ever paid (Britannica; Brookings). Greenwood is not a lone event but the vivid case of a larger, documented pattern — massacres, redlining, exclusion from capital and channel, and the measured hiring gap — that ENGINEERED the wealth gap we quantified in module 3. Naming that plainly is not despair; it is the data anchor that tells us exactly what to build: sovereign institutions and tools (the church stack, family enterprises, PoeTech itself) that let the Body operate faithfully both within the system and beyond its gatekeepers, while it also pleads for justice and restitution. The commission gathers the whole course: put the soul first and love the truth; OWN and produce; CIRCULATE; COOPERATE; open ACCESS where the documented gates are locked; trust God’s ACCOUNTABILITY on the injustice; and BUILD institutions that outlast you — then HAND IT ON. The identity under it all is senior to any other: "ye are a chosen generation, a royal priesthood... a peculiar people" (1 Peter 2:9), the Body of Christ IS the economic powerhouse, and the charge that steadies the builder is David’s to Solomon: "Be strong and of good courage, and do it: fear not... for the Lord God, even my God, will be with thee... until thou hast finished" (1 Chronicles 28:20).',
+    },
+    quiz: {
+      questions: [
+        { q: 'What is the finish line of Kingdom economics?', options: ['A big paycheck', 'Institutions and inheritance that outlast the builder (Proverbs 13:22)', 'Spending it all'], answer: 1, explain: 'The horizon is generational — build what outlasts you and hand it on.' },
+        { q: 'What does Greenwood teach?', options: ['That building is pointless', 'A documented witness of what the Body can build AND a documented, unrepaid injustice — proof the wealth gap was engineered, not earned', 'Nothing relevant today'], answer: 1, explain: 'Britannica/Brookings — the thriving district, its 1921 destruction, and no reparations paid.' },
+      ],
+    },
+    lesson: 'The course ends where the Word sets the horizon: not at a paycheck, but at INSTITUTIONS and INHERITANCE that outlast the person who built them. "A good man leaveth an inheritance to his children’s children" (Proverbs 13:22) — the aim is generational. The clearest documented witness of what the Body of Christ can build is Greenwood, in Tulsa, Oklahoma — "Black Wall Street" — before 1921 one of the wealthiest Black communities in the United States, with its own grocers, hotels, theaters, two newspapers, doctors, dentists, lawyers, and churches: a whole economy owned by the people it served. And it is, in the same breath, a documented injustice that ties straight back to the accountability we just studied. Over two days in 1921, white mobs destroyed more than thirty-five square blocks — roughly 1,256 homes and hundreds of businesses — leaving about ten thousand people homeless, with historians now estimating as many as three hundred dead, and neither the survivors nor their descendants ever received the reparations a commission later recommended (documented by Britannica and the Brookings Institution). Greenwood was not an isolated tragedy; it is the vivid, undeniable case of a larger and thoroughly documented pattern — massacres, redlining, exclusion from capital and from the channels of trade, and the measured hiring gap — that ENGINEERED the six-to-one wealth gap we quantified earlier in this course. We say it plainly, as our mission foundation requires: that gap was not produced by a difference in effort. Naming it honestly is not despair; it is the data anchor that tells us exactly what to build — sovereign institutions and tools (the church’s own stack, family enterprises, PoeTech itself) that let the Body operate faithfully both inside the system and beyond its gatekeepers, even as it pleads for the justice and restitution God Himself demands. So the commission gathers everything you have learned. Put the soul first and love the truth. OWN and produce. CIRCULATE within the community. COOPERATE — pool the Body’s strength. Open ACCESS where the documented gates are locked. Trust the God who holds every injustice to ACCOUNT. BUILD institutions that outlast you. And HAND IT ON. Under all of it is the identity senior to any other: "ye are a chosen generation, a royal priesthood, an holy nation, a peculiar people" (1 Peter 2:9) — the Body of Christ IS the economic powerhouse — and the charge that steadies the builder is the one David gave Solomon for the temple: "Be strong and of good courage, and do it: fear not... for the Lord God, even my God, will be with thee... until thou hast finished" (1 Chronicles 28:20).',
+    facilitator: {
+      talkingPoints: [
+        'The finish line is institutions + inheritance that outlast you (Proverbs 13:22), not a paycheck.',
+        'Greenwood / "Black Wall Street": documented witness of what the Body can build AND a documented, unrepaid injustice (Britannica, Brookings) — ties to the accountability module.',
+        'Name it plainly (per the foundation): the ~6:1 wealth gap was ENGINEERED — massacres, redlining, exclusion, the hiring gap — not a difference in effort.',
+        'The commission: soul + truth → OWN → CIRCULATE → COOPERATE → open ACCESS → trust ACCOUNTABILITY → BUILD → HAND ON. Identity: 1 Peter 2:9; charge: 1 Chronicles 28:20.',
+      ],
+      howToRun: 'Prayer + the anchor (5): pray; read 1 Chronicles 28:20. | Recap (10): a learner restates God’s accountability on injustice. | Teach (15): institutions/inheritance; Greenwood as witness + unrepaid injustice; the engineered gap; the commission. | Hands-on (25): name one institution we are building to outlast us and its next handoff. | Discussion (15): what will we build and hand on? | Send-off (5): commission — name what you will build, own, circulate, or open, and who you will hand it to.',
+      discussionPrompts: [
+        'Why is the horizon institutions and inheritance rather than income?',
+        'How is Greenwood both a witness and an unrepaid injustice at once?',
+        'What sovereign institution is our family or church building to outlast us?',
+      ],
+    },
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Course-specific helpers — thin wrappers over the GENERIC, tested helpers in
+// church-classes.js, so this course behaves identically to the sibling courses.
+// ---------------------------------------------------------------------------
+import {
+  buildScheduleFor, progressSummaryFor, exportCurriculumMarkdownFor, resolveCohortGeneric,
+} from './church-classes.js';
+
+export const ECON_INTEREST_TAG = '[Kingdom Economics class interest]';
+export const ECON_HELPER_TAG = '[Kingdom Economics class helper]';
+
+export function resolveEconCohort(localCohort = null) {
+  return resolveCohortGeneric(localCohort, ECON_CONFIRMED_COHORT, ECON_PROPOSED_COHORT_START);
+}
+
+export function buildEconSchedule(startISO) {
+  return buildScheduleFor(ECON_MODULES, startISO, ECON_META.cadenceDays);
+}
+
+export function econProgressSummary(progress = {}) {
+  return progressSummaryFor(ECON_MODULES, progress);
+}
+
+export function exportEconCurriculumMarkdown(startISO = null) {
+  return exportCurriculumMarkdownFor(
+    { meta: ECON_META, sessionFlow: ECON_SESSION_FLOW, modules: ECON_MODULES },
+    startISO,
+  );
+}
+
+// Every documented source across the course, flattened — so a verification test
+// (and a reader) can confirm each carries a publisher + URL + as-of date (DR-0076).
+export function econSources() {
+  return ECON_MODULES.flatMap((m) => (m.sources || []).map((s) => ({ moduleId: m.id, ...s })));
+}
+
+// The tutor course-meta this class passes to askTutor.
+export const ECON_TUTOR_META = {
+  title: ECON_META.title,
+  intro: 'You are a patient, encouraging tutor for a church + family course called "Kingdom Economics: Stewardship, Ownership & the Body’s Economic Witness."',
+  posture: 'Guide ONE learner — child, teen, adult, or senior — through economics taught The Way: the soul prospers first (3 John 1:2), understanding before technique (Proverbs 4:7), and truth that cuts both ways (John 8:32). Teach ownership, circulation, group economics, and — plainly, as DOCUMENTED FACT with sources, never as softened "allegations" — the real barriers (the Bertrand-Mullainathan 50% callback gap, the ~2x Black unemployment rate, the DOJ redlining settlements, the beauty-supply distribution gate, the ~6:1 Fed wealth gap). Hold verification both ways: refuse a false statistic (the "6-hour Black dollar" myth is debunked) AND refuse to mute documented injustice. Carry the accountability spine: God judges unjust economics (false balances an abomination; wage theft cries to His ears; Galatians 6:7 — no one gets away), and reconciliation comes THROUGH repentance and restitution (Zacchaeus, Luke 19:8), with the one-new-man Body (Ephesians 2:14-16) as the destination, never a reason to silence the truth. Match your pace and words to the learner’s age.',
+};
