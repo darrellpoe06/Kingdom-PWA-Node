@@ -97,3 +97,23 @@ describe('persistentShare + moduleLedger — read the committed measured JSON', 
     expect(m.monolithLines).toBeGreaterThan(0);
   });
 });
+
+// FRESHNESS GATE (2026-07-04, caught live by Darrell): the committed measured
+// JSON went four extractions stale (still said 8,403/8,489 while the ratchet
+// held 5,869). The dashboard must read the SAME truth the guard enforces — so
+// this cross-pin fails the build whenever an extraction re-freezes the budget
+// without regenerating persistent-share.json (fix: python3 scripts/persistent-share.py).
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+describe('freshness gate — the dashboard number IS the ratchet number', () => {
+  const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
+  it('persistent-share moduleLedger matches scripts/monolith-budget.json exactly', () => {
+    const budget = JSON.parse(readFileSync(join(ROOT, 'scripts/monolith-budget.json'), 'utf8'));
+    const m = moduleLedger();
+    expect(m.frozenBudget).toBe(budget.budget);
+    // current lines may only sit AT or UNDER the frozen budget (down-only ratchet)
+    expect(m.monolithLines).toBeLessThanOrEqual(budget.budget);
+  });
+});
