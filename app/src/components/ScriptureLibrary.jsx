@@ -42,6 +42,8 @@ import { fetchPublishedAlgorithms, algorithmsAnchoredAt } from '../lib/eternal-a
 import ScriptureConnections from './ScriptureConnections.jsx';
 import { studySeedFromVerse } from '../lib/studyable.js';
 import { loadStudy, saveStudy, addSeedToStudy } from '../lib/study-space.js';
+import VerseHighlighter from './VerseHighlighter.jsx';
+import { loadHighlights, saveHighlights, getMark, setMark, cssForHighlight } from '../lib/scripture-highlights.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -139,18 +141,28 @@ function VerseCard({ refStr, kjv, gloss, role, backs, canStudy = false, email = 
   // verse ranges intersecting where both sides carry them).
   const published = usePublishedAlgs();
   const anchored = algorithmsAnchoredAt(refStr, published);
+  // Personal, device-local highlight for this reference (Logos-style color
+  // coding brought in-app). Seeded from storage once; a pick persists and
+  // restyles the verse text immediately.
+  const [mark, setMarkState] = useState(() => getMark(loadHighlights(email), refStr));
+  const pickHighlight = (key) => {
+    const next = setMark(loadHighlights(email), refStr, key);
+    saveHighlights(email, next);
+    setMarkState(getMark(next, refStr));
+  };
   return (
     <div className="bg-white border border-[#E8E4DC] p-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold" style={mono}>{refStr}</div>
         <div className="flex items-center gap-2">
           {canStudy && <AddVerseToStudy verse={{ ref: refStr, kjv, gloss, role, themeId, themeTitle }} email={email} />}
+          <VerseHighlighter value={mark} onPick={pickHighlight} refLabel={refStr} />
           {role && <span className={`text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 ${ROLE_CLS[role] || ROLE_CLS.truth}`}>{roleLabel}</span>}
         </div>
       </div>
       <p className="text-sm text-[#1A1815] mt-1 leading-relaxed" style={serif}>
         <span className="sr-only">King James Version. </span>
-        “{kjv}”<span className="text-[0.625rem] text-[#5A5751] ml-1 align-baseline" style={mono}>KJV</span>
+        <span style={cssForHighlight(mark)}>“{kjv}”</span><span className="text-[0.625rem] text-[#5A5751] ml-1 align-baseline" style={mono}>KJV</span>
       </p>
       {gloss && <p className="text-xs text-[#5A5751] mt-1.5" style={serif}>{gloss}</p>}
       {anchored.length > 0 && (
