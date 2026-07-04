@@ -29,9 +29,10 @@ import {
   saveSong, deleteSong, reuseSong, distinctSongCatalog, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveResource, deleteResource,
-  inviteToChurch,
+  inviteToChurch, classifyUpload,
 } from '../lib/choir-sync.js';
 import { serviceDayLabel } from '../lib/service-day.js';
+import { compressImageFile, fileToDataUrl } from '../lib/image.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
 const roleLabel = (r) => (ROLE_OPTS.find(([k]) => k === r)?.[1]) || r;
@@ -592,8 +593,31 @@ const teamTypeLabel = (t) => (TEAM_TYPES.find(([k]) => k === t)?.[1]) || t;
 
 function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
   const [adding, setAdding] = useState(false);
-  const [f, setF] = useState({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '' });
+  const [f, setF] = useState({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' });
+  const [uploadErr, setUploadErr] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const resetForm = () => { setF({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' }); setUploadErr(''); };
   const open = async (d) => { const u = await openTeamDocument(d.documentUrl); if (u) window.open(u, '_blank', 'noopener'); };
+  // Upload a picture or a document (Christina 2026-07-04). Images are compressed;
+  // other files ride as a data URL under a size cap. Either becomes documentUrl.
+  const onFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // let the same file be re-picked
+    if (!file) return;
+    const c = classifyUpload(file);
+    if (!c.ok) {
+      setUploadErr(c.reason === 'too-large' ? 'That file is over 3 MB — paste a link instead, or upload an image.'
+        : c.reason === 'unsupported-type' ? 'Please choose an image or a PDF / doc / text file.'
+          : 'Could not read that file.');
+      return;
+    }
+    setUploadErr(''); setUploading(true);
+    try {
+      const dataUrl = c.kind === 'image' ? await compressImageFile(file) : await fileToDataUrl(file);
+      setF((p) => ({ ...p, documentUrl: dataUrl, documentSource: 'upload', fileName: file.name, title: p.title || file.name }));
+    } catch { setUploadErr('Could not read that file.'); }
+    finally { setUploading(false); }
+  };
   return (
     <div>
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>The team's weekly get-ready material — order of service, announcements, and the church calendar. Everyone on the roster can open these.</p>
@@ -608,10 +632,26 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
             </div>
           </div>
           <div><label className={LABEL} htmlFor="td-title">Title</label><input id="td-title" className={FIELD} value={f.title} onChange={(e) => setF((p) => ({ ...p, title: e.target.value }))} placeholder="e.g. 06-14 Order of Service" /></div>
-          <div><label className={LABEL} htmlFor="td-url">Document link</label><input id="td-url" className={FIELD} value={f.documentUrl} onChange={(e) => setF((p) => ({ ...p, documentUrl: e.target.value }))} placeholder="https://…" /></div>
+          {/* Upload a picture or document — or paste a link. (Christina 2026-07-04) */}
+          <div>
+            <span className={LABEL}>Upload a picture or document</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <label className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#FAF8F4] cursor-pointer`}>
+                {uploading ? 'Reading…' : 'Choose file'}
+                <input type="file" accept="image/*,.pdf,.doc,.docx,.txt,application/pdf" className="sr-only" onChange={onFile} disabled={uploading} />
+              </label>
+              {f.documentSource === 'upload' && f.fileName && (
+                <span className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>✓ {f.fileName} attached
+                  <button type="button" onClick={() => setF((p) => ({ ...p, documentUrl: '', documentSource: 'manual', fileName: '' }))} className="ml-2 text-[#991B1B] hover:underline">remove</button>
+                </span>
+              )}
+            </div>
+            {uploadErr && <p className="text-[0.6875rem] text-[#991B1B] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{uploadErr}</p>}
+          </div>
+          <div><label className={LABEL} htmlFor="td-url">…or paste a document link</label><input id="td-url" className={FIELD} value={f.documentSource === 'upload' ? '' : f.documentUrl} disabled={f.documentSource === 'upload'} onChange={(e) => setF((p) => ({ ...p, documentUrl: e.target.value, documentSource: 'manual', fileName: '' }))} placeholder="https://…" /></div>
           <div className="flex gap-2">
-            <button type="button" disabled={!f.title.trim()} onClick={() => { onAdd(f); setF({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '' }); setAdding(false); }} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>Add</button>
-            <button type="button" onClick={() => setAdding(false)} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
+            <button type="button" disabled={!f.title.trim() || !f.documentUrl || uploading} onClick={() => { onAdd(f); resetForm(); setAdding(false); }} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>Add</button>
+            <button type="button" onClick={() => { resetForm(); setAdding(false); }} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
           </div>
         </div>
       ) : <button type="button" onClick={() => setAdding(true)} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mb-2`}>+ Add document</button>)}

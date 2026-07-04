@@ -10,6 +10,7 @@ import {
   weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
   selectNewSermonImports, isValidInviteEmail, isExternalUrl, distinctSongCatalog,
+  isInlineDocument, classifyUpload, TEAM_DOC_MAX_BYTES,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -392,5 +393,24 @@ describe('distinctSongCatalog (pick from imported songs — no double duty)', ()
     expect(distinctSongCatalog([])).toEqual([]);
     expect(distinctSongCatalog(null)).toEqual([]);
     expect(distinctSongCatalog(undefined)).toEqual([]);
+  });
+});
+
+describe('team-doc uploads (pictures/documents, not just a link)', () => {
+  it('isInlineDocument: external links and uploaded data: URLs open inline; storage keys do not', () => {
+    expect(isInlineDocument('https://example.com/doc.pdf')).toBe(true);
+    expect(isInlineDocument('data:image/jpeg;base64,abc')).toBe(true);
+    expect(isInlineDocument('data:application/pdf;base64,xyz')).toBe(true);
+    expect(isInlineDocument('church/2026/order.pdf')).toBe(false); // storage key -> needs signed URL
+    expect(isInlineDocument(null)).toBe(false);
+  });
+  it('classifyUpload: accepts images (no cap) and docs under the cap; rejects junk + oversized', () => {
+    expect(classifyUpload({ type: 'image/png', name: 'a.png', size: 9_000_000 })).toEqual({ ok: true, kind: 'image' });
+    expect(classifyUpload({ type: 'application/pdf', name: 'a.pdf', size: 1_000 })).toEqual({ ok: true, kind: 'document' });
+    expect(classifyUpload({ type: '', name: 'notes.txt', size: 10 })).toEqual({ ok: true, kind: 'document' }); // by extension
+    expect(classifyUpload({ type: 'application/zip', name: 'a.zip', size: 10 }).ok).toBe(false);
+    expect(classifyUpload({ type: 'application/pdf', name: 'big.pdf', size: TEAM_DOC_MAX_BYTES + 1 }))
+      .toEqual({ ok: false, reason: 'too-large' });
+    expect(classifyUpload(null).ok).toBe(false);
   });
 });
