@@ -74,8 +74,9 @@ const TIMELINE = [
   { when: 'Jun 2026', title: 'Purchased', body: 'The wall ordered from LED Nation USA (final panels measured P1.99mm on-site); invoice forwarded 2026-06-08. Figures in the gated budget below.', tone: 'good' },
   { when: 'Jun 2026', title: 'Delivered + staged', body: 'Hardware delivered and staged BEHIND THE STAGE CURTAIN.', tone: 'good' },
   { when: 'Jun 22, 2026', title: 'Installation started', body: 'On-site assembly began: ground-support / box-truss towers erected to mount and stack the wall; modular LED cabinet panels laid out for assembly; crew on site sizing the stage. In progress.', tone: 'good' },
-  { when: 'Jun 29, 2026', title: 'Stacking + wiring', body: 'Confirmed-spec install + power + data runbook produced on site: 8 x 6 = 48 cabinets (P1.99mm, 640x480mm), 4,800 W peak across 6 power chains, 6 of 10 VX1000 data ports. Cabinets stacking; data + power daisy-chains being dressed.', tone: 'good' },
-  { when: 'Pending', title: 'Signal chain + commissioning', body: 'Source machines &rarr; processor/scaler &rarr; sending/receiving cards over Cat6, then calibration and sign-off. Follows the physical build.', tone: 'attention' },
+  { when: 'Jun 29, 2026', title: 'Stacking + wiring', body: 'Confirmed-spec install + power + data runbook produced on site: 8 x 6 = 48 cabinets (P1.99mm, 640x480mm), 4,800 W peak across 6 power chains, 6 of 10 VX1000 data ports planned. Cabinets stacking; data + power daisy-chains being dressed.', tone: 'good' },
+  { when: 'Jul 3, 2026', title: 'FIRST LIGHT — commissioned', body: 'The wall runs as one 2560x1440 screen: cabinet pixel map measured (320x240 via NovaLCT), as-built data map confirmed (8 ports, one per column, top-entry chained down), screen saved to receiving cards, Preset 1 = service state, and live sermon video played full-wall the same night. Lesson recorded: every symptom was the input/layer side — the map and cables were right all along.', tone: 'good' },
+  { when: 'Punch list', title: 'Warranty + niceties', body: 'A few dark LED modules (vendor warranty swap, positions photographed); input EDID set to native 2560x1440 for 1:1 pixels; identify the Tactical RMM agent found on the control-room tower.', tone: 'attention' },
 ];
 
 // On-site install record (NON-financial physical facts) — the install-milestone
@@ -122,7 +123,8 @@ function StatusBadge({ status }) {
   const map = {
     planning: ['Planning', 'idle'], purchased: ['Purchased', 'good'], delivered: ['Delivered', 'good'],
     staged: ['Staged — awaiting install', 'attention'], installing: ['Installing', 'attention'],
-    live: ['Live', 'good'], 'on-hold': ['On hold', 'problem'],
+    live: ['Live', 'good'], operational: ['Operational — commissioned 2026-07-03', 'good'],
+    'on-hold': ['On hold', 'problem'],
   };
   const [label, tone] = map[status] || [status, 'idle'];
   return <span className="inline-flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-wider"><KpiDot status={tone} /> {label}</span>;
@@ -242,7 +244,9 @@ export default function ChurchVideoWall() {
   const totals = useMemo(() => budgetTotals(projectLines), [projectLines]);
   const donation = useMemo(() => donationProgress(project || {}), [project]);
 
-  const status = project?.status || 'installing';
+  // Commissioned 2026-07-03 (first light, live sermon video full-wall). The
+  // default reflects reality; a live project row can still override it.
+  const status = project?.status || 'operational';
 
   return (
     <div className="space-y-4">
@@ -261,7 +265,7 @@ export default function ChurchVideoWall() {
           {project?.summary || 'Fine-pitch indoor LED video wall for the main sanctuary — replaces projection so the congregation reads Scripture, lyrics, and the broadcast feed at full brightness in a lit room.'}
         </p>
         <p className="mt-2 text-[0.75rem] text-[#1A1815]">
-          {project?.installNote || 'Installation in progress — on-site assembly began 2026-06-22 (ground-support towers up, panels staged for assembly). Signal chain + commissioning to follow.'}
+          {project?.installNote || 'Commissioned 2026-07-03: one 2560x1440 screen across 48 cabinets, config saved to the receiving cards, Preset 1 = the Sunday service state, first sermon video played full-wall the same night. Remaining: warranty module swaps + EDID nicety (punch list).'}
         </p>
       </div>
 

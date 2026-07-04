@@ -44,12 +44,13 @@ export const CABINET = {
   avgW: 50,
   voltage: '100-240 V / 50-60 Hz',
   refreshHz: 3840,
-  // Pixels per cabinet. The vendor page does not state the module count, so this
-  // is the standard P1.99 / 640x480 map (320 x 240 = the clean QHD-tiling map);
-  // it is an ESTIMATE until read from the packing list / NovaLCT. confirm:true.
+  // Pixels per cabinet. CONFIRMED ON SITE 2026-07-03: NovaLCT's Receiving Card
+  // Size read 320 x 240 from the live cards during commissioning, and the full
+  // wall ran as one 2560x1440 screen (8 x 320 by 6 x 240) with continuous test
+  // bars + live video. Measured, no longer the estimate it shipped as.
   pxPerCabWidth: 320,
   pxPerCabHeight: 240,
-  pxPerCabConfirm: true,
+  pxPerCabConfirm: false,
   // Connectors + receiving card were NOT on the vendor page. These are the
   // industry-standard defaults for a fine-pitch indoor panel — CONFIRM on the
   // actual cabinet before trusting the cable amp rating.
@@ -64,11 +65,45 @@ export const CABINET = {
 // The NovaStar VX1000 load facts (per-port + total). Full I/O + signal path live
 // in display-targets.js; here we keep only what the DATA MAP math needs.
 export const VX1000_LOAD = {
-  model: 'NovaStar VX1000',
+  // Model confirmed on site 2026-07-03: the delivered unit is the VX1000 Pro
+  // (front-panel badge + LCD). Same 10-port / 6.5 MP load class as the VX1000
+  // spec the plan was sized against.
+  model: 'NovaStar VX1000 Pro',
   pxPerPort: 650000,     // single Gigabit port capacity @ 8-bit
   ports: 10,
   maxLoadMegapixels: 6.5,
-  source: 'NovaStar VX1000 All-in-One Controller Specifications V1.6.0',
+  source: 'NovaStar VX1000 spec V1.6.0; Pro model confirmed on the unit 2026-07-03',
+};
+
+// AS-BUILT data map, confirmed during commissioning 2026-07-03: the installers
+// wired ONE PORT PER COLUMN — 8 of 10 ports, each entering the TOP cabinet of
+// its column (Receiving Card 1) and daisy-chaining DOWN to card 6. That is
+// fewer cabinets per port than capacity math requires (dataMap() says 6 ports
+// suffice) — a deliberate cleaner-cabling choice with more per-port headroom.
+export const DATA_AS_BUILT = {
+  portsUsed: 8,
+  perPort: 'one column of 6 cabinets, cable enters TOP cabinet, chains down',
+  portOrder: 'ports 1-8 = columns left to right facing the wall',
+  confirmed: '2026-07-03 commissioning (NovaLCT screen connection + wall mapping overlay)',
+};
+
+// COMMISSIONING RECORD (2026-07-03, on site: Darrell + helper; guided live).
+// The one lesson worth keeping forever: the map and cabling were RIGHT from the
+// start — every symptom was the INPUT side (a dead "No signal" layer stacked
+// over a windowed layer, plus test-pattern modes left on). Layers first, map
+// second, cables last.
+export const COMMISSIONING = {
+  date: '2026-07-03',
+  screen: '2560x1440 native, single screen, saved to receiving cards',
+  controlPath: 'AV booth laptop (NovaLCT 5.9.1 over USB) + VX1000 Pro front panel',
+  input: 'booth laptop HDMI-3 at 3840x2160@59.94, one layer, Full Screen scaling',
+  preset: 'Preset 1 = service state (one layer, HDMI-3, full screen)',
+  firstContent: 'sermon video (Level Up 2026) full-wall, same night',
+  punchList: [
+    'A few dark LED modules — vendor warranty swap (positions photographed)',
+    'Input EDID nicety: advertise 2560x1440 on the wall input for 1:1 pixels',
+    'Tactical RMM agent found on the control-room tower — identify who manages it',
+  ],
 };
 
 // The wall as STATED on site (Darrell, 2026-06-29). The grid math below snaps
@@ -104,8 +139,9 @@ export function cabinetGrid(cab = CABINET, wall = WALL_STATED) {
   };
 }
 
-// Native pixel resolution = px-per-cabinet x the cabinet grid. exact:false — the
-// per-cabinet module count is an estimate until read from NovaLCT / packing list.
+// Native pixel resolution = px-per-cabinet x the cabinet grid. `exact` tracks
+// the cabinet confirm flag: it became TRUE on 2026-07-03 when NovaLCT read the
+// receiving cards at 320x240 and the wall ran as one 2560x1440 screen.
 export function nativeResolution(cab = CABINET, grid = cabinetGrid(cab)) {
   const widthPx = cab.pxPerCabWidth * grid.wide;
   const heightPx = cab.pxPerCabHeight * grid.high;
@@ -119,11 +155,13 @@ export function nativeResolution(cab = CABINET, grid = cabinetGrid(cab)) {
     megapixels: +((widthPx * heightPx) / 1_000_000).toFixed(2),
     aspectLabel: Math.abs(widthPx / heightPx - 16 / 9) / (16 / 9) <= 0.01 ? '16:9' : `${widthPx}:${heightPx}`,
     pxPerCabinet: cab.pxPerCabWidth * cab.pxPerCabHeight,
-    exact: false,
+    exact: !cab.pxPerCabConfirm,
     fromPitchEstimate: fromPitch, // sanity cross-check vs the clean module map
     assumptions: [
       `Module map ${cab.pxPerCabWidth} x ${cab.pxPerCabHeight} px per ${cab.widthMm}x${cab.heightMm} mm cabinet (standard P${cab.pitchMm} map) x ${grid.wide} x ${grid.high} cabinets.`,
-      'Confirm the EXACT pixel map from the NovaStar screen config (NovaLCT) / the cabinet packing list at install — the true count is the authority.',
+      cab.pxPerCabConfirm
+        ? 'Confirm the EXACT pixel map from the NovaStar screen config (NovaLCT) / the cabinet packing list at install — the true count is the authority.'
+        : 'Pixel map MEASURED on site 2026-07-03: NovaLCT receiving-card readout 320 x 240; wall commissioned as one 2560x1440 screen.',
     ],
   };
 }

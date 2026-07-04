@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  CABINET, VX1000_LOAD,
+  CABINET, VX1000_LOAD, DATA_AS_BUILT, COMMISSIONING,
   cabinetGrid, nativeResolution, circuitCapacity, powerChain, powerPlan, dataMap,
   INSTALL_SEQUENCE, SAFETY,
 } from '../lib/video-wall-spec.js';
@@ -37,9 +37,9 @@ describe('cabinetGrid — snaps the stated size to the real cabinet count', () =
   });
 });
 
-describe('nativeResolution — derived, honest, never claimed exact', () => {
+describe('nativeResolution — derived, honest, exact only once measured', () => {
   const r = nativeResolution();
-  it('is ~2560 x 1440 (QHD, 16:9) from the 320x240 module map x 8x6 grid', () => {
+  it('is 2560 x 1440 (QHD, 16:9) from the 320x240 module map x 8x6 grid', () => {
     expect(r.widthPx).toBe(2560);
     expect(r.heightPx).toBe(1440);
     expect(r.aspectLabel).toBe('16:9');
@@ -48,9 +48,13 @@ describe('nativeResolution — derived, honest, never claimed exact', () => {
     expect(r.megapixels).toBeCloseTo(3.69, 1);
     expect(r.megapixels).toBeLessThan(VX1000_LOAD.maxLoadMegapixels);
   });
-  it('never claims exact, and carries its assumptions', () => {
-    expect(r.exact).toBe(false);
+  it('claims exact NOW (measured on site 2026-07-03) and carries the provenance', () => {
+    // exact flipped true when the NovaLCT receiving-card readout confirmed
+    // 320x240 during commissioning; the flag derives from pxPerCabConfirm so a
+    // future unconfirmed cabinet change honestly reverts it.
+    expect(r.exact).toBe(true);
     expect(r.assumptions.length).toBeGreaterThanOrEqual(2);
+    expect(r.assumptions.join(' ')).toMatch(/MEASURED on site 2026-07-03/);
   });
   it('the pitch cross-check is in the same ballpark as the module map', () => {
     // 5120/1.99 = 2573, 2880/1.99 = 1447 — within ~1% of the clean 2560x1440
@@ -156,5 +160,26 @@ describe('privacy — no church figures in the new public spec file', () => {
     const src = readFileSync(join(ROOT, 'app/src/lib/video-wall-spec.js'), 'utf8');
     const hits = FORBIDDEN.filter((t) => src.includes(t));
     expect(hits, `leaked: ${hits.join(', ')}`).toEqual([]);
+  });
+});
+
+// AS-BUILT + COMMISSIONING record (2026-07-03) — the on-site truth stays
+// consistent with the capacity math and carries its provenance.
+describe('as-built data map + commissioning record (2026-07-03)', () => {
+  it('8 ports as built: at least the 6 capacity requires, within the 10 available', () => {
+    const d = dataMap();
+    expect(DATA_AS_BUILT.portsUsed).toBeGreaterThanOrEqual(d.portsNeeded);
+    expect(DATA_AS_BUILT.portsUsed).toBeLessThanOrEqual(d.portsAvailable);
+    expect(DATA_AS_BUILT.portsUsed).toBe(cabinetGrid().wide); // one port per column
+  });
+  it('cabinet pixel map is CONFIRMED (measured), and the model is the Pro', () => {
+    expect(CABINET.pxPerCabConfirm).toBe(false);
+    expect(VX1000_LOAD.model).toMatch(/VX1000 Pro/);
+  });
+  it('the commissioning record carries the screen, preset, and punch list', () => {
+    expect(COMMISSIONING.date).toBe('2026-07-03');
+    expect(COMMISSIONING.screen).toMatch(/2560x1440/);
+    expect(COMMISSIONING.preset).toMatch(/Preset 1/);
+    expect(COMMISSIONING.punchList.length).toBeGreaterThanOrEqual(2);
   });
 });
