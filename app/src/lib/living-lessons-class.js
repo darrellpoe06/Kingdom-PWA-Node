@@ -66,7 +66,7 @@ export const LIVING_LESSONS_META = {
   tagline: 'You were never made to be flawless. You were made to be whole.',
   format: 'Self-paced · read it alone, as a family, or in a group · paced to your age',
   cadenceDays: 7,
-  weeks: 11, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart · L10 Strength and Honour Are Her Clothing · L11 Fearfully and Wonderfully Made; grows as Darrell teaches more
+  weeks: 12, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart · L10 Strength and Honour Are Her Clothing · L11 Fearfully and Wonderfully Made · L12 If One Member Suffers; grows as Darrell teaches more
   handsOnLabel: 'Take it with you',
   // The label layer that lets the shared engine render this honestly as a
   // self-paced lesson series rather than a weekly cohort class.
@@ -1113,6 +1113,97 @@ export const LIVING_LESSONS_MODULES = [
         'Name one small act of reverence -- toward nourishment or away from what defiles -- you could do "to the glory of God" this week, without fear or guilt.',
         'Why do the guardrails matter -- that every body/ability is wonderfully made, and that this is wisdom, not a new law? Where do you need grace about your body?',
         'How does knowing God formed you distinctly, on purpose, in the womb change how you see yourself today?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // L12 — the kinetic-chain thread of the women's-health roundtable (Darrell,
+  // 2026-07-04, emphasized repeatedly): the body is ONE connected chain, toe to
+  // spine; a glitch in one joint (a stiff ankle) throws off the whole kinetic
+  // chain, and pain surfaces where the problem never was. The science is the
+  // WITNESS; the SOURCE is the Body of Christ's INTERDEPENDENCE -- "if one member
+  // suffer, all the members suffer" (1 Cor 12:26); "every joint supplieth" (Eph
+  // 4:16); "bear ye one another's burdens" (Gal 6:2). Distinct from L3 (which is
+  // division-of-labor / many-members); this is mutual care + tending the weak
+  // link. GUARDRAIL: interdependence, NOT codependence -- each part still works
+  // "in the measure of every part." Verses KJV, VERBATIM (DR-0076). Grace-centered.
+  {
+    id: 'll12-if-one-member-suffers',
+    title: 'If One Member Suffers',
+    bigIdea: 'The experts describe the body as ONE connected chain, from the big toe to the spine. A single stiff joint -- a locked-up ankle -- throws off everything upstream: the knee can\'t track, the hip can\'t rotate, the glute won\'t fire, and pain finally shows up in a thigh that was never the real problem. You cannot treat one joint as if it stands alone; the whole chain moves together, or it degrades together. Scripture drew that exact picture of the Body of Christ. "The eye cannot say unto the hand, I have no need of thee" (1 Corinthians 12:21); and "much more those members of the body, which seem to be more feeble, are necessary" (12:22). Why? "That there should be no schism in the body; but that the members should have the same care one for another. And whether one member suffer, all the members suffer with it; or one member be honoured, all the members rejoice with it" (12:25-26). It is the same design Paul names elsewhere: "the whole body fitly joined together and compacted by that which every joint supplieth... maketh increase of the body unto the edifying of itself in love" (Ephesians 4:16). Every joint supplies something. So the move is the same in both bodies: tend the weak link. In your own frame, give the stiff, ignored joint attention before it throws off the whole. In the Body, tend the hurting or overlooked member: "Bear ye one another\'s burdens, and so fulfil the law of Christ" (Galatians 6:2) -- because when one suffers, all suffer, and when the feeble member is strengthened, the whole grows. (Guardrail: this is interdependence, not codependence -- each part still has its own real working, "in the measure of every part"; the point is mutual care, where no member is disposable and no member is self-sufficient.)',
+    inApp: 'Two moves this week, one for each body. In YOUR frame: find the stiff, ignored "joint" -- the ankle, the hip, the habit you\'ve worked around -- and give it real attention, because it\'s quietly throwing off the whole chain. In the BODY: name one "feeble" or overlooked member -- someone hurting, tired, or on the margins -- and tend them; carry a piece of their load (Galatians 6:2). When one suffers, we all do; when one is honored, we all rejoice.',
+    benefits: [
+      'A truer picture of yourself in community -- you are not a stand-alone unit; "the eye cannot say unto the hand, I have no need of thee." You are needed, and you need others.',
+      'Dignity for the overlooked -- the members "which seem to be more feeble, are necessary"; the weak link is not the disposable one, it\'s the one to tend.',
+      'Motivation to tend the small thing -- a stiff joint (or a hurting person) left alone degrades the whole; caring early keeps the whole body strong.',
+      'A call to bear burdens -- "bear ye one another\'s burdens" is not extra credit; it is how the joined-together body actually works and grows.',
+      'Shared joy, not just shared pain -- "one member be honoured, all the members rejoice with it"; another\'s good is your good in a truly connected body.',
+    ],
+    levels: {
+      child: 'Here\'s something cool about your body: it\'s all connected! Your toe is connected up through your foot and leg all the way to your back. So if your ankle gets stiff and won\'t move right, it can make your knee or your hip hurt -- even though your ankle was the real problem! Your body works together as ONE. God says His family, the church, works the same way. The Bible says "the eye cannot say unto the hand, I have no need of thee" (1 Corinthians 12:21) -- everybody needs everybody! And it says "whether one member suffer, all the members suffer with it; or one member be honoured, all the members rejoice with it" (1 Corinthians 12:26). That means when someone is sad or hurting, we ALL feel it and we help; and when something good happens to them, we ALL get to be happy! So the Bible says "bear ye one another\'s burdens" (Galatians 6:2) -- help carry each other\'s heavy things. Nobody is left out, and nobody is not needed. You matter, and so does everybody else!',
+      teen: 'Real body fact: you\'re one connected chain, toe to spine. A stiff ankle can wreck your knee, throw off your hip, and shut down your glute -- so the pain shows up somewhere that wasn\'t even the problem. You can\'t treat one joint like it\'s on its own; the whole chain moves together or breaks down together. God says His family is EXACTLY like that. "The eye cannot say unto the hand, I have no need of thee" (1 Corinthians 12:21) -- nobody gets to be an island, and nobody is useless. Actually it flips the script: "those members of the body, which seem to be more feeble, are necessary" (12:22) -- the weak link isn\'t the throwaway, it\'s the one you protect. And the big one: "whether one member suffer, all the members suffer with it; or one member be honoured, all the members rejoice with it" (12:26). So when someone in your circle is hurting, that\'s not just their problem -- the whole body feels it, which is why "bear ye one another\'s burdens, and so fulfil the law of Christ" (Galatians 6:2). One guardrail: this is being CONNECTED, not codependent -- you still have your own part to play "in the measure of every part" (Ephesians 4:16); it\'s mutual care, not losing yourself. Tend the stiff joint. Tend the hurting person. The whole body gets stronger when you do.',
+      senior: 'Dr. Vonda Wright and the panel describe the body as a single kinetic chain, integrated from the great toe to the spine: connective tissue stiffens with age, and a glitch in one segment -- a locked ankle, a knee that won\'t track -- inhibits the rotation above it, silences the glute, and refers pain to a site that was never the source. The lesson is that no joint may be treated in isolation; the whole chain is "fitly joined together," and it thrives or degrades as one. Scripture built its ecclesiology on precisely this anatomy. "And the eye cannot say unto the hand, I have no need of thee: nor again the head to the feet, I have no need of you" (1 Corinthians 12:21) -- self-sufficiency is a lie the body cannot afford. And the honor is inverted from the world\'s reckoning: "much more those members of the body, which seem to be more feeble, are necessary" (12:22) -- the weak link is not the expendable one but the one requiring the greater care, "that there should be no schism in the body; but that the members should have the same care one for another" (12:25). Then the verse that carries the whole weight of it: "And whether one member suffer, all the members suffer with it; or one member be honoured, all the members rejoice with it" (12:26). The suffering of the overlooked saint is not a private matter in a joined body; it is felt through the whole frame, exactly as a stiff ankle is felt in the aching hip. Paul gives the mechanism in Ephesians: "From whom the whole body fitly joined together and compacted by that which every joint supplieth, according to the effectual working in the measure of every part, maketh increase of the body unto the edifying of itself in love" (Ephesians 4:16) -- every joint supplies; the increase of the whole depends on each part working and each junction holding. Hence the plain command: "Bear ye one another\'s burdens, and so fulfil the law of Christ" (Galatians 6:2). Now hold the guardrail, for a seasoned believer must: this is interdependence, not codependence. The verse insists on "the measure of every part" -- each member retains its own real function and calling; the aim is mutual care and burden-bearing, not the loss of the self into the other, and not a permission to be carried where one is called to stand. The invitation is rich and practical: in your own aging frame, tend the ignored joint before it disorders the whole; and in the Body, refuse the world\'s triage that discards the feeble member -- seek him out, carry her burden, and know that as you strengthen the weakest link, the whole body increases and is edified in love.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'What does the kinetic chain (a stiff ankle throwing off the whole body) illustrate about the Body of Christ?',
+          options: [
+            'Each member is independent and self-sufficient',
+            'The members are interdependent -- "whether one member suffer, all the members suffer with it" (1 Corinthians 12:26)',
+            'Only the strong members matter',
+          ],
+          answer: 1,
+          explain: 'No joint stands alone; the whole chain moves or degrades together. So it is with the Body: when one hurts, all hurt; when one is honored, all rejoice.',
+        },
+        {
+          q: 'How does Scripture rank the "feeble" or weaker members (1 Corinthians 12:22)?',
+          options: [
+            'As disposable -- the body is better off without them',
+            'As NECESSARY -- "those members... which seem to be more feeble, are necessary" and deserve greater care',
+            'As unimportant',
+          ],
+          answer: 1,
+          explain: 'The weak link is not the throwaway; it\'s the one to protect and tend, "that there should be no schism in the body" (12:25). The world\'s triage is inverted.',
+        },
+        {
+          q: 'According to Ephesians 4:16, what makes the whole body grow?',
+          options: [
+            'Only the head; the parts don\'t matter',
+            '"That which every joint supplieth" -- each part working "in the measure of every part," joined together, "maketh increase... in love"',
+            'Each member working alone',
+          ],
+          answer: 1,
+          explain: 'Every joint supplies something. The increase of the whole depends on each part functioning and each junction holding -- and it grows "in love."',
+        },
+        {
+          q: 'What is the guardrail on this interdependence?',
+          options: [
+            'Lose yourself entirely into others (codependence)',
+            'It\'s interdependence, not codependence -- each part keeps its own real working "in the measure of every part"; mutual care, no member disposable or self-sufficient',
+            'Everyone should just handle their own burdens alone',
+          ],
+          answer: 1,
+          explain: 'Ephesians 4:16 keeps "the measure of every part." Bear one another\'s burdens (Galatians 6:2) as mutual care -- not the loss of the self, and not self-sufficiency either.',
+        },
+      ],
+    },
+    lesson: 'The experts give a vivid picture of the body as one connected kinetic chain, from the big toe all the way to the spine. When a single joint stiffens -- say, an ankle that has quietly lost its range -- it does not stay a local problem. The knee above it can no longer track properly, the hip can\'t rotate, the glute fails to fire, and eventually pain announces itself in a thigh or a lower back that was never the real cause. You simply cannot treat one joint as though it stood alone: the whole chain moves together, and it degrades together. Scripture built its whole picture of the church on exactly this anatomy. "And the eye cannot say unto the hand, I have no need of thee: nor again the head to the feet, I have no need of you" (1 Corinthians 12:21). Self-sufficiency -- "I don\'t need the rest of you" -- is a lie the body cannot afford, in muscle or in the church. And then the honor gets flipped from the world\'s way of counting: "Nay, much more those members of the body, which seem to be more feeble, are necessary" (12:22). The weak link is not the disposable one; it is the one that needs the greater care, "that there should be no schism in the body; but that the members should have the same care one for another" (12:25). Which brings the verse that carries the whole weight: "And whether one member suffer, all the members suffer with it; or one member be honoured, all the members rejoice with it" (12:26). The suffering of the overlooked, feeble member is never a private matter in a joined-together body -- it is felt through the whole frame, exactly the way a stiff ankle aches in a distant hip. Paul even gives the mechanism: "the whole body fitly joined together and compacted by that which every joint supplieth, according to the effectual working in the measure of every part, maketh increase of the body unto the edifying of itself in love" (Ephesians 4:16). Every joint supplies something. The growth of the whole depends on each part actually working, and each junction actually holding. So the command that follows is plain and practical: "Bear ye one another\'s burdens, and so fulfil the law of Christ" (Galatians 6:2). Now hold the guardrail, because this can be twisted into something unhealthy: it is interdependence, not codependence. Ephesians keeps "the measure of every part" -- each member keeps its own real function and calling. The aim is mutual care and burden-bearing, not the loss of yourself into someone else, and not a permission to be carried where you\'re actually called to stand and supply. So take it into both bodies. In your own frame, stop working around the stiff, ignored joint -- tend it, before it quietly disorders the whole chain. And in the Body of Christ, refuse the world\'s triage that discards the feeble member. Seek him out. Carry her burden. Because when one suffers, we all suffer; when one is honored, we all rejoice; and as you strengthen the weakest link, the whole body is knit tighter and increases -- edifying itself in love.',
+    facilitator: {
+      talkingPoints: [
+        'The witness (the science, attributed): Dr. Vonda Wright + the panel -- the body is ONE kinetic chain, toe to spine; a stiff ankle inhibits the knee/hip/glute and refers pain elsewhere. No joint stands alone; the whole chain moves or degrades together.',
+        'The Word (the SOURCE): interdependence of the Body -- "the eye cannot say unto the hand, I have no need of thee" (1 Cor 12:21); "those members... which seem to be more feeble, are necessary" (12:22); "whether one member suffer, all the members suffer with it" (12:25-26). All KJV, verbatim.',
+        'The mechanism: "the whole body fitly joined together and compacted by that which every joint supplieth... maketh increase... in love" (Eph 4:16). Every joint supplies; the whole grows only as each part works and each junction holds.',
+        'The command: "Bear ye one another\'s burdens, and so fulfil the law of Christ" (Gal 6:2). Tend the weak link -- the ignored joint in your body, the overlooked member in the Body. Distinct from L3 (division-of-labor): this is mutual care + tending the feeble.',
+        'THE GUARDRAIL: interdependence, NOT codependence -- "the measure of every part" (Eph 4:16). Mutual care and burden-bearing, not losing yourself, and not self-sufficiency either. Shared joy too: "one member be honoured, all... rejoice."',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): pray, then read 1 Corinthians 12:21-26 aloud. | The big idea, in your own words (10): the body is one connected chain -- a stiff ankle throws off the whole; so is the Body of Christ, interdependent, no member disposable or self-sufficient. | Go deeper (10): the feeble member is NECESSARY + tended (12:22, 25); every joint supplies (Eph 4:16); bear burdens (Gal 6:2) -- then set the GUARDRAIL (interdependence, not codependence). | Reflect together (10): use the prompts; invite honesty about who feels overlooked, and who has been carried well. | Take it with you (2): each person tends one ignored "joint" in their body AND carries one burden of an overlooked member this week.',
+      discussionPrompts: [
+        'Where in your body have you worked around a "stiff joint" -- and where has ignoring it thrown off something else?',
+        'Who is a "feeble" or overlooked member around you that Scripture calls NECESSARY? How could you tend them this week?',
+        'When has the whole "body" (family, church, friends) suffered because one member was hurting and unnoticed? When has it rejoiced together?',
+        'What does it look like to "bear one another\'s burdens" without slipping into codependence -- keeping "the measure of every part"?',
+        'Where do you need to stop saying (in muscle or in the Body) "I have no need of thee" -- and let yourself both need and be needed?',
       ],
     },
   },
