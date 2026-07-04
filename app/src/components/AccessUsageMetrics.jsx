@@ -30,6 +30,19 @@ import {
 import {
   fetchSignupMetrics, summaryTiles, signupRowView, sortSignups,
 } from '../lib/signup-metrics.js';
+import { fetchUsageFlow, topViews, viewShare } from '../lib/usage-events.js';
+
+// Friendly names for the raw view ids the usage stream records.
+const VIEW_LABELS = {
+  overview: 'Big Picture', books: 'Books', tvtime: 'TV Time', church: 'Church',
+  practice: 'Practice', library: 'Library', games: 'Games', voice: 'Voice',
+  create: 'Create', recipes: 'Recipes', markets: 'Markets', notes: 'Notes',
+  crm: 'CRM', relationships: 'Relationships', inventory: 'Inventory',
+  forecast: 'Forecast', rentals: 'Rentals', projects: 'Projects',
+  opportunities: 'Opportunities', about: 'Pricing', center: 'Command Center',
+  inbound: 'Inbound', admin: 'Admin',
+};
+const viewLabel = (id) => VIEW_LABELS[id] || (id ? id.charAt(0).toUpperCase() + id.slice(1) : 'Unknown');
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const sectionH = 'text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
@@ -176,6 +189,54 @@ function PlatformSignups() {
   );
 }
 
+// What's getting used — the governor's AGGREGATE flow (Darrell 2026-07-04: "most
+// used tab etc"). Reads usage_flow_metrics (poe-family gated, aggregate-only —
+// never a person's rows). Real data from the usage stream; honest empty state
+// until events accumulate. Degrades silently when signed-out / unauthorized.
+function UsageFlow() {
+  const [flow, setFlow] = useState(undefined); // undefined loading, null unavailable, {} data
+  const load = useCallback(async () => { setFlow(await fetchUsageFlow(30)); }, []);
+  useEffect(() => { load(); }, [load]);
+
+  if (flow === null) return null;                 // unavailable / unauthorized — say nothing
+  const rows = flow ? topViews(flow, 12) : [];
+  return (
+    <div className="mb-5">
+      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+        <div className={sectionH}>What&apos;s getting used — most-used tabs (30d)</div>
+        <button type="button" onClick={load} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline-offset-2 hover:underline">
+          {flow === undefined ? 'Loading…' : 'Refresh'}
+        </button>
+      </div>
+      {flow === undefined ? (
+        <p className={note}>Loading usage…</p>
+      ) : rows.length === 0 ? (
+        <p className={note + ' italic'}>No usage recorded yet — as people move through the app, the most-used tabs show here. Aggregate only; never any one person&apos;s activity.</p>
+      ) : (
+        <>
+          <p className={note + ' mb-2'}>{flow.active_users || 0} {(flow.active_users === 1) ? 'person' : 'people'} active · {flow.total_views || 0} tab opens</p>
+          <div className="border border-[#E8E4DC] divide-y divide-[#F2EEE6]">
+            {rows.map((r) => {
+              const pct = Math.round(viewShare(r, flow) * 100);
+              return (
+                <div key={r.name} className="px-2.5 py-1.5">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[0.8125rem] text-[#1A1815] truncate">{viewLabel(r.name)}</span>
+                    <span className="text-[0.6875rem] text-[#5A5751] shrink-0">{r.count} · {r.users} {r.users === 1 ? 'person' : 'people'}</span>
+                  </div>
+                  <div className="h-2 border border-[#E8E4DC]" aria-hidden="true">
+                    <div className="h-full bg-[#5A6E3D]" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function AccessUsageMetrics() {
   const [state, setState] = useState({ phase: 'loading', snap: null });
 
@@ -254,6 +315,9 @@ export default function AccessUsageMetrics() {
 
       {/* ── PLATFORM SIGNUPS (cross-instance; the RLS-blind view above can't show this) ── */}
       <PlatformSignups />
+
+      {/* ── WHAT'S GETTING USED (aggregate flow from the usage stream) ── */}
+      <UsageFlow />
 
       {/* ── WHO HAS ACCESS ─────────────────────────────────────────────── */}
       <div className={sectionH + ' mb-2'}>Who has access</div>
