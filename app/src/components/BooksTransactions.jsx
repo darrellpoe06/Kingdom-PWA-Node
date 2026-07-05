@@ -21,7 +21,7 @@ import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
 import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
 import { compressImageFile } from '../lib/image.js';
-import { receiptShape, loadPending, addPending, removePending, suggestMatches } from '../lib/receipts.js';
+import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
 import LedgerProof from './LedgerProof.jsx';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
@@ -162,11 +162,21 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
                         <div className="text-xs text-[#1A1815]">{r.merchant || 'Receipt'} · {r.amount != null ? fmt(-r.amount) : 'no total'} · {r.capturedAt}</div>
                         {matches.length === 0 ? (
                           <p className="text-[0.625rem] text-[#5A5751] italic">No matching charge in the ledger yet — it usually lands within a few days.</p>
-                        ) : matches.map((t) => (
-                          <button key={t.id} type="button" onClick={() => { onAttach(t, { ...r }); onDeletePending(r.id); }} className="block text-left text-[0.6875rem] text-[#5A6E3D] hover:text-[#1A1815] underline">
-                            Attach → {t.description} · {fmt(t.amount)} · {t.date}
-                          </button>
-                        ))}
+                        ) : matches.map((t) => {
+                          // Label WHY this row is suggested. A tip-inclusive or
+                          // date-only pairing is inexact by design (the charge
+                          // carries a tip the paper doesn't) — flag it so the
+                          // human confirms rather than trusting a silent pair.
+                          const kind = matchKind(r, t);
+                          const tag = kind === 'exact' ? { text: 'exact', cls: 'text-[#5A6E3D]' }
+                            : kind === 'tip' ? { text: '+ tip?', cls: 'text-[#8B6F47]' }
+                            : { text: 'date only — verify', cls: 'text-[#8B6F47]' };
+                          return (
+                            <button key={t.id} type="button" onClick={() => { onAttach(t, { ...r }); onDeletePending(r.id); }} className="block text-left text-[0.6875rem] text-[#5A6E3D] hover:text-[#1A1815] underline">
+                              Attach → {t.description} · {fmt(t.amount)} · {t.date} <span className={`uppercase tracking-wider text-[0.5625rem] no-underline ${tag.cls}`}>· {tag.text}</span>
+                            </button>
+                          );
+                        })}
                         <button type="button" onClick={() => onDeletePending(r.id)} className="mt-0.5 text-[0.625rem] text-[#991B1B] hover:underline">Delete</button>
                       </div>
                     </div>
