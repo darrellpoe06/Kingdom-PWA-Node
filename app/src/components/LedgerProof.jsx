@@ -13,7 +13,7 @@ import { useMemo, useState } from 'react';
 import { runLedgerIntegrity } from '../lib/ledger-integrity.js';
 
 const STATUS_META = {
-  pass:   { chip: 'VERIFIED', cls: 'text-[#3D6B4F] border-[#3D6B4F]' },
+  pass:   { chip: 'VERIFIED', cls: 'text-[#5A6E3D] border-[#5A6E3D]' },
   review: { chip: 'REVIEW',   cls: 'text-[#B85838] border-[#B85838]' },
   fail:   { chip: 'BROKEN',   cls: 'text-white bg-[#B85838] border-[#B85838]' },
 };
