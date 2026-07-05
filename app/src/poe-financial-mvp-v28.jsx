@@ -159,6 +159,7 @@ import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
 import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
+import { mergeSnapshotData, scrubDemoResidue } from './lib/snapshot-hydration.js';
 import { N8N_BASE } from './lib/n8n-base.js';
 
 // =============================================================================
@@ -1232,6 +1233,10 @@ export const DEMO_ENTITY_NAMES = (() => {
   return demo;
 })();
 export const notDemoEntityRow = (e) => notDemoRow(e) && !(e && typeof e.name === 'string' && DEMO_ENTITY_NAMES.has(e.name.toLowerCase()));
+// Demo personas' meta.releaseLabel values — the provenance tell for the
+// NON-id-bearing remainder (meta, outflows) in scrubDemoResidue: a real
+// world never legitimately wears a demo release label (2026-07-05 incident).
+export const DEMO_RELEASE_LABELS = Object.values(DEMO_DATA_BY_PERSONA).map((d) => d?.meta?.releaseLabel).filter(Boolean);
 
 // Collapse duplicate cloud entities by display name (historical double
 // uploads: one row with a slug, one without). Prefer the row carrying a
@@ -1315,8 +1320,14 @@ export const stripSeedScaffolding = (d) => {
   for (const k of Object.keys(out)) {
     if (Array.isArray(out[k])) out[k] = out[k].filter(isRealRow);
   }
-  if (out.inflows && Array.isArray(out.inflows.rentals)) {
-    out.inflows = { ...out.inflows, rentals: out.inflows.rentals.filter(isRealRow) };
+  if (out.inflows && typeof out.inflows === 'object') {
+    out.inflows = {
+      ...out.inflows,
+      // BOTH nested inflow lists (2026-07-05 fix: salaries was missed, so demo/
+      // seed salary rows survived the signed-in clean start).
+      salaries: Array.isArray(out.inflows.salaries) ? out.inflows.salaries.filter(isRealRow) : out.inflows.salaries,
+      rentals: Array.isArray(out.inflows.rentals) ? out.inflows.rentals.filter(isRealRow) : out.inflows.rentals,
+    };
   }
   return out;
 };
@@ -2122,7 +2133,12 @@ export default function PoeFinancialSystem() {
   // hydrate the previous family's saved data. Legacy snapshots without an
   // owner stamp still load (and get stamped on next save). Private hosts
   // pass no forUserId — the device-trust model there is unchanged.
-  const loadSavedSnapshot = async (forUserId = null) => {
+  // base (optional, 2026-07-05 Money reconciliation fix): the world the
+  // snapshot merges over. The public-host signed-in path passes the OWNER'S
+  // baseline (SEED_DATA family / EMPTY_WORLD other) — merging over the
+  // mounted Reeves demo let demo inflows/outflows leak into the owner's
+  // books wherever the snapshot lacked a key ("+$1k" over $0 entities).
+  const loadSavedSnapshot = async (forUserId = null, base = null) => {
       try {
         let saved = await window.storage.get('poe-financial-v28');
         if (saved && saved.value && forUserId) {
@@ -2140,57 +2156,17 @@ export default function PoeFinancialSystem() {
         if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v21');
         if (saved && saved.value) {
           const parsed = JSON.parse(saved.value);
-          // v17: defensive merge — ensure all required fields exist even if saved data is from an older version
-          if (parsed.data) setData(d => ({
-            ...d,
-            ...parsed.data,
-            // Multi-user Layer A — backfill `visibleTo` on saved entities so
-            // existing devices loading old data continue working. Defaults
-            // match the seed: owner sees all, family-rollup includes business
-            // entities, TLC is christina-only.
-            entities: Array.isArray(parsed.data.entities)
-              ? parsed.data.entities.map(e => ({
-                  ...e,
-                  visibleTo: Array.isArray(e.visibleTo) && e.visibleTo.length > 0
-                    ? e.visibleTo
-                    : (e.id === 'e-tlc' ? ['darrell', 'christina']
-                       : e.id === 'e-personal' ? ['darrell', 'christina', 'family']
-                       : ['darrell']),
-                }))
-              : (d.entities || []),
-            events: Array.isArray(parsed.data.events) ? parsed.data.events : (d.events || []),
-            projects: Array.isArray(parsed.data.projects) ? parsed.data.projects : (d.projects || []),
-            subscriptions: Array.isArray(parsed.data.subscriptions) ? parsed.data.subscriptions : (d.subscriptions || []),
-            feedback: Array.isArray(parsed.data.feedback) ? parsed.data.feedback : (d.feedback || []),
-            welcomeDismissed: parsed.data.welcomeDismissed === true,
-            moduleInterest: parsed.data.moduleInterest || d.moduleInterest || {},
-            // Round 10 — backfill ITSM fields on old incidents that pre-date the taxonomy.
-            incidents: Array.isArray(parsed.data.incidents)
-              ? parsed.data.incidents.map(i => ({
-                  urgency: 'incident',
-                  status: i.status || 'resolved',
-                  dueDate: i.dueDate || i.date || '',
-                  ...i,
-                }))
-              : (d.incidents || []),
-            recurringObligations: Array.isArray(parsed.data.recurringObligations) ? parsed.data.recurringObligations : (d.recurringObligations || []),
-            scopes: Array.isArray(parsed.data.scopes) ? parsed.data.scopes : (d.scopes || []),
-            // Concerns (0039) — the curated Concerns & Solutions rows. Hydrated
-            // defensively so a concern added while signed-out survives a reload
-            // (cloud sync covers the signed-in path on top of this).
-            concerns: Array.isArray(parsed.data.concerns) ? parsed.data.concerns : (d.concerns || []),
-            practiceInquiries: Array.isArray(parsed.data.practiceInquiries) ? parsed.data.practiceInquiries : (d.practiceInquiries || []),
-            inquiries: Array.isArray(parsed.data.inquiries) ? parsed.data.inquiries : (d.inquiries || []),
-            checkoutIntents: Array.isArray(parsed.data.checkoutIntents) ? parsed.data.checkoutIntents : (d.checkoutIntents || []),
-            userTier: typeof parsed.data.userTier === 'string' ? parsed.data.userTier : (d.userTier || 'foundation'),
-            // v28+ MVP v1.5: defensive merge for new collections so old saves still load.
-            capexItems: Array.isArray(parsed.data.capexItems) ? parsed.data.capexItems : (d.capexItems || []),
-            watchlist: Array.isArray(parsed.data.watchlist) ? parsed.data.watchlist : (d.watchlist || []),
-            church: (parsed.data.church && typeof parsed.data.church === 'object') ? { ...d.church, ...parsed.data.church } : d.church,
-            prayerRequests: Array.isArray(parsed.data.prayerRequests) ? parsed.data.prayerRequests : (d.prayerRequests || []),
-            skillProfiles: Array.isArray(parsed.data.skillProfiles) ? parsed.data.skillProfiles : (d.skillProfiles || []),
-            voiceOps: (parsed.data.voiceOps && typeof parsed.data.voiceOps === 'object') ? { ...d.voiceOps, ...parsed.data.voiceOps } : d.voiceOps,
-          }));
+          // v17: defensive merge — ensure all required fields exist even if
+          // saved data is from an older version. Extracted to
+          // lib/snapshot-hydration.js (2026-07-05); merges over `base` when the
+          // caller passes the owner's baseline, else over the mounted world.
+          // scrubDemoResidue then drops demo-persona rows a polluted snapshot
+          // carried in (and resets a demo-labeled meta/outflows remainder to
+          // the baseline) — a real world never legitimately holds demo rows.
+          if (parsed.data) setData(d => scrubDemoResidue(
+            mergeSnapshotData(base || d, parsed.data),
+            { isDemoRow: (x) => !notDemoEntityRow(x), demoReleaseLabels: DEMO_RELEASE_LABELS, baseline: base || SEED_DATA },
+          ));
           if (parsed.pressure != null) setPressure(parsed.pressure);
           if (parsed.snowballSort) setSnowballSort(parsed.snowballSort);
           if (parsed.snowballExtra != null) setSnowballExtra(parsed.snowballExtra);
@@ -2216,7 +2192,9 @@ export default function PoeFinancialSystem() {
     if (!isPublicHost() || isAnyDemoMode) return;
     hydratedForAuthRef.current = true;
     const email = (authSession.user?.email || '').toLowerCase();
-    loadSavedSnapshot(authSession.user?.id || null).then((found) => {
+    // 2026-07-05 Money reconciliation: merge the snapshot over the OWNER'S
+    // baseline, never the mounted demo (see loadSavedSnapshot's base param).
+    loadSavedSnapshot(authSession.user?.id || null, isFamilyEmail(email) ? SEED_DATA : EMPTY_WORLD).then((found) => {
       // 2026-06-14: a fresh family member starts from their aspirational SEED;
       // a fresh NON-family user starts from their OWN empty books — NEVER
       // SEED_DATA (the Poe-family shape) on the public host (see EMPTY_WORLD

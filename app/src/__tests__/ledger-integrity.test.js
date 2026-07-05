@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import {
   runLedgerIntegrity, checkBalanceDerivation, checkRollupConsistency,
   checkTransferSymmetry, checkDuplicateSuspects, checkDateSanity,
-  checkAmountPrecision, toCents,
+  checkAmountPrecision, checkEntityLinkage, toCents,
 } from '../lib/ledger-integrity.js';
 
 // Deterministic PRNG (mulberry32) — same rows every run, no Date.now.
@@ -164,5 +164,55 @@ describe('proven-to-catch — each injected defect flips its matching check', ()
     // corruption is caught by amount-precision, not balance-derivation).
     expect(checkBalanceDerivation(data, ASOF).status).toBe('pass');
     expect(checkAmountPrecision(data.transactions).status).toBe('fail');
+  });
+});
+
+describe('entity linkage — orphaned money rows are named, not silently mis-summed (2026-07-05)', () => {
+  const world = () => ({
+    entities: [
+      { id: 'e-personal', name: 'Personal' },
+      { id: 'e-poeprops', name: 'Poe Properties' },
+    ],
+    inflows: {
+      salaries: [{ id: 's1', source: 'Salary', actual: 4200, entityId: 'e-personal' }],
+      rentals: [{ id: 'r1', name: '1402 Maple St', rent: 1100, actual: 1100, entityId: 'e-poeprops' }],
+    },
+    accounts: [{ id: 'a1', name: 'Checking', type: 'checking', entityId: 'e-personal' }],
+    debts: [{ id: 'd1', name: 'Card A', balance: 1500, entityId: 'e-personal' }],
+    transactions: [],
+  });
+
+  it('passes when every entity-tagged row resolves', () => {
+    const c = checkEntityLinkage(world());
+    expect(c.status).toBe('pass');
+    expect(c.receipts).toEqual([]);
+  });
+
+  it('reproduces the Money-tab incident: an inflow tagged to a nonexistent entity is caught with a receipt', () => {
+    const data = world();
+    // The demo-residue salary that made Net Cash Flow "+$1k" while every
+    // entity card read $0 — counted in the total, visible on no card.
+    data.inflows.salaries.push({ id: 'sal-1', source: 'Primary salary', actual: 3200, entityId: 'e-family' });
+    const c = checkEntityLinkage(data);
+    expect(c.status).toBe('review');
+    expect(c.receipts.some((r) => r.includes('e-family') && r.includes('Primary salary'))).toBe(true);
+  });
+
+  it('catches orphaned accounts and debts too; untagged rows are allowed', () => {
+    const data = world();
+    data.accounts.push({ id: 'a2', name: 'Ghost account', type: 'checking', entityId: 'e-gone' });
+    data.debts.push({ id: 'd2', name: 'Untagged card', balance: 100 }); // no entityId → fine
+    const c = checkEntityLinkage(data);
+    expect(c.status).toBe('review');
+    expect(c.receipts.length).toBe(1);
+    expect(c.receipts[0]).toContain('Ghost account');
+  });
+
+  it('rides in the full run', () => {
+    const data = { ...buildLedger({ rows: 50 }), entities: [], inflows: { salaries: [{ id: 's-x', source: 'X', actual: 1, entityId: 'e-nowhere' }], rentals: [] } };
+    const report = runLedgerIntegrity(data, ASOF);
+    const linkage = report.checks.find((c) => c.key === 'entity-linkage');
+    expect(linkage).toBeTruthy();
+    expect(linkage.status).toBe('review');
   });
 });

@@ -137,3 +137,43 @@ describe('BigPictureDashboard — the overview survived the extraction', () => {
     expect(container.textContent).toMatch(/10/);
   });
 });
+
+describe('Money tab reconciliation note — orphaned inflow is named, never silent (2026-07-05)', () => {
+  const openMoney = () => {
+    const moneyTab = [...container.querySelectorAll('[role="tab"]')].find((b) => /Money/i.test(b.textContent));
+    act(() => moneyTab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+  };
+
+  it('renders the why + the fix path when inflow rows point at entities that do not exist', () => {
+    mount({
+      welcomeDismissed: true,
+      entities: [{ id: 'e-personal', name: 'Personal', type: 'personal' }],
+      data: {
+        debts: [], accounts: [], transactions: [],
+        inflows: {
+          // The incident row: demo-residue salary tagged to the demo-only
+          // entity — counts in Net cash flow, shows on no entity card.
+          salaries: [{ id: 'sal-1', source: 'Primary salary', actual: 3200, entityId: 'e-family' }],
+          rentals: [],
+        },
+      },
+    });
+    openMoney();
+    expect(container.textContent).toMatch(/don't reconcile/i);
+    expect(container.textContent).toMatch(/\$3,200/);
+    expect(container.textContent).toMatch(/Books → Entities/);
+  });
+
+  it('does not render when every inflow row resolves to a real entity', () => {
+    mount({
+      welcomeDismissed: true,
+      entities: [{ id: 'e-personal', name: 'Personal', type: 'personal' }],
+      data: {
+        debts: [], accounts: [], transactions: [],
+        inflows: { salaries: [{ id: 's1', source: 'Salary', actual: 4200, entityId: 'e-personal' }], rentals: [] },
+      },
+    });
+    openMoney();
+    expect(container.textContent).not.toMatch(/don't reconcile/i);
+  });
+});

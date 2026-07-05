@@ -7,7 +7,7 @@
 // server doesn't spin the device.
 import { describe, it, expect, vi } from 'vitest';
 import {
-  decideChunkHeal, wireChunkHeal, HEAL_TS_KEY, HEAL_WINDOW_MS,
+  decideChunkHeal, wireChunkHeal, paintHealNotice, HEAL_TS_KEY, HEAL_WINDOW_MS,
 } from '../lib/chunk-reload-heal.js';
 
 function makeSession() {
@@ -86,5 +86,50 @@ describe('wireChunkHeal — vite:preloadError recovery', () => {
   it('no-ops without a usable window (never throws)', () => {
     expect(() => wireChunkHeal(undefined)).not.toThrow();
     expect(typeof wireChunkHeal(undefined)).toBe('function');
+  });
+});
+
+describe('paint-before-reload — the heal is never a bare white screen (2026-07-05)', () => {
+  it('paints the notice BEFORE reloading on a heal', () => {
+    const win = makeWin(makeSession());
+    const order = [];
+    wireChunkHeal(win, {
+      now: () => 1000,
+      paint: () => order.push('paint'),
+      reload: () => order.push('reload'),
+    });
+    win.dispatch('vite:preloadError', { preventDefault() {} });
+    expect(order).toEqual(['paint', 'reload']);
+  });
+
+  it('does not paint when the loop guard gives up (boundary owns that state)', () => {
+    const win = makeWin(makeSession());
+    let paints = 0;
+    let t = 1000;
+    wireChunkHeal(win, { now: () => t, paint: () => { paints += 1; }, reload: () => {} });
+    win.dispatch('vite:preloadError', { preventDefault() {} });
+    t += 5000; // within HEAL_WINDOW_MS → gave-up
+    win.dispatch('vite:preloadError', { preventDefault() {} });
+    expect(paints).toBe(1);
+  });
+
+  it('paintHealNotice appends a visible full-screen notice to the document body', () => {
+    const appended = [];
+    const fakeDoc = {
+      body: { appendChild: (el) => appended.push(el) },
+      createElement: () => {
+        const el = { style: {}, attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } };
+        return el;
+      },
+    };
+    paintHealNotice({ document: fakeDoc });
+    expect(appended.length).toBe(1);
+    expect(appended[0].attrs['data-chunk-heal-notice']).toBe('1');
+    expect(appended[0].textContent).toMatch(/newer version/i);
+  });
+
+  it('paintHealNotice never throws without a document', () => {
+    expect(() => paintHealNotice(undefined)).not.toThrow();
+    expect(() => paintHealNotice({})).not.toThrow();
   });
 });

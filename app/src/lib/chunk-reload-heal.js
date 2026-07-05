@@ -68,17 +68,37 @@ export function decideChunkHeal(win, now) {
   return 'reload';
 }
 
+// paintHealNotice — before the heal-reload, put a visible "getting the latest
+// version" card over the page. Without it the reload's in-between state is a
+// BARE BLANK SCREEN with no signal (the 2026-07-05 report: "Tx made the screen
+// white" — the tap hit a skewed deploy's dead chunk hash and the silent reload
+// left nothing to look at while the fresh shell fetched over mobile Wi-Fi).
+// Plain DOM, inline styles, appended over whatever React last painted; the
+// reload replaces the document, so it needs no teardown. Never throws.
+export function paintHealNotice(win) {
+  try {
+    const doc = win && win.document;
+    if (!doc || !doc.body || typeof doc.createElement !== 'function') return;
+    const el = doc.createElement('div');
+    el.setAttribute('data-chunk-heal-notice', '1');
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:#FAF8F4;color:#1A1815;font:500 16px/1.6 system-ui,sans-serif;text-align:center;padding:24px;';
+    el.textContent = 'A newer version of the app just shipped — getting it now. One moment…';
+    doc.body.appendChild(el);
+  } catch (_) { /* painting is best-effort; the reload still heals */ }
+}
+
 /**
  * Wire the self-heal: on `vite:preloadError` (a lazy chunk failed to load), recover
  * once by reloading to the current shell. Returns an unsubscribe fn. All side-effects
  * are injectable for tests; the default reload bypasses the HTTP cache where possible.
  * @param {object} win  window-like
- * @param {object} opts { now, reload } injected for tests
+ * @param {object} opts { now, reload, paint } injected for tests
  */
 export function wireChunkHeal(win, opts = {}) {
   const w = win || (typeof window !== 'undefined' ? window : undefined);
   if (!w || typeof w.addEventListener !== 'function') return () => {};
   const nowFn = opts.now || (() => Date.now());
+  const paint = opts.paint || (() => paintHealNotice(w));
   const reload = opts.reload || (() => {
     try {
       // Prefer a forced reload; fall back to plain reload() across engines.
@@ -88,7 +108,12 @@ export function wireChunkHeal(win, opts = {}) {
   const handler = (event) => {
     // Stop Vite's default (which rethrows / logs); we own the recovery.
     try { if (event && typeof event.preventDefault === 'function') event.preventDefault(); } catch (_) { /* ignore */ }
-    if (decideChunkHeal(w, nowFn()) === 'reload') reload();
+    if (decideChunkHeal(w, nowFn()) === 'reload') {
+      // Visible first, reload second: the user must never be left staring at
+      // an unexplained blank page while the fresh shell loads.
+      paint();
+      reload();
+    }
   };
   w.addEventListener('vite:preloadError', handler);
   return () => { try { w.removeEventListener('vite:preloadError', handler); } catch (_) { /* ignore */ } };
