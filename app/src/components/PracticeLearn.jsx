@@ -558,6 +558,7 @@ function EarnedCertificates({ certs, onRemove }) {
   return (
     <section>
       <SectionTitle eyebrow="Your record">Certificates earned</SectionTitle>
+      <p className="text-[0.625rem] text-[#5A5751] italic mb-2" style={SERIF}>Saved on this device only for now — cross-device sync for certificates and hours is the named next step. Until it lands, keep this device backed up; a cleared browser clears this record.</p>
       <div className="space-y-2">
         {certs.map((c) => {
           const expired = certExpired(c, now);
@@ -572,7 +573,7 @@ function EarnedCertificates({ certs, onRemove }) {
               <div className="flex items-center gap-3 mt-2 text-[0.625rem] text-[#5A5751]" style={MONO}>
                 <span>Issued {fmtDate(c.issuedAt)}</span>
                 {c.expiresAt && <span className={expired ? 'text-[#B85838] font-semibold' : ''}>{expired ? 'EXPIRED ' : 'Expires '}{fmtDate(c.expiresAt)}</span>}
-                <span>Verify {c.verifyCode}</span>
+                <span>Record ID {c.verifyCode}</span>
                 <button type="button" onClick={() => onRemove(c.id)} aria-label="Remove certificate" className="ml-auto text-[#5A5751] hover:text-[#B85838] min-h-[28px] min-w-[28px]">×</button>
               </div>
             </div>
@@ -624,7 +625,7 @@ function HoursLedger({ entries, onLog, onRemove }) {
           {prog.pct}% toward the Illinois supervised-clinical standard{prog.supervisors.length ? ` · supervisor(s) of record: ${prog.supervisors.join(', ')}` : ''}.
         </p>
       </div>
-      <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={SERIF}>{IL_LCSW_REQUIREMENT.note}</p>
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={SERIF}>{IL_LCSW_REQUIREMENT.note} Hours are saved on this device only for now (sync is the named next step) — keep your own supervisor-signed documentation as the record of authority.</p>
 
       {/* Log form */}
       {show && (

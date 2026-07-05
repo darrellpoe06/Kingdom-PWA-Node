@@ -330,7 +330,7 @@ function AnchorTriviaCard({ signedIn }) {
 
       {!signedIn && (
         <p className="mt-4 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          You can play now &mdash; sign in (top of the page) to save your answers across devices.
+          You can play now &mdash; sign in (top of the page) and your answers are recorded to the family&apos;s own server. (Score history views are on the build list.)
         </p>
       )}
     </section>

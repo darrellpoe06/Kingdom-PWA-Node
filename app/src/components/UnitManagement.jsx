@@ -351,7 +351,7 @@ export default function UnitManagement({ rental, updateRental }) {
                   {preview.body}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Btn tone="primary" onClick={approveSend}>✓ Approve &amp; send</Btn>
+                  <Btn tone="primary" onClick={approveSend}>✓ Approve &amp; post to tenant portal</Btn>
                   <Btn onClick={() => setPreview(null)}>Edit / cancel</Btn>
                 </div>
               </div>

@@ -283,7 +283,7 @@ export default function ThoughtFinalizer({ entries = [], onSaveEntry, email }) {
       )}
 
       <p className="text-[10px] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif}>
-        Teaching-ready thoughts feed the content engine downstream (lessons, courses, the Eternal Algorithms library). Sovereign &amp; private: this lives on this device only, reviewed by the family&apos;s local model — never sent to the cloud, never mined, never used to train anything.
+        Teaching-ready thoughts feed the content engine downstream (lessons, courses, the Eternal Algorithms library). Sovereign &amp; private: reviewed by the family&apos;s local model, and saved with your Study entries — which follow your sign-in through the family&apos;s own server, never a third party&apos;s cloud, never mined, never used to train anything.
       </p>
     </div>
   );

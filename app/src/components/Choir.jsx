@@ -390,10 +390,15 @@ function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
   const [adding, setAdding] = useState(false);
   const [inv, setInv] = useState({ email: '', role: 'member' });
   const [invMsg, setInvMsg] = useState('');
+  // The RPC only records the invite (instance_invites row) — no email is
+  // dispatched server-side. So on success we surface a one-tap mailto and the
+  // director sends the actual email; access itself is granted at next sign-in.
+  const [invitedEmail, setInvitedEmail] = useState('');
   const sendInvite = async () => {
     setInvMsg('Inviting…');
+    setInvitedEmail('');
     const r = await onInvite(inv.email, inv.role);
-    if (r?.invited) { setInvMsg(`Invite sent to ${inv.email}. They'll get access on their next sign-in.`); setInv({ email: '', role: 'member' }); }
+    if (r?.invited) { setInvMsg(`Invite recorded — ${inv.email} gets Choir access on their next PoeTech sign-in. No email goes out automatically:`); setInvitedEmail(inv.email); setInv({ email: '', role: 'member' }); }
     else setInvMsg(r?.skipped === 'bad-email' ? 'Enter a valid email.' : `Couldn't invite (${r?.skipped || 'error'}).`);
   };
   return (
@@ -401,7 +406,7 @@ function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
       {canEdit && onInvite && (
         <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-3 mb-3">
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Invite a member to the choir</div>
-          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Send an email invite. When they sign in to PoeTech they'll see the Choir tab. Use "Co-director" for someone who should edit.</p>
+          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Record the invite, then email them with one tap. When they sign in to PoeTech they'll see the Choir tab. Use "Co-director" for someone who should edit.</p>
           <div className="flex items-end gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]"><label className={LABEL} htmlFor="ci-email">Email</label><input id="ci-email" type="email" className={FIELD} value={inv.email} onChange={(e) => setInv((p) => ({ ...p, email: e.target.value }))} placeholder="member@email.com" /></div>
             <div><label className={LABEL} htmlFor="ci-role">Access</label>
@@ -411,7 +416,17 @@ function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
             </div>
             <button type="button" disabled={!inv.email.trim()} onClick={sendInvite} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Invite</button>
           </div>
-          {invMsg && <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{invMsg}</p>}
+          {invMsg && (
+            <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              {invMsg}
+              {invitedEmail && (
+                <>
+                  {' '}
+                  <a className="underline text-[#5A6E3D] font-semibold" href={`mailto:${encodeURIComponent(invitedEmail)}?subject=${encodeURIComponent("You're invited to the choir on PoeTech")}&body=${encodeURIComponent("You've been added to our choir on PoeTech. Sign in at https://poetech.us with this email address and the Choir tab will be waiting for you.")}`}>Email them the invite →</a>
+                </>
+              )}
+            </p>
+          )}
         </div>
       )}
       {canEdit && (adding ? (

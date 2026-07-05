@@ -687,7 +687,7 @@ function PoeTechServicesPortfolio() {
       <div className="bg-white border-2 border-dashed border-[#B85838] p-5 mt-4">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2">⚡ Active Conversations</div>
         <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Two warm prospects are already interested — each with business background and some tech experience, both looking for the personal touch PoeTech offers. Treat them as Project or Retainer engagements first; convert to Revenue Share when fit becomes obvious. See "Active This Year" below for the entries.
+          When warm prospects show up — people with business background and some tech experience looking for the personal touch PoeTech offers — treat them as Project or Retainer engagements first; convert to Revenue Share when fit becomes obvious. Track each one in My Active Pipeline on the "My options" tab.
         </p>
       </div>
     </section>

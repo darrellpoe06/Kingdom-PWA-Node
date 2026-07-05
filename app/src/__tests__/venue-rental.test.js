@@ -162,6 +162,20 @@ describe('validation + row mapping', () => {
     });
     expect(good.ok).toBe(true);
   });
+  it('requires at least one contact method so "a leader will reach out" stays keepable', () => {
+    const noContact = validateBookingRequest({
+      requesterName: 'Jane', campus: 'north', spaceId: 'north-sanctuary',
+      eventType: 'wedding', eventDate: '2026-08-01',
+    });
+    expect(noContact.ok).toBe(false);
+    expect(noContact.errors).toHaveProperty('requesterEmail');
+
+    const phoneOnly = validateBookingRequest({
+      requesterName: 'Jane', campus: 'north', spaceId: 'north-sanctuary',
+      eventType: 'wedding', eventDate: '2026-08-01', requesterPhone: '217-555-0100',
+    });
+    expect(phoneOnly.ok).toBe(true);
+  });
   it('rejects a space that belongs to a different campus', () => {
     const r = validateBookingRequest({
       requesterName: 'Jane', campus: 'north', spaceId: 'south-kitchen',

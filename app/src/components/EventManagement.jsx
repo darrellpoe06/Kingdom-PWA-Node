@@ -336,7 +336,7 @@ function CommunityFrontDoor() {
       <div className="bg-white border border-[#E8E4DC] p-5">
         <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={serif}>Request a space</h3>
         <p className="text-sm text-[#5A5751] mb-4" style={serif}>
-          Tell us what you’re planning and a church leader will reach out to confirm availability and details. No account needed.
+          Tell us what you’re planning — your request goes straight onto the church’s Event Management queue, and a church leader will reach out to confirm availability and details. No account needed.
         </p>
         <VenueRequestForm source="in-app" />
       </div>

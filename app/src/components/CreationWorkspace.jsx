@@ -400,7 +400,7 @@ export default function CreationWorkspace({
             <div className="border p-4 text-center" style={{ borderColor: border, background: 'white' }}>
               <div className="text-2xl mb-1" aria-hidden="true">📄</div>
               <p className="text-sm font-semibold" style={{ fontFamily: '"Fraunces", serif', color: ink }}>Nothing saved yet</p>
-              <p className="text-xs mt-1" style={{ color: muted }}>Compose something on the canvas, then press Save. It’ll appear here and sync to your other devices.</p>
+              <p className="text-xs mt-1" style={{ color: muted }}>Compose something on the canvas, then press Save. It’ll appear here — and when you’re signed in, it syncs to your other devices.</p>
             </div>
           ) : (
             <ul className="space-y-1">

@@ -215,7 +215,7 @@ function ModuleCard({ moduleKey, status, title, repo, desc, features, moduleInte
             </div>
           ) : (
             <button onClick={() => setShowPriority(true)} className="w-full text-xs uppercase tracking-wider py-2 border border-[#B85838] text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815]">
-              🔔 Notify me · vote on priority
+              Vote on priority · shape what ships next
             </button>
           )}
         </div>

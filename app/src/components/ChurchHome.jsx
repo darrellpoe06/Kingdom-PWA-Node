@@ -19,6 +19,7 @@
 import React, { useState, useRef } from 'react';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
+import { submitInterest } from '../lib/interest-sync.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
 import UiIcon from './UiIcon.jsx';
 import EmojiText from './EmojiText.jsx';
@@ -36,13 +37,30 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // on demand for an off-schedule stream — this latches that explicit choice.
   const [openLivePlayer, setOpenLivePlayer] = useState(false);
 
-  // D21 — Multi-church directory "invite your church" form (skeleton; full
-  // partner-onboarding flow ships V2). Local-only, no backend — submit shows an
-  // inline confirmation, matching the existing local-first contribution pattern.
+  // D21 — Multi-church directory "invite your church" form. Submissions land in
+  // the real app_interest lane (lib/interest-sync.js → anon-insert RLS table →
+  // AppInterestAdmin console), source-tagged 'church-invite', so the reach-out
+  // promise in the confirmation copy is backed by a row an admin actually sees.
+  // (2026-07-05 capability audit: the earlier skeleton discarded the form.)
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteForm, setInviteForm] = useState({ churchName: '', city: '', contactName: '', email: '', note: '' });
   const [inviteSent, setInviteSent] = useState(false);
   const [inviteError, setInviteError] = useState('');
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const submitChurchInvite = async () => {
+    if (!inviteForm.churchName || !inviteForm.email) { setInviteError('Add at least your church name and an email.'); return; }
+    setInviteError('');
+    setInviteSubmitting(true);
+    const res = await submitInterest({
+      name: inviteForm.contactName,
+      email: inviteForm.email,
+      issue: `Church invite: ${inviteForm.churchName} · ${inviteForm.city || '(no city given)'}${inviteForm.note ? `\n${inviteForm.note}` : ''}`,
+      source: 'church-invite',
+    });
+    setInviteSubmitting(false);
+    if (res.ok) { setInviteSent(true); return; }
+    setInviteError('That didn’t go through — please try again, or email contact@poetech.us with your church name and city.');
+  };
 
   // D21 — Testimony Diary PIN-locked entry point (the diary MVP V0 ships later
   // per project_testimony_diary_glory_to_glory; this is the door). PIN is held
@@ -334,7 +352,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
             </span>
           </div>
           <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-            When {c.name || 'the church'} is streaming, the live service plays right here automatically. Between services the most recent message keeps playing — and the next live stream rolls in on its own when it starts.
+            During {c.name ? `${c.name}'s` : "the church's"} published service times, the live player loads right here. Between services the most recent message keeps playing — and if the church goes live off-schedule, tap the switch-to-live button below to join.
           </p>
 
           {playerSrc ? (
@@ -844,7 +862,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       <section aria-labelledby="dir-h" className="bg-white border border-[#1A1815] p-4">
         <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2 pb-2 border-b border-[#1A1815]">
           <h3 id="dir-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Church Directory</h3>
-          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>
+          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">My church home (coming soon)</button>
         </div>
         <div className="border border-[#E8E4DC]">
           <div className="p-3 flex items-center justify-between gap-3 flex-wrap">
@@ -869,7 +887,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               <div><label htmlFor="inv-email" className={labelCls}>Email (so we can reply)</label><input id="inv-email" type="email" className={fieldCls} value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} /></div>
             </div>
             <div><label htmlFor="inv-note" className={labelCls}>Anything else? (optional)</label><textarea id="inv-note" rows="2" className={fieldCls} value={inviteForm.note} onChange={e => setInviteForm({ ...inviteForm, note: e.target.value })} /></div>
-            <button type="button" onClick={() => { if (!inviteForm.churchName || !inviteForm.email) { setInviteError('Add at least your church name and an email.'); return; } setInviteError(''); setInviteSent(true); }} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Send invite</button>
+            <button type="button" disabled={inviteSubmitting} onClick={submitChurchInvite} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">{inviteSubmitting ? 'Sending…' : 'Send invite'}</button>
             {inviteError && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{inviteError}</p>}
           </div>
         )}
@@ -897,7 +915,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       {showingDefaultHome && (
         <p className="text-[0.6875rem] text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>
           This is your default church home. If you have a church home, you can set it in{' '}
-          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>.
+          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">My church home (coming soon)</button>.
         </p>
       )}
 

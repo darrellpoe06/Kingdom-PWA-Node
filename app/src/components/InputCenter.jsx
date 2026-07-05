@@ -172,8 +172,10 @@ export default function InputCenter({
     setOpen(false);
   };
 
-  const defaultMailtoBuilder = (entry) => entry.link || '#';
-  const buildMailto = mailtoBuilder || defaultMailtoBuilder;
+  // No default builder: a Send button that opens the note's own link (or '#')
+  // while stamping the entry "✓ sent" would fabricate delivery. Send renders
+  // only when the caller supplies a real destination (2026-07-05 audit).
+  const buildMailto = typeof mailtoBuilder === 'function' ? mailtoBuilder : null;
 
   return (
     <section
@@ -329,7 +331,7 @@ export default function InputCenter({
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {!entry.sentAt && typeof onSendContribution === 'function' && (
+                  {!entry.sentAt && buildMailto && typeof onSendContribution === 'function' && (
                     <a
                       href={buildMailto(entry)}
                       target="_blank"

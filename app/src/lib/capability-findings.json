@@ -1,0 +1,204 @@
+{
+  "_comment": "Capability-claims audit ledger (2026-07-05 full-app sweep; DR-0075/DR-0076). Every card is a promise the app makes to users that the code cannot yet keep — surfaced on the in-app Concerns & Solutions board so the gap is visible until the build closes it. When a build lands, REMOVE its card here in the same PR (that is the auto-resolve). Copy-level lies found in the same audit were fixed directly in the components and are not listed here. See docs/99-session-notes/2026-07-05-capability-claims-audit.md for full evidence.",
+  "auditedAt": "2026-07-05",
+  "concerns": [
+    {
+      "id": "cap-n8n-rewrite-dead-paths",
+      "concern": "Property-chat history import (Rentals) and the family photo gallery (nas-photos) still call the same-origin /n8n and /nas-photos Vercel rewrites, while lib/n8n-base.js documents (measured 2026-06-17) that the /n8n rewrite always fails with a TLS handshake 502 — every other caller was moved to the direct Funnel. These features likely fail on every attempt in production.",
+      "solution": "Verify the rewrites against the live deployment; either fix the rewrite target or move these callers to the same base every other n8n caller uses. Decide once, document in n8n-base.js.",
+      "status": "open",
+      "targetDate": "2026-07-19",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-07-19",
+      "area": "Rentals · Life Gallery",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-private-gate-fail-open",
+      "concern": "PrivateGate (Financial / Legal / Sermons PIN gate) deliberately fails OPEN: if the PIN backend is unreachable (device offline, Supabase down), it unlocks without a valid PIN. The user is shown an unconditional PIN prompt and is never told the lock has this bypass.",
+      "solution": "Governor decision: fail-closed (lock when unverifiable) vs disclose the tradeoff in the gate copy. Either resolves the honesty gap; fail-open-undisclosed does not.",
+      "status": "open",
+      "targetDate": "2026-07-19",
+      "whenNote": "capability audit 2026-07-05 · Governor decision needed · re-review 2026-07-19",
+      "area": "Privacy & security",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-child-capability-enforcement",
+      "concern": "Per-child capability settings (Family Roster, DR-0094) save correctly but no surface consumes decideChildAction() at runtime, and nothing ever files a child_action_requests row — so the guardian ask-first queue can never receive a request. Only the database-level child financial wall is enforced today. Panel copy now says so honestly.",
+      "solution": "Wire decideChildAction() into the surfaces the capabilities name (messaging, media, spending views) and file ask-first requests into child_action_requests so the existing approval queue receives real traffic.",
+      "status": "open",
+      "targetDate": "2026-08-01",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-01",
+      "area": "Family & guardians",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-venue-leader-notify",
+      "concern": "Venue/space requests land in the Event Management queue (real), but no leader is notified on insert — the reach-out promise depends on staff happening to open the tab. The form now requires a contact method, but the church side still relies on polling.",
+      "solution": "Notify on insert: ntfy ping or email to the church office lane when a venue_bookings row arrives (same pattern as other NAS notification lanes).",
+      "status": "open",
+      "targetDate": "2026-08-01",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-01",
+      "area": "Church · Event Management",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-highlight-sync",
+      "concern": "Bible highlights are device-local (localStorage keyed to sign-in email); the reader promised they 'follow you across devices'. Copy now discloses device-only until sync ships.",
+      "solution": "Add a scripture_highlights table + table-sync wiring (same pattern as study entries) so highlights genuinely follow the sign-in.",
+      "status": "open",
+      "targetDate": "2026-08-01",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-01",
+      "area": "The Word · Bible reader",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-optimistic-sent-confirmations",
+      "concern": "Several submit flows confirm success optimistically: course-interest signup shows '✓ Sent — Darrell will see you're in' even when the fire-and-forget upload silently fails or the device is offline; Thinking Space marks a note 'received' before (and regardless of) the NAS relay.",
+      "solution": "Make uploadFeedback / sendNoteToPoeTech return delivery status and render honest pending / failed states instead of unconditional success.",
+      "status": "open",
+      "targetDate": "2026-08-01",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-01",
+      "area": "Feedback & input lanes",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-inbound-tlc-isolation-verify",
+      "concern": "The Inbound voicemail page states clinical (TLC) calls are not routed into it — an isolation promise that rests entirely on external Twilio/Cloudflare Worker routing this repo cannot verify.",
+      "solution": "Verify the deployed Worker routing against the runbook (backend/voice-worker/DEPLOY-RUNBOOK.md), record the verification evidence, and add it to the six-month audit cadence.",
+      "status": "open",
+      "targetDate": "2026-08-01",
+      "whenNote": "capability audit 2026-07-05 · external verification · re-review 2026-08-01",
+      "area": "Inbound · voicemail",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-waitlist-own-infrastructure",
+      "concern": "The public waitlist relays PII through formsubmit.co (a third party) to Gmail; the modal copy now discloses this honestly, but the original sovereign-intake promise (n8n workflow 29 on the NAS) was never restored after the 2026-05-28 vacation swap.",
+      "solution": "Restore the NAS intake lane (wf29: /data/waitlist + ntfy, bearer-authed) and switch submitWaitlist back, updating the privacy line in the same commit.",
+      "status": "open",
+      "targetDate": "2026-08-15",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-15",
+      "area": "Landing · waitlist",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-account-export-delete",
+      "concern": "DATA-AS-EMPOWERMENT commits to exportable data and immediate, verifiable deletion, and welcome copy pointed there — but no whole-account export or account-delete surface exists (per-page CSV exports only). Copy now discloses the build status.",
+      "solution": "Ship a one-tap whole-account export (JSON + CSV bundle) and an account-deletion request surface with verifiable completion.",
+      "status": "open",
+      "targetDate": "2026-08-15",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-15",
+      "area": "Data ownership",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-cert-hours-sync",
+      "concern": "Practice Academy supervised hours, CEUs, and certificates persist only in this device's localStorage — licensure-grade records a clinician may rely on. Copy now discloses device-only durability; sync remains the named next step.",
+      "solution": "Move certs/hours/CEU ledgers onto table-sync so the training record survives a lost or cleared device.",
+      "status": "open",
+      "targetDate": "2026-08-15",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-15",
+      "area": "Practice · Academy",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-tenant-message-delivery",
+      "concern": "Owner→tenant messages insert a row the tenant only sees by opening their portal — no notification is dispatched. The approve button is now labeled 'post to tenant portal' honestly, but delivery still depends on the tenant polling.",
+      "solution": "Notify the tenant on new message (email or SMS lane) once an outbound channel exists; until then the honest label stands.",
+      "status": "open",
+      "targetDate": "2026-08-15",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-15",
+      "area": "Rentals · tenant portal",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-study-deck-gamenight",
+      "concern": "The Eternal Algorithms study writes its belief-vs-action deck for Game Night, but no game reads it and no Generations board space draws a 'study' deck — the handoff is inert. Study copy now says the in-page round is live and the Game Night carry is in build.",
+      "solution": "Game-design task: add board spaces (or a life-deck merge) that draw the study deck, then read the stashed deck in Games.startGame via withStudyDeck.",
+      "status": "open",
+      "targetDate": "2026-08-15",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-15",
+      "area": "Spiritual Life · games",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-dispatch-actual-send",
+      "concern": "Dispatching a worker records the assignment (now labeled 'assigned', not 'sent') — the actual job text still requires the separate manual 'Text the job' tap, and nothing tracks whether it was ever sent.",
+      "solution": "Track a real sent state (stamped when the SMS link is used) or wire an outbound send lane, so dispatch status reflects delivery.",
+      "status": "open",
+      "targetDate": "2026-08-15",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-08-15",
+      "area": "Workforce · dispatch",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-legal-module-build",
+      "concern": "The Legal Matters module (PIN gate, AES-GCM at-rest encryption, privilege flags, stripping export — tasks #94–#99) is unbuilt; it was being sold as available-now on the $89 tier. Tier copy and the Legal tab now present it as in-build design contract.",
+      "solution": "Build tasks #94–#99 (PIN → Web Crypto AES-GCM → matter CRUD → privileged Y/N journal → calendar mirroring → stripping export), then flip the tier listing back to available-now.",
+      "status": "open",
+      "targetDate": "2026-09-01",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-09-01",
+      "area": "Books · Legal",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-checkout-processor",
+      "concern": "No payment path exists anywhere: pricing checkout is a mailto handshake (disclosed), Bookstore checkout is processor-disabled, VoiceStudio 'subscription' entitlement is hardcoded to owner. Paid-tier benefits are honest human promises, not transactable product.",
+      "solution": "Wire the payment processor seam (checkout-seam.js is ready for it), then revisit every 'available now' paid benefit against a real entitlement grant.",
+      "status": "open",
+      "targetDate": "2026-09-01",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-09-01",
+      "area": "Commerce",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-module-launch-notify",
+      "concern": "Module-interest voting works (module_interest), but there is no pipeline to notify voters when a module launches. Buttons/copy now say vote-only, with notifications named as coming.",
+      "solution": "On module launch, notify signed-in voters (in-app banner at minimum; email lane when one exists), then restore the 'Notify me' label.",
+      "status": "open",
+      "targetDate": "2026-09-01",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-09-01",
+      "area": "Roadmap · module interest",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-trivia-readback",
+      "concern": "Engagement trivia answers upload to trivia_answers but are never read back anywhere — write-only 'save'. Copy now says answers are recorded and score history is on the build list.",
+      "solution": "Add a score-history / answered-set read-back so saved answers are visible to the player (and de-dupe repeat questions).",
+      "status": "open",
+      "targetDate": "2026-09-01",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-09-01",
+      "area": "Church · engagement",
+      "source": "capability-audit",
+      "readOnly": true
+    },
+    {
+      "id": "cap-external-facts-cadence",
+      "concern": "Hardcoded external facts ship in marketing surfaces — '11 rental homes', TLC's 7-clinician team and five accepted insurance carriers (repeated in the Practice inquiry form) — with no review cadence; staleness would put a false expectation in front of a booking user.",
+      "solution": "Add these strings to a quarterly review checklist (or drive counts from data where possible, as the rentals seed note now does).",
+      "status": "open",
+      "targetDate": "2026-10-01",
+      "whenNote": "capability audit 2026-07-05 · re-review 2026-10-01",
+      "area": "Marketing banners",
+      "source": "capability-audit",
+      "readOnly": true
+    }
+  ]
+}

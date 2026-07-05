@@ -102,7 +102,7 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
         <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
           <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">⚖ Governance · Decisions waiting on you</div>
           <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-            The work that needs your call, batched so you decide a stack at once instead of one ping at a time. This is the live queue from the repo, rendered here — the AI keeps building everything that doesn&apos;t need you; these are the {openCount} that do.
+            The work that needs your call, batched so you decide a stack at once instead of one ping at a time. This is the repo&apos;s queue as of the last deploy, rendered here — the AI keeps building everything that doesn&apos;t need you; these are the {openCount} that do.
           </p>
         </section>
 
