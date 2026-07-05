@@ -81,6 +81,7 @@ import TextSizeControl from './components/TextSizeControl.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
+import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
 import { reportPresence } from './lib/access-metrics-sync.js';
@@ -1440,6 +1441,10 @@ export default function PoeFinancialSystem() {
   const isDemoMode = !!demoPersona && !isPickerMode;
   // Suppress storage/save/network either way — picker is also a "demo" state.
   const isAnyDemoMode = !!demoPersona;
+  // Reviewer mode (lib/reviewer-mode.jsx) — the steward reviews this build exactly
+  // as a signed-in user sees it. STRICTLY NARROWING: it only hides privilege, and
+  // every write path to the steward's real data is suppressed while it is on.
+  const reviewerMode = isReviewerModeOn();
 
   // First-time landing: when someone hits the bare URL (poetech.us with no
   // query params), no saved profile, no landing-seen flag — show the
@@ -1479,7 +1484,7 @@ export default function PoeFinancialSystem() {
   // still surface in the Action Queue / Big Picture). The aspirational Reeves-
   // family DEMO_DATA_FAMILY_OF_4 is the only safe seed for the public domain.
   const [data, setData] = useState(
-    isPublicHost() ? DEMO_DATA_FAMILY_OF_4
+    (isPublicHost() || reviewerMode) ? DEMO_DATA_FAMILY_OF_4
       : isDemoMode ? DEMO_DATA_BY_PERSONA[demoPersona]
       : isPickerMode ? DEMO_DATA_FAMILY_OF_4
       : isFirstTimeLandingBoot ? DEMO_DATA_FAMILY_OF_4
@@ -1616,13 +1621,14 @@ export default function PoeFinancialSystem() {
   // docs/99-session-notes/2026-05-28-brief-multi-user-profiles.md.
   const [currentProfile, setCurrentProfile] = useState(() => {
     if (isAnyDemoMode) return 'family'; // Demo + picker skip profile picker.
-    if (isPublicHost()) return null; // SECURITY: public host never reads saved profile.
+    if (isPublicHost() || reviewerMode) return null; // SECURITY: public host never reads saved profile; a reviewer boots the public flow.
     try { return localStorage.getItem('poe-current-profile') || null; }
     catch (e) { return null; }
   });
   const setProfile = (p) => {
     setCurrentProfile(p);
-    try { if (p) localStorage.setItem('poe-current-profile', p); else localStorage.removeItem('poe-current-profile'); }
+    // A reviewer's picks never touch this device's SAVED profile (state only).
+    try { if (!reviewerMode) { if (p) localStorage.setItem('poe-current-profile', p); else localStorage.removeItem('poe-current-profile'); } }
     catch (e) {}
     // Reset entity filter when switching profiles so we never leave it
     // pointing at an entity the new profile can't see.
@@ -1674,13 +1680,13 @@ export default function PoeFinancialSystem() {
   // "Christina" as selectable buttons. Real names show only to a VERIFIED family
   // email; every other state (anonymous, demo, picker, outside signed-in user)
   // keeps the sanitized pair.
-  const isFamilyMember = isFamilyEmail(authSession?.user?.email);
+  const isFamilyMember = !reviewerMode && isFamilyEmail(authSession?.user?.email);
   // Church staff get the church staff-only surfaces (Observation) and nothing
   // more — never the family/Governor scope. Family are staff too (superset).
-  const isChurchStaff = isFamilyMember || isChurchStaffEmail(authSession?.user?.email);
+  const isChurchStaff = !reviewerMode && (isFamilyMember || isChurchStaffEmail(authSession?.user?.email));
   // The private Study circle (Darrell + Christina + BG). Gates both the nav entry
   // (so the wider team never sees it) and the view render (defense in depth).
-  const isStudyCircle = isStudyCircleEmail(authSession?.user?.email);
+  const isStudyCircle = !reviewerMode && isStudyCircleEmail(authSession?.user?.email);
   const PROFILES = [
     { id: 'darrell', name: isFamilyMember ? 'Darrell' : 'Adam', sub: 'full owner view', accent: '#1A1815' },
     { id: 'christina', name: isFamilyMember ? 'Christina' : 'Naomi', sub: 'personal + practice', accent: '#B85838' },
@@ -1717,7 +1723,7 @@ export default function PoeFinancialSystem() {
   // the gate requires a VERIFIED family email; the internal/Tailscale family
   // device (no auth needed) is unchanged.
   const importedAllowed = isImportedAllowed({
-    isAnyDemoMode, currentProfile, isPublicHostVal: isPublicHost(), authSession, authHydrated,
+    isAnyDemoMode: isAnyDemoMode || reviewerMode, currentProfile, isPublicHostVal: isPublicHost(), authSession, authHydrated,
   });
 
   // ---------------------------------------------------------------------------
@@ -2049,7 +2055,7 @@ export default function PoeFinancialSystem() {
   // (snapshot-sync.js), so applying it cannot clobber those; matched rentals
   // additionally keep this device's room photos.
   useEffect(() => {
-    if (!authSession || isAnyDemoMode || snapshotPulledRef.current) return;
+    if (!authSession || isAnyDemoMode || reviewerMode || snapshotPulledRef.current) return;
     const readyToPull = isPublicHost() ? authHydrated : loaded;
     if (!readyToPull) return;
     snapshotPulledRef.current = true;
@@ -2101,7 +2107,7 @@ export default function PoeFinancialSystem() {
     // open. On any public host (poetech.us, *.vercel.app), anonymous visitors
     // get the demo sample + no hydration. (Signed-in hydration is handled by
     // the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
-    if (isPublicHost()) {
+    if (isPublicHost() || reviewerMode) {
       setData(DEMO_DATA_FAMILY_OF_4);
       setLoaded(true);
       return;
@@ -2214,8 +2220,11 @@ export default function PoeFinancialSystem() {
   // visitors still never hydrate (the 2026-06-03 leak gate stands).
   useEffect(() => {
     if (!authSession || hydratedForAuthRef.current) return;
-    if (!isPublicHost() || isAnyDemoMode) return;
+    if ((!isPublicHost() && !reviewerMode) || isAnyDemoMode) return;
     hydratedForAuthRef.current = true;
+    // A reviewer signs in as a fresh user: EMPTY_WORLD, never this device's
+    // saved blob and never the family SEED — the exact non-family path below.
+    if (reviewerMode) { setData(EMPTY_WORLD); setAuthHydrated(true); return; }
     const email = (authSession.user?.email || '').toLowerCase();
     loadSavedSnapshot(authSession.user?.id || null).then((found) => {
       // 2026-06-14: a fresh family member starts from their aspirational SEED;
@@ -2236,6 +2245,9 @@ export default function PoeFinancialSystem() {
   // profile. Demo states keep their forced profile.
   useEffect(() => {
     if (!authSession || !authHydrated || currentProfile || isAnyDemoMode) return;
+    // A reviewer gets the self-serve profile a signed-in outside user gets —
+    // state only, never reading or writing this device's saved profile.
+    if (reviewerMode) { setCurrentProfile('self'); return; }
     try {
       const saved = localStorage.getItem('poe-current-profile');
       if (saved) { setCurrentProfile(saved); return; }
@@ -2280,7 +2292,7 @@ export default function PoeFinancialSystem() {
   // The dev tier-switcher can still preview lower tiers within a session; a
   // reload restores full access. Idempotent (no churn when already at the top).
   useEffect(() => {
-    if (!authSession || isAnyDemoMode) return;
+    if (!authSession || isAnyDemoMode || reviewerMode) return; // a reviewer stays at the user's real tier
     const email = (authSession.user?.email || '').toLowerCase();
     if (FAMILY_EMAIL_PROFILES[email]) {
       setData(d => (effectiveTier(d.userTier) === 'business' ? d : { ...d, userTier: 'business' }));
@@ -2338,7 +2350,7 @@ export default function PoeFinancialSystem() {
   // family members have the multi-persona picker; a self-serve user never does.
   useEffect(() => {
     if (!authSession || isAnyDemoMode) return;
-    if (!isFamilyEmail(authSession.user?.email)) { setMpPersonasWithPin([]); setMpInstanceId(null); return; }
+    if (reviewerMode || !isFamilyEmail(authSession.user?.email)) { setMpPersonasWithPin([]); setMpInstanceId(null); return; }
     let cancelled = false;
     (async () => {
       let instId = null;
@@ -2354,7 +2366,7 @@ export default function PoeFinancialSystem() {
 
   useEffect(() => {
     if (!loaded) return;
-    if (isAnyDemoMode) return; // Demo + picker mode never write to localStorage.
+    if (isAnyDemoMode || reviewerMode) return; // Demo + picker + reviewer never write to localStorage (or push snapshots).
     // SECURITY (2026-06-03): the public domain never persists for ANONYMOUS
     // visitors. 2026-06-11: a signed-in owner persists on their own device —
     // but only AFTER their hydration completes, so a demo snapshot can never
@@ -2397,7 +2409,7 @@ export default function PoeFinancialSystem() {
         });
       }
     })();
-  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode, authSession, authHydrated]);
+  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode, reviewerMode, authSession, authHydrated]);
 
   // Layer 2 — auth + feedback sync wiring.
   // On every auth state change: tear down any prior subscriptions, then
@@ -4491,7 +4503,7 @@ html{scroll-padding-bottom:280px}
         // Show once to a signed-in, non-family, non-demo user. Keyed only on
         // auth + email + a localStorage flag — touches no data/seed/hydration.
         const ssEmail = (authSession?.user?.email || '').toLowerCase();
-        const show = !!authSession && !!ssEmail && !isFamilyEmail(ssEmail) && !isAnyDemoMode && !selfServeWelcomeDismissed;
+        const show = !!authSession && !!ssEmail && (reviewerMode || !isFamilyEmail(ssEmail)) && !isAnyDemoMode && !selfServeWelcomeDismissed;
         return show ? <SelfServeWelcome name={ssEmail.split('@')[0]} onDismiss={dismissSelfServeWelcome} /> : null;
       })()}
 
@@ -4647,6 +4659,10 @@ html{scroll-padding-bottom:280px}
           </div>
         </div>
       )}
+
+      {/* Reviewer strip — always visible while the steward reviews as a user
+          (never collapse-gated: with Admin hidden, Exit is the only way back). */}
+      {reviewerMode && <ReviewerModeBanner />}
 
       {/* Multi-user Layer A — profile picker overlay. Shows on first launch
           (currentProfile === null) and via the "switch profile" button in the
@@ -4961,7 +4977,7 @@ html{scroll-padding-bottom:280px}
                 // On the public site a non-steward never gets the entry (no-leak,
                 // like Center / Forecast); the module also carries a defense-in-
                 // depth locked fallback for any deep-link.
-                ...((isFamilyMember || !isPublicHost()) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
+                ...((!reviewerMode && (isFamilyMember || !isPublicHost())) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
               ].map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
@@ -5140,7 +5156,7 @@ html{scroll-padding-bottom:280px}
           const submitClassInterest = authSession
             ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${CLASS_INTEREST_TAG} ${(name || 'A parishioner').trim()} wants to join the youth A.I. class.` })
             : null;
-          const isGov = !!authSession && isFamilyEmail(authSession.user?.email);
+          const isGov = !!authSession && !reviewerMode && isFamilyEmail(authSession.user?.email);
           const classRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback]) : null;
 
           // The Broadcast course descriptor (second course in the Learn tab). The
@@ -5561,8 +5577,8 @@ html{scroll-padding-bottom:280px}
         {view === 'voice' && (
           <SectionBoundary name="Voice">
             <VoiceStudio
-              personaKey={authSession ? personaOf(authSession.user?.email) : null}
-              isOwner={authSession ? personaOf(authSession.user?.email) === 'darrell' : false}
+              personaKey={authSession && !reviewerMode ? personaOf(authSession.user?.email) : null}
+              isOwner={!reviewerMode && !!authSession && personaOf(authSession.user?.email) === 'darrell'}
             />
           </SectionBoundary>
         )}
@@ -5700,7 +5716,7 @@ html{scroll-padding-bottom:280px}
             ?view=access deep-link normalizes to 'admin'. No standalone block. */}
         {view === 'admin' && (
           <AdminConsole
-            isGovernor={isFamilyMember || !isPublicHost()}
+            isGovernor={!reviewerMode && (isFamilyMember || !isPublicHost())}
             email={authSession?.user?.email || null}
             instanceId={mpInstanceId}
             backendReachable={mpBackendAvailable && !!mpInstanceId}
