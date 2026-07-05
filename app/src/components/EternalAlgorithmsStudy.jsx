@@ -30,7 +30,7 @@ import {
 } from '../lib/eternal-algorithms-studies.js';
 import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
-import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook } from '../lib/godhead-study.js';
+import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook, JUDGMENT_COVENANT_REVIEW, covenantAlgorithms } from '../lib/godhead-study.js';
 import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessScienceOnly } from '../lib/third-witness.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -215,6 +215,60 @@ function GodheadEntry({ entry }) {
   );
 }
 
+// THE ETERNAL COVENANT REVIEW (Darrell 2026-07-05) — the in-app comprehensive
+// review of the judgment committed to the Son: the declared word, the covenant
+// taught from the verbatim Word, the abiding checklist (each point anchored to
+// a verified verse), and the covenant's algorithm list walked in order.
+function CovenantReview() {
+  const [open, setOpen] = useState(false);
+  const r = JUDGMENT_COVENANT_REVIEW;
+  return (
+    <div className="mb-3">
+      <div className="bg-[#1A1815] text-[#FAF8F4] p-3">
+        <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">Featured review · {r.title}</p>
+        <blockquote className="text-sm leading-relaxed italic" style={serif}>{r.declared}</blockquote>
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+          className={`mt-2 px-3 py-1.5 text-[0.6875rem] uppercase tracking-wider border border-[#5A6E3D] focus:outline focus:outline-2 focus:outline-[#B85838] ${open ? 'bg-[#5A6E3D] text-[#FAF8F4] font-semibold' : 'text-[#D8D4CC] hover:text-[#FAF8F4]'}`}>
+          {open ? '↑ Close the covenant review' : '↓ Open the covenant review'}
+        </button>
+      </div>
+      {open && (
+        <div className="border border-t-0 border-[#E8E4DC] bg-white p-3">
+          {r.summary.map((p) => (
+            <p key={p.slice(0, 24)} className="text-sm text-[#1A1815] leading-relaxed mb-2" style={serif}>{p}</p>
+          ))}
+          <h4 className="text-[#1A1815] mt-3 mb-1" style={{ ...serif, fontWeight: 600 }}>Abiding by the covenant — for every Kingdom Believer</h4>
+          <div className="space-y-2 mb-3">
+            {r.abiding.map((a) => {
+              const text = godheadVerse(a.anchor);
+              return (
+                <div key={a.anchor + a.point.slice(0, 16)} className={CARD}>
+                  <p className="text-sm text-[#1A1815]" style={serif}>{a.point}</p>
+                  <div className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-1.5 mt-1.5">
+                    {text
+                      ? <p className="text-sm text-[#1A1815]" style={serif}>“{text}”<span className="text-[0.625rem] text-[#5A5751] ml-1" style={mono}>KJV</span></p>
+                      : <p className="text-xs text-[#5A5751] italic" style={serif}>{a.anchor} — read it in your Bible.</p>}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{a.anchor}</span>
+                      <a href={readOnline(a.anchor, 'ESV')} target="_blank" rel="noopener noreferrer"
+                        className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Read ESV ↗</a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <h4 className="text-[#1A1815] mb-1" style={{ ...serif, fontWeight: 600 }}>The covenant's algorithm list — in order</h4>
+          <p className="text-[0.75rem] text-[#5A5751] mb-2" style={serif}>The grant, the exemption, the standard, the appointment, the seat, the vacating, the training, the reward — each an if/then the Word itself states, every verse verbatim.</p>
+          <div className="space-y-2">
+            {covenantAlgorithms().map((e) => <GodheadEntry key={e.id} entry={e} />)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GodheadStudyView() {
   // Each book is its own masterpiece (Darrell 2026-07-03): tap a book to see
   // its identity line and filter to the algorithms drawn from it.
@@ -235,6 +289,10 @@ function GodheadStudyView() {
           Die daily. This 3rd-dimensional space is not Home — it is the development environment: the sheep, lions and lambs of the Church of the Living Yahweh are built and tested HERE before the release Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. This platform is that work: bringing the church to the streets, using the world's technology so there is a Way — from Yahweh, His tool, held humbly by the Tribe. See you when you get there.
         </p>
       </div>
+      {/* THE ETERNAL COVENANT REVIEW (Darrell 2026-07-05) — all judgment is
+          committed unto the Son; the review + its algorithm list live HERE,
+          inside the app, where the Kingdom Believers study. */}
+      <CovenantReview />
       {/* THE BOOKS — each its own masterpiece; tap to read its identity and
           filter to its algorithms. */}
       <div className="mb-3">
