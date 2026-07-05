@@ -16,6 +16,7 @@
     "legibility": "node ../scripts/legibility-guard.mjs --check",
     "legibility:health": "node ../scripts/legibility-guard.mjs --health",
     "legibility:baseline": "node ../scripts/legibility-guard.mjs --generate",
+    "icons": "node ../scripts/gen-icons.mjs",
     "verify": "npm run lint && vitest run"
   },
   "dependencies": {

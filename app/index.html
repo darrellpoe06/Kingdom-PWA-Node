@@ -14,7 +14,11 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#1A1815" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <!-- iOS ignores SVG apple-touch-icons on several versions; ship a real PNG so
+         Add-to-Home-Screen shows the brand mark (also required for the App Store). -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PoeTech" />
@@ -29,7 +33,7 @@
     <script>
       (function () {
         var p = new URLSearchParams(location.search);
-        var standalone = ['join', 'invites', 'register', 'audience', 'teach', 'login', 'request-space', 'oauth_popup']
+        var standalone = ['join', 'invites', 'register', 'audience', 'teach', 'login', 'request-space', 'share', 'oauth_popup']
           .some(function (k) { return p.get(k) === '1'; });
         var href = '__MONOLITH_PRELOAD_HREF__';
         if (!standalone && href.charAt(0) === '/') {
