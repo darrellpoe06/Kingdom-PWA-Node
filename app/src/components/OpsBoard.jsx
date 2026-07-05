@@ -61,6 +61,26 @@ export default function OpsBoard() {
         </div>
       </div>
 
+      {/* The model, documented beside its live proof (DR-0103 / DR-0065). This
+          is static-by-design operating documentation; the state BELOW it is the
+          live proof it's true. */}
+      <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+        <span className="font-semibold text-[#1A1815]">The delivery lane.</span>{' '}
+        Work lands on green without a manual merge: an agent (<span className="font-mono">claude/*</span>)
+        or release-lane branch opens a PR and auto-merges the instant the gates pass
+        (lint · full test suite · tenancy/contrast/isolation guards · real build) — merge = deploy.
+        The gate is the brake; the <span className="font-semibold">hold</span> label is the
+        governor's hand to park a PR for a soak or review. Cadence is minutes, not a reflexive hour.
+        <span className="block mt-1 text-[0.625rem]">
+          Governed by{' '}
+          <a
+            href={`https://github.com/${GITHUB_SLUG}/blob/main/docs/decisions/DR-0103-streamlined-delivery-loop-agent-prs-auto-merge-on-green.md`}
+            target="_blank" rel="noreferrer"
+            className="font-mono underline decoration-dotted"
+          >DR-0103</a>. The live lane below is the proof.
+        </span>
+      </div>
+
       {state.phase === 'loading' && !data && (
         <p className="text-xs text-[#5A5751]">Reading live state from GitHub…</p>
       )}
