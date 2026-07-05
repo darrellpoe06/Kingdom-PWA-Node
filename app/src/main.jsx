@@ -60,6 +60,7 @@ const __standalone = __params.get('join') === '1' || __params.get('invites') ===
   || __params.get('output') === '1'
   || __params.get('teach') === '1' || __params.get('login') === '1'
   || __params.get('request-space') === '1'
+  || __params.get('share') === '1'
   || !!__params.get('room')
   || __params.get('oauth_popup') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
@@ -129,6 +130,12 @@ if (__params.get('oauth_popup') === '1') {
   import('./components/VenueRequest.jsx').then(({ default: VenueRequest }) => {
     __root.render(<React.StrictMode><ErrorBoundary><VenueRequest /></ErrorBoundary></React.StrictMode>);
   });
+} else if (__params.get('share') === '1') {
+  // Full-screen "scan to get the app" poster for a projector/screen — a whole
+  // room scans one big QR. No account/data/auth; only displays the join URL.
+  import('./components/SharePoster.jsx').then(({ default: SharePoster }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><SharePoster /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('share boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('room')) {
   // "Game Night" multiplayer room. GameRoom reads ?room / ?board off the URL and
   // renders the big-screen board (host) or a phone controller. Lazy-imported so
