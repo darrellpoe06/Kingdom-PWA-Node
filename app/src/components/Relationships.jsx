@@ -297,7 +297,7 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
       const now = new Date().toISOString();
       const tenancyId = selectedTenancy.id;
       let table, row;
-      if (kind === 'maintenance') { table = 'maintenance_requests'; row = buildMaintenanceRequest({ ...form, tenancyId }, now); }
+      if (kind === 'maintenance') { table = 'tenant_maintenance_requests'; row = buildMaintenanceRequest({ ...form, tenancyId }, now); }
       else if (kind === 'rent') { table = 'rent_records'; row = buildRentRecord({ ...form, tenancyId }, now); }
       else if (kind === 'notice') { table = 'tenant_notices'; row = buildNotice({ ...form, tenancyId }, now); }
       else if (kind === 'message') { table = 'tenant_messages'; row = buildMessage({ ...form, tenancyId }, now); }
