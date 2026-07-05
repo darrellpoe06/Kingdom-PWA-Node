@@ -520,6 +520,30 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
         <CompactHero label="Rentals owned free" value={rentalSnowball.allClearedDate} sub={`${rentalSnowball.allClearedYears.toFixed(1)}yr · snowball`} trace={traceRentalsFree(data, rentalSnowball, snowballExtra, 'date')} />
       </section>
 
+      {/* Reconciliation guard (2026-07-05) — Net cash flow and the entity cards
+          below read the same inflow rows, so they can only disagree when a row
+          is tagged to an entity that doesn't exist (it counts in the total but
+          shows on no card). Instead of letting the tabs silently contradict
+          each other, name the gap and where to fix it. Mirrors the
+          entity-linkage check on Books → Tx → Proof of the math. */}
+      {(() => {
+        const known = new Set((entities || []).map(e => e && e.id).filter(Boolean));
+        const orphanRows = [
+          ...((data.inflows?.salaries || []).filter(s => s && s.entityId != null && !known.has(s.entityId))),
+          ...((data.inflows?.rentals || []).filter(r => r && r.entityId != null && !known.has(r.entityId) && (r.rent || 0) > 0)),
+        ];
+        const orphanInflow = orphanRows.reduce((s, r) => s + (Number(r.actual) || 0), 0);
+        if (orphanRows.length === 0) return null;
+        return (
+          <section aria-labelledby="money-recon-h" className="bg-white border border-[#B85838] p-3">
+            <h2 id="money-recon-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">These numbers don't reconcile — here's why</h2>
+            <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              {fmt(orphanInflow)}/mo of inflow ({orphanRows.length} row{orphanRows.length === 1 ? '' : 's'}) is tagged to entities that don't exist, so it counts in Net cash flow but shows on no entity card below. Re-tag or remove those rows on Books → Entities; the full list is on Books → Tx → Proof of the math.
+            </p>
+          </section>
+        );
+      })()}
+
       {/* Phase 2B.2 — Bank reconciliation status strip. Surfaces the same
           ingest data that Tx + Accounts show, but as a Big-Picture-level
           "here's what your books look like next to what the banks say."

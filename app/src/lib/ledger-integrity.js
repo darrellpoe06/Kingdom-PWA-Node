@@ -219,6 +219,40 @@ export function checkCategoryCoverage(transactions = []) {
 }
 
 // ---------------------------------------------------------------------------
+// Check 8 — entity linkage. Every money row that carries an entityId must
+// point at an entity that EXISTS: an orphaned row is counted in every
+// all-entities total but invisible on every per-entity card, so two surfaces
+// show different answers with no visible reason (the 2026-07-05 Money-tab
+// incident: "+$1k" net cash flow from demo-residue inflow rows tagged to a
+// nonexistent 'e-family', above four real entity cards all reading $0).
+// REVIEW (not FAIL) — the sums themselves are still correct; what's broken is
+// attribution, and a steward fixes it by re-tagging or deleting the named rows.
+// ---------------------------------------------------------------------------
+export function checkEntityLinkage(data) {
+  const known = new Set((data?.entities || []).map((e) => e && e.id).filter(Boolean));
+  const orphans = [];
+  const scan = (rows, kind, describe) => {
+    for (const r of rows || []) {
+      if (!r || r.entityId == null) continue; // untagged is allowed; wrong-tagged is not
+      if (!known.has(r.entityId)) orphans.push(`${kind} · ${describe(r)} → entity "${r.entityId}" not found`);
+    }
+  };
+  scan(data?.inflows?.salaries, 'salary', (r) => `${r.source || r.who || r.id || '?'} · ${(Number(r.actual) || 0).toFixed(2)}/mo`);
+  scan(data?.inflows?.rentals, 'rental', (r) => `${r.name || r.address || r.id || '?'} · ${(Number(r.actual) || 0).toFixed(2)}/mo`);
+  scan(data?.accounts, 'account', (r) => `${r.name || r.id || '?'}`);
+  scan(data?.debts, 'debt', (r) => `${r.name || r.id || '?'} · ${(Number(r.balance) || 0).toFixed(2)}`);
+  return {
+    key: 'entity-linkage',
+    label: 'Every money row points at an entity that exists',
+    status: orphans.length ? 'review' : 'pass',
+    detail: orphans.length
+      ? `${orphans.length} row(s) are tagged to entities that don't exist — they count in all-entity totals but show on NO entity card, so tabs disagree. Re-tag or remove them (Books → Entities).`
+      : 'Every entity-tagged inflow, account, and debt resolves to a real entity — per-entity cards add up to the totals.',
+    receipts: orphans.slice(0, 10),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // The full run — every invariant over the real data, with the span the ledger
 // actually covers (so "years of data" reads as years, verifiably).
 // ---------------------------------------------------------------------------
@@ -232,6 +266,7 @@ export function runLedgerIntegrity(data, asOf = new Date()) {
     checkDateSanity(transactions, asOf),
     checkAmountPrecision(transactions),
     checkCategoryCoverage(transactions),
+    checkEntityLinkage(data),
   ];
   const dates = transactions.map((t) => parseDate(t?.date)).filter(Boolean).sort((a, b) => a - b);
   const span = dates.length
