@@ -282,7 +282,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
             <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
           </div>
           <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            Anything you share helps. Skip any section — partial feedback is more useful than no feedback. Saved locally; nothing leaves your device until you choose to share it.
+            Anything you share helps. Skip any section — partial feedback is more useful than no feedback. Drafts stay on your device; when you tap Submit while signed in, your feedback (and any screenshots) goes to the family’s own server so the team can act on it.
           </p>
 
           <div className="space-y-4">

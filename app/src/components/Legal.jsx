@@ -56,10 +56,13 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
       </div>
 
       <div className="bg-white border-2 border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">🔒 Legal Matters · Confidential</div>
+        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">🔒 Legal Matters · Confidential · In build</div>
         <h2 className="text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Track legal work the right way</h2>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Sits inside Books because most legal work has a financial dimension — fees, settlements, insurance, tax exposure. Cross-links to your properties, entities, transactions, and calendar so nothing is hand-tracked twice. Confidentiality is built in: separate PIN, at-rest encryption (AES-GCM 256), auto-lock, and mandatory <strong>privileged / not</strong> on every note so the export tool can mechanically strip privileged content before you share with non-counsel.
+          Sits inside Books because most legal work has a financial dimension — fees, settlements, insurance, tax exposure. Cross-links to your properties, entities, transactions, and calendar so nothing is hand-tracked twice. Confidentiality is designed in from the start: the module ships with a separate PIN, at-rest encryption (AES-GCM 256), auto-lock, and mandatory <strong>privileged / not</strong> on every note so the export tool can mechanically strip privileged content before you share with non-counsel.
+        </p>
+        <p className="text-xs leading-relaxed mb-3 px-3 py-2 bg-[#FAF8F4] border-l-2 border-[#B85838] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <strong className="text-[#1A1815]">Build status:</strong> matter storage isn't open yet — the encryption layer lands first, then the module opens (tasks #94–#99 in the build queue). Nothing on this page stores legal-matter data today, so nothing is at risk. What you're reading is the design contract the build is held to. Accounts In Legal, above, works now.
         </p>
         <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Not legal advice. Have your attorney review the deployed module before storing live matter information.
@@ -110,9 +113,9 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
       </div>
 
       <div className="bg-white border border-[#5A6E3D] p-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] mb-2 font-semibold">How Legal connects to the rest of the system</div>
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] mb-2 font-semibold">How Legal will connect to the rest of the system · design contract</div>
         <p className="text-xs text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Every connection below uses an ID, not a title — so the non-Legal side never sees what the matter is about. Just "🔒 Legal note exists." Click-through requires PIN.
+          This is the wiring the module is built to — none of it is live until the build above ships. Every connection uses an ID, not a title — so the non-Legal side never sees what the matter is about. Just "🔒 Legal note exists." Click-through requires PIN.
         </p>
         <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
           <li>· <strong>Real Estate · Properties</strong> — A property row shows "🔒 1 Legal matter linked" when one exists. Title and matter detail stay encrypted; only the count surfaces. Useful for: eviction proceedings, title disputes, tax appeals tied to a specific door.</li>
@@ -132,7 +135,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
         <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-4">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">Unlocks at Family ($89) and above</div>
           <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-            The encryption layer is real engineering — PIN gate, Web Crypto AES-GCM, auto-lock, privileged-stripped export. Ships at Family tier so the work is paid for. Confidentiality is the feature, not an add-on.
+            The encryption layer is real engineering — PIN gate, Web Crypto AES-GCM, auto-lock, privileged-stripped export — and it is still in build (tasks #94–#99). It ships at Family tier so the work is paid for. Confidentiality is the feature, not an add-on.
           </p>
           <button type="button" onClick={() => setView('about')} className="text-xs uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">See pricing tiers →</button>
         </div>

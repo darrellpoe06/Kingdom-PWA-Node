@@ -4351,7 +4351,7 @@ html{scroll-padding-bottom:280px}
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[10px] text-[#5A5751]">
                 <span><span className="text-[#5A6E3D] font-semibold">Free for Loved Ones</span> (COLG + chosen family)</span>
                 <span>·</span>
-                <span>Sponsored for families in need (aligned-brand partners, not your data)</span>
+                <span>Sponsored access for families in need is coming (aligned-brand partners, not your data)</span>
                 <span>·</span>
                 <button type="button" onClick={() => { markLandingSeen(); setView('about'); }} className="underline text-[#B85838] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">See pricing →</button>
               </div>
@@ -4365,8 +4365,8 @@ html{scroll-padding-bottom:280px}
                 to n8n. Honest copy holds the promise — the surface invites,
                 the waitlist is what's wired. Restore the upload onClick
                 when wf33 lands in active list. */}
-            <button type="button" onClick={() => { setWaitlistOpen(true); setWaitlistState({ submitting: false, success: false, error: null, id: null }); }} className="w-full bg-[#B85838] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] mt-4 mb-2">Drop your bank file → join the waitlist (real-data view ships late June)</button>
-            <p className="text-[10px] text-[#5A5751] italic text-center mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Browser-only file reading is in build. Sign up — we'll email when OFX, QFX, or CSV uploads go live. Your data never leaves your device.</p>
+            <button type="button" onClick={() => { setWaitlistOpen(true); setWaitlistState({ submitting: false, success: false, error: null, id: null }); }} className="w-full bg-[#B85838] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] mt-4 mb-2">Drop your bank file → join the waitlist (real-data view in build)</button>
+            <p className="text-[10px] text-[#5A5751] italic text-center mb-3" style={{ fontFamily: '"Fraunces", serif' }}>File reading is still in build — nothing uploads today. Sign up and we'll email you when OFX, QFX, or CSV uploads go live.</p>
             <div className="flex gap-2 mt-4 flex-wrap">
               {/* "Start your own setup" was removed 2026-05-28 evening — the
                   real app behind it would load Darrell's SEED_DATA (real
@@ -4411,10 +4411,10 @@ html{scroll-padding-bottom:280px}
       })()}
 
       {/* Waitlist signup modal — opens from the "Sign up for early access"
-          button in the picker. POSTs to n8n workflow 29 which writes to
-          /data/waitlist/ and pings ntfy. Per BUSINESS-PROCESS-CONNECTIONS:
-          this isn't a form, it's the wired connection between marketing
-          surface (picker) and intake pipeline (n8n + ntfy + Governor). */}
+          button in the picker. POSTs via formsubmit.co to Darrell's Gmail
+          (submitWaitlist above; the n8n wf29 path was swapped out 2026-05-28,
+          never restored). The copy below states that relay honestly — if the
+          NAS intake returns, update the handler AND the privacy line together. */}
       {waitlistOpen && (
         <div role="dialog" aria-modal="true" aria-labelledby="waitlist-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8 my-8">
@@ -4422,7 +4422,7 @@ html{scroll-padding-bottom:280px}
             {!waitlistState.success ? (
               <>
                 <h2 id="waitlist-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Tell us how to reach you when this opens up.</h2>
-                <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>No promises on a date — we engage based on opportunities + capacity. Your spot is held in order received. You can tell us as much or as little as you want.</p>
+                <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>No promises on a date — we engage based on opportunities + capacity, working through signups in the order they arrive. You can tell us as much or as little as you want.</p>
                 <div className="space-y-3">
                   <div>
                     <label htmlFor="wl-name" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Your name</label>
@@ -4464,13 +4464,13 @@ html{scroll-padding-bottom:280px}
                   <button type="button" disabled={waitlistState.submitting} onClick={submitWaitlist} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">{waitlistState.submitting ? 'Adding you…' : 'Add me to the waitlist'}</button>
                   <button type="button" disabled={waitlistState.submitting} onClick={() => setWaitlistOpen(false)} className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
                 </div>
-                <p className="text-[10px] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Your info goes to a private inbox we run on our own infrastructure. No third-party trackers. No newsletter. Just a real human reaching out when there's a fit.</p>
+                <p className="text-[10px] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Your info is relayed by a simple form service (formsubmit.co) straight to Darrell's own inbox — used only to reach you about this. No trackers on this page, no newsletter, never sold. Just a real human reaching out when there's a fit.</p>
               </>
             ) : (
               <>
                 <h2 id="waitlist-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>You're on the list.</h2>
                 <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Thanks, {waitlistForm.name || 'friend'}. We received your interest at {waitlistForm.email}. When opportunities + capacity line up with your scenario, a real human reaches out — usually within a couple weeks, sometimes longer. No spam in the meantime.</p>
-                <p className="text-sm text-[#5A5751] mb-5" style={{ fontFamily: '"Fraunces", serif' }}>Confirmation ID: <span className="font-mono text-[10px]">{waitlistState.id || '(saved)'}</span>. If you change your mind or want to update what you told us, reply to the email we send and we'll handle it.</p>
+                <p className="text-sm text-[#5A5751] mb-5" style={{ fontFamily: '"Fraunces", serif' }}>Confirmation ID: <span className="font-mono text-[10px]">{waitlistState.id || '(saved)'}</span>. If you change your mind or want to update what you told us, email <a href="mailto:darrellpoe06@gmail.com" className="underline">darrellpoe06@gmail.com</a> with that ID and we'll handle it.</p>
                 <div className="flex gap-2 flex-wrap">
                   <button type="button" onClick={() => { setWaitlistOpen(false); setWaitlistForm({ name: '', email: '', phone: '', interest: '', notes: '' }); }} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Close</button>
                   <a href="/?demo=family-of-4" onClick={() => { setWaitlistOpen(false); markLandingSeen(); }} className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">See a sample while you wait</a>
@@ -4502,7 +4502,7 @@ html{scroll-padding-bottom:280px}
             {uploadStage === 'idle' && (
               <>
                 <h2 className="text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Drop your bank file.</h2>
-                <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>OFX, QFX, or CSV from your bank's export. We read it in your browser. Nothing saves. Gone when you close this tab.</p>
+                <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>OFX, QFX, or CSV from your bank's export. Your file is parsed on our own family-owned server — never a third-party service. Nothing stays in this browser when you close the tab.</p>
                 <label className="block w-full border-2 border-dashed border-[#1A1815] p-8 text-center cursor-pointer hover:bg-white" style={{ fontFamily: '"Fraunces", serif' }}>
                   <input type="file" accept=".ofx,.qfx,.csv,.OFX,.QFX,.CSV" className="hidden" onChange={e => { const f = e.target.files && e.target.files[0]; if (f) handleUploadFile(f); }} />
                   <div className="text-sm text-[#1A1815] font-semibold uppercase tracking-wider">Click to choose a file</div>

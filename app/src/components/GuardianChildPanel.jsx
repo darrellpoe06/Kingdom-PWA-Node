@@ -135,7 +135,7 @@ export default function GuardianChildPanel({ personas, configByPersona, onSetCap
       </Panel>
 
       <Panel title="Approval queue" icon="check"
-        note="When a child tries something set to ask-first, it lands here for a guardian to approve or deny. A child can never approve their own request.">
+        note="This is where ask-first requests land for a guardian to approve or deny — a child can never approve their own request. Honest status: the request queue and guardian controls are live; the app surfaces that FILE requests here are still being wired up feature-by-feature, so an empty queue today means no surface files requests yet, not that all is approved. The database-level wall on child money actions is already enforced regardless.">
         {pending.length === 0 ? (
           <p className="text-sm text-[#5A5751]">No pending requests.</p>
         ) : (

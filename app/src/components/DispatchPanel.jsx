@@ -48,7 +48,7 @@ function WorkerCard({ a, message, readOnly, onWorkerDone, onReopen, onUnassign, 
           {done ? '✅' : '👷'} <span className="font-semibold">{a.name}</span>
           <span className="text-[#5A5751]">
             {a.type ? ` · ${a.type}` : ''}{a.role ? ` · ${a.role}` : ''}
-            {a.dispatchedAt ? ` · sent ${(a.dispatchedAt || '').slice(0, 10)}` : ''}
+            {a.dispatchedAt ? ` · assigned ${(a.dispatchedAt || '').slice(0, 10)}` : ''}
           </span>
         </div>
         <span

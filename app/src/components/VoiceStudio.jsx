@@ -393,7 +393,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                     </div>
                   ) : (
                     <span className="text-[10px] text-[#5A5751] text-right max-w-[9rem]">
-                      {canCloneVoice(v) ? 'Available on a subscription' : 'Invite to enroll — usable only after they consent'}
+                      {canCloneVoice(v) ? 'Available with a subscription (subscriptions open soon)' : 'Invite to enroll — usable only after they consent'}
                     </span>
                   )}
                   {isMine && v.consentState !== CONSENT.GRANTED && (

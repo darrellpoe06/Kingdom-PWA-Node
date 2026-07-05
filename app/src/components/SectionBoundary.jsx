@@ -39,7 +39,7 @@ class SectionBoundary extends React.Component {
           {this.props.name ? `${this.props.name} hit a snag` : 'This section hit a snag'}
         </div>
         <p className="text-sm leading-relaxed text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Something on this part of the page didn’t load right — but nothing you entered was lost, and the rest of the app still works.
+          Something on this part of the page didn’t load right — everything already saved is safe, and the rest of the app still works. If you were mid-typing here, that unsaved text may need re-entering.
         </p>
         <div className="flex flex-wrap gap-2">
           <button

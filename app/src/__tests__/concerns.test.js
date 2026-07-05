@@ -152,6 +152,22 @@ describe('composeConcerns — three inputs merged, DB supersedes same-id seed', 
     expect(out.some((c) => c.id === 'fb-f')).toBe(true);          // feedback present
     expect(out.some((c) => c.id === 'seed-wf18-import-down')).toBe(true); // seeds present
   });
+  it('reads the capability-claims ledger through onto the board as read-only cards', () => {
+    const out = composeConcerns({});
+    const cap = out.filter((c) => c.source === 'capability-audit');
+    expect(cap.length).toBeGreaterThan(0);                 // the committed artifact surfaces
+    for (const c of cap) {
+      expect(c.readOnly).toBe(true);
+      expect(c.id).toMatch(/^cap-/);
+      expect(typeof c.concern).toBe('string');
+      expect(c.whenNote).toMatch(/re-review/);             // DR-0075: every parked gap carries a re-review date
+    }
+    // proven-to-catch: an artifact with a garbage row filters it, keeps the good one
+    const filtered = composeConcerns({ capability: { concerns: [{ id: '', concern: 'x' }, { id: 'cap-ok', concern: 'real gap' }] } });
+    const onlyGood = filtered.filter((c) => c.source === 'capability-audit');
+    expect(onlyGood).toHaveLength(1);
+    expect(onlyGood[0].id).toBe('cap-ok');
+  });
 });
 
 describe('concerns-sync round-trip', () => {

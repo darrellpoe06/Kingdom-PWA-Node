@@ -608,14 +608,14 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
       <div className="border-t-2 border-[#1A1815] pt-3">
         <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Take it to the game</h3>
         <p className="text-sm text-[#5A5751] mb-2" style={serif}>
-          Your self-examination — and every framework published from the family forge — becomes a playable round, each choice scored on the same eight Yahweh axes the Generations game uses (faith, family, souls, wisdom, service, peace, joy, provision). Real study is fun and exploration: run the algorithm, or teach it to someone, and the Word travels with the play. Do it yourself, or carry it into a family / team Game Night.
+          Your self-examination — and every framework published from the family forge — becomes a playable round, each choice scored on the same eight Yahweh axes the Generations game uses (faith, family, souls, wisdom, service, peace, joy, provision). Real study is fun and exploration: run the algorithm, or teach it to someone, and the Word travels with the play. The belief-vs-action round below is live right here; carrying your deck into a full Generations Game Night is in build — the button opens the Games hub today.
         </p>
         <div className="flex gap-2 flex-wrap mb-2">
           <button type="button" onClick={() => setShowRound((v) => !v)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815]`}>
             {showRound ? 'Hide the round' : 'Run the belief-vs-action round'}
           </button>
           <button type="button" onClick={toGameNight} className={`${BTN} border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]`}>
-            <UiIcon name="dice" /> Open Game Night (Generations)
+            <UiIcon name="dice" /> Open the Games hub (Generations)
           </button>
         </div>
         {showRound && <BeliefVsActionRound cards={cards} />}

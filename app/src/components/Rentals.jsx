@@ -414,7 +414,7 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
                 ))}
               </div>
               <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-                Tap a link to open the property on that site via Google search (always finds the right address, even when site URLs change). When you come back, we'll ask if you want to save the value you saw — your call, nothing auto-stamps.
+                Tap a link to open the property on that site — Zillow and Realtor.com jump straight to the property when the address matches their URL pattern; the rest go through a site-scoped Google search. If a link lands wrong, search the address on that site directly. When you come back, we'll ask if you want to save the value you saw — your call, nothing auto-stamps.
               </p>
 
               {/* Round 10 — Capture prompt. Opens after clicking any lookup link.
@@ -2231,7 +2231,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           </div>
           {allRatesEqual && (
             <p className="text-[11px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
-              All 11 rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
+              All {rentals.length} rentals are entered at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
             </p>
           )}
         </div>

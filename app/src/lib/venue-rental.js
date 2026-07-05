@@ -245,6 +245,12 @@ export function validateBookingRequest(form = {}) {
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     errors.requesterEmail = 'That email doesn’t look right — or leave it blank.';
   }
+  // "A leader will reach out" is a promise the form must make keepable: require
+  // at least one way to reach the requester (2026-07-05 capability audit).
+  const phone = String(form.requesterPhone ?? form.phone ?? '').trim();
+  if (!email && !phone) {
+    errors.requesterEmail = 'Add an email or a phone number so a leader can reach you.';
+  }
 
   const s = timeToMinutes(form.startTime);
   const e = timeToMinutes(form.endTime);

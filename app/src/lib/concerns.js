@@ -30,6 +30,11 @@ import { evaluateFeedback, feedbackText } from './feedback-triage.js';
 // so its card simply stops appearing. Import is static so the cards ride the
 // bundle exactly like SEED_CONCERNS; the file is regenerated, never hand-edited.
 import auditArtifact from './audit-findings.json';
+// Capability-claims audit ledger (2026-07-05 sweep, DR-0075/DR-0076) — every
+// promise the app makes to users that the code cannot yet keep, held visible
+// here until the build closes it. Hand-curated (unlike audit-findings.json):
+// a card is REMOVED in the same PR that ships its capability.
+import capabilityArtifact from './capability-findings.json';
 
 // status: 'open' | 'in-progress' | 'done'
 export const CONCERN_STATUS = {
@@ -371,13 +376,27 @@ export function auditToConcernCards(artifact = auditArtifact) {
     .map((c) => ({ ...c, source: 'audit', readOnly: true }));
 }
 
+// -----------------------------------------------------------------------------
+// capabilityToConcernCards — the capability-claims ledger as a read-through feed.
+// Same contract as the audit feed: read-only cards, artifact is the source of
+// truth, a card that leaves capability-findings.json (because its build shipped)
+// simply stops appearing. Keeps every promise-vs-reality gap visible in the app
+// itself instead of only in a session note (App-Is-the-Primary-Artifact).
+// -----------------------------------------------------------------------------
+export function capabilityToConcernCards(artifact = capabilityArtifact) {
+  const cards = (artifact && Array.isArray(artifact.concerns)) ? artifact.concerns : [];
+  return cards
+    .filter((c) => c && c.id && c.concern)
+    .map((c) => ({ ...c, source: 'capability-audit', readOnly: true }));
+}
+
 // Compose the full board list from the inputs. DB concerns + seeds are the
 // editable/baseline curated set; feedback + auto-audit + derived cards are
 // appended read-through (feedback = human voice; audit = the machine's proactive
 // voice; derived = the app's own processes flagging real-data gaps, coverage /
 // reconciliation / shape — see lib/derive-concerns.js). A derived card auto-
 // resolves the moment its detector stops finding the problem, exactly like audit.
-export function composeConcerns({ dbConcerns = [], seeds = SEED_CONCERNS, feedback = [], audit = auditArtifact, derived = [] } = {}) {
+export function composeConcerns({ dbConcerns = [], seeds = SEED_CONCERNS, feedback = [], audit = auditArtifact, capability = capabilityArtifact, derived = [] } = {}) {
   // DB rows win over a seed with the same id (a Governor can supersede a baseline
   // entry by adding a real row); de-dupe by id, DB first.
   const byId = new Map();
@@ -386,8 +405,9 @@ export function composeConcerns({ dbConcerns = [], seeds = SEED_CONCERNS, feedba
   const curated = [...byId.values()];
   const fb = feedbackToConcernCards(feedback);
   const au = auditToConcernCards(audit);
+  const cap = capabilityToConcernCards(capability);
   // Derived cards are already board-shaped (source + readOnly set by the
   // detector); a curated DB/seed row with the same id supersedes it.
   const der = (Array.isArray(derived) ? derived : []).filter((c) => c && c.id && c.concern && !byId.has(c.id));
-  return [...curated, ...fb, ...au, ...der];
+  return [...curated, ...fb, ...au, ...cap, ...der];
 }

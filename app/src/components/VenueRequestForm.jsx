@@ -57,7 +57,7 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
       <div className="max-w-md" aria-live="polite">
         <h3 className="text-lg font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>Request received 🙏</h3>
         <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-          Thank you{form.requesterName ? `, ${form.requesterName.trim().split(/\s+/)[0]}` : ''} — we’ve got your request to use the church’s space. A church leader will review it and reach out to confirm availability and details. Nothing is booked until a leader confirms with you.
+          Thank you{form.requesterName ? `, ${form.requesterName.trim().split(/\s+/)[0]}` : ''} — we’ve got your request to use the church’s space — it’s now in the church’s Event Management queue. A church leader reviews that queue and will reach out to confirm availability and details. Nothing is booked until a leader confirms with you.
         </p>
         <button
           type="button"
@@ -82,12 +82,12 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="mb-1">
-          <label htmlFor="vr-email" className={labelCls}>Email <span className="text-[#5A5751] font-normal">(optional)</span></label>
+          <label htmlFor="vr-email" className={labelCls}>Email <span className="text-[#5A5751] font-normal">(email or phone — give at least one)</span></label>
           <input id="vr-email" type="email" value={form.requesterEmail} onChange={set('requesterEmail')} className={inputCls} autoComplete="email" aria-invalid={!!errors.requesterEmail} aria-describedby={errors.requesterEmail ? 'vr-email-err' : undefined} />
           {errors.requesterEmail && <p id="vr-email-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.requesterEmail}</p>}
         </div>
         <div className="mb-1">
-          <label htmlFor="vr-phone" className={labelCls}>Phone <span className="text-[#5A5751] font-normal">(optional)</span></label>
+          <label htmlFor="vr-phone" className={labelCls}>Phone <span className="text-[#5A5751] font-normal">(email or phone — give at least one)</span></label>
           <input id="vr-phone" type="tel" value={form.requesterPhone} onChange={set('requesterPhone')} className={inputCls} autoComplete="tel" />
         </div>
       </div>

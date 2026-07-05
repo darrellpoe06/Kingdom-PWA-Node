@@ -21,7 +21,7 @@ export default function SelfServeWelcome({ name, onDismiss }) {
           Welcome, {greetingName} — this space is yours.
         </h2>
         <p className="text-sm text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          You&apos;ve got your own private workspace. Nothing here is shared with anyone else — it&apos;s your household&apos;s, on infrastructure you control.
+          You&apos;ve got your own private workspace. Nothing here is shared with anyone else — it&apos;s your household&apos;s own isolated space, walled off at the database level.
         </p>
         <ul className="text-sm text-[#1A1815] mb-4 space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
           <li>📊 <span className="font-semibold">Big Picture</span> — one screen that answers what to do today.</li>
@@ -29,7 +29,7 @@ export default function SelfServeWelcome({ name, onDismiss }) {
           <li>💬 <span className="font-semibold">Feedback</span> — tell us what you need; family voices ship first, and you can attach a screenshot.</li>
         </ul>
         <p className="text-xs text-[#5A5751] mb-4 italic" style={{ fontFamily: '"Fraunces", serif' }}>
-          It starts empty on purpose — add what matters to you, and it&apos;s yours to keep, export, or delete.
+          It starts empty on purpose — add what matters to you, and it&apos;s yours to keep: never sold, never mined. Per-page CSV exports work today; one-tap whole-account export and delete are on the build list.
         </p>
         <button
           type="button"
