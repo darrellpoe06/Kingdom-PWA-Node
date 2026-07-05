@@ -104,18 +104,28 @@ export async function uploadFeedback(item, meta = {}) {
     return 'neutral';
   })();
 
+  // Submitter attribution (Darrell 2026-07-05). ANONYMOUS ON BY DEFAULT: unless
+  // the submitter explicitly turned the toggle OFF (isAnonymous === false), we
+  // do NOT show their name. `is_confidential` (already in the schema) carries the
+  // anonymity flag and `display_name` becomes 'Anonymous' so no name reaches the
+  // board or the chat post. NOTE (honest scope, DR-0076): user_id is still
+  // attached — it is required for the RLS insert and for dedup/spam control — so
+  // this is DISPLAY-level anonymity (no name on any surface), not identity-erasure
+  // from the database. A future migration can null the linkage for true anonymity.
+  // Anonymous unless the toggle was explicitly turned OFF (isAnonymous === false).
+  const anon = item.isAnonymous !== false;
   const row = {
     // Let Postgres generate the UUID — the prototype's `fb-${Date.now()}`
     // local id is kept on the local copy only and isn't a valid uuid.
     instance_id: tenantId,
     user_id: session.user.id,
-    display_name: session.user.email?.split('@')[0] || 'Member',
+    display_name: anon ? 'Anonymous' : (session.user.email?.split('@')[0] || 'Member'),
     device_label: meta.deviceLabel || detectDeviceLabel(),
     app_version: meta.appVersion || null,
     which_tab: meta.activeTab || item.currentView || item.area || null,
     feedback_text: composedBody,
     sentiment: normalizeSentiment(sentimentFromRating),
-    is_confidential: !!item.isConfidential,
+    is_confidential: anon || !!item.isConfidential,
     triage_status: 'new',
   };
 

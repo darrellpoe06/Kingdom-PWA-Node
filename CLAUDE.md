@@ -419,4 +419,22 @@ Recorded for the ledger as **DR-0076**; pairs with DR-0075 (perpetual improvemen
 
 Recorded for the ledger as **DR-0104**; pairs with RELEASE-TIERS (the soak precedes merge; this review confirms the merged reality), DR-0076 (independent verification), and DR-0065 / APP-IS-PRIMARY (documented in the app, where the review is run, as well as here). It complements DR-0103 (the streamlined auto-merge loop): the lane lands the build on green; this is the family's human look at the landed build as a user meets it.
 
+---
+
+## The App Is Not Static — Review the Comprehensive App Every Change (added 2026-07-05, declared by Darrell; DR-0106)
+
+**Binding rule, declared by Darrell 2026-07-05:**
+
+> "make sure when things happen the PoeTech App is not static — review the comprehensive app every time until our historical understanding solidifies."
+
+**On every change, treat the app as a living, interconnected whole — not the one file in front of you.**
+
+- **Name the ripples, not just the edit.** A surface is one end of a connection; before shipping, identify the other surfaces, shared libs, sync rails, and data the change touches or mirrors, and keep them consistent. This is the reality-trace (DR-0061) widened from "this surface + its data" to "this surface *within the whole app*."
+- **Re-review the LIVE state, never a stale snapshot.** Other lanes merge and surfaces move under us; read the current app before assuming last session's shape holds. Memories reflect what was true when written — verify a connection still exists before relying on it.
+- **Feed what you learn back into the history.** Each pass that discovers a connection records it (memory / DR / foundation doc) so the comprehensive review gets cheaper over time. The obligation relaxes for an area only once its institutional history is solid enough that the connections are known without re-deriving — that "**until our historical understanding solidifies**" is the exit condition, not a licence to stop early.
+
+This is the working posture behind the through-line already in Layer 0 — *everything in the workflows comes together inside this one app* (DR-0061/DR-0095), the app is the primary artifact (DR-0065). Those say the app IS an interconnected whole; this says **act like it on every change.** Siloed, stale, single-file edits are the failure mode it prevents. Recorded for the ledger as **DR-0106**.
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.

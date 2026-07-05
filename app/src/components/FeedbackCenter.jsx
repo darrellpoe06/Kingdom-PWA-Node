@@ -13,6 +13,18 @@ import React, { useState } from 'react';
 import { Queue } from './Queue.jsx';
 import { compressImageFile } from '../lib/image.js';
 import UiIcon from './UiIcon.jsx';
+import { computeTabExperts } from '../lib/sme-weighting.js';
+import { buildRecurringReport } from '../lib/recurring-requests.js';
+
+// The decided-directive titles (the DR ledger) — what Darrell has ALREADY said —
+// so the recurring-requests report can flag an ask as already-answered. Same
+// build-time define GovernanceQueue reads; degrades to [] when absent.
+const DR_LEDGER_TITLES = (() => {
+  try {
+    if (typeof __DR_LEDGER__ === 'undefined' || !__DR_LEDGER__) return [];
+    return (__DR_LEDGER__.items || []).map((d) => d.title || '').filter(Boolean);
+  } catch (e) { return []; }
+})();
 
 // Round 12 — Feedback form refreshed to reflect every surface we've actually
 // shipped through MVP v1.5. Area dropdown now mirrors the live nav + the major
@@ -204,8 +216,31 @@ export const FEEDBACK_CATEGORIES = [
   { key: 'praise',       label: '✨ Praise',         accent: '#5A6E3D' },
 ];
 
-export function FeedbackModal({ onClose, onSubmit, currentView }) {
+// First-time anonymity education is shown once per device, the first time a
+// submitter touches the anonymous toggle — so they understand the trade before
+// they lean on the default (DATA-AS-EMPOWERMENT: opt-in, informed).
+const ANON_EDUCATED_KEY = 'poe-fb-anon-educated';
+
+export function FeedbackModal({ onClose, onSubmit, currentView, submitterName = '' }) {
   const [rating, setRating] = useState('');
+  // Submitter attribution (Darrell 2026-07-05). ANONYMOUS ON BY DEFAULT: the
+  // privacy-safe, reversible default. Turning it OFF credits the submitter by
+  // name — which is what makes them a recognized SME for the tabs they know
+  // (their feedback is then prioritized). The name is only ever shown when the
+  // submitter chose to be known.
+  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [anonInfoOpen, setAnonInfoOpen] = useState(false);
+  const knownAs = (String(submitterName || '').trim() || 'you');
+  const onToggleAnonymous = () => {
+    // Educate ONCE, the first time they touch the toggle.
+    try {
+      if (typeof window !== 'undefined' && !window.localStorage.getItem(ANON_EDUCATED_KEY)) {
+        window.localStorage.setItem(ANON_EDUCATED_KEY, '1');
+        setAnonInfoOpen(true);
+      }
+    } catch (e) { /* fail-soft */ }
+    setIsAnonymous(v => !v);
+  };
   // Pre-fill area from the currently-active view if it maps to an area key.
   const initialArea = (() => {
     if (currentView === 'rentals') return 'rentals';
@@ -259,7 +294,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
       setFormError('Pick a rating, a category, jot a note, or attach an image — anything is helpful.');
       return;
     }
-    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots });
+    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots, isAnonymous });
   };
 
   const ratings = [
@@ -353,6 +388,42 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
             </div>
           </div>
 
+            {/* Submitter attribution — anonymous on by default; turning it off
+                credits you as the submitter and makes you a recognized SME for
+                this area, so your feedback here is prioritized. */}
+            <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 mt-4">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!isAnonymous}
+                  onChange={onToggleAnonymous}
+                  className="mt-0.5 h-4 w-4 accent-[#5A6E3D] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  aria-describedby="fb-attr-note"
+                />
+                <span className="text-xs leading-relaxed text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {isAnonymous ? (
+                    <>Submitting <strong>anonymously</strong> — your name won’t be shown. Check this to be credited as the submitter.</>
+                  ) : (
+                    <>You’ll be credited as the submitter (<strong>{knownAs}</strong>). Uncheck to submit anonymously.</>
+                  )}
+                </span>
+              </label>
+              <p id="fb-attr-note" className="text-[0.625rem] text-[#5A5751] mt-1.5 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                Being known makes you a subject-matter expert for the areas you use most — your notes there get prioritized.
+                <button type="button" onClick={() => setAnonInfoOpen(true)} className="ml-1 underline text-[#2A5A8E] hover:text-[#1A1815]">Why?</button>
+              </p>
+            </div>
+            {anonInfoOpen && (
+              <div className="border border-[#2A5A8E] bg-[#FAF8F4] p-3" role="dialog" aria-label="About being credited">
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#2A5A8E] font-semibold">Anonymous vs. credited</div>
+                <p className="text-xs text-[#1A1815] mt-1 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <strong>Anonymous (the default):</strong> your feedback still reaches the stewards and is acted on — your name just isn’t attached.<br />
+                  <strong>Credited:</strong> your name rides with it. Because everyone eventually hits the same issue, we prioritize the people who use an area most — being known lets us treat you as that area’s subject-matter expert and fix your issue fast. You can change this on any submission.
+                </p>
+                <button type="button" onClick={() => setAnonInfoOpen(false)} className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Got it</button>
+              </div>
+            )}
+
           <div className="flex gap-2 mt-5 pt-4 border-t border-[#E8E4DC]">
             {formError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838] w-full" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{formError}</div>}
             <button type="button" onClick={handleSubmit} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold">Submit Feedback</button>
@@ -393,6 +464,78 @@ function buildFeedbackDescription(f) {
 function feedbackSummary(f, maxLen = 60) {
   const summary = (f.whatsNot || f.whatsMissing || f.whatsWorking || 'Tester note').trim();
   return summary.length > maxLen ? summary.slice(0, maxLen - 3) + '...' : summary;
+}
+
+// =============================================================================
+// FEEDBACK SIGNALS — SMEs by tab + the "already-requested / already-said" report
+// =============================================================================
+// Darrell 2026-07-05: see who knows which tab (SMEs, so their feedback is
+// prioritized), and a living tally of what's been requested — how many times,
+// how many ways — cross-referenced against what's already been decided. A
+// heavily-repeated, already-decided ask is "known" (the Tier-A-upgrade
+// candidate). Reads real feedback (lib/sme-weighting + lib/recurring-requests);
+// anonymous submissions count as feedback but never name a person as an SME.
+export function FeedbackSignals({ feedback = [] }) {
+  if (!feedback || feedback.length === 0) return null;
+  const experts = computeTabExperts(feedback);
+  const topTabs = Object.entries(experts)
+    .map(([tab, people]) => ({ tab, people }))
+    .filter((t) => t.people.length > 0)
+    .sort((a, b) => (b.people[0].count - a.people[0].count) || a.tab.localeCompare(b.tab))
+    .slice(0, 6);
+  const report = buildRecurringReport(feedback, { decidedTitles: DR_LEDGER_TITLES, knownMinTimes: 3 });
+  const topRequests = report.rows.filter((r) => r.count >= 2).slice(0, 8);
+  if (topTabs.length === 0 && topRequests.length === 0) return null;
+
+  return (
+    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Subject-matter experts by tab */}
+      <section className="bg-white border border-[#1A1815] p-4">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold inline-flex items-center gap-1.5">
+          <UiIcon name="users" /> Subject-matter experts by area
+        </div>
+        <p className="text-[0.625rem] text-[#5A5751] mt-1 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          Who engages each area most (credited submitters only). Their feedback here is prioritized — their issue is the leading edge of everyone’s.
+        </p>
+        {topTabs.length === 0 ? (
+          <p className="text-xs text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>No credited submitters yet — feedback so far is anonymous.</p>
+        ) : (
+          <ul className="mt-2 space-y-1.5">
+            {topTabs.map(({ tab, people }) => (
+              <li key={tab} className="text-xs border-b border-[#E8E4DC] pb-1.5 last:border-0" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="font-semibold text-[#1A1815]">{tab}</span>
+                <span className="text-[#5A5751]"> — {people.slice(0, 3).map((p) => `${p.name} (${p.count})`).join(', ')}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Already-requested / already-said tally */}
+      <section className="bg-white border border-[#1A1815] p-4">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold inline-flex items-center gap-1.5">
+          <UiIcon name="chat" /> Already requested · {report.totalDistinct} distinct · {report.totalAsks} asks
+        </div>
+        <p className="text-[0.625rem] text-[#5A5751] mt-1 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          What’s been asked, how many times and ways. A repeated ask already decided is “known” — the candidate to graduate into what Tier A can ship (DR-0105).
+        </p>
+        {topRequests.length === 0 ? (
+          <p className="text-xs text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>No repeated requests yet.</p>
+        ) : (
+          <ul className="mt-2 space-y-1.5">
+            {topRequests.map((r) => (
+              <li key={r.signature} className="text-xs border-b border-[#E8E4DC] pb-1.5 last:border-0" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="text-[#1A1815]">{r.label}</span>
+                <span className="text-[#5A5751]"> — {r.count}× · {r.ways} way{r.ways === 1 ? '' : 's'}</span>
+                {r.known && <span className="ml-1 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">· known</span>}
+                {!r.known && r.alreadyDecided && <span className="ml-1 text-[0.5625rem] uppercase tracking-wider text-[#2A5A8E] font-semibold">· decided</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
 }
 
 export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback }) {
@@ -444,6 +587,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
 
   return (
     <div className="mt-8">
+      <FeedbackSignals feedback={feedback} />
       <Queue
         title="Feedback Log · Promote queue"
         subtitle="Focused item is in full detail at top. Browse the rest below and click any card to bring it into focus."
