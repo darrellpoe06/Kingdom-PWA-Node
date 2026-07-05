@@ -387,11 +387,13 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
 
       {/* The promise — true for EVERY user, NAS or not. The never-sold pledge
           is absolute (there is no ad/training/sale pipeline). Durability is
-          stated honestly: device-only today; sovereign backup (own NAS, or a
-          private PoeTech space the user owns + exports) is the next project.
-          Do NOT re-add "your NAS" as if everyone has one. */}
+          stated honestly: photos added here persist on this device; families
+          with their own NAS now have the Phone → NAS backup card (2026-07-05)
+          for bulk photo+video backup; a private PoeTech space for everyone
+          else is still the next project. Do NOT re-word "your NAS" as if
+          everyone has one. */}
       <p className="text-[10px] text-[#5A5751] mt-3 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
-        🔒 Never sold, never mined, never used to train a model — there is no such pipeline here. Today these photos live on this device; backing them up to a space you own — your own NAS, or a private PoeTech space you can export any time — is coming next, so a lost phone never loses them. Save any photo above right now.
+        🔒 Never sold, never mined, never used to train a model — there is no such pipeline here. Photos added here live on this device; if your family runs its own NAS, the Phone → NAS backup card on this page moves this phone&apos;s photos and videos there in bulk — verified — so a lost phone never loses them. A private PoeTech space you can export any time is coming next for everyone else. Save any photo above right now.
       </p>
       <Lightbox items={lightbox?.items} index={lightbox?.index || 0} src={lightbox?.src} alt={lightbox?.alt} onClose={() => setLightbox(null)} />
     </section>
