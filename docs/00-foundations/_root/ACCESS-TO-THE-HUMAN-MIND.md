@@ -61,7 +61,7 @@ Yahweh genuinely places thoughts, gives understanding, prompts action. But alway
 
 ---
 
-## PART TWO · The Adversary's Access
+## PART TWO · What the adversary can access
 
 This section needs the most careful work because popular teaching often overstates what scripture actually grants the adversary.
 
