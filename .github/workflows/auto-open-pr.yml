@@ -26,6 +26,13 @@ on:
       - 'fix/**'
       - 'merge/**'
       - 'docs/**'
+      # The remote/web sessions (Claude Code on the web) push their work on
+      # `claude/*` branches. They were excluded from the merge lane, so EVERY
+      # agent PR was invisible to auto-open + auto-merge and could only be
+      # landed by Darrell's hand -- the "we don't move when I'm not pushing"
+      # stall (2026-07-05). Bringing `claude/**` into the same sanctioned
+      # default (auto-merge on green; `hold` to soak) closes that gap.
+      - 'claude/**'
 
 permissions:
   contents: write
