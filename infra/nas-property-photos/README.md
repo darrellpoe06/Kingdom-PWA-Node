@@ -159,3 +159,81 @@ directly (would push resolution to ~100% regardless of backup). (DR-0075.)
 Now served-verified, the n8n `wf-property-photos` workflow can be **deactivated**
 (leave `infra/n8n/property-photos.py` + `wf-property-photos.json` in the repo as
 history). Family/album galleries still ride `/n8n` and are unaffected.
+
+---
+
+## Phone media backup (photos + videos) — added 2026-07-05
+
+**Status: built + verified locally (53/53 selftest, live chunked-upload
+end-to-end exercise, 4,492 app tests); NAS redeploy pending Darrell.**
+
+Darrell, 2026-07-05: *"Can this app upload and give me the option of moving all
+my photos and videos to my server or nas ... so I can get a new phone and all
+my images and videos are safe?"* This server now carries that write lane —
+videos cannot ride the n8n `photo-upload` webhook (JSON/base64 transport, 8 MB
+cap, image-only), so the raw-byte, chunked, resumable path lives here.
+
+### Contract (all bearer-gated with the same chat-bridge token)
+
+```
+GET  /media-exists?device=<d>&name=<n>&size=<bytes>&date=YYYY-MM-DD
+     -> { ok, exists, bytes }            # dedup check before any bytes move
+GET  /media-upload-status?id=<upload-id>
+     -> { ok, bytes }                    # resume point for a partial upload
+POST /media-upload                       # body = raw chunk (~6 MB from the PWA)
+     X-Upload-Id / X-Media-Device / X-Media-Name / X-Media-Total /
+     X-Media-Offset / X-Media-Date
+     -> { ok, bytes, complete, dedup }   # 409 + real part size on offset
+                                         # mismatch; the client adopts it
+```
+
+Files land under `MEDIA_BACKUP_ROOT` (default `/volume1/PoeTech/phone-backup`):
+`<device>/<YYYY>/<MM>/<name>`. In-flight chunks accumulate in `.parts/`.
+Completion is gated on a magic-byte check (JPEG/PNG/WebP/GIF, MP4/MOV/HEIC
+family, WebM/MKV, AVI); anything unrecognized is deleted, never stored. A
+same-name-same-size file is a dedup hit; a same-name-different-size file gets a
+uniquified name — nothing is ever clobbered. Filenames and device labels are
+sanitized and realpath-contained inside the backup root (belt and suspenders),
+and per-upload locks keep the threaded server's appends serial.
+
+### The app side (already committed)
+
+- `app/src/lib/media-backup.js` — chunk protocol, dedup/resume, the
+  verified-bytes-or-no-checkmark rule (DR-0076), and the per-device
+  backed-up ledger (`poetech-media-backup-ledger`).
+- `app/src/components/PhoneBackup.jsx` — the Big Picture card: pick files or
+  a whole folder (Android Chrome), progress, stop/resume, honest service
+  states (it detects a pre-media server build and says so).
+- `app/functions/nas-photos/[[path]].js` — Cloudflare Pages proxy for the
+  `/nas-photos` path (sibling of the `/n8n` Function; the Vercel rewrite
+  already covers it there).
+- Tests: `app/src/__tests__/media-backup.test.js` (protocol, sanitizers,
+  ledger, endpoint pinned to `/nas-photos` never `/n8n`) and
+  `phone-backup-render.test.jsx` (honest render states).
+
+### Redeploy on the NAS (same service, new build)
+
+Nothing new to configure: same token file, same port, same Funnel path. Just
+replace the script and restart. From PowerShell, anywhere:
+
+```
+cd C:\Users\dpoe\Kingdom-PWA-Node
+git pull origin main
+scp infra\nas-property-photos\photo_server.py dpoe@192.168.1.26:/volume1/PoeTech/scripts/photo_server.py
+ssh dpoe@192.168.1.26 "sudo systemctl restart poetech-photo-server"
+ssh dpoe@192.168.1.26 "curl -s localhost:8099/healthz"
+```
+
+Expected: `{"ok": true}`. Then on the phone: PoeTech app → Family OS → Big
+Picture → the "Phone → NAS backup" card should show its buttons enabled (it
+probes `/media-upload-status` and reports "needs the update" until the restart
+lands). Verify end-to-end by backing up one photo and confirming it appears
+under `/volume1/PoeTech/phone-backup/<device>/<year>/<month>/`.
+
+### Honest scope
+
+A PWA cannot background-sync the camera roll (browser sandbox — see
+`docs/99-session-notes/2026-06-11-photo-sovereignty-and-phone-backup.md`).
+This lane is foreground pick-and-verify (bulk folder backup included); the
+Synology Photos app remains the automatic every-new-shot path. The card states
+this on-surface instead of faking it.

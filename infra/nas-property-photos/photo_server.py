@@ -28,6 +28,26 @@
 #      `thumb` is a data:image/jpeg;base64 URL or null (listed honestly).
 #   GET /healthz -> { ok: true }   (no auth; liveness only)
 #
+# PHONE MEDIA BACKUP (2026-07-05, Darrell: "moving all my photos and videos to
+# my server or nas ... so I can get a new phone and all my images and videos
+# are safe"). Chunked, resumable, verified writes of a phone's photos AND
+# videos to the NAS the family owns. Videos cannot ride the n8n JSON/base64
+# photo-upload path (8 MB cap, image-only), so the raw-byte lane lives here on
+# the same sovereign server. All three endpoints bearer-gated:
+#   GET  /media-exists?device=<d>&name=<n>&size=<bytes>&date=YYYY-MM-DD
+#        -> { ok, exists, bytes }          (dedup check before any bytes move)
+#   GET  /media-upload-status?id=<upload-id>
+#        -> { ok, bytes }                  (resume point for a partial upload)
+#   POST /media-upload   (body = raw chunk bytes, application/octet-stream)
+#        X-Upload-Id / X-Media-Device / X-Media-Name / X-Media-Total /
+#        X-Media-Offset / X-Media-Date
+#        -> { ok, bytes, complete } ; 409 + current bytes on offset mismatch
+#        (idempotent append: the client adopts the server's offset and resumes)
+#   Files land under MEDIA_BACKUP_ROOT (/volume1/PoeTech/phone-backup by
+#   default): <device>/<YYYY>/<MM>/<name>. Magic-byte checked on completion;
+#   originals never rewritten; a same-name-same-size file is a dedup hit, a
+#   same-name-different-size file gets a uniquified name — nothing is clobbered.
+#
 # The path is matched by SUFFIX (".../property-photos"), so it works whether the
 # fronting proxy (Tailscale serve / DSM reverse proxy) strips its mount prefix
 # or not.
@@ -65,6 +85,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -110,6 +131,99 @@ DOWNSCALE_MAX = 480           # px longest edge for the on-the-fly fallback
 # bridge). Reuse it -- no second copy of the secret, no re-seeding. The PWA
 # stores the same value in localStorage["poetech-chat-bridge-token"].
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
+
+# --- Phone media backup (photos + videos) --------------------------------------
+# Where backed-up phone media lands: <root>/<device>/<YYYY>/<MM>/<name>.
+# In-flight chunks accumulate under <root>/.parts/<upload-id>.part.
+MEDIA_ROOT_DEFAULT = "/volume1/PoeTech/phone-backup"
+MEDIA_EXTS = {
+    "jpg", "jpeg", "png", "webp", "heic", "heif", "gif",   # photos
+    "mp4", "mov", "m4v", "webm", "mkv", "avi", "3gp",       # videos
+}
+MAX_MEDIA_BYTES = 4 * 1024 * 1024 * 1024   # 4 GB per file (covers long phone videos)
+MAX_CHUNK_BYTES = 16 * 1024 * 1024          # per-request cap; client sends ~6 MB
+SAFE_UPLOAD_ID = re.compile(r"^[A-Za-z0-9._-]{8,120}$")
+SAFE_MEDIA_DATE = re.compile(r"^(20\d{2})-(0[1-9]|1[0-2])-([0-3]\d)$")
+# One lock per in-flight upload id so ThreadingHTTPServer appends never interleave.
+_MEDIA_LOCKS = {}
+_MEDIA_LOCKS_GUARD = threading.Lock()
+
+
+def media_root():
+    return os.environ.get("MEDIA_BACKUP_ROOT", "").strip() or MEDIA_ROOT_DEFAULT
+
+
+def _upload_lock(upload_id):
+    with _MEDIA_LOCKS_GUARD:
+        return _MEDIA_LOCKS.setdefault(upload_id, threading.Lock())
+
+
+def sanitize_media_name(name):
+    """A phone media filename made filesystem-safe, or None. The name is NEVER
+    trusted as a path: basename only, safe chars only, extension whitelisted."""
+    base = os.path.basename((name or "").replace("\\", "/"))
+    cleaned = re.sub(r"[^A-Za-z0-9._-]", "_", base).strip("._")
+    if not cleaned or len(cleaned) > 120 or ".." in cleaned:
+        return None
+    if "." not in cleaned:
+        return None
+    ext = cleaned.rsplit(".", 1)[-1].lower()
+    if ext not in MEDIA_EXTS:
+        return None
+    return cleaned
+
+
+def sanitize_device_label(label):
+    """The phone's own label for itself ("darrell-z-fold7"), made path-safe."""
+    cleaned = re.sub(r"[^A-Za-z0-9._-]", "-", (label or "").strip())
+    cleaned = re.sub(r"-{2,}", "-", cleaned).strip(".-_")
+    if not cleaned or len(cleaned) > 48 or ".." in cleaned:
+        return None
+    return cleaned
+
+
+def media_kind(head):
+    """Identify a completed upload by magic bytes (first 16). Covers every
+    whitelisted extension; anything unrecognized is rejected, never stored."""
+    if head[:3] == b"\xff\xd8\xff":
+        return "jpeg"
+    if head[:8] == b"\x89PNG\r\n\x1a\n":
+        return "png"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "webp"
+    if head[:4] == b"RIFF" and head[8:12] == b"AVI ":
+        return "avi"
+    if head[:4] == b"GIF8":
+        return "gif"
+    if head[4:8] == b"ftyp":
+        return "isobmff"   # mp4 / mov / m4v / 3gp / heic / heif
+    if head[:4] == b"\x1a\x45\xdf\xa3":
+        return "ebml"      # webm / mkv
+    return None
+
+
+def final_media_path(device, date_str, name):
+    """Absolute destination for a completed upload, or None if it would escape
+    the backup root (belt on top of the sanitizers)."""
+    y, m = date_str[:4], date_str[5:7]
+    root = os.path.realpath(media_root())
+    path = os.path.realpath(os.path.join(root, device, y, m, name))
+    if path != root and not path.startswith(root + os.sep):
+        return None
+    return path
+
+
+def uniquify_media_path(path):
+    """A same-name-DIFFERENT-size file already exists: never clobber it. Insert
+    -1, -2, ... before the extension until the name is free."""
+    if not os.path.exists(path):
+        return path
+    stem, ext = os.path.splitext(path)
+    for i in range(1, 100):
+        candidate = "%s-%d%s" % (stem, i, ext)
+        if not os.path.exists(candidate):
+            return candidate
+    return None
 
 
 def roots():
@@ -303,25 +417,158 @@ def make_handler(args):
     token = expected_token(args)
 
     class Handler(BaseHTTPRequestHandler):
-        server_version = "poetech-photos/1.0"
+        server_version = "poetech-photos/1.1"
 
-        def _send(self, code, payload):
+        def _send(self, code, payload, cache="private, max-age=60"):
             body = json.dumps(payload).encode("utf-8")
             self.send_response(code)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "private, max-age=60")
+            self.send_header("Cache-Control", cache)
             self.end_headers()
             self.wfile.write(body)
 
         def log_message(self, *a):  # keep the NAS console quiet; never log tokens
             pass
 
+        # --- Phone media backup: dedup + resume reads -------------------------
+        def _media_exists(self, query):
+            q = parse_qs(query)
+            device = sanitize_device_label((q.get("device", [""])[0] or ""))
+            name = sanitize_media_name((q.get("name", [""])[0] or ""))
+            date = (q.get("date", [""])[0] or "").strip()
+            try:
+                size = int(q.get("size", ["0"])[0])
+            except ValueError:
+                size = -1
+            if not device or not name or size <= 0 or not SAFE_MEDIA_DATE.match(date):
+                self._send(400, {"ok": False, "error": "bad params"}, cache="no-store")
+                return
+            dest = final_media_path(device, date, name)
+            exists = False
+            have = 0
+            if dest and os.path.isfile(dest):
+                try:
+                    have = os.path.getsize(dest)
+                except OSError:
+                    have = 0
+                exists = have == size
+            self._send(200, {"ok": True, "exists": exists, "bytes": have}, cache="no-store")
+
+        def _media_upload_status(self, query):
+            q = parse_qs(query)
+            upload_id = (q.get("id", [""])[0] or "").strip()
+            if not SAFE_UPLOAD_ID.match(upload_id):
+                self._send(400, {"ok": False, "error": "bad id"}, cache="no-store")
+                return
+            part = os.path.join(media_root(), ".parts", upload_id + ".part")
+            have = 0
+            try:
+                if os.path.isfile(part):
+                    have = os.path.getsize(part)
+            except OSError:
+                have = 0
+            self._send(200, {"ok": True, "bytes": have}, cache="no-store")
+
+        # --- Phone media backup: the chunked, resumable write ------------------
+        def do_POST(self):
+            parsed = urlparse(self.path)
+            path = parsed.path.rstrip("/")
+            if not (path.endswith("/media-upload") or path == "/media-upload"):
+                self._send(404, {"ok": False, "error": "not found"}, cache="no-store")
+                return
+            if not bearer_ok(self.headers.get("Authorization"), token):
+                self._send(401, {"ok": False, "error": "unauthorized"}, cache="no-store")
+                return
+            upload_id = (self.headers.get("X-Upload-Id") or "").strip()
+            device = sanitize_device_label(self.headers.get("X-Media-Device") or "")
+            name = sanitize_media_name(self.headers.get("X-Media-Name") or "")
+            date = (self.headers.get("X-Media-Date") or "").strip()
+            try:
+                total = int(self.headers.get("X-Media-Total") or "0")
+                offset = int(self.headers.get("X-Media-Offset") or "-1")
+                clen = int(self.headers.get("Content-Length") or "0")
+            except ValueError:
+                total, offset, clen = 0, -1, 0
+            if (not SAFE_UPLOAD_ID.match(upload_id) or not device or not name
+                    or not SAFE_MEDIA_DATE.match(date)
+                    or total <= 0 or total > MAX_MEDIA_BYTES
+                    or offset < 0 or clen <= 0 or clen > MAX_CHUNK_BYTES
+                    or offset + clen > total):
+                self._send(400, {"ok": False, "error": "bad upload params"}, cache="no-store")
+                return
+            parts_dir = os.path.join(media_root(), ".parts")
+            part = os.path.join(parts_dir, upload_id + ".part")
+            with _upload_lock(upload_id):
+                try:
+                    os.makedirs(parts_dir, exist_ok=True)
+                    have = os.path.getsize(part) if os.path.isfile(part) else 0
+                    if offset != have:
+                        # Idempotent resume: tell the client where the part really
+                        # is; it adopts this offset and continues. A fully-replayed
+                        # chunk is a no-op, never a corruption.
+                        self._send(409, {"ok": False, "bytes": have}, cache="no-store")
+                        return
+                    remaining = clen
+                    with open(part, "ab") as fh:
+                        while remaining > 0:
+                            data = self.rfile.read(min(remaining, 1024 * 1024))
+                            if not data:
+                                raise OSError("client stream ended early")
+                            fh.write(data)
+                            remaining -= len(data)
+                    have += clen
+                    if have < total:
+                        self._send(200, {"ok": True, "bytes": have, "complete": False}, cache="no-store")
+                        return
+                    # Complete: magic-byte check, then move into place — verified
+                    # bytes or nothing (DR-0076: no claim without evidence).
+                    with open(part, "rb") as fh:
+                        head = fh.read(16)
+                    if media_kind(head) is None:
+                        os.remove(part)
+                        self._send(415, {"ok": False, "error": "unrecognized file type"}, cache="no-store")
+                        return
+                    dest = final_media_path(device, date, name)
+                    if not dest:
+                        os.remove(part)
+                        self._send(400, {"ok": False, "error": "bad destination"}, cache="no-store")
+                        return
+                    dedup = False
+                    if os.path.exists(dest):
+                        if os.path.getsize(dest) == total:
+                            os.remove(part)   # same name, same bytes: already safe
+                            dedup = True
+                        else:
+                            dest = uniquify_media_path(dest)
+                            if not dest:
+                                os.remove(part)
+                                self._send(409, {"ok": False, "error": "name exhausted"}, cache="no-store")
+                                return
+                    if not dedup:
+                        os.makedirs(os.path.dirname(dest), exist_ok=True)
+                        os.replace(part, dest)
+                    self._send(200, {"ok": True, "bytes": total, "complete": True, "dedup": dedup}, cache="no-store")
+                except Exception as err:  # never leak internals; stay honest + quiet
+                    self._send(500, {"ok": False, "error": "upload failed: %s" % type(err).__name__}, cache="no-store")
+
         def do_GET(self):
             parsed = urlparse(self.path)
             path = parsed.path.rstrip("/")
             if path.endswith("/healthz") or path == "/healthz" or path == "/health":
                 self._send(200, {"ok": True})
+                return
+            if path.endswith("/media-exists") or path == "/media-exists":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"ok": False, "error": "unauthorized"}, cache="no-store")
+                    return
+                self._media_exists(parsed.query)
+                return
+            if path.endswith("/media-upload-status") or path == "/media-upload-status":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"ok": False, "error": "unauthorized"}, cache="no-store")
+                    return
+                self._media_upload_status(parsed.query)
                 return
             if not (path.endswith("/property-photos") or path == "/property-photos"):
                 self._send(404, {"error": "not found", "photos": [], "count": 0})
@@ -454,6 +701,45 @@ def selftest():
     os.environ["PHOTO_ROOTS"] = "/a/{y}/{m};/b/{y}/{m}"
     ok("roots honors env override", roots() == ["/a/{y}/{m}", "/b/{y}/{m}"])
     del os.environ["PHOTO_ROOTS"]
+
+    # --- phone media backup: names are never trusted as paths ------------------
+    ok("media name accepts camera jpg", sanitize_media_name("20260705_082412.jpg") == "20260705_082412.jpg")
+    ok("media name accepts phone video", sanitize_media_name("PXL_20260101_120000.mp4") == "PXL_20260101_120000.mp4")
+    ok("media name strips directories", sanitize_media_name("../../etc/passwd.jpg") == "passwd.jpg")
+    ok("media name strips windows path", sanitize_media_name("C:\\Users\\x\\a.mp4") == "a.mp4")
+    ok("media name rejects no extension", sanitize_media_name("noext") is None)
+    ok("media name rejects unknown ext", sanitize_media_name("evil.exe") is None)
+    ok("media name rejects empty", sanitize_media_name("") is None)
+    ok("media name sanitizes unicode/spaces", sanitize_media_name("Christina's video (1).mov") == "Christina_s_video__1_.mov")
+    ok("device label accepts clean", sanitize_device_label("darrell-z-fold7") == "darrell-z-fold7")
+    ok("device label sanitizes spaces", sanitize_device_label("DP Note 20") == "DP-Note-20")
+    ok("device label rejects traversal", sanitize_device_label("../..") is None)
+    ok("device label rejects empty", sanitize_device_label("   ") is None)
+    ok("upload id accepts client shape", bool(SAFE_UPLOAD_ID.match("dev-4200-1751700000000-IMG_0001.jpg")))
+    ok("upload id rejects short", not SAFE_UPLOAD_ID.match("abc"))
+    ok("upload id rejects slash", not SAFE_UPLOAD_ID.match("a/b-12345678"))
+    ok("media date accepts real date", bool(SAFE_MEDIA_DATE.match("2026-07-05")))
+    ok("media date rejects month 13", not SAFE_MEDIA_DATE.match("2026-13-05"))
+    ok("media date rejects junk", not SAFE_MEDIA_DATE.match("../2026"))
+    # magic bytes: every whitelisted family recognized, junk rejected
+    ok("magic jpeg", media_kind(b"\xff\xd8\xff\xe0" + b"\x00" * 12) == "jpeg")
+    ok("magic png", media_kind(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8) == "png")
+    ok("magic webp", media_kind(b"RIFF\x00\x00\x00\x00WEBPVP8 ") == "webp")
+    ok("magic avi", media_kind(b"RIFF\x00\x00\x00\x00AVI LIST") == "avi")
+    ok("magic gif", media_kind(b"GIF89a" + b"\x00" * 10) == "gif")
+    ok("magic mp4/mov/heic (ftyp)", media_kind(b"\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00") == "isobmff")
+    ok("magic webm/mkv (ebml)", media_kind(b"\x1a\x45\xdf\xa3" + b"\x00" * 12) == "ebml")
+    ok("magic rejects junk", media_kind(b"MZ\x90\x00" + b"\x00" * 12) is None)
+    ok("magic rejects empty", media_kind(b"") is None)
+    # destination containment: the resolved path can never escape the root
+    os.environ["MEDIA_BACKUP_ROOT"] = "/tmp/poetech-selftest-media"
+    dest = final_media_path("dev", "2026-07-05", "a.jpg")
+    ok("media dest lands under root + device + y/m",
+       dest == "/tmp/poetech-selftest-media/dev/2026/07/a.jpg")
+    ok("media root honors env override", media_root() == "/tmp/poetech-selftest-media")
+    del os.environ["MEDIA_BACKUP_ROOT"]
+    ok("media root has a default", media_root() == MEDIA_ROOT_DEFAULT)
+    ok("upload lock is per-id and stable", _upload_lock("id-12345678") is _upload_lock("id-12345678"))
 
     passed = sum(1 for _, c in checks if c)
     for label, c in checks:
