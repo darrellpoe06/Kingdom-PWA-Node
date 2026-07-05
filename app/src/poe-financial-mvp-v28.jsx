@@ -5603,7 +5603,7 @@ html{scroll-padding-bottom:280px}
               concerns={data.concerns || []} feedback={[...(data.feedback || []), ...remoteFeedback]} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern}
               financialDocAt={(() => { const ms = latestFinancialDocMs(ingestData); return ms ? new Date(ms).toISOString() : null; })()}
               onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
-              feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
+              feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} currentUser={{ id: authSession?.user?.id || null, name: authSession?.user?.email?.split('@')[0] || null }} />}
             /></SectionBoundary>
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
@@ -5704,7 +5704,7 @@ html{scroll-padding-bottom:280px}
             email={authSession?.user?.email || null}
             instanceId={mpInstanceId}
             backendReachable={mpBackendAvailable && !!mpInstanceId}
-            data={data}
+            data={data} feedback={[...(data.feedback || []), ...remoteFeedback]} currentUser={{ id: authSession?.user?.id || null, name: authSession?.user?.email?.split('@')[0] || null }}
             isPublicHost={isPublicHost()}
             onResetSeed={resetToSeed}
           />

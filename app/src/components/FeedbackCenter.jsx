@@ -9,10 +9,12 @@
 // fonts (no text-[Npx]), no device-font emoji (UiIcon where a glyph earns its
 // place), no width-cap classes — this file carries NO consistency-guard
 // baseline debt on purpose.
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Queue } from './Queue.jsx';
 import { compressImageFile } from '../lib/image.js';
 import UiIcon from './UiIcon.jsx';
+import TabSmePanel from './TabSmePanel.jsx';
+import { standingsById, prioritizeBySme } from '../lib/tab-sme.js';
 
 // Round 12 — Feedback form refreshed to reflect every surface we've actually
 // shipped through MVP v1.5. Area dropdown now mirrors the live nav + the major
@@ -194,6 +196,35 @@ export const FEEDBACK_AREAS = [
     ['other', 'Other'],
   ]},
 ];
+// Flat area-key -> concise label, derived from FEEDBACK_AREAS (the nav mirror is
+// the single source of truth). The leading "└ " sub-feature marker is stripped;
+// unknown keys prettify from the key so a new/renamed area never renders blank.
+const FEEDBACK_AREA_LABELS = (() => {
+  const m = {};
+  for (const g of FEEDBACK_AREAS) for (const [k, label] of g.items) m[k] = String(label).replace(/^└\s*/, '');
+  return m;
+})();
+export function feedbackAreaLabel(key) {
+  if (!key) return 'Unknown';
+  return FEEDBACK_AREA_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1).replace(/[-_]/g, ' '));
+}
+
+// The SME mark that rides a feedback row in the promote queue: this submitter is
+// a repeat subject-matter voice on this area (tab-sme standing), so triage it
+// first. Only shown for a real SME standing; never painted on a one-off note.
+function SmeBadge({ standing }) {
+  if (!standing || !standing.isSme) return null;
+  const label = standing.isTopVoice ? 'SME · top voice' : 'SME';
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[0.5625rem] uppercase tracking-wider font-semibold px-1.5 py-0.5 border border-[#5A6E3D] text-[#5A6E3D] bg-[#FAF8F4]"
+      title={`${standing.notesOnArea} notes on this area · ranked #${standing.rank} of ${standing.contributors}`}
+    >
+      <UiIcon name="sparkle" /> {label} · {standing.notesOnArea}
+    </span>
+  );
+}
+
 export const FEEDBACK_CATEGORIES = [
   { key: 'bug',          label: 'Bug',           accent: '#B85838' },
   { key: 'confusion',    label: '❓ Confusion',     accent: '#D97706' },
@@ -395,9 +426,14 @@ function feedbackSummary(f, maxLen = 60) {
   return summary.length > maxLen ? summary.slice(0, maxLen - 3) + '...' : summary;
 }
 
-export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback }) {
+export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback, currentUser = null }) {
+  // SME standing per row (one aggregation pass) + SME-first ordering. Hooks run
+  // before the early return so hook order stays stable across renders.
+  const smeOpts = useMemo(() => ({ self: currentUser }), [currentUser]);
+  const standings = useMemo(() => standingsById(feedback, smeOpts), [feedback, smeOpts]);
+  const sorted = useMemo(() => prioritizeBySme(feedback, smeOpts), [feedback, smeOpts]);
   if (!feedback || feedback.length === 0) return null;
-  const sorted = [...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const standingFor = (f) => (f && f.id != null ? standings.get(f.id) : null);
 
   const promoteToProject = (f) => {
     const name = `${f.area || 'Feedback'}: ${feedbackSummary(f)}`;
@@ -444,9 +480,12 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
 
   return (
     <div className="mt-8">
+      <div className="mb-4">
+        <TabSmePanel feedback={feedback} currentUser={currentUser} areaLabel={feedbackAreaLabel} />
+      </div>
       <Queue
         title="Feedback Log · Promote queue"
-        subtitle="Focused item is in full detail at top. Browse the rest below and click any card to bring it into focus."
+        subtitle="SME feedback is surfaced first (a repeat voice on that tab). Focused item is in full detail at top; click any card to bring it into focus."
         emoji={<UiIcon name="chat" />}
         accent="#B85838"
         items={sorted}
@@ -456,9 +495,10 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
         renderFocus={(f) => (
           <div>
             <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
-              <div className="text-[0.625rem] uppercase tracking-wider">
+              <div className="text-[0.625rem] uppercase tracking-wider inline-flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-[#B85838]">{f.area || 'Note'}</span>
                 {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
+                <SmeBadge standing={standingFor(f)} />
               </div>
               <span className="text-[0.5625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                 {new Date(f.createdAt).toLocaleString()}
@@ -516,9 +556,10 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
           return (
             <div className="flex items-baseline justify-between gap-2 flex-wrap">
               <div className="flex-1 min-w-0">
-                <div className="text-[0.625rem] uppercase tracking-wider">
+                <div className="text-[0.625rem] uppercase tracking-wider inline-flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-[#B85838]">{f.area || 'Note'}</span>
                   {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
+                  <SmeBadge standing={standingFor(f)} />
                 </div>
                 <div className="text-sm truncate" style={{ fontFamily: '"Fraunces", serif' }}>
                   {feedbackSummary(f, 80)}

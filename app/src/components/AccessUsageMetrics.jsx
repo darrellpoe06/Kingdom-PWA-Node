@@ -32,6 +32,8 @@ import {
   fetchSignupMetrics, summaryTiles, signupRowView, sortSignups,
 } from '../lib/signup-metrics.js';
 import { fetchUsageFlow, topViews, viewShare } from '../lib/usage-events.js';
+import TabSmePanel from './TabSmePanel.jsx';
+import { feedbackAreaLabel } from './FeedbackCenter.jsx';
 
 // Friendly names for the raw view ids the usage stream records.
 const VIEW_LABELS = {
@@ -246,7 +248,7 @@ function UsageFlow() {
   );
 }
 
-export default function AccessUsageMetrics() {
+export default function AccessUsageMetrics({ feedback = [], currentUser = null }) {
   const [state, setState] = useState({ phase: 'loading', snap: null });
 
   const load = useCallback(async () => {
@@ -341,6 +343,13 @@ export default function AccessUsageMetrics() {
             id: 'used',
             label: "What's used",
             render: () => <UsageFlow />,
+          },
+          {
+            id: 'smes',
+            label: 'SMEs by tab',
+            // Who likes which tabs → prioritize their feedback (Darrell 2026-07-05).
+            // Voluntary-feedback signal only; honors the aggregate-only usage line.
+            render: () => <TabSmePanel feedback={feedback} currentUser={currentUser} areaLabel={feedbackAreaLabel} />,
           },
           {
             id: 'access',

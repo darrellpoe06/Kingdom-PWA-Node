@@ -81,6 +81,22 @@ describe('FeedbackPromotePanel — the promote queue still works after extractio
   });
 });
 
+describe('FeedbackPromotePanel — SME signal surfaces and prioritizes', () => {
+  // Two notes on the same area from the same person → a repeat voice → SME.
+  const smeRows = [
+    { id: 'a1', which_tab: 'church', user_id: 'u-c', display_name: 'Christina', whatsNot: 'prayer list scrolls', submitted_at: '2026-07-01T10:00:00Z', createdAt: '2026-07-01T10:00:00Z' },
+    { id: 'a2', which_tab: 'church', user_id: 'u-c', display_name: 'Christina', whatsMissing: 'ministry filter', submitted_at: '2026-07-02T10:00:00Z', createdAt: '2026-07-02T10:00:00Z' },
+    { id: 'b1', area: 'markets', whatsNot: 'ticker lag', createdAt: '2026-07-03T10:00:00Z' },
+  ];
+
+  it('shows the SME-by-tab panel and badges the repeat voice as SME', async () => {
+    await mount(FeedbackPromotePanel, { feedback: smeRows, addProject: () => {}, addIncident: () => {}, deleteFeedback: () => {} });
+    expect(document.body.textContent).toMatch(/SMEs by tab/);      // the panel rendered
+    expect(document.body.textContent).toMatch(/\bSME\b/);          // a badge appears
+    expect(document.body.textContent).toMatch(/Christina/);        // the expert is named
+  });
+});
+
 describe('the extraction paid its debt — the new file is guard-clean, the monolith shrank', () => {
   const src = readFileSync(join(ROOT, 'components/FeedbackCenter.jsx'), 'utf8');
 

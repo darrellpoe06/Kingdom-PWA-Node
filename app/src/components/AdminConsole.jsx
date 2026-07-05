@@ -111,6 +111,8 @@ export default function AdminConsole({
   backendReachable = false,
   isPublicHost = true,
   onResetSeed = null,
+  feedback = [],
+  currentUser = null,
 }) {
   const [roleState, setRoleState] = useState({ status: 'idle', role: null, error: null });
 
@@ -162,7 +164,7 @@ export default function AdminConsole({
       icon: 'users',
       // THE USERS REPORT — absorbed from the retired Access tab. Real KPIs, self-
       // fetching, fail-soft, family/governor-gated at the DB.
-      render: () => <AccessUsageMetrics />,
+      render: () => <AccessUsageMetrics feedback={feedback} currentUser={currentUser} />,
     },
     {
       id: 'system',
