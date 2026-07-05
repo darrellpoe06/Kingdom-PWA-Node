@@ -383,6 +383,7 @@ export function summarizeChange(action, title) {
     case 'edit-segment':   return `Edited segment${t}`;
     case 'delete-segment': return `Removed segment${t}`;
     case 'seed-order':     return 'Started from the standard order';
+    case 'import-email':   return `Imported the order from the church email${t}`;
     default:               return action;
   }
 }
@@ -479,18 +480,30 @@ export async function deleteSegment(id, meta = {}) {
   return { deleted: true };
 }
 
-// Insert a whole seed order at once (one-tap "start from template"). Best-effort;
-// returns the count inserted. Fails soft per row so a partial template still lands.
-export async function seedProgramSegments(programId, displayName) {
+// Insert a whole template order at once (one-tap "start from template" or the
+// paste-from-email import). Best-effort; returns the count inserted.
+async function insertTemplateSegments(programId, templateSegments, action, title, displayName) {
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
-  const rows = seedDefaultOrder().map((seg) => ({
+  const rows = (templateSegments || []).map((seg) => ({
     ...segmentRow(seg), program_id: programId, instance_id: ctx.tenantId, created_by: ctx.userId,
   }));
+  if (rows.length === 0) return { skipped: 'no-segments' };
   const { error } = await supabase.from('church_service_segments').insert(rows);
   if (error) return { skipped: 'insert-error', error };
-  await logChange(ctx, programId, null, 'seed-order', null);
+  await logChange(ctx, programId, null, action, title);
   return { saved: true, count: rows.length };
+}
+
+export async function seedProgramSegments(programId, displayName) {
+  return insertTemplateSegments(programId, seedDefaultOrder(), 'seed-order', null, displayName);
+}
+
+// The paste-from-email import lands its parsed segments through the same lane,
+// recorded in the change trail as its own action (institutional memory: the
+// order came from the church email, not the standard template).
+export async function importSegmentsFromEmail(programId, parsedSegments, displayName) {
+  return insertTemplateSegments(programId, parsedSegments, 'import-email', `${(parsedSegments || []).length} segments`, displayName);
 }
 
 // Designate (or remove) a worship-team finalizer. Owner/admin only — the
