@@ -90,15 +90,15 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
           <div className="flex items-baseline justify-between gap-2">
             <div>
               <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Receipts</div>
-              <h3 className="text-lg text-[#1A1815] font-semibold">{attachTo ? `Attach to: ${attachTo.description}` : 'Snap a receipt'}</h3>
+              <h3 className="text-lg text-[#1A1815] font-semibold">{attachTo ? `Attach to: ${attachTo.description}` : 'Add a receipt'}</h3>
               <p className="text-xs text-[#5A5751]">{attachTo ? 'The photo stores on this transaction and follows it to every device.' : 'No matching charge yet? Save it here — when the bank row lands, match it with one tap.'}</p>
             </div>
             <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">× Close</button>
           </div>
 
           <div>
-            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">1. The photo</div>
-            <input type="file" accept="image/*" capture="environment" onChange={(e) => onPhoto(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">1. The photo — take one now, or pick from your photos / files</div>
+            <input type="file" accept="image/*" onChange={(e) => onPhoto(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
             {src && <img src={src} alt="Receipt preview" className="mt-2 max-h-48 border border-[#E8E4DC]" />}
           </div>
 

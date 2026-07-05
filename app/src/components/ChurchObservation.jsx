@@ -302,7 +302,7 @@ function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onRename, onNote
           <input id={`note-${space.id}`} className={fieldCls} placeholder="optional" value={space.note || ''} onChange={e => onNote(space.id, e.target.value)} />
         </div>
 
-        <input ref={inputRef} type="file" accept="image/*" capture="environment" multiple onChange={handleFile} className="hidden" id={`file-${space.id}`} />
+        <input ref={inputRef} type="file" accept="image/*" multiple onChange={handleFile} className="hidden" id={`file-${space.id}`} />
         <div className="flex items-center gap-2 flex-wrap">
           <label htmlFor={`file-${space.id}`} className={`${btnDark} cursor-pointer inline-flex items-center`} aria-disabled={busy}>
             {busy ? 'Working…' : (photos.length ? '+ Add photos' : '📷 Add photos')}
