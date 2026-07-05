@@ -54,7 +54,7 @@ export const DEFAULT_TEXT_SIZE = 'normal';
 // Scope split (decided by Darrell 2026-06-17): CONTENT scales, CHROME is capped.
 // -----------------------------------------------------------------------------
 // The root-scale primitive grows every rem in the app uniformly — which means the
-// big display header ("Financial Control System") and the nav/menu ballooned just
+// big display header ("Family Operating System") and the nav/menu ballooned just
 // as much as the cell text, wasting space and pushing the readable content down.
 // That is backwards: the words people actually need bigger are the BODY/CELL
 // content, not the already-large display type and the navigation chrome.

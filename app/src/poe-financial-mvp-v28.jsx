@@ -4730,7 +4730,7 @@ html{scroll-padding-bottom:280px}
         <div className="w-full px-3 sm:px-6 lg:px-8 py-[12px] sm:py-[16px]">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
               screens so the tier-preview dropdown and Subscribe/Feedback buttons
-              can't crowd "Financial Control System." Side-by-side only on large
+              can't crowd "Family Operating System." Side-by-side only on large
               screens where there's actually room. */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
@@ -4738,7 +4738,7 @@ html{scroll-padding-bottom:280px}
               {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
                   zoom so it stays roughly fixed while body content scales fully
                   (text-size scope split, 2026-06-17). */}
-              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Financial Control System</h1>
+              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Family Operating System</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
               {/* Round 5 — Tier indicator + dev-only switcher. Round 7 fix:
