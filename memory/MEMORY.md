@@ -87,6 +87,20 @@ relying on it; memories reflect what was true when written.
   that must ride migrations (0078); auth users, storage objects, and Supabase
   dashboard auth config (Site URL, OAuth callbacks, confirm-email OFF) do NOT
   move with a database — check them first when "onboarding broke after a move."
+- **2026-07-05 — the delivery lane now includes `claude/*`; don't idle on
+  poll-timers** — Darrell: "we don't move when I'm not pushing... remedy asap."
+  Verified cause: `auto-open-pr.yml` + `auto-merge.yml` filtered eligible
+  branches to `^(feat|fix|merge|docs)/`, and `ci.yml`'s push trigger matched
+  the same set — so every `claude/*` remote-session PR was invisible to the
+  hands-off merge lane and only Darrell's hand could land it. Fixed: `claude/**`
+  added to all three. Agent PRs now auto-merge on GREEN GATES (4,469 tests +
+  tenancy/contrast/isolation guards + real build); the **`hold` label is the
+  per-PR brake** for Tier B/C soak / Governor review (RELEASE-TIERS). Reverting
+  the three workflow edits is the off-switch. This is the integration gate, not
+  the timer-driven compute-spawning class three-brakes governs. BEHAVIORAL rule:
+  between prompts, PULL the next dated re-review / timeline / friction item and
+  ship it through the verified lane — a poll-timer is only for genuinely
+  external waits (CI in flight), never a stand-in for available work.
 - **2026-07-05 — orchestration reviews ride the review registry (DR-0102)** —
   a working day that merges to `main` ends by appending a `Type: orchestration`
   record to `docs/reviews/REVIEWS.md` (kept + frictions→actions with re-review

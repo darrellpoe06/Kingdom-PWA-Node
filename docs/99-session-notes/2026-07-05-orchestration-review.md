@@ -87,6 +87,48 @@ update is discipline at the seams, not a new model:
 - **The rule:** DR-0102. Consistency is the schema; freshness is measured, not
   promised; perpetuity is the in-app chip that shames a stale registry.
 
+## The stall: "we don't move when I'm not pushing" (Darrell, mid-session)
+
+Darrell, 2026-07-05: *"we are taking too long and we don't move when I'm not
+pushing, that is a constraint we need to remedy asap."* Reality-trace found a
+**verified structural cause**, not a vibe:
+
+- The hands-off delivery lane (`auto-open-pr.yml` + `auto-merge.yml`) — the
+  machinery built specifically to land PRs on green with **no human clicking
+  merge** — filters eligible branches by `test("^(feat|fix|merge|docs)/")` and
+  triggers `auto-open-pr` only on pushes to `feat|fix|merge|docs`. **The
+  remote/web sessions all work on `claude/*` branches.** So every agent PR —
+  including this session's #595 — was **invisible to the lane** and could only
+  be landed by Darrell's hand. The automation that exists to remove the manual
+  merge bottleneck did not recognize the branch names the work actually uses.
+- `ci.yml`'s push trigger had the same `claude/**` gap (belt-and-suspenders
+  for token-opened PRs).
+
+**Fix shipped this session (all three, on this branch):** `claude/**` added to
+the CI push trigger, the auto-open-PR push trigger, and the auto-merge
+eligibility regex. Agent PRs now ride the **same sanctioned default** the repo
+already used for release lanes: **auto-merge on green gates; the `hold` label is
+the per-PR brake** for Tier B/C work that should soak or await Governor review
+(RELEASE-TIERS). The deterministic gates (4,469 tests + tenancy/contrast/
+isolation guards + real build) are the merge condition — the gate is the brake,
+so this is not the timer-driven, compute-spawning class the three-brakes rule
+governs; it is the integration step deferring to verified truth (DR-0076).
+
+**Governance handles kept in Darrell's hand (not removed, made explicit):**
+`hold` on any PR keeps it out of the lane; reverting these three workflow edits
+turns the whole policy off. Recommended standing `hold` classes: front-door /
+mission identity, COLG-facing surfaces, real-money flow, schema changes
+(Tier C, RELEASE-TIERS).
+
+**The behavioral half (on the agent, not the pipeline):** between Darrell's
+prompts this session ended turns on **passive poll-timers** (hourly PR
+re-checks that advance nothing) instead of pulling the next ready backlog item
+and shipping it through the verified lane. Standing change: idle time is spent
+pulling the next dated re-review / timeline / friction item and moving it, not
+waiting. A poll-timer is only for genuinely external waits (CI in flight), never
+a substitute for available work. (Recorded to memory so it survives context
+compaction — the exact failure mode Layer 0 exists to stop.)
+
 ## Gates run this session
 
 eslint 0-warnings + full vitest (`npm run verify`) on the branch, including the
