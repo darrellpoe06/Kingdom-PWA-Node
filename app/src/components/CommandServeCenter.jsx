@@ -37,6 +37,7 @@ import React, { useState } from 'react';
 import OpsBoard from './OpsBoard.jsx';
 import QualityProof from './QualityProof.jsx';
 import QualityThroughput from './QualityThroughput.jsx';
+import EvalHistory from './EvalHistory.jsx';
 import FamilyRoster from './FamilyRoster.jsx';
 import ConflictLoop from './ConflictLoop.jsx';
 import WakeOrchestrator from './WakeOrchestrator.jsx';
@@ -201,11 +202,14 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
       {/* SEE — real system + quality state. The Quality & Throughput board
           (DR-0091) leads as the roll-up: every gate/coverage/ops number read
           live from its real artifact with the governing DR + principle beside
-          it; OpsBoard and QualityProof carry the per-area detail below. */}
+          it; History & Markers (DR-0102) adds the time dimension — per-day
+          user/system behavior with decisions + incidents pinned to the same
+          axis; OpsBoard and QualityProof carry the per-area detail below. */}
       {tab === 'see' && (
         <div className="space-y-4">
           <KpiLegend />
           <QualityThroughput />
+          <EvalHistory />
           <OpsBoard />
           <QualityProof />
         </div>

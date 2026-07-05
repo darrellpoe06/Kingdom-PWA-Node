@@ -129,14 +129,25 @@ function readDecisionLedger() {
     let raw;
     try { raw = read(f); } catch { continue; }
     const meta = frontmatter(raw);
+    // Bullet-style header fallback (the newer DR convention): "# DR-XXXX — Title"
+    // + "- **Status:** …" bullets, no YAML block. Without this the 16 newest
+    // records carried empty title/date/status in the app ledger — and a dateless
+    // record can never be a historical marker (DR-0102).
+    const bullet = (name) => {
+      const m = new RegExp('^-\\s+\\*\\*' + name + ':\\*\\*\\s*(.+)$', 'mi').exec(raw);
+      return m ? m[1].trim() : '';
+    };
+    const h1 = /^#\s+DR-\d{4}\s+—\s+(.+)$/m.exec(raw);
+    const bulletDate = (/(\d{4}-\d{2}-\d{2})/.exec(bullet('Date')) || [])[1] || '';
+    const bulletTier = (/^([A-C])\b/.exec(bullet('Tier')) || [])[1] || '';
     const num = parseInt(fm[1], 10);
     byNum.set(num, {
       id: meta.id || `DR-${fm[1]}`,
       num,
-      title: meta.title || '',
-      date: meta.date || '',
-      status: (meta.status || '').toLowerCase(),
-      tier: stripNull(meta.tier),
+      title: meta.title || (h1 ? h1[1].trim() : ''),
+      date: meta.date || bulletDate,
+      status: (meta.status || bullet('Status').split(/[\s(]/)[0] || '').toLowerCase(),
+      tier: stripNull(meta.tier) || bulletTier,
       supersededBy: stripNull(meta['superseded-by']),
       decision: plain(section(raw, 'Decision')),
       rationale: plain(section(raw, 'Context')),
