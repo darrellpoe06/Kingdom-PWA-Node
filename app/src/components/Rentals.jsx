@@ -12,10 +12,10 @@ import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl }
 import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
-import { derivePortfolio, isPersonalProp } from '../lib/rental-portfolio.js';
+import { derivePortfolio, isPersonalProp, unitsOf } from '../lib/rental-portfolio.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
-import { groupDoorsByBuilding, buildRestoreUnits } from '../lib/building-group.js';
+import { groupDoorsByBuilding, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels, unitLabelOf } from '../lib/building-group.js';
 import SectionTabs from './SectionTabs.jsx';
 
 // Local helpers (avoid main-monolith dep).
@@ -831,6 +831,25 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const [editingPropId, setEditingPropId] = useState(null);
   const blankProp = () => ({ name: '', address: '', city: '', state: '', zip: '', tenantName: '', lat: null, lon: null, propertyType: 'single-family', units: 1, building: '', unitLabel: '', rent: 0, status: 'paying', entityId: 'e-poeprops', purchasePrice: 0, purchaseDate: '', estimatedValue: 0, mortgageBalance: 0, mortgageRate: 6.5, monthlyPI: 0, escrow: 0, notes: '' });
   const [propForm, setPropForm] = useState(blankProp());
+  // Multi-unit add flow (2026-07-05, Darrell: "a drop down for number of doors
+  // and it automatically makes the 4 apts with same address"). Picking 2+ doors
+  // on ADD seeds editable unit labels (Apt 1..N); saving creates one door PER
+  // unit sharing the address — never one card carrying a units:N counter (the
+  // shape that collapsed 805 N Prospect and lost its per-unit records).
+  const [addUnitLabels, setAddUnitLabels] = useState([]);
+  const setDoorCount = (n, editing) => {
+    const count = Math.max(1, parseInt(n, 10) || 1);
+    if (!editing) setAddUnitLabels(prev => (count >= 2 ? defaultUnitLabels(count).map((d, i) => prev[i] ?? d) : []));
+    setPropForm(f => ({
+      ...f,
+      units: count,
+      // A 2+ door pick on a "one-unit" type is a multi building — flip the type
+      // so the family never has to know the taxonomy. Explicit picks stand.
+      propertyType: count >= 2 && ['single-family', 'condo', 'townhouse'].includes(f.propertyType)
+        ? (count === 2 ? 'duplex' : 'multi-family')
+        : f.propertyType,
+    }));
+  };
   const [suggestions, setSuggestions] = useState([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const suggestTimer = useRef(null);
@@ -973,7 +992,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // the row being edited (drop-down style) — see renderPropertyRow's
   // {editingPropId === r.id && renderPropertyForm()} block below. Only "Add new"
   // uses the top form.
-  const startAddProp = () => { setPropForm(blankProp()); setEditingPropId(null); setShowPropForm(true); setSuggestions([]); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} };
+  const startAddProp = () => { setPropForm(blankProp()); setEditingPropId(null); setShowPropForm(true); setSuggestions([]); setAddUnitLabels([]); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} };
   const startEditProp = (r) => {
     setPropForm({
       name: r.name || '', address: r.address || '', city: r.city || '', state: r.state || '', zip: r.zip || '',
@@ -988,15 +1007,17 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       monthlyPI: r.mortgage?.monthlyPI || 0, escrow: r.mortgage?.escrow || 0,
       notes: r.notes || '',
     });
-    setEditingPropId(r.id); setShowPropForm(false); setSuggestions([]);
+    setEditingPropId(r.id); setShowPropForm(false); setSuggestions([]); setAddUnitLabels([]);
     // NO scroll — inline form opens right under the row, eyes stay where you tapped.
   };
-  const cancelPropForm = () => { setShowPropForm(false); setEditingPropId(null); setSuggestions([]); };
+  const cancelPropForm = () => { setShowPropForm(false); setEditingPropId(null); setSuggestions([]); setAddUnitLabels([]); };
 
   const submitProp = () => {
-    if (!propForm.name || !propForm.address) { alert('Property name and address are required.'); return; }
+    if (!propForm.address && !propForm.name) { alert('Enter the address (or a property name).'); return; }
+    // Name derives from the address when left blank — the app never makes the
+    // family re-type a value it already holds.
     const payload = {
-      name: propForm.name,
+      name: propForm.name || propForm.address,
       address: propForm.address, city: propForm.city, state: propForm.state, zip: propForm.zip,
       tenantName: propForm.tenantName,
       lat: propForm.lat, lon: propForm.lon,
@@ -1020,8 +1041,18 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       },
       notes: propForm.notes,
     };
-    if (editingPropId) updateRental(editingPropId, payload);
-    else addRental(payload);
+    if (editingPropId) { updateRental(editingPropId, payload); cancelPropForm(); return; }
+    // Multi-unit ADD: 2+ doors picked → one door record PER unit, all sharing
+    // this address under one building. Each door is its own card afterwards —
+    // its own tenant, rent, records, photos, thread. Building-level figures
+    // (mortgage, purchase, notes) land on the first door only (see
+    // buildNewBuildingDoors), so portfolio totals count them once.
+    const labels = addUnitLabels.map((s) => s.trim()).filter(Boolean);
+    if (labels.length >= 2) {
+      buildNewBuildingDoors(payload, labels).forEach((d) => addRental(d));
+    } else {
+      addRental(payload);
+    }
     cancelPropForm();
   };
   const confirmDeleteProp = (r) => { if (confirm(`Delete property "${r.name}"? Snowball math will recompute without it.`)) deleteRental(r.id); };
@@ -1034,19 +1065,30 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // so each apartment regains its own notes / maintenance / photos / thread /
   // requests. Names come from the family (never invented), defaulting to the
   // four apartments the Synology-Chat source records for 805 (apt 1..4).
-  const restoreUnits = (base) => {
-    const suggested = base.address ? `${base.address}` : (base.name || 'Building');
-    const buildingName = (base.building && base.building.trim())
-      || (prompt('Building name (groups the units):', suggested) || '').trim();
-    if (!buildingName) return;
-    const raw = prompt(
-      `Unit labels for "${buildingName}", comma-separated:`,
-      'Apt 1, Apt 2, Apt 3, Apt 4'
-    );
-    if (!raw) return;
-    const labels = raw.split(',').map((s) => s.trim()).filter(Boolean);
-    if (labels.length < 2) { alert('Enter at least two units (e.g. Apt 1, Apt 2).'); return; }
-    // The existing door becomes the first unit under the building.
+  // Split panel state (2026-07-05): replaces the old two-prompt() restoreUnits
+  // flow with an inline form — a door-count dropdown seeds editable Apt 1..N
+  // labels, one tap creates the doors. { id, building, labels } or null.
+  const [splitFor, setSplitFor] = useState(null);
+  const openSplit = (r) => {
+    if (splitFor && splitFor.id === r.id) { setSplitFor(null); return; }
+    const n = Math.max(2, unitsOf(r));
+    setSplitFor({
+      id: r.id,
+      building: (r.building || '').trim() || String(r.address || r.name || '').trim(),
+      labels: defaultUnitLabels(n),
+    });
+  };
+  const setSplitCount = (n) => {
+    const count = Math.max(2, parseInt(n, 10) || 2);
+    setSplitFor((s) => s && ({ ...s, labels: defaultUnitLabels(count).map((d, i) => s.labels[i] ?? d) }));
+  };
+  const confirmSplit = (base) => {
+    if (!splitFor || splitFor.id !== base.id) return;
+    const buildingName = splitFor.building.trim();
+    const labels = splitFor.labels.map((s) => s.trim()).filter(Boolean);
+    if (!buildingName || labels.length < 2) { alert('Give the building a name and at least two unit labels.'); return; }
+    // The existing door becomes the first unit under the building — it keeps
+    // its tenant, rent, records, photos, and thread.
     updateRental(base.id, {
       building: buildingName,
       unitLabel: labels[0],
@@ -1056,10 +1098,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     });
     // The remaining units become their own doors, sharing the building.
     let n = 0;
-    const newDoors = buildRestoreUnits({ ...base, building: buildingName }, labels.slice(1),
-      () => `r-unit-${base.id}-${(++n)}`);
-    newDoors.forEach((d) => addRental(d));
-    alert(`Restored ${labels.length} doors under "${buildingName}". Each unit now has its own records, notes, requests, and thread.`);
+    buildRestoreUnits({ ...base, building: buildingName }, labels.slice(1),
+      () => `r-unit-${base.id}-${(++n)}`).forEach((d) => addRental(d));
+    setSplitFor(null);
   };
 
   // v28+ Maintenance trio: per-property records (maintenance log + conversations)
@@ -1240,6 +1281,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   };
   const startPhotoImport = (r) => fetchPhotoPage(r, 0);
   const setPhotoRoom = (photoId, room) => setPhotoImport(p => p ? { ...p, photos: p.photos.map(x => x.id === photoId ? { ...x, room } : x) } : p);
+  // Which photo is naming a brand-new room inline ("Other room…"). Replaces the
+  // old blocking window.prompt() with a small text field next to the picker.
+  const [customRoomFor, setCustomRoomFor] = useState(null);
   const filePhotoToRoom = (r, photo) => {
     if (!photo.room || !photo.thumb) return;
     const entry = { id: `ph-chat-${photo.id}`, src: photo.thumb, date: photo.date || '', caption: photo.text || '' };
@@ -1249,7 +1293,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     // (or reuse one with the same name) before filing the photo into it, so you
     // can pick an obvious room like "Living Room" without adding it first.
     if (photo.room.startsWith('new:')) {
-      const name = photo.room.slice(4);
+      const name = photo.room.slice(4).trim();
+      if (!name) return;
       const existing = rooms.find(rm => (rm.name || '').toLowerCase() === name.toLowerCase());
       if (existing) {
         targetId = existing.id;
@@ -1332,9 +1377,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
         </div>
 
-        {/* Round 7 — Top form is for ADD only. When editing, the same form
-            renders inline inside the row being edited via {propFormBlock} below. */}
-        {showPropForm && !editingPropId && (
+        {/* Round 7 — Top form is for ADD, and for FULL-EDIT when "Full editor ↗"
+            is tapped from a row's quick edit (2026-07-05 fix: the old
+            !editingPropId guard made that link scroll to a form that never
+            rendered). Quick edits still happen inline under the row. */}
+        {showPropForm && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingPropId ? 'Edit property' : 'New property · address autocomplete via OpenStreetMap'}</div>
 
@@ -1355,8 +1402,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property name</label>
-                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 Apt 1" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} />
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Property name (optional — defaults to address)</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 N Prospect" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} />
               </div>
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">City</label>
@@ -1379,20 +1426,47 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
             </div>
             <div>
               <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Doors / units</label>
-              <input type="number" min="1" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.units} onChange={e => setPropForm({ ...propForm, units: e.target.value })} />
-              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Rentable doors in this property — a single-family = 1, a fourplex = 4. Feeds the portfolio door count up top.</p>
+              <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={String(Math.max(1, parseInt(propForm.units, 10) || 1))} onChange={e => setDoorCount(e.target.value, !!editingPropId)}>
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n === 1 ? '1 · single door' : `${n} doors`}</option>)}
+              </select>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>A single-family home = 1 · duplex = 2 · fourplex = 4. Pick 2+ and saving creates every unit for you.</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building (groups units)</label>
-                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 N Prospect" value={propForm.building} onChange={e => setPropForm({ ...propForm, building: e.target.value })} />
-                <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Give the same building name to each apartment to group them as one building with separate doors.</p>
+            {/* Multi-unit add: the labels the doors will carry — auto Apt 1..N,
+                every one editable before saving. */}
+            {!editingPropId && addUnitLabels.length >= 2 && (
+              <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 space-y-2">
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">One save · {addUnitLabels.length} doors at this address</div>
+                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Each unit becomes its own door under <strong>{(propForm.address || propForm.name || 'this building').trim() || 'this building'}</strong> — its own tenant, rent, records, photos, and message thread. Rename any unit:
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {addUnitLabels.map((label, i) => (
+                    <input key={i} aria-label={`Unit ${i + 1} label`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={label} onChange={e => setAddUnitLabels(ls => ls.map((l, j) => j === i ? e.target.value : l))} />
+                  ))}
+                </div>
+                <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Monthly rent below applies to EACH door. Mortgage, purchase figures, tenant, and notes save on {addUnitLabels[0] || 'the first unit'} — the building's totals count them once.</p>
               </div>
-              <div>
-                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Unit label (optional)</label>
-                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Apt 3" value={propForm.unitLabel} onChange={e => setPropForm({ ...propForm, unitLabel: e.target.value })} />
+            )}
+            {/* Single door: joining an EXISTING building (e.g. adding Apt 5
+                later) is still one field away. */}
+            {(editingPropId || addUnitLabels.length < 2) && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building (groups units)</label>
+                  <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 N Prospect" value={propForm.building} onChange={e => setPropForm({ ...propForm, building: e.target.value })} />
+                  <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Give the same building name to each apartment to group them as one building with separate doors.</p>
+                </div>
+                <div>
+                  <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Unit label (optional)</label>
+                  <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Apt 3" value={propForm.unitLabel} onChange={e => setPropForm({ ...propForm, unitLabel: e.target.value })} />
+                </div>
               </div>
-            </div>
+            )}
+            {editingPropId && (parseInt(propForm.units, 10) || 1) >= 2 && !(propForm.building || '').trim() && (
+              <p className="text-[10px] text-[#B85838] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                This counts {parseInt(propForm.units, 10)} doors on ONE card. To give every unit its own card and records, save, then tap “Split into doors” on the property card.
+              </p>
+            )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property type</label>
@@ -1401,7 +1475,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly rent</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{!editingPropId && addUnitLabels.length >= 2 ? 'Monthly rent · per door' : 'Monthly rent'}</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} />
               </div>
               <div>
@@ -1511,6 +1585,10 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
             // buttons. If an open issue already exists, show its band + Resolve.
             const existingIssue = r.status === 'late' && !readOnly ? openIncidentFor(r) : null;
             const showLatePrompt = r.status === 'late' && !readOnly && !existingIssue;
+            // A door grouped under a building leads with its UNIT label (Apt 1,
+            // Apt 2…) — the building header already says the address, and four
+            // doors all titled by the same address were indistinguishable.
+            const rowTitle = (r.building || '').trim() ? unitLabelOf(r) : propertyLabel(r);
             return (
                 <div key={r.id} className={`p-4 ${i < lastIdx ? 'border-b border-[#E8E4DC]' : ''}`}>
                   {showLatePrompt && addIncident && (
@@ -1581,9 +1659,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   )}
                   <div className="flex items-baseline justify-between gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
-                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{propertyLabel(r)}</div>
+                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{rowTitle}</div>
                       <div className="text-xs text-[#5A5751]">
-                        {(() => { const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', '); return (full && full !== propertyLabel(r)) ? <span className="mr-2">{full}</span> : null; })()}
+                        {(() => { const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', '); return (full && full !== rowTitle) ? <span className="mr-2">{full}</span> : null; })()}
                         {r.propertyType && <span className="uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
                         {photoCountFor(r) > 0 && <span className="uppercase tracking-wider text-[9px] text-[#B85838] ml-2">· 📷 {photoCountFor(r)} photo{photoCountFor(r) === 1 ? '' : 's'}</span>}
                       </div>
@@ -1623,9 +1701,47 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         Lifetime maint: {fmt((r.maintenanceLog || []).reduce((s, e) => s + (e.cost || 0), 0))}
                       </span>
                     )}
+                    {/* A card claiming multiple doors (or a multi type) that is NOT
+                        grouped under a building yet is the collapsed shape that
+                        loses per-unit records — surface the fix right on the card. */}
+                    {!(r.building || '').trim() && !isPersonalProp(r) && (unitsOf(r) > 1 || /multi|duplex/.test(r.propertyType || '')) && (
+                      <button type="button" onClick={() => openSplit(r)} aria-expanded={splitFor?.id === r.id} className="text-xs uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">{splitFor?.id === r.id ? '× Cancel split' : '⌗ Split into doors'}</button>
+                    )}
                     <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
                     <button type="button" onClick={() => confirmDeleteProp(r)} aria-label={`Delete property ${r.name}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
                   </div>
+                  {/* Inline split panel — dropdown for the door count, auto Apt 1..N
+                      labels (each editable), one tap creates the doors. Replaces the
+                      old browser prompt() dialogs. */}
+                  {splitFor && splitFor.id === r.id && (
+                    <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#5A6E3D] space-y-2">
+                      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Split into separate doors</div>
+                      <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                        This card becomes <strong>{splitFor.labels[0] || 'the first unit'}</strong> (keeping its tenant, rent, and records). The rest are created as their own doors at the same address — each with its own records, photos, and thread.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label htmlFor={`split-n-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Number of doors</label>
+                          <select id={`split-n-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={String(splitFor.labels.length)} onChange={e => setSplitCount(e.target.value)}>
+                            {[2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n} doors</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor={`split-b-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building name (groups the doors)</label>
+                          <input id={`split-b-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={splitFor.building} onChange={e => setSplitFor(s => s && ({ ...s, building: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {splitFor.labels.map((label, i) => (
+                          <input key={i} aria-label={`Unit ${i + 1} label`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={label} onChange={e => setSplitFor(s => s && ({ ...s, labels: s.labels.map((l, j) => j === i ? e.target.value : l) }))} />
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button type="button" onClick={() => confirmSplit(r)} className="bg-[#5A6E3D] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">Create {splitFor.labels.length} doors</button>
+                        <button type="button" onClick={() => setSplitFor(null)} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]">Cancel</button>
+                      </div>
+                    </div>
+                  )}
                   {r.notes && <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
 
                   {/* Round 7 — Inline quick-edit form drops down right under the property row.
@@ -1633,7 +1749,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       · monthly P&I · mortgage balance). For the full editor (purchase price,
                       cap-rate evaluator, address autocomplete) tap "Full editor ↗" — opens the
                       top form. Keeps the eye where it was, no jump-to-top. */}
-                  {editingPropId === r.id && (
+                  {editingPropId === r.id && !showPropForm && (
                     <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
                       <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-2">Quick edit · {r.name}</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1645,6 +1761,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         <div><label htmlFor={`qe-ent-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select id={`qe-ent-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.entityId} onChange={e => setPropForm({ ...propForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
                         <div><label htmlFor={`qe-mtg-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label><input id={`qe-mtg-${r.id}`} type="number" step="100" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.mortgageBalance} onChange={e => setPropForm({ ...propForm, mortgageBalance: e.target.value })} /></div>
                         <div><label htmlFor={`qe-pi-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly P&amp;I</label><input id={`qe-pi-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.monthlyPI} onChange={e => setPropForm({ ...propForm, monthlyPI: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-bldg-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building (groups units)</label><input id={`qe-bldg-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., 805 N Prospect" value={propForm.building} onChange={e => setPropForm({ ...propForm, building: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-unit-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Unit label</label><input id={`qe-unit-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., Apt 3" value={propForm.unitLabel} onChange={e => setPropForm({ ...propForm, unitLabel: e.target.value })} /></div>
                       </div>
                       <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white mt-2 focus:outline focus:outline-2 focus:outline-[#B85838]" rows="2" placeholder="Notes" value={propForm.notes} onChange={e => setPropForm({ ...propForm, notes: e.target.value })} />
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -1660,12 +1778,15 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       {/* v28+ MVP v1.5: lease/tenant/equipment/rooms — Real Estate App carryover */}
                       <PropertyDetails rental={r} updateRental={updateRental} voiceOps={voiceOps} />
                       {/* Restore a collapsed multi-unit building into separate
-                          doors — the fix for 805 N Prospect showing as one door. */}
-                      <div className="text-[0.625rem]">
-                        <button type="button" onClick={() => restoreUnits(r)} className="uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">
-                          Multi-unit building? Restore its separate doors
-                        </button>
-                      </div>
+                          doors — the fix for 805 N Prospect showing as one door.
+                          Opens the same inline split panel as the card button. */}
+                      {!(r.building || '').trim() && (
+                        <div className="text-[0.625rem]">
+                          <button type="button" onClick={() => openSplit(r)} className="uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">
+                            Multi-unit building? Split it into separate doors
+                          </button>
+                        </div>
+                      )}
                       {/* Per-unit MANAGEMENT: notes (property memory) + service
                           requests (assignable to the PM) + tenant/manager/owner
                           thread (draft->preview->approve-send). The app RUNS the
@@ -1907,19 +2028,21 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                         {p.filed ? (
                                           <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-1">✓ filed</div>
                                         ) : p.thumb ? (
-                                          <div className="flex gap-1 mt-1">
-                                            <select value={p.room} onChange={e => {
+                                          <div className="flex gap-1 mt-1 flex-wrap">
+                                            <select value={customRoomFor === p.id ? '__other__' : p.room} onChange={e => {
                                               const v = e.target.value;
                                               if (v === '__other__') {
-                                                const name = (typeof window !== 'undefined' ? (window.prompt('New room name (Den, Sunroom, Bedroom 7, …)') || '') : '').trim();
-                                                setPhotoRoom(p.id, name ? `new:${name}` : '');
+                                                // Inline naming — no blocking browser prompt.
+                                                setCustomRoomFor(p.id);
+                                                setPhotoRoom(p.id, 'new:');
                                                 return;
                                               }
+                                              if (customRoomFor === p.id) setCustomRoomFor(null);
                                               setPhotoRoom(p.id, v);
                                             }} className="flex-1 text-[10px] p-1 border border-[#E8E4DC] bg-white min-w-0">
                                               <option value="">room…</option>
                                               {(r.rooms || []).map(rm => <option key={rm.id} value={rm.id}>{rm.name}</option>)}
-                                              {p.room && p.room.startsWith('new:') && <option value={p.room}>{p.room.slice(4)} (new)</option>}
+                                              {customRoomFor !== p.id && p.room && p.room.startsWith('new:') && <option value={p.room}>{p.room.slice(4)} (new)</option>}
                                               <optgroup label="Add a room">
                                                 {allRoomChoices(rentals).filter(name => !(r.rooms || []).some(rm => (rm.name || '').toLowerCase() === name.toLowerCase())).map(name => (
                                                   <option key={`new-${name}`} value={`new:${name}`}>+ {name}</option>
@@ -1927,7 +2050,17 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                                 <option value="__other__">✏️ Other room…</option>
                                               </optgroup>
                                             </select>
-                                            <button type="button" disabled={!p.room} onClick={() => filePhotoToRoom(r, p)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-30">Add</button>
+                                            {customRoomFor === p.id && (
+                                              <input
+                                                autoFocus
+                                                placeholder="Room name…"
+                                                aria-label="New room name"
+                                                value={(p.room || '').startsWith('new:') ? p.room.slice(4) : ''}
+                                                onChange={e => setPhotoRoom(p.id, `new:${e.target.value}`)}
+                                                className="flex-1 text-[10px] p-1 border border-[#5A6E3D] bg-white min-w-0"
+                                              />
+                                            )}
+                                            <button type="button" disabled={!p.room || p.room === 'new:'} onClick={() => { setCustomRoomFor(null); filePhotoToRoom(r, p); }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-30">Add</button>
                                           </div>
                                         ) : null}
                                       </div>

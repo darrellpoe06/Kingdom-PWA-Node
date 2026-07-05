@@ -166,8 +166,12 @@ function PlatformSignups() {
                         {r.name || r.email}
                         {r.name ? <span className="text-[#5A5751]"> · {r.email}</span> : null}
                       </div>
+                      {/* Two different clocks, named plainly (DR-0100): "account
+                          created" is when the account was provisioned — family
+                          accounts are allowlisted ahead of first use, so this is
+                          NOT days of active use; "last sign-in" is the auth stamp. */}
                       <div className="text-[0.625rem] text-[#5A5751]">
-                        joined {r.joined} · {r.returned ? `active, last seen ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last seen ${r.lastSeen}`)}
+                        account created {r.joined} · {r.returned ? `active, last sign-in ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last sign-in ${r.lastSeen}`)}
                       </div>
                     </div>
                     <CategoryPill label={r.categoryLabel} />
@@ -181,8 +185,8 @@ function PlatformSignups() {
           ) : null}
           <p className="text-[0.5625rem] text-[#5A5751] italic mt-2 leading-relaxed">
             Each public signup lands in their OWN private space — they cannot see family, business, or
-            church data, and this view shows only their account (email, when they joined, when they last
-            signed in), never anything inside their space.
+            church data, and this view shows only their account (email, when the account was created,
+            when they last signed in), never anything inside their space.
           </p>
         </>
       )}

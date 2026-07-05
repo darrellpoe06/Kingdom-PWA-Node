@@ -132,5 +132,39 @@ export function buildRestoreUnits(base = {}, labels = [], idGen) {
   }));
 }
 
+// Default unit labels for a door count: Apt 1..N. The add-flow dropdown and
+// the split panel both seed from this; every label stays editable before save.
+export const defaultUnitLabels = (n) =>
+  Array.from({ length: Math.max(0, Math.round(Number(n) || 0)) }, (_, i) => `Apt ${i + 1}`);
+
+// buildNewBuildingDoors — the pure payload list for ADDING a multi-unit
+// building in one save. Given the full add-form payload (`base`, the shape
+// submitProp builds) and the unit labels, returns one door payload PER label:
+// every door shares the address / coords / type / entity / status and carries
+// the per-door rent. Building-level figures (tenant, mortgage, purchase price,
+// est. value, notes) land on the FIRST door only, so portfolio totals count
+// them once instead of N times.
+export function buildNewBuildingDoors(base = {}, labels = []) {
+  const building = (typeof base.building === 'string' && base.building.trim())
+    || String(base.address || base.name || '').trim();
+  const addr = String(base.address || building).trim();
+  const rate = Number(base.mortgage && base.mortgage.rate) || 0;
+  return (labels || []).map((label, i) => ({
+    ...base,
+    name: `${addr} ${label}`.trim(),
+    building,
+    unitLabel: label,
+    units: 1,
+    tenantName: i === 0 ? (base.tenantName || '') : '',
+    purchasePrice: i === 0 ? (Number(base.purchasePrice) || 0) : 0,
+    purchaseDate: i === 0 ? (base.purchaseDate || '') : '',
+    estimatedValue: i === 0 ? (Number(base.estimatedValue) || 0) : 0,
+    notes: i === 0 ? (base.notes || '') : '',
+    mortgage: i === 0
+      ? (base.mortgage || { balance: 0, rate: 0, monthlyPI: 0, escrow: 0, estimated: true })
+      : { balance: 0, rate, monthlyPI: 0, escrow: 0, estimated: true },
+  }));
+}
+
 // Re-export so callers can filter personal rows before grouping in one import.
 export { isPersonalProp };
