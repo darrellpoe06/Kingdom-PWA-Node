@@ -22,6 +22,7 @@ import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
 import UiIcon from './UiIcon.jsx';
 import EmojiText from './EmojiText.jsx';
+import SectionTabs from './SectionTabs.jsx';
 
 export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry }) {
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
@@ -298,8 +299,13 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     setShowMinistryForm(false);
   };
 
-  return (
-    <div className="space-y-6">
+  const sections = [
+    {
+      id: 'worship',
+      label: 'Worship',
+      icon: 'volume',
+      render: () => (
+        <>
       {/* LIVE WORSHIP (2026-06-14; service-window-gated 2026-06-17; ROLLING-LATEST
           2026-06-17) — TOP of the Church tab by Darrell's direction: worship is
           the most prominent thing on the unchurched on-ramp. Embedded by CHANNEL
@@ -392,17 +398,36 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </section>
       )}
 
-      {/* DEFAULT CHURCH HOME NOTE (D21) — shown when the user has not set their
-          own church home; COLG / The Love Corner is the platform default (the
-          Father's Business anchor). Mars Hill Option B: the visitor who
-          navigates to this tab is opted-in to deeper engagement. */}
-      {showingDefaultHome && (
-        <p className="text-[0.6875rem] text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          This is your default church home. If you have a church home, you can set it in{' '}
-          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>.
+      {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
+          a post-vacation build; this is the entry point + placeholder. */}
+      <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4">
+        <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Pastoral Content · Bishop Gwin</h3>
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          Sermons coming soon. Bishop Gwin's messages will be captioned, archived, and searchable here as the Sermon-to-Content pipeline comes online. The church owns every master file.
         </p>
-      )}
+      </section>
 
+      {/* MEDIA / BROADCAST */}
+      {c.media && (
+        <section aria-labelledby="media-h">
+          <h3 id="media-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Watch · Listen · Follow</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {c.media.youtube && <a href={c.media.youtube} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">▶</div><div className="text-xs uppercase tracking-wider font-semibold">YouTube</div><div className="text-[0.625rem] text-[#5A5751]">Recorded services</div></a>}
+            {c.media.facebook && <a href={c.media.facebook} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">f</div><div className="text-xs uppercase tracking-wider font-semibold">Facebook</div><div className="text-[0.625rem] text-[#5A5751]">Love Corner Live</div></a>}
+            {c.media.instagram && <a href={c.media.instagram} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">◉</div><div className="text-xs uppercase tracking-wider font-semibold">Instagram</div><div className="text-[0.625rem] text-[#5A5751]">@tlcexperience</div></a>}
+            {c.media.broadcast && <a href={c.media.broadcast} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true"><UiIcon name="radio" /></div><div className="text-xs uppercase tracking-wider font-semibold">Broadcast</div><div className="text-[0.625rem] text-[#5A5751]">All channels</div></a>}
+          </div>
+        </section>
+      )}
+        </>
+      ),
+    },
+    {
+      id: 'speak',
+      label: 'Speak',
+      icon: 'mic',
+      render: () => (
+        <>
       {/* ONE VOICE — the Church tab's single front door (COUNCIL-CHAMBER:
           one input, the system deduces; MODE-ROUTING: suggestion visible,
           person decides). Ordered first so speaking is always one tap away. */}
@@ -420,38 +445,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       {/* CONFERENCE / EVENT CENTER moved to its own Church sub-tab (sibling to
           Learn) on 2026-06-16 — see the churchView === 'conference' branch.
           ChurchOneVoice above still carries conference RSVPs via updateConference. */}
-
-      {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
-          a post-vacation build; this is the entry point + placeholder. */}
-      <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4">
-        <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Pastoral Content · Bishop Gwin</h3>
-        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          Sermons coming soon. Bishop Gwin's messages will be captioned, archived, and searchable here as the Sermon-to-Content pipeline comes online. The church owns every master file.
-        </p>
-      </section>
-
-      {/* TESTIMONY DIARY — PIN-locked entry point (D21). The diary MVP V0 ships
-          later (project_testimony_diary_glory_to_glory); this is the door. */}
-      <section aria-labelledby="diary-h" className="bg-white border border-[#1A1815] p-4">
-        <h3 id="diary-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Testimony Diary · Glory to Glory <UiIcon name="lock" /></h3>
-        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          A private place to record what Yahweh has done — kept on your device, locked behind a PIN you set. "And we all... are being transformed... from one degree of glory to another" (2 Corinthians 3:18, ESV).
-        </p>
-        {!diaryUnlocked ? (
-          <div className="mt-3 flex items-end gap-2 flex-wrap">
-            <div>
-              <label htmlFor="diary-pin" className={labelCls}>Set / enter your PIN</label>
-              <input id="diary-pin" type="password" inputMode="numeric" className={`${fieldCls} max-w-[8rem]`} value={diaryPin} onChange={e => { setDiaryPin(e.target.value); setDiaryError(''); }} placeholder="4+ digits" />
-            </div>
-            <button type="button" onClick={() => { if ((diaryPin || '').length < 4) { setDiaryError('Use at least 4 digits.'); return; } setDiaryError(''); setDiaryUnlocked(true); }} className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Unlock</button>
-            {diaryError && <span role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{diaryError}</span>}
-          </div>
-        ) : (
-          <p className="mt-3 text-sm bg-[#FAF8F4] border border-[#B85838] p-3" style={{ fontFamily: '"Fraunces", serif' }}>
-            Your testimony diary is being prepared (V0 ships soon). Your PIN is held on this device only — nothing is sent anywhere. Come back to begin recording, from glory to glory.
-          </p>
-        )}
-      </section>
 
       {/* YAHWEH HEARS YOU — interactive contribution input (renamed 2026-05-25 per Darrell)
           The church tab's spiritual-surface name for the voice + link + text
@@ -640,87 +633,37 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         })()}
       </section>
 
-      {/* SERVICE TIMES + SAVE TO CALENDAR */}
-      {(c.services || []).length > 0 && (
-        <section aria-labelledby="svc-h">
-          <h3 id="svc-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Service Times · in-person + online</h3>
-          <div className="bg-white border border-[#1A1815]">
-            {c.services.map((svc, i, arr) => (
-              <div key={svc.id} className={`p-3 flex items-center justify-between gap-3 flex-wrap ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-                <div className="min-w-0">
-                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{svc.day}</div>
-                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{svc.label} · <span style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{svc.time}</span></div>
-                  {svc.online && <div className="text-[0.625rem] text-[#5A6E3D] uppercase tracking-wider">✓ live online</div>}
-                </div>
-                <button type="button" onClick={() => saveServiceToCalendar(svc)} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"><UiIcon name="calendar" /> Save next one</button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* MEDIA / BROADCAST */}
-      {c.media && (
-        <section aria-labelledby="media-h">
-          <h3 id="media-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Watch · Listen · Follow</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {c.media.youtube && <a href={c.media.youtube} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">▶</div><div className="text-xs uppercase tracking-wider font-semibold">YouTube</div><div className="text-[0.625rem] text-[#5A5751]">Recorded services</div></a>}
-            {c.media.facebook && <a href={c.media.facebook} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">f</div><div className="text-xs uppercase tracking-wider font-semibold">Facebook</div><div className="text-[0.625rem] text-[#5A5751]">Love Corner Live</div></a>}
-            {c.media.instagram && <a href={c.media.instagram} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">◉</div><div className="text-xs uppercase tracking-wider font-semibold">Instagram</div><div className="text-[0.625rem] text-[#5A5751]">@tlcexperience</div></a>}
-            {c.media.broadcast && <a href={c.media.broadcast} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true"><UiIcon name="radio" /></div><div className="text-xs uppercase tracking-wider font-semibold">Broadcast</div><div className="text-[0.625rem] text-[#5A5751]">All channels</div></a>}
-          </div>
-        </section>
-      )}
-
-      {/* GIVE + PARISH LIFE */}
-      <section aria-labelledby="give-h" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {c.links?.give && (
-          <div className="bg-white border-2 border-[#B85838] p-4">
-            <h3 id="give-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Tithes · Offering · Gifts</h3>
-            <p className="text-sm leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Giving runs through the church's own secure page — no payment data passes through this app.</p>
-            <div className="flex gap-2 mt-3 flex-wrap">
-              <a href={c.links.give} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Give →</a>
-              {c.links.giversCreed && <a href={c.links.giversCreed} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Givers Creed</a>}
+      {/* TESTIMONY DIARY — PIN-locked entry point (D21). The diary MVP V0 ships
+          later (project_testimony_diary_glory_to_glory); this is the door. */}
+      <section aria-labelledby="diary-h" className="bg-white border border-[#1A1815] p-4">
+        <h3 id="diary-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Testimony Diary · Glory to Glory <UiIcon name="lock" /></h3>
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          A private place to record what Yahweh has done — kept on your device, locked behind a PIN you set. "And we all... are being transformed... from one degree of glory to another" (2 Corinthians 3:18, ESV).
+        </p>
+        {!diaryUnlocked ? (
+          <div className="mt-3 flex items-end gap-2 flex-wrap">
+            <div>
+              <label htmlFor="diary-pin" className={labelCls}>Set / enter your PIN</label>
+              <input id="diary-pin" type="password" inputMode="numeric" className={`${fieldCls} max-w-[8rem]`} value={diaryPin} onChange={e => { setDiaryPin(e.target.value); setDiaryError(''); }} placeholder="4+ digits" />
             </div>
+            <button type="button" onClick={() => { if ((diaryPin || '').length < 4) { setDiaryError('Use at least 4 digits.'); return; } setDiaryError(''); setDiaryUnlocked(true); }} className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Unlock</button>
+            {diaryError && <span role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{diaryError}</span>}
           </div>
+        ) : (
+          <p className="mt-3 text-sm bg-[#FAF8F4] border border-[#B85838] p-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            Your testimony diary is being prepared (V0 ships soon). Your PIN is held on this device only — nothing is sent anywhere. Come back to begin recording, from glory to glory.
+          </p>
         )}
-        <div className="bg-white border border-[#1A1815] p-4">
-          <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Parish Life</h3>
-          <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
-            {c.links?.calendar && <li><UiIcon name="calendar" /> <a href={c.links.calendar} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Church calendar</a></li>}
-            {c.links?.bibleChallenge && <li><UiIcon name="bookOpen" /> <a href={c.links.bibleChallenge} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Bible Reading Challenge 2026</a></li>}
-            {c.links?.classPoints && <li><UiIcon name="pencil" /> <a href={c.links.classPoints} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Bible study class points</a></li>}
-            {c.links?.lettersFromBG && <li><UiIcon name="mail" /> <a href={c.links.lettersFromBG} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Letters from Bishop Gwin</a></li>}
-            {c.links?.assembly && <li><UiIcon name="landmark" /> <a href={c.links.assembly} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">National Assembly</a></li>}
-            {c.links?.stayConnected && <li><UiIcon name="link" /> <a href={c.links.stayConnected} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Stay connected</a></li>}
-          </ul>
-        </div>
       </section>
-
-      {/* MINISTRY INTEREST */}
-      {c.links?.ministries && (
-        <section aria-labelledby="min-h" className="bg-white border border-[#1A1815] p-4">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <h3 id="min-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Ministry Opportunities</h3>
-            <button type="button" onClick={() => setShowMinistryForm(!showMinistryForm)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showMinistryForm ? '× Cancel' : '+ Express interest'}</button>
-          </div>
-          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Where you'd like to serve, what hours fit your life. Your note goes to the church office via your email client — nothing is sent through us.</p>
-          <a href={c.links.ministries} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider text-[#B85838] underline hover:text-[#1A1815] inline-block mt-2">See current openings →</a>
-          {showMinistryForm && (
-            <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div><label htmlFor="min-name" className={labelCls}>Your name</label><input id="min-name" className={fieldCls} value={ministryInterest.name} onChange={e => setMinistryInterest({ ...ministryInterest, name: e.target.value })} /></div>
-                <div><label htmlFor="min-email" className={labelCls}>Email (so they can reply)</label><input id="min-email" type="email" className={fieldCls} value={ministryInterest.email} onChange={e => setMinistryInterest({ ...ministryInterest, email: e.target.value })} /></div>
-              </div>
-              <div><label htmlFor="min-interest" className={labelCls}>Ministry of interest</label><input id="min-interest" className={fieldCls} placeholder="e.g., Music · Youth · Tech · Outreach" value={ministryInterest.interest} onChange={e => setMinistryInterest({ ...ministryInterest, interest: e.target.value })} /></div>
-              <div><label htmlFor="min-skills" className={labelCls}>Skills · availability</label><textarea id="min-skills" rows="3" className={fieldCls} value={ministryInterest.skills} onChange={e => setMinistryInterest({ ...ministryInterest, skills: e.target.value })} /></div>
-              <button type="button" onClick={submitMinistry} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Send to Church Office</button>
-              {ministryNote && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{ministryNote}</p>}
-            </div>
-          )}
-        </section>
-      )}
-
+        </>
+      ),
+    },
+    {
+      id: 'prayer',
+      label: 'Prayer',
+      icon: 'dove',
+      render: () => (
+        <>
       {/* PRAYER REQUESTS — local log, optional send-out */}
       <section aria-labelledby="pr-h">
         <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
@@ -773,7 +716,99 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           </div>
         )}
       </section>
+        </>
+      ),
+    },
+    {
+      id: 'give',
+      label: 'Give & Serve',
+      icon: 'coins',
+      render: () => (
+        <>
+      {/* GIVE + PARISH LIFE */}
+      <section aria-labelledby="give-h" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {c.links?.give && (
+          <div className="bg-white border-2 border-[#B85838] p-4">
+            <h3 id="give-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Tithes · Offering · Gifts</h3>
+            <p className="text-sm leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Giving runs through the church's own secure page — no payment data passes through this app.</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <a href={c.links.give} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Give →</a>
+              {c.links.giversCreed && <a href={c.links.giversCreed} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Givers Creed</a>}
+            </div>
+          </div>
+        )}
+        <div className="bg-white border border-[#1A1815] p-4">
+          <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Parish Life</h3>
+          <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+            {c.links?.calendar && <li><UiIcon name="calendar" /> <a href={c.links.calendar} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Church calendar</a></li>}
+            {c.links?.bibleChallenge && <li><UiIcon name="bookOpen" /> <a href={c.links.bibleChallenge} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Bible Reading Challenge 2026</a></li>}
+            {c.links?.classPoints && <li><UiIcon name="pencil" /> <a href={c.links.classPoints} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Bible study class points</a></li>}
+            {c.links?.lettersFromBG && <li><UiIcon name="mail" /> <a href={c.links.lettersFromBG} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Letters from Bishop Gwin</a></li>}
+            {c.links?.assembly && <li><UiIcon name="landmark" /> <a href={c.links.assembly} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">National Assembly</a></li>}
+            {c.links?.stayConnected && <li><UiIcon name="link" /> <a href={c.links.stayConnected} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Stay connected</a></li>}
+          </ul>
+        </div>
+      </section>
 
+      {/* MINISTRY INTEREST */}
+      {c.links?.ministries && (
+        <section aria-labelledby="min-h" className="bg-white border border-[#1A1815] p-4">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <h3 id="min-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Ministry Opportunities</h3>
+            <button type="button" onClick={() => setShowMinistryForm(!showMinistryForm)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showMinistryForm ? '× Cancel' : '+ Express interest'}</button>
+          </div>
+          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Where you'd like to serve, what hours fit your life. Your note goes to the church office via your email client — nothing is sent through us.</p>
+          <a href={c.links.ministries} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider text-[#B85838] underline hover:text-[#1A1815] inline-block mt-2">See current openings →</a>
+          {showMinistryForm && (
+            <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div><label htmlFor="min-name" className={labelCls}>Your name</label><input id="min-name" className={fieldCls} value={ministryInterest.name} onChange={e => setMinistryInterest({ ...ministryInterest, name: e.target.value })} /></div>
+                <div><label htmlFor="min-email" className={labelCls}>Email (so they can reply)</label><input id="min-email" type="email" className={fieldCls} value={ministryInterest.email} onChange={e => setMinistryInterest({ ...ministryInterest, email: e.target.value })} /></div>
+              </div>
+              <div><label htmlFor="min-interest" className={labelCls}>Ministry of interest</label><input id="min-interest" className={fieldCls} placeholder="e.g., Music · Youth · Tech · Outreach" value={ministryInterest.interest} onChange={e => setMinistryInterest({ ...ministryInterest, interest: e.target.value })} /></div>
+              <div><label htmlFor="min-skills" className={labelCls}>Skills · availability</label><textarea id="min-skills" rows="3" className={fieldCls} value={ministryInterest.skills} onChange={e => setMinistryInterest({ ...ministryInterest, skills: e.target.value })} /></div>
+              <button type="button" onClick={submitMinistry} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Send to Church Office</button>
+              {ministryNote && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{ministryNote}</p>}
+            </div>
+          )}
+        </section>
+      )}
+        </>
+      ),
+    },
+    {
+      id: 'times',
+      label: 'Times',
+      icon: 'calendar',
+      render: () => (
+        <>
+      {/* SERVICE TIMES + SAVE TO CALENDAR */}
+      {(c.services || []).length > 0 && (
+        <section aria-labelledby="svc-h">
+          <h3 id="svc-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Service Times · in-person + online</h3>
+          <div className="bg-white border border-[#1A1815]">
+            {c.services.map((svc, i, arr) => (
+              <div key={svc.id} className={`p-3 flex items-center justify-between gap-3 flex-wrap ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                <div className="min-w-0">
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{svc.day}</div>
+                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{svc.label} · <span style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{svc.time}</span></div>
+                  {svc.online && <div className="text-[0.625rem] text-[#5A6E3D] uppercase tracking-wider">✓ live online</div>}
+                </div>
+                <button type="button" onClick={() => saveServiceToCalendar(svc)} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"><UiIcon name="calendar" /> Save next one</button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+        </>
+      ),
+    },
+    {
+      id: 'about',
+      label: 'About',
+      icon: 'landmark',
+      render: () => (
+        <>
       {/* HEADER (moved to bottom 2026-05-25 per Darrell — the church-identity "ad"
           lives below the spiritual + parish-life surfaces so the page opens with
           the actions, not with the marquee). */}
@@ -845,6 +880,25 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Content links to the church's own pages. Service times, media, and ministry openings live on <a href={c.site} target="_blank" rel="noopener noreferrer" className="underline">{(c.site || '').replace(/^https?:\/\//, '')}</a> — this tab is a shortcut, not a copy. Edits to service times can be made in the seed data ({`data.church.services`}) as the church publishes them.
       </p>
+        </>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* DEFAULT CHURCH HOME NOTE (D21) — shown when the user has not set their
+          own church home; COLG / The Love Corner is the platform default (the
+          Father's Business anchor). Mars Hill Option B: the visitor who
+          navigates to this tab is opted-in to deeper engagement. */}
+      {showingDefaultHome && (
+        <p className="text-[0.6875rem] text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          This is your default church home. If you have a church home, you can set it in{' '}
+          <button type="button" onClick={() => alert('Coming soon: pick your own church home. Default = The Church of the Living God.')} className="underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Settings &rarr; My church home</button>.
+        </p>
+      )}
+
+      <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId="worship" />
     </div>
   );
 }
