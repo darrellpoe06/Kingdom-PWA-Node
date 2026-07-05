@@ -31,40 +31,50 @@ function parseReviews() {
   return { ok: items.length > 0, count: items.length, items };
 }
 
-let html;
+// The panel is now THIRD-ROW sub-tabbed (Darrell 2026-07-05: no more long
+// scroll) and only the active sub-panel mounts — so each section is rendered
+// via its defaultSection and asserted in ITS OWN markup, exactly what a user
+// opening that chip sees.
+let render;
+let html; // the default view (gates)
 beforeAll(async () => {
   globalThis.__QUALITY_PROOF__ = buildQualityManifest();
   globalThis.__UIUX_REVIEWS__ = parseReviews();
   globalThis.__BUILD_SHA__ = 'dev';
   const mod = await import('../components/QualityProof.jsx');
-  html = renderToStaticMarkup(createElement(mod.default));
+  render = (defaultSection) => renderToStaticMarkup(createElement(mod.default, defaultSection ? { defaultSection } : {}));
+  html = render();
 });
 
-describe('QualityProof renders the real proof + reviews', () => {
-  it('renders without throwing and shows the section headers', () => {
+describe('QualityProof renders the real proof + reviews (sub-tabbed)', () => {
+  it('renders without throwing, shows the header + every sub-tab chip', () => {
     expect(html).toContain('Quality / Proof');
-    expect(html).toContain('Proof');
-    expect(html).toContain('UI/UX Reviews');
+    for (const label of ['Break-it gates', 'Closed loops', 'Accessibility', 'Interconnect', 'Reviews']) {
+      expect(html, `missing sub-tab ${label}`).toContain(label);
+    }
   });
-  it('surfaces real adversarial gate rows from the manifest', () => {
+  it('surfaces real adversarial gate rows from the manifest (default panel)', () => {
     expect(html).toContain('Per-theme WCAG 2.1 AA contrast');
     expect(html).toContain('DB authenticated-grant guard');
   });
   it('surfaces real closed-loop rows from the manifest', () => {
-    expect(html).toContain('Choir save loop');
-    expect(html).toContain('Orchestration-outcome loop');
+    const h = render('loops');
+    expect(h).toContain('Choir save loop');
+    expect(h).toContain('Orchestration-outcome loop');
   });
   it('surfaces the measured contrast result (the real themes)', () => {
-    expect(html).toMatch(/WCAG 2\.1 AA contrast/);
-    expect(html).toContain('sapphire');
+    const h = render('contrast');
+    expect(h).toMatch(/WCAG 2\.1 AA contrast/);
+    expect(h).toContain('sapphire');
   });
   it('surfaces real review records from the registry', () => {
     // The panel renders each record's title + source (not the REV- id).
-    expect(html).toContain('Machine-readable build-freshness marker');
-    expect(html).toContain('source: scripts/contrast-guard.mjs');
-    expect(html).toContain('addressed');
+    const h = render('reviews');
+    expect(h).toContain('Machine-readable build-freshness marker');
+    expect(h).toContain('source: scripts/contrast-guard.mjs');
+    expect(h).toContain('addressed');
   });
   it('points at the live local-LLM review panel (no duplication)', () => {
-    expect(html).toMatch(/Local-LLM/i);
+    expect(render('reviews')).toMatch(/Local-LLM/i);
   });
 });

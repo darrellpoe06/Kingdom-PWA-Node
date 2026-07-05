@@ -393,6 +393,17 @@ export default function TVTime({ email = null }) {
   const trackedKeys = useMemo(() => new Set(tracked.map((s) => titleKey(s.title || s.id))), [tracked]);
   const [genreFilter, setGenreFilter] = useState('');
   const [popularOpen, setPopularOpen] = useState(false);
+  // Condensed poster WALL vs full cards (Darrell 2026-07-05, from the TV Time
+  // app's grid: "a more condensed view … for quick and easy choosing"). Sticky
+  // per device; first-time default = wall once the list is big enough that
+  // scrolling cards is slower than scanning posters.
+  const [viewMode, setViewMode] = useState(() => {
+    try { const v = localStorage.getItem('poe-tv-view'); if (v === 'wall' || v === 'cards') return v; } catch { /* fresh */ }
+    return null; // decided from list size on first render
+  });
+  const [focusId, setFocusId] = useState(null); // wall tile tapped → its card opens
+  const wallMode = (viewMode || (tracked.length > 9 ? 'wall' : 'cards')) === 'wall';
+  const pickView = (v) => { setViewMode(v); setFocusId(null); try { localStorage.setItem('poe-tv-view', v); } catch { /* device-local nicety */ } };
 
   // Cross-device sync (owner-only; fail-soft — offline degrades to device-local).
   const stateRef = useRef(state);
@@ -638,21 +649,72 @@ export default function TVTime({ email = null }) {
         </div>
       </section>
 
+      {/* View toggle — the condensed poster WALL (like the TV Time app's grid;
+          Darrell 2026-07-05) vs the full cards. Only shown once there's a list. */}
+      {anyTracked && (
+        <div className="flex items-center gap-1.5 mb-2" role="group" aria-label="List view">
+          <span className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mr-1">View</span>
+          {[['wall', 'Poster wall'], ['cards', 'Full cards']].map(([v, label]) => {
+            const on = wallMode === (v === 'wall');
+            return (
+              <button key={v} type="button" onClick={() => pickView(v)} aria-pressed={on}
+                className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#C9BFA8] hover:text-[#1A1815]'}`}>{label}</button>
+            );
+          })}
+        </div>
+      )}
+
       {/* The four sections (genre-filtered when a genre is picked). */}
       {STATUSES.map((st) => {
         const list = genreFilter ? buckets[st.key].filter((s) => genreMatches(s.genre, genreFilter)) : buckets[st.key];
         if (!list.length) return null;
+        const focused = wallMode ? list.find((s) => s.id === focusId) : null;
         return (
           <section key={st.key} className="mb-4" aria-labelledby={`sec-${st.key}`}>
             <h3 id={`sec-${st.key}`} className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">{st.label} <span className="text-[#B85838]">· {st.hint}</span></h3>
-            <div className="space-y-2">
-              {list.map((show) => (
-                <ShowCard key={show.id} show={show} me={me} state={state}
-                  onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
-                  onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                  onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
-              ))}
-            </div>
+            {wallMode ? (
+              <>
+                {/* Condensed wall: a dense poster grid for quick choosing. Tap a
+                    tile → its full card opens right below the grid. Progress rides
+                    under each tile so "where am I" reads at a glance. Posters
+                    lazy-resolve (imports included) as tiles scroll into view. */}
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
+                  {list.map((show) => {
+                    const prog = showProgress(state, show.id);
+                    const pct = prog.total ? Math.round((prog.watched / prog.total) * 100) : 0;
+                    const on = focusId === show.id;
+                    return (
+                      <button key={show.id} type="button" onClick={() => setFocusId(on ? null : show.id)}
+                        aria-pressed={on}
+                        aria-label={`${show.title} — ${prog.watched} of ${prog.total || '?'} watched`}
+                        className={`text-left focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'ring-2 ring-[#B85838]' : ''}`}>
+                        <Poster url={show.poster} title={show.title} kind={show.kind} resolve className="w-full aspect-[2/3]" />
+                        <span className="block h-1 bg-[#E8E4DC]" aria-hidden="true">
+                          <span className="block h-1 bg-[#2F6B33]" style={{ width: `${pct}%` }} />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {focused && (
+                  <div className="mt-2">
+                    <ShowCard key={focused.id} show={focused} me={me} state={state}
+                      onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
+                      onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
+                      onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="space-y-2">
+                {list.map((show) => (
+                  <ShowCard key={show.id} show={show} me={me} state={state}
+                    onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
+                    onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
+                    onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
+                ))}
+              </div>
+            )}
           </section>
         );
       })}

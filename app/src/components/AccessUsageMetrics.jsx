@@ -22,6 +22,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { fetchAccessSnapshot, currentBuild } from '../lib/access-metrics-sync.js';
 import {
   summarize, countByRole, groupByScope, newVsReturning, activityRollup,
@@ -313,137 +314,172 @@ export default function AccessUsageMetrics() {
         </div>
       </div>
 
-      {/* ── PLATFORM SIGNUPS (cross-instance; the RLS-blind view above can't show this) ── */}
-      <PlatformSignups />
-
-      {/* ── WHAT'S GETTING USED (aggregate flow from the usage stream) ── */}
-      <UsageFlow />
-
-      {/* ── WHO HAS ACCESS ─────────────────────────────────────────────── */}
-      <div className={sectionH + ' mb-2'}>Who has access</div>
-      {(!v.scopes || v.scopes.length === 0) ? (
-        <p className={note + ' italic mb-4'}>No access records yet — no one has joined an instance you steward.</p>
-      ) : (
-        <div className="space-y-3 mb-4">
-          {v.scopes.map((g) => (
-            <div key={g.instanceId} className="border border-[#E8E4DC]">
-              <div className="flex items-center justify-between gap-2 bg-[#FAF8F4] px-2.5 py-1.5 border-b border-[#E8E4DC]">
-                <span className="text-[0.6875rem] font-semibold text-[#1A1815]">
-                  {g.name} <span className="text-[#5A5751] font-normal">· {g.scopeLabel}</span>
-                </span>
-                <span className={labelCls}>{g.count} {g.count === 1 ? 'person' : 'people'}</span>
-              </div>
-              <ul>
-                {g.members.map((m) => (
-                  <li key={m.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
-                    <span className="text-[0.8125rem] text-[#1A1815] truncate">
-                      {m.displayName || 'Member'}
-                      {m.title ? <span className="text-[#5A5751]"> · {m.title}</span> : null}
+      {/* THIRD-ROW sub-tabs (Darrell 2026-07-05: "a 3rd row of sliding tabs if the
+          tab scrolls really long"). This report was still 5 long sections stacked;
+          each is now one chip away, and each fetch-heavy piece (signups, usage)
+          only runs when its chip opens. */}
+      <SectionTabs
+        variant="sub"
+        ariaLabel="Users and usage sections"
+        idBase="usage"
+        defaultId="signups"
+        sections={[
+          {
+            id: 'signups',
+            label: 'Signups',
+            render: () => <PlatformSignups />,
+          },
+          {
+            id: 'used',
+            label: "What's used",
+            render: () => <UsageFlow />,
+          },
+          {
+            id: 'access',
+            label: 'Who has access',
+            render: () => (
+              (!v.scopes || v.scopes.length === 0) ? (
+                <p className={note + ' italic'}>No access records yet — no one has joined an instance you steward.</p>
+              ) : (
+                <div className="space-y-3">
+                  {v.scopes.map((g) => (
+                    <div key={g.instanceId} className="border border-[#E8E4DC]">
+                      <div className="flex items-center justify-between gap-2 bg-[#FAF8F4] px-2.5 py-1.5 border-b border-[#E8E4DC]">
+                        <span className="text-[0.6875rem] font-semibold text-[#1A1815]">
+                          {g.name} <span className="text-[#5A5751] font-normal">· {g.scopeLabel}</span>
+                        </span>
+                        <span className={labelCls}>{g.count} {g.count === 1 ? 'person' : 'people'}</span>
+                      </div>
+                      <ul>
+                        {g.members.map((m) => (
+                          <li key={m.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+                            <span className="text-[0.8125rem] text-[#1A1815] truncate">
+                              {m.displayName || 'Member'}
+                              {m.title ? <span className="text-[#5A5751]"> · {m.title}</span> : null}
+                            </span>
+                            <RolePill role={m.role} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )
+            ),
+          },
+          {
+            id: 'activity',
+            label: 'Counts & activity',
+            render: () => (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                  <Tile label="People" value={(v.totals && v.totals.totalPeople) || 0} sub={`${(v.totals && v.totals.totalMemberships) || 0} memberships`} />
+                  <Tile
+                    label="Active (7d)"
+                    value={hasPresence ? v.activity.active : '—'}
+                    sub={hasPresence ? `${v.activity.idle} idle · ${v.activity.dormant} dormant` : 'no sessions yet'}
+                  />
+                  <Tile label="New (30d)" value={(v.nvr && v.nvr.newCount) || 0} sub={`${(v.nvr && v.nvr.returningCount) || 0} returning`} />
+                  <Tile label="Reporting" value={hasPresence ? v.activity.reporting : '—'} sub="sessions checked in" />
+                </div>
+                {v.byRole && v.byRole.length > 0 ? (
+                  <ul className="border border-[#E8E4DC]">
+                    {v.byRole.map((r) => (
+                      <li key={r.role} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+                        <span className="text-[0.75rem] text-[#1A1815]">{r.label}</span>
+                        <span className="text-[0.75rem] font-semibold tabular-nums text-[#1A1815]">{r.count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
+            ),
+          },
+          {
+            id: 'builds',
+            label: 'Update signals',
+            render: () => (
+              <>
+                <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5 mb-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className={note}>
+                      You're viewing on build <span className="font-semibold text-[#1A1815]">{build.sha}</span>
                     </span>
-                    <RolePill role={m.role} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── COUNTS + ACTIVITY ──────────────────────────────────────────── */}
-      <div className={sectionH + ' mb-2'}>Counts &amp; activity</div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-        <Tile label="People" value={(v.totals && v.totals.totalPeople) || 0} sub={`${(v.totals && v.totals.totalMemberships) || 0} memberships`} />
-        <Tile
-          label="Active (7d)"
-          value={hasPresence ? v.activity.active : '—'}
-          sub={hasPresence ? `${v.activity.idle} idle · ${v.activity.dormant} dormant` : 'no sessions yet'}
-        />
-        <Tile label="New (30d)" value={(v.nvr && v.nvr.newCount) || 0} sub={`${(v.nvr && v.nvr.returningCount) || 0} returning`} />
-        <Tile label="Reporting" value={hasPresence ? v.activity.reporting : '—'} sub="sessions checked in" />
-      </div>
-      {v.byRole && v.byRole.length > 0 ? (
-        <ul className="border border-[#E8E4DC] mb-4">
-          {v.byRole.map((r) => (
-            <li key={r.role} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
-              <span className="text-[0.75rem] text-[#1A1815]">{r.label}</span>
-              <span className="text-[0.75rem] font-semibold tabular-nums text-[#1A1815]">{r.count}</span>
-            </li>
-          ))}
-        </ul>
-      ) : <div className="mb-4" />}
-
-      {/* ── UPDATE SIGNALS (build-freshness) ───────────────────────────── */}
-      <div className={sectionH + ' mb-2'}>Update signals — build freshness</div>
-      <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5 mb-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <span className={note}>
-            You're viewing on build <span className="font-semibold text-[#1A1815]">{build.sha}</span>
-          </span>
-          {hasPresence && v.fresh.latestSha ? (
-            <span className={labelCls}>
-              latest seen: <span className="font-semibold text-[#1A1815]">{v.fresh.latestSha}</span>
-              {v.fresh.latestAt ? ` · ${relativeTime(v.fresh.latestAt, v.nowMs)}` : ''}
-            </span>
-          ) : null}
-        </div>
-      </div>
-      {!hasPresence ? (
-        <p className={note + ' italic mb-4'}>
-          {presenceUnavailable
-            ? 'Build-freshness will appear once the presence migration (0055) is applied — then each session reports the version it runs.'
-            : 'No sessions have reported a build yet. Build-freshness appears once people open the app on a signed-in device.'}
-        </p>
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-2 mb-2">
-            <Tile label="On latest" value={v.fresh.onLatestCount} />
-            <Tile label="Behind" value={v.fresh.behindCount} />
-            <Tile label="Unknown" value={v.noPresence.length} sub="never reported" />
-          </div>
-          {v.fresh.behind.length > 0 ? (
-            <ul className="border border-[#E8E4DC] mb-2">
-              {v.fresh.behind.map((b) => (
-                <li key={b.userId} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
-                  <span className="text-[0.75rem] text-[#1A1815] truncate">{b.displayName || 'Member'}</span>
-                  <span className="text-[0.625rem] text-[#B85838]">
-                    build {b.buildSha || '—'} · {b.lastSeenAt ? relativeTime(b.lastSeenAt, v.nowMs) : 'unknown'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className={note + ' mb-2'}>Everyone who has reported a session is on the latest build.</p>
-          )}
-        </>
-      )}
-
-      {/* ── ADMIN ACTIONS ──────────────────────────────────────────────── */}
-      <div className={sectionH + ' mb-2 mt-2'}>Admin — invites &amp; access</div>
-      {invitesUnavailable ? (
-        <p className={note + ' italic'}>Couldn't load invites right now.</p>
-      ) : (v.invitesPending && v.invitesPending.length > 0) ? (
-        <ul className="border border-[#E8E4DC] mb-2">
-          {v.invitesPending.map((i) => (
-            <li key={i.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
-              <span className="text-[0.75rem] text-[#1A1815] truncate">
-                {i.displayName}{i.type ? <span className="text-[#5A5751]"> · {i.type}</span> : null}
-              </span>
-              <span className="text-[0.625rem] text-[#B85838] inline-flex items-center gap-1">
-                <KpiDot status="attention" label="invited — pending" />
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className={note + ' mb-2'}>No invites are waiting to be accepted.</p>
-      )}
-      <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5">
-        <p className={note}>
-          <span className="font-semibold text-[#1A1815]">Granting, adjusting, or revoking access is a deliberate steward action.</span>{' '}
-          This surface shows the picture; it never changes someone's access on its own. Make access
-          changes yourself so the decision — and the moment — is always a human's.
-        </p>
-      </div>
+                    {hasPresence && v.fresh.latestSha ? (
+                      <span className={labelCls}>
+                        latest seen: <span className="font-semibold text-[#1A1815]">{v.fresh.latestSha}</span>
+                        {v.fresh.latestAt ? ` · ${relativeTime(v.fresh.latestAt, v.nowMs)}` : ''}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                {!hasPresence ? (
+                  <p className={note + ' italic'}>
+                    {presenceUnavailable
+                      ? 'Build-freshness will appear once the presence migration (0055) is applied — then each session reports the version it runs.'
+                      : 'No sessions have reported a build yet. Build-freshness appears once people open the app on a signed-in device.'}
+                  </p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      <Tile label="On latest" value={v.fresh.onLatestCount} />
+                      <Tile label="Behind" value={v.fresh.behindCount} />
+                      <Tile label="Unknown" value={v.noPresence.length} sub="never reported" />
+                    </div>
+                    {v.fresh.behind.length > 0 ? (
+                      <ul className="border border-[#E8E4DC]">
+                        {v.fresh.behind.map((b) => (
+                          <li key={b.userId} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+                            <span className="text-[0.75rem] text-[#1A1815] truncate">{b.displayName || 'Member'}</span>
+                            <span className="text-[0.625rem] text-[#B85838]">
+                              build {b.buildSha || '—'} · {b.lastSeenAt ? relativeTime(b.lastSeenAt, v.nowMs) : 'unknown'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className={note}>Everyone who has reported a session is on the latest build.</p>
+                    )}
+                  </>
+                )}
+              </>
+            ),
+          },
+          {
+            id: 'invites',
+            label: 'Invites & access',
+            render: () => (
+              <>
+                {invitesUnavailable ? (
+                  <p className={note + ' italic'}>Couldn't load invites right now.</p>
+                ) : (v.invitesPending && v.invitesPending.length > 0) ? (
+                  <ul className="border border-[#E8E4DC] mb-2">
+                    {v.invitesPending.map((i) => (
+                      <li key={i.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+                        <span className="text-[0.75rem] text-[#1A1815] truncate">
+                          {i.displayName}{i.type ? <span className="text-[#5A5751]"> · {i.type}</span> : null}
+                        </span>
+                        <span className="text-[0.625rem] text-[#B85838] inline-flex items-center gap-1">
+                          <KpiDot status="attention" label="invited — pending" />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={note + ' mb-2'}>No invites are waiting to be accepted.</p>
+                )}
+                <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5">
+                  <p className={note}>
+                    <span className="font-semibold text-[#1A1815]">Granting, adjusting, or revoking access is a deliberate steward action.</span>{' '}
+                    This surface shows the picture; it never changes someone's access on its own. Make access
+                    changes yourself so the decision — and the moment — is always a human's.
+                  </p>
+                </div>
+              </>
+            ),
+          },
+        ]}
+      />
 
       {/* ── PRIVACY FOOTER ─────────────────────────────────────────────── */}
       <p className="text-[0.5625rem] text-[#5A5751] italic mt-3 leading-relaxed">
