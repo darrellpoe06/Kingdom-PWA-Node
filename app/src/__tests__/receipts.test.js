@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
-  receiptShape, loadPending, addPending, removePending, suggestMatches, PENDING_CAP,
+  receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind, merchantOverlap, PENDING_CAP,
 } from '../lib/receipts.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -73,6 +73,46 @@ describe("suggestMatches — Darrell's Aspen Tap House receipt finds its charge"
       { id: 'near', date: '2026-07-02', amount: -20, description: 'NEAR' },
     ];
     expect(suggestMatches(noTotal, txns).map((t) => t.id)).toEqual(['near', 'far']);
+  });
+});
+
+describe('tip-inclusive matching — the paper total is LESS than the settled charge', () => {
+  // The 2026-07-05 incident, verbatim: the Aspen Tap House paper says Total
+  // $72.60 (balance due, pre-tip); the VISA settles $86.68 with the handwritten
+  // tip (+19.4%). Exact-cent matching pairs nothing — the pending receipt would
+  // sit forever. The bounded, one-directional tip window is the fix.
+  const paper = receiptShape({ src: 'x', amount: 72.60, merchant: 'Aspen Tap House', capturedAt: '2026-07-05' });
+
+  it('classifies the tipped settlement as a tip match, an exact charge as exact', () => {
+    expect(matchKind(paper, { amount: -86.68 })).toBe('tip');   // +19.4% tip
+    expect(matchKind(paper, { amount: -72.60 })).toBe('exact'); // no tip added
+    expect(matchKind(paper, { amount: -60.00 })).toBeNull();    // charge BELOW paper — never a tip
+    expect(matchKind(paper, { amount: -120.00 })).toBeNull();   // beyond the 30% ceiling
+  });
+
+  it('suggests the tip-inclusive charge that exact-cent matching would have missed', () => {
+    const txns = [
+      { id: 'tip', date: '2026-07-06', amount: -86.68, description: 'ASPEN TAP HOUSE CHAMPAIGN' },
+      { id: 'unrelated', date: '2026-07-06', amount: -200.00, description: 'HOME DEPOT' },
+    ];
+    expect(suggestMatches(paper, txns).map((t) => t.id)).toEqual(['tip']);
+  });
+
+  it('ranks an exact match above a tip match, and uses merchant name to break ties', () => {
+    const txns = [
+      { id: 'tip', date: '2026-07-05', amount: -80.00, description: 'ASPEN TAP HOUSE' },
+      { id: 'exact', date: '2026-07-05', amount: -72.60, description: 'SOME OTHER CHARGE' },
+    ];
+    expect(suggestMatches(paper, txns).map((t) => t.id)).toEqual(['exact', 'tip']);
+    // Two date-only candidates equidistant in time: the one whose description
+    // carries the merchant name ranks first (rank-only signal, never a filter).
+    const noTotal = receiptShape({ src: 'x', merchant: 'Aspen Tap House', capturedAt: '2026-07-05' });
+    const dateTxns = [
+      { id: 'other', date: '2026-07-05', amount: -5, description: 'WENDYS' },
+      { id: 'aspen', date: '2026-07-05', amount: -5, description: 'ASPEN TAP HOUSE CHAMPAIGN' },
+    ];
+    expect(suggestMatches(noTotal, dateTxns).map((t) => t.id)).toEqual(['aspen', 'other']);
+    expect(merchantOverlap(noTotal, { description: 'ASPEN TAP HOUSE CHAMPAIGN' })).toBeGreaterThan(0);
   });
 });
 
