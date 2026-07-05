@@ -956,6 +956,9 @@ const FAMILY_EMAIL_PROFILES = {
   'darrellpoe06@gmail.com': 'darrell',
   'mrspoe06@gmail.com': 'christina',
   'christina@tlctherapysolutions.com': 'christina',
+  // Darrell Jr (2026-07-05): 'family' persona = household roll-up only, not the
+  // PIN-gated business/practice views. Pairs with migration 0080.
+  'darrellpoejr@gmail.com': 'family',
   // Add the twins' sign-in emails as they get accounts.
 };
 export const isFamilyEmail = (email) =>
