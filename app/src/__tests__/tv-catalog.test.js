@@ -10,6 +10,7 @@ import {
   showBrief, parseSearchResults, parseShow, groupEpisodes, totalEpisodes,
   searchShows, loadShow, __setCatalogFetcher, TV_SOURCE,
   movieBrief, parseMovieResults, searchMovies, searchTitles, MOVIE_SOURCE,
+  resolvePoster, __resetPosterCache,
 } from '../lib/tv-catalog.js';
 
 // A recorded, representative slice of TVmaze's real response shapes.
@@ -142,5 +143,48 @@ describe('movies (iTunes Search) — "movies too?" (Darrell 2026-07-04)', () => 
   it('carries the iTunes provenance (keyless public API)', () => {
     expect(MOVIE_SOURCE.name).toBe('iTunes Search');
     expect(MOVIE_SOURCE.url).toMatch(/itunes\.apple\.com/);
+  });
+});
+
+describe('resolvePoster — lazy backfill for imported shows (poster:"")', () => {
+  afterEach(() => __resetPosterCache());
+
+  it('finds a poster by title, preferring an exact title match over the top score', async () => {
+    __setCatalogFetcher(okFetch(SEARCH_SAMPLE));
+    // "Game of Thrones: The Last Watch" scores lower but the exact title wins.
+    expect(await resolvePoster('Game of Thrones')).toBe('http://img/got-med.jpg');
+  });
+
+  it('falls back to the top result when there is no exact title match', async () => {
+    __setCatalogFetcher(okFetch(SEARCH_SAMPLE));
+    expect(await resolvePoster('thrones')).toBe('http://img/got-med.jpg'); // top of SEARCH_SAMPLE
+  });
+
+  it('routes movies to the movie source', async () => {
+    __setCatalogFetcher(okFetch(MOVIE_SAMPLE));
+    expect(await resolvePoster('Black Panther', 'movie')).toBe('http://is/source/600x600bb.jpg');
+  });
+
+  it('is fail-soft: an empty/blank title or a no-match resolves to "" (placeholder stays)', async () => {
+    __setCatalogFetcher(okFetch([]));
+    expect(await resolvePoster('')).toBe('');
+    expect(await resolvePoster('   ')).toBe('');
+    expect(await resolvePoster('Nonexistent Show')).toBe('');
+    __setCatalogFetcher(async () => { throw new Error('offline'); });
+    expect(await resolvePoster('Anything Else')).toBe(''); // never throws into render
+  });
+
+  it('is single-flight: the same title is fetched at most once per session (100+ cards share one call)', async () => {
+    let calls = 0;
+    __setCatalogFetcher(async () => { calls++; return { ok: true, json: async () => SEARCH_SAMPLE }; });
+    const [a, b, c] = await Promise.all([
+      resolvePoster('Game of Thrones'), resolvePoster('Game of Thrones'), resolvePoster('Game of Thrones'),
+    ]);
+    expect([a, b, c]).toEqual(['http://img/got-med.jpg', 'http://img/got-med.jpg', 'http://img/got-med.jpg']);
+    expect(calls).toBe(1); // deduped
+    // A cached title does not re-fetch even after the fetcher would change.
+    __setCatalogFetcher(async () => { calls++; return { ok: true, json: async () => [] }; });
+    expect(await resolvePoster('Game of Thrones')).toBe('http://img/got-med.jpg');
+    expect(calls).toBe(1);
   });
 });

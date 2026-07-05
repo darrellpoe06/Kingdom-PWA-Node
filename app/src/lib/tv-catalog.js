@@ -185,3 +185,31 @@ export async function searchTitles(query) {
   const [shows, movies] = await Promise.all([searchShows(q), searchMovies(q)]);
   return [...shows, ...movies];
 }
+
+// --- Lazy poster backfill (for titles that arrived WITHOUT artwork) -----------
+// A TV Time import stores every show with poster:'' (its GDPR export has no
+// images) — so imported cards render the titled placeholder, never a picture
+// (Darrell 2026-07-05: "the import didn't connect to pictures of the shows").
+// resolvePoster looks a title up in the catalog once and returns the best match's
+// poster. SINGLE-FLIGHT + cached per (kind,title): 100+ imported cards asking for
+// the same title share ONE lookup, and each title is fetched at most once per
+// session (a big imported list can't burst the free API). Fail-soft: any error or
+// no-match resolves to '' (the placeholder stays). Prefers an exact title match,
+// else the top result. Pure-ish: uses the injectable catalog fetcher, so tests
+// drive it with a recorded sample (no live call).
+const _posterCache = new Map(); // `${kind}:${lowerTitle}` -> Promise<string> (settles to url|'')
+export function resolvePoster(title, kind = 'show') {
+  const t = String(title || '').trim();
+  if (!t) return Promise.resolve('');
+  const key = `${kind === 'movie' ? 'movie' : 'show'}:${t.toLowerCase()}`;
+  if (!_posterCache.has(key)) {
+    _posterCache.set(key, (async () => {
+      const results = kind === 'movie' ? await searchMovies(t) : await searchShows(t);
+      const exact = results.find((r) => String(r.title).toLowerCase() === t.toLowerCase());
+      return ((exact || results[0]) || {}).poster || '';
+    })());
+  }
+  return _posterCache.get(key);
+}
+// Test hook: clear the session cache between cases.
+export function __resetPosterCache() { _posterCache.clear(); }

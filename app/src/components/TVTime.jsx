@@ -21,7 +21,7 @@ import {
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
   trendingWatches, exportTv, importTvJson, touchTv, tvUpdatedAt,
 } from '../lib/tv-time.js';
-import { searchTitles, loadShow, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
+import { searchTitles, loadShow, resolvePoster, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
 import { relatedTitles, franchiseOf, titleKey } from '../lib/tv-franchises.js';
 import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
 import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
@@ -33,13 +33,37 @@ import { createDebouncer } from '../lib/table-sync.js';
 const serif = { fontFamily: '"Fraunces", serif' };
 const BTN = 'text-[0.6875rem] uppercase tracking-wider px-2 py-1 focus:outline focus:outline-2 focus:outline-[#B85838]';
 
-function Poster({ url, title, className = 'w-12 h-16' }) {
+// Posters come from the catalog. Most items already carry one (a search result, a
+// popular pick). Imported shows do NOT — a TV Time export has no artwork, so they
+// arrive with poster:''. When `resolve` is set and the url is empty, we look the
+// title up in the catalog and fill the picture in — but LAZILY, only once the card
+// scrolls into view (IntersectionObserver), so a 100+ show imported list resolves
+// a few at a time as you scroll instead of bursting the free API. Fail-soft: no
+// match / any error leaves the titled placeholder exactly as before.
+function Poster({ url, title, kind, resolve = false, className = 'w-12 h-16' }) {
   const [broken, setBroken] = useState(false);
-  if (url && !broken) {
-    return <img src={url} alt={`${title} poster`} loading="lazy" onError={() => setBroken(true)} className={`${className} object-cover border border-[#E8E4DC] shrink-0`} />;
+  const [found, setFound] = useState('');
+  const ref = useRef(null);
+  useEffect(() => {
+    if (url || found || !resolve || !title) return undefined;
+    let live = true;
+    const go = () => resolvePoster(title, kind === 'movie' ? 'movie' : 'show')
+      .then((u) => { if (live && u) setFound(u); })
+      .catch(() => { /* fail-soft: placeholder stays */ });
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { go(); return () => { live = false; }; }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { io.disconnect(); go(); }
+    }, { rootMargin: '200px' });
+    io.observe(el);
+    return () => { live = false; io.disconnect(); };
+  }, [url, found, resolve, title, kind]);
+  const src = url || found;
+  if (src && !broken) {
+    return <img ref={ref} src={src} alt={`${title} poster`} loading="lazy" onError={() => setBroken(true)} className={`${className} object-cover border border-[#E8E4DC] shrink-0`} />;
   }
   return (
-    <span className={`${className} shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center text-[0.5rem] uppercase tracking-wider text-[#5A5751] text-center p-0.5`}>{title.slice(0, 18)}</span>
+    <span ref={ref} className={`${className} shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center text-[0.5rem] uppercase tracking-wider text-[#5A5751] text-center p-0.5`}>{title.slice(0, 18)}</span>
   );
 }
 
@@ -71,7 +95,7 @@ function TrendingStrip({ items }) {
         {items.map((r, i) => (
           <li key={r.id} className="flex items-center gap-2.5">
             <span className="text-[0.6875rem] text-[#E8B84B] w-4 shrink-0 text-right" aria-hidden="true">{i + 1}</span>
-            <Poster url={r.poster} title={r.title} className="w-7 h-10" />
+            <Poster url={r.poster} title={r.title} kind={r.kind} resolve className="w-7 h-10" />
             <span className="min-w-0">
               <span className="text-sm text-white block truncate" style={{ ...serif, fontWeight: 600 }}>
                 {r.title}
@@ -147,7 +171,7 @@ function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, on
   return (
     <div className="bg-white border border-[#1A1815] p-3">
       <div className="flex items-start gap-3">
-        <Poster url={show.poster} title={show.title} />
+        <Poster url={show.poster} title={show.title} kind={show.kind} resolve />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <div>
