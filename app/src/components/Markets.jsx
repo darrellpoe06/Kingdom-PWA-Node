@@ -32,12 +32,15 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
   const [globalError, setGlobalError] = useState('');
 
   // Round 13 fix — Stooq's CSV endpoint doesn't send CORS headers, so direct
-  // browser fetches silently fail. Routes through corsproxy.io (free, no API
-  // key, no signup, supports https). Falls back to a second public proxy if
-  // the first one is down. If both fail, the user gets a clear error message.
+  // browser fetches silently fail. 2026-07-05 (live test: dashes on two devices
+  // at once — the public proxies were the single point of failure): the FIRST
+  // route is now the app's own same-origin relay (/api/market-quote, a Vercel
+  // function that fetches Stooq server-side with a ~55s edge cache). The public
+  // proxies remain only as fallback — and for local dev, where functions don't run.
   const fetchQuote = async (sym) => {
     const stooqUrl = `https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcv&h&e=csv`;
     const proxies = [
+      `/api/market-quote?s=${encodeURIComponent(sym)}`,
       `https://corsproxy.io/?${encodeURIComponent(stooqUrl)}`,
       `https://api.allorigins.win/raw?url=${encodeURIComponent(stooqUrl)}`,
     ];
@@ -79,7 +82,7 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
     if (!anySuccess && watchlist.length > 0) {
       // Show the actual error from the first failed quote so user can diagnose.
       const firstError = results.find(([, q]) => q.error)?.[1]?.error || 'unknown';
-      setGlobalError(`Couldn't reach the market data feed (${firstError}). The app routes Stooq quotes through a public CORS proxy (corsproxy.io → allorigins.win fallback). Common causes: (1) browser blocked by ad/script blocker, allow corsproxy.io; (2) the proxy is rate-limited — try Refresh in 30s; (3) offline. Watchlist still saves locally either way.`);
+      setGlobalError(`Couldn't reach the market data feed (${firstError}). Quotes are served by poetech.us's own relay first (with public proxies as backup), so this usually means Stooq itself is unreachable or you're offline — try Refresh in 30s. Watchlist still saves either way.`);
     }
   };
 
@@ -119,7 +122,7 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Markets · Watchlist</div>
         <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>One place for your financial data.</h2>
         <p className="text-sm leading-relaxed mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          Add the tickers you actually watch — indices, ETFs, individual stocks, crypto, FX. Quotes refresh automatically every minute. Free data: <a href="https://stooq.com" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">stooq.com</a> · routed through <a href="https://corsproxy.io" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">corsproxy.io</a> (Stooq doesn't send browser CORS headers directly). No API key, no signup, no cost.
+          Add the tickers you actually watch — indices, ETFs, individual stocks, crypto, FX. Quotes refresh automatically every minute. Free data: <a href="https://stooq.com" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">stooq.com</a> · served through poetech.us's own relay (public proxies as backup). No API key, no signup, no cost.
         </p>
       </section>
 
