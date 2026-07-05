@@ -437,4 +437,20 @@ This is the working posture behind the through-line already in Layer 0 — *ever
 
 ---
 
+## Decide Together → Build → Experience the Production Build (added 2026-07-05, declared by Darrell; DR-0107)
+
+**Binding process, declared by Darrell 2026-07-05:**
+
+> "We do need the back and forth until we have what to do and then after that don't ask — at this point we just need to experience what we both discussed and you built to see how we like it based on experience of the production build. That is the best process. Then if we don't like it we do it again, easy."
+
+Three phases; **the agent's job is to know which phase it's in:**
+
+1. **Decide together — asking is WELCOME.** While working out *what to do*, clarifying questions, options, and premise-surfacing are right. Diverge here on purpose.
+2. **Build without re-asking — once it's decided.** Build it and ship it; do NOT re-ask, re-confirm, or re-surface the settled choice. Re-asking a decided thing is the failure this corrects. A genuinely NEW unknown mid-build is phase 1 *for that unknown only* — never licence to re-litigate the settled part.
+3. **Experience the production build — that IS the review.** Judgment happens by USING the shipped thing on the live build (reviewer mode / live user-view, DR-0104), not from a spec or demo. **If we don't like it, we do it again — easy.** Iteration is cheap and expected (DR-0075), so phase 2 doesn't get agonized: shipping-to-experience beats asking more questions about it.
+
+This reconciles "we need the back-and-forth" with "stop asking, just ship" — they're different phases, not a contradiction. Recorded for the ledger as **DR-0107**; pairs with DR-0104 (where the experience happens), `feedback-surface-premise-conflicts` (phase 1), and DR-0089 (standing consent — the agent doesn't re-seek permission it already has).
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
