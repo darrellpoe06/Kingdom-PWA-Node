@@ -52,6 +52,7 @@ export const FEEDBACK_AREAS = [
     ['books-imported', 'Books · Imported (bank / statement import)'],
     ['books-cart', 'Books · Subscriptions / Cart'],
     ['books-1099', 'Books · 1099 tracking'],
+    ['worker-ops', '└ 1099 · Worker voice (worker perspectives on operations)'],
     ['books-calendar', 'Books · Calendar (recurring · incidents · events)'],
     ['books-legal', 'Books · Legal (entity / account legal flags)'],
   ]},

@@ -9,7 +9,7 @@
 // derivations agreeing to the cent), never painted (DR-0076). When years of
 // statements are imported, THIS panel is where the family sees the whole span
 // verified — or exactly which rows need attention, listed by name.
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { runLedgerIntegrity } from '../lib/ledger-integrity.js';
 
 const STATUS_META = {
