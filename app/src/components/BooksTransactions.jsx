@@ -21,7 +21,7 @@ import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
 import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
 import { compressImageFile } from '../lib/image.js';
-import { receiptShape, loadPending, addPending, removePending, suggestMatches } from '../lib/receipts.js';
+import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
 import LedgerProof from './LedgerProof.jsx';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
@@ -75,10 +75,22 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
 
   const onPhoto = async (file) => {
     if (!file) return;
-    if (!(file.type || '').startsWith('image/')) { setBusy(`"${file.name}" is not a photo.`); return; }
-    setBusy('Compressing…');
-    try { setSrc(await compressImageFile(file, 1280, 0.6)); setBusy(''); }
-    catch (e) { setBusy(`Could not read the photo: ${e.message || 'unknown error'}`); }
+    if (!(file.type || '').startsWith('image/')) { setSrc(''); setBusy(`"${file.name}" is not a photo — pick a JPG, PNG, or HEIC image.`); return; }
+    // Clear any prior photo so a failed read can never leave a stale preview
+    // standing in for the file the user actually picked.
+    setSrc('');
+    setBusy('Reading the photo…');
+    try {
+      const out = await compressImageFile(file, 1280, 0.6);
+      // A decode that silently yields an empty/degenerate data URL would enable
+      // the button with no real photo behind it — treat it as a failure.
+      if (!out || out.length < 100) throw new Error('the image could not be decoded on this device');
+      setSrc(out);
+      setBusy('');
+    } catch (e) {
+      setSrc('');
+      setBusy(`Could not read that photo (${(e && e.message) || 'unknown error'}). Try again, or pick a different image.`);
+    }
   };
 
   const buildReceipt = () => receiptShape({ src, amount, merchant, capturedAt });
@@ -90,16 +102,24 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
           <div className="flex items-baseline justify-between gap-2">
             <div>
               <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Receipts</div>
-              <h3 className="text-lg text-[#1A1815] font-semibold">{attachTo ? `Attach to: ${attachTo.description}` : 'Snap a receipt'}</h3>
+              <h3 className="text-lg text-[#1A1815] font-semibold">{attachTo ? `Attach to: ${attachTo.description}` : 'Add a receipt'}</h3>
               <p className="text-xs text-[#5A5751]">{attachTo ? 'The photo stores on this transaction and follows it to every device.' : 'No matching charge yet? Save it here — when the bank row lands, match it with one tap.'}</p>
             </div>
             <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">× Close</button>
           </div>
 
           <div>
-            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">1. The photo</div>
-            <input type="file" accept="image/*" capture="environment" onChange={(e) => onPhoto(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
-            {src && <img src={src} alt="Receipt preview" className="mt-2 max-h-48 border border-[#E8E4DC]" />}
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">1. The photo — take one now, or pick from your photos / files</div>
+            {/* Reset value on EVERY change: the browser fires `change` only when
+                the file value differs, so without this, re-picking the SAME
+                receipt (the common case after a save, or after a failed read)
+                fires nothing and the Save button stays stuck on step 1. Clearing
+                the value first makes the compressed preview below the single
+                source of truth for "a photo is loaded." */}
+            <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; onPhoto(f); }} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
+            {src
+              ? <img src={src} alt="Receipt preview" className="mt-2 max-h-48 border border-[#E8E4DC]" />
+              : <p className="mt-1 text-[0.625rem] text-[#5A5751]">Pick a photo above — its preview appears here once it loads, then the button unlocks.</p>}
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -142,11 +162,21 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
                         <div className="text-xs text-[#1A1815]">{r.merchant || 'Receipt'} · {r.amount != null ? fmt(-r.amount) : 'no total'} · {r.capturedAt}</div>
                         {matches.length === 0 ? (
                           <p className="text-[0.625rem] text-[#5A5751] italic">No matching charge in the ledger yet — it usually lands within a few days.</p>
-                        ) : matches.map((t) => (
-                          <button key={t.id} type="button" onClick={() => { onAttach(t, { ...r }); onDeletePending(r.id); }} className="block text-left text-[0.6875rem] text-[#5A6E3D] hover:text-[#1A1815] underline">
-                            Attach → {t.description} · {fmt(t.amount)} · {t.date}
-                          </button>
-                        ))}
+                        ) : matches.map((t) => {
+                          // Label WHY this row is suggested. A tip-inclusive or
+                          // date-only pairing is inexact by design (the charge
+                          // carries a tip the paper doesn't) — flag it so the
+                          // human confirms rather than trusting a silent pair.
+                          const kind = matchKind(r, t);
+                          const tag = kind === 'exact' ? { text: 'exact', cls: 'text-[#5A6E3D]' }
+                            : kind === 'tip' ? { text: '+ tip?', cls: 'text-[#8B6F47]' }
+                            : { text: 'date only — verify', cls: 'text-[#8B6F47]' };
+                          return (
+                            <button key={t.id} type="button" onClick={() => { onAttach(t, { ...r }); onDeletePending(r.id); }} className="block text-left text-[0.6875rem] text-[#5A6E3D] hover:text-[#1A1815] underline">
+                              Attach → {t.description} · {fmt(t.amount)} · {t.date} <span className={`uppercase tracking-wider text-[0.5625rem] no-underline ${tag.cls}`}>· {tag.text}</span>
+                            </button>
+                          );
+                        })}
                         <button type="button" onClick={() => onDeletePending(r.id)} className="mt-0.5 text-[0.625rem] text-[#991B1B] hover:underline">Delete</button>
                       </div>
                     </div>

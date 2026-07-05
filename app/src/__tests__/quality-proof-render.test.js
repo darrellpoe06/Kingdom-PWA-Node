@@ -77,4 +77,14 @@ describe('QualityProof renders the real proof + reviews (sub-tabbed)', () => {
   it('points at the live local-LLM review panel (no duplication)', () => {
     expect(render('reviews')).toMatch(/Local-LLM/i);
   });
+  it('surfaces the orchestration review record + the measured freshness line (DR-0102)', () => {
+    const h = render('reviews');
+    // The registry's own freshness is rendered (verdict text is time-dependent
+    // by design, so only the line's presence is pinned here; the verdict logic
+    // is pinned deterministically in quality-proof.test.js).
+    expect(h).toContain('Review freshness');
+    // REV-0006 flows from the real REVIEWS.md through the same parse.
+    expect(h).toContain('Orchestration review — the 2026-07-05 working day');
+    expect(h).toContain('Orchestration');
+  });
 });

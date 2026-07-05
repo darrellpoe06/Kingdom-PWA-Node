@@ -87,7 +87,37 @@ The local-LLM orchestrator should:
 - **Memory is a cache only.** It speeds the agent up between context windows; it is
   never the system of record. If it and this doc disagree, this doc governs.
 
-## 7. Cross-references
+## 8. The delivery lane — work lands on green without a manual merge (DR-0103)
+
+The lanes in §2 describe how work is *built*; this is how it *lands*. The default
+state of the work is **motion**, not waiting on Darrell to push each step
+(declared 2026-07-05: *"we don't move when I'm not pushing... remedy asap"*).
+
+- **The lane:** `auto-open-pr.yml` opens a PR to `main` for a pushed
+  `claude/*` / `feat|fix|merge|docs` branch and arms native auto-merge (squash);
+  `ci.yml` runs the required gates on the commit; `auto-merge.yml` sweeps eligible
+  open PRs (belt-and-suspenders). The PR **squash-merges the instant the gates
+  pass** — lint + the full Vitest suite + tenancy/contrast/isolation guards + a
+  real production build. Merge = deploy (DR-0054). No human click.
+- **The `claude/*` fix (2026-07-05):** the lane originally filtered head branches
+  to `^(feat|fix|merge|docs)/`, excluding the `claude/*` branches every remote/web
+  session uses — so every agent PR was invisible to it and only a manual merge
+  could land it. `claude/**` was added to the CI push trigger, the auto-open-PR
+  trigger, and the auto-merge eligibility. That exclusion was the stall; keep it
+  fixed.
+- **The gate is the brake; `hold` is the governor's hand.** A red PR never merges
+  (DR-0076). The `hold` label parks a PR out of the lane to soak or await Governor
+  review (Tier B/C; RELEASE-TIERS). Reverting the three workflows is the
+  off-switch. This is the integration gate deferring to verified truth — NOT the
+  timer-driven, compute-spawning class the three-brakes rule governs.
+- **Cadence + no idling:** watch in-flight work on a cadence matched to how fast
+  it changes (minutes for a ~3-min CI, never a reflexive hour); between prompts,
+  pull the next dated backlog item forward instead of parking on a timer.
+- **In the app:** the OpsBoard renders the live lane (auto-merge armed / `hold`
+  parked / land order / merged SHAs, read live from the repo) beside a short
+  statement of this model — the model and its proof in one place (DR-0065).
+
+## 9. Cross-references
 
 DR-0076 (Verification Doctrine), DR-0075 (perpetual improvement), DR-0073
 (capability-aware routing), DR-0063 (learn-from-experience), DR-0062/0066

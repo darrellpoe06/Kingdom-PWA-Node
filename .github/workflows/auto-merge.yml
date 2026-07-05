@@ -1,6 +1,8 @@
 # Auto-merge bootstrap — hands-off promotion to main, gated by branch protection.
 #
-# For PRs that TARGET main from feat/*, fix/*, merge/*, or docs/* branches,
+# For PRs that TARGET main from feat/*, fix/*, merge/*, docs/*, or claude/*
+# branches (claude/* is the remote/web session lane — added 2026-07-05 so agent
+# PRs stop stalling until a human clicks merge),
 # this enables GitHub's native auto-merge (squash). The PR then merges itself
 # the moment the required status checks pass — and ONLY then. This never
 # bypasses protection: auto-merge respects every required check and review
@@ -61,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           # Eligible = open, non-draft, targets main, head branch is a release
-          # lane (feat|fix|merge|docs), NOT labeled `hold`, and auto-merge is NOT
+          # lane (feat|fix|merge|docs|claude), NOT labeled `hold`, and auto-merge is NOT
           # already enabled. Filtering happens here (not in a job-level `if:`) so
           # the same job works uniformly across pull_request / check_suite /
           # workflow_dispatch — only pull_request events carry a single PR.
@@ -70,7 +72,7 @@ jobs:
               --json number,headRefName,isDraft,autoMergeRequest,labels \
               --jq '.[]
                     | select(.isDraft == false)
-                    | select(.headRefName | test("^(feat|fix|merge|docs)/"))
+                    | select(.headRefName | test("^(feat|fix|merge|docs|claude)/"))
                     | select(.autoMergeRequest == null)
                     | select(any(.labels[].name; . == "hold") | not)
                     | .number'

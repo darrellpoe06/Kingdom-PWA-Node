@@ -129,6 +129,7 @@ import { BigPictureDashboard } from './components/BigPictureDashboard.jsx';
 import { dueDateFor, OPPORTUNITY_LIBRARY, matchOpportunities, capacityDecisionForNewProject } from './lib/opportunity-capacity.js';
 import { getAssignments, dispatchState, addAssignment, removeAssignment, markDone as markAssignmentDone, reopen as reopenAssignment, setPayout as setAssignmentPayout } from './lib/assignments.js';
 import { ChurchGiveFloater } from './components/ChurchGiving.jsx';
+import LiveWorshipBar from './components/LiveWorshipBar.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
 // Scroll-anchor primitive (same mechanism that powers reading-resume + the
@@ -4024,7 +4025,12 @@ export default function PoeFinancialSystem() {
     // and normal vertical page scroll are unaffected. This is the structural guard;
     // the root cause — tab strips that don't scroll internally — is fixed via the
     // <TabScroll> primitive so content stays REACHABLE, not just clipped away.
-    <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+    <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif', paddingTop: 'var(--lwb-h, 0px)' }}>
+      {/* LIVE WORSHIP BAR — app-wide pinned live player, mounted ONCE above the
+          view switch so tab changes never stop the stream. Self-gates to real
+          service windows; publishes --lwb-h (read by this root's padding-top and
+          the sticky header's `top`, below, so the nav pins under it). */}
+      <LiveWorshipBar church={data.church} view={view} churchView={churchView} onOpenChurch={() => { setView('church'); setChurchView('home'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} />
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       <style>{`
 /* Mobile keyboard fix */
@@ -4772,7 +4778,7 @@ html{scroll-padding-bottom:280px}
           positions (fixed); placed once near the app root. */}
       <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
 
-      <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
+      <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }}>
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
             from growing taller and pushing content down at larger sizes. */}
@@ -4787,7 +4793,7 @@ html{scroll-padding-bottom:280px}
               screens where there's actually room. */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Financial Control System and Life Management <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Life, Soul & Money <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
               {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
                   zoom so it stays roughly fixed while body content scales fully
                   (text-size scope split, 2026-06-17). */}

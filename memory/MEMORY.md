@@ -74,6 +74,42 @@ relying on it; memories reflect what was true when written.
 
 ## Session-learned additions (append per session, newest first)
 
+- **2026-07-05 — platform-move parity is a checked class, not a memory** — the
+  Vercel→Cloudflare Pages cutover silently dropped every same-origin endpoint
+  Vercel provided outside the static bundle: /api/market-quote,
+  /api/voice-speak (serverless functions don't port), /nas-photos/* (rewrites
+  to external origins need a Pages Function), and the N8N_BASE resolver still
+  pointed at the Funnel cross-origin (503 throttle = intermittent "works, then
+  doesn't"). All fixed; the guard is
+  `app/src/__tests__/cf-pages-parity.test.js`. Standing rule: same-origin
+  '/n8n' is the default again (the 2026-06-17 Funnel-direct era existed only
+  for a Vercel TLS bug and died with Vercel). Also: Storage BUCKETS are schema
+  that must ride migrations (0078); auth users, storage objects, and Supabase
+  dashboard auth config (Site URL, OAuth callbacks, confirm-email OFF) do NOT
+  move with a database — check them first when "onboarding broke after a move."
+- **2026-07-05 — the delivery lane now includes `claude/*`; don't idle on
+  poll-timers** — Darrell: "we don't move when I'm not pushing... remedy asap."
+  Verified cause: `auto-open-pr.yml` + `auto-merge.yml` filtered eligible
+  branches to `^(feat|fix|merge|docs)/`, and `ci.yml`'s push trigger matched
+  the same set — so every `claude/*` remote-session PR was invisible to the
+  hands-off merge lane and only Darrell's hand could land it. Fixed: `claude/**`
+  added to all three. Agent PRs now auto-merge on GREEN GATES (4,469 tests +
+  tenancy/contrast/isolation guards + real build); the **`hold` label is the
+  per-PR brake** for Tier B/C soak / Governor review (RELEASE-TIERS). Reverting
+  the three workflow edits is the off-switch. This is the integration gate, not
+  the timer-driven compute-spawning class three-brakes governs. BEHAVIORAL rule:
+  between prompts, PULL the next dated re-review / timeline / friction item and
+  ship it through the verified lane — a poll-timer is only for genuinely
+  external waits (CI in flight), never a stand-in for available work.
+- **2026-07-05 — orchestration reviews ride the review registry (DR-0102)** —
+  a working day that merges to `main` ends by appending a `Type: orchestration`
+  record to `docs/reviews/REVIEWS.md` (kept + frictions→actions with re-review
+  dates; full narrative in a Layer 4 session note). The app's Quality / Proof
+  Reviews panel MEASURES the registry's freshness (`reviewFreshness`,
+  lib/quality-proof.js) and goes attention past 7 days — do not let the chip
+  be the one to say the review was skipped. Batch discipline from REV-0006:
+  discovery may batch, but fixes integrate as separate small lanes (DR-0077).
+
 - **2026-07-04 — DB changes ride the lane; stop guessing manual applies** —
   cost Darrell real time when I offered docker `psql` and Supabase Studio
   paste steps for the TV-sharing `0074` migration. He: "I don't have that we

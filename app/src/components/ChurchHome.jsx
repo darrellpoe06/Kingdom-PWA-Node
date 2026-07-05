@@ -18,7 +18,7 @@
 // =============================================================================
 import React, { useState, useRef } from 'react';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
-import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
+import { resolveChurch } from '../lib/resolve-church.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
 import UiIcon from './UiIcon.jsx';
 import EmojiText from './EmojiText.jsx';
@@ -164,27 +164,12 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // viewer's anonymized 'Your home church' placeholder resolves to the COLG
   // public directory entry. COLG directory info is public-by-design (the named
   // first community per COMMUNITY-FIRST-MISSION), distinct from private seed.
-  const resolvedChurch = (church && church.name && church.name !== 'Your home church')
-    ? church
-    : COLG_DEFAULT_CHURCH;
-  // Backfill the COLG live-broadcast channel onto a saved COLG home that predates
-  // the youtubeChannelId field (2026-06-15). A real saved record can drop a field
-  // the seed default carries, which suppressed Live Worship for COLG members whose
-  // home was saved before the field shipped. Only backfills when the record is
-  // identifiably COLG AND the id is actually missing — a genuinely different church
-  // with no channel id still correctly shows no broadcast (never COLG's stream on
-  // someone else's page). Reality-Trace P15/P16.
-  const looksLikeCOLG =
-    /church of the living god/i.test(resolvedChurch.name || '') ||
-    /love corner/i.test(resolvedChurch.nickname || '') ||
-    (resolvedChurch.site || '').includes('thechurchofthelivinggod');
-  const c = (looksLikeCOLG && !(resolvedChurch.youtubeChannelId || '').trim())
-    ? {
-        ...resolvedChurch,
-        youtubeChannelId: COLG_DEFAULT_CHURCH.youtubeChannelId,
-        media: { ...COLG_DEFAULT_CHURCH.media, ...(resolvedChurch.media || {}) },
-      }
-    : resolvedChurch;
+  // The effective church-home record — COLG default fallback + the COLG
+  // channel/media backfill for pre-2026-06-15 saved homes — now lives in
+  // lib/resolve-church.js so the Church tab AND the global Live Worship bar
+  // resolve the SAME record from one source (Reality-Trace P15/P16). Behavior
+  // is unchanged from the inline logic this replaced.
+  const c = resolveChurch(church);
   const showingDefaultHome = c.isDefaultHome === true;
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';

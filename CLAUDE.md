@@ -387,7 +387,24 @@ Recorded for the ledger as **DR-0076**; pairs with DR-0075 (perpetual improvemen
 
 ---
 
-## Review the Live Production Push (added 2026-07-05, declared by Darrell; DR-0102)
+## The Streamlined Delivery Loop — Move Without Being Pushed (added 2026-07-05, declared by Darrell)
+
+**Binding rule, declared by Darrell 2026-07-05:**
+
+> "we are taking too long and we don't move when I'm not pushing, that is a constraint we need to remedy asap." And: "we can and should be more streamlined for progress to occur."
+
+**The default state of the work is MOTION, not waiting.** Progress must not depend on Darrell pushing each step. This is Layer 0 because it is the grounding the agent loses on every context compaction and must reload first.
+
+1. **Work lands on green by itself — the agent is not in the merge path.** Agent PRs ride the sanctioned delivery lane (`auto-open-pr.yml` + `auto-merge.yml` + `ci.yml`): a `claude/*` / `feat|fix|merge|docs` branch pushed to `main` gets a PR opened and native auto-merge (squash) armed, and it **squash-merges the instant the required gates pass** (lint + the full Vitest suite + tenancy/contrast/isolation guards + a real build). Merge = deploy (DR-0054). No human click. The **`claude/*` lane was excluded until 2026-07-05** — that exclusion WAS the "we don't move without pushing" stall; it is fixed and must stay fixed.
+2. **The gate is the brake; `hold` is the governor's hand.** The deterministic gates are the safety — a red PR never merges (DR-0076). The **`hold` label** is Darrell's per-PR brake: it keeps a PR out of the lane to soak or await Governor review (Tier B/C — front-door, mission identity, COLG-facing, real money, schema; RELEASE-TIERS). Reverting the three workflow files is the whole-policy off-switch. This is the integration gate deferring to verified truth — NOT the timer-driven, compute-spawning class the three-brakes rule governs.
+3. **Watch in-flight work on a cadence matched to how fast it actually changes — minutes, never a reflexive hour.** CI completes in ~3 minutes; a check-in timer for it is ~3 minutes, not 60. A poll-timer is ONLY for a genuine external wait (CI in flight, a deploy). It is never a stand-in for available work.
+4. **Between Darrell's prompts, PULL the next item forward — do not idle.** Idle turns spend their time pulling the next dated re-review / timeline / friction item and shipping it through the verified lane, not parking on a timer waiting to be pushed. Silence from Darrell is not a stop signal; it is room to advance the backlog.
+
+**The streamlined loop:** agent ships → gates run (~3 min) → auto-merge on green → deploy → agent pulls the next item. Darrell's only touch-point is a `hold` label when he wants something to NOT move. Documented in the app on the **OpsBoard** (the live lane state — auto-merge armed / `hold` parked / merged SHAs, read live from the repo) beside this model, and in `ORCHESTRATION-AND-VERIFICATION-OPERATING-MODEL.md` §8. Recorded for the ledger as **DR-0103**; pairs with DR-0077 (lanes + one orchestrator), DR-0076 (gates are the brake), DR-0102 (the work reviews itself), DR-0054 (merge = deploy).
+
+---
+
+## Review the Live Production Push (added 2026-07-05, declared by Darrell; DR-0104)
 
 **Binding rule, declared by Darrell 2026-07-05:**
 
@@ -400,8 +417,6 @@ Recorded for the ledger as **DR-0076**; pairs with DR-0075 (perpetual improvemen
 - **On top of the gates, never instead of them.** The CI gates "make sure it is a sound build"; this live user-view pass is a second, independent, human observation (DR-0076) — it does not replace the deterministic checks.
 - **The agent's standing job, without being re-asked:** after a merge/deploy to production, surface the live user-review pass as a named step (the way it surfaces tests or the reality-trace), and do not report a production change fully "done" until that pass is available to run. The mechanism (the strictly-narrowing `poe-reviewer-mode` flag, every steward-data write path suppressed while on, source-pinned proven-to-catch) lives in `app/src/lib/reviewer-mode.jsx` + `app/src/__tests__/reviewer-mode.test.js`; RLS remains the real data gate (DR-0060).
 
-Recorded for the ledger as **DR-0102**; pairs with RELEASE-TIERS (the soak precedes merge; this review confirms the merged reality), DR-0076 (independent verification), and DR-0065 / APP-IS-PRIMARY (documented in the app, where the review is run, as well as here).
-
----
+Recorded for the ledger as **DR-0104**; pairs with RELEASE-TIERS (the soak precedes merge; this review confirms the merged reality), DR-0076 (independent verification), and DR-0065 / APP-IS-PRIMARY (documented in the app, where the review is run, as well as here). It complements DR-0103 (the streamlined auto-merge loop): the lane lands the build on green; this is the family's human look at the landed build as a user meets it.
 
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.

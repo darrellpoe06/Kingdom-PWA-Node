@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   normalizeManifest, normalizeReviews, shortSha, freshnessVerdict, ciVerdict,
-  rowStatus, contrastStatus, reviewStatus,
+  rowStatus, contrastStatus, reviewStatus, reviewFreshness,
 } from '../lib/quality-proof.js';
 
 describe('shortSha', () => {
@@ -98,6 +98,42 @@ describe('reviewStatus — addressed is the only green', () => {
     expect(reviewStatus('logged').status).toBe('idle');
     expect(reviewStatus('').status).toBe('idle');
     expect(reviewStatus(null).status).toBe('idle');
+  });
+});
+
+describe('reviewFreshness — the registry polices its own staleness (DR-0102)', () => {
+  const NOW = Date.parse('2026-07-05T12:00:00Z');
+  const reg = (dates) => ({ ok: true, count: dates.length, items: dates.map((d, i) => ({ id: `REV-000${i + 1}`, date: d })) });
+
+  it('CATCHES a silently-aging registry: 20 days since the newest record -> attention/stale', () => {
+    const v = reviewFreshness(reg(['2026-06-01', '2026-06-15']), NOW);
+    expect(v.stale).toBe(true);
+    expect(v.status).toBe('attention');
+    expect(v.daysSince).toBe(20);
+    expect(v.lastDate).toBe('2026-06-15');
+  });
+  it('stays quiet on a fresh registry: a record within 7 days -> good', () => {
+    const v = reviewFreshness(reg(['2026-06-15', '2026-07-05']), NOW);
+    expect(v.stale).toBe(false);
+    expect(v.status).toBe('good');
+    expect(v.daysSince).toBe(0);
+  });
+  it('the newest date wins regardless of record order', () => {
+    expect(reviewFreshness(reg(['2026-07-04', '2026-05-01']), NOW).lastDate).toBe('2026-07-04');
+  });
+  it('exactly the threshold is still fresh; one past it is stale', () => {
+    expect(reviewFreshness(reg(['2026-06-28']), NOW).stale).toBe(false);
+    expect(reviewFreshness(reg(['2026-06-27']), NOW).stale).toBe(true);
+  });
+  it('undated / empty / missing registry -> idle, never a misleading green', () => {
+    expect(reviewFreshness(reg([]), NOW).status).toBe('idle');
+    expect(reviewFreshness({ ok: true, items: [{ id: 'REV-0001', date: 'not-a-date' }] }, NOW).status).toBe('idle');
+    expect(reviewFreshness(null, NOW).status).toBe('idle');
+  });
+  it('no real clock -> idle, never green (a freshness claim needs a measurement)', () => {
+    const v = reviewFreshness(reg(['2026-07-05']), NaN);
+    expect(v.status).toBe('idle');
+    expect(v.label).toContain('clock');
   });
 });
 

@@ -34,7 +34,7 @@ import SectionTabs from './SectionTabs.jsx';
 import { fetchOps, GITHUB_SLUG } from '../lib/github-ops.js';
 import {
   normalizeManifest, normalizeReviews, freshnessVerdict, ciVerdict,
-  rowStatus, contrastStatus, reviewStatus,
+  rowStatus, contrastStatus, reviewStatus, reviewFreshness,
 } from '../lib/quality-proof.js';
 import { normalizeInterconnect, loopRowStatus, interconnectHeadline } from '../lib/interconnect-loops.js';
 
@@ -43,7 +43,10 @@ const INTERCONNECT = normalizeInterconnect(typeof __INTERCONNECT_LOOPS__ !== 'un
 const REVIEWS = normalizeReviews(typeof __UIUX_REVIEWS__ !== 'undefined' ? __UIUX_REVIEWS__ : null);
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 
-const TYPE_LABEL = { accessibility: '♿ Accessibility', 'ui-ux': '🎨 UI/UX', security: '🔒 Security', 'code-review': '🔍 Code review' };
+// orchestration deliberately carries no emoji: the consistency guard (DR-0079)
+// ratchets emoji-as-icon down from the frozen baseline; the existing four are
+// grandfathered, new ones fail the build.
+const TYPE_LABEL = { accessibility: '♿ Accessibility', 'ui-ux': '🎨 UI/UX', security: '🔒 Security', 'code-review': '🔍 Code review', orchestration: 'Orchestration' };
 
 function Row({ name, detail, status, label }) {
   return (
@@ -228,8 +231,18 @@ export default function QualityProof({ defaultSection = 'gates' }) {
           {
             id: 'reviews',
             label: 'Reviews',
-            render: () => (
+            render: () => {
+              // Measured at render, never at build: the registry's own
+              // freshness (DR-0102). Past 7 days the chip goes attention --
+              // the registry says "stale" about itself instead of aging
+              // silently.
+              const fresh = reviewFreshness(REVIEWS, Date.now());
+              return (
               <>
+                <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5 px-2 py-1.5 border border-[#E8E4DC]">
+                  <span className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Review freshness</span>
+                  <KpiDot status={fresh.status} label={fresh.ok ? `${fresh.label} · last ${fresh.lastDate}` : fresh.label} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" />
+                </div>
                 {REVIEWS.ok ? (
                   <ul className="border border-[#E8E4DC] mb-2">
                     {REVIEWS.items.map((r) => {
@@ -259,7 +272,8 @@ export default function QualityProof({ defaultSection = 'gates' }) {
                   The live local-LLM diff review of the latest change is in the “🔍 Local-LLM code review” panel below — a second pair of eyes, advisory, never a gate.
                 </p>
               </>
-            ),
+              );
+            },
           },
         ]}
       />

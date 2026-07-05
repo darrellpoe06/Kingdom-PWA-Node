@@ -198,6 +198,7 @@ function ServiceForm({ initial, onSave, onCancel, busy }) {
         <div><label className={LABEL} htmlFor="cv-type">Type</label>
           <select id="cv-type" className={FIELD} value={f.serviceType} onChange={set('serviceType')}>
             <option value="sunday">Sunday service</option>
+            <option value="wednesday">Wednesday</option>
             <option value="rehearsal">Thursday rehearsal</option>
           </select>
         </div>
@@ -725,8 +726,11 @@ export default function Choir() {
 
   const reportSkip = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Your changes were not stored — try again.`); else setErr(''); };
 
-  const onSaveSong = async (f) => { setBusy(true); reportSkip(await saveSong(f)); setBusy(false); setSongForm(null); };
-  const onSaveService = async (f) => { setBusy(true); reportSkip(await saveService(f)); setBusy(false); setServiceForm(null); };
+  // A failed save must never discard what was typed (feedback bf8ad82f: "tapped
+  // Add and the information disappeared"). Close the form ONLY on a confirmed
+  // save; otherwise the entry stays on screen with the error banner saying why.
+  const onSaveSong = async (f) => { setBusy(true); const r = await saveSong(f); reportSkip(r); setBusy(false); if (r?.saved) setSongForm(null); };
+  const onSaveService = async (f) => { setBusy(true); const r = await saveService(f); reportSkip(r); setBusy(false); if (r?.saved) setServiceForm(null); };
 
   if (!signedIn) {
     return (

@@ -37,11 +37,14 @@ describe('synology-chat transport (unconfigured in test env)', () => {
 });
 
 describe('n8n base resolver', () => {
-  it('defaults to the Tailscale Funnel directly when no override is set', () => {
-    // 2026-06-17: the "/n8n" Vercel rewrite was removed (Vercel's router cannot
-    // TLS-handshake to *.ts.net Funnel targets -> 502). The browser now calls
-    // the Funnel directly, which serves correct CORS for poetech.us.
-    expect(N8N_BASE).toBe('https://poetech.tail5a2f35.ts.net');
+  it('defaults to the same-origin /n8n proxy when no override is set', () => {
+    // 2026-07-05: production moved to Cloudflare Pages, whose Pages Function
+    // (app/functions/n8n/[[path]].js) proxies the Funnel same-origin. The
+    // browser must NEVER call the Funnel cross-origin — it throttles those
+    // with 503s before the request reaches n8n. (The 2026-06-17 Funnel-direct
+    // era existed only because Vercel's router couldn't TLS-handshake to
+    // *.ts.net; that constraint left with Vercel.)
+    expect(N8N_BASE).toBe('/n8n');
   });
 
   it('n8nAuthHeaders sends nothing when unauthorized or no bearer is configured', () => {

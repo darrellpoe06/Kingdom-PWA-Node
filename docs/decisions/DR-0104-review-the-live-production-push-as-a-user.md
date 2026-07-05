@@ -1,4 +1,4 @@
-# DR-0102 — Review the live production push as a user (reviewer mode is always available)
+# DR-0104 — Review the live production push as a user (reviewer mode is always available)
 
 - **Status:** accepted
 - **Tier:** B (new steward surface; feature-branch preview soak, then merge — shipped in PR #590)

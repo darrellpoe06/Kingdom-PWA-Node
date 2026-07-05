@@ -1178,6 +1178,93 @@ export const GODHEAD_ALGORITHMS = [
     psyche: 'Comfort-motivated denial soothes the observer, not the wounded; naming a hard truth plainly is the harder, kinder act, and it is the only path that actually leads to healing.',
     tags: ['truth', 'healing', 'honesty', 'no-minimizing', 'dr-0100'],
   },
+
+  // ── THE JUDGMENT COMMITTED TO THE SON (Darrell 2026-07-05) ──────────────────
+  // "Yahweh gives judging the souls on earth over to His Son Jesus Christ — I
+  // want to make sure I'm abiding by that eternal covenant, and so do the
+  // Kingdom Believers." Taught as the Word states it (DR-0098), every verse
+  // verbatim (DR-0076): the Father has committed ALL judgment to the Son
+  // (John 5:22), so abiding by the covenant means honoring the Son as the
+  // Father is honored, walking through the door the Judge Himself opened,
+  // living toward His judgment seat, vacating the seat ourselves, and growing
+  // into the under-Judge role promised to the saints. Companion review:
+  // docs/99-session-notes/2026-07-05-eternal-covenant-judgment-committed-to-the-son-review.md
+  {
+    id: 'gh-judgment-committed-to-son', section: 'gospels', name: 'All Judgment Committed unto the Son (the eternal covenant of the court)',
+    refs: ['John 5:22-23', 'John 5:26-27'],
+    condition: 'The covenant is stated by the Son Himself: "the Father judgeth no man, but hath committed all judgment unto the Son" — with the authority "to execute judgment also, because he is the Son of man."',
+    consequence: 'ALL judging of souls runs through Jesus Christ — and the stated purpose of the transfer: "That all men should honour the Son, even as they honour the Father." Withholding that honor from the Son withholds it from the Father who sent Him.',
+    threeD: 'Abide by the covenant on purpose: every question of judging a soul routes to His seat, never yours. Honor the Son with the same honor the Father receives — in worship, in speech, in how every soul is handled — because every soul you meet is His case, not yours.',
+    outcome: 'A life aligned with Heaven\'s own court order — the Son honored as the Father is honored, and no soul judged from a seat that was never yours.',
+    psyche: 'Settled jurisdiction removes two anxieties at once: the dread of a faceless judgment (the Judge has a face and a Name, and He bled for the defendants) and the exhausting burden of playing judge yourself.',
+    tags: ['judgment', 'covenant', 'the-son', 'honour', 'jurisdiction'],
+  },
+  {
+    id: 'gh-hear-believe-no-condemnation', section: 'gospels', name: 'Hear and Believe → No Condemnation (the Judge published the exemption)',
+    refs: ['John 5:24'],
+    condition: '"He that heareth my word, and believeth on him that sent me" — hearing and believing, stated by the Judge Himself in the very breath after the covenant.',
+    consequence: '"HATH everlasting life, and shall not come into condemnation; but IS passed from death unto life" — present tense: the verdict moves BEFORE the court date, from the Judge\'s own mouth.',
+    threeD: 'The Judge published the exemption clause personally, so take Him at His word: hear the Word, believe the Father who sent Him, and live as one already passed from death unto life. That assurance IS abiding by the covenant — not presumption.',
+    outcome: 'The court date without terror — everlasting life already possessed, condemnation already ruled out, on the word of the very Judge who will preside.',
+    tags: ['no-condemnation', 'everlasting-life', 'belief', 'assurance'],
+  },
+  {
+    id: 'gh-word-judges-last-day', section: 'gospels', name: 'The Word Judges at the Last Day (the standard is already published)',
+    refs: ['John 12:47-48'],
+    condition: 'His first advent leads with rescue — "I came not to judge the world, but to save the world" — and for the one who rejects Him: "the word that I have spoken, the same shall judge him in the last day."',
+    consequence: 'The standard of the last day is ALREADY PUBLISHED: the Judge\'s own spoken Word. No surprise statutes, no sealed rubric — the exam and the mercy arrived together, and the mercy came first.',
+    threeD: 'Study the standard you will be measured by — it is on the table now, in mercy, before it presides then, in judgment. Eat the Word, obey the Word, and teach the Word to the ones you love, because it is the same Word that will judge them.',
+    outcome: 'No ambush at the last day — measured by a Word you were given decades to know, love, and live.',
+    tags: ['the-word', 'last-day', 'standard', 'mercy-first'],
+  },
+  {
+    id: 'gh-appointed-day-ordained-judge', section: 'epistles', name: 'A Day Appointed, a Judge Ordained (the resurrection is the assurance)',
+    refs: ['Acts 17:31', 'Acts 10:42', '2 Timothy 4:1'],
+    condition: '"He hath appointed a day, in the which he will judge the world in righteousness by that man whom he hath ordained" — the Lord Jesus Christ, "ordained of God to be the Judge of quick and dead."',
+    consequence: 'The day is fixed, the Judge is named, righteousness is the rubric — and the raising of Him from the dead is the "assurance unto all men" that the appointment stands.',
+    threeD: 'Preach and testify what the apostles were commanded to: the risen Jesus IS the ordained Judge of the living and the dead. The empty tomb is Heaven\'s public notice of the court date — treat every soul you meet as someone with that appointment on their calendar.',
+    outcome: 'A witness with the whole message — not judgment without rescue, and not rescue without the appointed day — sealed by a resurrection nobody can repeal.',
+    tags: ['appointed-day', 'ordained', 'resurrection', 'quick-and-dead'],
+  },
+  {
+    id: 'gh-judgment-seat-of-christ', section: 'epistles', name: 'The Judgment Seat of Christ (every one gives account of himself)',
+    refs: ['2 Corinthians 5:9-10', 'Romans 14:10-12'],
+    condition: '"We must ALL appear before the judgment seat of Christ" — believers included — and "every one of us shall give account of himself to God"; wherefore we labour to be "accepted of him."',
+    consequence: 'Each receives "the things done in his body... whether it be good or bad" — the Son reviewing His own family\'s stewardship at His own seat; and every knee bows, every tongue confesses.',
+    threeD: 'Live TOWARD that seat: labour to be accepted of Him, keep your own account short — and notice the same passage asks "why dost thou judge thy brother?" The believer\'s energy goes to his OWN account, not his brother\'s case file.',
+    outcome: 'A stewardship ready for review — your account current with the Judge, and your brother\'s account left where the covenant put it: with the Son.',
+    psyche: 'Auditing your own conduct is actionable and calming; auditing everyone else\'s is unactionable and embittering. The seat assigns each person the one docket they can actually do something about — their own.',
+    tags: ['judgment-seat', 'account', 'stewardship', 'acceptance'],
+  },
+  {
+    id: 'gh-vacate-the-seat', section: 'epistles', name: 'One Lawgiver — Vacate the Seat (who art thou that judgest another?)',
+    refs: ['James 4:12', 'Romans 14:4', '1 Corinthians 4:5'],
+    condition: '"There is one lawgiver, who is able to save and to destroy: who art thou that judgest another?" — "Who art thou that judgest another man\'s servant?" — and "judge nothing before the time, until the Lord come."',
+    consequence: 'The seat is occupied — by covenant. Passing verdict on a soul is not merely unkind; it is sitting in the Son\'s chair, before His session, without His commission. And His servant stands anyway: "God is able to make him stand."',
+    threeD: 'Abiding by the covenant is mostly a vacating: discern fruit (the Word commands that much), but hand every VERDICT on a soul to the Judge it was covenanted to. When the urge to sentence someone rises, say it plainly: that case is the Son\'s, before the time is His too.',
+    outcome: 'Clean hands and a light docket — souls handed to their actual Judge, and a heart free of cases it was never assigned.',
+    psyche: 'Carrying verdicts on other people is a load the mind was never built for — resentment is the interest on a case you cannot close. Transferring jurisdiction is the release that judging never delivers.',
+    tags: ['one-lawgiver', 'vacate-the-seat', 'no-usurping', 'before-the-time'],
+  },
+  {
+    id: 'gh-saints-judge-with-him', section: 'epistles', name: 'The Saints Shall Judge the World (Kingdom Believers in training for the bench)',
+    refs: ['1 Corinthians 6:2-3', 'Revelation 20:4'],
+    condition: '"Do ye not know that the saints shall judge the world?... Know ye not that we shall judge angels?" — and John "saw thrones, and they sat upon them, and judgment was given unto them."',
+    consequence: 'Kingdom Believers are being trained for the bench UNDER the Judge: judgment is GIVEN to them at His seat, on His terms, in His session — never seized ahead of Him. The same covenant that forbids usurping the seat now promises seats then.',
+    threeD: 'Practice the under-Judge role exactly where the Word assigns it now: settle the small matters inside the Body instead of dragging brethren before the world, and grow the discernment the future bench requires — under His commission, on His clock.',
+    outcome: 'A Believer in training for real thrones — faithful with the smallest matters in the Body now, seated with the Judge then.',
+    psyche: 'Deferred authority is the deepest test of character: the one who can hold real capability without grabbing the gavel early is the one safe to hand it to — which is exactly what the training period is measuring.',
+    tags: ['saints-judge', 'kingdom-believers', 'thrones', 'training', 'body'],
+  },
+  {
+    id: 'gh-judge-comes-with-reward', section: 'revelation', name: 'The Judge Comes With the Reward in His Hand (love His appearing)',
+    refs: ['Revelation 22:12', '2 Timothy 4:8'],
+    condition: '"Behold, I come quickly; and my reward is with me, to give every man according as his work shall be" — the Lord, "the righteous judge," with a crown for "all them also that love his appearing."',
+    consequence: 'The Judge arrives carrying the payroll: reward in hand, work the unit of account, and a crown of righteousness laid up for everyone who loved the sight of Him coming.',
+    threeD: 'Work like the reward is already in His hand — it is — and check your posture toward the Judge: the covenant turns His appearing from a courtroom summons into the family\'s payday. Love His appearing; literally look forward to the Judge.',
+    outcome: 'Judgment day reframed by covenant — the Judge you honored arriving as the Rewarder you loved.',
+    tags: ['reward', 'appearing', 'crown', 'righteous-judge'],
+  },
 ];
 
 // Verbatim KJV text for a catalog ref — from the verified fetch ONLY.
@@ -1190,6 +1277,56 @@ export function godheadBySection() {
     ...s,
     entries: GODHEAD_ALGORITHMS.filter((a) => a.section === s.key),
   }));
+}
+
+// =============================================================================
+// THE ETERNAL COVENANT REVIEW (Darrell 2026-07-05) — the in-app comprehensive
+// review of the judgment committed to the Son, surfaced INSIDE the Godhead
+// Study room (the app is the primary artifact — DR-0065). The review teaches
+// the covenant as the Word states it (DR-0098), anchors every point to a
+// verbatim-fetched verse (DR-0076 — `anchor` refs reuse catalog refs already
+// verified in godhead-study-verses.json), and walks the covenant's algorithm
+// list in order. Repo companion (the Layer 4 memory of this review):
+// docs/99-session-notes/2026-07-05-eternal-covenant-judgment-committed-to-the-son-review.md
+// =============================================================================
+export const JUDGMENT_COVENANT_REVIEW = {
+  id: 'covenant-judgment-son',
+  title: 'The Eternal Covenant — All Judgment Committed unto the Son',
+  declared: '"Yahweh gives judging the souls on earth over to His Son Jesus Christ. I want to make sure I\'m abiding by that eternal covenant — and so do the Kingdom Believers." — declared into the platform, 2026-07-05',
+  summary: [
+    'The covenant is stated by the Son Himself: "the Father judgeth no man, but hath committed all judgment unto the Son" — with the authority to execute it "because he is the Son of man" (John 5:22, 27). And the stated purpose of the transfer: "That all men should honour the Son, even as they honour the Father."',
+    'The same Word shows the order of the court. The first advent leads with rescue — "I came not to judge the world, but to save the world" — while the standard is already published: the Word He has spoken judges at the last day (John 12:47-48). A day is appointed, the risen Jesus is the ordained Judge of quick and dead, and the raising of Him from the dead is Heaven\'s assurance unto all men (Acts 17:31; Acts 10:42).',
+    'Abiding by the covenant is therefore concrete for every Kingdom Believer: honour the Son as the Father is honoured; walk through the door the Judge Himself opened; live toward His judgment seat with your own account current; vacate the seat on every other soul; train for the under-Judge role the saints are promised; and love His appearing — because the Judge arrives with the reward in His hand.',
+  ],
+  // Abiding by the covenant — each point anchored to a verse already fetched
+  // verbatim for the catalog (the test suite verifies every anchor resolves).
+  abiding: [
+    { point: 'Honour the Son even as the Father is honoured — worship, speech, and how every soul is handled all route through His seat.', anchor: 'John 5:22-23' },
+    { point: 'Walk through the door the Judge Himself opened: hear His Word, believe the Father who sent Him — and live as one already passed from death unto life.', anchor: 'John 5:24' },
+    { point: 'Live toward His judgment seat: labour to be accepted of Him and keep your OWN account current — the believer\'s energy goes to his own docket, not his brother\'s case file.', anchor: '2 Corinthians 5:9-10' },
+    { point: 'Vacate the seat on every other soul: discern fruit as the Word commands, but hand every VERDICT to the one Lawgiver — judge nothing before the time.', anchor: 'James 4:12' },
+    { point: 'Train for the bench under Him: settle the smallest matters inside the Body now — judgment is GIVEN at His seat, on His terms, never seized ahead of Him.', anchor: '1 Corinthians 6:2-3' },
+    { point: 'Love His appearing: the covenant turns the court date into the family\'s payday — the Judge comes with the reward in His hand.', anchor: 'Revelation 22:12' },
+  ],
+  // The covenant's algorithm list, in covenant order: the grant, the exemption,
+  // the standard, the appointment, the seat, the vacating, the training, the reward.
+  algorithmIds: [
+    'gh-judgment-committed-to-son',
+    'gh-hear-believe-no-condemnation',
+    'gh-word-judges-last-day',
+    'gh-appointed-day-ordained-judge',
+    'gh-judgment-seat-of-christ',
+    'gh-vacate-the-seat',
+    'gh-saints-judge-with-him',
+    'gh-judge-comes-with-reward',
+  ],
+};
+
+// The review's algorithms resolved from the catalog, in covenant order.
+export function covenantAlgorithms() {
+  return JUDGMENT_COVENANT_REVIEW.algorithmIds
+    .map((id) => GODHEAD_ALGORITHMS.find((a) => a.id === id))
+    .filter(Boolean);
 }
 
 // The game hand-off (Darrell: "All eternal algorithms going into the game so
