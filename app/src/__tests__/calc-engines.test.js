@@ -120,15 +120,31 @@ describe('findExtraForTarget', () => {
   const easy = [{ id: 'r1', name: 'House', rent: 0, mortgage: { balance: 1200, rate: 0, monthlyPI: 100, escrow: 0 } }];
 
   it('returns 0-or-near-0 extra when the property already clears within the target', () => {
-    const extra = findExtraForTarget(easy, 5, TODAY); // clears in 1yr unaided
-    expect(extra).toBeGreaterThanOrEqual(0);
-    expect(extra).toBeLessThan(200);
+    const result = findExtraForTarget(easy, 5, TODAY); // clears in 1yr unaided
+    expect(result.achievable).toBe(true);
+    expect(result.extra).toBeGreaterThanOrEqual(0);
+    expect(result.extra).toBeLessThan(200);
   });
 
   it('a tighter target never needs less extra than a looser one', () => {
     const big = [{ id: 'r1', name: 'House', rent: 0, mortgage: { balance: 120000, rate: 5, monthlyPI: 600, escrow: 0 } }];
     const tight = findExtraForTarget(big, 3, TODAY);
     const loose = findExtraForTarget(big, 10, TODAY);
-    expect(tight).toBeGreaterThanOrEqual(loose);
+    expect(tight.achievable).toBe(true);
+    expect(loose.achievable).toBe(true);
+    expect(tight.extra).toBeGreaterThanOrEqual(loose.extra);
+  });
+
+  // 2026-07-05 financial-math audit: an unreachable target used to return the
+  // $50k search ceiling AS IF it were an answer. Now it says so plainly.
+  // Proven-to-catch: under the old behavior this returned 50000, not a flag.
+  it('an impossible target returns achievable:false, never the search cap as an answer', () => {
+    // $80M at 12% needs ~$800k/mo interest coverage — no $50k/mo extra clears
+    // it in 3 years.
+    const impossible = [{ id: 'r1', name: 'Tower', rent: 0, mortgage: { balance: 80000000, rate: 12, monthlyPI: 10000, escrow: 0 } }];
+    const result = findExtraForTarget(impossible, 3, TODAY);
+    expect(result.achievable).toBe(false);
+    expect(result.extra).toBeNull();
+    expect(result.cap).toBe(50000);
   });
 });

@@ -59,7 +59,10 @@ describe('PoeTech TV Time', () => {
     await mount();
     const text = container.textContent || '';
     expect(text).toMatch(/PoeTech TV Time/);
-    expect(text).toMatch(/live group sync is coming next/);
+    // Circle sharing shipped 2026-07-04 (TV_SHARING_ENABLED true after the
+    // isolation smoke test passed) — the note must say it is live, not "coming".
+    expect(text).toMatch(/circle sharing is live/);
+    expect(text).not.toMatch(/coming next/);
     expect(text).toMatch(/Look up a show/);
   });
 

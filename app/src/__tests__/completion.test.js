@@ -96,6 +96,15 @@ describe('persistentShare + moduleLedger — read the committed measured JSON', 
     expect(typeof m.monolithLines).toBe('number');
     expect(m.monolithLines).toBeGreaterThan(0);
   });
+  it('carries the snapshot date so the surface dates it instead of posing as live (DR-0076 rule 8)', () => {
+    // Both readouts wear the JSON's own generatedAt stamp; the tile renders it
+    // ("measured YYYY-MM-DD"). If the artifact ever loses the stamp, measuredAt
+    // is null and the surface must say "snapshot — regenerate" — never invent one.
+    const s = persistentShare();
+    const m = moduleLedger();
+    expect(s.measuredAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(m.measuredAt).toBe(s.measuredAt); // same artifact, same stamp
+  });
 });
 
 // FRESHNESS GATE (2026-07-04, caught live by Darrell): the committed measured

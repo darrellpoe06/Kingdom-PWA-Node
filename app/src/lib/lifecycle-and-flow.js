@@ -191,15 +191,25 @@ export function computePressure(map, totals, outflows = {}, reservesMonthly = 0)
   };
 }
 
+// 2026-07-05 financial-math audit fix: the extra pool is NO LONGER reduced by
+// minimum payments. The caller's `extraAvailable` (computePressure) starts from
+// netCashFlow, whose outflows already include debtService — the budget that
+// funds the minimums — so netting minimums out of the pool again double-counted
+// them and pushed the headline debt-free date out past the Debt Snowball tab's
+// for the SAME debts. Semantics now match projectDebtSnowball (avalanche order):
+// minimums always paid (funded by debtService), the full extra pool attacks the
+// highest-rate debt, and a cleared debt's freed minimum cascades into the pool.
 export function projectDebt(debts, monthlyExtraAvailable, currentDate, maxMonths = 240) {
   let activeDebts = debts.filter((d) => !d.leaveAlone).map((d) => ({ ...d, currentBalance: d.balance, clearedAtMonth: null }));
-  const projection = []; let totalInterestPaid = 0;
+  const projection = []; let totalInterestPaid = 0; let freedMinimums = 0;
   for (let m = 1; m <= maxMonths; m++) {
     activeDebts.forEach((d) => { if (d.currentBalance > 0 && d.rate > 0) { const interest = d.currentBalance * (d.rate / 100 / 12); d.currentBalance += interest; totalInterestPaid += interest; } });
-    let pool = monthlyExtraAvailable;
-    activeDebts.forEach((d) => { if (d.currentBalance > 0) { const pay = Math.min(d.minPayment, d.currentBalance); d.currentBalance -= pay; pool -= pay; if (d.currentBalance <= 0.01 && !d.clearedAtMonth) { d.clearedAtMonth = m; d.currentBalance = 0; } } });
+    activeDebts.forEach((d) => { if (d.currentBalance > 0) { const pay = Math.min(d.minPayment, d.currentBalance); d.currentBalance -= pay; if (d.currentBalance <= 0.01 && !d.clearedAtMonth) { d.clearedAtMonth = m; d.currentBalance = 0; freedMinimums += d.minPayment; } } });
+    // Pool AFTER the minimums pass so a same-month-cleared debt's freed minimum
+    // joins this month's attack — the exact ordering projectDebtSnowball uses.
+    let pool = monthlyExtraAvailable + freedMinimums;
     let safety = 0;
-    while (pool > 0.01 && safety < 100) { safety++; const target = activeDebts.filter((d) => d.currentBalance > 0).sort((a, b) => b.rate - a.rate)[0]; if (!target) break; const pay = Math.min(pool, target.currentBalance); target.currentBalance -= pay; pool -= pay; if (target.currentBalance <= 0.01) { target.clearedAtMonth = m; target.currentBalance = 0; } }
+    while (pool > 0.01 && safety < 100) { safety++; const target = activeDebts.filter((d) => d.currentBalance > 0).sort((a, b) => b.rate - a.rate)[0]; if (!target) break; const pay = Math.min(pool, target.currentBalance); target.currentBalance -= pay; pool -= pay; if (target.currentBalance <= 0.01) { target.clearedAtMonth = m; target.currentBalance = 0; freedMinimums += target.minPayment; } }
     const totalBalance = activeDebts.reduce((s, d) => s + Math.max(d.currentBalance, 0), 0);
     projection.push({ monthOffset: m, label: monthLabel(currentDate, m), debtBalance: Math.round(totalBalance) });
     if (totalBalance <= 1) break;
@@ -328,9 +338,19 @@ export function projectRentalSnowball(rentals, monthlyExtra, sortOrder, currentD
   return { monthlyHistory, allClearedMonth: monthlyHistory.length, allClearedYears: monthlyHistory.length / 12, allClearedDate: monthLabel(currentDate, monthlyHistory.length), activeProperties: active, totalInterest: Math.round(active.reduce((s, r) => s + r.interestPaid, 0)), finalFreedCashFlow: Math.round(freedFromSnowball) };
 }
 
+// 2026-07-05 financial-math audit fix: an unreachable target no longer returns
+// the $50k/mo search ceiling as if it were an answer. The result carries the
+// number AND whether the target is achievable inside the search bound, so the
+// 7-year surface can say "not reachable" instead of painting a fabricated
+// figure (DR-0076 — honest uncertainty over a confident wrong number).
 export function findExtraForTarget(rentals, targetYears, currentDate) {
-  let lo = 0, hi = 50000, bestExtra = hi;
+  const CAP = 50000;
+  // Achievability check first: if even the cap can't clear the portfolio in
+  // time, say so plainly rather than returning the cap.
+  const atCap = projectRentalSnowball(rentals, CAP, 'smallest-balance', currentDate, targetYears * 12 + 24);
+  if (atCap.allClearedYears > targetYears) return { extra: null, achievable: false, cap: CAP };
+  let lo = 0, hi = CAP, bestExtra = hi;
   for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; const result = projectRentalSnowball(rentals, mid, 'smallest-balance', currentDate, targetYears * 12 + 24); if (result.allClearedYears <= targetYears) { bestExtra = mid; hi = mid; } else { lo = mid; } if (hi - lo < 50) break; }
-  return Math.ceil(bestExtra);
+  return { extra: Math.ceil(bestExtra), achievable: true, cap: CAP };
 }
 

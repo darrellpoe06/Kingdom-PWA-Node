@@ -148,17 +148,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     setShowContribForm(false);
   };
 
-  const mailtoForContribution = (contrib) => {
-    const subject = `Church-tab note${contrib.topic ? ` — ${contrib.topic}` : ''}`;
-    const body =
-      `Sent from PoeTech Family OS · Church tab.\n\n` +
-      (contrib.topic ? `About: ${contrib.topic}\n\n` : '') +
-      (contrib.text  ? `Note:\n${contrib.text}\n\n` : '') +
-      (contrib.link  ? `Link: ${contrib.link}\n` : '');
-    if (c.contactEmail) return `mailto:${c.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    return c.links?.stayConnected || c.site || '#';
-  };
-
   const markContributionSent = (id) => {
     const at = new Date().toISOString();
     setContributions(prev => prev.map(c => c.id === id ? { ...c, sentAt: at } : c));
@@ -252,6 +241,20 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     const body = `Hello — please add this to the prayer list at The Love Corner.\n\nFrom: ${pr.requester}\nDate: ${pr.createdAt.slice(0, 10)}\n\n${pr.request}\n\nThank you.`;
     // The site uses an obfuscated email; users without the church's address can paste the contact form URL.
     // If a contactEmail is configured, prefer that. Otherwise fall back to the Stay Connected page.
+    if (c.contactEmail) return `mailto:${c.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return c.links?.stayConnected || c.site || '#';
+  };
+
+  // Sibling of mailtoFor above — same contactEmail/stay-connected routing for a
+  // saved contribution note. Defined AFTER `const c` (it reads c at call time;
+  // it used to sit above the declaration, a use-before-define ordering hazard).
+  const mailtoForContribution = (contrib) => {
+    const subject = `Church-tab note${contrib.topic ? ` — ${contrib.topic}` : ''}`;
+    const body =
+      `Sent from PoeTech Family OS · Church tab.\n\n` +
+      (contrib.topic ? `About: ${contrib.topic}\n\n` : '') +
+      (contrib.text  ? `Note:\n${contrib.text}\n\n` : '') +
+      (contrib.link  ? `Link: ${contrib.link}\n` : '');
     if (c.contactEmail) return `mailto:${c.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     return c.links?.stayConnected || c.site || '#';
   };

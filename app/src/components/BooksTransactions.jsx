@@ -22,6 +22,7 @@ import { filterTransactions, sortTransactions, categorySummary, reviewStatus } f
 import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
 import { compressImageFile } from '../lib/image.js';
 import { receiptShape, loadPending, addPending, removePending, suggestMatches } from '../lib/receipts.js';
+import LedgerProof from './LedgerProof.jsx';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -1594,6 +1595,10 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           </p>
         </section>
       )}
+      {/* Proof of the math — the ledger-integrity invariants over the REAL rows
+          (2026-07-05, Darrell: "how do we prove the math is correct so when real
+          numbers are uploaded for years of data it can paint a picture"). */}
+      <LedgerProof data={data} currentDate={currentDate} />
     </div>
   );
 }

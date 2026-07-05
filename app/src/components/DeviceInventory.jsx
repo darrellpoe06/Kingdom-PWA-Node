@@ -11,6 +11,11 @@
 // Two sections:
 //   Registry     — every device by type: status, steward, specs, capabilities,
 //                  link to the LED-wall capital project, honest SME-needed flags.
+//                  Governors (canEdit) get the WRITER: an Add-device form + a
+//                  per-device Edit affordance through saveDevice — a DB-backed
+//                  row updates in place; editing a seed device writes a row
+//                  whose slug overrides the seed twin on merge (the documented
+//                  church-devices.js path). Members/visitors see no controls.
 //   Compute Pool — the capability index (which node can run which job) that feeds
 //                  the deterministic idle-GPU router (gpu-scheduler.js), plus the
 //                  live INERT brake state. Read-only observability; nothing runs.
@@ -24,14 +29,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
 import {
-  SEED_DEVICES, DEVICE_TYPES, CAPABILITIES, GPU_JOB_CAPABILITIES,
+  SEED_DEVICES, DEVICE_TYPES, DEVICE_STATUSES, CAPABILITIES, GPU_JOB_CAPABILITIES,
   typeLabel, typeIcon, statusTone, statusLabel, capabilityLabel,
   summarizeDevices, devicesByType, capabilityIndex, mergeSeedAndRows,
+  makeDevice, validateDevice,
 } from '../lib/church-devices.js';
 import {
   planRun, makeInertState, JOB_TYPES, DEFAULT_IDLE_WINDOWS,
 } from '../lib/gpu-scheduler.js';
-import { getDeviceAccess, subscribeDevices } from '../lib/church-devices-sync.js';
+import { getDeviceAccess, subscribeDevices, saveDevice } from '../lib/church-devices-sync.js';
 
 // Shared visual tokens — identical to the Video Wall / conference surfaces
 // (already passing contrast-guard + legibility).
@@ -39,6 +45,7 @@ const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
 const serif = { fontFamily: '"Fraunces", serif' };
 const chip = 'inline-flex items-center gap-1 px-2 py-0.5 text-[11px] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]';
+const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
 
 function StatusBadge({ status }) {
   return (
@@ -48,7 +55,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function DeviceCard({ device, canEdit }) {
+function DeviceCard({ device, canEdit, onEdit }) {
   const specEntries = Object.entries(device.specs || {});
   return (
     <div className="border border-[#E8E4DC] p-3 sm:p-4">
@@ -57,7 +64,19 @@ function DeviceCard({ device, canEdit }) {
           <span className="text-[#B85838]" aria-hidden="true"><UiIcon name={typeIcon(device.deviceType)} /></span>
           <span className="text-sm text-[#1A1815] truncate" style={serif}>{device.name}</span>
         </div>
-        <StatusBadge status={device.status} />
+        <div className="flex items-center gap-2 shrink-0">
+          <StatusBadge status={device.status} />
+          {/* Editors only — the register's per-device writer (saveDevice). */}
+          {canEdit && onEdit && (
+            <button
+              type="button"
+              onClick={() => onEdit(device)}
+              className="text-[0.6875rem] uppercase tracking-wider px-2 py-0.5 border border-[#C9C2B6] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              Edit
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#5A5751]">
@@ -122,10 +141,121 @@ function DeviceCard({ device, canEdit }) {
   );
 }
 
+// -----------------------------------------------------------------------------
+// DeviceEditor — the register's minimal steward writer (governors only; the
+// render gate is access.canEdit and RLS enforces owner/admin regardless).
+// Add = a blank draft; Edit = the existing device prefilled, so untouched
+// fields (specs, capabilities, flags, sort order) survive the write. Saves via
+// saveDevice: a DB-backed row (remoteUuid) UPDATEs in place; a seed-only or
+// brand-new device INSERTs a row whose slug overrides/append on the merge. No
+// optimistic paint — the register refreshes when the realtime stream returns
+// the real row (DR-0076: the screen shows what the DB actually holds).
+// -----------------------------------------------------------------------------
+function DeviceEditor({ target, onClose }) {
+  const [form, setForm] = useState({
+    name: target?.name || '',
+    deviceType: target?.deviceType || 'other',
+    location: target?.location || '',
+    status: target?.status || 'planned',
+    steward: target?.steward || '',
+    notes: target?.notes || '',
+    confirmed: target?.confirmed === true,
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  async function save() {
+    if (!form.name.trim()) { setError('Name is required.'); return; }
+    const device = makeDevice({
+      ...(target || {}),
+      name: form.name,
+      deviceType: form.deviceType,
+      location: form.location.trim() || null,
+      status: form.status,
+      steward: form.steward.trim() || null,
+      notes: form.notes.trim() || null,
+      confirmed: form.confirmed,
+    });
+    const check = validateDevice(device);
+    if (!check.ok) { setError(check.errors.join('; ')); return; }
+    setBusy(true);
+    const payload = target?.remoteUuid ? { ...device, remoteUuid: target.remoteUuid } : device;
+    const res = await saveDevice(payload);
+    setBusy(false);
+    if (res?.uploaded || res?.updated) { onClose(); return; }
+    // Honest failure: name the skip reason; the register was not changed.
+    setError(`Could not save (${res?.skipped || 'error'}) — the register was not changed.`);
+  }
+
+  return (
+    <div className={card}>
+      <div className={labelCls}>{target ? `Edit device · ${target.name}` : 'Add device'}</div>
+      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label htmlFor="dev-ed-name" className={labelCls}>Name</label>
+          <input id="dev-ed-name" className={fieldCls} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g., Booth streaming PC" />
+        </div>
+        <div>
+          <label htmlFor="dev-ed-type" className={labelCls}>Category</label>
+          <select id="dev-ed-type" className={fieldCls} value={form.deviceType} onChange={(e) => set('deviceType', e.target.value)}>
+            {DEVICE_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="dev-ed-location" className={labelCls}>Location</label>
+          <input id="dev-ed-location" className={fieldCls} value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="e.g., Sanctuary AV booth" />
+        </div>
+        <div>
+          <label htmlFor="dev-ed-status" className={labelCls}>Status</label>
+          <select id="dev-ed-status" className={fieldCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
+            {DEVICE_STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="dev-ed-steward" className={labelCls}>Steward</label>
+          <input id="dev-ed-steward" className={fieldCls} value={form.steward} onChange={(e) => set('steward', e.target.value)} placeholder="Who keeps this device" />
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="dev-ed-notes" className={labelCls}>Notes</label>
+          <textarea id="dev-ed-notes" rows="2" className={fieldCls} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
+        </div>
+      </div>
+      {/* Honesty flag stays a human declaration: checked = read off the hardware. */}
+      <label className="mt-2 flex items-baseline gap-2 text-[0.75rem] text-[#1A1815]">
+        <input type="checkbox" checked={form.confirmed} onChange={(e) => set('confirmed', e.target.checked)} className="accent-[#B85838]" />
+        Confirmed — these details were read off the real hardware
+      </label>
+      <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={save}
+          disabled={busy}
+          className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-50 disabled:cursor-not-allowed focus:outline focus:outline-2 focus:outline-[#B85838]"
+        >
+          {busy ? 'Saving…' : (target ? 'Save changes' : 'Add to register')}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={busy}
+          className="text-xs uppercase tracking-wider px-3 py-2 border border-[#C9C2B6] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]"
+        >
+          Cancel
+        </button>
+        {error && <span role="alert" className="text-[0.75rem] text-[#B85838]">{error}</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function DeviceInventory() {
   const [access, setAccess] = useState({ signedIn: false, canSee: false, canEdit: false });
   const [rows, setRows] = useState(null); // null = loading / not subscribed
   const [section, setSection] = useState('registry');
+  // editor: null = closed; { target: null } = add form; { target: device } = edit.
+  const [editor, setEditor] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -167,6 +297,18 @@ export default function DeviceInventory() {
         {!access.signedIn && (
           <p className="mt-2 text-[12px] text-[#5A5751]">Showing the known infrastructure baseline. Sign in with a church staff account to see live status and sensitive fields.</p>
         )}
+        {access.signedIn && access.canSee && !access.canEdit && (
+          <p className="mt-2 text-[0.75rem] text-[#5A5751]">Read-only view — adding or editing devices is reserved for the register&rsquo;s governors (owner/admin).</p>
+        )}
+        {access.canEdit && (
+          <button
+            type="button"
+            onClick={() => { setSection('registry'); setEditor({ target: null }); }}
+            className="mt-3 text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            + Add device
+          </button>
+        )}
       </div>
 
       {/* SECTION TABS */}
@@ -184,6 +326,15 @@ export default function DeviceInventory() {
 
       {section === 'registry' && (
         <>
+          {/* STEWARD EDITOR — governors only; keyed so switching target resets the form */}
+          {access.canEdit && editor && (
+            <DeviceEditor
+              key={editor.target ? editor.target.id : 'dev-ed-new'}
+              target={editor.target}
+              onClose={() => setEditor(null)}
+            />
+          )}
+
           {/* SUMMARY KPIs */}
           <div className={card}>
             <div className={labelCls}>At a glance</div>
@@ -215,7 +366,9 @@ export default function DeviceInventory() {
                 <span className="text-[#C9C2B6]">· {grouped[t.id].length}</span>
               </div>
               <div className="mt-2 space-y-2.5">
-                {grouped[t.id].map((d) => <DeviceCard key={d.id} device={d} canEdit={access.canEdit} />)}
+                {grouped[t.id].map((d) => (
+                  <DeviceCard key={d.id} device={d} canEdit={access.canEdit} onEdit={(dev) => setEditor({ target: dev })} />
+                ))}
               </div>
             </div>
           ))}

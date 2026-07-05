@@ -6,11 +6,12 @@
 // "what everyone's watching" feed. You only ever see what the DB (0074 RLS) lets
 // you: kids never see 'us', a stranger's family sees nothing.
 //
-// GATED (!!). The whole surface is behind TV_SHARING_ENABLED (tv-circle-sync.js),
-// which is FALSE until the live NAS data-isolation smoke test passes. While off,
-// this renders nothing — TV Time is unchanged, no cross-person read happens. The
-// enabled path is proven by a mocked render test now and by the isolation test on
-// deploy. WCAG-AA themed classes + UiIcon (no inline color / emoji-as-icon).
+// LIVE. TV_SHARING_ENABLED (tv-circle-sync.js) opened 2026-07-04 after the
+// data-isolation smoke test (infra/supabase/tests/0074-isolation-smoke.sql)
+// passed against the real database. The flag remains the kill-switch: flipped
+// false, this renders nothing and no cross-person read happens. The enabled path
+// is proven by a mocked render test and by the isolation test on deploy.
+// WCAG-AA themed classes + UiIcon (no inline color / emoji-as-icon).
 // =============================================================================
 import React, { useEffect, useState, useCallback } from 'react';
 import UiIcon from './UiIcon.jsx';

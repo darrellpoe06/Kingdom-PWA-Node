@@ -22,6 +22,10 @@
 // build's `photo` string) migrate transparently into the `photos` array.
 import React, { useRef, useState } from 'react';
 import { compressImageFile } from '../lib/image.js';
+import {
+  CAMERA_BRANDS, brandLabel, classifyStreamUrl, makeCamera, camerasOf,
+  upsertCamera, removeCamera, streamStatus, pickLiveView,
+} from '../lib/observation-cameras.js';
 
 // Real building, from Darrell: the 600-person main worship area, a large foyer,
 // 7 rooms, and a bathroom at each corner (NE/NW/SE/SW). Names + the set are
@@ -54,15 +58,189 @@ function photosOf(s) {
 }
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
-const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
 const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const btnDark = 'bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px]';
-const btnGhost = 'text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]';
+const btnGhost = 'text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]';
 
-function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onRename, onNote, onRemove }) {
+const chipCls = 'inline-block text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border';
+const chipTone = {
+  ok: `${chipCls} border-[#5A6E3D] text-[#5A6E3D] bg-[#5A6E3D]/5`,
+  wait: `${chipCls} border-[#8A6E1F] text-[#8A6E1F] bg-[#8A6E1F]/5`,
+  blocked: `${chipCls} border-[#B85838] text-[#B85838] bg-[#B85838]/5`,
+  muted: `${chipCls} border-[#B8B4AC] text-[#5A5751] bg-white`,
+};
+// Map a streamStatus kind to a chip tone — honest colors: green only when this
+// browser can actually render it, amber for registered-awaiting, rust for
+// blocked, grey for the rest.
+function chipToneFor(kind) {
+  if (kind === 'mjpeg-or-snapshot' || kind === 'snapshot-only') return chipTone.ok;
+  if (kind === 'rtsp' || kind === 'hls') return chipTone.wait;
+  if (kind === 'mixed-blocked') return chipTone.blocked;
+  return chipTone.muted;
+}
+
+const pageProtocol = () => (typeof window !== 'undefined' && window.location ? window.location.protocol : 'https:');
+
+// Add/edit form for one camera. Pure local state; `onSave` receives the
+// finished record built through makeCamera (timestamps generated here).
+function CameraForm({ spaceId, cam, onSave, onCancel }) {
+  const [form, setForm] = useState({
+    name: cam?.name || '', brand: cam?.brand || 'wyze', streamUrl: cam?.streamUrl || '',
+    snapshotUrl: cam?.snapshotUrl || '', location: cam?.location || '', notes: cam?.notes || '',
+  });
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const hint = (CAMERA_BRANDS.find((b) => b.id === form.brand) || CAMERA_BRANDS[3]).hint;
+  const canSave = form.name.trim().length > 0;
+  const submit = () => {
+    if (!canSave) return;
+    onSave(makeCamera({
+      ...form,
+      id: cam?.id || `cam-${Date.now()}`,
+      addedAt: cam?.addedAt || new Date().toISOString(),
+    }));
+  };
+  const idp = `cam-${spaceId}-${cam?.id || 'new'}`;
+  return (
+    <div className="border border-[#E8E4DC] bg-white p-2 space-y-2">
+      <div>
+        <label className={labelCls} htmlFor={`${idp}-brand`}>Brand</label>
+        <select id={`${idp}-brand`} className={fieldCls} value={form.brand} onChange={set('brand')}>
+          {CAMERA_BRANDS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+        </select>
+        <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{hint}</p>
+      </div>
+      <div>
+        <label className={labelCls} htmlFor={`${idp}-name`}>Camera name</label>
+        <input id={`${idp}-name`} className={fieldCls} placeholder="e.g. Foyer door cam" value={form.name} onChange={set('name')} />
+      </div>
+      <div>
+        <label className={labelCls} htmlFor={`${idp}-stream`}>Stream URL · rtsp:// or http(s)://</label>
+        <input id={`${idp}-stream`} className={fieldCls} placeholder="rtsp://user:pass@192.168.1.50/live" value={form.streamUrl} onChange={set('streamUrl')} />
+      </div>
+      <div>
+        <label className={labelCls} htmlFor={`${idp}-snap`}>Snapshot URL · optional, a .jpg the camera serves</label>
+        <input id={`${idp}-snap`} className={fieldCls} placeholder="optional" value={form.snapshotUrl} onChange={set('snapshotUrl')} />
+      </div>
+      <div>
+        <label className={labelCls} htmlFor={`${idp}-loc`}>Location in this space</label>
+        <input id={`${idp}-loc`} className={fieldCls} placeholder="optional · e.g. NE ceiling corner" value={form.location} onChange={set('location')} />
+      </div>
+      <div>
+        <label className={labelCls} htmlFor={`${idp}-notes`}>Notes</label>
+        <input id={`${idp}-notes`} className={fieldCls} placeholder="optional" value={form.notes} onChange={set('notes')} />
+      </div>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={submit} disabled={!canSave} className={`${btnDark} disabled:opacity-40`}>{cam ? 'Save camera' : 'Add camera'}</button>
+        <button type="button" onClick={onCancel} className={btnGhost}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// The live-view attempt for one camera — only ever claims what this browser
+// verifiably renders; everything else is an honest named state (DR-0076).
+function CameraLiveView({ cam }) {
+  const [failed, setFailed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const proto = pageProtocol();
+  const view = pickLiveView(cam, proto);
+  const direct = cam.streamUrl || cam.snapshotUrl || '';
+  const rtspRegistered = classifyStreamUrl(cam.streamUrl) === 'rtsp';
+  const copyRtsp = async () => {
+    try {
+      await navigator.clipboard.writeText(cam.streamUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (_) { /* clipboard unavailable — the URL is still visible below */ }
+  };
+  const unreachable = (
+    <p className="text-[0.625rem] text-[#5A5751] p-2" style={{ fontFamily: '"Fraunces", serif' }}>
+      Stream not reachable from this device/browser — try the direct link below.
+    </p>
+  );
+  return (
+    <div className="border border-[#E8E4DC] bg-white">
+      {view.mode === 'img' && !failed && (
+        <img src={view.url} alt={`${cam.name} — live view`} className="w-full max-h-48 object-contain bg-[#1A1815]" onError={() => setFailed(true)} />
+      )}
+      {view.mode === 'video' && !failed && (
+        // HLS plays natively only in Safari's <video>; elsewhere onError lands
+        // us in the honest unreachable state (no hls.js — no new dependencies).
+        <video src={view.url} className="w-full max-h-48 bg-[#1A1815]" controls muted playsInline onError={() => setFailed(true)} />
+      )}
+      {(view.mode === 'img' || view.mode === 'video') && failed && unreachable}
+      {view.mode === 'blocked' && (
+        <p className="text-[0.625rem] text-[#B85838] p-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          This page is https and the camera URL is http — the browser blocks it here. Use the direct link (or open the app over the LAN).
+        </p>
+      )}
+      {view.mode === 'bridge' && (
+        <p className="text-[0.625rem] text-[#5A5751] p-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Registered — RTSP cannot play in a browser; live view arrives with the NAS restream bridge.
+        </p>
+      )}
+      {view.mode === 'page' && (
+        <p className="text-[0.625rem] text-[#5A5751] p-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          This URL is the camera&rsquo;s own web page — use the direct link below.
+        </p>
+      )}
+      {view.mode === 'none' && (
+        <p className="text-[0.625rem] text-[#5A5751] p-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          No viewable URL yet — add a stream or snapshot URL.
+        </p>
+      )}
+      {rtspRegistered && view.mode !== 'bridge' && (
+        <p className="text-[0.5625rem] text-[#8A6E1F] px-2 pb-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          RTSP stream registered — in-app live arrives with the NAS restream bridge; showing the snapshot URL meanwhile.
+        </p>
+      )}
+      <div className="flex items-center gap-3 px-2 pb-2 flex-wrap">
+        {direct && (
+          <a href={direct} target="_blank" rel="noopener noreferrer" className={btnGhost}>Open direct ↗</a>
+        )}
+        {rtspRegistered && (
+          <button type="button" onClick={copyRtsp} className={btnGhost}>{copied ? 'Copied' : 'Copy RTSP URL'}</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CameraRow({ spaceId, cam, onUpsert, onRemoveCam }) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const status = streamStatus(cam, pageProtocol());
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 space-y-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold truncate">{cam.name || 'Unnamed camera'}</p>
+          <p className="text-[0.625rem] text-[#5A5751] truncate" style={{ fontFamily: '"Fraunces", serif' }}>
+            {brandLabel(cam.brand)}{cam.location ? ` · ${cam.location}` : ''}{cam.notes ? ` · ${cam.notes}` : ''}
+          </p>
+        </div>
+        <span className={chipToneFor(status.kind)}>{status.label}</span>
+      </div>
+      <div className="flex items-center gap-3 flex-wrap">
+        <button type="button" onClick={() => { setOpen(v => !v); setEditing(false); }} className={btnGhost}>{open ? 'Hide view' : 'View'}</button>
+        <button type="button" onClick={() => { setEditing(v => !v); setOpen(false); }} className={btnGhost}>{editing ? 'Close edit' : 'Edit'}</button>
+        <button type="button" onClick={() => onRemoveCam(spaceId, cam.id)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Remove</button>
+      </div>
+      {open && <CameraLiveView key={`${cam.streamUrl}|${cam.snapshotUrl}`} cam={cam} />}
+      {editing && (
+        <CameraForm spaceId={spaceId} cam={cam} onCancel={() => setEditing(false)} onSave={(next) => { onUpsert(spaceId, next); setEditing(false); }} />
+      )}
+    </div>
+  );
+}
+
+function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onRename, onNote, onRemove, onUpsertCamera, onRemoveCamera }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [addingCam, setAddingCam] = useState(false);
+  const cameras = camerasOf(space);
   const cover = photos[0];
 
   const handleFile = async (e) => {
@@ -92,14 +270,14 @@ function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onRename, onNote
         ) : (
           <div className="text-center px-3">
             <div className="text-2xl" aria-hidden="true">📷</div>
-            <p className="text-[11px] text-[#B8B4AC] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No photos yet</p>
+            <p className="text-[0.6875rem] text-[#B8B4AC] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No photos yet</p>
           </div>
         )}
         {space.capacity ? (
-          <span className="absolute top-1.5 left-1.5 text-[9px] uppercase tracking-wider bg-[#1A1815]/80 text-white px-1.5 py-0.5">Capacity {space.capacity}</span>
+          <span className="absolute top-1.5 left-1.5 text-[0.5625rem] uppercase tracking-wider bg-[#1A1815]/80 text-white px-1.5 py-0.5">Capacity {space.capacity}</span>
         ) : null}
         {photos.length > 0 && (
-          <span className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wider bg-[#1A1815]/80 text-white px-1.5 py-0.5">{photos.length} photo{photos.length > 1 ? 's' : ''}</span>
+          <span className="absolute top-1.5 right-1.5 text-[0.5625rem] uppercase tracking-wider bg-[#1A1815]/80 text-white px-1.5 py-0.5">{photos.length} photo{photos.length > 1 ? 's' : ''}</span>
         )}
       </div>
 
@@ -108,7 +286,7 @@ function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onRename, onNote
           {photos.map(p => (
             <div key={p.id} className="relative shrink-0">
               <img src={p.src} alt="" className="w-12 h-12 object-cover border border-[#E8E4DC]" />
-              <button type="button" onClick={() => onRemovePhoto(space.id, p.id)} aria-label="Remove photo" className="absolute -top-1 -right-1 bg-[#1A1815] text-white w-4 h-4 leading-none text-[10px] flex items-center justify-center hover:bg-[#B85838]">×</button>
+              <button type="button" onClick={() => onRemovePhoto(space.id, p.id)} aria-label="Remove photo" className="absolute -top-1 -right-1 bg-[#1A1815] text-white w-4 h-4 leading-none text-[0.625rem] flex items-center justify-center hover:bg-[#B85838]">×</button>
             </div>
           ))}
         </div>
@@ -129,11 +307,34 @@ function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onRename, onNote
           <label htmlFor={`file-${space.id}`} className={`${btnDark} cursor-pointer inline-flex items-center`} aria-disabled={busy}>
             {busy ? 'Working…' : (photos.length ? '+ Add photos' : '📷 Add photos')}
           </label>
-          {!space.capacity && <button type="button" onClick={() => onRemove(space.id)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete space</button>}
+          {!space.capacity && <button type="button" onClick={() => onRemove(space.id)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete space</button>}
         </div>
-        {err && <p className="text-[10px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{err}</p>}
+        {err && <p className="text-[0.625rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{err}</p>}
+
+        <div className="pt-2 border-t border-[#E8E4DC] space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className={labelCls}>Cameras{cameras.length ? ` · ${cameras.length}` : ''}</span>
+            <button type="button" onClick={() => setAddingCam(v => !v)} className={btnGhost}>{addingCam ? 'Cancel' : '+ Add camera'}</button>
+          </div>
+          {addingCam && (
+            <CameraForm
+              spaceId={space.id}
+              onCancel={() => setAddingCam(false)}
+              onSave={(cam) => { onUpsertCamera(space.id, cam); setAddingCam(false); }}
+            />
+          )}
+          {cameras.map(c => (
+            <CameraRow key={c.id} spaceId={space.id} cam={c} onUpsert={onUpsertCamera} onRemoveCam={onRemoveCamera} />
+          ))}
+          {!cameras.length && !addingCam && (
+            <p className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              No cameras registered — Wyze and other IP cameras can be added here.
+            </p>
+          )}
+        </div>
+
         {space.updatedAt && (
-          <p className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Updated {space.updatedAt.slice(0, 16).replace('T', ' ')}</p>
+          <p className="text-[0.5625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Updated {space.updatedAt.slice(0, 16).replace('T', ' ')}</p>
         )}
       </div>
     </div>
@@ -170,31 +371,45 @@ export function ChurchObservation({ observation, updateChurchObservation }) {
   };
   const addSpace = () => writeSpaces([...spaces, { id: `sp-${Date.now()}`, name: `Room ${spaces.filter(s => !s.capacity).length + 1}`, photos: [], note: '', updatedAt: '' }]);
 
+  // Camera registry writes — metadata only (name/brand/URLs/notes), so unlike
+  // the photo bytes these ride the family snapshot with the rest of the board.
+  const onUpsertCamera = (spaceId, cam) => writeSpaces(spaces.map(s =>
+    s.id === spaceId ? { ...s, cameras: upsertCamera(camerasOf(s), cam), updatedAt: now() } : s));
+  const onRemoveCamera = (spaceId, camId) => {
+    if (!window.confirm('Remove this camera from the space?')) return;
+    writeSpaces(spaces.map(s =>
+      s.id === spaceId ? { ...s, cameras: removeCamera(camerasOf(s), camId), updatedAt: now() } : s));
+  };
+
   const withPhotos = spaces.filter(s => photosOf(s).length).length;
   const totalPhotos = spaces.reduce((n, s) => n + photosOf(s).length, 0);
+  const totalCameras = spaces.reduce((n, s) => n + camerasOf(s).length, 0);
 
   return (
     <section className={card} aria-labelledby="observation-h">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">👁 Observation · 🔒 Staff only</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">👁 Observation · 🔒 Staff only</div>
           <h2 id="observation-h" className="text-xl sm:text-2xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Church Spaces</h2>
           <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-            The Church of the Living God · 312 E. Bradley Avenue, Champaign, IL · {spaces.length} spaces · {withPhotos} covered · {totalPhotos} photo{totalPhotos === 1 ? '' : 's'}
+            The Church of the Living God · 312 E. Bradley Avenue, Champaign, IL · {spaces.length} spaces · {withPhotos} covered · {totalPhotos} photo{totalPhotos === 1 ? '' : 's'} · {totalCameras} camera{totalCameras === 1 ? '' : 's'}
           </p>
         </div>
         <button type="button" onClick={addSpace} className={btnGhost}>+ Add space</button>
       </div>
 
       <div className="bg-[#FAF8F4] border-l-2 border-[#8A6E1F] px-3 py-2 mt-3">
-        <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           Photos are saved on <strong>this device</strong> for now and only visible to church staff signed in here — they are not uploaded anywhere or shared. Sovereign NAS storage (the church’s own, never copied) is the next step. No face recognition is used.
+        </p>
+        <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Camera stream URLs may embed credentials — they stay in the family’s own account snapshot, never public.
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
         {spaces.map(s => (
-          <SpaceTile key={s.id} space={s} photos={photosOf(s)} onAddPhotos={onAddPhotos} onRemovePhoto={onRemovePhoto} onRename={onRename} onNote={onNote} onRemove={onRemove} />
+          <SpaceTile key={s.id} space={s} photos={photosOf(s)} onAddPhotos={onAddPhotos} onRemovePhoto={onRemovePhoto} onRename={onRename} onNote={onNote} onRemove={onRemove} onUpsertCamera={onUpsertCamera} onRemoveCamera={onRemoveCamera} />
         ))}
       </div>
     </section>

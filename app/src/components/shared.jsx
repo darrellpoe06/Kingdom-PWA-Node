@@ -91,13 +91,20 @@ function PricingTier({ name, tagline, monthly, annual, features, availableNow, s
   );
 }
 
-function CommunityPriorities({ moduleInterest }) {
+function CommunityPriorities({ moduleInterest, familyModuleInterest = null }) {
   const interests = Object.entries(moduleInterest || {}).map(([key, val]) => {
     const priority = typeof val === 'object' ? val?.priority : 'nice';
     const pts = priority === 'critical' ? 5 : priority === 'important' ? 3 : 1;
     return { key, priority, pts };
   });
-  if (interests.length === 0) return null;
+  // 0077 — when the module_interest stream is live, the family aggregate is a
+  // REAL cross-member count ({ votes, points }); rendered alongside "your"
+  // votes so the roadmap weight shown is never a one-device mirage (DR-0076).
+  const family = Object.entries(familyModuleInterest || {})
+    .map(([key, agg]) => ({ key, votes: agg?.votes || 0, points: agg?.points || 0 }))
+    .filter((f) => f.votes > 0)
+    .sort((a, b) => b.points - a.points);
+  if (interests.length === 0 && family.length === 0) return null;
   const totalPts = interests.reduce((s, i) => s + i.pts, 0);
   const labels = {
     'home-command': 'Home Command Center',
@@ -114,21 +121,38 @@ function CommunityPriorities({ moduleInterest }) {
   };
   return (
     <div className="bg-white border border-[#B85838] p-4 mb-4">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2">Your Priority Votes · {totalPts} total points</div>
-      <div className="space-y-1.5">
-        {interests.sort((a,b) => b.pts - a.pts).map(i => {
-          const pct = (i.pts / 5) * 100;
-          return (
-            <div key={i.key}>
-              <div className="flex justify-between text-xs mb-0.5">
-                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{labels[i.key] || i.key}</span>
-                <span className="text-[#5A5751] uppercase tracking-wider text-[10px]">{i.priority} · {i.pts}pt</span>
+      {interests.length > 0 && (
+        <>
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2">Your Priority Votes · {totalPts} total points</div>
+          <div className="space-y-1.5">
+            {interests.sort((a,b) => b.pts - a.pts).map(i => {
+              const pct = (i.pts / 5) * 100;
+              return (
+                <div key={i.key}>
+                  <div className="flex justify-between text-xs mb-0.5">
+                    <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{labels[i.key] || i.key}</span>
+                    <span className="text-[#5A5751] uppercase tracking-wider text-[10px]">{i.priority} · {i.pts}pt</span>
+                  </div>
+                  <div className="h-1 bg-[#E8E4DC]"><div className="h-full bg-[#B85838]" style={{ width: `${pct}%` }}></div></div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {family.length > 0 && (
+        <>
+          <div className={`text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2 ${interests.length > 0 ? 'mt-3' : ''}`}>Family Priority Votes · live across the family</div>
+          <div className="space-y-1">
+            {family.map(f => (
+              <div key={f.key} className="flex justify-between text-xs">
+                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{labels[f.key] || f.key}</span>
+                <span className="text-[#5A5751] uppercase tracking-wider text-[0.625rem]">{f.votes} vote{f.votes === 1 ? '' : 's'} · {f.points}pt</span>
               </div>
-              <div className="h-1 bg-[#E8E4DC]"><div className="h-full bg-[#B85838]" style={{ width: `${pct}%` }}></div></div>
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        </>
+      )}
       <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
         When this is multiplied across thousands of families, the highest-weighted modules get built first. Your vote is real input on the roadmap.
       </p>

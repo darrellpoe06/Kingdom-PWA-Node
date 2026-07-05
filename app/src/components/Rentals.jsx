@@ -821,7 +821,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const rentalsWithCleared = rentals.map(r => { const cleared = rentalSnowball.activeProperties.find(p => p.id === r.id); return { ...r, clearedAtMonth: cleared?.clearedAtMonth }; });
   const orderedByPayoff = rentalsWithCleared.filter(r => r.clearedAtMonth).sort((a, b) => a.clearedAtMonth - b.clearedAtMonth);
   const sevenYrFeasible = rentalSnowball.allClearedYears <= 7;
-  const gapMonthly = sevenYearTarget - snowballExtra;
+  // findExtraForTarget now returns { extra, achievable, cap } — an unreachable
+  // 7-year goal is said plainly instead of painting the $50k search ceiling.
+  const sevenYrAchievable = !!sevenYearTarget?.achievable;
+  const sevenYrExtra = sevenYearTarget?.extra ?? 0;
+  const gapMonthly = sevenYrExtra - snowballExtra;
   // v28+ Rentals expansion: add/edit property + autocomplete + map + evaluator
   const [showPropForm, setShowPropForm] = useState(false);
   const [editingPropId, setEditingPropId] = useState(null);
@@ -2195,7 +2199,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       <section>
         <SectionTitle>7-Year Goal · Feasibility</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-5">
-          {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all {doorCount} doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYearTarget)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p>}
+          {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all {doorCount} doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : sevenYrAchievable ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYrExtra)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. The 7-year goal is <strong>not reachable</strong> even at {fmt(sevenYearTarget?.cap || 0)}/mo extra — the honest levers are rent, principal, or the target year, not a bigger snowball.</p>}
         </div>
       </section>
       <section>

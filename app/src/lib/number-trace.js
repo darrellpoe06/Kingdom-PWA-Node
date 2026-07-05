@@ -26,6 +26,7 @@
 // `kind` ∈ 'money' | 'percent' | 'count' | 'years' | 'date' | 'text'
 // `op`   ∈ '+' | '−' | '×' | '÷' | undefined  (how the row combines)
 // =============================================================================
+import { deriveAccountBalances } from './financial-engineering.js';
 
 const CASH_TYPES = ['checking', 'savings', 'cash', 'investment'];
 
@@ -123,12 +124,20 @@ export function traceNetCashFlow(data, totals) {
 // -----------------------------------------------------------------------------
 // Cash on hand — spendable balances, excluding legal-hold accounts.
 // -----------------------------------------------------------------------------
-export function traceCashOnHand(data, totals) {
+export function traceCashOnHand(data, totals, derivedBalances = null) {
+  // 2026-07-05 financial-math audit fix: source rows use the DERIVED per-account
+  // balances (opening + cleared ledger — the exact derivation behind the
+  // headline totals.allAccountsCash, monolith `derivedBalances[a.id] ?? a.balance`),
+  // not the static a.balance field. A trace whose line items don't sum to the
+  // number they explain is a painted trace (DR-0076). Callers that already hold
+  // the monolith's derivedBalances map pass it; otherwise it is derived here
+  // with the same pure function.
+  const derived = derivedBalances || deriveAccountBalances(data);
   const sources = (data.accounts || [])
     .filter((a) => CASH_TYPES.includes(a.type) && !a.inLegal)
     .map((a) => ({
       label: a.name || a.type,
-      value: a.balance || 0,
+      value: (a.id != null && derived[a.id] != null) ? derived[a.id] : (a.balance ?? 0),
       kind: 'money',
       op: '+',
       meta: a.type,

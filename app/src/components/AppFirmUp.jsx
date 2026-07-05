@@ -8,7 +8,10 @@
 // target as loops migrate) and the MODULE-LEDGER monolith line-count (shrinking
 // as extractions land). It reads the SAME shared board store the boards write, so
 // closing an item moves this % on its own; the repo metrics come from the
-// deterministic persistent-share.py JSON. No painted numbers.
+// deterministic persistent-share.py JSON. No painted numbers — and no false
+// liveness either (DR-0076 rule 8): the JSON is a SNAPSHOT, only as fresh as the
+// last script run, so both repo-metric tiles carry its measured date instead of
+// reading as a live gauge.
 //
 // Glyphs are geometric/arrow only (↑ ↓ → ▦), never device-font emoji, and text
 // sizes are rem tokens — cross-device + large-print safe (consistency-guard).
@@ -23,6 +26,15 @@ function fmtDate(d) {
   if (!d) return null;
   const [y, m, day] = d.split('-').map(Number);
   return new Date(y, m - 1, day).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// The snapshot's own date, worn on the tile (honest provenance): the share % and
+// ledger are real measured numbers, but only as fresh as the last
+// scripts/persistent-share.py run — so they say WHEN, never posing as live.
+function measuredLabel(iso) {
+  return iso
+    ? `measured ${fmtDate(String(iso).slice(0, 10))}`
+    : 'snapshot — regenerate scripts/persistent-share.py to refresh';
 }
 
 function TrendArrow({ trend }) {
@@ -90,7 +102,7 @@ export default function AppFirmUp({ onOpenBoards = null }) {
           </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-semibold text-[#1A1815]">{share.current}%</span>
-            <span className="text-xs text-[#5A5751]">of {share.totalLines.toLocaleString()} lines</span>
+            <span className="text-xs text-[#5A5751]">of {share.totalLines.toLocaleString()} lines · {measuredLabel(share.measuredAt)}</span>
           </div>
           <div className="mt-2 h-2 rounded-full bg-[#1A1815]/10 overflow-hidden" title={`toward ${share.target}% target`}>
             <div className="h-full bg-[#2A5A8E]" style={{ width: `${towardTarget}%` }} />
@@ -121,6 +133,7 @@ export default function AppFirmUp({ onOpenBoards = null }) {
           </div>
           <div className="mt-2 text-sm text-[#1A1815]">
             Monolith {ledger.monolithLines != null ? ledger.monolithLines.toLocaleString() : '—'} lines
+            <span className="text-xs text-[#5A5751]"> · {measuredLabel(ledger.measuredAt)}</span>
           </div>
           <div className="mt-1 text-xs">
             {ledger.frozenBudget != null && (

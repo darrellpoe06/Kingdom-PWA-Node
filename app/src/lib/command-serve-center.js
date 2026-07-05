@@ -18,7 +18,10 @@
 //
 // VERIFICATION DOCTRINE (DR-0076): every status below is the REAL state of a real
 // surface on main, asserted in code and traceable to a named component — not a
-// painted number. A faculty that is not fully wired says so; it is never shown as
+// painted number. And its PROVENANCE is honest by name: these are DECLARED wiring
+// statuses (asserted at authoring time, pinned by tests), not runtime measurements
+// — the chip in the UI says "declared" so nobody reads them as a health probe.
+// A faculty that is not fully wired says so; it is never shown as
 // green when it is not. THREE BRAKES (CLAUDE.md, post-2026-06-06): this module is
 // the READ/DECIDE/HAND-OFF loop only. Autonomous execution stays behind the Cage
 // (budget cap + concurrency lock + kill-switch, owned by the wake-orchestrator
@@ -100,25 +103,36 @@ export function seatOf({ email = null, persona = null, isFamily = false } = {}) 
 }
 
 // ---------------------------------------------------------------------------
-// centerReadiness — honest per-faculty status (Verification Doctrine).
+// declaredReadiness — honest per-faculty status (Verification Doctrine).
 // 'live'    = every surface under the faculty is real on main today.
 // 'partial' = the faculty has a live surface AND a piece still wiring up.
 // 'wiring'  = nothing of the faculty is on main yet.
-// Each carries a `note` that names the real situation. These are asserted from
-// known repo state at authoring time; a test pins them so a drift (e.g. the
-// CONTROL cockpit landing) forces an honest update here rather than silently
-// going stale.
+// Each carries a `note` that names the real situation. PROVENANCE (DR-0076
+// rule 8, honest by name): these are DECLARED wiring statuses — asserted from
+// known repo state at authoring time and pinned by tests — NOT a runtime
+// measurement. Nothing here polls or probes; the chip in the UI says so too
+// (READINESS_PROVENANCE below is its tooltip). A drift (e.g. the CONTROL
+// cockpit landing) forces an honest update here rather than silently going
+// stale, because the test pins the declaration.
 // ---------------------------------------------------------------------------
-export function centerReadiness() {
+
+// The one-line provenance statement the UI surfaces on every readiness chip.
+// Stated once here so the code and the chip can never say different things.
+export const READINESS_PROVENANCE =
+  'Declared wiring status, asserted at build and pinned by tests — not a runtime measurement.';
+
+export function declaredReadiness() {
   return {
     see: {
       status: 'live',
+      provenance: 'declared',
       note: 'Operations, Quality / Proof, the KPI key, and the conflict-rate loop are live on main — real state, no painted numbers.',
     },
     command: {
       // The CONTROL surface (arm / disarm / kill, budget, concurrency, handoff
       // log) is live on main; the ENGINE it drives ships INERT behind the Cage.
       status: 'partial',
+      provenance: 'declared',
       note: 'The orchestrator cockpit (arm / disarm / kill, budget, concurrency) is live on main and ships INERT — kill-switch engaged, feed not deployed. Arming stays a deliberate, attended act. The deep autonomous self-build stays staged and braked.',
     },
     control: {
@@ -127,12 +141,14 @@ export function centerReadiness() {
       // — consolidated here from the Build board where it was buried. The full
       // Projects / Build surface opens from a deep-link for editing.
       status: 'live',
+      provenance: 'declared',
       note: 'The live project-management pulse — real projects by eternal stage, the discussions driving the work, and braked hand-offs — composes here in the seat; the full Projects and Build board open from here for editing. Real synced rows, no painted numbers.',
     },
     serve: {
       // The framing + role-scoping IS the seat; it is live. Community-serving
       // surfaces beyond the seat are a forward build.
       status: 'live',
+      provenance: 'declared',
       note: 'The seat itself is the serve faculty — role-scoped access, the steward at the helm, command-in-order-to-serve. Outward community-serving surfaces build from here.',
     },
   };

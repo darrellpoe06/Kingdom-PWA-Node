@@ -142,6 +142,29 @@ describe('traceCashOnHand', () => {
   it('cash source values sum to the result', () => {
     expect(t.sources.reduce((s, r) => s + r.value, 0)).toBe(8000);
   });
+
+  // 2026-07-05 financial-math audit fix: the trace's source rows must be the
+  // DERIVED balances (opening + cleared ledger), not the static a.balance —
+  // otherwise the line items can fail to sum to the headline they explain.
+  // Proven-to-catch: under the old static-balance behavior the Checking row
+  // read 3000 here and did not tie out to the derived headline.
+  it('source rows use derived balances (opening + cleared transactions), tying out to the derived headline', () => {
+    const ledgerData = {
+      ...data,
+      accounts: [
+        { id: 'chk', name: 'Checking', type: 'checking', balance: 3000, openingBalance: 3000 },
+        { id: 'sav', name: 'Savings', type: 'savings', balance: 5000, openingBalance: 5000 },
+      ],
+      transactions: [
+        { id: 't1', accountId: 'chk', date: '2026-06-01', amount: -500 }, // cleared spend
+        { id: 't2', accountId: 'chk', date: '2099-01-01', amount: 999 },  // future — not settled
+      ],
+    };
+    const traced = traceCashOnHand(ledgerData, { allAccountsCash: 7500 });
+    const chk = traced.sources.find((s) => s.label === 'Checking');
+    expect(chk.value).toBe(2500); // 3000 opening − 500 cleared, future row ignored
+    expect(traced.sources.reduce((s, r) => s + r.value, 0)).toBe(7500);
+  });
 });
 
 describe('traceConsumerDebt', () => {

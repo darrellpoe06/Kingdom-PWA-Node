@@ -63,6 +63,29 @@ describe('incomeVsExpenseModel', () => {
   tieOut(m);
 });
 
+describe('incomeVsExpenseModel — internal transfers are NOT income or expense', () => {
+  // The confirmed defect: a pure sign split reported a transfer credit as Income
+  // and its debit as Expense. Both real markers are covered (category 'transfer'
+  // from seed/BooksTransactions/categorize, isTransfer from the synced ledger).
+  const XFER = [
+    { id: 'x1', posted: '2026-06-12', institution: 'Chase 7206', name: 'Online Transfer to Savings', category: 'transfer', amount: -500 },
+    { id: 'x2', posted: '2026-06-12', institution: 'Chase 3322', name: 'Online Transfer from Checking', isTransfer: true, amount: 500 },
+  ];
+  const m = incomeVsExpenseModel([...ROWS, ...XFER], META);
+  it('excludes the transfer credit from Income and the transfer debit from Expenses', () => {
+    const income = m.groups.find((g) => g.label === 'Income');
+    const expenses = m.groups.find((g) => g.label === 'Expenses');
+    expect(income.rows.some((r) => r.payee === 'Online Transfer from Checking')).toBe(false);
+    expect(expenses.rows.some((r) => r.payee === 'Online Transfer to Savings')).toBe(false);
+    expect(income.subtotal.in).toBeCloseTo(5699.86, 2);    // NOT 6199.86
+    expect(expenses.subtotal.out).toBeCloseTo(1340.25, 2); // NOT 1840.25
+  });
+  it('names the exclusion honestly in the report note', () => {
+    expect(m.note).toMatch(/transfer/i);
+  });
+  tieOut(m);
+});
+
 describe('tax1099Model — totals by payee, with an honest disclaimer', () => {
   const m = tax1099Model(ROWS, META);
   it('rolls repeated payees into one line and carries a not-a-filed-1099 note', () => {

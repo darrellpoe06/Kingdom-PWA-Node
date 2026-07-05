@@ -288,6 +288,25 @@ export function checkQuestionFidelity(question = {}) {
 }
 
 /**
+ * Decide which trivia source the card renders (pure; no I/O). LIVE wins only
+ * when a real trivia_questions row exists AND passes the extraction-fidelity
+ * gate above — a malformed row falls back to the authored anchor set rather
+ * than painting a broken card as live content. The anchor fallback keeps its
+ * own honest dating; this helper never dresses the fallback up as fresh
+ * (DR-0076: the gate is on the DATA, and the fallback stays labeled as what
+ * it is). Returns { mode:'live', question } | { mode:'anchor', reason, issues? }.
+ */
+export function chooseTriviaSource(liveQuestion) {
+  if (!liveQuestion) return { mode: 'anchor', reason: 'no-live-question' };
+  // Defense-in-depth: getActiveQuestion already excludes retracted rows, but a
+  // caller handing us one directly must never see it rendered as live.
+  if (liveQuestion.status === 'rejected') return { mode: 'anchor', reason: 'retracted' };
+  const fidelity = checkQuestionFidelity(liveQuestion);
+  if (!fidelity.ok) return { mode: 'anchor', reason: 'failed-fidelity', issues: fidelity.issues };
+  return { mode: 'live', question: liveQuestion };
+}
+
+/**
  * Retract a live question (status='rejected') — POST-HOC correction for a bad
  * extraction, NOT a pre-publish gate. Reversible. RLS scopes this to owner/admin
  * (editing live church content), but it never holds a healthy question from

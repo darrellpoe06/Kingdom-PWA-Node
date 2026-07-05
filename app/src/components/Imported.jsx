@@ -32,7 +32,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   sortByDate, sortRows, effectiveRange, periodRange, filterByRange, groupByMonth, groupByField, totals,
-  monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel,
+  monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel, isTransferTxn,
 } from '../lib/imported-view.js';
 import ReportActions from './ReportActions.jsx';
 import { currentViewModel, financePresets } from '../lib/finance-reports.js';
@@ -132,6 +132,10 @@ export function buildImportedView(data, filters, nowMs) {
     category: t.category || null,
     amount: typeof t.amount === 'number' ? t.amount : Number(t.amount) || 0,
     pending: t.pending === true || t.status === 'pending',
+    // Carry the synced ledger's transfer flag through so every downstream
+    // consumer (totals, reports) can exclude internal transfers via
+    // isTransferTxn — the category alone misses is_transfer-flagged rows.
+    isTransfer: t.isTransfer === true,
   }));
 
   const institutions = [...new Set(rows.map(r => r.institution).filter(Boolean))].sort();
@@ -150,12 +154,16 @@ export function buildImportedView(data, filters, nowMs) {
   });
 
   // Deterministic 30-day in/out over the ledger (honest, from posted rows).
+  // Internal transfers still count as recent activity but are excluded from the
+  // money sums — moving money between our own accounts is neither in nor out
+  // (same exclusion as totals() in lib/imported-view.js).
   const cutoff = (nowMs || Date.now()) - 30 * 86400_000;
   let recentIn = 0, recentOut = 0, recentCount = 0;
   for (const r of rows) {
     const at = Date.parse(r.posted);
     if (Number.isNaN(at) || at < cutoff) continue;
     recentCount += 1;
+    if (isTransferTxn(r)) continue;
     if (r.amount < 0) recentOut += Math.abs(r.amount); else recentIn += r.amount;
   }
 

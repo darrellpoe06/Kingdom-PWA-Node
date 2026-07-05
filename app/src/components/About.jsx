@@ -11,7 +11,7 @@ import { ARI } from '../lib/ari.js';
 // 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
 // section (trusted-device list/revoke + change PIN). Both are optional, so the
 // public/demo/anonymous About view is unchanged when they are absent.
-function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {}, authUserId = null, onChangePin = null }) {
+function About({ moduleInterest, familyModuleInterest = null, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {}, authUserId = null, onChangePin = null }) {
   // v28+ MVP v1.5 round 3 — Capex / Tools list moved out of About; lives at the
   // bottom of the Projects tab as "Project Inventory & Capital Forecast".
   // v28+ Session C: checkout cart drawer state
@@ -274,9 +274,9 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       <section>
         <SectionTitle>Modules</SectionTitle>
         <p className="text-sm text-[#5A5751] leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Live modules ship to all subscribers. Planned and Vision modules accept early interest signals — tap <strong>Notify me · vote on priority</strong> to register and weigh in on what gets built next. The aggregate of family priority votes shapes the roadmap.
+          Live modules ship to all subscribers. Planned and Vision modules accept early interest signals — tap <strong>Notify me · vote on priority</strong> to register and weigh in on what gets built next. Signed in, votes pool across the family (module_interest) and that real aggregate shapes the roadmap; signed out, votes stay on this device until you sign in.
         </p>
-        <CommunityPriorities moduleInterest={moduleInterest} />
+        <CommunityPriorities moduleInterest={moduleInterest} familyModuleInterest={familyModuleInterest} />
         <div className="space-y-3">
           <ModuleCard moduleKey="financial" status="active" title="Financial Control System" desc="Multi-entity bookkeeping with debt avalanche, rental snowball, pressure slider, tax calendar, 1099 tracking, scope-of-work agreements, event reminders." features={['4-entity book separation','Debt avalanche · rental snowball','7-year Sabbath payoff goal','Tax & compliance calendar','Events with browser notifications','Scope of work templates & agreements','1099 tracking · both directions']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="home-command" status="planned" title="Home Command Center" repo="poe-trust-command-center" desc="BAS-level intelligence for the residential home. Enterprise building-automation thinking applied to family stewardship." features={['IoT sensor integration','F&S-level alarms (leak, intrusion, HVAC failure)','Seasonal maintenance calendar','Floor plan mapping & inventory','Per-property dashboards']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />

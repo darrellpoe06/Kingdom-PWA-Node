@@ -34,6 +34,7 @@ import { flywheel } from '../lib/book-flywheel.js';
 import {
   availableRecipes, buildRecipe, loadShelf, saveShelf, upsertBook, removeBook,
 } from '../lib/book-corpus.js';
+import { subscribeSermons } from '../lib/choir-sync.js';
 import { loadLibrary } from '../lib/eternal-algorithms.js';
 import { useReadingResume, anchorProps } from '../lib/reading-position.js';
 import Bookstore from './Bookstore.jsx';
@@ -241,13 +242,24 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
 
   useEffect(() => { setShelf(loadShelf(email).books); }, [email]);
 
+  // Live sermon corpus (real choir_sermons rows, mapped by toSermonShape — the
+  // exact camelCase shape sermonToSource reads). The shell mounts this surface
+  // with sermons={[]}, which starved the "Messages from the House" recipe
+  // forever; same self-subscribe fix ScriptureLibrary got 2026-06-29.
+  const [liveSermons, setLiveSermons] = useState([]);
+  useEffect(() => {
+    const offSermons = subscribeSermons((rows) => setLiveSermons(rows || []));
+    return () => { if (typeof offSermons === 'function') offSermons(); };
+  }, []);
+
   // Real corpus the studio assembles from. Algorithms come from the device-local
-  // library (falls back to the seed catalog inside availableRecipes); sermons are
-  // passed in only when the Church > The Word tab has loaded them.
+  // library (falls back to the seed catalog inside availableRecipes); sermons
+  // come from the live stream above — live rows win, and the prop stays as the
+  // DI/test fallback for callers that inject their own corpus.
   const ctx = useMemo(() => ({
     algorithms: loadLibrary(email)?.entries || [],
-    sermons: Array.isArray(sermons) ? sermons : [],
-  }), [email, sermons]);
+    sermons: liveSermons.length ? liveSermons : (Array.isArray(sermons) ? sermons : []),
+  }), [email, sermons, liveSermons]);
 
   const persist = useCallback((books) => { setShelf(books); saveShelf(email, books); }, [email]);
 
