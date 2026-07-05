@@ -30,6 +30,7 @@ import supabase from '../lib/supabase.js';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
+import { ReviewAsUserAction } from './ReviewAsUser.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import {
   accessRoster,
@@ -193,6 +194,9 @@ export default function AdminConsole({
         <section className="bg-white border border-[#1A1815] p-4">
           <div className="text-sm font-semibold text-[#1A1815]" style={serif}>Actions</div>
           <div className="mt-2 space-y-2">
+            {/* Review-as-a-user lens (Darrell 2026-07-05): admins test a shipped
+                build exactly as a user sees it; the exit banner stays pinned. */}
+            <ReviewAsUserAction />
             <GuardedAction actionId="reload-latest" onExecute={doReload} />
             {onResetSeed && <GuardedAction actionId="reset-seed" onExecute={doResetSeed} />}
           </div>

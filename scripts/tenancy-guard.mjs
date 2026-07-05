@@ -166,12 +166,18 @@ export function checkIdentityGate(srcOverride = null) {
 
   // Integrity: a membership identifier used to gate the names must itself be
   // derived from isFamilyEmail, so it can't be hollowed to `= !!authSession`.
+  // Two accepted shapes: the plain derivation, and the review-as-user lens
+  // (2026-07-05) — `const [isFamilyMember, ...] = useReviewGate(isFamilyEmail(...))`.
+  // The lens is gate-PRESERVING by construction (it can only turn the flag OFF,
+  // never mint it; pinned by review-as-user.test.jsx), so requiring isFamilyEmail
+  // inside the definition keeps the property either way.
   if (/isFamilyMember/.test(body)) {
-    const def = src.match(/const\s+isFamilyMember\s*=\s*([^\n;]*)/);
+    const def = src.match(/const\s+isFamilyMember\s*=\s*([^\n;]*)/)
+      || src.match(/const\s+\[\s*isFamilyMember\b[^\]]*\]\s*=\s*([^\n;]*)/);
     if (!def) {
       problems.push('PROFILES gates on isFamilyMember but its definition was not found');
     } else if (!/isFamilyEmail/.test(def[1])) {
-      problems.push(`isFamilyMember must be derived from isFamilyEmail; found: const isFamilyMember = ${def[1].trim()}`);
+      problems.push(`isFamilyMember must be derived from isFamilyEmail; found: ${def[0].trim()}`);
     }
   }
 
