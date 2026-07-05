@@ -74,6 +74,20 @@ relying on it; memories reflect what was true when written.
 
 ## Session-learned additions (append per session, newest first)
 
+- **2026-07-05 — platform-move parity is a checked class, not a memory** — the
+  Vercel→Cloudflare Pages cutover silently dropped every same-origin endpoint
+  Vercel provided outside the static bundle: /api/market-quote,
+  /api/voice-speak (serverless functions don't port), /nas-photos/* (rewrites
+  to external origins need a Pages Function), and the N8N_BASE resolver still
+  pointed at the Funnel cross-origin (503 throttle = intermittent "works, then
+  doesn't"). All fixed; the guard is
+  `app/src/__tests__/cf-pages-parity.test.js`. Standing rule: same-origin
+  '/n8n' is the default again (the 2026-06-17 Funnel-direct era existed only
+  for a Vercel TLS bug and died with Vercel). Also: Storage BUCKETS are schema
+  that must ride migrations (0078); auth users, storage objects, and Supabase
+  dashboard auth config (Site URL, OAuth callbacks, confirm-email OFF) do NOT
+  move with a database — check them first when "onboarding broke after a move."
+
 - **2026-07-04 — DB changes ride the lane; stop guessing manual applies** —
   cost Darrell real time when I offered docker `psql` and Supabase Studio
   paste steps for the TV-sharing `0074` migration. He: "I don't have that we
