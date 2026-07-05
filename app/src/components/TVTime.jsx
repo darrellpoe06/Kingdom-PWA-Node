@@ -398,11 +398,16 @@ export default function TVTime({ email = null }) {
   // per device; first-time default = wall once the list is big enough that
   // scrolling cards is slower than scanning posters.
   const [viewMode, setViewMode] = useState(() => {
-    try { const v = localStorage.getItem('poe-tv-view'); if (v === 'wall' || v === 'cards') return v; } catch { /* fresh */ }
+    try { const v = localStorage.getItem('poe-tv-view'); if (v === 'wall' || v === 'squares' || v === 'cards') return v; } catch { /* fresh */ }
     return null; // decided from list size on first render
   });
-  const [focusId, setFocusId] = useState(null); // wall tile tapped → its card opens
-  const wallMode = (viewMode || (tracked.length > 9 ? 'wall' : 'cards')) === 'wall';
+  const [focusId, setFocusId] = useState(null); // grid tile tapped → its card opens
+  const activeView = viewMode || (tracked.length > 9 ? 'wall' : 'cards');
+  // 'wall' (tall 2:3 posters) and 'squares' (Darrell 2026-07-05: "a view that has
+  // squares" — 1:1 tiles, art cropped to fill) are both the condensed grid; they
+  // differ only in tile shape. 'cards' is the full detail list.
+  const wallMode = activeView === 'wall' || activeView === 'squares';
+  const tileAspect = activeView === 'squares' ? 'aspect-square' : 'aspect-[2/3]';
   const pickView = (v) => { setViewMode(v); setFocusId(null); try { localStorage.setItem('poe-tv-view', v); } catch { /* device-local nicety */ } };
   // Poster-size slider (Darrell 2026-07-05: "adjust image sizes with a slider so
   // it's smaller or bigger based on the position"). The value is the tile's MIN
@@ -663,8 +668,8 @@ export default function TVTime({ email = null }) {
       {anyTracked && (
         <div className="flex items-center gap-1.5 mb-2 flex-wrap" role="group" aria-label="List view">
           <span className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mr-1">View</span>
-          {[['wall', 'Poster wall'], ['cards', 'Full cards']].map(([v, label]) => {
-            const on = wallMode === (v === 'wall');
+          {[['wall', 'Poster wall'], ['squares', 'Squares'], ['cards', 'Full cards']].map(([v, label]) => {
+            const on = activeView === v;
             return (
               <button key={v} type="button" onClick={() => pickView(v)} aria-pressed={on}
                 className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#C9BFA8] hover:text-[#1A1815]'}`}>{label}</button>
@@ -712,7 +717,7 @@ export default function TVTime({ email = null }) {
                         aria-pressed={on}
                         aria-label={`${show.title} — ${prog.watched} of ${prog.total || '?'} watched`}
                         className={`text-left focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'ring-2 ring-[#B85838]' : ''}`}>
-                        <Poster url={show.poster} title={show.title} kind={show.kind} resolve className="w-full aspect-[2/3]" />
+                        <Poster url={show.poster} title={show.title} kind={show.kind} resolve className={`w-full ${tileAspect}`} />
                         <span className="block h-1 bg-[#E8E4DC]" aria-hidden="true">
                           <span className="block h-1 bg-[#2F6B33]" style={{ width: `${pct}%` }} />
                         </span>
